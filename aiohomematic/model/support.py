@@ -34,7 +34,7 @@ from aiohomematic.const import (
     ParameterData,
     ParameterType,
 )
-from aiohomematic.interfaces.central import ConfigProvider
+from aiohomematic.interfaces.central import ConfigProviderProtocol
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.support import to_bool
 
@@ -466,7 +466,7 @@ def get_custom_data_point_name(
 
 
 def generate_unique_id(
-    config_provider: ConfigProvider,
+    config_provider: ConfigProviderProtocol,
     address: str,
     parameter: str | None = None,
     prefix: str | None = None,
@@ -493,7 +493,7 @@ def generate_unique_id(
 
 
 def generate_channel_unique_id(
-    config_provider: ConfigProvider,
+    config_provider: ConfigProviderProtocol,
     address: str,
 ) -> str:
     """Build unique identifier for a channel from address."""

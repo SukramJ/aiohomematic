@@ -36,18 +36,22 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.central import (
-    CentralInfo,
-    ConfigProvider,
-    DataCacheProvider,
-    DataPointProvider,
-    EventBusProvider,
-    EventPublisher,
-    EventSubscriptionManager,
-    FileOperations,
-    FirmwareDataRefresher,
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    DataCacheProviderProtocol,
+    DataPointProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+    EventSubscriptionManagerProtocol,
+    FileOperationsProtocol,
+    FirmwareDataRefresherProtocol,
 )
-from aiohomematic.interfaces.client import ClientProvider, DeviceDiscoveryAndMetadata, DeviceDiscoveryWithIdentity
-from aiohomematic.interfaces.coordinators import CoordinatorProvider
+from aiohomematic.interfaces.client import (
+    ClientProviderProtocol,
+    DeviceDiscoveryAndMetadataProtocol,
+    DeviceDiscoveryWithIdentityProtocol,
+)
+from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
     ChannelProtocol,
@@ -55,11 +59,11 @@ from aiohomematic.interfaces.model import (
     GenericEventProtocol,
 )
 from aiohomematic.interfaces.operations import (
-    DeviceDescriptionProvider,
-    DeviceDetailsProvider,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    TaskScheduler,
+    DeviceDescriptionProviderProtocol,
+    DeviceDetailsProviderProtocol,
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
 )
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
@@ -72,7 +76,7 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class DeviceCoordinator(FirmwareDataRefresher):
+class DeviceCoordinator(FirmwareDataRefresherProtocol):
     """Coordinator for device lifecycle and operations."""
 
     __slots__ = (
@@ -98,21 +102,21 @@ class DeviceCoordinator(FirmwareDataRefresher):
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        client_provider: ClientProvider,
-        config_provider: ConfigProvider,
-        coordinator_provider: CoordinatorProvider,
-        data_cache_provider: DataCacheProvider,
-        data_point_provider: DataPointProvider,
-        device_description_provider: DeviceDescriptionProvider,
-        device_details_provider: DeviceDetailsProvider,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        event_subscription_manager: EventSubscriptionManager,
-        file_operations: FileOperations,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        task_scheduler: TaskScheduler,
+        central_info: CentralInfoProtocol,
+        client_provider: ClientProviderProtocol,
+        config_provider: ConfigProviderProtocol,
+        coordinator_provider: CoordinatorProviderProtocol,
+        data_cache_provider: DataCacheProviderProtocol,
+        data_point_provider: DataPointProviderProtocol,
+        device_description_provider: DeviceDescriptionProviderProtocol,
+        device_details_provider: DeviceDetailsProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        event_subscription_manager: EventSubscriptionManagerProtocol,
+        file_operations: FileOperationsProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the device coordinator.
@@ -515,7 +519,11 @@ class DeviceCoordinator(FirmwareDataRefresher):
         return result
 
     async def refresh_device_descriptions_and_create_missing_devices(
-        self, *, client: DeviceDiscoveryWithIdentity, refresh_only_existing: bool, device_address: str | None = None
+        self,
+        *,
+        client: DeviceDiscoveryWithIdentityProtocol,
+        refresh_only_existing: bool,
+        device_address: str | None = None,
     ) -> None:
         """
         Refresh device descriptions and create missing devices.
@@ -778,7 +786,7 @@ class DeviceCoordinator(FirmwareDataRefresher):
     async def _rename_new_device(
         self,
         *,
-        client: DeviceDiscoveryAndMetadata,
+        client: DeviceDiscoveryAndMetadataProtocol,
         device_descriptions: tuple[DeviceDescription, ...],
         device_name: str,
     ) -> None:

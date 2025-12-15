@@ -12,22 +12,22 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import DescriptionMarker, ProgramData
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.client import ProgramOperations
+from aiohomematic.interfaces.client import ProgramOperationsProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
     from aiohomematic.const import Interface
-    from aiohomematic.interfaces.client import ClientDependencies
+    from aiohomematic.interfaces.client import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class ProgramHandler(BaseHandler, ProgramOperations):
+class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
     """
     Handler for program operations.
 
-    Implements ProgramOperations protocol for ISP-compliant client operations.
+    Implements ProgramOperationsProtocol protocol for ISP-compliant client operations.
 
     Handles:
     - Getting all programs
@@ -41,7 +41,7 @@ class ProgramHandler(BaseHandler, ProgramOperations):
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface: Interface,
         interface_id: str,
         json_rpc_client: AioJsonRpcAioHttpClient,
@@ -51,7 +51,7 @@ class ProgramHandler(BaseHandler, ProgramOperations):
     ) -> None:
         """Initialize the program handler."""
         super().__init__(
-            central=central,
+            client_deps=client_deps,
             interface=interface,
             interface_id=interface_id,
             json_rpc_client=json_rpc_client,

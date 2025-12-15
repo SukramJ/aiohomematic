@@ -56,9 +56,9 @@ from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState, HealthRecordCallback
 from aiohomematic.client.handlers import (
     BackupHandler,
-    DeviceOperationsHandler,
+    DeviceHandler,
     FirmwareHandler,
-    LinkManagementHandler,
+    LinkHandler,
     MetadataHandler,
     ProgramHandler,
     SystemVariableHandler,
@@ -105,7 +105,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
-from aiohomematic.interfaces.client import ClientDependencies, ClientProtocol
+from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.property_decorators import hm_property
 from aiohomematic.store import CommandCache, PingPongCache
@@ -146,8 +146,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     Client object to access the backends via XML-RPC or JSON-RPC.
 
     This class acts as a facade over specialized handler classes:
-    - DeviceOperationsHandler: Value read/write, paramset operations
-    - LinkManagementHandler: Device linking operations
+    - DeviceHandler: Value read/write, paramset operations
+    - LinkHandler: Device linking operations
     - FirmwareHandler: Firmware update operations
     - SystemVariableHandler: System variable CRUD
     - ProgramHandler: Program execution and state
@@ -182,7 +182,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def __init__(self, *, client_config: ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
-        self._json_rpc_client: Final = client_config.central.json_rpc_client
+        self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
         self._state_machine: Final = ClientStateMachine(interface_id=client_config.interface_id)
         # Wire up state machine callback to emit events
@@ -191,10 +191,10 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._is_callback_alive: bool = True
         self._reconnect_attempts: int = 0
         self._ping_pong_cache: Final = PingPongCache(
-            event_bus_provider=client_config.central,
-            central_info=client_config.central,
+            event_bus_provider=client_config.client_deps,
+            central_info=client_config.client_deps,
             interface_id=client_config.interface_id,
-            connection_state=client_config.central.connection_state,
+            connection_state=client_config.client_deps.connection_state,
         )
         self._proxy: BaseRpcProxy
         self._proxy_read: BaseRpcProxy
@@ -204,15 +204,15 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         # Subscribe to connection state changes to clear ping/pong cache on reconnect.
         # This prevents stale pending pongs from causing false mismatch alarms
         # after CCU restart when PINGs sent during downtime cannot be answered.
-        client_config.central.event_bus.subscribe(
+        client_config.client_deps.event_bus.subscribe(
             event_type=SystemStatusEvent,
             event_key=None,
             handler=self._on_system_status_event,
         )
 
         # Handler instances (initialized after proxy setup in init_client)
-        self._device_ops_handler: DeviceOperationsHandler
-        self._link_handler: LinkManagementHandler
+        self._device_ops_handler: DeviceHandler
+        self._link_handler: LinkHandler
         self._firmware_handler: FirmwareHandler
         self._sysvar_handler: SystemVariableHandler
         self._program_handler: ProgramHandler
@@ -242,9 +242,9 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return self._state_machine.is_available
 
     @property
-    def central(self) -> ClientDependencies:
+    def central(self) -> ClientDependenciesProtocol:
         """Return the central of the client."""
-        return self._config.central
+        return self._config.client_deps
 
     @property
     def interface(self) -> Interface:
@@ -767,7 +767,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 interface_id=self.interface_id
             )
         ) is not None:
-            callback_warn = self._config.central.config.timeout_config.callback_warn_interval
+            callback_warn = self._config.client_deps.config.timeout_config.callback_warn_interval
             if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > callback_warn:
                 if self._is_callback_alive:
                     self.central.event_bus.publish_sync(
@@ -820,7 +820,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         if not self.supports_push_updates:
             return True
 
-        callback_warn = self._config.central.config.timeout_config.callback_warn_interval
+        callback_warn = self._config.client_deps.config.timeout_config.callback_warn_interval
         return (datetime.now() - self.modified_at).total_seconds() < callback_warn
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
@@ -853,7 +853,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             self._state_machine.transition_to(target=ClientState.RECONNECTING)
 
             # Calculate exponential backoff delay using timeout_config
-            timeout_cfg = self._config.central.config.timeout_config
+            timeout_cfg = self._config.client_deps.config.timeout_config
             delay = min(
                 timeout_cfg.reconnect_initial_delay * (timeout_cfg.reconnect_backoff_factor**self._reconnect_attempts),
                 timeout_cfg.reconnect_max_delay,
@@ -1000,8 +1000,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     def _init_handlers(self) -> None:
         """Initialize all handler instances."""
-        self._device_ops_handler = DeviceOperationsHandler(
-            central=self._config.central,
+        self._device_ops_handler = DeviceHandler(
+            client_deps=self._config.client_deps,
             interface=self._config.interface,
             interface_id=self._config.interface_id,
             json_rpc_client=self._json_rpc_client,
@@ -1010,8 +1010,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             last_value_send_cache=self._last_value_send_cache,
         )
 
-        self._link_handler = LinkManagementHandler(
-            central=self._config.central,
+        self._link_handler = LinkHandler(
+            client_deps=self._config.client_deps,
             interface=self._config.interface,
             interface_id=self._config.interface_id,
             json_rpc_client=self._json_rpc_client,
@@ -1021,7 +1021,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         )
 
         self._firmware_handler = FirmwareHandler(
-            central=self._config.central,
+            client_deps=self._config.client_deps,
             interface=self._config.interface,
             interface_id=self._config.interface_id,
             json_rpc_client=self._json_rpc_client,
@@ -1032,7 +1032,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         )
 
         self._sysvar_handler = SystemVariableHandler(
-            central=self._config.central,
+            client_deps=self._config.client_deps,
             interface=self._config.interface,
             interface_id=self._config.interface_id,
             json_rpc_client=self._json_rpc_client,
@@ -1041,7 +1041,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         )
 
         self._program_handler = ProgramHandler(
-            central=self._config.central,
+            client_deps=self._config.client_deps,
             interface=self._config.interface,
             interface_id=self._config.interface_id,
             json_rpc_client=self._json_rpc_client,
@@ -1051,7 +1051,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         )
 
         self._backup_handler = BackupHandler(
-            central=self._config.central,
+            client_deps=self._config.client_deps,
             interface=self._config.interface,
             interface_id=self._config.interface_id,
             json_rpc_client=self._json_rpc_client,
@@ -1062,7 +1062,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         )
 
         self._metadata_handler = MetadataHandler(
-            central=self._config.central,
+            client_deps=self._config.client_deps,
             interface=self._config.interface,
             interface_id=self._config.interface_id,
             json_rpc_client=self._json_rpc_client,
@@ -1097,7 +1097,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     def _on_client_state_change(self, *, old_state: ClientState, new_state: ClientState) -> None:
         """Handle client state machine transitions by emitting events."""
-        self._config.central.event_bus.publish_sync(
+        self._config.client_deps.event_bus.publish_sync(
             event=SystemStatusEvent(
                 timestamp=datetime.now(),
                 client_state=(self.interface_id, old_state, new_state),
@@ -1599,41 +1599,45 @@ class ClientConfig:
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface_config: InterfaceConfig,
         health_record_callback: HealthRecordCallback | None = None,
     ) -> None:
         """Initialize the config."""
-        self.central: Final[ClientDependencies] = central
+        self.client_deps: Final[ClientDependenciesProtocol] = client_deps
         self.health_record_callback: Final = health_record_callback
         self.version: str = "0"
         self.system_information = SystemInformation()
         self.interface_config: Final = interface_config
         self.interface: Final = interface_config.interface
         self.interface_id: Final = interface_config.interface_id
-        self.max_read_workers: Final[int] = central.config.max_read_workers
-        self.has_credentials: Final[bool] = central.config.username is not None and central.config.password is not None
+        self.max_read_workers: Final[int] = client_deps.config.max_read_workers
+        self.has_credentials: Final[bool] = (
+            client_deps.config.username is not None and client_deps.config.password is not None
+        )
         self.supports_linking: Final = self.interface in LINKABLE_INTERFACES
         self.supports_firmware_updates: Final = self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
         self.supports_ping_pong: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
-        self.supports_push_updates: Final = self.interface not in central.config.interfaces_requiring_periodic_refresh
+        self.supports_push_updates: Final = (
+            self.interface not in client_deps.config.interfaces_requiring_periodic_refresh
+        )
         self.supports_rpc_callback: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
         callback_host: Final = (
-            central.config.callback_host if central.config.callback_host else central.callback_ip_addr
+            client_deps.config.callback_host if client_deps.config.callback_host else client_deps.callback_ip_addr
         )
         callback_port = (
-            central.config.callback_port_xml_rpc
-            if central.config.callback_port_xml_rpc
-            else central.listen_port_xml_rpc
+            client_deps.config.callback_port_xml_rpc
+            if client_deps.config.callback_port_xml_rpc
+            else client_deps.listen_port_xml_rpc
         )
         init_url = f"{callback_host}:{callback_port}"
         self.init_url: Final = f"http://{init_url}"
 
         self.xml_rpc_uri: Final = build_xml_rpc_uri(
-            host=central.config.host,
+            host=client_deps.config.host,
             port=interface_config.port,
             path=interface_config.remote_path,
-            tls=central.config.tls,
+            tls=client_deps.config.tls,
         )
 
     async def create_client(self) -> ClientProtocol:
@@ -1692,7 +1696,7 @@ class ClientConfig:
         health_record_callback: HealthRecordCallback | None = None,
     ) -> AioXmlRpcProxy:
         """Return a XmlRPC proxy for the backend communication."""
-        config = self.central.config
+        config = self.client_deps.config
         xml_rpc_headers = (
             build_xml_rpc_headers(
                 username=config.username,
@@ -1704,12 +1708,12 @@ class ClientConfig:
         xml_proxy = AioXmlRpcProxy(
             max_workers=max_workers,
             interface_id=self.interface_id,
-            connection_state=self.central.connection_state,
+            connection_state=self.client_deps.connection_state,
             uri=self.xml_rpc_uri,
             headers=xml_rpc_headers,
             tls=config.tls,
             verify_tls=config.verify_tls,
-            session_recorder=self.central.cache_coordinator.recorder,
+            session_recorder=self.client_deps.cache_coordinator.recorder,
             health_record_callback=health_record_callback,
         )
         await xml_proxy.do_init()
@@ -1776,13 +1780,13 @@ class InterfaceConfig:
 
 
 async def create_client(
-    central: ClientDependencies,
+    client_deps: ClientDependenciesProtocol,
     interface_config: InterfaceConfig,
     health_record_callback: HealthRecordCallback | None = None,
 ) -> ClientProtocol:
     """Return a new client for with a given interface_config."""
     return await ClientConfig(
-        central=central,
+        client_deps=client_deps,
         interface_config=interface_config,
         health_record_callback=health_record_callback,
     ).create_client()

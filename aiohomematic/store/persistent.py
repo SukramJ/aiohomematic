@@ -66,10 +66,14 @@ from aiohomematic.const import (
     ParamsetKey,
     RPCType,
 )
-from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, DeviceProvider
-from aiohomematic.interfaces.client import DeviceDescriptionsAccess, ParamsetDescriptionWriter
-from aiohomematic.interfaces.model import DeviceRemovalInfo
-from aiohomematic.interfaces.operations import DeviceDescriptionProvider, ParamsetDescriptionProvider, TaskScheduler
+from aiohomematic.interfaces.central import CentralInfoProtocol, ConfigProviderProtocol, DeviceProviderProtocol
+from aiohomematic.interfaces.client import DeviceDescriptionsAccessProtocol, ParamsetDescriptionWriterProtocol
+from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
+from aiohomematic.interfaces.operations import (
+    DeviceDescriptionProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.support import (
     check_or_create_directory,
     cleanup_script_for_session_recorder,
@@ -120,10 +124,10 @@ class BasePersistentFile(ABC):
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
-        device_provider: DeviceProvider,
-        task_scheduler: TaskScheduler,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
+        device_provider: DeviceProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
         persistent_content: dict[str, Any],
     ) -> None:
         """Initialize the base class of the persistent content."""
@@ -277,7 +281,7 @@ class BasePersistentFile(ABC):
         return text.encode(encoding=UTF_8)
 
 
-class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider, DeviceDescriptionsAccess):
+class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol):
     """Cache for device/channel names."""
 
     __slots__ = (
@@ -292,10 +296,10 @@ class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider, Devi
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
-        device_provider: DeviceProvider,
-        task_scheduler: TaskScheduler,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
+        device_provider: DeviceProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """Initialize the device description cache."""
         # {interface_id, [device_descriptions]}
@@ -389,7 +393,7 @@ class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider, Devi
                 self._convert_device_descriptions(interface_id=interface_id, device_descriptions=device_descriptions)
         return result
 
-    def remove_device(self, *, device: DeviceRemovalInfo) -> None:
+    def remove_device(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """Remove device from cache."""
         self._remove_device(
             interface_id=device.interface_id,
@@ -428,7 +432,9 @@ class DeviceDescriptionCache(BasePersistentFile, DeviceDescriptionProvider, Devi
             desc_map.pop(address, None)
 
 
-class ParamsetDescriptionCache(BasePersistentFile, ParamsetDescriptionProvider, ParamsetDescriptionWriter):
+class ParamsetDescriptionCache(
+    BasePersistentFile, ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
+):
     """Cache for paramset descriptions."""
 
     __slots__ = (
@@ -442,10 +448,10 @@ class ParamsetDescriptionCache(BasePersistentFile, ParamsetDescriptionProvider, 
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
-        task_scheduler: TaskScheduler,
-        central_info: CentralInfo,
-        device_provider: DeviceProvider,
+        config_provider: ConfigProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        central_info: CentralInfoProtocol,
+        device_provider: DeviceProviderProtocol,
     ) -> None:
         """Initialize the paramset description cache."""
         # {interface_id, {channel_address, paramsets}}
@@ -543,7 +549,7 @@ class ParamsetDescriptionCache(BasePersistentFile, ParamsetDescriptionProvider, 
             self._init_address_parameter_list()
         return result
 
-    def remove_device(self, *, device: DeviceRemovalInfo) -> None:
+    def remove_device(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """Remove device paramset descriptions from cache."""
         if interface := self._raw_paramset_descriptions.get(device.interface_id):
             for channel_address in device.channels:
@@ -617,10 +623,10 @@ class SessionRecorder(BasePersistentFile):
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
-        device_provider: DeviceProvider,
-        task_scheduler: TaskScheduler,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
+        device_provider: DeviceProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
         active: bool,
         ttl_seconds: float,
         refresh_on_get: bool = False,

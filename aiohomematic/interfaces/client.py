@@ -11,21 +11,21 @@ Protocol Hierarchy
 Client protocols are organized following the Interface Segregation Principle:
 
 **Core Protocols (4):**
-    - `ClientIdentity`: Basic identification (interface, interface_id, model, version)
-    - `ClientConnection`: Connection state management (available, is_connected, reconnect)
-    - `ClientLifecycle`: Lifecycle operations (init_client, stop, proxy management)
-    - `ClientCapabilities`: Feature support flags (all supports_* properties)
+    - `ClientIdentityProtocol`: Basic identification (interface, interface_id, model, version)
+    - `ClientConnectionProtocol`: Connection state management (available, is_connected, reconnect)
+    - `ClientLifecycleProtocol`: Lifecycle operations (init_client, stop, proxy management)
+    - `ClientCapabilitiesProtocol`: Feature support flags (all supports_* properties)
 
 **Handler-Based Protocols (9):**
-    - `DeviceDiscoveryOperations`: Device discovery (list_devices, get_device_description)
-    - `ParamsetOperations`: Paramset operations (get_paramset, put_paramset, fetch)
-    - `ValueOperations`: Value operations (get_value, set_value, report_value_usage)
-    - `LinkOperations`: Device linking (add_link, remove_link, get_link_peers)
-    - `FirmwareOperations`: Firmware updates (update_device_firmware, trigger_firmware_update)
-    - `SystemVariableOperations`: System variables (get/set/delete_system_variable)
-    - `ProgramOperations`: Program execution (get_all_programs, execute_program)
-    - `BackupOperations`: Backup creation (create_backup_and_download)
-    - `MetadataOperations`: Metadata, rooms, functions, install mode, inbox, service messages
+    - `DeviceDiscoveryOperationsProtocol`: Device discovery (list_devices, get_device_description)
+    - `ParamsetOperationsProtocol`: Paramset operations (get_paramset, put_paramset, fetch)
+    - `ValueOperationsProtocol`: Value operations (get_value, set_value, report_value_usage)
+    - `LinkOperationsProtocol`: Device linking (add_link, remove_link, get_link_peers)
+    - `FirmwareOperationsProtocol`: Firmware updates (update_device_firmware, trigger_firmware_update)
+    - `SystemVariableOperationsProtocol`: System variables (get/set/delete_system_variable)
+    - `ProgramOperationsProtocol`: Program execution (get_all_programs, execute_program)
+    - `BackupOperationsProtocol`: Backup creation (create_backup_and_download)
+    - `MetadataOperationsProtocol`: Metadata, rooms, functions, install mode, inbox, service messages
 
 **Composite Protocol:**
     - `ClientProtocol`: Combines all sub-protocols for complete client access
@@ -54,7 +54,7 @@ from aiohomematic.const import (
     ProxyInitState,
     SystemInformation,
 )
-from aiohomematic.interfaces.operations import TaskScheduler
+from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
-class ClientIdentity(Protocol):
+class ClientIdentityProtocol(Protocol):
     """
     Protocol for client identification.
 
@@ -84,7 +84,7 @@ class ClientIdentity(Protocol):
     __slots__ = ()
 
     @property
-    def central(self) -> ClientDependencies:
+    def central(self) -> ClientDependenciesProtocol:
         """Return the central of the client."""
 
     @property
@@ -112,7 +112,7 @@ class ClientIdentity(Protocol):
         """Return the version id of the client."""
 
 
-class ClientConnection(Protocol):
+class ClientConnectionProtocol(Protocol):
     """
     Protocol for client connection state management.
 
@@ -157,7 +157,7 @@ class ClientConnection(Protocol):
         """Reset all circuit breakers to closed state."""
 
 
-class ClientLifecycle(Protocol):
+class ClientLifecycleProtocol(Protocol):
     """
     Protocol for client lifecycle operations.
 
@@ -182,7 +182,7 @@ class ClientLifecycle(Protocol):
         """Stop depending services."""
 
 
-class ClientCapabilities(Protocol):
+class ClientCapabilitiesProtocol(Protocol):
     """
     Protocol for client capability flags.
 
@@ -268,12 +268,12 @@ class ClientCapabilities(Protocol):
         """Return if the backend supports value usage reporting."""
 
 
-class DeviceDiscoveryOperations(Protocol):
+class DeviceDiscoveryOperationsProtocol(Protocol):
     """
     Protocol for device discovery operations.
 
     Provides methods for listing and discovering devices from the backend.
-    Implemented by DeviceOperationsHandler.
+    Implemented by DeviceHandler.
     """
 
     __slots__ = ()
@@ -294,12 +294,12 @@ class DeviceDiscoveryOperations(Protocol):
         """List devices of the backend."""
 
 
-class ParamsetOperations(Protocol):
+class ParamsetOperationsProtocol(Protocol):
     """
     Protocol for paramset operations.
 
     Provides methods for reading and writing paramsets and paramset descriptions.
-    Implemented by DeviceOperationsHandler.
+    Implemented by DeviceHandler.
     """
 
     __slots__ = ()
@@ -345,12 +345,12 @@ class ParamsetOperations(Protocol):
         """Update paramsets descriptions for provided device_address."""
 
 
-class ValueOperations(Protocol):
+class ValueOperationsProtocol(Protocol):
     """
     Protocol for value read/write operations.
 
     Provides methods for reading and writing single parameter values.
-    Implemented by DeviceOperationsHandler.
+    Implemented by DeviceHandler.
     """
 
     __slots__ = ()
@@ -382,12 +382,12 @@ class ValueOperations(Protocol):
         """Set single value on paramset VALUES."""
 
 
-class LinkOperations(Protocol):
+class LinkOperationsProtocol(Protocol):
     """
     Protocol for device linking operations.
 
     Provides methods for creating and managing direct links between devices.
-    Implemented by LinkManagementHandler.
+    Implemented by LinkHandler.
     """
 
     __slots__ = ()
@@ -405,7 +405,7 @@ class LinkOperations(Protocol):
         """Remove a link between two devices."""
 
 
-class FirmwareOperations(Protocol):
+class FirmwareOperationsProtocol(Protocol):
     """
     Protocol for firmware update operations.
 
@@ -422,7 +422,7 @@ class FirmwareOperations(Protocol):
         """Update the firmware of a Homematic device."""
 
 
-class SystemVariableOperations(Protocol):
+class SystemVariableOperationsProtocol(Protocol):
     """
     Protocol for system variable operations.
 
@@ -445,7 +445,7 @@ class SystemVariableOperations(Protocol):
         """Set a system variable on the backend."""
 
 
-class ProgramOperations(Protocol):
+class ProgramOperationsProtocol(Protocol):
     """
     Protocol for program operations.
 
@@ -468,7 +468,7 @@ class ProgramOperations(Protocol):
         """Set the program state on the backend."""
 
 
-class BackupOperations(Protocol):
+class BackupOperationsProtocol(Protocol):
     """
     Protocol for backup operations.
 
@@ -487,7 +487,7 @@ class BackupOperations(Protocol):
         """Create a backup on the CCU and download it."""
 
 
-class MetadataOperations(Protocol):
+class MetadataOperationsProtocol(Protocol):
     """
     Protocol for metadata and system operations.
 
@@ -545,7 +545,7 @@ class MetadataOperations(Protocol):
         """Write the metadata for an object."""
 
 
-class ClientSupport(Protocol):
+class ClientSupportProtocol(Protocol):
     """
     Protocol for client support operations.
 
@@ -576,7 +576,7 @@ class ClientSupport(Protocol):
 
 
 @runtime_checkable
-class ValueAndParamsetOperations(ValueOperations, ParamsetOperations, Protocol):
+class ValueAndParamsetOperationsProtocol(ValueOperationsProtocol, ParamsetOperationsProtocol, Protocol):
     """
     Combined protocol for value and paramset operations.
 
@@ -591,7 +591,7 @@ class ValueAndParamsetOperations(ValueOperations, ParamsetOperations, Protocol):
 
 
 @runtime_checkable
-class DeviceDiscoveryWithIdentity(DeviceDiscoveryOperations, ClientIdentity, Protocol):
+class DeviceDiscoveryWithIdentityProtocol(DeviceDiscoveryOperationsProtocol, ClientIdentityProtocol, Protocol):
     """
     Combined protocol for device discovery with client identity.
 
@@ -606,7 +606,7 @@ class DeviceDiscoveryWithIdentity(DeviceDiscoveryOperations, ClientIdentity, Pro
 
 
 @runtime_checkable
-class DeviceDiscoveryAndMetadata(DeviceDiscoveryOperations, MetadataOperations, Protocol):
+class DeviceDiscoveryAndMetadataProtocol(DeviceDiscoveryOperationsProtocol, MetadataOperationsProtocol, Protocol):
     """
     Combined protocol for device discovery and metadata operations.
 
@@ -627,20 +627,20 @@ class DeviceDiscoveryAndMetadata(DeviceDiscoveryOperations, MetadataOperations, 
 
 @runtime_checkable
 class ClientProtocol(
-    ClientIdentity,
-    ClientConnection,
-    ClientLifecycle,
-    ClientCapabilities,
-    DeviceDiscoveryOperations,
-    ParamsetOperations,
-    ValueOperations,
-    LinkOperations,
-    FirmwareOperations,
-    SystemVariableOperations,
-    ProgramOperations,
-    BackupOperations,
-    MetadataOperations,
-    ClientSupport,
+    ClientIdentityProtocol,
+    ClientConnectionProtocol,
+    ClientLifecycleProtocol,
+    ClientCapabilitiesProtocol,
+    DeviceDiscoveryOperationsProtocol,
+    ParamsetOperationsProtocol,
+    ValueOperationsProtocol,
+    LinkOperationsProtocol,
+    FirmwareOperationsProtocol,
+    SystemVariableOperationsProtocol,
+    ProgramOperationsProtocol,
+    BackupOperationsProtocol,
+    MetadataOperationsProtocol,
+    ClientSupportProtocol,
     Protocol,
 ):
     """
@@ -651,20 +651,20 @@ class ClientProtocol(
     Implemented by ClientCCU, ClientJsonCCU, and ClientHomegear.
 
     Sub-protocols:
-        - ClientIdentity: Basic identification
-        - ClientConnection: Connection state management
-        - ClientLifecycle: Lifecycle operations
-        - ClientCapabilities: Feature support flags
-        - DeviceDiscoveryOperations: Device discovery
-        - ParamsetOperations: Paramset operations
-        - ValueOperations: Value read/write
-        - LinkOperations: Device linking
-        - FirmwareOperations: Firmware updates
-        - SystemVariableOperations: System variables
-        - ProgramOperations: Program execution
-        - BackupOperations: Backup creation
-        - MetadataOperations: Metadata and system operations
-        - ClientSupport: Utility methods and caches
+        - ClientIdentityProtocol: Basic identification
+        - ClientConnectionProtocol: Connection state management
+        - ClientLifecycleProtocol: Lifecycle operations
+        - ClientCapabilitiesProtocol: Feature support flags
+        - DeviceDiscoveryOperationsProtocol: Device discovery
+        - ParamsetOperationsProtocol: Paramset operations
+        - ValueOperationsProtocol: Value read/write
+        - LinkOperationsProtocol: Device linking
+        - FirmwareOperationsProtocol: Firmware updates
+        - SystemVariableOperationsProtocol: System variables
+        - ProgramOperationsProtocol: Program execution
+        - BackupOperationsProtocol: Backup creation
+        - MetadataOperationsProtocol: Metadata and system operations
+        - ClientSupportProtocol: Utility methods and caches
     """
 
     __slots__ = ()
@@ -676,7 +676,7 @@ class ClientProtocol(
 
 
 @runtime_checkable
-class ClientProvider(Protocol):
+class ClientProviderProtocol(Protocol):
     """
     Protocol for accessing client instances.
 
@@ -708,7 +708,7 @@ class ClientProvider(Protocol):
 
 
 @runtime_checkable
-class ClientFactory(Protocol):
+class ClientFactoryProtocol(Protocol):
     """
     Protocol for creating client instances.
 
@@ -736,7 +736,7 @@ class ClientFactory(Protocol):
 
 
 @runtime_checkable
-class ClientCoordination(Protocol):
+class ClientCoordinationProtocol(Protocol):
     """
     Protocol for client coordination operations.
 
@@ -773,7 +773,7 @@ class ClientCoordination(Protocol):
 
 
 @runtime_checkable
-class PrimaryClientProvider(Protocol):
+class PrimaryClientProviderProtocol(Protocol):
     """
     Protocol for accessing primary client.
 
@@ -787,7 +787,7 @@ class PrimaryClientProvider(Protocol):
 
 
 @runtime_checkable
-class LastEventTracker(Protocol):
+class LastEventTrackerProtocol(Protocol):
     """
     Protocol for tracking last event times per interface.
 
@@ -800,7 +800,7 @@ class LastEventTracker(Protocol):
 
 
 @runtime_checkable
-class DeviceLookup(Protocol):
+class DeviceLookupProtocol(Protocol):
     """
     Protocol for looking up devices and data points.
 
@@ -823,7 +823,7 @@ class DeviceLookup(Protocol):
 
 
 @runtime_checkable
-class NewDeviceHandler(Protocol):
+class NewDeviceHandlerProtocol(Protocol):
     """
     Protocol for handling new device registration.
 
@@ -841,7 +841,7 @@ class NewDeviceHandler(Protocol):
 
 
 @runtime_checkable
-class DataCacheWriter(Protocol):
+class DataCacheWriterProtocol(Protocol):
     """
     Protocol for writing data to the central data cache.
 
@@ -854,7 +854,7 @@ class DataCacheWriter(Protocol):
 
 
 @runtime_checkable
-class ParamsetDescriptionWriter(Protocol):
+class ParamsetDescriptionWriterProtocol(Protocol):
     """
     Protocol for writing paramset descriptions.
 
@@ -874,7 +874,7 @@ class ParamsetDescriptionWriter(Protocol):
 
 
 @runtime_checkable
-class DeviceDetailsWriter(Protocol):
+class DeviceDetailsWriterProtocol(Protocol):
     """
     Protocol for writing device details.
 
@@ -900,7 +900,7 @@ class DeviceDetailsWriter(Protocol):
 
 
 @runtime_checkable
-class DeviceDescriptionsAccess(Protocol):
+class DeviceDescriptionsAccessProtocol(Protocol):
     """
     Protocol for accessing device descriptions from cache.
 
@@ -922,7 +922,7 @@ class DeviceDescriptionsAccess(Protocol):
 
 
 @runtime_checkable
-class ConnectionStateProvider(Protocol):
+class ConnectionStateProviderProtocol(Protocol):
     """
     Protocol for accessing connection state.
 
@@ -936,7 +936,7 @@ class ConnectionStateProvider(Protocol):
 
 
 @runtime_checkable
-class SessionRecorderProvider(Protocol):
+class SessionRecorderProviderProtocol(Protocol):
     """
     Protocol for accessing session recorder.
 
@@ -950,7 +950,7 @@ class SessionRecorderProvider(Protocol):
 
 
 @runtime_checkable
-class JsonRpcClientProvider(Protocol):
+class JsonRpcClientProviderProtocol(Protocol):
     """
     Protocol for accessing JSON-RPC client.
 
@@ -964,7 +964,7 @@ class JsonRpcClientProvider(Protocol):
 
 
 @runtime_checkable
-class CallbackAddressProvider(Protocol):
+class CallbackAddressProviderProtocol(Protocol):
     """
     Protocol for accessing callback address information.
 
@@ -1039,7 +1039,7 @@ class PingPongCacheProtocol(Protocol):
 
 
 @runtime_checkable
-class ClientDependencies(Protocol):
+class ClientDependenciesProtocol(Protocol):
     """
     Composite protocol for all dependencies required by Client classes.
 
@@ -1051,7 +1051,7 @@ class ClientDependencies(Protocol):
     from the full CentralUnit implementation.
     """
 
-    # CentralInfo
+    # CentralInfoProtocol
     @property
     @abstractmethod
     def available(self) -> bool:
@@ -1114,7 +1114,7 @@ class ClientDependencies(Protocol):
 
     @property
     @abstractmethod
-    def looper(self) -> TaskScheduler:
+    def looper(self) -> TaskSchedulerProtocol:
         """Return task scheduler/looper."""
 
     @property

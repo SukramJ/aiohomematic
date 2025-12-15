@@ -19,10 +19,19 @@ import logging
 from typing import Final
 
 from aiohomematic.const import DataOperationResult, Interface
-from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, DataPointProvider, DeviceProvider
-from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider, SessionRecorderProvider
-from aiohomematic.interfaces.model import DeviceRemovalInfo
-from aiohomematic.interfaces.operations import TaskScheduler
+from aiohomematic.interfaces.central import (
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    DataPointProviderProtocol,
+    DeviceProviderProtocol,
+)
+from aiohomematic.interfaces.client import (
+    ClientProviderProtocol,
+    PrimaryClientProviderProtocol,
+    SessionRecorderProviderProtocol,
+)
+from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
+from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 from aiohomematic.store import (
     CentralDataCache,
     DeviceDescriptionCache,
@@ -35,30 +44,30 @@ from aiohomematic.store import (
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CacheCoordinator(SessionRecorderProvider):
+class CacheCoordinator(SessionRecorderProviderProtocol):
     """Coordinator for all cache operations in the central unit."""
 
     __slots__ = (
         "_central_info",
         "_data_cache",
-        "_device_descriptions",
-        "_device_details",
-        "_parameter_visibility",
-        "_paramset_descriptions",
-        "_recorder",
+        "_device_descriptions_cache",
+        "_device_details_cache",
+        "_parameter_visibility_cache",
+        "_paramset_descriptions_cache",
+        "_session_recorder",
     )
 
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        client_provider: ClientProvider,
-        config_provider: ConfigProvider,
-        data_point_provider: DataPointProvider,
-        device_provider: DeviceProvider,
-        primary_client_provider: PrimaryClientProvider,
+        central_info: CentralInfoProtocol,
+        client_provider: ClientProviderProtocol,
+        config_provider: ConfigProviderProtocol,
+        data_point_provider: DataPointProviderProtocol,
+        device_provider: DeviceProviderProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
         session_recorder_active: bool,
-        task_scheduler: TaskScheduler,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the cache coordinator.
@@ -84,26 +93,26 @@ class CacheCoordinator(SessionRecorderProvider):
             data_point_provider=data_point_provider,
             central_info=central_info,
         )
-        self._device_details: Final = DeviceDetailsCache(
+        self._device_details_cache: Final = DeviceDetailsCache(
             central_info=central_info,
             primary_client_provider=primary_client_provider,
         )
-        self._device_descriptions: Final = DeviceDescriptionCache(
+        self._device_descriptions_cache: Final = DeviceDescriptionCache(
             central_info=central_info,
             config_provider=config_provider,
             device_provider=device_provider,
             task_scheduler=task_scheduler,
         )
-        self._paramset_descriptions: Final = ParamsetDescriptionCache(
+        self._paramset_descriptions_cache: Final = ParamsetDescriptionCache(
             central_info=central_info,
             config_provider=config_provider,
             device_provider=device_provider,
             task_scheduler=task_scheduler,
         )
-        self._parameter_visibility: Final = ParameterVisibilityCache(
+        self._parameter_visibility_cache: Final = ParameterVisibilityCache(
             config_provider=config_provider,
         )
-        self._recorder: Final = SessionRecorder(
+        self._session_recorder: Final = SessionRecorder(
             central_info=central_info,
             config_provider=config_provider,
             device_provider=device_provider,
@@ -120,43 +129,43 @@ class CacheCoordinator(SessionRecorderProvider):
     @property
     def device_descriptions(self) -> DeviceDescriptionCache:
         """Return device descriptions cache."""
-        return self._device_descriptions
+        return self._device_descriptions_cache
 
     @property
     def device_details(self) -> DeviceDetailsCache:
         """Return device details cache."""
-        return self._device_details
+        return self._device_details_cache
 
     @property
     def parameter_visibility(self) -> ParameterVisibilityCache:
         """Return parameter visibility cache."""
-        return self._parameter_visibility
+        return self._parameter_visibility_cache
 
     @property
     def paramset_descriptions(self) -> ParamsetDescriptionCache:
         """Return paramset descriptions cache."""
-        return self._paramset_descriptions
+        return self._paramset_descriptions_cache
 
     @property
     def recorder(self) -> SessionRecorder:
         """Return the session recorder."""
-        return self._recorder
+        return self._session_recorder
 
     async def clear_all(self) -> None:
         """Clear all caches and remove stored files."""
         _LOGGER.debug("CLEAR_ALL: Clearing all caches for %s", self._central_info.name)
-        await self._device_descriptions.clear()
-        await self._paramset_descriptions.clear()
-        await self._recorder.clear()
-        self._device_details.clear()
+        await self._device_descriptions_cache.clear()
+        await self._paramset_descriptions_cache.clear()
+        await self._session_recorder.clear()
+        self._device_details_cache.clear()
         self._data_cache.clear()
 
     def clear_on_stop(self) -> None:
         """Clear in-memory caches on shutdown to free memory."""
         _LOGGER.debug("CLEAR_ON_STOP: Clearing in-memory caches for %s", self._central_info.name)
-        self._device_details.clear()
+        self._device_details_cache.clear()
         self._data_cache.clear()
-        self._parameter_visibility.clear_memoization_caches()
+        self._parameter_visibility_cache.clear_memoization_caches()
 
     async def load_all(self) -> bool:
         """
@@ -170,8 +179,8 @@ class CacheCoordinator(SessionRecorderProvider):
         _LOGGER.debug("LOAD_ALL: Loading caches for %s", self._central_info.name)
 
         if DataOperationResult.LOAD_FAIL in (
-            await self._device_descriptions.load(),
-            await self._paramset_descriptions.load(),
+            await self._device_descriptions_cache.load(),
+            await self._paramset_descriptions_cache.load(),
         ):
             _LOGGER.warning(  # i18n-log: ignore
                 "LOAD_ALL failed: Unable to load caches for %s. Clearing files",
@@ -180,7 +189,7 @@ class CacheCoordinator(SessionRecorderProvider):
             await self.clear_all()
             return False
 
-        await self._device_details.load()
+        await self._device_details_cache.load()
         await self._data_cache.load()
         return True
 
@@ -195,7 +204,7 @@ class CacheCoordinator(SessionRecorderProvider):
         """
         await self._data_cache.load(interface=interface)
 
-    def remove_device_from_caches(self, *, device: DeviceRemovalInfo) -> None:
+    def remove_device_from_caches(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """
         Remove a device from all relevant caches.
 
@@ -208,9 +217,9 @@ class CacheCoordinator(SessionRecorderProvider):
             "REMOVE_DEVICE_FROM_CACHES: Removing device %s from caches",
             device.address,
         )
-        self._device_descriptions.remove_device(device=device)
-        self._paramset_descriptions.remove_device(device=device)
-        self._device_details.remove_device(device=device)
+        self._device_descriptions_cache.remove_device(device=device)
+        self._paramset_descriptions_cache.remove_device(device=device)
+        self._device_details_cache.remove_device(device=device)
 
     async def save_all(
         self,
@@ -235,6 +244,6 @@ class CacheCoordinator(SessionRecorderProvider):
         )
 
         if save_device_descriptions:
-            await self._device_descriptions.save()
+            await self._device_descriptions_cache.save()
         if save_paramset_descriptions:
-            await self._paramset_descriptions.save()
+            await self._paramset_descriptions_cache.save()

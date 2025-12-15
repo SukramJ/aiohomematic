@@ -14,23 +14,23 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import ProductGroup
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
-from aiohomematic.interfaces.client import FirmwareOperations
+from aiohomematic.interfaces.client import FirmwareOperationsProtocol
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
     from aiohomematic.const import Interface
-    from aiohomematic.interfaces.client import ClientDependencies
+    from aiohomematic.interfaces.client import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class FirmwareHandler(BaseHandler, FirmwareOperations):
+class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
     """
     Handler for firmware update operations.
 
-    Implements FirmwareOperations protocol for ISP-compliant client operations.
+    Implements FirmwareOperationsProtocol protocol for ISP-compliant client operations.
 
     Handles:
     - Updating device firmware
@@ -45,7 +45,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperations):
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface: Interface,
         interface_id: str,
         json_rpc_client: AioJsonRpcAioHttpClient,
@@ -56,7 +56,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperations):
     ) -> None:
         """Initialize the firmware handler."""
         super().__init__(
-            central=central,
+            client_deps=client_deps,
             interface=interface,
             interface_id=interface_id,
             json_rpc_client=json_rpc_client,
@@ -117,7 +117,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperations):
             _LOGGER.debug("UPDATE_DEVICE_FIRMWARE: Not supported by client for %s", self._interface_id)
             return False
 
-        if device := self._central.device_coordinator.get_device(address=device_address):
+        if device := self._client_deps.device_coordinator.get_device(address=device_address):
             _LOGGER.info(
                 i18n.tr(
                     "log.client.update_device_firmware.try",

@@ -151,7 +151,7 @@ from aiohomematic.exceptions import (
     BaseHomematicException,
     NoClientsException,
 )
-from aiohomematic.interfaces.central import CentralProtocol, EventBusProvider
+from aiohomematic.interfaces.central import CentralProtocol, EventBusProviderProtocol
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
@@ -540,7 +540,7 @@ class CentralUnit(
         """
         Create a client for the given interface configuration.
 
-        This method implements the ClientFactory protocol to enable
+        This method implements the ClientFactoryProtocol protocol to enable
         dependency injection without requiring the full CentralUnit.
 
         Args:
@@ -554,7 +554,7 @@ class CentralUnit(
 
         """
         return await hmcl.create_client(
-            central=self,
+            client_deps=self,
             interface_config=interface_config,
             health_record_callback=health_record_callback,
         )
@@ -1081,7 +1081,7 @@ class CentralUnit(
         system_information = SystemInformation()
         for interface_config in self._config.enabled_interface_configs:
             try:
-                client = await hmcl.create_client(central=self, interface_config=interface_config)
+                client = await hmcl.create_client(client_deps=self, interface_config=interface_config)
             except BaseHomematicException as bhexc:
                 _LOGGER.error(
                     i18n.tr(
@@ -1530,7 +1530,7 @@ class CentralConnectionState:
     publishing SystemStatusEvent via EventBus for state changes.
     """
 
-    def __init__(self, *, event_bus_provider: EventBusProvider | None = None) -> None:
+    def __init__(self, *, event_bus_provider: EventBusProviderProtocol | None = None) -> None:
         """Initialize the CentralConnectionStatus."""
         self._json_issues: Final[list[str]] = []
         self._rpc_proxy_issues: Final[list[str]] = []

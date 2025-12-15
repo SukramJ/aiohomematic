@@ -58,7 +58,7 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   ├── central/                     # Central orchestration (11 files)
 │   │   ├── __init__.py             # CentralUnit, CentralConfig
 │   │   ├── cache_coordinator.py    # Cache management (DI: 8 protocols)
-│   │   ├── client_coordinator.py   # Client lifecycle (DI: ClientFactory + 5 protocols)
+│   │   ├── client_coordinator.py   # Client lifecycle (DI: ClientFactoryProtocol + 5 protocols)
 │   │   ├── device_coordinator.py   # Device operations (DI: 15 protocols)
 │   │   ├── device_registry.py      # Device storage (DI: 2 protocols)
 │   │   ├── event_coordinator.py    # Event handling (DI: 2 protocols)
@@ -788,15 +788,15 @@ class CacheCoordinator:
 **Tier 2: Full Protocol-Based DI (Coordinator Layer)** - Uses protocol interfaces exclusively:
 
 ```python
-# Example: ClientCoordinator uses ClientFactory protocol
+# Example: ClientCoordinator uses ClientFactoryProtocol protocol
 class ClientCoordinator:
     def __init__(
         self,
         *,
-        client_factory: ClientFactory,  # Factory protocol, not CentralUnit
+        client_factory: ClientFactoryProtocol,  # Factory protocol, not CentralUnit
         central_info: CentralInfo,
         config_provider: ConfigProvider,
-        coordinator_provider: CoordinatorProvider,
+        coordinator_provider: CoordinatorProviderProtocol,
         system_info_provider: SystemInfoProvider,
     ) -> None:
         self._client_factory: Final = client_factory
@@ -808,11 +808,11 @@ class HubCoordinator:
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        channel_lookup: ChannelLookup,
-        config_provider: ConfigProvider,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
+        central_info: CentralInfoProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        config_provider: ConfigProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
         # ... more protocol interfaces
     ) -> None:
         # Creates Hub using protocol interfaces - no CentralUnit reference
@@ -823,7 +823,7 @@ class HubCoordinator:
         )
 ```
 
-**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactory protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
+**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactoryProtocol protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
 
 **Tier 3: Full DI (Model Layer)** - Device, Channel, and DataPoint classes use full DI:
 
@@ -835,20 +835,20 @@ class Device:
         *,
         interface_id: str,
         device_address: str,
-        device_details_provider: DeviceDetailsProvider,
-        device_description_provider: DeviceDescriptionProvider,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        client_provider: ClientProvider,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        task_scheduler: TaskScheduler,
-        file_operations: FileOperations,
-        device_data_refresher: DeviceDataRefresher,
-        data_cache_provider: DataCacheProvider,
-        channel_lookup: ChannelLookup,
-        event_subscription_manager: EventSubscriptionManager,
+        device_details_provider: DeviceDetailsProviderProtocol,
+        device_description_provider: DeviceDescriptionProviderProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        client_provider: ClientProviderProtocol,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        file_operations: FileOperationsProtocol,
+        device_data_refresher: DeviceDataRefresherProtocol,
+        data_cache_provider: DataCacheProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        event_subscription_manager: EventSubscriptionManagerProtocol,
     ) -> None:
         # Stores all protocol interfaces directly
         self._central_info: Final = central_info
@@ -881,13 +881,13 @@ class BaseDataPoint:
         )
 ```
 
-**Protocol Interfaces** are defined in `aiohomematic/interfaces.py` using `@runtime_checkable`:
+**Protocol Interfaces** are defined in `aiohomematic/interfaces/` using `@runtime_checkable`:
 
 ```python
 from typing import Protocol, runtime_checkable
 
 @runtime_checkable
-class CentralInfo(Protocol):
+class CentralInfoProtocol(Protocol):
     """Protocol for central system information."""
     @property
     def name(self) -> str: ...
@@ -895,29 +895,31 @@ class CentralInfo(Protocol):
     def model(self) -> str: ...
 ```
 
-**Key Protocol Interfaces** defined in `aiohomematic/interfaces.py`:
+**Naming Convention**: All protocol interfaces use the `-Protocol` suffix to avoid name collisions with implementing classes and to make them instantly recognizable as protocols.
 
-- **CentralInfo**: System identification (name, model, version)
-- **ConfigProvider**: Configuration access (config property)
-- **ClientFactory**: Client instance creation (create_client_instance method)
-- **ClientProvider**: Client lookup by interface_id
-- **DeviceProvider**: Device registry access
-- **DataPointProvider**: Data point lookup
-- **EventBusProvider**: Event system access (event_bus property)
-- **EventPublisher**: Event emission via EventCoordinator (publish_system_event, publish_device_trigger_event)
-- **TaskScheduler**: Background task scheduling (create_task method)
-- **PrimaryClientProvider**: Primary client access
-- **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
-- **DeviceDescriptionProvider**: Device descriptions lookup
-- **ParamsetDescriptionProvider**: Paramset descriptions and multi-channel checks
-- **ParameterVisibilityProvider**: Parameter visibility rules
-- **FileOperations**: File I/O operations
-- **DeviceDataRefresher**: Device data refresh operations
-- **DataCacheProvider**: Data cache access (get_data method)
-- **ChannelLookup**: Channel lookup by address
-- **EventSubscriptionManager**: Event subscription management
-- **HubDataFetcher**: Hub data fetching operations
-- **HubDataPointManager**: Hub data point management (programs and sysvars)
+**Key Protocol Interfaces** defined in `aiohomematic/interfaces/`:
+
+- **CentralInfoProtocol**: System identification (name, model, version)
+- **ConfigProviderProtocol**: Configuration access (config property)
+- **ClientFactoryProtocol**: Client instance creation (create_client_instance method)
+- **ClientProviderProtocol**: Client lookup by interface_id
+- **DeviceProviderProtocol**: Device registry access
+- **DataPointProviderProtocol**: Data point lookup
+- **EventBusProviderProtocol**: Event system access (event_bus property)
+- **EventPublisherProtocol**: Event emission via EventCoordinator (publish_system_event, publish_device_trigger_event)
+- **TaskSchedulerProtocol**: Background task scheduling (create_task method)
+- **PrimaryClientProviderProtocol**: Primary client access
+- **DeviceDetailsProviderProtocol**: Device metadata (address_id, rooms, interface, name)
+- **DeviceDescriptionProviderProtocol**: Device descriptions lookup
+- **ParamsetDescriptionProviderProtocol**: Paramset descriptions and multi-channel checks
+- **ParameterVisibilityProviderProtocol**: Parameter visibility rules
+- **FileOperationsProtocol**: File I/O operations
+- **DeviceDataRefresherProtocol**: Device data refresh operations
+- **DataCacheProviderProtocol**: Data cache access (get_data method)
+- **ChannelLookupProtocol**: Channel lookup by address
+- **EventSubscriptionManagerProtocol**: Event subscription management
+- **HubDataFetcherProtocol**: Hub data fetching operations
+- **HubDataPointManagerProtocol**: Hub data point management (programs and sysvars)
 - **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
 - **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
 
@@ -1275,10 +1277,36 @@ from aiohomematic.support import support as hms
 #### Classes and Functions
 
 - **Classes**: `PascalCase`
+- **Protocol Interfaces**: `PascalCase` with `-Protocol` suffix (e.g., `ConfigProviderProtocol`, `ClientProviderProtocol`)
 - **Functions/Methods**: `snake_case`
 - **Constants**: `UPPER_SNAKE_CASE`
 - **Private members**: `_leading_underscore`
 - **Type variables**: `T`, `T_co`, `T_contra`
+
+**Protocol Naming Convention**:
+
+- **ALL** protocol interfaces must have the `-Protocol` suffix
+- This prevents name collisions with implementing classes (e.g., `DeviceProtocol` vs `Device`)
+- Makes protocols instantly recognizable in code
+- Variable names using protocols keep semantic meaning (e.g., `config_provider: ConfigProviderProtocol`)
+
+```python
+# ✅ CORRECT - Protocol definition with suffix
+@runtime_checkable
+class ConfigProviderProtocol(Protocol):
+    """Protocol for accessing configuration."""
+    @property
+    def config(self) -> CentralConfig: ...
+
+# ✅ CORRECT - Variable name preserves semantic meaning
+class Device:
+    def __init__(self, *, config_provider: ConfigProviderProtocol):
+        self._config_provider = config_provider  # "provider" remains in variable name
+
+# ❌ WRONG - Missing -Protocol suffix causes collision
+class Device(Protocol): ...  # Protocol
+class Device: ...  # Implementation - NAME COLLISION!
+```
 
 #### Variables
 

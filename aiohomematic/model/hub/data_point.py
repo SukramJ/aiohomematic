@@ -20,21 +20,25 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.central import (
-    CentralInfo,
-    ChannelLookup,
-    ConfigProvider,
-    EventBusProvider,
-    EventPublisher,
-    HubDataFetcher,
+    CentralInfoProtocol,
+    ChannelLookupProtocol,
+    ConfigProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+    HubDataFetcherProtocol,
 )
-from aiohomematic.interfaces.client import PrimaryClientProvider
+from aiohomematic.interfaces.client import PrimaryClientProviderProtocol
 from aiohomematic.interfaces.model import (
     ChannelProtocol,
     GenericHubDataPointProtocol,
     GenericProgramDataPointProtocol,
     GenericSysvarDataPointProtocol,
 )
-from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
+from aiohomematic.interfaces.operations import (
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import (
     PathData,
@@ -63,15 +67,15 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        channel_lookup: ChannelLookup,
-        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
         address: str,
         data: HubData,
     ) -> None:
@@ -166,15 +170,15 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        channel_lookup: ChannelLookup,
-        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
         data: SystemVariableData,
     ) -> None:
         """Initialize the data_point."""
@@ -338,16 +342,16 @@ class GenericProgramDataPoint(GenericHubDataPoint, GenericProgramDataPointProtoc
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        channel_lookup: ChannelLookup,
-        primary_client_provider: PrimaryClientProvider,
-        hub_data_fetcher: HubDataFetcher,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
+        hub_data_fetcher: HubDataFetcherProtocol,
         data: ProgramData,
     ) -> None:
         """Initialize the data_point."""

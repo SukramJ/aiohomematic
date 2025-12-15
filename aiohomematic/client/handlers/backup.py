@@ -15,22 +15,22 @@ from aiohomematic import i18n
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import BackupData, BackupStatus, SystemInformation
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.client import BackupOperations
+from aiohomematic.interfaces.client import BackupOperationsProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
     from aiohomematic.const import Interface
-    from aiohomematic.interfaces.client import ClientDependencies
+    from aiohomematic.interfaces.client import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class BackupHandler(BaseHandler, BackupOperations):
+class BackupHandler(BaseHandler, BackupOperationsProtocol):
     """
     Handler for backup operations.
 
-    Implements BackupOperations protocol for ISP-compliant client operations.
+    Implements BackupOperationsProtocol protocol for ISP-compliant client operations.
 
     Handles:
     - Creating backups on the CCU
@@ -42,7 +42,7 @@ class BackupHandler(BaseHandler, BackupOperations):
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface: Interface,
         interface_id: str,
         json_rpc_client: AioJsonRpcAioHttpClient,
@@ -53,7 +53,7 @@ class BackupHandler(BaseHandler, BackupOperations):
     ) -> None:
         """Initialize the backup handler."""
         super().__init__(
-            central=central,
+            client_deps=client_deps,
             interface=interface,
             interface_id=interface_id,
             json_rpc_client=json_rpc_client,

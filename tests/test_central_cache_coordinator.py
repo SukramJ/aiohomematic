@@ -69,9 +69,9 @@ class TestCacheCoordinatorBasics:
 
         assert coordinator._central_info == central
         assert coordinator._data_cache is not None
-        assert coordinator._device_details is not None
-        assert coordinator._device_descriptions is not None
-        assert coordinator._paramset_descriptions is not None
+        assert coordinator._device_details_cache is not None
+        assert coordinator._device_descriptions_cache is not None
+        assert coordinator._paramset_descriptions_cache is not None
 
     def test_data_cache_property(self) -> None:
         """Data cache property should return the cache instance."""
@@ -107,7 +107,7 @@ class TestCacheCoordinatorBasics:
 
         cache = coordinator.device_descriptions
         assert cache is not None
-        assert cache == coordinator._device_descriptions
+        assert cache == coordinator._device_descriptions_cache
 
     def test_device_details_property(self) -> None:
         """Device details property should return the cache instance."""
@@ -125,7 +125,7 @@ class TestCacheCoordinatorBasics:
 
         cache = coordinator.device_details
         assert cache is not None
-        assert cache == coordinator._device_details
+        assert cache == coordinator._device_details_cache
 
     def test_paramset_descriptions_property(self) -> None:
         """Paramset descriptions property should return the cache instance."""
@@ -143,7 +143,7 @@ class TestCacheCoordinatorBasics:
 
         cache = coordinator.paramset_descriptions
         assert cache is not None
-        assert cache == coordinator._paramset_descriptions
+        assert cache == coordinator._paramset_descriptions_cache
 
 
 class TestCacheCoordinatorClearOperations:

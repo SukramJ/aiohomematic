@@ -46,7 +46,7 @@ class ClientCoordinator:
     def __init__(
         self,
         *,
-        client_factory: ClientFactory,  # Factory protocol
+        client_factory: ClientFactoryProtocol,  # Factory protocol
         central_info: CentralInfo,
         config_provider: ConfigProvider,
         # ...
@@ -82,7 +82,7 @@ Defined in `aiohomematic/interfaces/`:
 
 - **CentralInfo**: System identification (name, model, version)
 - **ConfigProvider**: Configuration access
-- **ClientFactory**: Client instance creation
+- **ClientFactoryProtocol**: Client instance creation
 - **ClientProvider**: Client lookup by interface_id
 - **EventBusProvider**: Event system access
 - **TaskScheduler**: Background task scheduling

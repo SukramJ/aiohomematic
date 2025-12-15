@@ -80,16 +80,16 @@ Each dataclass instance requires its own object header:
 
 The actual issue was the **large DeviceProtocol interface** (72 members), not the implementation. This was addressed by splitting DeviceProtocol into focused sub-protocols:
 
-- DeviceIdentity
-- DeviceChannelAccess
-- DeviceAvailability
-- DeviceFirmware
-- DeviceLinkManagement
-- DeviceGroupManagement
-- DeviceConfiguration
-- DeviceWeekProfile
-- DeviceProviders
-- DeviceLifecycle
+- DeviceIdentityProtocol
+- DeviceChannelAccessProtocol
+- DeviceAvailabilityProtocol
+- DeviceFirmwareProtocol
+- DeviceLinkManagementProtocol
+- DeviceGroupManagementProtocol
+- DeviceConfigurationProtocol
+- DeviceWeekProfileProtocol
+- DeviceProvidersProtocol
+- DeviceLifecycleProtocol
 
 Consumers now depend only on the sub-protocols they need, achieving the organizational benefits without implementation overhead.
 

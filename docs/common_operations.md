@@ -72,10 +72,12 @@ if central.connection_state.has_any_issue:
 # Subscribe to connection state changes (per interface)
 from aiohomematic.central.event_bus import ConnectionStateChangedEvent
 
+
 async def on_connection_state_changed(event: ConnectionStateChangedEvent) -> None:
     """Handle interface connection state changes."""
     status = "connected" if event.connected else "disconnected"
     print(f"{event.interface_id}: {status}")
+
 
 unsubscribe_connection = central.event_bus.subscribe(
     event_type=ConnectionStateChangedEvent,
@@ -85,10 +87,12 @@ unsubscribe_connection = central.event_bus.subscribe(
 # Subscribe to central state changes (overall system)
 from aiohomematic.central.event_bus import CentralStateChangedEvent
 
+
 async def on_central_state_changed(event: CentralStateChangedEvent) -> None:
     """Handle overall system state changes."""
     print(f"Central: {event.old_state} → {event.new_state}")
     print(f"Reason: {event.reason}")
+
 
 unsubscribe_central = central.event_bus.subscribe(
     event_type=CentralStateChangedEvent,

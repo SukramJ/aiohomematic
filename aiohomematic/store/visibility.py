@@ -40,9 +40,9 @@ from typing import Final, TypeAlias
 
 from aiohomematic import support as hms
 from aiohomematic.const import ADDRESS_SEPARATOR, CLICK_EVENTS, UN_IGNORE_WILDCARD, Parameter, ParamsetKey
-from aiohomematic.interfaces.central import ConfigProvider
+from aiohomematic.interfaces.central import ConfigProviderProtocol
 from aiohomematic.interfaces.model import ChannelProtocol
-from aiohomematic.interfaces.operations import ParameterVisibilityProvider
+from aiohomematic.interfaces.operations import ParameterVisibilityProviderProtocol
 from aiohomematic.model.custom import get_required_parameters
 from aiohomematic.support import element_matches_key
 
@@ -338,7 +338,7 @@ _IGNORE_PARAMETERS_BY_DEVICE_LOWER: Final[dict[TParameterName, frozenset[TModelN
 _ACCEPT_PARAMETER_ONLY_ON_CHANNEL: Final[Mapping[TParameterName, int]] = {Parameter.LOWBAT: 0}
 
 
-class ParameterVisibilityCache(ParameterVisibilityProvider):
+class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
     """
     Cache for parameter visibility.
 
@@ -369,7 +369,7 @@ class ParameterVisibilityCache(ParameterVisibilityProvider):
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
+        config_provider: ConfigProviderProtocol,
     ) -> None:
         """Initialize the parameter visibility cache."""
         self._config_provider = config_provider

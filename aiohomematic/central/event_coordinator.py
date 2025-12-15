@@ -21,6 +21,8 @@ from functools import partial
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
+from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+
 if TYPE_CHECKING:
     from aiohomematic.model.data_point import BaseDataPoint
 
@@ -42,16 +44,15 @@ from aiohomematic.const import (
     ParamsetKey,
     SystemEventType,
 )
-from aiohomematic.interfaces.central import EventBusProvider, EventPublisher, HealthTrackerProtocol
-from aiohomematic.interfaces.client import ClientProvider, LastEventTracker
+from aiohomematic.interfaces.central import EventBusProviderProtocol, EventPublisherProtocol, HealthTrackerProtocol
+from aiohomematic.interfaces.client import ClientProviderProtocol, LastEventTrackerProtocol
 from aiohomematic.interfaces.model import BaseParameterDataPointProtocol, GenericDataPointProtocol, GenericEventProtocol
-from aiohomematic.interfaces.operations import TaskScheduler
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
 
 
-class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
+class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEventTrackerProtocol):
     """Coordinator for event subscription and handling."""
 
     __slots__ = (
@@ -65,10 +66,10 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
     def __init__(
         self,
         *,
-        client_provider: ClientProvider,
+        client_provider: ClientProviderProtocol,
         event_bus: EventBus,
         health_tracker: HealthTrackerProtocol,
-        task_scheduler: TaskScheduler,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the event coordinator.

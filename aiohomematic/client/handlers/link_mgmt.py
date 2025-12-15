@@ -13,23 +13,23 @@ from aiohomematic import i18n
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
-from aiohomematic.interfaces.client import LinkOperations
+from aiohomematic.interfaces.client import LinkOperationsProtocol
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
     from aiohomematic.const import Interface
-    from aiohomematic.interfaces.client import ClientDependencies
+    from aiohomematic.interfaces.client import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class LinkManagementHandler(BaseHandler, LinkOperations):
+class LinkHandler(BaseHandler, LinkOperationsProtocol):
     """
     Handler for device linking operations.
 
-    Implements LinkOperations protocol for ISP-compliant client operations.
+    Implements LinkOperationsProtocol protocol for ISP-compliant client operations.
 
     Handles:
     - Adding links between devices
@@ -42,7 +42,7 @@ class LinkManagementHandler(BaseHandler, LinkOperations):
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface: Interface,
         interface_id: str,
         json_rpc_client: AioJsonRpcAioHttpClient,
@@ -52,7 +52,7 @@ class LinkManagementHandler(BaseHandler, LinkOperations):
     ) -> None:
         """Initialize the link management handler."""
         super().__init__(
-            central=central,
+            client_deps=client_deps,
             interface=interface,
             interface_id=interface_id,
             json_rpc_client=json_rpc_client,

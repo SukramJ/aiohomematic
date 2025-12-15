@@ -92,7 +92,7 @@ class _FakeCentral:
         self.health_tracker = _FakeHealthTracker()
 
     async def create_client_instance(self, *, interface_config: _FakeInterfaceConfig) -> _FakeClient:
-        """Create a client instance (implements ClientFactory protocol)."""
+        """Create a client instance (implements ClientFactoryProtocol protocol)."""
         return _FakeClient(
             interface_id=interface_config.interface_id,
             interface=interface_config.interface,

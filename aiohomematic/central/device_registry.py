@@ -20,8 +20,8 @@ import asyncio
 import logging
 from typing import Final
 
-from aiohomematic.interfaces.central import CentralInfo
-from aiohomematic.interfaces.client import ClientProvider
+from aiohomematic.interfaces.central import CentralInfoProtocol
+from aiohomematic.interfaces.client import ClientProviderProtocol
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 from aiohomematic.support import get_device_address
 
@@ -41,8 +41,8 @@ class DeviceRegistry:
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        client_provider: ClientProvider,
+        central_info: CentralInfoProtocol,
+        client_provider: ClientProviderProtocol,
     ) -> None:
         """
         Initialize the device registry.

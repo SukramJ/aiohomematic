@@ -18,7 +18,7 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType
-from aiohomematic.interfaces.central import RpcServerCentralProtocol, RpcServerTaskScheduler
+from aiohomematic.interfaces.central import RpcServerCentralProtocol, RpcServerTaskSchedulerProtocol
 from aiohomematic.support import log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -182,7 +182,7 @@ class _CentralEntry:
 
     __slots__ = ("central", "looper")
 
-    def __init__(self, *, central: RpcServerCentralProtocol, looper: RpcServerTaskScheduler) -> None:
+    def __init__(self, *, central: RpcServerCentralProtocol, looper: RpcServerTaskSchedulerProtocol) -> None:
         """Initialize central entry."""
         self.central: Final = central
         self.looper: Final = looper
@@ -228,7 +228,7 @@ class RpcServer(threading.Thread):
         """Return if thread is active."""
         return self._started.is_set() is True  # type: ignore[attr-defined]
 
-    def add_central(self, *, central: RpcServerCentralProtocol, looper: RpcServerTaskScheduler) -> None:
+    def add_central(self, *, central: RpcServerCentralProtocol, looper: RpcServerTaskSchedulerProtocol) -> None:
         """Register a central in the RPC-Server."""
         if not self._centrals.get(central.name):
             self._centrals[central.name] = _CentralEntry(central=central, looper=looper)

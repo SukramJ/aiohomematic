@@ -15,7 +15,7 @@ from aiohomematic.decorators import inspector
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
-    from aiohomematic.interfaces.client import ClientDependencies
+    from aiohomematic.interfaces.client import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class BaseHandler:
     """
 
     __slots__ = (
-        "_central",
+        "_client_deps",
         "_interface",
         "_interface_id",
         "_json_rpc_client",
@@ -39,7 +39,7 @@ class BaseHandler:
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface: Interface,
         interface_id: str,
         json_rpc_client: AioJsonRpcAioHttpClient,
@@ -50,7 +50,7 @@ class BaseHandler:
         Initialize the base handler.
 
         Args:
-            central: Central dependencies for accessing central functionality.
+            client_deps: Client dependencies for accessing central functionality.
             interface: The interface type (e.g., HMIP_RF, BIDCOS_RF).
             interface_id: Unique identifier for this interface.
             json_rpc_client: JSON-RPC client for CCU communication.
@@ -58,7 +58,7 @@ class BaseHandler:
             proxy_read: XML-RPC proxy for read operations (higher concurrency).
 
         """
-        self._central: Final = central
+        self._client_deps: Final = client_deps
         self._interface: Final = interface
         self._interface_id: Final = interface_id
         self._json_rpc_client: Final = json_rpc_client
@@ -66,9 +66,9 @@ class BaseHandler:
         self._proxy_read: Final = proxy_read
 
     @property
-    def central(self) -> ClientDependencies:
-        """Return the central dependencies."""
-        return self._central
+    def client_deps(self) -> ClientDependenciesProtocol:
+        """Return the client dependencies."""
+        return self._client_deps
 
     @property
     def interface(self) -> Interface:

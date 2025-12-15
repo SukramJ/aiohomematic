@@ -13,14 +13,24 @@ from slugify import slugify
 
 from aiohomematic.const import INIT_DATETIME, INSTALL_MODE_ADDRESS, DataPointCategory, HubValueType, InstallModeData
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.central import CentralInfo, ChannelLookup, ConfigProvider, EventBusProvider, EventPublisher
-from aiohomematic.interfaces.client import PrimaryClientProvider
+from aiohomematic.interfaces.central import (
+    CentralInfoProtocol,
+    ChannelLookupProtocol,
+    ConfigProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+)
+from aiohomematic.interfaces.client import PrimaryClientProviderProtocol
 from aiohomematic.interfaces.model import (
     ChannelProtocol,
     GenericHubDataPointProtocol,
     GenericInstallModeDataPointProtocol,
 )
-from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
+from aiohomematic.interfaces.operations import (
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import config_property, state_property
@@ -52,15 +62,15 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         self,
         *,
         data: InstallModeData,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        channel_lookup: ChannelLookup,
-        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)
@@ -151,15 +161,15 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
         self,
         *,
         data: InstallModeData,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        channel_lookup: ChannelLookup,
-        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(
@@ -326,15 +336,15 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
         *,
         data: InstallModeData,
         sensor: InstallModeDpSensor,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        channel_lookup: ChannelLookup,
-        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
     ) -> None:
         """Initialize the button."""
         super().__init__(

@@ -29,7 +29,7 @@ class _FakeConfig:
 
 
 class _FakeConfigProvider:
-    """Minimal fake ConfigProvider for testing."""
+    """Minimal fake ConfigProviderProtocol for testing."""
 
     def __init__(self) -> None:
         """Initialize fake config provider."""
@@ -37,7 +37,7 @@ class _FakeConfigProvider:
 
 
 class _FakeCentralInfo:
-    """Minimal fake CentralInfo for testing."""
+    """Minimal fake CentralInfoProtocol for testing."""
 
     def __init__(self) -> None:
         """Initialize fake central info."""
@@ -57,7 +57,7 @@ class _FakeEventBus:
 
 
 class _FakeEventBusProvider:
-    """Minimal fake EventBusProvider for testing."""
+    """Minimal fake EventBusProviderProtocol for testing."""
 
     def __init__(self) -> None:
         """Initialize fake event bus provider."""
@@ -65,7 +65,7 @@ class _FakeEventBusProvider:
 
 
 class _FakeEventPublisher:
-    """Minimal fake EventPublisher for testing."""
+    """Minimal fake EventPublisherProtocol for testing."""
 
     def publish_device_trigger_event(self, **kwargs: Any) -> None:
         """Do nothing for publish in tests."""
@@ -88,11 +88,11 @@ class _FakeTaskScheduler:
 
 
 class _FakeParamsetDescriptionProvider:
-    """Minimal fake ParamsetDescriptionProvider for testing."""
+    """Minimal fake ParamsetDescriptionProviderProtocol for testing."""
 
 
 class _FakeParameterVisibilityProvider:
-    """Minimal fake ParameterVisibilityProvider for testing."""
+    """Minimal fake ParameterVisibilityProviderProtocol for testing."""
 
 
 class _FakeClient:
@@ -123,7 +123,7 @@ class _FakeClient:
 
 
 class _FakePrimaryClientProvider:
-    """Minimal fake PrimaryClientProvider for testing."""
+    """Minimal fake PrimaryClientProviderProtocol for testing."""
 
     def __init__(self) -> None:
         """Initialize fake primary client provider."""

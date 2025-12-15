@@ -148,139 +148,140 @@ pytest tests/ -v --tb=short > baseline_tests.txt
 
 ```python
 from aiohomematic.central.integration_events import (
-    DataPointsCreatedEvent,
-    DeviceLifecycleEvent,
-    DeviceLifecycleEventType,
-    DeviceTriggerEvent,
-    IntegrationIssue,
-    SystemStatusEvent,
+   DataPointsCreatedEvent,
+   DeviceLifecycleEvent,
+   DeviceLifecycleEventType,
+   DeviceTriggerEvent,
+   IntegrationIssue,
+   SystemStatusEvent,
 )
 from aiohomematic.const import CentralState, ClientState
 
+
 # Handler 1: SystemStatusEvent (Infrastructure + Lifecycle)
 async def _on_system_status(self, *, event: SystemStatusEvent) -> None:
-    """Handle system status event from aiohomematic."""
-    # Central state changes
-    if event.central_state == CentralState.RUNNING:
-        _LOGGER.info("Central %s is running", self._central.name)
-    elif event.central_state == CentralState.FAILED:
-        _LOGGER.error("Central %s failed to start", self._central.name)
-        ir.async_create_issue(
+   """Handle system status event from aiohomematic."""
+   # Central state changes
+   if event.central_state == CentralState.RUNNING:
+      _LOGGER.info("Central %s is running", self._central.name)
+   elif event.central_state == CentralState.FAILED:
+      _LOGGER.error("Central %s failed to start", self._central.name)
+      ir.async_create_issue(
+         hass=self._hass,
+         domain=DOMAIN,
+         issue_id=f"{self._entry_id}_central_failed",
+         is_fixable=False,
+         severity=ir.IssueSeverity.ERROR,
+         translation_key="central_failed",
+         translation_placeholders={"name": self._central.name},
+      )
+
+   # Connection state changes: tuple[str, bool] = (interface_id, connected)
+   if event.connection_state:
+      interface_id, connected = event.connection_state
+      _LOGGER.debug("Connection state for %s: connected=%s", interface_id, connected)
+      if not connected:
+         ir.async_create_issue(
             hass=self._hass,
             domain=DOMAIN,
-            issue_id=f"{self._entry_id}_central_failed",
+            issue_id=f"{self._entry_id}_connection_{interface_id}",
             is_fixable=False,
             severity=ir.IssueSeverity.ERROR,
-            translation_key="central_failed",
-            translation_placeholders={"name": self._central.name},
-        )
+            translation_key="connection_failed",
+            translation_placeholders={"interface_id": interface_id},
+         )
 
-    # Connection state changes: tuple[str, bool] = (interface_id, connected)
-    if event.connection_state:
-        interface_id, connected = event.connection_state
-        _LOGGER.debug("Connection state for %s: connected=%s", interface_id, connected)
-        if not connected:
-            ir.async_create_issue(
-                hass=self._hass,
-                domain=DOMAIN,
-                issue_id=f"{self._entry_id}_connection_{interface_id}",
-                is_fixable=False,
-                severity=ir.IssueSeverity.ERROR,
-                translation_key="connection_failed",
-                translation_placeholders={"interface_id": interface_id},
-            )
-
-    # Client state changes: tuple[str, ClientState, ClientState] = (interface_id, old_state, new_state)
-    if event.client_state:
-        interface_id, old_state, new_state = event.client_state
-        _LOGGER.debug("Client state for %s: %s -> %s", interface_id, old_state, new_state)
-        if new_state == ClientState.FAILED:
-            ir.async_create_issue(
-                hass=self._hass,
-                domain=DOMAIN,
-                issue_id=f"{self._entry_id}_client_{interface_id}",
-                is_fixable=False,
-                severity=ir.IssueSeverity.ERROR,
-                translation_key="client_failed",
-                translation_placeholders={"interface_id": interface_id},
-            )
-
-    # Callback state changes: tuple[str, bool] = (interface_id, alive)
-    if event.callback_state:
-        interface_id, alive = event.callback_state
-        _LOGGER.debug("Callback state for %s: alive=%s", interface_id, alive)
-        if not alive:
-            ir.async_create_issue(
-                hass=self._hass,
-                domain=DOMAIN,
-                issue_id=f"{self._entry_id}_callback_{interface_id}",
-                is_fixable=False,
-                severity=ir.IssueSeverity.ERROR,
-                translation_key="callback_server_failed",
-                translation_placeholders={"interface_id": interface_id},
-            )
-
-    # Issues from aiohomematic
-    for issue in event.issues:
-        ir.async_create_issue(
+   # Client state changes: tuple[str, ClientState, ClientState] = (interface_id, old_state, new_state)
+   if event.client_state:
+      interface_id, old_state, new_state = event.client_state
+      _LOGGER.debug("Client state for %s: %s -> %s", interface_id, old_state, new_state)
+      if new_state == ClientState.FAILED:
+         ir.async_create_issue(
             hass=self._hass,
             domain=DOMAIN,
-            issue_id=f"{self._entry_id}_{issue.issue_id}",
+            issue_id=f"{self._entry_id}_client_{interface_id}",
             is_fixable=False,
-            severity=ir.IssueSeverity.ERROR if issue.severity == "error" else ir.IssueSeverity.WARNING,
-            translation_key=issue.translation_key,
-            translation_placeholders=dict(issue.translation_placeholders),
-        )
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="client_failed",
+            translation_placeholders={"interface_id": interface_id},
+         )
+
+   # Callback state changes: tuple[str, bool] = (interface_id, alive)
+   if event.callback_state:
+      interface_id, alive = event.callback_state
+      _LOGGER.debug("Callback state for %s: alive=%s", interface_id, alive)
+      if not alive:
+         ir.async_create_issue(
+            hass=self._hass,
+            domain=DOMAIN,
+            issue_id=f"{self._entry_id}_callback_{interface_id}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="callback_server_failed",
+            translation_placeholders={"interface_id": interface_id},
+         )
+
+   # Issues from aiohomematic
+   for issue in event.issues:
+      ir.async_create_issue(
+         hass=self._hass,
+         domain=DOMAIN,
+         issue_id=f"{self._entry_id}_{issue.issue_id}",
+         is_fixable=False,
+         severity=ir.IssueSeverity.ERROR if issue.severity == "error" else ir.IssueSeverity.WARNING,
+         translation_key=issue.translation_key,
+         translation_placeholders=dict(issue.translation_placeholders),
+      )
 
 
 # Handler 2: DeviceLifecycleEvent (Device lifecycle + availability)
 async def _on_device_lifecycle(self, *, event: DeviceLifecycleEvent) -> None:
-    """Handle device lifecycle event from aiohomematic."""
-    if event.event_type == DeviceLifecycleEventType.CREATED:
-        _LOGGER.debug("Devices created: %s", event.device_addresses)
-        if event.includes_virtual_remotes:
-            self._async_add_virtual_remotes_to_device_registry()
+   """Handle device lifecycle event from aiohomematic."""
+   if event.event_type == DeviceLifecycleEventType.CREATED:
+      _LOGGER.debug("Devices created: %s", event.device_addresses)
+      if event.includes_virtual_remotes:
+         self._async_add_virtual_remotes_to_device_registry()
 
-    elif event.event_type == DeviceLifecycleEventType.AVAILABILITY_CHANGED:
-        for device_address, available in event.availability_changes:
-            _LOGGER.debug("Device %s availability: %s", device_address, available)
-            device_registry = dr.async_get(self._hass)
-            if ha_device := device_registry.async_get_device(
-                identifiers={(DOMAIN, device_address)}
-            ):
-                device_registry.async_update_device(
-                    device_id=ha_device.id,
-                    disabled_by=None if available else dr.DeviceEntryDisabler.INTEGRATION,
-                )
+   elif event.event_type == DeviceLifecycleEventType.AVAILABILITY_CHANGED:
+      for device_address, available in event.availability_changes:
+         _LOGGER.debug("Device %s availability: %s", device_address, available)
+         device_registry = dr.async_get(self._hass)
+         if ha_device := device_registry.async_get_device(
+                 identifiers={(DOMAIN, device_address)}
+         ):
+            device_registry.async_update_device(
+               device_id=ha_device.id,
+               disabled_by=None if available else dr.DeviceEntryDisabler.INTEGRATION,
+            )
 
 
 # Handler 3: DataPointsCreatedEvent (Entity discovery)
 async def _on_data_points_created(self, *, event: DataPointsCreatedEvent) -> None:
-    """Handle data points created event from aiohomematic."""
-    for category, data_points in event.new_data_points:
-        if data_points:
-            platform = CATEGORY_TO_PLATFORM.get(category)
-            if platform:
-                async_dispatcher_send(
-                    self._hass,
-                    signal_new_data_point(entry_id=self._entry_id, platform=platform),
-                    data_points,
-                )
+   """Handle data points created event from aiohomematic."""
+   for category, data_points in event.new_data_points:
+      if data_points:
+         platform = CATEGORY_TO_PLATFORM.get(category)
+         if platform:
+            async_dispatcher_send(
+               self._hass,
+               signal_new_data_point(entry_id=self._entry_id, platform=platform),
+               data_points,
+            )
 
 
 # Handler 4: DeviceTriggerEvent (Device triggers for HA event bus)
 async def _on_device_trigger(self, *, event: DeviceTriggerEvent) -> None:
-    """Handle device trigger event from aiohomematic."""
-    self._hass.bus.async_fire(
-        event_type=f"{DOMAIN}.event",
-        event_data={
-            "entry_id": self._entry_id,
-            "interface_id": event.interface_id,
-            "channel_address": event.channel_address,
-            "parameter": event.parameter,
-            "value": event.value,
-        },
-    )
+   """Handle device trigger event from aiohomematic."""
+   self._hass.bus.async_fire(
+      event_type=f"{DOMAIN}.event",
+      event_data={
+         "entry_id": self._entry_id,
+         "interface_id": event.interface_id,
+         "channel_address": event.channel_address,
+         "parameter": event.parameter,
+         "value": event.value,
+      },
+   )
 ```
 
 **Checklist**:
@@ -309,52 +310,52 @@ async def _on_device_trigger(self, *, event: DeviceTriggerEvent) -> None:
 
 ```python
 async def start_central(self) -> None:
-    """Start the central unit."""
-    # ... existing code ...
+   """Start the central unit."""
+   # ... existing code ...
 
-    # NEW: 4 focused event subscriptions
-    _LOGGER.debug("Subscribing to integration events")
+   # NEW: 4 focused event subscriptions
+   _LOGGER.debug("Subscribing to integration events")
 
-    # 1. SystemStatusEvent (Infrastructure + Lifecycle)
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=SystemStatusEvent,
-            handler=self._on_system_status,
-        )
-    )
+   # 1. SystemStatusEvent (Infrastructure + Lifecycle)
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=SystemStatusEvent,
+         handler=self._on_system_status,
+      )
+   )
 
-    # 2. DeviceLifecycleEvent (Device lifecycle + availability)
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=DeviceLifecycleEvent,
-            handler=self._on_device_lifecycle,
-        )
-    )
+   # 2. DeviceLifecycleEvent (Device lifecycle + availability)
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=DeviceLifecycleEvent,
+         handler=self._on_device_lifecycle,
+      )
+   )
 
-    # 3. DataPointsCreatedEvent (Entity discovery)
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=DataPointsCreatedEvent,
-            handler=self._on_data_points_created,
-        )
-    )
+   # 3. DataPointsCreatedEvent (Entity discovery)
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=DataPointsCreatedEvent,
+         handler=self._on_data_points_created,
+      )
+   )
 
-    # 4. DeviceTriggerEvent (Device triggers)
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=DeviceTriggerEvent,
-            handler=self._on_device_trigger,
-        )
-    )
+   # 4. DeviceTriggerEvent (Device triggers)
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=DeviceTriggerEvent,
+         handler=self._on_device_trigger,
+      )
+   )
 
-    # OLD: Keep old subscriptions for now (will remove in Step 2.4)
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=BackendSystemEventData,
-            handler=self._on_system_event,
-        )
-    )
-    # ... 8 more old subscriptions ...
+   # OLD: Keep old subscriptions for now (will remove in Step 2.4)
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=BackendSystemEventData,
+         handler=self._on_system_event,
+      )
+   )
+   # ... 8 more old subscriptions ...
 ```
 
 **Checklist**:
@@ -400,38 +401,38 @@ pytest tests/ -v --tb=short -k "test_control_unit"
 
 ```python
 async def start_central(self) -> None:
-    """Start the central unit."""
-    # ... existing code ...
+   """Start the central unit."""
+   # ... existing code ...
 
-    # 4 focused integration event subscriptions
-    _LOGGER.debug("Subscribing to integration events")
+   # 4 focused integration event subscriptions
+   _LOGGER.debug("Subscribing to integration events")
 
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=SystemStatusEvent,
-            handler=self._on_system_status,
-        )
-    )
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=DeviceLifecycleEvent,
-            handler=self._on_device_lifecycle,
-        )
-    )
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=DataPointsCreatedEvent,
-            handler=self._on_data_points_created,
-        )
-    )
-    self._unsubscribe_callbacks.append(
-        self._central.event_bus.subscribe(
-            event_type=DeviceTriggerEvent,
-            handler=self._on_device_trigger,
-        )
-    )
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=SystemStatusEvent,
+         handler=self._on_system_status,
+      )
+   )
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=DeviceLifecycleEvent,
+         handler=self._on_device_lifecycle,
+      )
+   )
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=DataPointsCreatedEvent,
+         handler=self._on_data_points_created,
+      )
+   )
+   self._unsubscribe_callbacks.append(
+      self._central.event_bus.subscribe(
+         event_type=DeviceTriggerEvent,
+         handler=self._on_device_trigger,
+      )
+   )
 
-    # OLD SUBSCRIPTIONS REMOVED (9 lines deleted)
+   # OLD SUBSCRIPTIONS REMOVED (9 lines deleted)
 ```
 
 **Checklist**:

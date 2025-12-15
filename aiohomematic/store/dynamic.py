@@ -31,6 +31,7 @@ import time
 from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
+from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
@@ -56,15 +57,18 @@ from aiohomematic.const import (
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
 from aiohomematic.interfaces.central import (
-    CentralInfo,
-    DataCacheProvider,
-    DataPointProvider,
-    DeviceProvider,
-    EventBusProvider,
+    CentralInfoProtocol,
+    DataPointProviderProtocol,
+    DeviceProviderProtocol,
+    EventBusProviderProtocol,
 )
-from aiohomematic.interfaces.client import ClientProvider, DataCacheWriter, DeviceDetailsWriter, PrimaryClientProvider
-from aiohomematic.interfaces.model import DeviceRemovalInfo
-from aiohomematic.interfaces.operations import DeviceDetailsProvider
+from aiohomematic.interfaces.client import (
+    ClientProviderProtocol,
+    DataCacheWriterProtocol,
+    DeviceDetailsWriterProtocol,
+    PrimaryClientProviderProtocol,
+)
+from aiohomematic.interfaces.operations import DeviceDetailsProviderProtocol
 from aiohomematic.support import changed_within_seconds, get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -276,7 +280,7 @@ class CommandCache:
             )
 
 
-class DeviceDetailsCache(DeviceDetailsProvider, DeviceDetailsWriter):
+class DeviceDetailsCache(DeviceDetailsProviderProtocol, DeviceDetailsWriterProtocol):
     """Cache for device/channel details."""
 
     __slots__ = (
@@ -294,8 +298,8 @@ class DeviceDetailsCache(DeviceDetailsProvider, DeviceDetailsWriter):
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        primary_client_provider: PrimaryClientProvider,
+        central_info: CentralInfoProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
     ) -> None:
         """Initialize the device details cache."""
         self._central_info: Final = central_info
@@ -379,7 +383,7 @@ class DeviceDetailsCache(DeviceDetailsProvider, DeviceDetailsWriter):
         self._functions.update(await self._get_all_functions())
         self._refreshed_at = datetime.now()
 
-    def remove_device(self, *, device: DeviceRemovalInfo) -> None:
+    def remove_device(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """Remove device data from all caches."""
         # Clean device-level entries
         self._names_cache.pop(device.address, None)
@@ -437,7 +441,7 @@ class DeviceDetailsCache(DeviceDetailsProvider, DeviceDetailsWriter):
         return _device_rooms
 
 
-class CentralDataCache(DataCacheProvider, DataCacheWriter):
+class CentralDataCache(DataCacheWriterProtocol):
     """Central cache for device/channel initial data."""
 
     __slots__ = (
@@ -452,10 +456,10 @@ class CentralDataCache(DataCacheProvider, DataCacheWriter):
     def __init__(
         self,
         *,
-        device_provider: DeviceProvider,
-        client_provider: ClientProvider,
-        data_point_provider: DataPointProvider,
-        central_info: CentralInfo,
+        device_provider: DeviceProviderProtocol,
+        client_provider: ClientProviderProtocol,
+        data_point_provider: DataPointProviderProtocol,
+        central_info: CentralInfoProtocol,
     ) -> None:
         """Initialize the central data cache."""
         self._device_provider: Final = device_provider
@@ -556,8 +560,8 @@ class PingPongCache:
     def __init__(
         self,
         *,
-        event_bus_provider: EventBusProvider,
-        central_info: CentralInfo,
+        event_bus_provider: EventBusProviderProtocol,
+        central_info: CentralInfoProtocol,
         interface_id: str,
         connection_state: CentralConnectionState | None = None,
         allowed_delta: int = PING_PONG_MISMATCH_COUNT,

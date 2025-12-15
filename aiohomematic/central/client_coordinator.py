@@ -22,15 +22,20 @@ from typing import Final
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, Interface, ProxyInitState
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, HealthTrackerProtocol, SystemInfoProvider
-from aiohomematic.interfaces.client import ClientFactory, ClientProtocol, ClientProvider
-from aiohomematic.interfaces.coordinators import CoordinatorProvider
+from aiohomematic.interfaces.central import (
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    HealthTrackerProtocol,
+    SystemInfoProviderProtocol,
+)
+from aiohomematic.interfaces.client import ClientFactoryProtocol, ClientProtocol, ClientProviderProtocol
+from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class ClientCoordinator(ClientProvider):
+class ClientCoordinator(ClientProviderProtocol):
     """Coordinator for client lifecycle and operations."""
 
     __slots__ = (
@@ -48,12 +53,12 @@ class ClientCoordinator(ClientProvider):
     def __init__(
         self,
         *,
-        client_factory: ClientFactory,
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
-        coordinator_provider: CoordinatorProvider,
+        client_factory: ClientFactoryProtocol,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
+        coordinator_provider: CoordinatorProviderProtocol,
         health_tracker: HealthTrackerProtocol,
-        system_info_provider: SystemInfoProvider,
+        system_info_provider: SystemInfoProviderProtocol,
     ) -> None:
         """
         Initialize the client coordinator.

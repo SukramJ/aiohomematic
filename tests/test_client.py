@@ -318,7 +318,7 @@ class _FakeCentral:
 
 
 class _FakeEventPublisher:
-    """Minimal fake EventPublisher for testing."""
+    """Minimal fake EventPublisherProtocol for testing."""
 
     def publish_device_trigger_event(self, **kwargs: Any) -> None:  # noqa: D401,ARG002,ANN401
         """Do nothing for publish in tests."""
@@ -678,7 +678,7 @@ class TestClientClasses:
             ClientJsonCCU as _ClientJsonCCU,
         )
 
-        ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
 
         # Patch XML-RPC creation used by _get_version and others (for all ClientConfig instances)
         async def _fake_create_xml_rpc_proxy(self, **kwargs):  # type: ignore[no-untyped-def]
@@ -776,7 +776,7 @@ class TestClientClasses:
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         from aiohomematic.client import ClientCCU as _ClientCCU, ClientConfig as _ClientConfig
 
-        ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
 
         async def _fake_create_xml_rpc_proxy(self, **kwargs):  # type: ignore[no-untyped-def]
             return _FakeXmlRpcProxy()
@@ -811,7 +811,7 @@ class TestClientClasses:
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
 
-        ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
         client_json = _ClientJsonCCU(client_config=ccfg)
 
         # get_value for MASTER branch should read from MASTER paramset returned by FakeJsonRpcClient
@@ -834,7 +834,7 @@ class TestClientClasses:
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         from aiohomematic.client import ClientCCU as _ClientCCU, ClientConfig as _ClientConfig
 
-        ccfg = _ClientConfig(central=central, interface_config=iface_cfg)
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
         client_ccu = _ClientCCU(client_config=ccfg)
 
         # Provide fake proxies, system information and initialize handlers
@@ -888,7 +888,7 @@ class TestClientConfig:
 
         # Homegear selection via version string on BIDCOS_RF
         iface_hg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        ccfg_hg = _ClientConfig(central=central, interface_config=iface_hg)
+        ccfg_hg = _ClientConfig(client_deps=central, interface_config=iface_hg)
 
         class _HGProxy(_FakeXmlRpcProxy):
             async def clientServerInitialized(self, interface_id: str) -> bool:  # noqa: N802,ARG002
@@ -909,13 +909,13 @@ class TestClientConfig:
 
         # JsonCCU selection for HMIP_RF (requires JSON-RPC client)
         iface_js = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
-        ccfg_js = _ClientConfig(central=central, interface_config=iface_js)
+        ccfg_js = _ClientConfig(client_deps=central, interface_config=iface_js)
         client2 = await ccfg_js.create_client()
         assert isinstance(client2, _ClientJsonCCU)
 
         # Failure path: force availability check to return False and expect NoConnectionException
         iface_fail = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        ccfg_fail = _ClientConfig(central=central, interface_config=iface_fail)
+        ccfg_fail = _ClientConfig(client_deps=central, interface_config=iface_fail)
 
         # Use fixed version so ClientCCU is selected, then make check_connection_availability return False
         async def _get_version_zero(self) -> str:  # type: ignore[no-untyped-def]
@@ -937,7 +937,7 @@ class TestClientConfig:
         """_get_version should return "0" when proxy lacks getVersion in supported_methods."""
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        ccfg = ClientConfig(central=central, interface_config=iface_cfg)
+        ccfg = ClientConfig(client_deps=central, interface_config=iface_cfg)
 
         class _NoGetVersionProxy:
             supported_methods: set[str] = set()
@@ -1045,7 +1045,7 @@ class TestClientProxyLifecycle:
         central.device_registry.devices = (mock_device,)
 
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        ccfg = ClientConfig(central=central, interface_config=iface_cfg)
+        ccfg = ClientConfig(client_deps=central, interface_config=iface_cfg)
 
         client = ClientCCU(client_config=ccfg)
 
@@ -1079,7 +1079,7 @@ class TestClientProxyLifecycle:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        ccfg = ClientConfig(central=central, interface_config=iface_cfg)
+        ccfg = ClientConfig(client_deps=central, interface_config=iface_cfg)
 
         client = ClientCCU(client_config=ccfg)
 
@@ -1127,7 +1127,7 @@ class TestClientReconnectAndConnection:
         """Cover warning and recovery branches in is_callback_alive based on last event time."""
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         assert client.is_callback_alive() is True
 
@@ -1143,7 +1143,7 @@ class TestClientReconnectAndConnection:
         """Cover reconnect waiting path and is_connected counting/push-updates logic."""
         central = _FakeCentral2(push_updates=True)
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         async def _cca_true(self, *, handle_ping_pong: bool) -> bool:  # noqa: ARG001
             return True
@@ -1169,7 +1169,7 @@ class TestClientReconnectAndConnection:
         assert res[-1] is False
 
         central2 = _FakeCentral2(push_updates=False)
-        client2 = ClientCCU(client_config=ClientConfig(central=central2, interface_config=iface_cfg))
+        client2 = ClientCCU(client_config=ClientConfig(client_deps=central2, interface_config=iface_cfg))
         monkeypatch.setattr(ClientCCU, "check_connection_availability", _cca_true)
         assert await client2.is_connected() is True
 
@@ -1184,7 +1184,7 @@ class TestClientValueAndParamset:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
         client._system_information = SystemInformation()  # type: ignore[attr-defined]
@@ -1224,7 +1224,7 @@ class TestClientValueAndParamset:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
         client._system_information = SystemInformation()  # type: ignore[attr-defined]
@@ -1278,7 +1278,7 @@ class TestClientFirmwareAndUpdates:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()  # type: ignore[attr-defined]
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
         client._system_information = SystemInformation()  # type: ignore[attr-defined]
@@ -1313,7 +1313,7 @@ class TestClientVirtualRemote:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         # Initially no devices -> None
         assert client.get_virtual_remote() is None
@@ -1337,7 +1337,7 @@ class TestClientHomegear:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client_hg = ClientHomegear(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client_hg = ClientHomegear(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         # Default version is "0" -> does not contain pydevccu -> HOMEGEAR
         client_hg._config.version = "Homegear 0.8"  # type: ignore[attr-defined]
@@ -1386,7 +1386,7 @@ class TestClientInstallMode:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _ErrProxy(_XmlProxy2):
             async def getInstallMode(self) -> int:  # noqa: N802
@@ -1407,7 +1407,7 @@ class TestClientInstallMode:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _NoneProxy(_XmlProxy2):
             async def getInstallMode(self) -> int | None:  # noqa: N802
@@ -1428,7 +1428,7 @@ class TestClientInstallMode:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
         client._system_information = SystemInformation()  # type: ignore[attr-defined]
@@ -1444,7 +1444,7 @@ class TestClientInstallMode:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _ErrProxy(_XmlProxy2):
             async def setInstallMode(self, *args: Any) -> None:  # noqa: N802
@@ -1465,7 +1465,7 @@ class TestClientInstallMode:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
         client._proxy = _XmlProxy2()
         client._proxy_read = _XmlProxy2()  # type: ignore[attr-defined]
         client._system_information = SystemInformation()  # type: ignore[attr-defined]
@@ -1481,7 +1481,7 @@ class TestClientInstallMode:
 
         central = _FakeCentral2()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
-        client = ClientCCU(client_config=ClientConfig(central=central, interface_config=iface_cfg))
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         calls: list[tuple[Any, ...]] = []
 

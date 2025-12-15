@@ -33,8 +33,9 @@ Use **explicit protocol injection** per component rather than grouping protocols
 `ClientDependencies` exists as a composite protocol for the **external client API**, where a stable public interface is valuable. This is the exception, not the rule.
 
 ```python
-# ClientDependencies bundles ~20 methods for external API stability
-class ClientDependencies(Protocol):
+# ClientDependenciesProtocol bundles ~20 methods for external API stability
+@runtime_checkable
+class ClientDependenciesProtocol(Protocol):
     @property
     def config(self) -> CentralConfig: ...
     @property
@@ -52,13 +53,15 @@ class Device:
         *,
         interface_id: str,
         device_address: str,
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
-        event_bus_provider: EventBusProvider,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
         # ... each dependency explicit
     ) -> None:
         ...
 ```
+
+**Note**: All protocol interfaces use the `-Protocol` suffix (added 2025-12) to prevent name collisions with implementing classes and make protocols instantly recognizable.
 
 ## Consequences
 

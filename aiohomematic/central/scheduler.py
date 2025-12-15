@@ -41,15 +41,15 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import BaseHomematicException, NoConnectionException
 from aiohomematic.interfaces.central import (
-    CentralInfo,
-    CentralUnitStateProvider,
-    ConfigProvider,
-    DeviceDataRefresher,
-    EventBusProvider,
-    FirmwareDataRefresher,
-    HubDataFetcher,
+    CentralInfoProtocol,
+    CentralUnitStateProviderProtocol,
+    ConfigProviderProtocol,
+    DeviceDataRefresherProtocol,
+    EventBusProviderProtocol,
+    FirmwareDataRefresherProtocol,
+    HubDataFetcherProtocol,
 )
-from aiohomematic.interfaces.client import ConnectionStateProvider, JsonRpcClientProvider
+from aiohomematic.interfaces.client import ConnectionStateProviderProtocol, JsonRpcClientProviderProtocol
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -136,17 +136,17 @@ class BackgroundScheduler:
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
         client_coordinator: ClientCoordinator,
-        connection_state_provider: ConnectionStateProvider,
-        device_data_refresher: DeviceDataRefresher,
-        firmware_data_refresher: FirmwareDataRefresher,
+        connection_state_provider: ConnectionStateProviderProtocol,
+        device_data_refresher: DeviceDataRefresherProtocol,
+        firmware_data_refresher: FirmwareDataRefresherProtocol,
         event_coordinator: EventCoordinator,
-        hub_data_fetcher: HubDataFetcher,
-        event_bus_provider: EventBusProvider,
-        json_rpc_client_provider: JsonRpcClientProvider,
-        state_provider: CentralUnitStateProvider,
+        hub_data_fetcher: HubDataFetcherProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        json_rpc_client_provider: JsonRpcClientProviderProtocol,
+        state_provider: CentralUnitStateProviderProtocol,
     ) -> None:
         """
         Initialize the background scheduler.

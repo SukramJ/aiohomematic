@@ -1,3 +1,11 @@
+# Version 2025.12.30 (2025-12-15)
+
+## What's Changed
+
+### Improvements
+
+- Align naming
+
 # Version 2025.12.29 (2025-12-15)
 
 ## What's Changed

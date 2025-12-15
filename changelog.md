@@ -4,7 +4,7 @@
 
 ### Bug Fixes
 
-- Fix event creation
+- Fix event publication
 
 # Version 2025.12.28 (2025-12-14)
 

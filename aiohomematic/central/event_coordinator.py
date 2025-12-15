@@ -339,8 +339,11 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
         # Extract device addresses from data points
         device_addresses: set[str] = set()
-        for dps in new_data_points.values():
-            for dp in dps:
+
+        for category, data_points in new_data_points.items():
+            if category == DataPointCategory.EVENT:
+                continue
+            for dp in data_points:
                 device_addresses.add(dp.device.address)
 
         async def _publish_events() -> None:
@@ -357,15 +360,12 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
             # Emit DataPointsCreatedEvent for entity discovery
             if new_data_points:
-                # Convert Mapping to tuple of (category, data_points) pairs
-                data_points_tuples = tuple((category, tuple(dps)) for category, dps in new_data_points.items() if dps)
-                if data_points_tuples:
-                    await self._event_bus.publish(
-                        event=DataPointsCreatedEvent(
-                            timestamp=timestamp,
-                            new_data_points=data_points_tuples,
-                        )
+                await self._event_bus.publish(
+                    event=DataPointsCreatedEvent(
+                        timestamp=timestamp,
+                        new_data_points=new_data_points,
                     )
+                )
 
         self._task_scheduler.create_task(
             target=partial(_publish_events),
@@ -374,11 +374,8 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
     def _emit_hub_refreshed_event(self, *, timestamp: datetime, **kwargs: Any) -> None:
         """Emit DataPointsCreatedEvent for HUB_REFRESHED."""
-        new_data_points: tuple[tuple[DataPointCategory, tuple[BaseDataPoint, ...]], ...] = kwargs.get(
-            "new_data_points", ()
-        )
-
-        if not new_data_points:
+        new_data_points: dict[DataPointCategory, tuple[BaseDataPoint, ...]]
+        if not (new_data_points := kwargs.get("new_data_points", {})):
             return
 
         async def _publish_event() -> None:

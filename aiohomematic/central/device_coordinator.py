@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Mapping, Set as AbstractSet
+from collections.abc import Mapping
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
@@ -390,12 +390,11 @@ class DeviceCoordinator(FirmwareDataRefresher):
         if new_devices:
             for device in new_devices:
                 await device.finalize_init()
-            new_dps = _get_new_data_points(new_devices=new_devices)
-            new_channel_events = _get_new_channel_events(new_devices=new_devices)
+            new_dps: dict[DataPointCategory, Any] = _get_new_data_points(new_devices=new_devices)
+            new_dps[DataPointCategory.EVENT] = _get_new_channel_events(new_devices=new_devices)
             self._coordinator_provider.event_coordinator.publish_system_event(
                 system_event=SystemEventType.DEVICES_CREATED,
                 new_data_points=new_dps,
-                new_channel_events=new_channel_events,
                 source=source,
             )
 
@@ -841,7 +840,7 @@ def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[
             if (hm_channel_events := list(device.get_events(event_type=event_type, registered=False).values())) and len(
                 hm_channel_events
             ) > 0:
-                channel_events.append(hm_channel_events)  # type: ignore[arg-type] # noqa: PERF401
+                channel_events.extend(hm_channel_events)  # noqa: PERF401
 
     return tuple(channel_events)
 
@@ -849,7 +848,7 @@ def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[
 def _get_new_data_points(
     *,
     new_devices: set[DeviceProtocol],
-) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPointProtocol]]:
+) -> dict[DataPointCategory, set[CallbackDataPointProtocol]]:
     """
     Return new data points by category.
 

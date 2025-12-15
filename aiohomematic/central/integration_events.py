@@ -56,6 +56,7 @@ Example Usage
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
@@ -64,7 +65,7 @@ from aiohomematic.central.event_bus import Event
 from aiohomematic.const import CentralState, ClientState, DataPointCategory
 
 if TYPE_CHECKING:
-    from aiohomematic.model.data_point import BaseDataPoint
+    from aiohomematic.interfaces.model import CallbackDataPointProtocol
 
 
 __all__ = [
@@ -246,7 +247,7 @@ class DataPointsCreatedEvent(Event):
 
     """
 
-    new_data_points: tuple[tuple[DataPointCategory, tuple[BaseDataPoint, ...]], ...]
+    new_data_points: Mapping[DataPointCategory, tuple[CallbackDataPointProtocol, ...]]
     """
     New data points grouped by category.
 

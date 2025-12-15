@@ -31,7 +31,7 @@ Lifecycle and Flow
    - The module retrieves program/sysvar lists from the primary client.
    - It identifies removed items and cleans up corresponding data points.
    - It updates existing data points or creates new ones as needed.
-3. For newly created hub data points, a BackendSystemEvent.HUB_REFRESHED event
+3. For newly created hub data points, a SystemEventType.HUB_REFRESHED event
    is published with a categorized mapping of the new points for consumers.
 
 Type Mapping for System Variables
@@ -84,13 +84,13 @@ from typing import Final, NamedTuple
 from aiohomematic.const import (
     HUB_CATEGORIES,
     Backend,
-    BackendSystemEvent,
     DataPointCategory,
     HubValueType,
     InstallModeData,
     Interface,
     ProgramData,
     ServiceScope,
+    SystemEventType,
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector
@@ -357,8 +357,8 @@ class Hub(HubProtocol):
             data_points.append(install_mode_dp.button)
             data_points.append(install_mode_dp.sensor)
 
-        self._event_publisher.publish_backend_system_event(
-            system_event=BackendSystemEvent.HUB_REFRESHED,
+        self._event_publisher.publish_system_event(
+            system_event=SystemEventType.HUB_REFRESHED,
             new_data_points=_get_new_hub_data_points(data_points=data_points),
         )
 
@@ -534,8 +534,8 @@ class Hub(HubProtocol):
         self._inbox_dp.update_data(devices=devices, write_at=datetime.now())
 
         if is_new:
-            self._event_publisher.publish_backend_system_event(
-                system_event=BackendSystemEvent.HUB_REFRESHED,
+            self._event_publisher.publish_system_event(
+                system_event=SystemEventType.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=[self._inbox_dp]),
             )
 
@@ -568,8 +568,8 @@ class Hub(HubProtocol):
                 new_programs.append(program_dp.switch)
 
         if new_programs:
-            self._event_publisher.publish_backend_system_event(
-                system_event=BackendSystemEvent.HUB_REFRESHED,
+            self._event_publisher.publish_system_event(
+                system_event=SystemEventType.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_programs),
             )
 
@@ -611,8 +611,8 @@ class Hub(HubProtocol):
         self._update_dp.update_data(data=update_data, write_at=datetime.now())
 
         if is_new:
-            self._event_publisher.publish_backend_system_event(
-                system_event=BackendSystemEvent.HUB_REFRESHED,
+            self._event_publisher.publish_system_event(
+                system_event=SystemEventType.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=[self._update_dp]),
             )
 
@@ -649,8 +649,8 @@ class Hub(HubProtocol):
                 new_sysvars.append(self._create_system_variable(data=sysvar))
 
         if new_sysvars:
-            self._event_publisher.publish_backend_system_event(
-                system_event=BackendSystemEvent.HUB_REFRESHED,
+            self._event_publisher.publish_system_event(
+                system_event=SystemEventType.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_sysvars),
             )
 

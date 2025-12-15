@@ -17,7 +17,7 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
-from aiohomematic.const import IP_ANY_V4, PORT_ANY, BackendSystemEvent
+from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType
 from aiohomematic.interfaces.central import RpcServerCentralProtocol, RpcServerTaskScheduler
 from aiohomematic.support import log_boundary_error
 
@@ -45,7 +45,7 @@ class RPCFunctions:
                 name=f"deleteDevices-{interface_id}",
             )
 
-    @callback_backend_system(system_event=BackendSystemEvent.ERROR)
+    @callback_backend_system(system_event=SystemEventType.ERROR)
     def error(self, interface_id: str, error_code: str, msg: str, /) -> None:
         """When some error occurs the backend will send its error message here."""
         # Structured boundary log (warning level). RPC server received error notification.
@@ -105,7 +105,7 @@ class RPCFunctions:
                 name=f"newDevices-{interface_id}",
             )
 
-    @callback_backend_system(system_event=BackendSystemEvent.RE_ADDED_DEVICE)
+    @callback_backend_system(system_event=SystemEventType.RE_ADDED_DEVICE)
     def readdedDevice(self, interface_id: str, addresses: list[str], /) -> None:
         """
         Re-Add device from the backend.
@@ -120,7 +120,7 @@ class RPCFunctions:
             str(addresses),
         )
 
-    @callback_backend_system(system_event=BackendSystemEvent.REPLACE_DEVICE)
+    @callback_backend_system(system_event=SystemEventType.REPLACE_DEVICE)
     def replaceDevice(self, interface_id: str, old_device_address: str, new_device_address: str, /) -> None:
         """Replace a device. Probably irrelevant for us."""
         _LOGGER.debug(
@@ -130,7 +130,7 @@ class RPCFunctions:
             new_device_address,
         )
 
-    @callback_backend_system(system_event=BackendSystemEvent.UPDATE_DEVICE)
+    @callback_backend_system(system_event=SystemEventType.UPDATE_DEVICE)
     def updateDevice(self, interface_id: str, address: str, hint: int, /) -> None:
         """
         Update a device.

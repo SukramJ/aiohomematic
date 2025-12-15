@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aiohomematic.central.event_coordinator import EventCoordinator
-from aiohomematic.const import BackendSystemEvent, DataPointKey, EventKey, EventType, Parameter, ParamsetKey
+from aiohomematic.const import DataPointKey, EventKey, EventType, Parameter, ParamsetKey, SystemEventType
 from aiohomematic.model.generic import GenericDataPoint
 
 
@@ -305,8 +305,8 @@ class TestEventCoordinatorEmitMethods:
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
-        coordinator.publish_backend_system_event(
-            system_event=BackendSystemEvent.DEVICES_CREATED,
+        coordinator.publish_system_event(
+            system_event=SystemEventType.DEVICES_CREATED,
             interface_id="BidCos-RF",
         )
 
@@ -325,7 +325,7 @@ class TestEventCoordinatorEmitMethods:
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
-        coordinator.publish_homematic_event(
+        coordinator.publish_device_trigger_event(
             event_type=EventType.KEYPRESS,
             event_data={
                 EventKey.INTERFACE_ID: "BidCos-RF",

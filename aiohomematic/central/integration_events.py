@@ -166,7 +166,7 @@ class DeviceLifecycleEvent(Event):
     """
     Device lifecycle and availability event.
 
-    Aggregates: BackendSystemEventData (DEVICES_CREATED, DEVICE_REMOVED),
+    Aggregates: SystemEventTypeData (DEVICES_CREATED, DEVICE_REMOVED),
     DeviceAvailabilityChangedEvent.
 
     **HA Registration Points**:

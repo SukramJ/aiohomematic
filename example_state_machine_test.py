@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.central.event_bus import BackendSystemEventData, CentralStateChangedEvent, ClientStateChangedEvent
+from aiohomematic.central.event_bus import CentralStateChangedEvent, ClientStateChangedEvent, SystemEventTypeData
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import CentralState, ClientState
 
@@ -161,13 +161,13 @@ class StateMachineTestMonitor:
         if event.new_state == ClientState.RECONNECTING:
             self.reconnect_count += 1
 
-    def _on_system_event(self, event: BackendSystemEventData) -> None:
-        """Handle backend system events."""
+    def _on_system_event(self, event: SystemEventTypeData) -> None:
+        """Handle system events."""
         self.event_count += 1
         if event.system_event in (
-            const.BackendSystemEvent.NEW_DEVICES,
-            const.BackendSystemEvent.DEVICES_CREATED,
-            const.BackendSystemEvent.DELETE_DEVICES,
+            const.SystemEventType.NEW_DEVICES,
+            const.SystemEventType.DEVICES_CREATED,
+            const.SystemEventType.DELETE_DEVICES,
         ):
             _LOGGER.info(
                 "\033[33m[SYSTEM EVENT]\033[0m %s (data keys: %s)",
@@ -337,7 +337,7 @@ class StateMachineTestMonitor:
         )
 
         event_bus.subscribe(
-            event_type=BackendSystemEventData,
+            event_type=SystemEventTypeData,
             event_key=None,
             handler=self._on_system_event,
         )

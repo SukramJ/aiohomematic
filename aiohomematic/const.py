@@ -259,7 +259,7 @@ class CCUType(StrEnum):
     UNKNOWN = "Unknown"
 
 
-class BackendSystemEvent(StrEnum):
+class SystemEventType(StrEnum):
     """Enum with aiohomematic system events."""
 
     DELETE_DEVICES = "deleteDevices"

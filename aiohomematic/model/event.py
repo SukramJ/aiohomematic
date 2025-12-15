@@ -110,7 +110,7 @@ class GenericEvent(BaseParameterDataPointAny, GenericEventProtocol):
     @loop_check
     def publish_event(self, *, value: Any) -> None:
         """Do what is needed to publish an event."""
-        self._event_publisher.publish_homematic_event(
+        self._event_publisher.publish_device_trigger_event(
             event_type=self.event_type, event_data=self.get_event_data(value=value)
         )
 

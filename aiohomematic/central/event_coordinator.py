@@ -34,13 +34,13 @@ from aiohomematic.central.integration_events import (
     DeviceTriggerEvent,
 )
 from aiohomematic.const import (
-    BackendSystemEvent,
     DataPointCategory,
     DataPointKey,
     EventKey,
     EventType,
     Parameter,
     ParamsetKey,
+    SystemEventType,
 )
 from aiohomematic.interfaces.central import EventBusProvider, EventPublisher, HealthTrackerProtocol
 from aiohomematic.interfaces.client import ClientProvider, LastEventTracker
@@ -235,31 +235,7 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
         )
 
     @loop_check
-    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """
-        Publish system event handlers.
-
-        System-level events like DEVICES_CREATED, HUB_REFRESHED, etc.
-        Converts legacy system events to focused integration events.
-
-        Args:
-        ----
-            system_event: Type of system event
-            **kwargs: Additional event data
-
-        """
-        timestamp = datetime.now()
-
-        # Handle device lifecycle events
-        if system_event == BackendSystemEvent.DEVICES_CREATED:
-            self._emit_devices_created_events(timestamp=timestamp, **kwargs)
-        elif system_event == BackendSystemEvent.DELETE_DEVICES:
-            self._emit_device_removed_event(timestamp=timestamp, **kwargs)
-        elif system_event == BackendSystemEvent.HUB_REFRESHED:
-            self._emit_hub_refreshed_event(timestamp=timestamp, **kwargs)
-
-    @loop_check
-    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+    def publish_device_trigger_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
         """
         Publish device trigger event for Homematic callbacks.
 
@@ -298,6 +274,30 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
             target=partial(_publish_device_trigger_event),
             name=f"event-bus-device-trigger-{channel_address}-{parameter}",
         )
+
+    @loop_check
+    def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Any) -> None:
+        """
+        Publish system event handlers.
+
+        System-level events like DEVICES_CREATED, HUB_REFRESHED, etc.
+        Converts legacy system events to focused integration events.
+
+        Args:
+        ----
+            system_event: Type of system event
+            **kwargs: Additional event data
+
+        """
+        timestamp = datetime.now()
+
+        # Handle device lifecycle events
+        if system_event == SystemEventType.DEVICES_CREATED:
+            self._emit_devices_created_events(timestamp=timestamp, **kwargs)
+        elif system_event == SystemEventType.DELETE_DEVICES:
+            self._emit_device_removed_event(timestamp=timestamp, **kwargs)
+        elif system_event == SystemEventType.HUB_REFRESHED:
+            self._emit_hub_refreshed_event(timestamp=timestamp, **kwargs)
 
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """

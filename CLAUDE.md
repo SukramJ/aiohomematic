@@ -904,7 +904,7 @@ class CentralInfo(Protocol):
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
 - **EventBusProvider**: Event system access (event_bus property)
-- **EventPublisher**: Event emission via EventCoordinator (publish_backend_system_event, publish_homematic_event)
+- **EventPublisher**: Event emission via EventCoordinator (publish_system_event, publish_device_trigger_event)
 - **TaskScheduler**: Background task scheduling (create_task method)
 - **PrimaryClientProvider**: Primary client access
 - **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
@@ -1307,7 +1307,7 @@ All constants are in `aiohomematic/const.py`:
 from aiohomematic.const import (
     Interface,           # Enum for interface types
     ParamsetKey,         # Enum for paramset keys
-    BackendSystemEvent,  # Enum for system events
+    SystemEventType,  # Enum for system events
     DEFAULT_TIMEOUT,     # Timeout values
     VERSION,             # Package version
 )
@@ -1487,7 +1487,7 @@ from aiohomematic.client import InterfaceConfig, Client
 from aiohomematic.model import Device, Channel, DataPoint, Event
 
 # Constants and enums
-from aiohomematic.const import Interface, ParamsetKey, BackendSystemEvent
+from aiohomematic.const import Interface, ParamsetKey, SystemEventType
 
 # Exceptions
 from aiohomematic.exceptions import AioHomematicException, ClientException

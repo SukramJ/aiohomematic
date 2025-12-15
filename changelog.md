@@ -1,3 +1,11 @@
+# Version 2025.12.29 (2025-12-15)
+
+## What's Changed
+
+### Bug Fixes
+
+- Fix event creation
+
 # Version 2025.12.28 (2025-12-14)
 
 ## What's Changed

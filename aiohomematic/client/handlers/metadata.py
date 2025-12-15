@@ -15,22 +15,22 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import InboxDeviceData, Interface, ServiceMessageData, ServiceMessageType, SystemUpdateData
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
-from aiohomematic.interfaces.client import MetadataOperations
+from aiohomematic.interfaces.client import MetadataOperationsProtocol
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
-    from aiohomematic.interfaces.client import ClientDependencies
+    from aiohomematic.interfaces.client import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class MetadataHandler(BaseHandler, MetadataOperations):
+class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
     """
     Handler for metadata and system information operations.
 
-    Implements MetadataOperations protocol for ISP-compliant client operations.
+    Implements MetadataOperationsProtocol protocol for ISP-compliant client operations.
 
     Handles:
     - Metadata read/write operations
@@ -58,7 +58,7 @@ class MetadataHandler(BaseHandler, MetadataOperations):
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface: Interface,
         interface_id: str,
         json_rpc_client: AioJsonRpcAioHttpClient,
@@ -76,7 +76,7 @@ class MetadataHandler(BaseHandler, MetadataOperations):
     ) -> None:
         """Initialize the metadata handler."""
         super().__init__(
-            central=central,
+            client_deps=client_deps,
             interface=interface,
             interface_id=interface_id,
             json_rpc_client=json_rpc_client,
@@ -132,7 +132,7 @@ class MetadataHandler(BaseHandler, MetadataOperations):
 
         functions: dict[str, set[str]] = {}
         rega_ids_function = await self._json_rpc_client.get_all_channel_rega_ids_function()
-        for address, rega_id in self._central.cache_coordinator.device_details.device_channel_rega_ids.items():
+        for address, rega_id in self._client_deps.cache_coordinator.device_details.device_channel_rega_ids.items():
             if sections := rega_ids_function.get(rega_id):
                 if address not in functions:
                     functions[address] = set()
@@ -157,7 +157,7 @@ class MetadataHandler(BaseHandler, MetadataOperations):
 
         rooms: dict[str, set[str]] = {}
         rega_ids_room = await self._json_rpc_client.get_all_channel_rega_ids_room()
-        for address, rega_id in self._central.cache_coordinator.device_details.device_channel_rega_ids.items():
+        for address, rega_id in self._client_deps.cache_coordinator.device_details.device_channel_rega_ids.items():
             if names := rega_ids_room.get(rega_id):
                 if address not in rooms:
                     rooms[address] = set()

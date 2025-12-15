@@ -20,10 +20,19 @@ from aiohomematic.const import (
     SystemUpdateData,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.central import CentralInfo, ConfigProvider, EventBusProvider, EventPublisher
-from aiohomematic.interfaces.client import PrimaryClientProvider
+from aiohomematic.interfaces.central import (
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+)
+from aiohomematic.interfaces.client import PrimaryClientProviderProtocol
 from aiohomematic.interfaces.model import ChannelProtocol, GenericHubDataPointProtocol
-from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
+from aiohomematic.interfaces.operations import (
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import config_property, state_property
@@ -54,14 +63,14 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        primary_client_provider: PrimaryClientProvider,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)

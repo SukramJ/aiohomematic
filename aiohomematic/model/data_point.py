@@ -65,8 +65,8 @@ from aiohomematic.const import (
 from aiohomematic.context import IN_SERVICE_VAR
 from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces.central import CentralInfo, EventBusProvider, EventPublisher
-from aiohomematic.interfaces.client import ClientProtocol, ValueAndParamsetOperations
+from aiohomematic.interfaces.central import CentralInfoProtocol, EventBusProviderProtocol, EventPublisherProtocol
+from aiohomematic.interfaces.client import ClientProtocol, ValueAndParamsetOperationsProtocol
 from aiohomematic.interfaces.model import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
@@ -74,7 +74,11 @@ from aiohomematic.interfaces.model import (
     ChannelProtocol,
     DeviceProtocol,
 )
-from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
+from aiohomematic.interfaces.operations import (
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
 from aiohomematic.property_decorators import config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
@@ -173,12 +177,12 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         self,
         *,
         unique_id: str,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
     ) -> None:
         """Initialize the callback data point."""
         self._central_info: Final = central_info
@@ -1159,9 +1163,9 @@ class CallParameterCollector:
         "_paramsets",
     )
 
-    def __init__(self, *, client: ValueAndParamsetOperations) -> None:
+    def __init__(self, *, client: ValueAndParamsetOperationsProtocol) -> None:
         """Initialize the generator."""
-        self._client: Final[ValueAndParamsetOperations] = client
+        self._client: Final[ValueAndParamsetOperationsProtocol] = client
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}
         self._paramsets: Final[dict[ParamsetKey, dict[int, dict[str, dict[str, Any]]]]] = {}
 

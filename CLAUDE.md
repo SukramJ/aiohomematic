@@ -58,7 +58,7 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   ├── central/                     # Central orchestration (11 files)
 │   │   ├── __init__.py             # CentralUnit, CentralConfig
 │   │   ├── cache_coordinator.py    # Cache management (DI: 8 protocols)
-│   │   ├── client_coordinator.py   # Client lifecycle (DI: ClientFactory + 5 protocols)
+│   │   ├── client_coordinator.py   # Client lifecycle (DI: ClientFactoryProtocol + 5 protocols)
 │   │   ├── device_coordinator.py   # Device operations (DI: 15 protocols)
 │   │   ├── device_registry.py      # Device storage (DI: 2 protocols)
 │   │   ├── event_coordinator.py    # Event handling (DI: 2 protocols)
@@ -788,15 +788,15 @@ class CacheCoordinator:
 **Tier 2: Full Protocol-Based DI (Coordinator Layer)** - Uses protocol interfaces exclusively:
 
 ```python
-# Example: ClientCoordinator uses ClientFactory protocol
+# Example: ClientCoordinator uses ClientFactoryProtocol protocol
 class ClientCoordinator:
     def __init__(
         self,
         *,
-        client_factory: ClientFactory,  # Factory protocol, not CentralUnit
+        client_factory: ClientFactoryProtocol,  # Factory protocol, not CentralUnit
         central_info: CentralInfo,
         config_provider: ConfigProvider,
-        coordinator_provider: CoordinatorProvider,
+        coordinator_provider: CoordinatorProviderProtocol,
         system_info_provider: SystemInfoProvider,
     ) -> None:
         self._client_factory: Final = client_factory
@@ -823,7 +823,7 @@ class HubCoordinator:
         )
 ```
 
-**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactory protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
+**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactoryProtocol protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
 
 **Tier 3: Full DI (Model Layer)** - Device, Channel, and DataPoint classes use full DI:
 
@@ -835,10 +835,10 @@ class Device:
         *,
         interface_id: str,
         device_address: str,
-        device_details_provider: DeviceDetailsProvider,
-        device_description_provider: DeviceDescriptionProvider,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
+        device_details_provider: DeviceDetailsProviderProtocol,
+        device_description_provider: DeviceDescriptionProviderProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         client_provider: ClientProvider,
         config_provider: ConfigProvider,
         central_info: CentralInfo,
@@ -899,7 +899,7 @@ class CentralInfo(Protocol):
 
 - **CentralInfo**: System identification (name, model, version)
 - **ConfigProvider**: Configuration access (config property)
-- **ClientFactory**: Client instance creation (create_client_instance method)
+- **ClientFactoryProtocol**: Client instance creation (create_client_instance method)
 - **ClientProvider**: Client lookup by interface_id
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
@@ -907,10 +907,10 @@ class CentralInfo(Protocol):
 - **EventPublisher**: Event emission via EventCoordinator (publish_system_event, publish_device_trigger_event)
 - **TaskScheduler**: Background task scheduling (create_task method)
 - **PrimaryClientProvider**: Primary client access
-- **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
-- **DeviceDescriptionProvider**: Device descriptions lookup
-- **ParamsetDescriptionProvider**: Paramset descriptions and multi-channel checks
-- **ParameterVisibilityProvider**: Parameter visibility rules
+- **DeviceDetailsProviderProtocol**: Device metadata (address_id, rooms, interface, name)
+- **DeviceDescriptionProviderProtocol**: Device descriptions lookup
+- **ParamsetDescriptionProviderProtocol**: Paramset descriptions and multi-channel checks
+- **ParameterVisibilityProviderProtocol**: Parameter visibility rules
 - **FileOperations**: File I/O operations
 - **DeviceDataRefresher**: Device data refresh operations
 - **DataCacheProvider**: Data cache access (get_data method)

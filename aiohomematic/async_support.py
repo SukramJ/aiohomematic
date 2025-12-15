@@ -20,7 +20,7 @@ from typing import Any, Final, cast
 
 from aiohomematic.const import BLOCK_LOG_TIMEOUT
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces.operations import TaskScheduler
+from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 import aiohomematic.support as hms
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import AsyncTaskFactoryAny, CallableAny, CoroutineAny
@@ -28,7 +28,7 @@ from aiohomematic.type_aliases import AsyncTaskFactoryAny, CallableAny, Coroutin
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class Looper(TaskScheduler):
+class Looper(TaskSchedulerProtocol):
     """Helper class for event loop support."""
 
     def __init__(self) -> None:

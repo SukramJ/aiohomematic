@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 @runtime_checkable
-class CoordinatorProvider(Protocol):
+class CoordinatorProviderProtocol(Protocol):
     """
     Protocol for accessing coordinator instances.
 

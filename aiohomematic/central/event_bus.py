@@ -105,7 +105,7 @@ from aiohomematic.type_aliases import UnsubscribeCallback
 if TYPE_CHECKING:
     from typing import Self
 
-    from aiohomematic.interfaces.operations import TaskScheduler
+    from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -363,7 +363,7 @@ class EventBus:
         self,
         *,
         enable_event_logging: bool = False,
-        task_scheduler: TaskScheduler | None = None,
+        task_scheduler: TaskSchedulerProtocol | None = None,
     ) -> None:
         """
         Initialize the event bus.

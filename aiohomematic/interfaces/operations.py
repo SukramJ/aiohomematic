@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 @runtime_checkable
-class TaskScheduler(Protocol):
+class TaskSchedulerProtocol(Protocol):
     """
     Protocol for scheduling async tasks.
 
@@ -48,7 +48,7 @@ class TaskScheduler(Protocol):
 
 
 @runtime_checkable
-class ParameterVisibilityProvider(Protocol):
+class ParameterVisibilityProviderProtocol(Protocol):
     """
     Protocol for accessing parameter visibility information.
 
@@ -85,7 +85,7 @@ class ParameterVisibilityProvider(Protocol):
 
 
 @runtime_checkable
-class DeviceDetailsProvider(Protocol):
+class DeviceDetailsProviderProtocol(Protocol):
     """
     Protocol for accessing device details.
 
@@ -118,7 +118,7 @@ class DeviceDetailsProvider(Protocol):
 
 
 @runtime_checkable
-class DeviceDescriptionProvider(Protocol):
+class DeviceDescriptionProviderProtocol(Protocol):
     """
     Protocol for accessing device descriptions.
 
@@ -135,7 +135,7 @@ class DeviceDescriptionProvider(Protocol):
 
 
 @runtime_checkable
-class ParamsetDescriptionProvider(Protocol):
+class ParamsetDescriptionProviderProtocol(Protocol):
     """
     Protocol for accessing paramset descriptions.
 

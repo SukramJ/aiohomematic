@@ -95,17 +95,21 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.central import (
-    CentralInfo,
-    ChannelLookup,
-    ConfigProvider,
-    EventBusProvider,
-    EventPublisher,
-    HubDataFetcher,
-    HubDataPointManager,
+    CentralInfoProtocol,
+    ChannelLookupProtocol,
+    ConfigProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+    HubDataFetcherProtocol,
+    HubDataPointManagerProtocol,
 )
-from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
+from aiohomematic.interfaces.client import ClientProviderProtocol, PrimaryClientProviderProtocol
 from aiohomematic.interfaces.model import GenericHubDataPointProtocol, HubProtocol
-from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
+from aiohomematic.interfaces.operations import (
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
@@ -183,18 +187,18 @@ class Hub(HubProtocol):
     def __init__(
         self,
         *,
-        config_provider: ConfigProvider,
-        central_info: CentralInfo,
-        client_provider: ClientProvider,
-        hub_data_point_manager: HubDataPointManager,
-        primary_client_provider: PrimaryClientProvider,
-        event_publisher: EventPublisher,
-        event_bus_provider: EventBusProvider,
-        task_scheduler: TaskScheduler,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        channel_lookup: ChannelLookup,
-        hub_data_fetcher: HubDataFetcher,
+        config_provider: ConfigProviderProtocol,
+        central_info: CentralInfoProtocol,
+        client_provider: ClientProviderProtocol,
+        hub_data_point_manager: HubDataPointManagerProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        hub_data_fetcher: HubDataFetcherProtocol,
     ) -> None:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()

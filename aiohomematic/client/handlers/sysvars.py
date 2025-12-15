@@ -12,16 +12,16 @@ from typing import Any, Final
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import DescriptionMarker, SystemVariableData
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.client import SystemVariableOperations
+from aiohomematic.interfaces.client import SystemVariableOperationsProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class SystemVariableHandler(BaseHandler, SystemVariableOperations):
+class SystemVariableHandler(BaseHandler, SystemVariableOperationsProtocol):
     """
     Handler for system variable operations.
 
-    Implements SystemVariableOperations protocol for ISP-compliant client operations.
+    Implements SystemVariableOperationsProtocol protocol for ISP-compliant client operations.
 
     Handles:
     - Getting all system variables

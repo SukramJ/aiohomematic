@@ -76,26 +76,28 @@ class _FakeDevice:
         self.client = type("Client", (), {"interface": None})()
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
         # Add protocol interface attributes for DI
-        self.config_provider = type("ConfigProvider", (), {"config": self.central.config})()
-        self.central_info = type("CentralInfo", (), {"name": "CentralTest", "available": True})()
-        self.event_bus_provider = type("EventBusProvider", (), {"event_bus": self.central.event_bus})()
+        self.config_provider = type("ConfigProviderProtocol", (), {"config": self.central.config})()
+        self.central_info = type("CentralInfoProtocol", (), {"name": "CentralTest", "available": True})()
+        self.event_bus_provider = type("EventBusProviderProtocol", (), {"event_bus": self.central.event_bus})()
         self.event_publisher = type("EventEmitter", (), {})()
         self.task_scheduler = type("TaskScheduler", (), {})()
         self.paramset_description_provider = type(
-            "ParamsetDescriptionProvider",
+            "ParamsetDescriptionProviderProtocol",
             (),
             {"is_in_multiple_channels": lambda self, channel_address, parameter: False},
         )()
         self.parameter_visibility_provider = type(
-            "ParameterVisibilityProvider",
+            "ParameterVisibilityProviderProtocol",
             (),
             {
                 "parameter_is_hidden": lambda self, channel, paramset_key, parameter: False,
                 "parameter_is_un_ignored": lambda self, channel, paramset_key, parameter, custom_only=False: False,
             },
         )()
-        self.device_data_refresher = type("DeviceDataRefresher", (), {})()
-        self.device_details_provider = type("DeviceDetailsProvider", (), {"get_name": lambda self, address: None})()
+        self.device_data_refresher = type("DeviceDataRefresherProtocol", (), {})()
+        self.device_details_provider = type(
+            "DeviceDetailsProviderProtocol", (), {"get_name": lambda self, address: None}
+        )()
 
     def add_dp(self, dp: _FakeGenericDP) -> None:
         self._store[(dp.parameter, dp.paramset_key)] = dp

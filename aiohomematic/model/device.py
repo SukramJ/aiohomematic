@@ -92,18 +92,18 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ClientException
 from aiohomematic.interfaces.central import (
-    CentralInfo,
-    ChannelLookup,
-    ConfigProvider,
-    DataCacheProvider,
-    DataPointProvider,
-    EventBusProvider,
-    EventPublisher,
-    EventSubscriptionManager,
-    FileOperations,
-    FirmwareDataRefresher,
+    CentralInfoProtocol,
+    ChannelLookupProtocol,
+    ConfigProviderProtocol,
+    DataCacheProviderProtocol,
+    DataPointProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+    EventSubscriptionManagerProtocol,
+    FileOperationsProtocol,
+    FirmwareDataRefresherProtocol,
 )
-from aiohomematic.interfaces.client import ClientProtocol, ClientProvider
+from aiohomematic.interfaces.client import ClientProtocol, ClientProviderProtocol
 from aiohomematic.interfaces.model import (
     BaseParameterDataPointProtocol,
     CalculatedDataPointProtocol,
@@ -115,11 +115,11 @@ from aiohomematic.interfaces.model import (
     GenericEventProtocol,
 )
 from aiohomematic.interfaces.operations import (
-    DeviceDescriptionProvider,
-    DeviceDetailsProvider,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    TaskScheduler,
+    DeviceDescriptionProviderProtocol,
+    DeviceDetailsProviderProtocol,
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
 )
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
@@ -182,16 +182,16 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     -------------------
     Implements ``DeviceProtocol`` which is a composite of sub-protocols:
 
-    - ``DeviceIdentity``: Basic identification (address, name, model, manufacturer)
-    - ``DeviceChannelAccess``: Channel and DataPoint access methods
-    - ``DeviceAvailability``: Availability state management
-    - ``DeviceFirmware``: Firmware information and update operations
-    - ``DeviceLinkManagement``: Central link operations
-    - ``DeviceGroupManagement``: Channel group management
-    - ``DeviceConfiguration``: Device configuration and metadata
-    - ``DeviceWeekProfile``: Week profile support
-    - ``DeviceProviders``: Protocol interface providers
-    - ``DeviceLifecycle``: Lifecycle methods
+    - ``DeviceIdentityProtocol``: Basic identification (address, name, model, manufacturer)
+    - ``DeviceChannelAccessProtocol``: Channel and DataPoint access methods
+    - ``DeviceAvailabilityProtocol``: Availability state management
+    - ``DeviceFirmwareProtocol``: Firmware information and update operations
+    - ``DeviceLinkManagementProtocol``: Central link operations
+    - ``DeviceGroupManagementProtocol``: Channel group management
+    - ``DeviceConfigurationProtocol``: Device configuration and metadata
+    - ``DeviceWeekProfileProtocol``: Week profile support
+    - ``DeviceProvidersProtocol``: Protocol interface providers
+    - ``DeviceLifecycleProtocol``: Lifecycle methods
 
     Consumers can depend on specific sub-protocols for narrower contracts.
     """
@@ -200,7 +200,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_address",
         "_cached_relevant_for_central_link_management",
         "_central_info",
-        "_channel_group",
+        "_channel_to_group",
         "_channel_lookup",
         "_channels",
         "_client",
@@ -208,7 +208,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_config_provider",
         "_data_cache_provider",
         "_data_point_provider",
-        "_description",
+        "_device_description",
         "_device_data_refresher",
         "_device_description_provider",
         "_device_details_provider",
@@ -246,22 +246,22 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         *,
         interface_id: str,
         device_address: str,
-        central_info: CentralInfo,
-        channel_lookup: ChannelLookup,
-        client_provider: ClientProvider,
-        config_provider: ConfigProvider,
-        data_cache_provider: DataCacheProvider,
-        data_point_provider: DataPointProvider,
-        device_data_refresher: FirmwareDataRefresher,
-        device_description_provider: DeviceDescriptionProvider,
-        device_details_provider: DeviceDetailsProvider,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        event_subscription_manager: EventSubscriptionManager,
-        file_operations: FileOperations,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        task_scheduler: TaskScheduler,
+        central_info: CentralInfoProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        client_provider: ClientProviderProtocol,
+        config_provider: ConfigProviderProtocol,
+        data_cache_provider: DataCacheProviderProtocol,
+        data_point_provider: DataPointProviderProtocol,
+        device_data_refresher: FirmwareDataRefresherProtocol,
+        device_description_provider: DeviceDescriptionProviderProtocol,
+        device_details_provider: DeviceDetailsProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        event_subscription_manager: EventSubscriptionManagerProtocol,
+        file_operations: FileOperationsProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """Initialize the device object."""
         PayloadMixin.__init__(self)
@@ -283,12 +283,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._data_point_provider: Final = data_point_provider
         self._channel_lookup: Final = channel_lookup
         self._event_subscription_manager: Final = event_subscription_manager
-        self._channel_group: Final[dict[int | None, int]] = {}
+        self._channel_to_group: Final[dict[int | None, int]] = {}
         self._group_channels: Final[dict[int, set[int | None]]] = {}
         self._rega_id: Final = device_details_provider.get_address_id(address=device_address)
         self._interface: Final = device_details_provider.get_interface(address=device_address)
         self._client: Final = client_provider.get_client(interface_id=interface_id)
-        self._description = self._device_description_provider.get_device_description(
+        self._device_description = self._device_description_provider.get_device_description(
             interface_id=interface_id, address=device_address
         )
         _LOGGER.debug(
@@ -299,11 +299,11 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
         self._modified_at: datetime = INIT_DATETIME
         self._forced_availability: ForcedDeviceAvailability = ForcedDeviceAvailability.NOT_SET
-        self._model: Final[str] = self._description["TYPE"]
+        self._model: Final[str] = self._device_description["TYPE"]
         self._ignore_on_initial_load: Final[bool] = check_ignore_model_on_initial_load(model=self._model)
-        self._is_updatable: Final = self._description.get("UPDATABLE") or False
-        self._rx_modes: Final = get_rx_modes(mode=self._description.get("RX_MODE", 0))
-        self._sub_model: Final[str | None] = self._description.get("SUBTYPE")
+        self._is_updatable: Final = self._device_description.get("UPDATABLE") or False
+        self._rx_modes: Final = get_rx_modes(mode=self._device_description.get("RX_MODE", 0))
+        self._sub_model: Final[str | None] = self._device_description.get("SUBTYPE")
         self._ignore_for_custom_data_point: Final[bool] = parameter_visibility_provider.model_is_ignored(
             model=self._model
         )
@@ -319,7 +319,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             model=self._model,
         )
         channel_addresses = tuple(
-            [device_address] + [address for address in self._description["CHILDREN"] if address != ""]
+            [device_address] + [address for address in self._device_description["CHILDREN"] if address != ""]
         )
         self._channels: Final[dict[str, ChannelProtocol]] = {
             address: Channel(device=self, channel_address=address) for address in channel_addresses
@@ -349,7 +349,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
-    def _dp_config_pending(self) -> DpBinarySensor | None:
+    def _data_point_config_pending(self) -> DpBinarySensor | None:
         """Return th CONFIG_PENDING data_point."""
         return cast(
             DpBinarySensor | None,
@@ -357,7 +357,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
-    def _dp_sticky_un_reach(self) -> DpBinarySensor | None:
+    def _data_point_sticky_un_reach(self) -> DpBinarySensor | None:
         """Return th STICKY_UN_REACH data_point."""
         return cast(
             DpBinarySensor | None,
@@ -365,7 +365,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
-    def _dp_un_reach(self) -> DpBinarySensor | None:
+    def _data_point_un_reach(self) -> DpBinarySensor | None:
         """Return th UN REACH data_point."""
         return cast(
             DpBinarySensor | None,
@@ -386,7 +386,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @property
     def available_firmware(self) -> str | None:
         """Return the available firmware of the device."""
-        return str(self._description.get("AVAILABLE_FIRMWARE", ""))
+        return str(self._device_description.get("AVAILABLE_FIRMWARE", ""))
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
@@ -397,12 +397,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return tuple(data_points)
 
     @property
-    def central_info(self) -> CentralInfo:
+    def central_info(self) -> CentralInfoProtocol:
         """Return the central info of the device."""
         return self._central_info
 
     @property
-    def channel_lookup(self) -> ChannelLookup:
+    def channel_lookup(self) -> ChannelLookupProtocol:
         """Return the channel lookup provider."""
         return self._channel_lookup
 
@@ -419,12 +419,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @property
     def config_pending(self) -> bool:
         """Return if a config change of the device is pending."""
-        if self._dp_config_pending is not None and self._dp_config_pending.value is not None:
-            return self._dp_config_pending.value is True
+        if self._data_point_config_pending is not None and self._data_point_config_pending.value is not None:
+            return self._data_point_config_pending.value is True
         return False
 
     @property
-    def config_provider(self) -> ConfigProvider:
+    def config_provider(self) -> ConfigProviderProtocol:
         """Return the config provider."""
         return self._config_provider
 
@@ -438,8 +438,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
-    def data_cache_provider(self) -> DataCacheProvider:
-        """Return the DataCacheProvider of the device."""
+    def data_cache_provider(self) -> DataCacheProviderProtocol:
+        """Return the DataCacheProviderProtocol of the device."""
         return self._data_cache_provider
 
     @property
@@ -451,7 +451,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return tuple(data_point_paths)
 
     @property
-    def data_point_provider(self) -> DataPointProvider:
+    def data_point_provider(self) -> DataPointProviderProtocol:
         """Return the data point provider."""
         return self._data_point_provider
 
@@ -464,44 +464,44 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return None
 
     @property
-    def device_data_refresher(self) -> FirmwareDataRefresher:
+    def device_data_refresher(self) -> FirmwareDataRefresherProtocol:
         """Return the device data refresher."""
         return self._device_data_refresher
 
     @property
-    def device_description_provider(self) -> DeviceDescriptionProvider:
+    def device_description_provider(self) -> DeviceDescriptionProviderProtocol:
         """Return the device description provider."""
         return self._device_description_provider
 
     @property
-    def device_details_provider(self) -> DeviceDetailsProvider:
+    def device_details_provider(self) -> DeviceDetailsProviderProtocol:
         """Return the device details provider."""
         return self._device_details_provider
 
     @property
-    def event_bus_provider(self) -> EventBusProvider:
-        """Return the EventBusProvider of the device."""
+    def event_bus_provider(self) -> EventBusProviderProtocol:
+        """Return the EventBusProviderProtocol of the device."""
         return self._event_bus_provider
 
     @property
-    def event_publisher(self) -> EventPublisher:
-        """Return the EventPublisher of the device."""
+    def event_publisher(self) -> EventPublisherProtocol:
+        """Return the EventPublisherProtocol of the device."""
         return self._event_publisher
 
     @property
-    def event_subscription_manager(self) -> EventSubscriptionManager:
+    def event_subscription_manager(self) -> EventSubscriptionManagerProtocol:
         """Return the event subscription manager."""
         return self._event_subscription_manager
 
     @property
     def firmware_updatable(self) -> bool:
         """Return the firmware update state of the device."""
-        return self._description.get("FIRMWARE_UPDATABLE") or False
+        return self._device_description.get("FIRMWARE_UPDATABLE") or False
 
     @property
     def firmware_update_state(self) -> DeviceFirmwareState:
         """Return the firmware update state of the device."""
-        return DeviceFirmwareState(self._description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
+        return DeviceFirmwareState(self._device_description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
@@ -575,12 +575,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         }
 
     @property
-    def parameter_visibility_provider(self) -> ParameterVisibilityProvider:
+    def parameter_visibility_provider(self) -> ParameterVisibilityProviderProtocol:
         """Return the parameter visibility provider."""
         return self._parameter_visibility_provider
 
     @property
-    def paramset_description_provider(self) -> ParamsetDescriptionProvider:
+    def paramset_description_provider(self) -> ParamsetDescriptionProviderProtocol:
         """Return the paramset description provider."""
         return self._paramset_description_provider
 
@@ -617,7 +617,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return self._week_profile.supports_schedule
 
     @property
-    def task_scheduler(self) -> TaskScheduler:
+    def task_scheduler(self) -> TaskSchedulerProtocol:
         """Return the task scheduler."""
         return self._task_scheduler
 
@@ -641,8 +641,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Return the availability of the device."""
         if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
             return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
-        if (un_reach := self._dp_un_reach) is None:
-            un_reach = self._dp_sticky_un_reach
+        if (un_reach := self._data_point_un_reach) is None:
+            un_reach = self._data_point_sticky_un_reach
         if un_reach is not None and un_reach.value is not None:
             return not un_reach.value
         return True
@@ -655,7 +655,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @info_property
     def firmware(self) -> str:
         """Return the firmware of the device."""
-        return self._description.get("FIRMWARE") or "0.0"
+        return self._device_description.get("FIRMWARE") or "0.0"
 
     @info_property
     def identifier(self) -> str:
@@ -705,10 +705,10 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             self._group_channels[group_no] = set()
         self._group_channels[group_no].add(channel_no)
 
-        if group_no not in self._channel_group:
-            self._channel_group[group_no] = group_no
-        if channel_no not in self._channel_group:
-            self._channel_group[channel_no] = group_no
+        if group_no not in self._channel_to_group:
+            self._channel_to_group[group_no] = group_no
+        if channel_no not in self._channel_to_group:
+            self._channel_to_group[channel_no] = group_no
 
     @inspector
     async def create_central_links(self) -> None:
@@ -749,7 +749,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     def get_channel_group_no(self, *, channel_no: int | None) -> int | None:
         """Return the group no of the channel."""
-        return self._channel_group.get(channel_no)
+        return self._channel_to_group.get(channel_no)
 
     def get_custom_data_point(self, *, channel_no: int) -> hmce.CustomDataPoint | None:
         """Return a custom data_point from device."""
@@ -863,7 +863,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         if channel_no is None:
             return False
 
-        return len([s for s, m in self._channel_group.items() if m == self._channel_group.get(channel_no)]) > 1
+        return len([s for s, m in self._channel_to_group.items() if m == self._channel_to_group.get(channel_no)]) > 1
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def load_value_cache(self) -> None:
@@ -912,7 +912,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         old_firmware_update_state = self.firmware_update_state
         old_firmware_updatable = self.firmware_updatable
 
-        self._description = self._device_description_provider.get_device_description(
+        self._device_description = self._device_description_provider.get_device_description(
             interface_id=self._interface_id, address=self._address
         )
 
@@ -1040,12 +1040,12 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     -------------------
     Implements ``ChannelProtocol`` which is a composite of sub-protocols:
 
-    - ``ChannelIdentity``: Basic identification (address, name, no, type_name)
-    - ``ChannelDataPointAccess``: DataPoint and event access methods
-    - ``ChannelGrouping``: Channel group management (group_master, link_peer_channels)
-    - ``ChannelMetadata``: Additional metadata (device, function, room, paramset_descriptions)
-    - ``ChannelLinkManagement``: Central link operations
-    - ``ChannelLifecycle``: Lifecycle methods (finalize_init, on_config_changed, remove)
+    - ``ChannelIdentityProtocol``: Basic identification (address, name, no, type_name)
+    - ``ChannelDataPointAccessProtocol``: DataPoint and event access methods
+    - ``ChannelGroupingProtocol``: Channel group management (group_master, link_peer_channels)
+    - ``ChannelMetadataProtocol``: Additional metadata (device, function, room, paramset_descriptions)
+    - ``ChannelLinkManagementProtocol``: Central link operations
+    - ``ChannelLifecycleProtocol``: Lifecycle methods (finalize_init, on_config_changed, remove)
 
     Consumers can depend on specific sub-protocols for narrower contracts.
     """
@@ -1054,7 +1054,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_address",
         "_calculated_data_points",
         "_custom_data_point",
-        "_description",
+        "_channel_description",
         "_device",
         "_function",
         "_generic_data_points",
@@ -1088,12 +1088,14 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         self._rega_id: Final = self._device.device_details_provider.get_address_id(address=channel_address)
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
-        self._description: DeviceDescription = self._device.device_description_provider.get_device_description(
+        self._channel_description: DeviceDescription = self._device.device_description_provider.get_device_description(
             interface_id=self._device.interface_id, address=channel_address
         )
-        self._type_name: Final[str] = self._description["TYPE"]
+        self._type_name: Final[str] = self._channel_description["TYPE"]
         self._is_schedule_channel: Final[bool] = WEEK_PROFILE_PATTERN.match(self._type_name) is not None
-        self._paramset_keys: Final = tuple(ParamsetKey(paramset_key) for paramset_key in self._description["PARAMSETS"])
+        self._paramset_keys: Final = tuple(
+            ParamsetKey(paramset_key) for paramset_key in self._channel_description["PARAMSETS"]
+        )
 
         self._unique_id: Final = generate_channel_unique_id(
             config_provider=self._device.config_provider, address=channel_address
@@ -1108,13 +1110,17 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         self._state_path_to_dpk: Final[dict[str, DataPointKey]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
         self._link_source_roles: tuple[str, ...] = (
-            tuple(source_roles.split(" ")) if (source_roles := self._description.get("LINK_SOURCE_ROLES")) else ()
+            tuple(source_roles.split(" "))
+            if (source_roles := self._channel_description.get("LINK_SOURCE_ROLES"))
+            else ()
         )
         self._link_source_categories: Final = get_link_source_categories(
             source_roles=self._link_source_roles, channel_type_name=self._type_name
         )
         self._link_target_roles: tuple[str, ...] = (
-            tuple(target_roles.split(" ")) if (target_roles := self._description.get("LINK_TARGET_ROLES")) else ()
+            tuple(target_roles.split(" "))
+            if (target_roles := self._channel_description.get("LINK_TARGET_ROLES"))
+            else ()
         )
         self._link_target_categories: Final = get_link_target_categories(
             target_roles=self._link_target_roles, channel_type_name=self._type_name
@@ -1158,7 +1164,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     @property
     def description(self) -> DeviceDescription:
         """Return the device description for the channel."""
-        return self._description
+        return self._channel_description
 
     @property
     def full_name(self) -> str:

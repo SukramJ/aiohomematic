@@ -122,10 +122,10 @@ class ClientCoordinator:
     def __init__(
         self,
         *,
-        client_factory: ClientFactory,  # Factory protocol
+        client_factory: ClientFactoryProtocol,  # Factory protocol
         central_info: CentralInfo,
         config_provider: ConfigProvider,
-        coordinator_provider: CoordinatorProvider,
+        coordinator_provider: CoordinatorProviderProtocol,
         system_info_provider: SystemInfoProvider,
     ) -> None:
 ```
@@ -143,10 +143,10 @@ class Device:
         event_bus_provider: EventBusProvider,
         task_scheduler: TaskScheduler,
         client_provider: ClientProvider,
-        device_details_provider: DeviceDetailsProvider,
-        device_description_provider: DeviceDescriptionProvider,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        parameter_visibility_provider: ParameterVisibilityProvider,
+        device_details_provider: DeviceDetailsProviderProtocol,
+        device_description_provider: DeviceDescriptionProviderProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         config_provider: ConfigProvider,
         file_operations: FileOperations,
         device_data_refresher: DeviceDataRefresher,
@@ -179,16 +179,16 @@ class Device:
 
 - **Identity**: `CentralInfo`, `CentralUnitStateProvider`, `ConfigProvider`, `SystemInfoProvider`
 - **Events**: `EventBusProvider`, `EventPublisher`, `EventSubscriptionManager`
-- **Data Access**: `DataPointProvider`, `DeviceProvider`, `ChannelLookup`, `DeviceLookup`
+- **Data Access**: `DataPointProvider`, `DeviceProvider`, `ChannelLookup`, `DeviceLookupProtocol`
 - **Cache**: `DataCacheProvider`, `DataCacheWriter`, `DeviceDetailsWriter`, `ParamsetDescriptionWriter`
 - **Operations**: `DeviceDataRefresher`, `DeviceManagement`, `FileOperations`, `BackupProvider`
 - **Hub**: `HubDataFetcher`, `HubDataPointManager`
 
 ### Client Protocols (20)
 
-- **Core**: `ClientProtocol` (60+ methods), `ClientProvider`, `ClientFactory`, `ClientDependencies`
+- **Core**: `ClientProtocol` (60+ methods), `ClientProvider`, `ClientFactoryProtocol`, `ClientDependencies`
 - **Caching**: `CommandCacheProtocol`, `PingPongCacheProtocol`
-- **Events**: `InterfaceEventPublisher`, `LastEventTracker`
+- **Events**: `InterfaceEventPublisher`, `LastEventTrackerProtocol`
 - **Support**: `ConnectionStateProvider`, `SessionRecorderProvider`, `JsonRpcClientProvider`
 
 ### Model Protocols (18)
@@ -207,8 +207,8 @@ class Device:
 
 ### Operations Protocols (5)
 
-- `TaskScheduler`, `ParameterVisibilityProvider`
-- `DeviceDetailsProvider`, `DeviceDescriptionProvider`, `ParamsetDescriptionProvider`
+- `TaskScheduler`, `ParameterVisibilityProviderProtocol`
+- `DeviceDetailsProviderProtocol`, `DeviceDescriptionProviderProtocol`, `ParamsetDescriptionProviderProtocol`
 
 ---
 
@@ -236,7 +236,7 @@ class Device:
 
 ### 4.2 Factory Pattern
 
-- **ClientFactory Protocol**: Creates client instances without CentralUnit coupling
+- **ClientFactoryProtocol Protocol**: Creates client instances without CentralUnit coupling
 - **DeviceProfileRegistry**: Device model → CustomDataPoint mappings
 - **Entity Creation Factory**: `create_data_points_and_events()`
 
@@ -519,17 +519,17 @@ Top Files by LOC:
 
 ## 9. Pattern Summary
 
-| Pattern                | Location                    | Benefit                            |
-| ---------------------- | --------------------------- | ---------------------------------- |
-| **Facade**             | Device, Channel             | Single protocol distribution point |
-| **Factory**            | ClientFactory, Registry     | Flexible creation                  |
-| **Observer**           | EventBus                    | Decoupled event handling           |
-| **Strategy**           | Entity types                | Multiple implementations           |
-| **Coordinator**        | 6 coordinators              | Clear separation                   |
-| **Circuit Breaker**    | client/circuit_breaker.py   | Resilience                         |
-| **Request Coalescing** | client/request_coalescer.py | Efficiency                         |
-| **Handler**            | client/handlers/            | Domain separation                  |
-| **DI (3-Tier)**        | All layers                  | Minimal coupling, type safety      |
+| Pattern                | Location                        | Benefit                            |
+| ---------------------- | ------------------------------- | ---------------------------------- |
+| **Facade**             | Device, Channel                 | Single protocol distribution point |
+| **Factory**            | ClientFactoryProtocol, Registry | Flexible creation                  |
+| **Observer**           | EventBus                        | Decoupled event handling           |
+| **Strategy**           | Entity types                    | Multiple implementations           |
+| **Coordinator**        | 6 coordinators                  | Clear separation                   |
+| **Circuit Breaker**    | client/circuit_breaker.py       | Resilience                         |
+| **Request Coalescing** | client/request_coalescer.py     | Efficiency                         |
+| **Handler**            | client/handlers/                | Domain separation                  |
+| **DI (3-Tier)**        | All layers                      | Minimal coupling, type safety      |
 
 ---
 
@@ -547,10 +547,10 @@ from aiohomematic.model import Device, Channel
 
 # Protocol interfaces
 from aiohomematic.interfaces import (
-    CentralInfo,
+    CentralInfoProtocol,
     DeviceProtocol,
     CallbackDataPointProtocol,
-    ClientFactory,
+    ClientFactoryProtocol,
 )
 
 # Resilience patterns

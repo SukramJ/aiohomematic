@@ -24,23 +24,27 @@ from aiohomematic.central.event_bus import SysvarUpdatedEvent
 from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.central import (
-    CentralInfo,
-    ChannelLookup,
-    ConfigProvider,
-    EventBusProvider,
-    EventPublisher,
-    HubDataFetcher,
-    HubDataPointManager,
+    CentralInfoProtocol,
+    ChannelLookupProtocol,
+    ConfigProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+    HubDataFetcherProtocol,
+    HubDataPointManagerProtocol,
 )
-from aiohomematic.interfaces.client import ClientProvider, PrimaryClientProvider
+from aiohomematic.interfaces.client import ClientProviderProtocol, PrimaryClientProviderProtocol
 from aiohomematic.interfaces.model import GenericProgramDataPointProtocol, GenericSysvarDataPointProtocol
-from aiohomematic.interfaces.operations import ParameterVisibilityProvider, ParamsetDescriptionProvider, TaskScheduler
+from aiohomematic.interfaces.operations import (
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.model.hub import Hub, InstallModeDpType, ProgramDpType
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HubCoordinator(HubDataFetcher, HubDataPointManager):
+class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
     """Coordinator for hub-level entities (programs and system variables)."""
 
     __slots__ = (
@@ -56,16 +60,16 @@ class HubCoordinator(HubDataFetcher, HubDataPointManager):
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        channel_lookup: ChannelLookup,
-        client_provider: ClientProvider,
-        config_provider: ConfigProvider,
-        event_bus_provider: EventBusProvider,
-        event_publisher: EventPublisher,
-        parameter_visibility_provider: ParameterVisibilityProvider,
-        paramset_description_provider: ParamsetDescriptionProvider,
-        primary_client_provider: PrimaryClientProvider,
-        task_scheduler: TaskScheduler,
+        central_info: CentralInfoProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        client_provider: ClientProviderProtocol,
+        config_provider: ConfigProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        event_publisher: EventPublisherProtocol,
+        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
+        paramset_description_provider: ParamsetDescriptionProviderProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the hub coordinator.

@@ -30,7 +30,11 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, ValidationException
-from aiohomematic.interfaces.client import DeviceDiscoveryOperations, ParamsetOperations, ValueOperations
+from aiohomematic.interfaces.client import (
+    DeviceDiscoveryOperationsProtocol,
+    ParamsetOperationsProtocol,
+    ValueOperationsProtocol,
+)
 from aiohomematic.model.support import convert_value
 from aiohomematic.support import (
     extract_exc_args,
@@ -43,23 +47,23 @@ from aiohomematic.support import (
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
-    from aiohomematic.interfaces.client import ClientDependencies
+    from aiohomematic.interfaces.client import ClientDependenciesProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
     from aiohomematic.store import CommandCache
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class DeviceOperationsHandler(
+class DeviceHandler(
     BaseHandler,
-    DeviceDiscoveryOperations,
-    ParamsetOperations,
-    ValueOperations,
+    DeviceDiscoveryOperationsProtocol,
+    ParamsetOperationsProtocol,
+    ValueOperationsProtocol,
 ):
     """
     Handler for device value and paramset operations.
 
-    Implements DeviceDiscoveryOperations, ParamsetOperations, and ValueOperations
+    Implements DeviceDiscoveryOperationsProtocol, ParamsetOperationsProtocol, and ValueOperationsProtocol
     protocols for ISP-compliant client operations.
 
     Handles:
@@ -74,7 +78,7 @@ class DeviceOperationsHandler(
     def __init__(
         self,
         *,
-        central: ClientDependencies,
+        client_deps: ClientDependenciesProtocol,
         interface: Interface,
         interface_id: str,
         json_rpc_client: AioJsonRpcAioHttpClient,
@@ -84,7 +88,7 @@ class DeviceOperationsHandler(
     ) -> None:
         """Initialize the device operations handler."""
         super().__init__(
-            central=central,
+            client_deps=client_deps,
             interface=interface,
             interface_id=interface_id,
             json_rpc_client=json_rpc_client,
@@ -118,7 +122,7 @@ class DeviceOperationsHandler(
                     "FETCH_ALL_DEVICE_DATA: Fetched all device data for interface %s",
                     self._interface,
                 )
-                self._central.cache_coordinator.data_cache.add_data(
+                self._client_deps.cache_coordinator.data_cache.add_data(
                     interface=self._interface, all_device_data=all_device_data
                 )
                 return
@@ -129,7 +133,7 @@ class DeviceOperationsHandler(
                 translation_key="issue.fetch_data_failed",
                 translation_placeholders=(("interface_id", self._interface_id),),
             )
-            self._central.event_bus.publish_sync(
+            self._client_deps.event_bus.publish_sync(
                 event=SystemStatusEvent(
                     timestamp=datetime.now(),
                     issues=(issue,),
@@ -171,19 +175,21 @@ class DeviceOperationsHandler(
                     continue
 
                 device_address = device[_JSON_ADDRESS]
-                self._central.cache_coordinator.device_details.add_interface(
+                self._client_deps.cache_coordinator.device_details.add_interface(
                     address=device_address, interface=Interface(interface)
                 )
-                self._central.cache_coordinator.device_details.add_name(address=device_address, name=device[_JSON_NAME])
-                self._central.cache_coordinator.device_details.add_address_rega_id(
+                self._client_deps.cache_coordinator.device_details.add_name(
+                    address=device_address, name=device[_JSON_NAME]
+                )
+                self._client_deps.cache_coordinator.device_details.add_address_rega_id(
                     address=device_address, rega_id=int(device[_JSON_ID])
                 )
                 for channel in device.get(_JSON_CHANNELS, []):
                     channel_address = channel[_JSON_ADDRESS]
-                    self._central.cache_coordinator.device_details.add_name(
+                    self._client_deps.cache_coordinator.device_details.add_name(
                         address=channel_address, name=channel[_JSON_NAME]
                     )
-                    self._central.cache_coordinator.device_details.add_address_rega_id(
+                    self._client_deps.cache_coordinator.device_details.add_address_rega_id(
                         address=channel_address, rega_id=int(channel[_JSON_ID])
                     )
         else:
@@ -204,7 +210,7 @@ class DeviceOperationsHandler(
         if paramset_description := await self._get_paramset_description(
             address=channel_address, paramset_key=paramset_key
         ):
-            self._central.cache_coordinator.paramset_descriptions.add(
+            self._client_deps.cache_coordinator.paramset_descriptions.add(
                 interface_id=self._interface_id,
                 channel_address=channel_address,
                 paramset_key=paramset_key,
@@ -229,7 +235,7 @@ class DeviceOperationsHandler(
         for address, paramsets in data.items():
             _LOGGER.debug("FETCH_PARAMSET_DESCRIPTIONS for %s", address)
             for paramset_key, paramset_description in paramsets.items():
-                self._central.cache_coordinator.paramset_descriptions.add(
+                self._client_deps.cache_coordinator.paramset_descriptions.add(
                     interface_id=self._interface_id,
                     channel_address=address,
                     paramset_key=paramset_key,
@@ -504,7 +510,7 @@ class DeviceOperationsHandler(
                     raise ClientException(i18n.tr("exception.client.paramset_key.invalid"))
 
             _LOGGER.debug("PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key_or_link_address, checked_values)
-            if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
+            if rx_mode and (device := self._client_deps.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._exec_put_paramset(
                         channel_address=channel_address,
@@ -536,7 +542,7 @@ class DeviceOperationsHandler(
             if (
                 self._interface in ("BidCos-RF", "BidCos-Wired")
                 and paramset_key_or_link_address == ParamsetKey.MASTER
-                and (channel := self._central.device_coordinator.get_channel(channel_address=channel_address))
+                and (channel := self._client_deps.device_coordinator.get_channel(channel_address=channel_address))
                 is not None
             ):
 
@@ -544,17 +550,17 @@ class DeviceOperationsHandler(
                     """Load master paramset values."""
                     if not channel:
                         return
-                    for interval in self._central.config.hm_master_poll_after_send_intervals:
+                    for interval in self._client_deps.config.hm_master_poll_after_send_intervals:
                         await asyncio.sleep(interval)
                         for dp in channel.get_readable_data_points(
                             paramset_key=ParamsetKey(paramset_key_or_link_address)
                         ):
                             await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
-                self._central.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
+                self._client_deps.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
 
             if wait_for_callback is not None and (
-                device := self._central.device_coordinator.get_device(
+                device := self._client_deps.device_coordinator.get_device(
                     address=get_device_address(address=channel_address)
                 )
             ):
@@ -720,7 +726,7 @@ class DeviceOperationsHandler(
                 else value
             )
             _LOGGER.debug("SET_VALUE: %s, %s, %s", channel_address, parameter, checked_value)
-            if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
+            if rx_mode and (device := self._client_deps.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._exec_set_value(
                         channel_address=channel_address,
@@ -739,7 +745,7 @@ class DeviceOperationsHandler(
             self._write_temporary_value(dpk_values=dpk_values)
 
             if wait_for_callback is not None and (
-                device := self._central.device_coordinator.get_device(
+                device := self._client_deps.device_coordinator.get_device(
                     address=get_device_address(address=channel_address)
                 )
             ):
@@ -774,7 +780,7 @@ class DeviceOperationsHandler(
             device_address: Device address without channel suffix (e.g., "VCU0000001").
 
         """
-        if not self._central.cache_coordinator.device_descriptions.get_device_descriptions(
+        if not self._client_deps.cache_coordinator.device_descriptions.get_device_descriptions(
             interface_id=self._interface_id
         ):
             _LOGGER.warning(  # i18n-log: ignore
@@ -783,7 +789,7 @@ class DeviceOperationsHandler(
             )
             return
 
-        if device_description := self._central.cache_coordinator.device_descriptions.find_device_description(
+        if device_description := self._client_deps.cache_coordinator.device_descriptions.find_device_description(
             interface_id=self._interface_id, device_address=device_address
         ):
             await self.fetch_paramset_descriptions(device_description=device_description)
@@ -793,7 +799,7 @@ class DeviceOperationsHandler(
                 device_address,
             )
             return
-        await self._central.save_files(save_paramset_descriptions=True)
+        await self._client_deps.save_files(save_paramset_descriptions=True)
 
     def _check_put_paramset(
         self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
@@ -858,7 +864,7 @@ class DeviceOperationsHandler(
             ValidationException: If value is outside MIN/MAX bounds.
 
         """
-        if parameter_data := self._central.cache_coordinator.paramset_descriptions.get_parameter_data(
+        if parameter_data := self._client_deps.cache_coordinator.paramset_descriptions.get_parameter_data(
             interface_id=self._interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -948,7 +954,7 @@ class DeviceOperationsHandler(
         parameter: str,
     ) -> ParameterType | None:
         """Return the parameter's TYPE field from its description, or None if not found."""
-        if parameter_data := self._central.cache_coordinator.paramset_descriptions.get_parameter_data(
+        if parameter_data := self._client_deps.cache_coordinator.paramset_descriptions.get_parameter_data(
             interface_id=self._interface_id,
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -991,7 +997,7 @@ class DeviceOperationsHandler(
         """Write temporary values to polling data points for immediate UI feedback."""
         for dpk, value in dpk_values:
             if (
-                data_point := self._central.get_generic_data_point(
+                data_point := self._client_deps.get_generic_data_point(
                     channel_address=dpk.channel_address,
                     parameter=dpk.parameter,
                     paramset_key=dpk.paramset_key,

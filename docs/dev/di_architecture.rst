@@ -72,7 +72,7 @@ Client Coordinator
         def __init__(
             self,
             *,
-            client_factory: ClientFactory,  # Factory protocol
+            client_factory: ClientFactoryProtocol,  # Factory protocol
             central_info: CentralInfo,
             config_provider: ConfigProvider,
             # ... other protocol interfaces
@@ -118,9 +118,9 @@ Device
             *,
             interface_id: str,
             device_address: str,
-            device_details_provider: DeviceDetailsProvider,
-            device_description_provider: DeviceDescriptionProvider,
-            paramset_description_provider: ParamsetDescriptionProvider,
+            device_details_provider: DeviceDetailsProviderProtocol,
+            device_description_provider: DeviceDescriptionProviderProtocol,
+            paramset_description_provider: ParamsetDescriptionProviderProtocol,
             # ... 13 more protocol interfaces
         ) -> None:
             self._device_details_provider: Final = device_details_provider
@@ -211,7 +211,7 @@ See :doc:`../api/interfaces` for complete list of protocol interfaces.
 Key protocols include:
 
 - **CentralInfo**: System identification
-- **ClientFactory**: Client instance creation (introduced 2025-11-23)
+- **ClientFactoryProtocol**: Client instance creation (introduced 2025-11-23)
 - **ClientProvider**: Client lookup
 - **DeviceProvider**: Device registry access
 - **EventBusProvider**: Event system access
@@ -222,7 +222,7 @@ Historical Note
 
 Prior to 2025-11-23, Tier 2 coordinators used a "hybrid DI" pattern where they kept a CentralUnit reference for factory operations. This was refactored to use pure protocol-based DI:
 
-- **ClientCoordinator**: Now uses ``ClientFactory`` protocol
+- **ClientCoordinator**: Now uses ``ClientFactoryProtocol`` protocol
 - **HubCoordinator**: Now constructs Hub with protocol interfaces only
 - **Hub**: Removed unused CentralUnit dependency
 

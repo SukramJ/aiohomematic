@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
 
 @runtime_checkable
-class CentralInfo(Protocol):
+class CentralInfoProtocol(Protocol):
     """
     Protocol for accessing central system information.
 
@@ -76,7 +76,7 @@ class CentralInfo(Protocol):
 
 
 @runtime_checkable
-class CentralUnitStateProvider(Protocol):
+class CentralUnitStateProviderProtocol(Protocol):
     """
     Protocol for accessing central unit state.
 
@@ -90,7 +90,7 @@ class CentralUnitStateProvider(Protocol):
 
 
 @runtime_checkable
-class ConfigProvider(Protocol):
+class ConfigProviderProtocol(Protocol):
     """
     Protocol for accessing configuration.
 
@@ -104,7 +104,7 @@ class ConfigProvider(Protocol):
 
 
 @runtime_checkable
-class SystemInfoProvider(Protocol):
+class SystemInfoProviderProtocol(Protocol):
     """
     Protocol for accessing system information.
 
@@ -118,7 +118,7 @@ class SystemInfoProvider(Protocol):
 
 
 @runtime_checkable
-class BackupProvider(Protocol):
+class BackupProviderProtocol(Protocol):
     """
     Protocol for backup operations.
 
@@ -131,7 +131,7 @@ class BackupProvider(Protocol):
 
 
 @runtime_checkable
-class DeviceManagement(Protocol):
+class DeviceManagementProtocol(Protocol):
     """
     Protocol for device management operations.
 
@@ -177,7 +177,7 @@ class DeviceManagement(Protocol):
 
 
 @runtime_checkable
-class EventBusProvider(Protocol):
+class EventBusProviderProtocol(Protocol):
     """
     Protocol for accessing event bus.
 
@@ -191,7 +191,7 @@ class EventBusProvider(Protocol):
 
 
 @runtime_checkable
-class EventPublisher(Protocol):
+class EventPublisherProtocol(Protocol):
     """
     Protocol for publishing events to the system.
 
@@ -208,7 +208,7 @@ class EventPublisher(Protocol):
 
 
 @runtime_checkable
-class DataPointProvider(Protocol):
+class DataPointProviderProtocol(Protocol):
     """
     Protocol for accessing data points.
 
@@ -230,7 +230,7 @@ class DataPointProvider(Protocol):
 
 
 @runtime_checkable
-class DeviceProvider(Protocol):
+class DeviceProviderProtocol(Protocol):
     """
     Protocol for accessing devices.
 
@@ -249,7 +249,7 @@ class DeviceProvider(Protocol):
 
 
 @runtime_checkable
-class ChannelLookup(Protocol):
+class ChannelLookupProtocol(Protocol):
     """
     Protocol for looking up channels.
 
@@ -266,7 +266,7 @@ class ChannelLookup(Protocol):
 
 
 @runtime_checkable
-class FileOperations(Protocol):
+class FileOperationsProtocol(Protocol):
     """
     Protocol for file save operations.
 
@@ -281,7 +281,7 @@ class FileOperations(Protocol):
 
 
 @runtime_checkable
-class FirmwareDataRefresher(Protocol):
+class FirmwareDataRefresherProtocol(Protocol):
     """
     Protocol for refreshing firmware data.
 
@@ -301,7 +301,7 @@ class FirmwareDataRefresher(Protocol):
         """Refresh device firmware data for devices in specific states."""
 
 
-class DeviceDataRefresher(Protocol):
+class DeviceDataRefresherProtocol(Protocol):
     """
     Protocol for refreshing device data.
 
@@ -314,7 +314,7 @@ class DeviceDataRefresher(Protocol):
 
 
 @runtime_checkable
-class DataCacheProvider(Protocol):
+class DataCacheProviderProtocol(Protocol):
     """
     Protocol for accessing data cache.
 
@@ -327,11 +327,11 @@ class DataCacheProvider(Protocol):
 
 
 @runtime_checkable
-class HubFetchOperations(Protocol):
+class HubFetchOperationsProtocol(Protocol):
     """
     Base protocol for hub fetch operations.
 
-    Defines the common fetch methods shared between HubDataFetcher and HubProtocol.
+    Defines the common fetch methods shared between HubDataFetcherProtocol and HubProtocol.
     This eliminates duplication of fetch method signatures.
     """
 
@@ -353,11 +353,11 @@ class HubFetchOperations(Protocol):
 
 
 @runtime_checkable
-class HubDataFetcher(HubFetchOperations, Protocol):
+class HubDataFetcherProtocol(HubFetchOperationsProtocol, Protocol):
     """
     Protocol for fetching hub data.
 
-    Extends HubFetchOperations with program execution and state management.
+    Extends HubFetchOperationsProtocol with program execution and state management.
     Implemented by HubCoordinator.
     """
 
@@ -371,7 +371,7 @@ class HubDataFetcher(HubFetchOperations, Protocol):
 
 
 @runtime_checkable
-class HubDataPointManager(Protocol):
+class HubDataPointManagerProtocol(Protocol):
     """
     Protocol for managing hub-level data points (programs/sysvars).
 
@@ -414,7 +414,7 @@ class HubDataPointManager(Protocol):
 
 
 @runtime_checkable
-class EventSubscriptionManager(Protocol):
+class EventSubscriptionManagerProtocol(Protocol):
     """
     Protocol for managing event subscriptions.
 
@@ -459,7 +459,7 @@ class RpcServerCentralProtocol(Protocol):
 
 
 @runtime_checkable
-class RpcServerTaskScheduler(Protocol):
+class RpcServerTaskSchedulerProtocol(Protocol):
     """
     Protocol for task scheduling in RpcServer context.
 
@@ -538,7 +538,7 @@ class CentralStateMachineProtocol(Protocol):
 
 
 @runtime_checkable
-class CentralStateMachineProvider(Protocol):
+class CentralStateMachineProviderProtocol(Protocol):
     """
     Protocol for accessing the central state machine.
 
@@ -712,7 +712,7 @@ class HealthTrackerProtocol(Protocol):
 
 
 @runtime_checkable
-class HealthProvider(Protocol):
+class HealthProviderProtocol(Protocol):
     """
     Protocol for accessing the health tracker.
 
@@ -733,36 +733,36 @@ class HealthProvider(Protocol):
 # These imports are placed here (after all local protocols are defined) to avoid
 # circular import issues while allowing proper inheritance.
 from aiohomematic.interfaces.client import (  # noqa: E402
-    CallbackAddressProvider,
-    ClientDependencies,
-    ClientFactory,
-    ConnectionStateProvider,
-    JsonRpcClientProvider,
+    CallbackAddressProviderProtocol,
+    ClientDependenciesProtocol,
+    ClientFactoryProtocol,
+    ConnectionStateProviderProtocol,
+    JsonRpcClientProviderProtocol,
 )
-from aiohomematic.interfaces.coordinators import CoordinatorProvider  # noqa: E402
+from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol  # noqa: E402
 
 
 @runtime_checkable
 class CentralProtocol(
     # From interfaces/central.py (this module)
-    BackupProvider,
-    CentralInfo,
-    CentralUnitStateProvider,
-    ConfigProvider,
-    DataPointProvider,
-    DeviceDataRefresher,
-    DeviceProvider,
-    EventBusProvider,
-    FileOperations,
-    SystemInfoProvider,
+    BackupProviderProtocol,
+    CentralInfoProtocol,
+    CentralUnitStateProviderProtocol,
+    ConfigProviderProtocol,
+    DataPointProviderProtocol,
+    DeviceDataRefresherProtocol,
+    DeviceProviderProtocol,
+    EventBusProviderProtocol,
+    FileOperationsProtocol,
+    SystemInfoProviderProtocol,
     # From interfaces/client.py
-    CallbackAddressProvider,
-    ClientDependencies,
-    ClientFactory,
-    ConnectionStateProvider,
-    JsonRpcClientProvider,
+    CallbackAddressProviderProtocol,
+    ClientDependenciesProtocol,
+    ClientFactoryProtocol,
+    ConnectionStateProviderProtocol,
+    JsonRpcClientProviderProtocol,
     # From interfaces/coordinators.py
-    CoordinatorProvider,
+    CoordinatorProviderProtocol,
     Protocol,
 ):
     """
@@ -775,37 +775,37 @@ class CentralProtocol(
     Sub-protocols are organized into categories:
 
     **Identity & Configuration:**
-        - CentralInfo: Central system identification
-        - CentralUnitStateProvider: Central unit lifecycle state
-        - ConfigProvider: Configuration access
-        - SystemInfoProvider: Backend system information
+        - CentralInfoProtocol: Central system identification
+        - CentralUnitStateProviderProtocol: Central unit lifecycle state
+        - ConfigProviderProtocol: Configuration access
+        - SystemInfoProviderProtocol: Backend system information
 
     **Event System:**
-        - EventBusProvider: Access to the central event bus
+        - EventBusProviderProtocol: Access to the central event bus
 
     **Cache & Data Access:**
-        - DataPointProvider: Find data points
-        - DeviceProvider: Access device registry (internal use)
-        - FileOperations: File I/O operations
+        - DataPointProviderProtocol: Find data points
+        - DeviceProviderProtocol: Access device registry (internal use)
+        - FileOperationsProtocol: File I/O operations
 
     **Device Operations:**
-        - DeviceDataRefresher: Refresh device data from backend
-        - BackupProvider: Backup operations
+        - DeviceDataRefresherProtocol: Refresh device data from backend
+        - BackupProviderProtocol: Backup operations
 
     **Hub Operations:**
-        - HubDataFetcher: Fetch hub data
-        - HubDataPointManager: Manage hub data points
+        - HubDataFetcherProtocol: Fetch hub data
+        - HubDataPointManagerProtocol: Manage hub data points
 
-    **Client Management (via CoordinatorProvider.client_coordinator):**
-        - ClientFactory: Create new client instances
-        - ClientDependencies: Dependencies for clients
-        - JsonRpcClientProvider: JSON-RPC client access
-        - ConnectionStateProvider: Connection state information
-        - CallbackAddressProvider: Callback address management
-        - SessionRecorderProvider: Session recording access
+    **Client Management (via CoordinatorProviderProtocol.client_coordinator):**
+        - ClientFactoryProtocol: Create new client instances
+        - ClientDependenciesProtocol: Dependencies for clients
+        - JsonRpcClientProviderProtocol: JSON-RPC client access
+        - ConnectionStateProviderProtocol: Connection state information
+        - CallbackAddressProviderProtocol: Callback address management
+        - SessionRecorderProviderProtocol: Session recording access
 
     **Coordinators:**
-        - CoordinatorProvider: Access to coordinators (client_coordinator, event_coordinator, etc.)
+        - CoordinatorProviderProtocol: Access to coordinators (client_coordinator, event_coordinator, etc.)
     """
 
     __slots__ = ()

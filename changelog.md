@@ -171,7 +171,7 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 - Add `RecoveryCoordinator` for coordinated client recovery with max retry tracking (`central/recovery.py`)
 - Add `CentralStateChangedEvent` to EventBus for monitoring state transitions
 - Add `ClientStateChangedEvent` to EventBus for monitoring client state changes
-- Add `state` property to `ClientConnection` protocol for accessing current client state
+- Add `state` property to `ClientConnectionProtocol` protocol for accessing current client state
 - Add health score calculation (0.0-1.0) based on state machine, circuit breakers, and activity
 - Add exponential backoff for recovery retries (5s base, up to 60s max)
 - Add multi-stage data load verification in recovery process
@@ -206,7 +206,7 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 ### Enhancements
 
 - Circuit breakers automatically reset after successful reconnect to allow immediate data refresh
-- Add `reset_circuit_breakers()` method to `ClientConnection` protocol
+- Add `reset_circuit_breakers()` method to `ClientConnectionProtocol` protocol
 
 ### Bug Fixes
 
@@ -273,23 +273,23 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 ### Architecture
 
 - Add combined sub-protocol interfaces to reduce coupling:
-  - **Client Combined Protocols (3):** ValueAndParamsetOperations, DeviceDiscoveryWithIdentity, DeviceDiscoveryAndMetadata
+  - **Client Combined Protocols (3):** ValueAndParamsetOperations, DeviceDiscoveryWithIdentityProtocol, DeviceDiscoveryAndMetadataProtocol
   - **Device Combined Protocols (1):** DeviceRemovalInfo
   - Components now depend on minimal protocol combinations instead of full composite protocols
 - Refactor components to use combined sub-protocols:
   - CacheCoordinator.remove_device_from_caches uses DeviceRemovalInfo instead of DeviceProtocol
-  - DeviceCoordinator.refresh_device_descriptions_and_create_missing_devices uses DeviceDiscoveryWithIdentity
-  - DeviceCoordinator.\_rename_new_device uses DeviceDiscoveryAndMetadata
+  - DeviceCoordinator.refresh_device_descriptions_and_create_missing_devices uses DeviceDiscoveryWithIdentityProtocol
+  - DeviceCoordinator.\_rename_new_device uses DeviceDiscoveryAndMetadataProtocol
   - CallParameterCollector uses ValueAndParamsetOperations instead of ClientProtocol
   - DeviceDetailsCache.remove_device uses DeviceRemovalInfo instead of DeviceProtocol
   - DeviceDescriptionCache.remove_device uses DeviceRemovalInfo instead of DeviceProtocol
   - ParamsetDescriptionCache.remove_device uses DeviceRemovalInfo instead of DeviceProtocol
 - Split ClientProtocol (85 members) into 14 focused sub-protocols following Interface Segregation Principle:
-  - **Core Protocols (4):** ClientIdentity, ClientConnection, ClientLifecycle, ClientCapabilities
-  - **Handler-Based Protocols (9):** DeviceDiscoveryOperations, ParamsetOperations, ValueOperations,
-    LinkOperations, FirmwareOperations, SystemVariableOperations, ProgramOperations,
-    BackupOperations, MetadataOperations
-  - **Support Protocol (1):** ClientSupport (utility methods and caches)
+  - **Core Protocols (4):** ClientIdentityProtocol, ClientConnectionProtocol, ClientLifecycleProtocol, ClientCapabilitiesProtocol
+  - **Handler-Based Protocols (9):** DeviceDiscoveryOperationsProtocol, ParamsetOperationsProtocol, ValueOperationsProtocol,
+    LinkOperationsProtocol, FirmwareOperationsProtocol, SystemVariableOperationsProtocol, ProgramOperationsProtocol,
+    BackupOperationsProtocol, MetadataOperationsProtocol
+  - **Support Protocol (1):** ClientSupportProtocol (utility methods and caches)
   - Handler classes explicitly inherit their sub-protocols for compile-time type checking
 - Add CentralProtocol composite protocol combining 29 sub-protocols:
   - CentralUnit now inherits from CentralProtocol (+ PayloadMixin, LogContextMixin)
@@ -303,7 +303,7 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
   - Deduplicates concurrent requests for the same device address
   - Reduces backend load during device discovery
 - Add explicit protocol inheritance to coordinators:
-  - EventCoordinator now inherits from EventBusProvider, EventPublisher, LastEventTracker, InterfaceEventPublisher
+  - EventCoordinator now inherits from EventBusProvider, EventPublisher, LastEventTrackerProtocol, InterfaceEventPublisher
   - HubCoordinator now inherits from HubDataFetcher, HubDataPointManager
   - Improves type safety and removes type: ignore comments
 
@@ -326,12 +326,12 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 - Add ClientStateMachine for managing client connection lifecycle with validated state transitions
 - Add ClientState enum for client connection states (CREATED, INITIALIZING, INITIALIZED, CONNECTING, CONNECTED, DISCONNECTED, RECONNECTING, STOPPING, STOPPED, FAILED)
 - Split DeviceProtocol (72 members) into 10 focused sub-protocols following Interface Segregation Principle:
-  - DeviceIdentity, DeviceChannelAccess, DeviceAvailability, DeviceFirmware
-  - DeviceLinkManagement, DeviceGroupManagement, DeviceConfiguration
-  - DeviceWeekProfile, DeviceProviders, DeviceLifecycle
+  - DeviceIdentityProtocol, DeviceChannelAccessProtocol, DeviceAvailabilityProtocol, DeviceFirmwareProtocol
+  - DeviceLinkManagementProtocol, DeviceGroupManagementProtocol, DeviceConfigurationProtocol
+  - DeviceWeekProfileProtocol, DeviceProvidersProtocol, DeviceLifecycleProtocol
 - Split ChannelProtocol (39 members) into 6 focused sub-protocols:
-  - ChannelIdentity, ChannelDataPointAccess, ChannelGrouping
-  - ChannelMetadata, ChannelLinkManagement, ChannelLifecycle
+  - ChannelIdentityProtocol, ChannelDataPointAccessProtocol, ChannelGroupingProtocol
+  - ChannelMetadataProtocol, ChannelLinkManagementProtocol, ChannelLifecycleProtocol
 - Add EventPriority enum with four priority levels (CRITICAL, HIGH, NORMAL, LOW) for handler ordering
 - Add EventBatch context manager for efficient batch event publishing
 - Add publish_batch() method to EventBus for optimized bulk event publishing
@@ -396,7 +396,7 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 
 ### Architecture and Dependency Injection
 
-- Add RpcServerCentralProtocol and RpcServerTaskScheduler protocols
+- Add RpcServerCentralProtocol and RpcServerTaskSchedulerProtocol protocols
 - Refactor RpcServer to use protocol interfaces instead of direct CentralUnit dependency
 - Introduce \_CentralEntry container class for decoupled central/looper storage
 - Add HubFetchOperations base protocol for consolidated hub data fetching
@@ -640,7 +640,7 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 
 ## What's Changed
 
-- Add ClientFactory for DI
+- Add ClientFactoryProtocol for DI
 - Improve documentation
 
 # Version 2025.11.23 (2025-11-21)

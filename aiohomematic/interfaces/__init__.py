@@ -13,27 +13,27 @@ Protocol Categories
 **Identity & Configuration:**
     Protocols providing system identification and configuration access.
 
-    - `CentralInfo`: Central system identification (name, model, version)
-    - `ConfigProvider`: Configuration access (config property)
-    - `SystemInfoProvider`: Backend system information
-    - `CentralUnitStateProvider`: Central unit lifecycle state
+    - `CentralInfoProtocol`: Central system identification (name, model, version)
+    - `ConfigProviderProtocol`: Configuration access (config property)
+    - `SystemInfoProviderProtocol`: Backend system information
+    - `CentralUnitStateProviderProtocol`: Central unit lifecycle state
 
 **Event System:**
     Protocols for event publishing and subscription.
 
-    - `EventBusProvider`: Access to the central event bus
-    - `EventPublisher`: Publishing backend and Homematic events
-    - `EventSubscriptionManager`: Managing event subscriptions
-    - `LastEventTracker`: Tracking last event timestamps
+    - `EventBusProviderProtocol`: Access to the central event bus
+    - `EventPublisherProtocol`: Publishing backend and Homematic events
+    - `EventSubscriptionManagerProtocol`: Managing event subscriptions
+    - `LastEventTrackerProtocol`: Tracking last event timestamps
 
 **Cache Read (Providers):**
     Protocols for reading cached data. Follow naming convention ``*Provider``.
 
-    - `DataCacheProvider`: Read device data cache
-    - `DeviceDetailsProvider`: Read device metadata (rooms, names, functions)
-    - `DeviceDescriptionProvider`: Read device descriptions
-    - `ParamsetDescriptionProvider`: Read paramset descriptions
-    - `ParameterVisibilityProvider`: Check parameter visibility rules
+    - `DataCacheProviderProtocol`: Read device data cache
+    - `DeviceDetailsProviderProtocol`: Read device metadata (rooms, names, functions)
+    - `DeviceDescriptionProviderProtocol`: Read device descriptions
+    - `ParamsetDescriptionProviderProtocol`: Read paramset descriptions
+    - `ParameterVisibilityProviderProtocol`: Check parameter visibility rules
 
 **Cache Write (Writers):**
     Protocols for writing to caches. Follow naming convention ``*Writer``.
@@ -46,54 +46,54 @@ Protocol Categories
     Protocols for client lifecycle and communication.
 
     *Client Sub-Protocols (ISP):*
-        - `ClientIdentity`: Basic identification (interface, interface_id, model)
-        - `ClientConnection`: Connection state management
-        - `ClientLifecycle`: Lifecycle operations (init, stop, proxy)
-        - `ClientCapabilities`: Feature support flags (supports_*)
-        - `DeviceDiscoveryOperations`: Device discovery operations
-        - `ParamsetOperations`: Paramset operations
-        - `ValueOperations`: Value read/write operations
-        - `LinkOperations`: Device linking operations
-        - `FirmwareOperations`: Firmware update operations
-        - `SystemVariableOperations`: System variable operations
-        - `ProgramOperations`: Program execution operations
-        - `BackupOperations`: Backup operations
-        - `MetadataOperations`: Metadata and system operations
-        - `ClientSupport`: Utility methods and caches
+        - `ClientIdentityProtocol`: Basic identification (interface, interface_id, model)
+        - `ClientConnectionProtocol`: Connection state management
+        - `ClientLifecycleProtocol`: Lifecycle operations (init, stop, proxy)
+        - `ClientCapabilitiesProtocol`: Feature support flags (supports_*)
+        - `DeviceDiscoveryOperationsProtocol`: Device discovery operations
+        - `ParamsetOperationsProtocol`: Paramset operations
+        - `ValueOperationsProtocol`: Value read/write operations
+        - `LinkOperationsProtocol`: Device linking operations
+        - `FirmwareOperationsProtocol`: Firmware update operations
+        - `SystemVariableOperationsProtocol`: System variable operations
+        - `ProgramOperationsProtocol`: Program execution operations
+        - `BackupOperationsProtocol`: Backup operations
+        - `MetadataOperationsProtocol`: Metadata and system operations
+        - `ClientSupportProtocol`: Utility methods and caches
 
     *Client Composite:*
         - `ClientProtocol`: Composite of all client sub-protocols
 
     *Client Utilities:*
-        - `ClientProvider`: Lookup clients by interface_id
-        - `ClientFactory`: Create new client instances
-        - `ClientDependencies`: Composite of dependencies for clients
-        - `PrimaryClientProvider`: Access to primary client
-        - `JsonRpcClientProvider`: JSON-RPC client access
-        - `ConnectionStateProvider`: Connection state information
+        - `ClientProviderProtocol`: Lookup clients by interface_id
+        - `ClientFactoryProtocol`: Create new client instances
+        - `ClientDependenciesProtocol`: Composite of dependencies for clients
+        - `PrimaryClientProviderProtocol`: Access to primary client
+        - `JsonRpcClientProviderProtocol`: JSON-RPC client access
+        - `ConnectionStateProviderProtocol`: Connection state information
 
 **Device & Channel Lookup:**
     Protocols for finding devices and channels.
 
-    - `DeviceProvider`: Access device registry
-    - `DeviceLookup`: Find devices by various criteria
-    - `ChannelLookup`: Find channels by address
-    - `DataPointProvider`: Find data points
+    - `DeviceProviderProtocol`: Access device registry
+    - `DeviceLookupProtocol`: Find devices by various criteria
+    - `ChannelLookupProtocol`: Find channels by address
+    - `DataPointProviderProtocol`: Find data points
     - `DeviceDescriptionsAccess`: Access device descriptions
 
 **Device Operations:**
     Protocols for device-related operations.
 
-    - `DeviceManagement`: Device lifecycle operations
-    - `DeviceDataRefresher`: Refresh device data from backend
-    - `NewDeviceHandler`: Handle new device discovery
+    - `DeviceManagementProtocol`: Device lifecycle operations
+    - `DeviceDataRefresherProtocol`: Refresh device data from backend
+    - `NewDeviceHandlerProtocol`: Handle new device discovery
 
 **Hub Operations:**
     Protocols for hub-level operations (programs, sysvars).
 
-    - `HubDataFetcher`: Fetch hub data
-    - `HubDataPointManager`: Manage hub data points
-    - `HubFetchOperations`: Hub fetch operations
+    - `HubDataFetcherProtocol`: Fetch hub data
+    - `HubDataPointManagerProtocol`: Manage hub data points
+    - `HubFetchOperationsProtocol`: Hub fetch operations
 
 **Task Scheduling:**
     Protocols for async task management.
@@ -130,12 +130,12 @@ Protocol Categories
 **Utility Protocols:**
     Other utility protocols.
 
-    - `BackupProvider`: Backup operations
-    - `FileOperations`: File I/O operations
-    - `CoordinatorProvider`: Access to coordinators
-    - `CallbackAddressProvider`: Callback address management
-    - `ClientCoordination`: Client coordination operations
-    - `SessionRecorderProvider`: Session recording access
+    - `BackupProviderProtocol`: Backup operations
+    - `FileOperationsProtocol`: File I/O operations
+    - `CoordinatorProviderProtocol`: Access to coordinators
+    - `CallbackAddressProviderProtocol`: Callback address management
+    - `ClientCoordinationProtocol`: Client coordination operations
+    - `SessionRecorderProviderProtocol`: Session recording access
     - `CommandCacheProtocol`: Command cache operations
     - `PingPongCacheProtocol`: Ping/pong cache operations
 
@@ -154,98 +154,98 @@ For explicit imports, use the submodules:
 from __future__ import annotations
 
 from aiohomematic.interfaces.central import (
-    BackupProvider,
+    BackupProviderProtocol,
     CentralHealthProtocol,
-    CentralInfo,
+    CentralInfoProtocol,
     # Central composite protocol
     CentralProtocol,
     CentralStateMachineProtocol,
-    CentralStateMachineProvider,
-    CentralUnitStateProvider,
-    ChannelLookup,
-    ConfigProvider,
+    CentralStateMachineProviderProtocol,
+    CentralUnitStateProviderProtocol,
+    ChannelLookupProtocol,
+    ConfigProviderProtocol,
     ConnectionHealthProtocol,
-    DataCacheProvider,
-    DataPointProvider,
-    DeviceDataRefresher,
-    DeviceManagement,
-    DeviceProvider,
-    EventBusProvider,
-    EventPublisher,
-    EventSubscriptionManager,
-    FileOperations,
-    HealthProvider,
+    DataCacheProviderProtocol,
+    DataPointProviderProtocol,
+    DeviceDataRefresherProtocol,
+    DeviceManagementProtocol,
+    DeviceProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
+    EventSubscriptionManagerProtocol,
+    FileOperationsProtocol,
+    HealthProviderProtocol,
     HealthTrackerProtocol,
-    HubDataFetcher,
-    HubDataPointManager,
-    HubFetchOperations,
-    SystemInfoProvider,
+    HubDataFetcherProtocol,
+    HubDataPointManagerProtocol,
+    HubFetchOperationsProtocol,
+    SystemInfoProviderProtocol,
 )
 from aiohomematic.interfaces.client import (
     # Client sub-protocols
-    BackupOperations,
+    BackupOperationsProtocol,
     # Client utilities
-    CallbackAddressProvider,
-    ClientCapabilities,
-    ClientConnection,
-    ClientCoordination,
-    ClientDependencies,
-    ClientFactory,
-    ClientIdentity,
-    ClientLifecycle,
+    CallbackAddressProviderProtocol,
+    ClientCapabilitiesProtocol,
+    ClientConnectionProtocol,
+    ClientCoordinationProtocol,
+    ClientDependenciesProtocol,
+    ClientFactoryProtocol,
+    ClientIdentityProtocol,
+    ClientLifecycleProtocol,
     # Client composite protocol
     ClientProtocol,
-    ClientProvider,
-    ClientSupport,
+    ClientProviderProtocol,
+    ClientSupportProtocol,
     CommandCacheProtocol,
-    ConnectionStateProvider,
-    DataCacheWriter,
-    DeviceDescriptionsAccess,
-    DeviceDetailsWriter,
-    DeviceDiscoveryOperations,
-    DeviceLookup,
-    FirmwareOperations,
-    JsonRpcClientProvider,
-    LastEventTracker,
-    LinkOperations,
-    MetadataOperations,
-    NewDeviceHandler,
-    ParamsetDescriptionWriter,
-    ParamsetOperations,
+    ConnectionStateProviderProtocol,
+    DataCacheWriterProtocol,
+    DeviceDescriptionsAccessProtocol,
+    DeviceDetailsWriterProtocol,
+    DeviceDiscoveryOperationsProtocol,
+    DeviceLookupProtocol,
+    FirmwareOperationsProtocol,
+    JsonRpcClientProviderProtocol,
+    LastEventTrackerProtocol,
+    LinkOperationsProtocol,
+    MetadataOperationsProtocol,
+    NewDeviceHandlerProtocol,
+    ParamsetDescriptionWriterProtocol,
+    ParamsetOperationsProtocol,
     PingPongCacheProtocol,
-    PrimaryClientProvider,
-    ProgramOperations,
-    SessionRecorderProvider,
-    SystemVariableOperations,
-    ValueOperations,
+    PrimaryClientProviderProtocol,
+    ProgramOperationsProtocol,
+    SessionRecorderProviderProtocol,
+    SystemVariableOperationsProtocol,
+    ValueOperationsProtocol,
 )
-from aiohomematic.interfaces.coordinators import CoordinatorProvider
+from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
 from aiohomematic.interfaces.model import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
     CalculatedDataPointProtocol,
     CallbackDataPointProtocol,
     # Channel sub-protocols
-    ChannelDataPointAccess,
-    ChannelGrouping,
-    ChannelIdentity,
-    ChannelLifecycle,
-    ChannelLinkManagement,
-    ChannelMetadata,
+    ChannelDataPointAccessProtocol,
+    ChannelGroupingProtocol,
+    ChannelIdentityProtocol,
+    ChannelLifecycleProtocol,
+    ChannelLinkManagementProtocol,
+    ChannelMetadataProtocol,
     ChannelProtocol,
     CustomDataPointProtocol,
     # Device sub-protocols
-    DeviceAvailability,
-    DeviceChannelAccess,
-    DeviceConfiguration,
-    DeviceFirmware,
-    DeviceGroupManagement,
-    DeviceIdentity,
-    DeviceLifecycle,
-    DeviceLinkManagement,
+    DeviceAvailabilityProtocol,
+    DeviceChannelAccessProtocol,
+    DeviceConfigurationProtocol,
+    DeviceFirmwareProtocol,
+    DeviceGroupManagementProtocol,
+    DeviceIdentityProtocol,
+    DeviceLifecycleProtocol,
+    DeviceLinkManagementProtocol,
     DeviceProtocol,
-    DeviceProviders,
-    DeviceWeekProfile,
+    DeviceProvidersProtocol,
+    DeviceWeekProfileProtocol,
     GenericDataPointProtocol,
     GenericEventProtocol,
     GenericHubDataPointProtocol,
@@ -257,104 +257,104 @@ from aiohomematic.interfaces.model import (
     WeekProfileProtocol,
 )
 from aiohomematic.interfaces.operations import (
-    DeviceDescriptionProvider,
-    DeviceDetailsProvider,
-    ParameterVisibilityProvider,
-    ParamsetDescriptionProvider,
-    TaskScheduler,
+    DeviceDescriptionProviderProtocol,
+    DeviceDetailsProviderProtocol,
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
 )
 
 __all__ = [
     # Central Composite Protocol
     "CentralProtocol",
     # Identity & Configuration
-    "CentralInfo",
-    "CentralUnitStateProvider",
-    "ConfigProvider",
-    "SystemInfoProvider",
+    "CentralInfoProtocol",
+    "CentralUnitStateProviderProtocol",
+    "ConfigProviderProtocol",
+    "SystemInfoProviderProtocol",
     # Central State Machine
     "CentralStateMachineProtocol",
-    "CentralStateMachineProvider",
+    "CentralStateMachineProviderProtocol",
     # Health Tracking
     "CentralHealthProtocol",
     "ConnectionHealthProtocol",
-    "HealthProvider",
+    "HealthProviderProtocol",
     "HealthTrackerProtocol",
     # Event System
-    "EventBusProvider",
-    "EventPublisher",
-    "EventSubscriptionManager",
-    "LastEventTracker",
+    "EventBusProviderProtocol",
+    "EventPublisherProtocol",
+    "EventSubscriptionManagerProtocol",
+    "LastEventTrackerProtocol",
     # Cache Read (Providers)
-    "DataCacheProvider",
-    "DeviceDescriptionProvider",
-    "DeviceDescriptionsAccess",
-    "DeviceDetailsProvider",
-    "ParameterVisibilityProvider",
-    "ParamsetDescriptionProvider",
+    "DataCacheProviderProtocol",
+    "DeviceDescriptionProviderProtocol",
+    "DeviceDescriptionsAccessProtocol",
+    "DeviceDetailsProviderProtocol",
+    "ParameterVisibilityProviderProtocol",
+    "ParamsetDescriptionProviderProtocol",
     # Cache Write (Writers)
-    "DataCacheWriter",
-    "DeviceDetailsWriter",
-    "ParamsetDescriptionWriter",
+    "DataCacheWriterProtocol",
+    "DeviceDetailsWriterProtocol",
+    "ParamsetDescriptionWriterProtocol",
     # Client Management - Sub-Protocols (ISP)
-    "BackupOperations",
-    "ClientCapabilities",
-    "ClientConnection",
-    "ClientIdentity",
-    "ClientLifecycle",
-    "ClientSupport",
-    "DeviceDiscoveryOperations",
-    "FirmwareOperations",
-    "LinkOperations",
-    "MetadataOperations",
-    "ParamsetOperations",
-    "ProgramOperations",
-    "SystemVariableOperations",
-    "ValueOperations",
+    "BackupOperationsProtocol",
+    "ClientCapabilitiesProtocol",
+    "ClientConnectionProtocol",
+    "ClientIdentityProtocol",
+    "ClientLifecycleProtocol",
+    "ClientSupportProtocol",
+    "DeviceDiscoveryOperationsProtocol",
+    "FirmwareOperationsProtocol",
+    "LinkOperationsProtocol",
+    "MetadataOperationsProtocol",
+    "ParamsetOperationsProtocol",
+    "ProgramOperationsProtocol",
+    "SystemVariableOperationsProtocol",
+    "ValueOperationsProtocol",
     # Client Management - Composite
     "ClientProtocol",
     # Client Management - Utilities
-    "ClientDependencies",
-    "ClientFactory",
-    "ClientProvider",
-    "ConnectionStateProvider",
-    "JsonRpcClientProvider",
-    "PrimaryClientProvider",
+    "ClientDependenciesProtocol",
+    "ClientFactoryProtocol",
+    "ClientProviderProtocol",
+    "ConnectionStateProviderProtocol",
+    "JsonRpcClientProviderProtocol",
+    "PrimaryClientProviderProtocol",
     # Device & Channel Lookup
-    "ChannelLookup",
-    "DataPointProvider",
-    "DeviceLookup",
-    "DeviceProvider",
+    "ChannelLookupProtocol",
+    "DataPointProviderProtocol",
+    "DeviceLookupProtocol",
+    "DeviceProviderProtocol",
     # Device Operations
-    "DeviceDataRefresher",
-    "DeviceManagement",
-    "NewDeviceHandler",
+    "DeviceDataRefresherProtocol",
+    "DeviceManagementProtocol",
+    "NewDeviceHandlerProtocol",
     # Hub Operations
-    "HubDataFetcher",
-    "HubDataPointManager",
-    "HubFetchOperations",
+    "HubDataFetcherProtocol",
+    "HubDataPointManagerProtocol",
+    "HubFetchOperationsProtocol",
     # Task Scheduling
-    "TaskScheduler",
+    "TaskSchedulerProtocol",
     # Model Protocols - Channel (sub-protocols + composite)
-    "ChannelDataPointAccess",
-    "ChannelGrouping",
-    "ChannelIdentity",
-    "ChannelLifecycle",
-    "ChannelLinkManagement",
-    "ChannelMetadata",
+    "ChannelDataPointAccessProtocol",
+    "ChannelGroupingProtocol",
+    "ChannelIdentityProtocol",
+    "ChannelLifecycleProtocol",
+    "ChannelLinkManagementProtocol",
+    "ChannelMetadataProtocol",
     "ChannelProtocol",
     # Model Protocols - Device (sub-protocols + composite)
-    "DeviceAvailability",
-    "DeviceChannelAccess",
-    "DeviceConfiguration",
-    "DeviceFirmware",
-    "DeviceGroupManagement",
-    "DeviceIdentity",
-    "DeviceLifecycle",
-    "DeviceLinkManagement",
+    "DeviceAvailabilityProtocol",
+    "DeviceChannelAccessProtocol",
+    "DeviceConfigurationProtocol",
+    "DeviceFirmwareProtocol",
+    "DeviceGroupManagementProtocol",
+    "DeviceIdentityProtocol",
+    "DeviceLifecycleProtocol",
+    "DeviceLinkManagementProtocol",
     "DeviceProtocol",
-    "DeviceProviders",
-    "DeviceWeekProfile",
+    "DeviceProvidersProtocol",
+    "DeviceWeekProfileProtocol",
     # Model Protocols - Hub
     "HubProtocol",
     # Model Protocols - DataPoint Hierarchy
@@ -374,12 +374,12 @@ __all__ = [
     # Model Protocols - Other
     "WeekProfileProtocol",
     # Utility Protocols
-    "BackupProvider",
-    "CallbackAddressProvider",
-    "ClientCoordination",
+    "BackupProviderProtocol",
+    "CallbackAddressProviderProtocol",
+    "ClientCoordinationProtocol",
     "CommandCacheProtocol",
-    "CoordinatorProvider",
-    "FileOperations",
+    "CoordinatorProviderProtocol",
+    "FileOperationsProtocol",
     "PingPongCacheProtocol",
-    "SessionRecorderProvider",
+    "SessionRecorderProviderProtocol",
 ]

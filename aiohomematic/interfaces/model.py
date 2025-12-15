@@ -9,24 +9,24 @@ Protocol Hierarchy
 ------------------
 
 Channel protocols (ChannelProtocol composed of):
-- ChannelIdentity: Basic identification (address, name, no, type_name, unique_id, rega_id)
-- ChannelDataPointAccess: DataPoint and event access methods
-- ChannelGrouping: Channel group management (group_master, group_no, link_peer_channels)
-- ChannelMetadata: Additional metadata (device, function, room, paramset_descriptions)
-- ChannelLinkManagement: Central link operations
-- ChannelLifecycle: Lifecycle methods (finalize_init, on_config_changed, remove)
+- ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, rega_id)
+- ChannelDataPointAccessProtocol: DataPoint and event access methods
+- ChannelGroupingProtocol: Channel group management (group_master, group_no, link_peer_channels)
+- ChannelMetadataProtocol: Additional metadata (device, function, room, paramset_descriptions)
+- ChannelLinkManagementProtocol: Central link operations
+- ChannelLifecycleProtocol: Lifecycle methods (finalize_init, on_config_changed, remove)
 
 Device protocols (DeviceProtocol composed of):
-- DeviceIdentity: Basic identification (address, name, model, manufacturer, interface)
-- DeviceChannelAccess: Channel and DataPoint access methods
-- DeviceAvailability: Availability state management
-- DeviceFirmware: Firmware information and update operations
-- DeviceLinkManagement: Central link operations
-- DeviceGroupManagement: Channel group management
-- DeviceConfiguration: Device configuration and metadata
-- DeviceWeekProfile: Week profile support
-- DeviceProviders: Protocol interface providers
-- DeviceLifecycle: Lifecycle methods
+- DeviceIdentityProtocol: Basic identification (address, name, model, manufacturer, interface)
+- DeviceChannelAccessProtocol: Channel and DataPoint access methods
+- DeviceAvailabilityProtocol: Availability state management
+- DeviceFirmwareProtocol: Firmware information and update operations
+- DeviceLinkManagementProtocol: Central link operations
+- DeviceGroupManagementProtocol: Channel group management
+- DeviceConfigurationProtocol: Device configuration and metadata
+- DeviceWeekProfileProtocol: Week profile support
+- DeviceProvidersProtocol: Protocol interface providers
+- DeviceLifecycleProtocol: Lifecycle methods
 """
 
 from __future__ import annotations
@@ -55,28 +55,28 @@ from aiohomematic.const import (
     RxMode,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.interfaces.operations import (
+    DeviceDescriptionProviderProtocol,
+    DeviceDetailsProviderProtocol,
+    ParameterVisibilityProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.type_aliases import DataPointUpdatedHandler, FirmwareUpdateHandler
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.central import (
-        CentralInfo,
-        ChannelLookup,
-        ConfigProvider,
-        DataCacheProvider,
-        DataPointProvider,
-        EventBusProvider,
-        EventPublisher,
-        EventSubscriptionManager,
-        FirmwareDataRefresher,
+        CentralInfoProtocol,
+        ChannelLookupProtocol,
+        ConfigProviderProtocol,
+        DataCacheProviderProtocol,
+        DataPointProviderProtocol,
+        EventBusProviderProtocol,
+        EventPublisherProtocol,
+        EventSubscriptionManagerProtocol,
+        FirmwareDataRefresherProtocol,
     )
     from aiohomematic.interfaces.client import ClientProtocol
-    from aiohomematic.interfaces.operations import (
-        DeviceDescriptionProvider,
-        DeviceDetailsProvider,
-        ParameterVisibilityProvider,
-        ParamsetDescriptionProvider,
-        TaskScheduler,
-    )
     from aiohomematic.model.custom.registry import DeviceConfig
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
@@ -927,7 +927,7 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
 # =============================================================================
 
 
-class ChannelIdentity(Protocol):
+class ChannelIdentityProtocol(Protocol):
     """
     Protocol for channel identification.
 
@@ -972,7 +972,7 @@ class ChannelIdentity(Protocol):
         """Return the unique_id of the channel."""
 
 
-class ChannelDataPointAccess(Protocol):
+class ChannelDataPointAccessProtocol(Protocol):
     """
     Protocol for channel data point access.
 
@@ -1045,7 +1045,7 @@ class ChannelDataPointAccess(Protocol):
         """Return the list of readable data points."""
 
 
-class ChannelGrouping(Protocol):
+class ChannelGroupingProtocol(Protocol):
     """
     Protocol for channel group management.
 
@@ -1080,7 +1080,7 @@ class ChannelGrouping(Protocol):
         """Return the link peer channels."""
 
 
-class ChannelMetadata(Protocol):
+class ChannelMetadataProtocol(Protocol):
     """
     Protocol for channel metadata access.
 
@@ -1130,7 +1130,7 @@ class ChannelMetadata(Protocol):
         """Return all rooms of the channel."""
 
 
-class ChannelLinkManagement(Protocol):
+class ChannelLinkManagementProtocol(Protocol):
     """
     Protocol for channel central link management.
 
@@ -1156,7 +1156,7 @@ class ChannelLinkManagement(Protocol):
         """Subscribe to link peer changed event."""
 
 
-class ChannelLifecycle(Protocol):
+class ChannelLifecycleProtocol(Protocol):
     """
     Protocol for channel lifecycle management.
 
@@ -1185,12 +1185,12 @@ class ChannelLifecycle(Protocol):
 
 @runtime_checkable
 class ChannelProtocol(
-    ChannelIdentity,
-    ChannelDataPointAccess,
-    ChannelGrouping,
-    ChannelMetadata,
-    ChannelLinkManagement,
-    ChannelLifecycle,
+    ChannelIdentityProtocol,
+    ChannelDataPointAccessProtocol,
+    ChannelGroupingProtocol,
+    ChannelMetadataProtocol,
+    ChannelLinkManagementProtocol,
+    ChannelLifecycleProtocol,
     Protocol,
 ):
     """
@@ -1200,12 +1200,12 @@ class ChannelProtocol(
     Implemented by Channel.
 
     Sub-protocols:
-    - ChannelIdentity: Basic identification (address, name, no, type_name, unique_id, rega_id)
-    - ChannelDataPointAccess: DataPoint and event access methods
-    - ChannelGrouping: Channel group management (group_master, group_no, link_peer_channels)
-    - ChannelMetadata: Additional metadata (device, function, room, paramset_descriptions)
-    - ChannelLinkManagement: Central link operations
-    - ChannelLifecycle: Lifecycle methods (finalize_init, on_config_changed, remove)
+    - ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, rega_id)
+    - ChannelDataPointAccessProtocol: DataPoint and event access methods
+    - ChannelGroupingProtocol: Channel group management (group_master, group_no, link_peer_channels)
+    - ChannelMetadataProtocol: Additional metadata (device, function, room, paramset_descriptions)
+    - ChannelLinkManagementProtocol: Central link operations
+    - ChannelLifecycleProtocol: Lifecycle methods (finalize_init, on_config_changed, remove)
     """
 
     __slots__ = ()
@@ -1216,7 +1216,7 @@ class ChannelProtocol(
 # =============================================================================
 
 
-class DeviceIdentity(Protocol):
+class DeviceIdentityProtocol(Protocol):
     """
     Protocol for device identification.
 
@@ -1266,7 +1266,7 @@ class DeviceIdentity(Protocol):
         """Return the sub model of the device."""
 
 
-class DeviceChannelAccess(Protocol):
+class DeviceChannelAccessProtocol(Protocol):
     """
     Protocol for device channel and data point access.
 
@@ -1345,7 +1345,7 @@ class DeviceChannelAccess(Protocol):
         """Identify channel within a text."""
 
 
-class DeviceAvailability(Protocol):
+class DeviceAvailabilityProtocol(Protocol):
     """
     Protocol for device availability state.
 
@@ -1369,7 +1369,7 @@ class DeviceAvailability(Protocol):
         """Set the availability of the device."""
 
 
-class DeviceFirmware(Protocol):
+class DeviceFirmwareProtocol(Protocol):
     """
     Protocol for device firmware management.
 
@@ -1416,7 +1416,7 @@ class DeviceFirmware(Protocol):
         """Update the device firmware."""
 
 
-class DeviceLinkManagement(Protocol):
+class DeviceLinkManagementProtocol(Protocol):
     """
     Protocol for device central link management.
 
@@ -1439,7 +1439,7 @@ class DeviceLinkManagement(Protocol):
         """Remove central links."""
 
 
-class DeviceGroupManagement(Protocol):
+class DeviceGroupManagementProtocol(Protocol):
     """
     Protocol for device channel group management.
 
@@ -1461,7 +1461,7 @@ class DeviceGroupManagement(Protocol):
         """Return if multiple channels are in the group."""
 
 
-class DeviceConfiguration(Protocol):
+class DeviceConfigurationProtocol(Protocol):
     """
     Protocol for device configuration and metadata.
 
@@ -1521,7 +1521,7 @@ class DeviceConfiguration(Protocol):
         """Return the rx modes."""
 
 
-class DeviceWeekProfile(Protocol):
+class DeviceWeekProfileProtocol(Protocol):
     """
     Protocol for device week profile support.
 
@@ -1550,7 +1550,7 @@ class DeviceWeekProfile(Protocol):
         """Initialize the week profile."""
 
 
-class DeviceProviders(Protocol):
+class DeviceProvidersProtocol(Protocol):
     """
     Protocol for device dependency providers.
 
@@ -1561,12 +1561,12 @@ class DeviceProviders(Protocol):
 
     @property
     @abstractmethod
-    def central_info(self) -> CentralInfo:
+    def central_info(self) -> CentralInfoProtocol:
         """Return the central info of the device."""
 
     @property
     @abstractmethod
-    def channel_lookup(self) -> ChannelLookup:
+    def channel_lookup(self) -> ChannelLookupProtocol:
         """Return the channel lookup provider."""
 
     @property
@@ -1576,62 +1576,62 @@ class DeviceProviders(Protocol):
 
     @property
     @abstractmethod
-    def config_provider(self) -> ConfigProvider:
+    def config_provider(self) -> ConfigProviderProtocol:
         """Return the config provider."""
 
     @property
     @abstractmethod
-    def data_cache_provider(self) -> DataCacheProvider:
+    def data_cache_provider(self) -> DataCacheProviderProtocol:
         """Return the data cache provider."""
 
     @property
     @abstractmethod
-    def data_point_provider(self) -> DataPointProvider:
+    def data_point_provider(self) -> DataPointProviderProtocol:
         """Return the data point provider."""
 
     @property
     @abstractmethod
-    def device_data_refresher(self) -> FirmwareDataRefresher:
+    def device_data_refresher(self) -> FirmwareDataRefresherProtocol:
         """Return the device data refresher."""
 
     @property
     @abstractmethod
-    def device_description_provider(self) -> DeviceDescriptionProvider:
+    def device_description_provider(self) -> DeviceDescriptionProviderProtocol:
         """Return the device description provider."""
 
     @property
     @abstractmethod
-    def device_details_provider(self) -> DeviceDetailsProvider:
+    def device_details_provider(self) -> DeviceDetailsProviderProtocol:
         """Return the device details provider."""
 
     @property
     @abstractmethod
-    def event_bus_provider(self) -> EventBusProvider:
+    def event_bus_provider(self) -> EventBusProviderProtocol:
         """Return the event bus provider."""
 
     @property
     @abstractmethod
-    def event_publisher(self) -> EventPublisher:
+    def event_publisher(self) -> EventPublisherProtocol:
         """Return the event publisher."""
 
     @property
     @abstractmethod
-    def event_subscription_manager(self) -> EventSubscriptionManager:
+    def event_subscription_manager(self) -> EventSubscriptionManagerProtocol:
         """Return the event subscription manager."""
 
     @property
     @abstractmethod
-    def parameter_visibility_provider(self) -> ParameterVisibilityProvider:
+    def parameter_visibility_provider(self) -> ParameterVisibilityProviderProtocol:
         """Return the parameter visibility provider."""
 
     @property
     @abstractmethod
-    def paramset_description_provider(self) -> ParamsetDescriptionProvider:
+    def paramset_description_provider(self) -> ParamsetDescriptionProviderProtocol:
         """Return the paramset description provider."""
 
     @property
     @abstractmethod
-    def task_scheduler(self) -> TaskScheduler:
+    def task_scheduler(self) -> TaskSchedulerProtocol:
         """Return the task scheduler."""
 
     @property
@@ -1640,7 +1640,7 @@ class DeviceProviders(Protocol):
         """Return the value cache."""
 
 
-class DeviceLifecycle(Protocol):
+class DeviceLifecycleProtocol(Protocol):
     """
     Protocol for device lifecycle management.
 
@@ -1676,7 +1676,7 @@ class DeviceLifecycle(Protocol):
 
 
 @runtime_checkable
-class DeviceRemovalInfo(DeviceIdentity, DeviceChannelAccess, Protocol):
+class DeviceRemovalInfoProtocol(DeviceIdentityProtocol, DeviceChannelAccessProtocol, Protocol):
     """
     Combined protocol for device removal operations.
 
@@ -1697,16 +1697,16 @@ class DeviceRemovalInfo(DeviceIdentity, DeviceChannelAccess, Protocol):
 
 @runtime_checkable
 class DeviceProtocol(
-    DeviceIdentity,
-    DeviceChannelAccess,
-    DeviceAvailability,
-    DeviceFirmware,
-    DeviceLinkManagement,
-    DeviceGroupManagement,
-    DeviceConfiguration,
-    DeviceWeekProfile,
-    DeviceProviders,
-    DeviceLifecycle,
+    DeviceIdentityProtocol,
+    DeviceChannelAccessProtocol,
+    DeviceAvailabilityProtocol,
+    DeviceFirmwareProtocol,
+    DeviceLinkManagementProtocol,
+    DeviceGroupManagementProtocol,
+    DeviceConfigurationProtocol,
+    DeviceWeekProfileProtocol,
+    DeviceProvidersProtocol,
+    DeviceLifecycleProtocol,
     Protocol,
 ):
     """
@@ -1716,16 +1716,16 @@ class DeviceProtocol(
     Implemented by Device.
 
     Sub-protocols:
-    - DeviceIdentity: Basic identification (address, name, model, manufacturer, interface)
-    - DeviceChannelAccess: Channel and DataPoint access methods
-    - DeviceAvailability: Availability state management
-    - DeviceFirmware: Firmware information and update operations
-    - DeviceLinkManagement: Central link operations
-    - DeviceGroupManagement: Channel group management
-    - DeviceConfiguration: Device configuration and metadata
-    - DeviceWeekProfile: Week profile support
-    - DeviceProviders: Protocol interface providers
-    - DeviceLifecycle: Lifecycle methods
+    - DeviceIdentityProtocol: Basic identification (address, name, model, manufacturer, interface)
+    - DeviceChannelAccessProtocol: Channel and DataPoint access methods
+    - DeviceAvailabilityProtocol: Availability state management
+    - DeviceFirmwareProtocol: Firmware information and update operations
+    - DeviceLinkManagementProtocol: Central link operations
+    - DeviceGroupManagementProtocol: Channel group management
+    - DeviceConfigurationProtocol: Device configuration and metadata
+    - DeviceWeekProfileProtocol: Week profile support
+    - DeviceProvidersProtocol: Protocol interface providers
+    - DeviceLifecycleProtocol: Lifecycle methods
     """
 
     __slots__ = ()
@@ -1743,7 +1743,7 @@ class HubProtocol(Protocol):
 
     Provides access to hub data points (inbox, update) and methods
     for fetching programs, system variables, and other hub data.
-    Inherits fetch operations from HubFetchOperations (interfaces.central).
+    Inherits fetch operations from HubFetchOperationsProtocol (interfaces.central).
     Implemented by Hub.
     """
 

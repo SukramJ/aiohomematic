@@ -550,7 +550,7 @@ classDiagram
 ```mermaid
 sequenceDiagram
   participant Sched as BackgroundScheduler
-  participant CC as ClientCoordination
+  participant CC as ClientCoordinationProtocol
   participant CX as ClientCCU
   participant SM as ClientStateMachine
   participant Proxy as BaseRpcProxy

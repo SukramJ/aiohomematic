@@ -36,19 +36,19 @@ Components receive only protocol interfaces via constructor injection, with **ze
 
 Components use protocol interfaces exclusively with zero CentralUnit references:
 
-- **ClientCoordinator**: Uses ClientFactory protocol for client creation, plus 4 protocol interfaces (CentralInfo, ConfigProvider, CoordinatorProvider, SystemInfoProvider)
-- **HubCoordinator**: Constructs Hub with protocol interfaces only (CentralInfo, ChannelLookup, ClientProvider, ConfigProvider, EventBusProvider, EventPublisher, ParameterVisibilityProvider, ParamsetDescriptionProvider, PrimaryClientProvider, TaskScheduler)
+- **ClientCoordinator**: Uses ClientFactoryProtocol protocol for client creation, plus 4 protocol interfaces (CentralInfo, ConfigProvider, CoordinatorProviderProtocol, SystemInfoProvider)
+- **HubCoordinator**: Constructs Hub with protocol interfaces only (CentralInfo, ChannelLookup, ClientProvider, ConfigProvider, EventBusProvider, EventPublisher, ParameterVisibilityProviderProtocol, ParamsetDescriptionProviderProtocol, PrimaryClientProvider, TaskScheduler)
 - **Hub**: Uses 11+ protocol interfaces for all operations, no CentralUnit reference
 
-**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactory protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
+**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactoryProtocol protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
 
 ### Tier 3: Full Dependency Injection (Model Layer)
 
 Model classes now use full dependency injection with protocol interfaces:
 
-- **Device**: Receives 16 protocol interfaces (DeviceDetailsProvider, DeviceDescriptionProvider, ParamsetDescriptionProvider, ParameterVisibilityProvider, ClientProvider, ConfigProvider, CentralInfo, EventBusProvider, TaskScheduler, FileOperations, DeviceDataRefresher, DataCacheProvider, ChannelLookup, EventSubscriptionManager) via constructor injection
+- **Device**: Receives 16 protocol interfaces (DeviceDetailsProviderProtocol, DeviceDescriptionProviderProtocol, ParamsetDescriptionProviderProtocol, ParameterVisibilityProviderProtocol, ClientProvider, ConfigProvider, CentralInfo, EventBusProvider, TaskScheduler, FileOperations, DeviceDataRefresher, DataCacheProvider, ChannelLookup, EventSubscriptionManager) via constructor injection
 - **Channel**: Accesses protocol interfaces through its parent Device instance (self.\_device.\_xxx_provider)
-- **CallbackDataPoint**: Receives 5 protocol interfaces (CentralInfo, EventBusProvider, TaskScheduler, ParamsetDescriptionProvider, ParameterVisibilityProvider)
+- **CallbackDataPoint**: Receives 5 protocol interfaces (CentralInfo, EventBusProvider, TaskScheduler, ParamsetDescriptionProviderProtocol, ParameterVisibilityProviderProtocol)
 - **BaseDataPoint**: Extracts protocol interfaces from channel.device and passes them to CallbackDataPoint
 - **BaseParameterDataPoint**: Uses device protocol interfaces for initialization
 
@@ -77,7 +77,7 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 
 **Client Protocols** (`interfaces/client.py`):
 
-- **ClientFactory**: Client instance creation (create_client_instance method)
+- **ClientFactoryProtocol**: Client instance creation (create_client_instance method)
 - **ClientProvider**: Client lookup by interface_id
 - **ClientProtocol**: Client interface for RPC operations
 - **PrimaryClientProvider**: Primary client access
@@ -85,34 +85,34 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 **Operations Protocols** (`interfaces/operations.py`):
 
 - **TaskScheduler**: Background task scheduling (create_task method)
-- **DeviceDetailsProvider**: Device metadata (address_id, rooms, interface, name)
-- **DeviceDescriptionProvider**: Device descriptions lookup
-- **ParamsetDescriptionProvider**: Paramset descriptions and multi-channel checks
-- **ParameterVisibilityProvider**: Parameter visibility rules
+- **DeviceDetailsProviderProtocol**: Device metadata (address_id, rooms, interface, name)
+- **DeviceDescriptionProviderProtocol**: Device descriptions lookup
+- **ParamsetDescriptionProviderProtocol**: Paramset descriptions and multi-channel checks
+- **ParameterVisibilityProviderProtocol**: Parameter visibility rules
 
 **Model Protocols** (`interfaces/model.py`):
 
 - **ChannelProtocol**: Composite channel interface, composed of sub-protocols:
 
-  - `ChannelIdentity`: Basic identification (address, name, no, type_name, unique_id)
-  - `ChannelDataPointAccess`: DataPoint and event access methods
-  - `ChannelGrouping`: Channel group management (group_master, link_peer_channels)
-  - `ChannelMetadata`: Additional metadata (device, function, room, paramset_descriptions)
-  - `ChannelLinkManagement`: Central link operations
-  - `ChannelLifecycle`: Lifecycle methods (finalize_init, on_config_changed, remove)
+  - `ChannelIdentityProtocol`: Basic identification (address, name, no, type_name, unique_id)
+  - `ChannelDataPointAccessProtocol`: DataPoint and event access methods
+  - `ChannelGroupingProtocol`: Channel group management (group_master, link_peer_channels)
+  - `ChannelMetadataProtocol`: Additional metadata (device, function, room, paramset_descriptions)
+  - `ChannelLinkManagementProtocol`: Central link operations
+  - `ChannelLifecycleProtocol`: Lifecycle methods (finalize_init, on_config_changed, remove)
 
 - **DeviceProtocol**: Composite device interface, composed of sub-protocols:
 
-  - `DeviceIdentity`: Basic identification (address, name, model, manufacturer)
-  - `DeviceChannelAccess`: Channel and DataPoint access methods
-  - `DeviceAvailability`: Availability state management
-  - `DeviceFirmware`: Firmware information and update operations
-  - `DeviceLinkManagement`: Central link operations
-  - `DeviceGroupManagement`: Channel group management
-  - `DeviceConfiguration`: Device configuration and metadata
-  - `DeviceWeekProfile`: Week profile support
-  - `DeviceProviders`: Protocol interface providers
-  - `DeviceLifecycle`: Lifecycle methods
+  - `DeviceIdentityProtocol`: Basic identification (address, name, model, manufacturer)
+  - `DeviceChannelAccessProtocol`: Channel and DataPoint access methods
+  - `DeviceAvailabilityProtocol`: Availability state management
+  - `DeviceFirmwareProtocol`: Firmware information and update operations
+  - `DeviceLinkManagementProtocol`: Central link operations
+  - `DeviceGroupManagementProtocol`: Channel group management
+  - `DeviceConfigurationProtocol`: Device configuration and metadata
+  - `DeviceWeekProfileProtocol`: Week profile support
+  - `DeviceProvidersProtocol`: Protocol interface providers
+  - `DeviceLifecycleProtocol`: Lifecycle methods
 
 - **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
 - **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
@@ -122,7 +122,7 @@ Consumers can depend on specific sub-protocols for narrower interface contracts,
 
 **Coordinator Protocols** (`interfaces/coordinators.py`):
 
-- **CoordinatorProvider**: Access to coordinator instances
+- **CoordinatorProviderProtocol**: Access to coordinator instances
 
 These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.
 
@@ -138,7 +138,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 - Coordinators
   - All coordinators use full dependency injection with protocol interfaces.
   - Infrastructure coordinators (CacheCoordinator, DeviceCoordinator, DeviceRegistry, EventCoordinator) receive only protocol interfaces.
-  - Factory coordinators (ClientCoordinator, HubCoordinator) use ClientFactory and other protocol interfaces for all operations including object creation.
+  - Factory coordinators (ClientCoordinator, HubCoordinator) use ClientFactoryProtocol and other protocol interfaces for all operations including object creation.
 - Caches
   - Persistent caches are loaded/saved by Central during startup/shutdown and used by Clients to avoid redundant metadata fetches.
   - Dynamic caches are updated by Clients and Central when values change, and consulted to answer quick queries or de‑duplicate work.

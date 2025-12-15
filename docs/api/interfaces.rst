@@ -32,10 +32,10 @@ ConfigProvider
 Client Protocols
 ----------------
 
-ClientFactory
+ClientFactoryProtocol
 ~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.ClientFactory
+.. autoclass:: aiohomematic.interfaces.ClientFactoryProtocol
    :members:
    :undoc-members:
    :show-inheritance:
@@ -116,34 +116,34 @@ EventSubscriptionManager
 Description Protocols
 ---------------------
 
-DeviceDetailsProvider
+DeviceDetailsProviderProtocol
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.DeviceDetailsProvider
+.. autoclass:: aiohomematic.interfaces.DeviceDetailsProviderProtocol
    :members:
    :undoc-members:
    :show-inheritance:
 
-DeviceDescriptionProvider
+DeviceDescriptionProviderProtocol
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.DeviceDescriptionProvider
+.. autoclass:: aiohomematic.interfaces.DeviceDescriptionProviderProtocol
    :members:
    :undoc-members:
    :show-inheritance:
 
-ParamsetDescriptionProvider
+ParamsetDescriptionProviderProtocol
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.ParamsetDescriptionProvider
+.. autoclass:: aiohomematic.interfaces.ParamsetDescriptionProviderProtocol
    :members:
    :undoc-members:
    :show-inheritance:
 
-ParameterVisibilityProvider
+ParameterVisibilityProviderProtocol
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.ParameterVisibilityProvider
+.. autoclass:: aiohomematic.interfaces.ParameterVisibilityProviderProtocol
    :members:
    :undoc-members:
    :show-inheritance:
@@ -229,10 +229,10 @@ SystemInfoProvider
    :undoc-members:
    :show-inheritance:
 
-CoordinatorProvider
+CoordinatorProviderProtocol
 ~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.CoordinatorProvider
+.. autoclass:: aiohomematic.interfaces.CoordinatorProviderProtocol
    :members:
    :undoc-members:
    :show-inheritance:
@@ -245,10 +245,10 @@ CentralUnitStateProvider
    :undoc-members:
    :show-inheritance:
 
-ClientCoordination
+ClientCoordinationProtocol
 ~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: aiohomematic.interfaces.ClientCoordination
+.. autoclass:: aiohomematic.interfaces.ClientCoordinationProtocol
    :members:
    :undoc-members:
    :show-inheritance:

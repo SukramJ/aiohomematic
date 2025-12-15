@@ -7,8 +7,8 @@ reducing the complexity of the main client classes.
 
 Handler classes
 ---------------
-- DeviceOperationsHandler: Value read/write, paramset operations
-- LinkManagementHandler: Device linking operations
+- DeviceHandler: Value read/write, paramset operations
+- LinkHandler: Device linking operations
 - FirmwareHandler: Device and system firmware updates
 - SystemVariableHandler: System variables CRUD
 - ProgramHandler: Program execution and state management
@@ -19,18 +19,18 @@ Handler classes
 from __future__ import annotations
 
 from aiohomematic.client.handlers.backup import BackupHandler
-from aiohomematic.client.handlers.device_ops import DeviceOperationsHandler
+from aiohomematic.client.handlers.device_ops import DeviceHandler
 from aiohomematic.client.handlers.firmware import FirmwareHandler
-from aiohomematic.client.handlers.link_mgmt import LinkManagementHandler
+from aiohomematic.client.handlers.link_mgmt import LinkHandler
 from aiohomematic.client.handlers.metadata import MetadataHandler
 from aiohomematic.client.handlers.programs import ProgramHandler
 from aiohomematic.client.handlers.sysvars import SystemVariableHandler
 
 __all__ = [
     "BackupHandler",
-    "DeviceOperationsHandler",
+    "DeviceHandler",
     "FirmwareHandler",
-    "LinkManagementHandler",
+    "LinkHandler",
     "MetadataHandler",
     "ProgramHandler",
     "SystemVariableHandler",

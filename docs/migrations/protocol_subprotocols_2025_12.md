@@ -30,30 +30,30 @@ from aiohomematic.interfaces import DeviceProtocol, ChannelProtocol
 # Sub-protocols for narrower contracts
 from aiohomematic.interfaces import (
     # Channel sub-protocols
-    ChannelIdentity,
-    ChannelDataPointAccess,
-    ChannelGrouping,
-    ChannelMetadata,
-    ChannelLinkManagement,
-    ChannelLifecycle,
+    ChannelIdentityProtocol,
+    ChannelDataPointAccessProtocol,
+    ChannelGroupingProtocol,
+    ChannelMetadataProtocol,
+    ChannelLinkManagementProtocol,
+    ChannelLifecycleProtocol,
     # Device sub-protocols
-    DeviceIdentity,
-    DeviceChannelAccess,
-    DeviceAvailability,
-    DeviceFirmware,
-    DeviceLinkManagement,
-    DeviceGroupManagement,
-    DeviceConfiguration,
-    DeviceWeekProfile,
-    DeviceProviders,
-    DeviceLifecycle,
+    DeviceIdentityProtocol,
+    DeviceChannelAccessProtocol,
+    DeviceAvailabilityProtocol,
+    DeviceFirmwareProtocol,
+    DeviceLinkManagementProtocol,
+    DeviceGroupManagementProtocol,
+    DeviceConfigurationProtocol,
+    DeviceWeekProfileProtocol,
+    DeviceProvidersProtocol,
+    DeviceLifecycleProtocol,
 )
 
 # Using specific sub-protocols for narrower contracts
-def get_device_name(device: DeviceIdentity) -> str:
+def get_device_name(device: DeviceIdentityProtocol) -> str:
     return device.name
 
-def check_firmware(device: DeviceFirmware) -> bool:
+def check_firmware(device: DeviceFirmwareProtocol) -> bool:
     return device.firmware_updatable
 ```
 
@@ -61,29 +61,29 @@ def check_firmware(device: DeviceFirmware) -> bool:
 
 ### ChannelProtocol (39 members → 6 sub-protocols)
 
-| Sub-Protocol             | Members | Description                                                                                 |
-| ------------------------ | ------- | ------------------------------------------------------------------------------------------- |
-| `ChannelIdentity`        | 7       | Basic identification (address, name, no, type_name, unique_id, rega_id, full_name)          |
-| `ChannelDataPointAccess` | 12      | DataPoint and event access (generic*data_points, custom_data_point, get*\*, add_data_point) |
-| `ChannelGrouping`        | 5       | Group management (group_master, group_no, is_group_master, link_peer_channels)              |
-| `ChannelMetadata`        | 8       | Metadata (device, function, room, rooms, operation_mode, paramset_descriptions)             |
-| `ChannelLinkManagement`  | 4       | Central links (create_central_link, remove_central_link, has_link_target_category)          |
-| `ChannelLifecycle`       | 3       | Lifecycle (finalize_init, on_config_changed, remove)                                        |
+| Sub-Protocol                     | Members | Description                                                                                 |
+| -------------------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `ChannelIdentityProtocol`        | 7       | Basic identification (address, name, no, type_name, unique_id, rega_id, full_name)          |
+| `ChannelDataPointAccessProtocol` | 12      | DataPoint and event access (generic*data_points, custom_data_point, get*\*, add_data_point) |
+| `ChannelGroupingProtocol`        | 5       | Group management (group_master, group_no, is_group_master, link_peer_channels)              |
+| `ChannelMetadataProtocol`        | 8       | Metadata (device, function, room, rooms, operation_mode, paramset_descriptions)             |
+| `ChannelLinkManagementProtocol`  | 4       | Central links (create_central_link, remove_central_link, has_link_target_category)          |
+| `ChannelLifecycleProtocol`       | 3       | Lifecycle (finalize_init, on_config_changed, remove)                                        |
 
 ### DeviceProtocol (72 members → 10 sub-protocols)
 
-| Sub-Protocol            | Members | Description                                                                      |
-| ----------------------- | ------- | -------------------------------------------------------------------------------- |
-| `DeviceIdentity`        | 8       | Basic identification (address, name, model, manufacturer, interface, identifier) |
-| `DeviceChannelAccess`   | 12      | Channel/DataPoint access (channels, get*channel, get*\*\_data_point, get_events) |
-| `DeviceAvailability`    | 3       | Availability (available, config_pending, set_forced_availability)                |
-| `DeviceFirmware`        | 8       | Firmware management (firmware, available_firmware, update_firmware)              |
-| `DeviceLinkManagement`  | 3       | Central links (link_peer_channels, create/remove_central_links)                  |
-| `DeviceGroupManagement` | 3       | Group management (add_channel_to_group, get_channel_group_no)                    |
-| `DeviceConfiguration`   | 11      | Configuration (product_group, rega_id, rooms, rx_modes, flags)                   |
-| `DeviceWeekProfile`     | 4       | Week profile (supports_week_profile, week_profile, init_week_profile)            |
-| `DeviceProviders`       | 16      | Protocol providers (central_info, client, event_bus_provider, etc.)              |
-| `DeviceLifecycle`       | 5       | Lifecycle (finalize_init, on_config_changed, remove, export_device_definition)   |
+| Sub-Protocol                    | Members | Description                                                                      |
+| ------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| `DeviceIdentityProtocol`        | 8       | Basic identification (address, name, model, manufacturer, interface, identifier) |
+| `DeviceChannelAccessProtocol`   | 12      | Channel/DataPoint access (channels, get*channel, get*\*\_data_point, get_events) |
+| `DeviceAvailabilityProtocol`    | 3       | Availability (available, config_pending, set_forced_availability)                |
+| `DeviceFirmwareProtocol`        | 8       | Firmware management (firmware, available_firmware, update_firmware)              |
+| `DeviceLinkManagementProtocol`  | 3       | Central links (link_peer_channels, create/remove_central_links)                  |
+| `DeviceGroupManagementProtocol` | 3       | Group management (add_channel_to_group, get_channel_group_no)                    |
+| `DeviceConfigurationProtocol`   | 11      | Configuration (product_group, rega_id, rooms, rx_modes, flags)                   |
+| `DeviceWeekProfileProtocol`     | 4       | Week profile (supports_week_profile, week_profile, init_week_profile)            |
+| `DeviceProvidersProtocol`       | 16      | Protocol providers (central_info, client, event_bus_provider, etc.)              |
+| `DeviceLifecycleProtocol`       | 5       | Lifecycle (finalize_init, on_config_changed, remove, export_device_definition)   |
 
 ## Migration Steps
 
@@ -105,7 +105,7 @@ def check_firmware(device: DeviceFirmware) -> bool:
        return f"Device: {device.name}"
 
    # After: Using specific sub-protocol
-   def format_device_name(device: DeviceIdentity) -> str:
+   def format_device_name(device: DeviceIdentityProtocol) -> str:
        return f"Device: {device.name}"
    ```
 
@@ -116,7 +116,7 @@ def check_firmware(device: DeviceFirmware) -> bool:
    mock_device = MagicMock(spec=DeviceProtocol)
 
    # After: Mock only what's needed
-   mock_device = MagicMock(spec=DeviceIdentity)
+   mock_device = MagicMock(spec=DeviceIdentityProtocol)
    mock_device.name = "Test Device"
    mock_device.address = "VCU0000001"
    ```
@@ -140,24 +140,24 @@ from aiohomematic.interfaces import (
     ChannelProtocol,
 
     # New Channel sub-protocols
-    ChannelIdentity,
-    ChannelDataPointAccess,
-    ChannelGrouping,
-    ChannelMetadata,
-    ChannelLinkManagement,
-    ChannelLifecycle,
+    ChannelIdentityProtocol,
+    ChannelDataPointAccessProtocol,
+    ChannelGroupingProtocol,
+    ChannelMetadataProtocol,
+    ChannelLinkManagementProtocol,
+    ChannelLifecycleProtocol,
 
     # New Device sub-protocols
-    DeviceIdentity,
-    DeviceChannelAccess,
-    DeviceAvailability,
-    DeviceFirmware,
-    DeviceLinkManagement,
-    DeviceGroupManagement,
-    DeviceConfiguration,
-    DeviceWeekProfile,
-    DeviceProviders,
-    DeviceLifecycle,
+    DeviceIdentityProtocol,
+    DeviceChannelAccessProtocol,
+    DeviceAvailabilityProtocol,
+    DeviceFirmwareProtocol,
+    DeviceLinkManagementProtocol,
+    DeviceGroupManagementProtocol,
+    DeviceConfigurationProtocol,
+    DeviceWeekProfileProtocol,
+    DeviceProvidersProtocol,
+    DeviceLifecycleProtocol,
 )
 ```
 

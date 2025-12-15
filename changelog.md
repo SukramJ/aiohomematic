@@ -1,3 +1,11 @@
+# Version 2025.12.29 (2025-12-15)
+
+## What's Changed
+
+### Bug Fixes
+
+- Fix event publication
+
 # Version 2025.12.28 (2025-12-14)
 
 ## What's Changed
@@ -38,7 +46,7 @@
 ### Breaking Changes
 
 - Replace 9 legacy events with 4 focused integration events:
-  - Remove `BackendSystemEventData` - replaced by `DeviceLifecycleEvent` and `DataPointsCreatedEvent`
+  - Remove `SystemEventTypeData` - replaced by `DeviceLifecycleEvent` and `DataPointsCreatedEvent`
   - Remove `CallbackStateChangedEvent` - replaced by `SystemStatusEvent.callback_state`
   - Remove `CentralStateChangedEvent` - replaced by `SystemStatusEvent.central_state`
   - Remove `ClientStateChangedEvent` - replaced by `SystemStatusEvent.client_state`

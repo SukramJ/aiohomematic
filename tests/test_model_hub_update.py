@@ -67,10 +67,10 @@ class _FakeEventBusProvider:
 class _FakeEventPublisher:
     """Minimal fake EventPublisher for testing."""
 
-    def publish_backend_system_event(self, **kwargs: Any) -> None:
+    def publish_device_trigger_event(self, **kwargs: Any) -> None:
         """Do nothing for publish in tests."""
 
-    def publish_homematic_event(self, **kwargs: Any) -> None:
+    def publish_system_event(self, **kwargs: Any) -> None:
         """Do nothing for publish in tests."""
 
 

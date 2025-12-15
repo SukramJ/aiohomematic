@@ -13,7 +13,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from aiohomematic.const import (
-    BackendSystemEvent,
     BackupData,
     CentralState,
     DeviceFirmwareState,
@@ -21,6 +20,7 @@ from aiohomematic.const import (
     EventType,
     Interface,
     ParamsetKey,
+    SystemEventType,
     SystemInformation,
 )
 
@@ -199,12 +199,12 @@ class EventPublisher(Protocol):
     """
 
     @abstractmethod
-    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """Publish a backend system event."""
+    def publish_device_trigger_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+        """Publish a Homematic event."""
 
     @abstractmethod
-    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
-        """Publish a Homematic event."""
+    def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Any) -> None:
+        """Publish a backend system event."""
 
 
 @runtime_checkable

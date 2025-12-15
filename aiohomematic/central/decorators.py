@@ -13,7 +13,7 @@ from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, client as hmcl, i18n
 from aiohomematic.central import rpc_server as rpc
-from aiohomematic.const import BackendSystemEvent
+from aiohomematic.const import SystemEventType
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import CallableAny, CallableNone
@@ -25,7 +25,7 @@ _PARAMETER: Final = "parameter"
 _VALUE: Final = "value"
 
 
-def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[CallableAny], CallableAny]:
+def callback_backend_system(system_event: SystemEventType) -> Callable[[CallableAny], CallableAny]:
     """Check if backend_system_callback is set and call it AFTER original function."""
 
     def decorator_backend_system_callback[**P, R](
@@ -84,7 +84,7 @@ def callback_backend_system(system_event: BackendSystemEvent) -> Callable[[Calla
                 interface_id: str = args[0] if len(args) > 0 else str(kwargs[_INTERFACE_ID])
                 if client := hmcl.get_client(interface_id=interface_id):
                     client.modified_at = datetime.now()
-                    client.central.event_coordinator.publish_backend_system_event(system_event=system_event, **kwargs)
+                    client.central.event_coordinator.publish_system_event(system_event=system_event, **kwargs)
             except Exception as exc:  # pragma: no cover
                 _LOGGER.error(  # i18n-log: ignore
                     "EXEC_BACKEND_SYSTEM_CALLBACK failed: Unable to reduce kwargs for backend_system_callback"

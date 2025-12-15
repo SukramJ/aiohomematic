@@ -9,7 +9,7 @@ import sys
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig
-from aiohomematic.central.event_bus import BackendSystemEventData
+from aiohomematic.central.event_bus import SystemEventTypeData
 from aiohomematic.client import InterfaceConfig
 
 logging.basicConfig(level=logging.DEBUG)
@@ -31,11 +31,11 @@ class Example:
         self.SLEEPCOUNTER = 0
         self.central = None
 
-    def _systemcallback(self, event: BackendSystemEventData) -> None:
+    def _systemcallback(self, event: SystemEventTypeData) -> None:
         """Handle system events from the backend."""
         self.got_devices = True
         if (
-            event.system_event == const.BackendSystemEvent.NEW_DEVICES
+            event.system_event == const.SystemEventType.NEW_DEVICES
             and event.data
             and event.data.get("device_descriptions")
             and len(event.data["device_descriptions"]) > 0
@@ -43,7 +43,7 @@ class Example:
             self.got_devices = True
             return
         if (
-            event.system_event == const.BackendSystemEvent.DEVICES_CREATED
+            event.system_event == const.SystemEventType.DEVICES_CREATED
             and event.data
             and event.data.get("new_data_points")
             and len(event.data["new_data_points"]) > 0
@@ -87,9 +87,9 @@ class Example:
 
         # For testing we set a short INIT_TIMEOUT
         const.INIT_TIMEOUT = 10
-        # Subscribe to backend system events via EventBus
+        # Subscribe to system events via EventBus
         self.central.event_bus.subscribe(
-            event_type=BackendSystemEventData,
+            event_type=SystemEventTypeData,
             event_key=None,
             handler=self._systemcallback,
         )

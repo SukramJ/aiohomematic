@@ -34,13 +34,13 @@ from aiohomematic.central.integration_events import (
     DeviceTriggerEvent,
 )
 from aiohomematic.const import (
-    BackendSystemEvent,
     DataPointCategory,
     DataPointKey,
     EventKey,
     EventType,
     Parameter,
     ParamsetKey,
+    SystemEventType,
 )
 from aiohomematic.interfaces.central import EventBusProvider, EventPublisher, HealthTrackerProtocol
 from aiohomematic.interfaces.client import ClientProvider, LastEventTracker
@@ -235,31 +235,7 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
         )
 
     @loop_check
-    def publish_backend_system_event(self, *, system_event: BackendSystemEvent, **kwargs: Any) -> None:
-        """
-        Publish system event handlers.
-
-        System-level events like DEVICES_CREATED, HUB_REFRESHED, etc.
-        Converts legacy system events to focused integration events.
-
-        Args:
-        ----
-            system_event: Type of system event
-            **kwargs: Additional event data
-
-        """
-        timestamp = datetime.now()
-
-        # Handle device lifecycle events
-        if system_event == BackendSystemEvent.DEVICES_CREATED:
-            self._emit_devices_created_events(timestamp=timestamp, **kwargs)
-        elif system_event == BackendSystemEvent.DELETE_DEVICES:
-            self._emit_device_removed_event(timestamp=timestamp, **kwargs)
-        elif system_event == BackendSystemEvent.HUB_REFRESHED:
-            self._emit_hub_refreshed_event(timestamp=timestamp, **kwargs)
-
-    @loop_check
-    def publish_homematic_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+    def publish_device_trigger_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
         """
         Publish device trigger event for Homematic callbacks.
 
@@ -298,6 +274,30 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
             target=partial(_publish_device_trigger_event),
             name=f"event-bus-device-trigger-{channel_address}-{parameter}",
         )
+
+    @loop_check
+    def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Any) -> None:
+        """
+        Publish system event handlers.
+
+        System-level events like DEVICES_CREATED, HUB_REFRESHED, etc.
+        Converts legacy system events to focused integration events.
+
+        Args:
+        ----
+            system_event: Type of system event
+            **kwargs: Additional event data
+
+        """
+        timestamp = datetime.now()
+
+        # Handle device lifecycle events
+        if system_event == SystemEventType.DEVICES_CREATED:
+            self._emit_devices_created_events(timestamp=timestamp, **kwargs)
+        elif system_event == SystemEventType.DELETE_DEVICES:
+            self._emit_device_removed_event(timestamp=timestamp, **kwargs)
+        elif system_event == SystemEventType.HUB_REFRESHED:
+            self._emit_hub_refreshed_event(timestamp=timestamp, **kwargs)
 
     def set_last_event_seen_for_interface(self, *, interface_id: str) -> None:
         """
@@ -339,8 +339,11 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
         # Extract device addresses from data points
         device_addresses: set[str] = set()
-        for dps in new_data_points.values():
-            for dp in dps:
+
+        for category, data_points in new_data_points.items():
+            if category == DataPointCategory.EVENT:
+                continue
+            for dp in data_points:
                 device_addresses.add(dp.device.address)
 
         async def _publish_events() -> None:
@@ -357,15 +360,12 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
             # Emit DataPointsCreatedEvent for entity discovery
             if new_data_points:
-                # Convert Mapping to tuple of (category, data_points) pairs
-                data_points_tuples = tuple((category, tuple(dps)) for category, dps in new_data_points.items() if dps)
-                if data_points_tuples:
-                    await self._event_bus.publish(
-                        event=DataPointsCreatedEvent(
-                            timestamp=timestamp,
-                            new_data_points=data_points_tuples,
-                        )
+                await self._event_bus.publish(
+                    event=DataPointsCreatedEvent(
+                        timestamp=timestamp,
+                        new_data_points=new_data_points,
                     )
+                )
 
         self._task_scheduler.create_task(
             target=partial(_publish_events),
@@ -374,11 +374,8 @@ class EventCoordinator(EventBusProvider, EventPublisher, LastEventTracker):
 
     def _emit_hub_refreshed_event(self, *, timestamp: datetime, **kwargs: Any) -> None:
         """Emit DataPointsCreatedEvent for HUB_REFRESHED."""
-        new_data_points: tuple[tuple[DataPointCategory, tuple[BaseDataPoint, ...]], ...] = kwargs.get(
-            "new_data_points", ()
-        )
-
-        if not new_data_points:
+        new_data_points: dict[DataPointCategory, tuple[BaseDataPoint, ...]]
+        if not (new_data_points := kwargs.get("new_data_points", {})):
             return
 
         async def _publish_event() -> None:

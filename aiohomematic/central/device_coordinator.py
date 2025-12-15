@@ -18,20 +18,20 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Mapping, Set as AbstractSet
+from collections.abc import Mapping
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
-    BackendSystemEvent,
     DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
     SourceOfDeviceCreation,
+    SystemEventType,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
@@ -164,7 +164,7 @@ class DeviceCoordinator(FirmwareDataRefresher):
         """Return all devices."""
         return self.device_registry.devices
 
-    @callback_backend_system(system_event=BackendSystemEvent.NEW_DEVICES)
+    @callback_backend_system(system_event=SystemEventType.NEW_DEVICES)
     async def add_new_devices(self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """
         Add new devices to central unit (callback from backend).
@@ -390,12 +390,11 @@ class DeviceCoordinator(FirmwareDataRefresher):
         if new_devices:
             for device in new_devices:
                 await device.finalize_init()
-            new_dps = _get_new_data_points(new_devices=new_devices)
-            new_channel_events = _get_new_channel_events(new_devices=new_devices)
-            self._coordinator_provider.event_coordinator.publish_backend_system_event(
-                system_event=BackendSystemEvent.DEVICES_CREATED,
+            new_dps: dict[DataPointCategory, Any] = _get_new_data_points(new_devices=new_devices)
+            new_dps[DataPointCategory.EVENT] = _get_new_channel_events(new_devices=new_devices)
+            self._coordinator_provider.event_coordinator.publish_system_event(
+                system_event=SystemEventType.DEVICES_CREATED,
                 new_data_points=new_dps,
-                new_channel_events=new_channel_events,
                 source=source,
             )
 
@@ -420,7 +419,7 @@ class DeviceCoordinator(FirmwareDataRefresher):
 
         await self.delete_devices(interface_id=interface_id, addresses=(device_address, *tuple(device.channels.keys())))
 
-    @callback_backend_system(system_event=BackendSystemEvent.DELETE_DEVICES)
+    @callback_backend_system(system_event=SystemEventType.DELETE_DEVICES)
     async def delete_devices(self, *, interface_id: str, addresses: tuple[str, ...]) -> None:
         """
         Delete multiple devices from central.
@@ -495,7 +494,7 @@ class DeviceCoordinator(FirmwareDataRefresher):
         """
         return self.device_registry.identify_channel(text=text)
 
-    @callback_backend_system(system_event=BackendSystemEvent.LIST_DEVICES)
+    @callback_backend_system(system_event=SystemEventType.LIST_DEVICES)
     def list_devices(self, *, interface_id: str) -> list[DeviceDescription]:
         """
         Return already existing devices to the backend.
@@ -697,8 +696,8 @@ class DeviceCoordinator(FirmwareDataRefresher):
             # Here we block the automatic creation of new devices, if required
             if self._config_provider.config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
                 self._store_delayed_device_descriptions(device_descriptions=new_device_descriptions)
-                self._coordinator_provider.event_coordinator.publish_backend_system_event(
-                    system_event=BackendSystemEvent.DEVICES_DELAYED,
+                self._coordinator_provider.event_coordinator.publish_system_event(
+                    system_event=SystemEventType.DEVICES_DELAYED,
                     new_addresses=tuple(self._delayed_device_descriptions.keys()),
                     interface_id=interface_id,
                     source=source,
@@ -841,7 +840,7 @@ def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[
             if (hm_channel_events := list(device.get_events(event_type=event_type, registered=False).values())) and len(
                 hm_channel_events
             ) > 0:
-                channel_events.append(hm_channel_events)  # type: ignore[arg-type] # noqa: PERF401
+                channel_events.extend(hm_channel_events)  # noqa: PERF401
 
     return tuple(channel_events)
 
@@ -849,7 +848,7 @@ def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[
 def _get_new_data_points(
     *,
     new_devices: set[DeviceProtocol],
-) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPointProtocol]]:
+) -> dict[DataPointCategory, set[CallbackDataPointProtocol]]:
     """
     Return new data points by category.
 

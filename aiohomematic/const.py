@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.28"
+VERSION: Final = "2025.12.29"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -259,7 +259,7 @@ class CCUType(StrEnum):
     UNKNOWN = "Unknown"
 
 
-class BackendSystemEvent(StrEnum):
+class SystemEventType(StrEnum):
     """Enum with aiohomematic system events."""
 
     DELETE_DEVICES = "deleteDevices"

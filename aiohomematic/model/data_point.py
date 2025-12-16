@@ -1081,15 +1081,23 @@ class BaseParameterDataPoint[
             self._assign_parameter_data(parameter_data=parameter_data)
 
     def update_status(self, *, status_value: int) -> None:
-        """Update the status from a STATUS parameter event."""
+        """Update the status from a STATUS parameter event only if changed."""
         try:
-            self._status_value = ParameterStatus(status_value)
+            new_status = ParameterStatus(status_value)
         except ValueError:
             _LOGGER.warning(  # i18n-log: ignore
                 "UPDATE_STATUS: Invalid status value %s for %s, ignoring",
                 status_value,
                 self.full_name,
             )
+            return
+
+        # Only update and notify if status actually changed
+        if self._status_value == new_status:
+            return
+
+        self._status_value = new_status
+        self.publish_data_point_updated_event()
 
     def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
         """Update the temporary value of the data_point."""

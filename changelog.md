@@ -18,6 +18,7 @@
   - `BaseParameterDataPoint` now automatically detects paired `*_STATUS` parameters (e.g., `LEVEL_STATUS` for `LEVEL`)
   - New properties on data points: `status`, `status_dpk`, `status_parameter`, `has_status_parameter`, `is_value_valid`
   - STATUS events are automatically routed to the main parameter's data point
+  - Callbacks are only triggered when status actually changes (not on refresh)
   - Add `has_parameter()` method to `ParamsetDescriptionProviderProtocol` and `ParamsetDescriptionCache`
 
 ### Bug Fixes

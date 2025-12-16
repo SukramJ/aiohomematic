@@ -131,13 +131,23 @@ class CallbackDataPointProtocol(Protocol):
 
     @property
     @abstractmethod
+    def is_refreshed(self) -> bool:
+        """Return if the data_point has been refreshed (received a value)."""
+
+    @property
+    @abstractmethod
     def is_registered(self) -> bool:
         """Return if data point is registered externally."""
 
     @property
     @abstractmethod
+    def is_status_valid(self) -> bool:
+        """Return if the status indicates a valid value."""
+
+    @property
+    @abstractmethod
     def is_valid(self) -> bool:
-        """Return if the value of the data point is valid."""
+        """Return if the value is valid (refreshed and status is OK)."""
 
     @property
     @abstractmethod

@@ -234,14 +234,24 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Return the full name of the data_point."""
 
     @property
+    def is_refreshed(self) -> bool:
+        """Return if the data_point has been refreshed (received a value)."""
+        return self._refreshed_at > INIT_DATETIME
+
+    @property
     def is_registered(self) -> bool:
         """Return if data_point is registered externally."""
         return self._custom_id is not None
 
     @property
+    def is_status_valid(self) -> bool:
+        """Return if the status indicates a valid value."""
+        return True
+
+    @property
     def is_valid(self) -> bool:
-        """Return, if the value of the data_point is valid based on the refreshed at datetime."""
-        return self._refreshed_at > INIT_DATETIME
+        """Return if the value is valid (refreshed and status is OK)."""
+        return self.is_refreshed and self.is_status_valid
 
     @property
     def published_event_at(self) -> datetime:
@@ -839,6 +849,13 @@ class BaseParameterDataPoint[
         return bool(self._operations & Operations.READ)
 
     @property
+    def is_status_valid(self) -> bool:
+        """Return if the status indicates a valid value (NORMAL or no STATUS parameter)."""
+        if self._status_value is None:
+            return True
+        return self._status_value == ParameterStatus.NORMAL
+
+    @property
     def is_un_ignored(self) -> bool:
         """Return if the parameter is un ignored."""
         return self._is_un_ignored
@@ -847,17 +864,6 @@ class BaseParameterDataPoint[
     def is_unit_fixed(self) -> bool:
         """Return if the unit is fixed."""
         return self._raw_unit != self._unit
-
-    @property
-    def is_value_valid(self) -> bool:
-        """
-        Return if the current value is valid based on status.
-
-        Return True if no STATUS parameter exists or STATUS is NORMAL.
-        """
-        if self._status_value is None:
-            return True
-        return self._status_value == ParameterStatus.NORMAL
 
     @property
     def is_writable(self) -> bool:

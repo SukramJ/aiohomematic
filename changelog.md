@@ -9,6 +9,10 @@
   - `HealthRecordCallback` → `HealthRecordCallbackProtocol`
   - `SyncEventHandler` → `SyncEventHandlerProtocol`
   - `AsyncEventHandler` → `AsyncEventHandlerProtocol`
+- Refactor `is_valid` property on data points:
+  - `is_valid` now combines temporal and status validity (`is_refreshed and is_status_valid`)
+  - Previous `is_valid` behavior (temporal check only) moved to new `is_refreshed` property
+  - Consumers relying on `is_valid` for temporal-only check should migrate to `is_refreshed`
 
 ### New Features
 
@@ -16,7 +20,10 @@
   - New `ParameterStatus` enum with values: `NORMAL`, `UNKNOWN`, `OVERFLOW`, `UNDERFLOW`, `ERROR`, `INVALID`, `UNUSED`
   - New `DataPointStatusUpdatedEvent` for STATUS parameter events
   - `BaseParameterDataPoint` now automatically detects paired `*_STATUS` parameters (e.g., `LEVEL_STATUS` for `LEVEL`)
-  - New properties on data points: `status`, `status_dpk`, `status_parameter`, `has_status_parameter`, `is_value_valid`
+  - New properties on data points: `status`, `status_dpk`, `status_parameter`, `has_status_parameter`
+  - New `is_refreshed` property: Returns if data point has received a value
+  - New `is_status_valid` property: Returns if STATUS is NORMAL or no STATUS parameter exists
+  - Updated `is_valid` property: Combined check (`is_refreshed and is_status_valid`)
   - STATUS events are automatically routed to the main parameter's data point
   - Callbacks are only triggered when status actually changes (not on refresh)
   - Add `has_parameter()` method to `ParamsetDescriptionProviderProtocol` and `ParamsetDescriptionCache`

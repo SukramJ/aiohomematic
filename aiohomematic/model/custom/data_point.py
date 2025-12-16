@@ -126,9 +126,14 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return len(self._data_points) > 0
 
     @property
-    def is_valid(self) -> bool:
-        """Return if the state is valid."""
-        return all(dp.is_valid for dp in self._relevant_data_points)
+    def is_refreshed(self) -> bool:
+        """Return if all relevant data_point have been refreshed (received a value)."""
+        return all(dp.is_refreshed for dp in self._relevant_data_points)
+
+    @property
+    def is_status_valid(self) -> bool:
+        """Return if all relevant data points have valid status."""
+        return all(dp.is_status_valid for dp in self._relevant_data_points)
 
     @property
     def schedule(self) -> dict[Any, Any]:

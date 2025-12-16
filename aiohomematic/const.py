@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.31"
+VERSION: Final = "2025.12.32"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1692,10 +1692,37 @@ class WeekdayStr(StrEnum):
 
 CLIMATE_MAX_SCHEDULER_TIME: Final = "24:00"
 CLIMATE_MIN_SCHEDULER_TIME: Final = "00:00"
-CLIMATE_WEEKDAY_DICT = dict[int, dict[str, str | float]]
-CLIMATE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_WEEKDAY_DICT]
 CLIMATE_RELEVANT_SLOT_TYPES: Final = ("endtime", "temperature")
-CLIMATE_SCHEDULE_DICT = dict[ScheduleProfile, CLIMATE_PROFILE_DICT]
+
+
+class ScheduleSlot(TypedDict):
+    """
+    A single time slot in a climate schedule.
+
+    Each slot defines when a temperature period ends and what temperature to maintain.
+    Climate devices use 13 slots per weekday, with unused slots filled with "24:00".
+
+    Attributes:
+        endtime: End time in "HH:MM" format (e.g., "06:00", "24:00")
+        temperature: Target temperature in degrees Celsius
+
+    Example:
+        {"endtime": "06:00", "temperature": 18.0}
+
+    """
+
+    endtime: str
+    temperature: float
+
+
+ClimateWeekdaySchedule = dict[int, ScheduleSlot]
+"""Schedule slots for a single weekday, keyed by slot number (1-13)."""
+
+ClimateProfileSchedule = dict[WeekdayStr, ClimateWeekdaySchedule]
+"""Schedule for all weekdays in a profile."""
+
+ClimateScheduleDict = dict[ScheduleProfile, ClimateProfileSchedule]
+"""Complete schedule with all profiles (P1-P6)."""
 CLIMATE_SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
 CLIMATE_SCHEDULE_SLOT_RANGE: Final = range(1, 13)
 CLIMATE_SCHEDULE_TIME_RANGE: Final = range(1441)

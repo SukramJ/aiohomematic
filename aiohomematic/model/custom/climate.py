@@ -18,9 +18,9 @@ from typing import Final, Unpack, cast
 from aiohomematic import i18n
 from aiohomematic.const import (
     BIDCOS_DEVICE_CHANNEL_DUMMY,
-    CLIMATE_PROFILE_DICT,
-    CLIMATE_WEEKDAY_DICT,
     DEFAULT_CLIMATE_FILL_TEMPERATURE,
+    ClimateProfileSchedule,
+    ClimateWeekdaySchedule,
     DataPointCategory,
     DeviceProfile,
     Field,
@@ -339,7 +339,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Enable the away mode by duration on thermostat."""
 
     @inspector
-    async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> CLIMATE_PROFILE_DICT:
+    async def get_schedule_profile(
+        self, *, profile: ScheduleProfile, force_load: bool = False
+    ) -> ClimateProfileSchedule:
         """Return a schedule by climate profile (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_profile(profile=profile, force_load=force_load)
@@ -375,7 +377,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def get_schedule_weekday(
         self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
-    ) -> CLIMATE_WEEKDAY_DICT:
+    ) -> ClimateWeekdaySchedule:
         """Return a schedule by climate profile and weekday (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
@@ -403,7 +405,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     @inspector
     async def set_schedule_profile(
-        self, *, profile: ScheduleProfile, profile_data: CLIMATE_PROFILE_DICT, do_validate: bool = True
+        self, *, profile: ScheduleProfile, profile_data: ClimateProfileSchedule, do_validate: bool = True
     ) -> None:
         """Set a profile to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
@@ -417,7 +419,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         *,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        weekday_data: CLIMATE_WEEKDAY_DICT,
+        weekday_data: ClimateWeekdaySchedule,
         do_validate: bool = True,
     ) -> None:
         """Store a profile weekday to device (delegates to week profile)."""

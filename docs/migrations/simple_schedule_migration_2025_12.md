@@ -350,10 +350,74 @@ This is a **breaking change** with **no deprecation period**. The old tuple-base
 - Full type safety with TypedDict
 - JSON serialization support
 
+## Normal Schedule Type Aliases Renamed
+
+In addition to the Simple Schedule TypedDict migration, the normal schedule type aliases have also been renamed for consistency:
+
+### Type Alias Changes
+
+**Old Names** (UPPER_SNAKE_CASE):
+
+```python
+from aiohomematic.const import (
+    CLIMATE_WEEKDAY_DICT,    # dict[int, ScheduleSlot]
+    CLIMATE_PROFILE_DICT,    # dict[WeekdayStr, CLIMATE_WEEKDAY_DICT]
+    CLIMATE_SCHEDULE_DICT,   # dict[ScheduleProfile, CLIMATE_PROFILE_DICT]
+)
+```
+
+**New Names** (PascalCase):
+
+```python
+from aiohomematic.const import (
+    ClimateWeekdaySchedule,  # dict[int, ScheduleSlot]
+    ClimateProfileSchedule,  # dict[WeekdayStr, ClimateWeekdaySchedule]
+    ClimateScheduleDict,     # dict[ScheduleProfile, ClimateProfileSchedule]
+)
+```
+
+### New ScheduleSlot TypedDict
+
+A new `ScheduleSlot` TypedDict was added for type-safe slot definitions:
+
+```python
+from aiohomematic.const import ScheduleSlot
+
+# Type definition
+class ScheduleSlot(TypedDict):
+    endtime: str       # "HH:MM" format (e.g., "06:00", "24:00")
+    temperature: float # Target temperature in Celsius
+
+# Example usage
+slot: ScheduleSlot = {"endtime": "06:00", "temperature": 18.0}
+```
+
+### Migration Steps
+
+**Update imports**:
+
+```python
+# Old
+from aiohomematic.const import CLIMATE_SCHEDULE_DICT
+
+# New
+from aiohomematic.const import ClimateScheduleDict, ScheduleSlot
+```
+
+**Update type annotations**:
+
+```python
+# Old
+def process_schedule(schedule: CLIMATE_SCHEDULE_DICT) -> None: ...
+
+# New
+def process_schedule(schedule: ClimateScheduleDict) -> None: ...
+```
+
 ## Related Changes
 
-- **const.py**: New TypedDict classes (SimpleSchedulePeriod, SimpleWeekdaySchedule)
-- **week_profile.py**: Updated conversion methods use string keys
+- **const.py**: New TypedDict classes (SimpleSchedulePeriod, SimpleWeekdaySchedule, ScheduleSlot), renamed type aliases
+- **week_profile.py**: Updated conversion methods use string keys and new type names
 - **climate.py**: Updated method signatures use new types
 - **Tests**: All test data migrated to new format
 

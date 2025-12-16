@@ -11,12 +11,12 @@ from __future__ import annotations
 import asyncio
 from enum import IntEnum, StrEnum
 import logging
-from typing import Any, Final
+from typing import Final, Unpack
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.mixins import PositionMixin
+from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
@@ -155,7 +155,7 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
             return
         await self._set_level(level=self._closed_level, collector=collector)
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if kwargs.get(_StateChangeArg.OPEN) is not None and self._group_level != self._open_level:
             return True
@@ -324,7 +324,7 @@ class CustomDpBlind(CustomDpCover):
             return
         await self._set_level(tilt_level=self._closed_level, collector=collector)
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if (
             tilt_position := kwargs.get(_StateChangeArg.TILT_POSITION)
@@ -584,7 +584,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
             return
         await self._dp_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if kwargs.get(_StateChangeArg.OPEN) is not None and self.current_position != _CoverPosition.OPEN:
             return True

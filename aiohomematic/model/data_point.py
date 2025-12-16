@@ -358,7 +358,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Finalize the data point init action after model setup."""
 
     @loop_check
-    def publish_data_point_updated_event(self, **kwargs: Any) -> None:
+    def publish_data_point_updated_event(self) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_publish_data_point_updated_callback:
             return
@@ -369,7 +369,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             return
 
         # Add the data_point reference to kwargs once (avoid repeated dict creation)
-        event_kwargs = {**kwargs, KWARGS_ARG_DATA_POINT: self}
+        event_kwargs: dict[str, Any] = {KWARGS_ARG_DATA_POINT: self}
 
         # Capture current custom_ids as tuple to prevent issues if set is modified
         # during async iteration (e.g., if a handler unsubscribes during callback)

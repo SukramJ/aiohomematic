@@ -19,12 +19,12 @@ from collections.abc import Mapping
 from datetime import datetime
 from functools import partial
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, TypedDict, Unpack
 
 from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 
 if TYPE_CHECKING:
-    from aiohomematic.model.data_point import BaseDataPoint
+    from aiohomematic.model.data_point import BaseDataPoint  # noqa: F401
 
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.decorators import callback_event
@@ -50,6 +50,27 @@ from aiohomematic.interfaces.model import BaseParameterDataPointProtocol, Generi
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
+
+
+class SystemEventArgs(TypedDict, total=False):
+    """Arguments for all system events (DEVICES_CREATED, DELETE_DEVICES, HUB_REFRESHED)."""
+
+    # DEVICES_CREATED / HUB_REFRESHED - accepts various mapping types with different value types
+    new_data_points: Any
+
+    # DELETE_DEVICES / DEVICES_DELAYED
+    addresses: tuple[str, ...]
+    new_addresses: tuple[str, ...]
+
+    # Additional fields used by various event callers
+    source: Any
+    interface_id: str
+
+
+# Type aliases for specific event argument types (for internal documentation)
+DevicesCreatedEventArgs = SystemEventArgs
+DeviceRemovedEventArgs = SystemEventArgs
+HubRefreshedEventArgs = SystemEventArgs
 
 
 class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEventTrackerProtocol):
@@ -277,7 +298,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         )
 
     @loop_check
-    def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Any) -> None:
+    def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Unpack[SystemEventArgs]) -> None:
         """
         Publish system event handlers.
 
@@ -314,7 +335,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         # Update health tracker with event received
         self._health_tracker.record_event_received(interface_id=interface_id)
 
-    def _emit_device_removed_event(self, *, timestamp: datetime, **kwargs: Any) -> None:
+    def _emit_device_removed_event(self, *, timestamp: datetime, **kwargs: Unpack[DeviceRemovedEventArgs]) -> None:
         """Emit DeviceLifecycleEvent for DELETE_DEVICES."""
         if not (device_addresses := kwargs.get("addresses", ())):
             return
@@ -334,7 +355,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
             name="event-bus-devices-removed",
         )
 
-    def _emit_devices_created_events(self, *, timestamp: datetime, **kwargs: Any) -> None:
+    def _emit_devices_created_events(self, *, timestamp: datetime, **kwargs: Unpack[DevicesCreatedEventArgs]) -> None:
         """Emit DeviceLifecycleEvent and DataPointsCreatedEvent for DEVICES_CREATED."""
         new_data_points: Mapping[DataPointCategory, Any] = kwargs.get("new_data_points", {})
 
@@ -373,9 +394,9 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
             name="event-bus-devices-created",
         )
 
-    def _emit_hub_refreshed_event(self, *, timestamp: datetime, **kwargs: Any) -> None:
+    def _emit_hub_refreshed_event(self, *, timestamp: datetime, **kwargs: Unpack[HubRefreshedEventArgs]) -> None:
         """Emit DataPointsCreatedEvent for HUB_REFRESHED."""
-        new_data_points: dict[DataPointCategory, tuple[BaseDataPoint, ...]]
+        new_data_points: Any
         if not (new_data_points := kwargs.get("new_data_points", {})):
             return
 

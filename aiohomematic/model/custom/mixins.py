@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, Unpack, runtime_checkable
 
 if TYPE_CHECKING:
     from aiohomematic.model.data_point import CallParameterCollector
@@ -41,6 +41,36 @@ class StateChangeArg(StrEnum):
 
     OFF = "off"
     ON = "on"
+
+
+class StateChangeArgs(TypedDict, total=False):
+    """Type-safe arguments for is_state_change() method."""
+
+    # On/Off state (switch, valve)
+    on: bool
+    off: bool
+
+    # Light-specific
+    brightness: int
+    hs_color: tuple[float, float]
+    color_temp_kelvin: int
+    effect: str
+    on_time: float
+    ramp_time: float
+
+    # Climate-specific
+    target_temperature: float
+    mode: Any  # ClimateMode - using Any to avoid circular import
+    profile: Any  # ClimateProfile - using Any to avoid circular import
+
+    # Cover-specific
+    close: bool
+    open: bool
+    position: int | float | None
+    tilt_close: bool
+    tilt_open: bool
+    tilt_position: int | float | None
+    vent: bool
 
 
 @runtime_checkable
@@ -58,7 +88,7 @@ class TimerCapable(Protocol):
     def get_and_start_timer(self) -> float | None:
         """Get and start the timer."""
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes."""
 
     def reset_timer_on_time(self) -> None:
@@ -102,7 +132,7 @@ class StateChangeTimerMixin:
     # value is expected for is_state_change_for_on_off but not declared here
     # to avoid interfering with subclasses that don't need it
 
-    def is_state_change_for_on_off(self, **kwargs: Any) -> bool:
+    def is_state_change_for_on_off(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """
         Check if the state changes due to on/off kwargs with timer consideration.
 
@@ -161,7 +191,7 @@ class OnOffActionMixin:
         """Get and start the timer."""
 
     @abstractmethod
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
 
     @abstractmethod

@@ -1,4 +1,4 @@
-# Version 2025.12.30 (2025-12-15)
+# Version 2025.12.30 (2025-12-16)
 
 ## What's Changed
 
@@ -17,6 +17,12 @@
 ### Improvements
 
 - Document intentional camelCase exceptions for RPC callbacks in CLAUDE.md
+- Improve type safety by replacing `*args` and `**kwargs` with TypedDict:
+  - Create `StateChangeArgs` TypedDict with all entity-specific parameters (on/off, brightness, position, climate-specific, cover-specific)
+  - Create `SystemEventArgs` TypedDict for flexible system event argument handling
+  - Replace `**kwargs: Any` with `**kwargs: Unpack[StateChangeArgs]` in all `is_state_change()` methods across custom data point classes
+  - Remove `**kwargs` from `publish_data_point_updated_event()` - now accepts no arguments for cleaner event handling
+  - Replace climate callback `**kwargs: Any` with explicit `custom_id: str | None = None` parameter
 
 # Version 2025.12.29 (2025-12-15)
 

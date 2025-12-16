@@ -11,11 +11,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from enum import StrEnum
 import math
-from typing import Any, Final, TypedDict, Unpack
+from typing import Final, TypedDict, Unpack
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeTimerMixin, TimerUnitMixin
+from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin, TimerUnitMixin
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
@@ -214,7 +214,7 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         """Return true if dimmer is on."""
         return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if self.is_timer_state_change():
             return True

@@ -35,7 +35,7 @@ import asyncio
 from collections.abc import AsyncGenerator, Callable
 import contextlib
 import logging
-from typing import Self, cast
+from typing import Any, Self, cast
 from unittest.mock import MagicMock, Mock, patch
 
 from aiohttp import ClientSession
@@ -88,20 +88,31 @@ class FactoryWithClient:
         self.system_event_mock = MagicMock()
         self.ha_event_mock = MagicMock()
         self._event_bus_unsubscribe_callbacks: list[Callable[[], None]] = []
+        self._patches: list[Any] = []
 
-    def cleanup_event_bus_subscriptions(self) -> None:
-        """Clean up all event bus subscriptions."""
+    def cleanup(self) -> None:
+        """Clean up all patches and event bus subscriptions."""
         for unsubscribe in self._event_bus_unsubscribe_callbacks:
             unsubscribe()
         self._event_bus_unsubscribe_callbacks.clear()
+        for p in self._patches:
+            p.stop()
+        self._patches.clear()
+
+    def cleanup_event_bus_subscriptions(self) -> None:
+        """Clean up all event bus subscriptions. Deprecated: use cleanup() instead."""
+        self.cleanup()
 
     async def get_default_central(self, *, start: bool = True) -> CentralUnit:
         """Return a central based on give address_device_translation."""
         central = await self.get_raw_central()
 
         await self._xml_proxy.do_init()
-        patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy).start()
-        patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST).start()
+        p1 = patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy)
+        p2 = patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST)
+        p1.start()
+        p2.start()
+        self._patches.extend([p1, p2])
 
         # Optionally patch client creation to return a mocked client
         if self._do_mock_client:
@@ -118,7 +129,9 @@ class FactoryWithClient:
                     ),
                 )
 
-            patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client).start()
+            p3 = patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client)
+            p3.start()
+            self._patches.append(p3)
 
         if start:
             await central.start()
@@ -254,7 +267,7 @@ async def get_central_client_factory(
     try:
         yield central, client, factory
     finally:
-        factory.cleanup_event_bus_subscriptions()
+        factory.cleanup()
         await central.stop()
         await central.cache_coordinator.clear_all()
 

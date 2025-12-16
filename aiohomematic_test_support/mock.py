@@ -42,6 +42,7 @@ import contextlib
 import json
 import logging
 import os
+import sys
 from typing import Any, cast
 from unittest.mock import MagicMock, Mock
 import zipfile
@@ -545,15 +546,15 @@ def get_mock(
     # Step 6: Copy non-mockable methods directly
     # Some methods (like bound methods or special attributes) need to be copied
     # directly rather than being mocked
-    try:
-        for method_name in [
-            prop
-            for prop in _get_not_mockable_method_names(instance=instance, exclude_methods=exclude_methods)
-            if prop not in include_properties and prop not in kwargs and prop not in property_names
-        ]:
+    for method_name in [
+        prop
+        for prop in _get_not_mockable_method_names(instance=instance, exclude_methods=exclude_methods)
+        if prop not in include_properties and prop not in kwargs and prop not in property_names
+    ]:
+        try:
             setattr(mock, method_name, getattr(instance, method_name))
-    except Exception:
-        pass
+        except (AttributeError, TypeError) as exc:
+            _LOGGER.debug("Could not copy method %s to mock: %s", method_name, exc)
 
     return mock
 
@@ -580,6 +581,26 @@ class SessionPlayer:
     def __init__(self, *, file_id: str) -> None:
         """Initialize the session player."""
         self._file_id = file_id
+
+    @classmethod
+    def clear_all(cls) -> None:
+        """Clear all cached session data from all file IDs."""
+        cls._store.clear()
+
+    @classmethod
+    def clear_file(cls, *, file_id: str) -> None:
+        """Clear cached session data for a specific file ID."""
+        cls._store.pop(file_id, None)
+
+    @classmethod
+    def get_loaded_file_ids(cls) -> list[str]:
+        """Return list of currently loaded file IDs."""
+        return list(cls._store.keys())
+
+    @classmethod
+    def get_memory_usage(cls) -> int:
+        """Return approximate memory usage of cached session data in bytes."""
+        return sys.getsizeof(cls._store)
 
     @property
     def _secondary_file_ids(self) -> list[str]:

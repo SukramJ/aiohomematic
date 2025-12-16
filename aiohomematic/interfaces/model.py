@@ -32,7 +32,7 @@ Device protocols (DeviceProtocol composed of):
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, Unpack, runtime_checkable
 
@@ -63,7 +63,7 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
-from aiohomematic.type_aliases import DataPointUpdatedHandler, FirmwareUpdateHandler
+from aiohomematic.type_aliases import DataPointUpdatedHandler, DeviceRemovedHandler, FirmwareUpdateHandler
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.central import (
@@ -214,7 +214,12 @@ class CallbackDataPointProtocol(Protocol):
         """Clean up all EventBus subscriptions for this data point."""
 
     @abstractmethod
-    def publish_data_point_updated_event(self) -> None:
+    def publish_data_point_updated_event(
+        self,
+        *,
+        data_point: CallbackDataPointProtocol | None = None,
+        custom_id: str | None = None,
+    ) -> None:
         """Publish a data point updated event."""
 
     @abstractmethod
@@ -222,11 +227,13 @@ class CallbackDataPointProtocol(Protocol):
         """Publish a device removed event."""
 
     @abstractmethod
-    def subscribe_to_data_point_updated(self, *, handler: Callable[..., None], custom_id: str) -> UnsubscribeCallback:
+    def subscribe_to_data_point_updated(
+        self, *, handler: DataPointUpdatedHandler, custom_id: str
+    ) -> UnsubscribeCallback:
         """Subscribe to data point updated event."""
 
     @abstractmethod
-    def subscribe_to_device_removed(self, *, handler: Callable[[], None]) -> UnsubscribeCallback:
+    def subscribe_to_device_removed(self, *, handler: DeviceRemovedHandler) -> UnsubscribeCallback:
         """Subscribe to the device removed event."""
 
 

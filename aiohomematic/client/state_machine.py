@@ -20,7 +20,7 @@ from typing import Final, Protocol
 from aiohomematic.const import ClientState
 
 
-class StateChangeCallback(Protocol):
+class StateChangeCallbackProtocol(Protocol):
     """Protocol for state change callbacks."""
 
     def __call__(self, *, old_state: ClientState, new_state: ClientState) -> None:
@@ -147,7 +147,7 @@ class ClientStateMachine:
         """
         self._interface_id: Final = interface_id
         self._state: ClientState = ClientState.CREATED
-        self.on_state_change: StateChangeCallback | None = None
+        self.on_state_change: StateChangeCallbackProtocol | None = None
 
     @property
     def can_reconnect(self) -> bool:

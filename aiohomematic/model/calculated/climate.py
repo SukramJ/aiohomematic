@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
-from aiohomematic.const import CalulatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
+from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.support import (
@@ -70,7 +70,7 @@ class ApparentTemperature(BaseClimateSensor[float | None]):
 
     __slots__ = ()
 
-    _calculated_parameter = CalulatedParameter.APPARENT_TEMPERATURE
+    _calculated_parameter = CalculatedParameter.APPARENT_TEMPERATURE
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
@@ -121,7 +121,7 @@ class DewPoint(BaseClimateSensor[float | None]):
 
     __slots__ = ()
 
-    _calculated_parameter = CalulatedParameter.DEW_POINT
+    _calculated_parameter = CalculatedParameter.DEW_POINT
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
@@ -149,7 +149,7 @@ class DewPointSpread(BaseClimateSensor[float | None]):
 
     __slots__ = ()
 
-    _calculated_parameter = CalulatedParameter.DEW_POINT_SPREAD
+    _calculated_parameter = CalculatedParameter.DEW_POINT_SPREAD
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
@@ -177,7 +177,7 @@ class Enthalpy(BaseClimateSensor[float | None]):
 
     __slots__ = ()
 
-    _calculated_parameter = CalulatedParameter.ENTHALPY
+    _calculated_parameter = CalculatedParameter.ENTHALPY
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
@@ -205,7 +205,7 @@ class FrostPoint(BaseClimateSensor[float | None]):
 
     __slots__ = ()
 
-    _calculated_parameter = CalulatedParameter.FROST_POINT
+    _calculated_parameter = CalculatedParameter.FROST_POINT
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
@@ -235,7 +235,7 @@ class VaporConcentration(BaseClimateSensor[float | None]):
 
     __slots__ = ()
 
-    _calculated_parameter = CalulatedParameter.VAPOR_CONCENTRATION
+    _calculated_parameter = CalculatedParameter.VAPOR_CONCENTRATION
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""

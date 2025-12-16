@@ -15,8 +15,8 @@ from typing import Any, Final, cast
 
 from aiohomematic.const import (
     INIT_DATETIME,
+    CalculatedParameter,
     CallSource,
-    CalulatedParameter,
     DataPointKey,
     DataPointUsage,
     Operations,
@@ -59,7 +59,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         "_visible",
     )
 
-    _calculated_parameter: CalulatedParameter = None  # type: ignore[assignment]
+    _calculated_parameter: CalculatedParameter = None  # type: ignore[assignment]
 
     def __init__(
         self,

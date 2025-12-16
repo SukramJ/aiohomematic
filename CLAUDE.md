@@ -1338,6 +1338,36 @@ device = get_device()
 dev = get_dev()
 ```
 
+#### Intentional camelCase Exceptions
+
+The following use camelCase **by design** for backend compatibility:
+
+1. **XML-RPC Callback Methods** in `aiohomematic/central/rpc_server.py`:
+
+   - `event()`, `newDevices()`, `deleteDevices()`, `updateDevice()`, `replaceDevice()`, `readdedDevice()`, `listDevices()`
+   - These method names are dictated by the Homematic XML-RPC protocol specification
+   - The Homematic CCU/Homegear backend calls these methods by name
+
+2. **SystemEventType Enum Values** in `aiohomematic/const.py`:
+   - Values like `newDevices`, `deleteDevices`, `updateDevice`, etc.
+   - These correspond directly to the backend event names for consistency
+
+```python
+# ✅ CORRECT - camelCase required by Homematic XML-RPC protocol
+class HomeMaticXmlRpcServer:
+    def event(self, interface_id, channel_address, parameter, value):
+        """Handle event callback from CCU (method name required by protocol)."""
+        ...
+
+    def newDevices(self, interface_id, device_descriptions):
+        """Handle new devices callback (method name required by protocol)."""
+        ...
+
+# ❌ WRONG - snake_case would break backend compatibility
+def new_devices(self, ...):  # CCU cannot call this - protocol mismatch!
+    ...
+```
+
 ### Constants Organization
 
 All constants are in `aiohomematic/const.py`:

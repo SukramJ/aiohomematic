@@ -263,14 +263,14 @@ stateDiagram-v2
 The ClientStateMachine supports a typed callback for state changes:
 
 ```python
-from aiohomematic.client.state_machine import ClientStateMachine, StateChangeCallback
+from aiohomematic.client.state_machine import ClientStateMachine, StateChangeCallbackProtocol
 from aiohomematic.const import ClientState
 
 def on_state_change(*, old_state: ClientState, new_state: ClientState) -> None:
     print(f"Client state changed: {old_state} -> {new_state}")
 
 sm = ClientStateMachine(interface_id="ccu-main-HmIP-RF")
-sm.on_state_change = on_state_change  # Must match StateChangeCallback protocol
+sm.on_state_change = on_state_change  # Must match StateChangeCallbackProtocol protocol
 ```
 
 ### Notes

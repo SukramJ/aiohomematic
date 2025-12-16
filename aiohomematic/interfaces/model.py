@@ -214,7 +214,12 @@ class CallbackDataPointProtocol(Protocol):
         """Clean up all EventBus subscriptions for this data point."""
 
     @abstractmethod
-    def publish_data_point_updated_event(self) -> None:
+    def publish_data_point_updated_event(
+        self,
+        *,
+        data_point: CallbackDataPointProtocol | None = None,
+        custom_id: str | None = None,
+    ) -> None:
         """Publish a data point updated event."""
 
     @abstractmethod

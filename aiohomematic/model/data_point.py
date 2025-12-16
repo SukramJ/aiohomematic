@@ -367,7 +367,12 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Finalize the data point init action after model setup."""
 
     @loop_check
-    def publish_data_point_updated_event(self) -> None:
+    def publish_data_point_updated_event(
+        self,
+        *,
+        data_point: CallbackDataPointProtocol | None = None,
+        custom_id: str | None = None,
+    ) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_publish_data_point_updated_callback:
             return
@@ -467,7 +472,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         # and custom_id to ensure only the correct handler receives each event.
         def event_handler(*, event: DataPointUpdatedCallbackEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
-                handler()
+                handler(data_point=self, custom_id=custom_id)
 
         unsubscribe = self._event_bus_provider.event_bus.subscribe(
             event_type=DataPointUpdatedCallbackEvent,

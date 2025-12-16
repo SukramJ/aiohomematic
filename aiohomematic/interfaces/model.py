@@ -48,6 +48,7 @@ from aiohomematic.const import (
     HubValueType,
     Interface,
     ParameterData,
+    ParameterStatus,
     ParameterType,
     ParamsetKey,
     ProductGroup,
@@ -592,6 +593,16 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def status(self) -> ParameterStatus | None:
+        """Return the current status of this parameter value."""
+
+    @property
+    @abstractmethod
+    def status_dpk(self) -> DataPointKey | None:
+        """Return the DataPointKey for the STATUS parameter."""
+
+    @property
+    @abstractmethod
     def supports_events(self) -> bool:
         """Return if data point supports events."""
 
@@ -635,6 +646,10 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     def update_parameter_data(self) -> None:
         """Update parameter data."""
+
+    @abstractmethod
+    def update_status(self, *, status_value: int) -> None:
+        """Update the status from a STATUS parameter event."""
 
     @abstractmethod
     def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:

@@ -56,6 +56,7 @@ from aiohomematic.const import (
     Operations,
     Parameter,
     ParameterData,
+    ParameterStatus,
     ParameterType,
     ParamsetKey,
     ProductGroup,
@@ -734,6 +735,9 @@ class BaseParameterDataPoint[
         "_service",
         "_special",
         "_state_uncertain",
+        "_status_dpk",
+        "_status_parameter",
+        "_status_value",
         "_temporary_value",
         "_type",
         "_unit",
@@ -782,6 +786,18 @@ class BaseParameterDataPoint[
         self._is_forced_sensor: bool = False
         self._assign_parameter_data(parameter_data=parameter_data)
 
+        # Initialize STATUS parameter support
+        self._status_parameter: str | None = self._detect_status_parameter()
+        self._status_value: ParameterStatus | None = None
+        self._status_dpk: DataPointKey | None = None
+        if self._status_parameter:
+            self._status_dpk = DataPointKey(
+                interface_id=self._device.interface_id,
+                channel_address=self._channel.address,
+                paramset_key=self._paramset_key,
+                parameter=self._status_parameter,
+            )
+
     @property
     def _value(self) -> ParameterT:
         """Return the value of the data_point."""
@@ -796,6 +812,11 @@ class BaseParameterDataPoint[
     def default(self) -> ParameterT:
         """Return default value."""
         return self._default
+
+    @property
+    def has_status_parameter(self) -> bool:
+        """Return if this parameter has a paired STATUS parameter."""
+        return self._status_parameter is not None
 
     @property
     def hmtype(self) -> ParameterType:
@@ -826,6 +847,17 @@ class BaseParameterDataPoint[
     def is_unit_fixed(self) -> bool:
         """Return if the unit is fixed."""
         return self._raw_unit != self._unit
+
+    @property
+    def is_value_valid(self) -> bool:
+        """
+        Return if the current value is valid based on status.
+
+        Return True if no STATUS parameter exists or STATUS is NORMAL.
+        """
+        if self._status_value is None:
+            return True
+        return self._status_value == ParameterStatus.NORMAL
 
     @property
     def is_writable(self) -> bool:
@@ -861,6 +893,21 @@ class BaseParameterDataPoint[
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return self._state_uncertain
+
+    @property
+    def status(self) -> ParameterStatus | None:
+        """Return the current status of this parameter value."""
+        return self._status_value
+
+    @property
+    def status_dpk(self) -> DataPointKey | None:
+        """Return the DataPointKey for the STATUS parameter."""
+        return self._status_dpk
+
+    @property
+    def status_parameter(self) -> str | None:
+        """Return the paired STATUS parameter name."""
+        return self._status_parameter
 
     @property
     def supports_events(self) -> bool:
@@ -1033,6 +1080,17 @@ class BaseParameterDataPoint[
         ):
             self._assign_parameter_data(parameter_data=parameter_data)
 
+    def update_status(self, *, status_value: int) -> None:
+        """Update the status from a STATUS parameter event."""
+        try:
+            self._status_value = ParameterStatus(status_value)
+        except ValueError:
+            _LOGGER.warning(  # i18n-log: ignore
+                "UPDATE_STATUS: Invalid status value %s for %s, ignoring",
+                status_value,
+                self.full_name,
+            )
+
     def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
         """Update the temporary value of the data_point."""
         self._reset_temporary_value()
@@ -1124,6 +1182,27 @@ class BaseParameterDataPoint[
                 value,
             )
             return None  # type: ignore[return-value]
+
+    def _detect_status_parameter(self) -> str | None:
+        """
+        Detect the paired STATUS parameter name if it exists.
+
+        Return the STATUS parameter name (e.g., "LEVEL_STATUS" for "LEVEL")
+        if it exists in the paramset description, None otherwise.
+        """
+        status_param = f"{self._parameter}_STATUS"
+        try:
+            if self._paramset_description_provider.has_parameter(
+                interface_id=self._device.interface_id,
+                channel_address=self._channel.address,
+                paramset_key=self._paramset_key,
+                parameter=status_param,
+            ):
+                return status_param
+        except (AttributeError, KeyError):
+            # has_parameter not available or lookup failed
+            pass
+        return None
 
     def _get_multiplier(self, *, raw_unit: str | None) -> float:
         """Replace given unit."""

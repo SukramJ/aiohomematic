@@ -155,5 +155,11 @@ class ParamsetDescriptionProviderProtocol(Protocol):
         """Get parameter data from paramset description."""
 
     @abstractmethod
+    def has_parameter(
+        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+    ) -> bool:
+        """Check if a parameter exists in the paramset description."""
+
+    @abstractmethod
     def is_in_multiple_channels(self, *, channel_address: str, parameter: str) -> bool:
         """Check if parameter is in multiple channels per device."""

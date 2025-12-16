@@ -1773,7 +1773,7 @@ This policy ensures:
 ✅ **Always** run pre-commit hooks before committing
 ✅ **Always** write tests for new functionality
 ✅ **Always** update documentation when changing public APIs
-✅ **Always** use keyword-only arguments for functions with > 2 parameters
+✅ **Always** use keyword-only arguments for ALL parameters (excluding self/cls)
 ✅ **Always** use descriptive variable names
 ✅ **Always** handle exceptions with proper context
 ✅ **Always** complete the Refactoring Completion Checklist before finishing

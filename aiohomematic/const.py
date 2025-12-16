@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.31"
+VERSION: Final = "2025.12.32"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1715,13 +1715,13 @@ class ScheduleSlot(TypedDict):
     temperature: float
 
 
-CLIMATE_WEEKDAY_DICT = dict[int, ScheduleSlot]
+ClimateWeekdaySchedule = dict[int, ScheduleSlot]
 """Schedule slots for a single weekday, keyed by slot number (1-13)."""
 
-CLIMATE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_WEEKDAY_DICT]
+ClimateProfileSchedule = dict[WeekdayStr, ClimateWeekdaySchedule]
 """Schedule for all weekdays in a profile."""
 
-CLIMATE_SCHEDULE_DICT = dict[ScheduleProfile, CLIMATE_PROFILE_DICT]
+ClimateScheduleDict = dict[ScheduleProfile, ClimateProfileSchedule]
 """Complete schedule with all profiles (P1-P6)."""
 CLIMATE_SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
 CLIMATE_SCHEDULE_SLOT_RANGE: Final = range(1, 13)

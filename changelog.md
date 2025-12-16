@@ -27,10 +27,15 @@
 ### Improvements
 
 - **Add `ScheduleSlot` TypedDict**: Improve type safety for normal schedule format
+
   - New TypedDict class with `endtime: str` and `temperature: float` fields
-  - `CLIMATE_WEEKDAY_DICT` now uses `dict[int, ScheduleSlot]` instead of `dict[int, dict[str, str | float]]`
   - Provides IDE autocomplete and better type checking for schedule slot access
-  - Non-breaking change: existing code continues to work, only type annotations are stricter
+
+- **Rename schedule type aliases**: Consistent naming with Simple Schedule types
+  - `CLIMATE_WEEKDAY_DICT` → `ClimateWeekdaySchedule` (now `dict[int, ScheduleSlot]`)
+  - `CLIMATE_PROFILE_DICT` → `ClimateProfileSchedule`
+  - `CLIMATE_SCHEDULE_DICT` → `ClimateScheduleDict`
+  - **Breaking change**: Downstream code using these type aliases must update imports
 
 ### Documentation
 

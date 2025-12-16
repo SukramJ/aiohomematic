@@ -11,7 +11,7 @@ from __future__ import annotations
 import contextlib
 from datetime import datetime
 import logging
-from typing import Any, Final, cast
+from typing import Final, Unpack, cast
 
 from aiohomematic.const import (
     INIT_DATETIME,
@@ -26,6 +26,7 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
+from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.generic import DpDummy
 from aiohomematic.model.support import (
@@ -249,7 +250,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             parameter=self._calculated_parameter,
         )
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """
         Check if the state changes due to kwargs.
 

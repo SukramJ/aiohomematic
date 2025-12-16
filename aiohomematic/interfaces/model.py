@@ -34,7 +34,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, Unpack, runtime_checkable
 
 from aiohomematic.const import (
     DP_KEY_VALUE,
@@ -77,6 +77,7 @@ if TYPE_CHECKING:
         FirmwareDataRefresherProtocol,
     )
     from aiohomematic.interfaces.client import ClientProtocol
+    from aiohomematic.model.custom.mixins import StateChangeArgs
     from aiohomematic.model.custom.registry import DeviceConfig
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
@@ -202,7 +203,7 @@ class CallbackDataPointProtocol(Protocol):
         """Clean up all EventBus subscriptions for this data point."""
 
     @abstractmethod
-    def publish_data_point_updated_event(self, **kwargs: Any) -> None:
+    def publish_data_point_updated_event(self) -> None:
         """Publish a data point updated event."""
 
     @abstractmethod
@@ -787,7 +788,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Return if a data point with one of the keys is part of this data point."""
 
     @abstractmethod
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
 
     @abstractmethod
@@ -910,7 +911,7 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Finalize the data point init action."""
 
     @abstractmethod
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
 
     @abstractmethod

@@ -9,11 +9,11 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 import logging
-from typing import Any, Final
+from typing import Final, Unpack
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeTimerMixin
+from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeArgs, StateChangeTimerMixin
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
@@ -46,7 +46,7 @@ class CustomDpIpIrrigationValve(StateChangeTimerMixin, GroupStateMixin, CustomDa
             return
         await self._dp_state.turn_off(collector=collector)
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if self.is_state_change_for_on_off(**kwargs):
             return True

@@ -12,12 +12,13 @@ from collections.abc import Mapping
 import contextlib
 from datetime import datetime
 import logging
-from typing import Any, Final, cast
+from typing import Any, Final, Unpack, cast
 
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocol
 from aiohomematic.model.custom import definition as hmed
+from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroup
 from aiohomematic.model.custom.registry import DeviceConfig
 from aiohomematic.model.data_point import BaseDataPoint
@@ -186,7 +187,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
         return len(result) > 0
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """
         Check if the state changes due to kwargs.
 
@@ -247,7 +248,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unsubscribe_callbacks.append(
-            data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
+            data_point.subscribe_to_internal_data_point_updated(
+                handler=lambda **kwargs: self.publish_data_point_updated_event()
+            )
         )
         self._data_points[field] = data_point
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, Unpack, runtime_checkable
 
 from aiohomematic.const import (
     BackupData,
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.client_coordinator import ClientCoordinator
     from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
-    from aiohomematic.central.event_coordinator import EventCoordinator
+    from aiohomematic.central.event_coordinator import EventCoordinator, SystemEventArgs
     from aiohomematic.interfaces.model import (
         CallbackDataPointProtocol,
         ChannelProtocol,
@@ -203,7 +203,7 @@ class EventPublisherProtocol(Protocol):
         """Publish a Homematic event."""
 
     @abstractmethod
-    def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Any) -> None:
+    def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Unpack[SystemEventArgs]) -> None:
         """Publish a backend system event."""
 
 

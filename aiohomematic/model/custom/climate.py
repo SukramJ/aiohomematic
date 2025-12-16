@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import IntEnum, StrEnum
 import logging
-from typing import Any, Final, cast
+from typing import Final, Unpack, cast
 
 from aiohomematic import i18n
 from aiohomematic.const import (
@@ -39,6 +39,7 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroup
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -371,7 +372,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
         return {}
 
-    def is_state_change(self, **kwargs: Any) -> bool:
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if (
             temperature := kwargs.get(_StateChangeArg.TEMPERATURE)
@@ -495,7 +496,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
 
     @abstractmethod
-    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(
+        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+    ) -> None:
         """Handle device state changes."""
 
     def _on_link_peer_changed(self) -> None:
@@ -592,7 +595,9 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(
+        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+    ) -> None:
         """Handle device state changes."""
 
 
@@ -778,7 +783,9 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(
+        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+    ) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_control_mode
@@ -1058,7 +1065,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
         )
 
-    def _manu_temp_changed(self, *, data_point: GenericDataPointProtocol | None = None, **kwargs: Any) -> None:
+    def _manu_temp_changed(
+        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+    ) -> None:
         """Handle device state changes."""
         if (
             data_point == self._dp_set_point_mode

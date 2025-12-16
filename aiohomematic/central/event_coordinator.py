@@ -197,8 +197,8 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         received_at = datetime.now()
 
         # Check if this is a STATUS parameter (e.g., LEVEL_STATUS)
+        # If so, also publish a status event to the main parameter
         if parameter.endswith("_STATUS"):
-            # Route to main parameter's data point
             main_param = parameter[:-7]  # Remove "_STATUS" suffix
             main_dpk = DataPointKey(
                 interface_id=interface_id,
@@ -206,7 +206,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                 paramset_key=ParamsetKey.VALUES,
                 parameter=main_param,
             )
-            # Publish status update event to main parameter
+            # Publish status update event to main parameter (if subscribed)
             await self._event_bus.publish(
                 event=DataPointStatusUpdatedEvent(
                     timestamp=datetime.now(),
@@ -215,9 +215,8 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                     received_at=received_at,
                 )
             )
-            return
 
-        # Normal parameter event
+        # Always publish normal parameter event (for the parameter itself)
         dpk = DataPointKey(
             interface_id=interface_id,
             channel_address=channel_address,

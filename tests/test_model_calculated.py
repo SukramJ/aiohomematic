@@ -125,7 +125,8 @@ class _FakeGenericDP:
         self._readable = readable
         self._modified_at = INIT_DATETIME
         self._refreshed_at = INIT_DATETIME
-        self.is_valid = True
+        self.is_refreshed = True
+        self.is_status_valid = True
         self.state_uncertain = False
         self.published_event_recently = True
         self._unsubscribed: list[bool] = []
@@ -133,6 +134,10 @@ class _FakeGenericDP:
     @property
     def is_readable(self) -> bool:
         return self._readable
+
+    @property
+    def is_valid(self) -> bool:
+        return self.is_refreshed and self.is_status_valid
 
     @property
     def modified_at(self) -> datetime:

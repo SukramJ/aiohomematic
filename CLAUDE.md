@@ -68,11 +68,14 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   │   ├── rpc_server.py           # XML-RPC callback server
 │   │   └── event_bus.py            # Modern event system
 │   │
-│   ├── client/                      # Protocol adapters (4 files)
+│   ├── client/                      # Protocol adapters (7 files)
 │   │   ├── __init__.py             # Client abstractions
 │   │   ├── json_rpc.py             # JSON-RPC implementation
 │   │   ├── rpc_proxy.py            # XML-RPC proxy wrapper
-│   │   └── _rpc_errors.py          # RPC error handling
+│   │   ├── _rpc_errors.py          # RPC error handling
+│   │   ├── state_machine.py        # Client state machine
+│   │   ├── circuit_breaker.py      # Connection circuit breaker
+│   │   └── request_coalescer.py    # Request deduplication
 │   │
 │   ├── model/                       # Domain model (43 files, ~13.8K LOC)
 │   │   ├── custom/                 # Device-specific implementations
@@ -111,9 +114,17 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   │   ├── device.py               # Device & Channel classes
 │   │   ├── data_point.py           # Base DataPoint class
 │   │   ├── event.py                # Event representation
-│   │   ├── interfaces.py           # Protocol interfaces for DI
+│   │   ├── update.py               # Firmware update data
 │   │   ├── support.py              # Model utilities
 │   │   └── week_profile.py         # Weekly schedule abstraction
+│   │
+│   ├── interfaces/                  # Protocol interfaces for DI (6 files)
+│   │   ├── __init__.py             # Public API exports
+│   │   ├── central.py              # Central unit protocols
+│   │   ├── client.py               # Client protocols
+│   │   ├── model.py                # Device/Channel/DataPoint protocols
+│   │   ├── operations.py           # Cache & visibility protocols
+│   │   └── coordinators.py         # Coordinator protocols
 │   │
 │   ├── store/                       # Persistence and caching (4 files)
 │   │   ├── __init__.py             # Store orchestration
@@ -770,13 +781,13 @@ class CacheCoordinator:
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        device_provider: DeviceProvider,
-        client_provider: ClientProvider,
-        data_point_provider: DataPointProvider,
-        primary_client_provider: PrimaryClientProvider,
-        config_provider: ConfigProvider,
-        task_scheduler: TaskScheduler,
+        central_info: CentralInfoProtocol,
+        device_provider: DeviceProviderProtocol,
+        client_provider: ClientProviderProtocol,
+        data_point_provider: DataPointProviderProtocol,
+        primary_client_provider: PrimaryClientProviderProtocol,
+        config_provider: ConfigProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
         session_recorder_active: bool,
     ) -> None:
         # Zero references to CentralUnit - only protocol interfaces
@@ -794,10 +805,10 @@ class ClientCoordinator:
         self,
         *,
         client_factory: ClientFactoryProtocol,  # Factory protocol, not CentralUnit
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
         coordinator_provider: CoordinatorProviderProtocol,
-        system_info_provider: SystemInfoProvider,
+        system_info_provider: SystemInfoProviderProtocol,
     ) -> None:
         self._client_factory: Final = client_factory
         self._central_info: Final = central_info
@@ -923,7 +934,7 @@ class CentralInfoProtocol(Protocol):
 - **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
 - **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
 
-CentralUnit implements all protocols without explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
+CentralUnit implements all protocols with explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 
 #### 3. Observer Pattern (EventBus-based)
 
@@ -1538,6 +1549,99 @@ from aiohomematic.model.custom.registry import DeviceProfileRegistry, DeviceConf
 
 This section defines mandatory rules for all implementations in this project.
 
+### Refactoring Completion Checklist
+
+**MANDATORY**: Every refactoring or feature implementation MUST complete ALL items before merging:
+
+```
+□ 1. Clean Code    - No legacy compatibility layers, deprecated aliases, or shims
+□ 2. Migration     - Migration guide in docs/migrations/ (for breaking changes)
+□ 3. Tests         - pytest tests/ passes without errors
+□ 4. Linting       - pre-commit run --all-files passes without errors
+□ 5. Changelog     - changelog.md updated with version entry
+```
+
+### Implementation Plan Requirements
+
+**CRITICAL**: Implementation plans created by Opus/Sonnet MUST be executable by Haiku without errors.
+
+A valid implementation plan must:
+
+1. **Resolve ALL Ambiguities Upfront**
+
+   - No "decide later" or "TBD" items
+   - Every decision point must have a concrete answer
+   - If multiple approaches exist, one MUST be selected and documented
+
+2. **Provide Exact File Paths**
+
+   - Full paths to all files to be created/modified
+   - Example: `aiohomematic/model/custom/new_device.py` (not just "create a new file")
+
+3. **Include Complete Code Snippets**
+
+   - Entire function/class implementations, not partial examples
+   - All imports required for each file
+   - Exact method signatures with full type annotations
+
+4. **Specify Exact Locations for Edits**
+
+   - Line numbers or unique context strings for modifications
+   - Before/after code blocks for changes
+   - Example: "In `device.py`, replace lines 145-150 with..."
+
+5. **Document Dependencies and Order**
+
+   - Which steps depend on which
+   - Exact execution order
+   - Files that must exist before others can be created
+
+6. **Include Test Requirements**
+   - Specific test cases to add
+   - Expected test file locations
+   - Test function names and what they verify
+
+**Plan Template**:
+
+````markdown
+## Implementation Plan: {Feature Name}
+
+### Overview
+
+One paragraph describing what will be implemented and why.
+
+### Prerequisites
+
+- List existing files/classes/functions that will be used
+- Any setup required before starting
+
+### Step 1: {Description}
+
+**File**: `full/path/to/file.py`
+**Action**: Create / Modify / Delete
+
+**Code**:
+
+```python
+# Complete code to add/replace
+from __future__ import annotations
+...
+```
+````
+
+**Verification**: How to verify this step succeeded
+
+### Step 2: ...
+
+### Quality Gates
+
+- [ ] pytest tests/ passes
+- [ ] pre-commit run --all-files passes
+- [ ] No mypy errors
+- [ ] Changelog updated
+
+````
+
 ### Clean Code Policy
 
 When implementing new features or refactoring existing code:
@@ -1545,16 +1649,15 @@ When implementing new features or refactoring existing code:
 1. **No Legacy Code**: After implementation, the codebase must be clean without any legacy compatibility layers, deprecated aliases, or backward-compatibility shims introduced during the change.
 
 2. **No Backward Compatibility Layers**: Do not create:
-
    - Type aliases for old names
    - Re-exports of renamed symbols
    - Deprecation warnings for removed APIs
    - Compatibility adapters or wrappers
+   - `# TODO: remove after migration` comments
 
 3. **Complete Migration**: All usages of changed APIs must be updated in a single change. Partial migrations that leave legacy code are not acceptable.
 
 4. **Protocol Inheritance**: When splitting protocols (e.g., `DeviceProtocol` into sub-protocols):
-
    - The implementation class (e.g., `Device`) must inherit from all sub-protocols
    - The composite protocol (e.g., `DeviceProtocol`) must inherit from all sub-protocols
    - No separate "legacy" protocol should remain
@@ -1564,6 +1667,61 @@ When implementing new features or refactoring existing code:
    - Updated `*.md` documentation files
    - Migration guide for downstream consumers (e.g., Home Assistant)
 
+### Quality Gate Commands
+
+Run these commands before considering any implementation complete:
+
+```bash
+# 1. Run all tests
+pytest tests/
+
+# 2. Run all pre-commit hooks (includes ruff, mypy, pylint, etc.)
+pre-commit run --all-files
+
+# 3. Verify no TODO/FIXME related to migration
+grep -r "TODO.*migration\|FIXME.*migration\|TODO.*remove\|TODO.*deprecated" aiohomematic/
+
+# 4. Check for unused imports/code
+ruff check --select F401,F841
+````
+
+### Migration Plan Requirements
+
+For breaking changes affecting downstream projects (e.g., Home Assistant integration):
+
+1. **Create Migration Guide** in `docs/migrations/`:
+
+   - File naming: `{feature}_migration_{year}_{month}.md`
+   - Example: `event_migration_2025_12.md`
+
+2. **Required Sections**:
+
+   ```markdown
+   # Migration Guide: {Feature Name}
+
+   ## Overview
+
+   Brief description of what changed and why.
+
+   ## Breaking Changes
+
+   - List each breaking change with before/after code examples
+
+   ## Migration Steps
+
+   Step-by-step instructions for updating dependent code.
+
+   ## Search-and-Replace Patterns
+
+   Patterns for automated migration where applicable.
+
+   ## Compatibility Notes
+
+   Any edge cases or special considerations.
+   ```
+
+3. **Reference in Changelog**: Link to migration guide in changelog entry.
+
 ### Rationale
 
 This policy ensures:
@@ -1572,14 +1730,7 @@ This policy ensures:
 - No accumulation of technical debt
 - Clear migration path for downstream projects
 - Single source of truth for APIs
-
-### Migration Responsibility
-
-For breaking changes affecting downstream projects (e.g., Home Assistant integration):
-
-- Create a migration guide in `docs/migrations/`
-- Document all changed APIs with before/after examples
-- Provide search-and-replace patterns where applicable
+- Implementation plans can be executed by any model without interpretation
 
 ---
 
@@ -1595,6 +1746,9 @@ For breaking changes affecting downstream projects (e.g., Home Assistant integra
 ✅ **Always** use keyword-only arguments for functions with > 2 parameters
 ✅ **Always** use descriptive variable names
 ✅ **Always** handle exceptions with proper context
+✅ **Always** complete the Refactoring Completion Checklist before finishing
+✅ **Always** update changelog.md with breaking changes
+✅ **Always** create implementation plans that are Haiku-executable
 
 ### Don'ts
 
@@ -1606,6 +1760,34 @@ For breaking changes affecting downstream projects (e.g., Home Assistant integra
 ❌ **Never** use bare `except:` clauses
 ❌ **Never** modify `aiohomematic/const.py` without thorough review
 ❌ **Never** break backward compatibility without major version bump
+❌ **Never** leave legacy compatibility layers or deprecated aliases
+❌ **Never** create plans with ambiguities or "TBD" items
+
+### Refactoring Workflow
+
+When performing a refactoring task, follow this workflow:
+
+1. **Plan**: Create a detailed implementation plan (see Implementation Plan Requirements)
+2. **Clarify**: Resolve ALL ambiguities before starting implementation
+3. **Implement**: Make all changes following the exact plan
+4. **Clean**: Remove all legacy code, aliases, and compatibility shims
+5. **Test**: Run `pytest tests/` - all tests must pass
+6. **Lint**: Run `pre-commit run --all-files` - no errors allowed
+7. **Document**: Update changelog.md and create migration guide if needed
+8. **Verify**: Check for leftover TODOs related to migration
+
+### Implementation Plan Quality Standard
+
+**A plan is only complete when Haiku can execute it without asking questions.**
+
+Before finalizing any implementation plan, verify:
+
+- [ ] Every file path is absolute and correct
+- [ ] Every code block is complete (not "..." or "similar to above")
+- [ ] Every import statement is explicitly listed
+- [ ] Every type annotation is complete
+- [ ] Every step has a clear verification method
+- [ ] No decisions are deferred to implementation time
 
 ### When in Doubt
 
@@ -1614,8 +1796,9 @@ For breaking changes affecting downstream projects (e.g., Home Assistant integra
 3. **Run the tests**: `pytest tests/`
 4. **Check the type hints**: `mypy` will guide you
 5. **Review the changelog**: `changelog.md` for recent changes
+6. **Check migration guides**: `docs/migrations/` for patterns
 
 ---
 
-**Last Updated**: 2025-11-16
-**Version**: 2025.11.16
+**Last Updated**: 2025-12-16
+**Version**: 2025.12.30

@@ -253,9 +253,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unsubscribe_callbacks.append(
-            data_point.subscribe_to_internal_data_point_updated(
-                handler=lambda **kwargs: self.publish_data_point_updated_event()
-            )
+            data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
         )
         self._data_points[field] = data_point
 

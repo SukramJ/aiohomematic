@@ -96,7 +96,7 @@ class TestDataPointCallbacks:
         unregister_data_point_updated_handler()
         unregister_device_removed_handler()
 
-        device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
+        device_updated_mock.assert_called()
         device_removed_mock.assert_called_with()
 
     @pytest.mark.asyncio
@@ -165,7 +165,7 @@ class TestDataPointCallbacks:
         if unregister_removed:
             unregister_removed()
 
-        device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
+        device_updated_mock.assert_called()
         device_removed_mock.assert_called_with()
 
 

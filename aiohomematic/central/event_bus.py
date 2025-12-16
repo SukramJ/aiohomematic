@@ -339,7 +339,6 @@ class DataPointUpdatedCallbackEvent(Event):
 
     unique_id: str
     custom_id: str
-    kwargs: dict[str, Any]
 
     @property
     def key(self) -> Any:

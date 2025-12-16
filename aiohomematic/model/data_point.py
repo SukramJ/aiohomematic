@@ -42,8 +42,6 @@ from aiohomematic.const import (
     DP_KEY_VALUE,
     INIT_DATETIME,
     KEY_CHANNEL_OPERATION_MODE_VISIBILITY,
-    KWARGS_ARG_CUSTOM_ID,
-    KWARGS_ARG_DATA_POINT,
     NO_CACHE_ENTRY,
     WAIT_FOR_CALLBACK,
     CallSource,
@@ -379,9 +377,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         if not self._registered_custom_ids:
             return
 
-        # Add the data_point reference to kwargs once (avoid repeated dict creation)
-        event_kwargs: dict[str, Any] = {KWARGS_ARG_DATA_POINT: self}
-
         # Capture current custom_ids as tuple to prevent issues if set is modified
         # during async iteration (e.g., if a handler unsubscribes during callback)
         custom_ids = tuple(self._registered_custom_ids)
@@ -404,7 +399,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
                         timestamp=datetime.now(),
                         unique_id=self._unique_id,
                         custom_id=cid,
-                        kwargs={**event_kwargs, KWARGS_ARG_CUSTOM_ID: cid},
                     )
                 )
                 for cid in custom_ids
@@ -473,7 +467,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         # and custom_id to ensure only the correct handler receives each event.
         def event_handler(*, event: DataPointUpdatedCallbackEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
-                handler(**event.kwargs)
+                handler()
 
         unsubscribe = self._event_bus_provider.event_bus.subscribe(
             event_type=DataPointUpdatedCallbackEvent,

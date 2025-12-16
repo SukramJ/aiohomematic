@@ -1,3 +1,23 @@
+# Version 2025.12.31 (2025-12-16)
+
+## What's Changed
+
+### Improvements (aiohomematic_test_support)
+
+- **Fix patch cleanup in test factories**: Patches created in `FactoryWithClient.get_default_central()` are now explicitly stored and stopped during cleanup instead of relying on `patch.stopall()`. Ensures proper resource cleanup and prevents patch state leakage between tests.
+- **Improve exception handling in mock creation**: Replace bare `except Exception: pass` with specific exception handling and debug logging in `get_mock()`. Now logs `AttributeError` and `TypeError` when methods cannot be copied to mock instances, improving debuggability.
+- **Add cleanup methods to SessionPlayer**: New class methods for session data management:
+  - `clear_all()` - Clear all cached session data
+  - `clear_file(file_id)` - Clear data for specific file ID
+  - `get_loaded_file_ids()` - List currently loaded file IDs
+  - `get_memory_usage()` - Return approximate memory usage of cached data
+- **Extract ADDRESS_DEVICE_TRANSLATION to JSON**: Device address-to-filename mappings (362 entries) now loaded from `data/device_translation.json` instead of hardcoded dict. Reduces maintenance burden and allows easy updates without code changes. Fallback to hardcoded dict maintained for backwards compatibility.
+
+### Documentation (aiohomematic_test_support)
+
+- Create detailed improvement analysis: `docs/test_support_improvements.md` - Comprehensive review of test support package identifying 10 issues and optimization opportunities with priority matrix
+- Create executable implementation plan: `docs/test_support_implementation_plan.md` - Step-by-step guide with exact file paths and code blocks for implementing high-priority fixes
+
 # Version 2025.12.30 (2025-12-16)
 
 ## What's Changed

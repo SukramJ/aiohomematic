@@ -13,7 +13,6 @@ from aiohomematic.const import (
     ScheduleActorChannel,
     ScheduleField,
     ScheduleProfile,
-    ScheduleSlotType,
     WeekdayInt,
     WeekdayStr,
 )
@@ -32,7 +31,6 @@ from aiohomematic.model.week_profile import (
     _filter_weekday_entries,
     _list_to_bitwise,
     _normalize_weekday_data,
-    _sort_simple_weekday_data,
     create_empty_schedule_group,
     create_week_profile,
     identify_base_temperature,
@@ -55,14 +53,14 @@ class TestFilterFunctions:
         """Test that filtering is applied to all weekdays in profile."""
         profile_data = {
             WeekdayStr.MONDAY: {
-                1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {"endtime": "06:00", "temperature": 18.0},
+                2: {"endtime": "24:00", "temperature": 18.0},
+                3: {"endtime": "24:00", "temperature": 18.0},
             },
             WeekdayStr.TUESDAY: {
-                1: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 20.0},
-                2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 20.0},
-                3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 20.0},
+                1: {"endtime": "08:00", "temperature": 20.0},
+                2: {"endtime": "24:00", "temperature": 20.0},
+                3: {"endtime": "24:00", "temperature": 20.0},
             },
         }
         result = _filter_profile_entries(profile_data=profile_data)
@@ -79,16 +77,16 @@ class TestFilterFunctions:
         schedule_data = {
             ScheduleProfile.P1: {
                 WeekdayStr.MONDAY: {
-                    1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                    2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                    3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                    1: {"endtime": "06:00", "temperature": 18.0},
+                    2: {"endtime": "24:00", "temperature": 18.0},
+                    3: {"endtime": "24:00", "temperature": 18.0},
                 },
             },
             ScheduleProfile.P2: {
                 WeekdayStr.MONDAY: {
-                    1: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 20.0},
-                    2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 20.0},
-                    3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 20.0},
+                    1: {"endtime": "08:00", "temperature": 20.0},
+                    2: {"endtime": "24:00", "temperature": 20.0},
+                    3: {"endtime": "24:00", "temperature": 20.0},
                 },
             },
         }
@@ -106,13 +104,13 @@ class TestFilterFunctions:
         weekday_data = {}
         for i in range(1, 8):
             weekday_data[i] = {
-                ScheduleSlotType.ENDTIME: f"{i * 3:02d}:00",
-                ScheduleSlotType.TEMPERATURE: 20.0,
+                "endtime": f"{i * 3:02d}:00",
+                "temperature": 20.0,
             }
         for i in range(8, 14):
             weekday_data[i] = {
-                ScheduleSlotType.ENDTIME: "24:00",
-                ScheduleSlotType.TEMPERATURE: 18.0,
+                "endtime": "24:00",
+                "temperature": 18.0,
             }
 
         result = _filter_weekday_entries(weekday_data=weekday_data)
@@ -122,42 +120,42 @@ class TestFilterFunctions:
     def test_filter_weekday_entries_multiple_24_00_slots(self):
         """Test filtering removes redundant 24:00 slots, keeps first by slot number."""
         weekday_data = {
-            7: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            3: {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 19.0},
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 20.0},
+            7: {"endtime": "24:00", "temperature": 18.0},
+            3: {"endtime": "18:00", "temperature": 21.0},
+            5: {"endtime": "24:00", "temperature": 19.0},
+            1: {"endtime": "06:00", "temperature": 20.0},
         }
         result = _filter_weekday_entries(weekday_data=weekday_data)
         # Should keep slots 1, 3, and first 24:00 (slot 5, not 7)
         assert len(result) == 3
-        assert result[1][ScheduleSlotType.ENDTIME] == "06:00"
-        assert result[2][ScheduleSlotType.ENDTIME] == "18:00"
-        assert result[3][ScheduleSlotType.ENDTIME] == "24:00"
+        assert result[1]["endtime"] == "06:00"
+        assert result[2]["endtime"] == "18:00"
+        assert result[3]["endtime"] == "24:00"
         # Should keep the temperature from slot 5 (first 24:00 by number)
-        assert result[3][ScheduleSlotType.TEMPERATURE] == 19.0
+        assert result[3]["temperature"] == 19.0
 
     def test_filter_weekday_entries_no_24_00_slots(self):
         """Test filtering when there are no 24:00 slots."""
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            3: {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "08:00", "temperature": 21.0},
+            3: {"endtime": "18:00", "temperature": 18.0},
         }
         result = _filter_weekday_entries(weekday_data=weekday_data)
         assert len(result) == 3
-        assert result[1][ScheduleSlotType.ENDTIME] == "06:00"
-        assert result[2][ScheduleSlotType.ENDTIME] == "08:00"
-        assert result[3][ScheduleSlotType.ENDTIME] == "18:00"
+        assert result[1]["endtime"] == "06:00"
+        assert result[2]["endtime"] == "08:00"
+        assert result[3]["endtime"] == "18:00"
 
     def test_filter_weekday_entries_single_24_00_slot(self):
         """Test filtering with single 24:00 slot."""
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "24:00", "temperature": 18.0},
         }
         result = _filter_weekday_entries(weekday_data=weekday_data)
         assert len(result) == 2
-        assert result[2][ScheduleSlotType.ENDTIME] == "24:00"
+        assert result[2]["endtime"] == "24:00"
 
 
 class TestNormalizationFunctions:
@@ -171,53 +169,53 @@ class TestNormalizationFunctions:
     def test_normalize_weekday_data_fills_to_13_slots(self):
         """Test that missing slots are filled to reach 13 total."""
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "12:00", "temperature": 21.0},
         }
         result = _normalize_weekday_data(weekday_data=weekday_data)
         assert len(result) == 13
         # Slots 3-13 should be filled with 24:00 and last slot's temperature
         for i in range(3, 14):
-            assert result[i][ScheduleSlotType.ENDTIME] == "24:00"
-            assert result[i][ScheduleSlotType.TEMPERATURE] == 21.0
+            assert result[i]["endtime"] == "24:00"
+            assert result[i]["temperature"] == 21.0
 
     def test_normalize_weekday_data_full_example(self):
         """Test complete normalization workflow."""
         weekday_data = {
-            "5": {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 20.0},
-            "1": {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            "3": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 22.0},
+            "5": {"endtime": "18:00", "temperature": 20.0},
+            "1": {"endtime": "06:00", "temperature": 18.0},
+            "3": {"endtime": "12:00", "temperature": 22.0},
         }
         result = _normalize_weekday_data(weekday_data=weekday_data)
 
         # Should be sorted and renumbered
         assert len(result) == 13
-        assert result[1][ScheduleSlotType.ENDTIME] == "06:00"
-        assert result[2][ScheduleSlotType.ENDTIME] == "12:00"
-        assert result[3][ScheduleSlotType.ENDTIME] == "18:00"
+        assert result[1]["endtime"] == "06:00"
+        assert result[2]["endtime"] == "12:00"
+        assert result[3]["endtime"] == "18:00"
 
         # Slots 4-13 should be filled with 24:00 and temperature from last slot (20.0)
         for i in range(4, 14):
-            assert result[i][ScheduleSlotType.ENDTIME] == "24:00"
-            assert result[i][ScheduleSlotType.TEMPERATURE] == 20.0
+            assert result[i]["endtime"] == "24:00"
+            assert result[i]["temperature"] == 20.0
 
     def test_normalize_weekday_data_sorts_by_endtime(self):
         """Test that slots are sorted chronologically by ENDTIME."""
         weekday_data = {
-            3: {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 20.0},
-            2: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            3: {"endtime": "18:00", "temperature": 18.0},
+            1: {"endtime": "06:00", "temperature": 20.0},
+            2: {"endtime": "12:00", "temperature": 21.0},
         }
         result = _normalize_weekday_data(weekday_data=weekday_data)
-        assert result[1][ScheduleSlotType.ENDTIME] == "06:00"
-        assert result[2][ScheduleSlotType.ENDTIME] == "12:00"
-        assert result[3][ScheduleSlotType.ENDTIME] == "18:00"
+        assert result[1]["endtime"] == "06:00"
+        assert result[2]["endtime"] == "12:00"
+        assert result[3]["endtime"] == "18:00"
 
     def test_normalize_weekday_data_string_keys_to_int(self):
         """Test that string keys are converted to integers."""
         weekday_data = {
-            "1": {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            "2": {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            "1": {"endtime": "06:00", "temperature": 18.0},
+            "2": {"endtime": "12:00", "temperature": 21.0},
         }
         result = _normalize_weekday_data(weekday_data=weekday_data)
         assert all(isinstance(k, int) for k in result)
@@ -225,11 +223,11 @@ class TestNormalizationFunctions:
     def test_normalize_weekday_data_uses_default_temp_if_missing(self):
         """Test that default temperature is used if last slot has no temperature."""
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00"},  # No temperature
+            1: {"endtime": "06:00"},  # No temperature
         }
         result = _normalize_weekday_data(weekday_data=weekday_data)
         # Filled slots should use DEFAULT_CLIMATE_FILL_TEMPERATURE
-        assert result[2][ScheduleSlotType.TEMPERATURE] == DEFAULT_CLIMATE_FILL_TEMPERATURE
+        assert result[2]["temperature"] == DEFAULT_CLIMATE_FILL_TEMPERATURE
 
 
 class TestHelperFunctions:
@@ -315,26 +313,26 @@ class TestHelperFunctions:
     def test_fillup_weekday_data(self):
         """Test fillup weekday data."""
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
         }
         result = _fillup_weekday_data(base_temperature=20.0, weekday_data=weekday_data)
 
         # Should fill missing slots 2-13
         assert len(result) == 13
         for i in range(2, 14):
-            assert result[i][ScheduleSlotType.ENDTIME] == "24:00"
-            assert result[i][ScheduleSlotType.TEMPERATURE] == 20.0
+            assert result[i]["endtime"] == "24:00"
+            assert result[i]["temperature"] == 20.0
 
     def test_identify_base_temperature_base_temp_dominates(self):
         """Test _identify_base_temperature where base temperature has most time."""
         # 18.0° for 1020 minutes (06:00 + 540 min + 120 min)
         # 21.0° for 420 minutes (120 min + 300 min)
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            3: {ScheduleSlotType.ENDTIME: "17:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            4: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "08:00", "temperature": 21.0},
+            3: {"endtime": "17:00", "temperature": 18.0},
+            4: {"endtime": "22:00", "temperature": 21.0},
+            5: {"endtime": "24:00", "temperature": 18.0},
         }
         result = identify_base_temperature(weekday_data=weekday_data)
         assert result == 18.0
@@ -348,11 +346,11 @@ class TestHelperFunctions:
         # 18.0° for 120 minutes (22:00-24:00)
         # Total: 18.0° = 660 minutes (most), 17.0° = 300, 20.0° = 180, 22.0° = 300
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "05:00", ScheduleSlotType.TEMPERATURE: 17.0},
-            2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 20.0},
-            3: {ScheduleSlotType.ENDTIME: "17:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            4: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 22.0},
-            5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "05:00", "temperature": 17.0},
+            2: {"endtime": "08:00", "temperature": 20.0},
+            3: {"endtime": "17:00", "temperature": 18.0},
+            4: {"endtime": "22:00", "temperature": 22.0},
+            5: {"endtime": "24:00", "temperature": 18.0},
         }
         result = identify_base_temperature(weekday_data=weekday_data)
         assert result == 18.0
@@ -368,9 +366,9 @@ class TestHelperFunctions:
         # 18.0° for 120 minutes (06:00-08:00)
         # 21.0° for 960 minutes (08:00-24:00)
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 15.0},
-            2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            1: {"endtime": "06:00", "temperature": 15.0},
+            2: {"endtime": "08:00", "temperature": 18.0},
+            3: {"endtime": "24:00", "temperature": 21.0},
         }
         result = identify_base_temperature(weekday_data=weekday_data)
         assert result == 21.0
@@ -378,7 +376,7 @@ class TestHelperFunctions:
     def test_identify_base_temperature_single_temperature(self):
         """Test _identify_base_temperature with single temperature all day."""
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "24:00", "temperature": 18.0},
         }
         result = identify_base_temperature(weekday_data=weekday_data)
         assert result == 18.0
@@ -386,8 +384,8 @@ class TestHelperFunctions:
     def test_identify_base_temperature_two_temperatures_equal_time(self):
         """Test _identify_base_temperature with two temperatures having equal time."""
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            1: {"endtime": "12:00", "temperature": 18.0},
+            2: {"endtime": "24:00", "temperature": 21.0},
         }
         result = identify_base_temperature(weekday_data=weekday_data)
         # Both have 720 minutes (12 hours), max() will return one of them
@@ -397,11 +395,11 @@ class TestHelperFunctions:
         """Test _identify_base_temperature with unsorted slot numbers."""
         # The function should sort by slot number
         weekday_data = {
-            5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            3: {ScheduleSlotType.ENDTIME: "17:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            4: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            5: {"endtime": "24:00", "temperature": 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            3: {"endtime": "17:00", "temperature": 18.0},
+            2: {"endtime": "08:00", "temperature": 21.0},
+            4: {"endtime": "22:00", "temperature": 21.0},
         }
         result = identify_base_temperature(weekday_data=weekday_data)
         assert result == 18.0
@@ -454,30 +452,9 @@ class TestHelperFunctions:
         result = _list_to_bitwise(items=[WeekdayInt.MONDAY])
         assert result == 2  # MONDAY = 2
 
-    def test_sort_simple_weekday_data(self):
-        """Test sorting simple weekday list."""
-        simple_list = [
-            {
-                ScheduleSlotType.STARTTIME: "18:00",
-                ScheduleSlotType.ENDTIME: "22:00",
-                ScheduleSlotType.TEMPERATURE: 21.0,
-            },
-            {
-                ScheduleSlotType.STARTTIME: "06:00",
-                ScheduleSlotType.ENDTIME: "08:00",
-                ScheduleSlotType.TEMPERATURE: 20.0,
-            },
-            {
-                ScheduleSlotType.STARTTIME: "12:00",
-                ScheduleSlotType.ENDTIME: "15:00",
-                ScheduleSlotType.TEMPERATURE: 19.0,
-            },
-        ]
-        result = _sort_simple_weekday_data(simple_weekday_data=simple_list)
-
-        assert result[0][ScheduleSlotType.STARTTIME] == "06:00"
-        assert result[1][ScheduleSlotType.STARTTIME] == "12:00"
-        assert result[2][ScheduleSlotType.STARTTIME] == "18:00"
+    # NOTE: test_sort_simple_weekday_data was removed because _sort_simple_weekday_data
+    # function was removed from week_profile.py during simple schedule optimization.
+    # The sorting logic is now internal to the simple schedule conversion functions.
 
 
 class TestWeekProfileCreation:
@@ -567,16 +544,16 @@ class TestScheduleOperations:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        simple_data = (
-            999.0,
-            [  # Way out of range
+        simple_data = {
+            "base_temperature": 999.0,
+            "periods": [  # Way out of range
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "08:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "starttime": "06:00",
+                    "endtime": "08:00",
+                    "temperature": 20.0,
                 }
             ],
-        )
+        }
 
         # Should raise ValidationException for out of range base temperature
         with pytest.raises(ValidationException):
@@ -607,16 +584,16 @@ class TestScheduleOperations:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        simple_data = (
-            18.0,
-            [
+        simple_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
+                    "starttime": "06:00",
                     # Missing ENDTIME
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "temperature": 20.0,
                 }
             ],
-        )
+        }
 
         with pytest.raises(ValidationException):
             await climate.set_simple_schedule_weekday(
@@ -646,16 +623,16 @@ class TestScheduleOperations:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        simple_data = (
-            18.0,
-            [
+        simple_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
                     # Missing STARTTIME
-                    ScheduleSlotType.ENDTIME: "08:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "endtime": "08:00",
+                    "temperature": 20.0,
                 }
             ],
-        )
+        }
 
         with pytest.raises(ValidationException):
             await climate.set_simple_schedule_weekday(
@@ -685,16 +662,16 @@ class TestScheduleOperations:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        simple_data = (
-            18.0,
-            [
+        simple_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "08:00",
+                    "starttime": "06:00",
+                    "endtime": "08:00",
                     # Missing TEMPERATURE
                 }
             ],
-        )
+        }
 
         with pytest.raises(ValidationException):
             await climate.set_simple_schedule_weekday(
@@ -724,21 +701,21 @@ class TestScheduleOperations:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        simple_data = (
-            18.0,
-            [
+        simple_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "10:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "starttime": "06:00",
+                    "endtime": "10:00",
+                    "temperature": 20.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "08:00",  # Overlaps with previous!
-                    ScheduleSlotType.ENDTIME: "12:00",
-                    ScheduleSlotType.TEMPERATURE: 21.0,
+                    "starttime": "08:00",  # Overlaps with previous!
+                    "endtime": "12:00",
+                    "temperature": 21.0,
                 },
             ],
-        )
+        }
 
         with pytest.raises(ValidationException):
             await climate.set_simple_schedule_weekday(
@@ -768,16 +745,16 @@ class TestScheduleOperations:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        simple_data = (
-            18.0,
-            [
+        simple_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "08:00",
-                    ScheduleSlotType.ENDTIME: "06:00",  # End before start!
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "starttime": "08:00",
+                    "endtime": "06:00",  # End before start!
+                    "temperature": 20.0,
                 }
             ],
-        )
+        }
 
         with pytest.raises(ValidationException):
             await climate.set_simple_schedule_weekday(
@@ -807,16 +784,16 @@ class TestScheduleOperations:
         # Load schedule first
         await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        simple_data = (
-            18.0,
-            [
+        simple_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "08:00",
-                    ScheduleSlotType.TEMPERATURE: 999.0,  # Out of range
+                    "starttime": "06:00",
+                    "endtime": "08:00",
+                    "temperature": 999.0,  # Out of range
                 }
             ],
-        )
+        }
 
         with pytest.raises(ValidationException):
             await climate.set_simple_schedule_weekday(
@@ -855,13 +832,13 @@ class TestScheduleValidation:
         for i in range(1, 14):
             if i == 5:
                 weekday_data[i] = {
-                    ScheduleSlotType.ENDTIME: f"{i:02d}:00",
+                    "endtime": f"{i:02d}:00",
                     # Missing TEMPERATURE
                 }
             else:
                 weekday_data[i] = {
-                    ScheduleSlotType.ENDTIME: f"{i:02d}:00" if i < 13 else "24:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "endtime": f"{i:02d}:00" if i < 13 else "24:00",
+                    "temperature": 20.0,
                 }
 
         with pytest.raises(ValidationException):
@@ -896,9 +873,9 @@ class TestScheduleValidation:
         # This will be normalized to 13 slots, so validation should pass
         # The test validates that normalization happens before validation
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
             # Missing slot 2, but normalization will fill it
-            3: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            3: {"endtime": "12:00", "temperature": 21.0},
         }
 
         # Should work because normalization fills missing slots
@@ -931,9 +908,9 @@ class TestScheduleValidation:
 
         # Create 13 slots with non-ascending times
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 20.0},
-            3: {ScheduleSlotType.ENDTIME: "07:00", ScheduleSlotType.TEMPERATURE: 21.0},  # Goes back!
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "08:00", "temperature": 20.0},
+            3: {"endtime": "07:00", "temperature": 21.0},  # Goes back!
         }
 
         # Normalization will sort by time, so let's create a case where
@@ -944,18 +921,18 @@ class TestScheduleValidation:
         for i in range(1, 14):
             if i < 7:
                 weekday_data[i] = {
-                    ScheduleSlotType.ENDTIME: f"{i * 2:02d}:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "endtime": f"{i * 2:02d}:00",
+                    "temperature": 20.0,
                 }
             elif i == 7:
                 weekday_data[i] = {
-                    ScheduleSlotType.ENDTIME: "05:00",  # Goes back!
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "endtime": "05:00",  # Goes back!
+                    "temperature": 20.0,
                 }
             else:
                 weekday_data[i] = {
-                    ScheduleSlotType.ENDTIME: "24:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "endtime": "24:00",
+                    "temperature": 20.0,
                 }
 
         # Normalization will sort these, so validation should actually pass
@@ -989,9 +966,9 @@ class TestScheduleValidation:
 
         # Create only 3 slots - should be filled to 13
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "12:00", "temperature": 21.0},
+            3: {"endtime": "24:00", "temperature": 18.0},
         }
 
         # Should not raise - normalization fills missing slots
@@ -1029,8 +1006,8 @@ class TestScheduleValidation:
         weekday_data = {}
         for i in range(1, 15):  # 14 slots
             weekday_data[i] = {
-                ScheduleSlotType.ENDTIME: f"{i:02d}:00",
-                ScheduleSlotType.TEMPERATURE: 20.0,
+                "endtime": f"{i:02d}:00",
+                "temperature": 20.0,
             }
 
         with pytest.raises(ValidationException):
@@ -1336,26 +1313,26 @@ class TestClimateWeekProfileIntegration:
 
         # Create simple schedule data
         simple_profile_data = {
-            WeekdayStr.MONDAY: (
-                18.0,
-                [
+            WeekdayStr.MONDAY: {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "06:00",
-                        ScheduleSlotType.ENDTIME: "22:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "06:00",
+                        "endtime": "22:00",
+                        "temperature": 21.0,
                     }
                 ],
-            ),
-            WeekdayStr.TUESDAY: (
-                18.0,
-                [
+            },
+            WeekdayStr.TUESDAY: {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "06:00",
-                        ScheduleSlotType.ENDTIME: "22:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "06:00",
+                        "endtime": "22:00",
+                        "temperature": 21.0,
                     }
                 ],
-            ),
+            },
         }
 
         # Set simple schedule
@@ -1380,16 +1357,16 @@ class TestClimateWeekProfileIntegration:
         )
 
         # Create simple weekday data
-        simple_weekday_data = (
-            18.0,
-            [
+        simple_weekday_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "22:00",
-                    ScheduleSlotType.TEMPERATURE: 21.0,
+                    "starttime": "06:00",
+                    "endtime": "22:00",
+                    "temperature": 21.0,
                 }
             ],
-        )
+        }
 
         # Set simple weekday schedule
         await climate.set_simple_schedule_weekday(
@@ -1513,8 +1490,8 @@ class TestClimateWeekProfileConversion:
             ScheduleProfile.P1: {
                 WeekdayStr.MONDAY: {
                     1: {
-                        ScheduleSlotType.TEMPERATURE: 20.0,
-                        ScheduleSlotType.ENDTIME: "06:00",
+                        "temperature": 20.0,
+                        "endtime": "06:00",
                     }
                 }
             }
@@ -1534,8 +1511,8 @@ class TestClimateWeekProfileConversion:
             ScheduleProfile.P1: {
                 WeekdayStr.MONDAY: {
                     999: {  # Invalid slot number
-                        ScheduleSlotType.TEMPERATURE: 20.0,
-                        ScheduleSlotType.ENDTIME: "06:00",
+                        "temperature": 20.0,
+                        "endtime": "06:00",
                     }
                 }
             }
@@ -1561,10 +1538,10 @@ class TestClimateWeekProfileConversion:
         assert WeekdayStr.MONDAY in result[ScheduleProfile.P1]
         assert WeekdayStr.TUESDAY in result[ScheduleProfile.P1]
         assert 1 in result[ScheduleProfile.P1][WeekdayStr.MONDAY]
-        assert result[ScheduleProfile.P1][WeekdayStr.MONDAY][1][ScheduleSlotType.TEMPERATURE] == 20.0
-        assert result[ScheduleProfile.P1][WeekdayStr.MONDAY][1][ScheduleSlotType.ENDTIME] == "06:00"
-        assert result[ScheduleProfile.P1][WeekdayStr.TUESDAY][1][ScheduleSlotType.TEMPERATURE] == 21.0
-        assert result[ScheduleProfile.P1][WeekdayStr.TUESDAY][1][ScheduleSlotType.ENDTIME] == "07:00"
+        assert result[ScheduleProfile.P1][WeekdayStr.MONDAY][1]["temperature"] == 20.0
+        assert result[ScheduleProfile.P1][WeekdayStr.MONDAY][1]["endtime"] == "06:00"
+        assert result[ScheduleProfile.P1][WeekdayStr.TUESDAY][1]["temperature"] == 21.0
+        assert result[ScheduleProfile.P1][WeekdayStr.TUESDAY][1]["endtime"] == "07:00"
 
     def test_convert_raw_to_dict_schedule_invalid_entries(self):
         """Test that invalid raw entries are gracefully skipped."""
@@ -1682,9 +1659,9 @@ class TestErrorPaths:
 
         # Create new weekday data
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "22:00", "temperature": 21.0},
+            3: {"endtime": "24:00", "temperature": 18.0},
         }
 
         # Set weekday data
@@ -1717,8 +1694,8 @@ class TestErrorPaths:
 
         # Create weekday data
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "24:00", "temperature": 18.0},
         }
 
         # Set without validation
@@ -1840,7 +1817,7 @@ class TestClimateWeekProfileAdditionalEdgeCases:
 
         result = ClimateWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        assert result[ScheduleProfile.P1][WeekdayStr.MONDAY][1][ScheduleSlotType.ENDTIME] == "06:00"
+        assert result[ScheduleProfile.P1][WeekdayStr.MONDAY][1]["endtime"] == "06:00"
 
     def test_convert_raw_to_dict_schedule_with_invalid_slot_number_str(self):
         """Test that invalid slot number strings are skipped."""
@@ -1933,7 +1910,7 @@ class TestPropertyAccessAndValidation:
         # Should not contain redundant 24:00 slots
         for profile_data in schedule.values():
             for weekday_data in profile_data.values():
-                count_24_00 = sum(1 for slot in weekday_data.values() if slot.get(ScheduleSlotType.ENDTIME) == "24:00")
+                count_24_00 = sum(1 for slot in weekday_data.values() if slot.get("endtime") == "24:00")
                 assert count_24_00 <= 1  # At most one 24:00 slot
 
     @pytest.mark.parametrize(
@@ -1984,36 +1961,36 @@ class TestSimpleScheduleConversionMethods:
 
         # Simple schedule for multiple weekdays
         simple_profile_data = {
-            WeekdayStr.MONDAY: (
-                18.0,
-                [
+            WeekdayStr.MONDAY: {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "06:00",
-                        ScheduleSlotType.ENDTIME: "22:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "06:00",
+                        "endtime": "22:00",
+                        "temperature": 21.0,
                     }
                 ],
-            ),
-            WeekdayStr.TUESDAY: (
-                18.0,
-                [
+            },
+            WeekdayStr.TUESDAY: {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "07:00",
-                        ScheduleSlotType.ENDTIME: "23:00",
-                        ScheduleSlotType.TEMPERATURE: 22.0,
+                        "starttime": "07:00",
+                        "endtime": "23:00",
+                        "temperature": 22.0,
                     }
                 ],
-            ),
-            WeekdayStr.WEDNESDAY: (
-                18.0,
-                [
+            },
+            WeekdayStr.WEDNESDAY: {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "05:00",
-                        ScheduleSlotType.ENDTIME: "21:00",
-                        ScheduleSlotType.TEMPERATURE: 20.0,
+                        "starttime": "05:00",
+                        "endtime": "21:00",
+                        "temperature": 20.0,
                     }
                 ],
-            ),
+            },
         }
 
         # Set and verify
@@ -2038,21 +2015,21 @@ class TestSimpleScheduleConversionMethods:
         )
 
         # Simple schedule with gap: 06:00-08:00 and 18:00-22:00
-        simple_weekday_data = (
-            18.0,
-            [
+        simple_weekday_data = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "08:00",
-                    ScheduleSlotType.TEMPERATURE: 21.0,
+                    "starttime": "06:00",
+                    "endtime": "08:00",
+                    "temperature": 21.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "18:00",
-                    ScheduleSlotType.ENDTIME: "22:00",
-                    ScheduleSlotType.TEMPERATURE: 21.0,
+                    "starttime": "18:00",
+                    "endtime": "22:00",
+                    "temperature": 21.0,
                 },
             ],
-        )
+        }
 
         # Set and verify it works
         await climate.set_simple_schedule_weekday(
@@ -2085,9 +2062,9 @@ class TestAdvancedValidation:
 
         # Create weekday data with only 3 slots (normalization will fill to 13)
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            3: {ScheduleSlotType.ENDTIME: "23:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "22:00", "temperature": 21.0},
+            3: {"endtime": "23:00", "temperature": 18.0},
         }
 
         # Should succeed - normalization will fill remaining slots and ensure 24:00 at end
@@ -2101,7 +2078,7 @@ class TestAdvancedValidation:
         assert len(result) >= 3  # Should have at least our input slots
         # Last slot should be 24:00
         last_slot = result[max(result.keys())]
-        assert last_slot[ScheduleSlotType.ENDTIME] == "24:00"
+        assert last_slot["endtime"] == "24:00"
 
     @pytest.mark.parametrize(
         (
@@ -2122,21 +2099,21 @@ class TestAdvancedValidation:
         )
 
         # Period starting at 00:00
-        simple_weekday_data = (
-            16.0,
-            [
+        simple_weekday_data = {
+            "base_temperature": 16.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "00:00",
-                    ScheduleSlotType.ENDTIME: "06:00",
-                    ScheduleSlotType.TEMPERATURE: 18.0,
+                    "starttime": "00:00",
+                    "endtime": "06:00",
+                    "temperature": 18.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "22:00",
-                    ScheduleSlotType.ENDTIME: "24:00",
-                    ScheduleSlotType.TEMPERATURE: 18.0,
+                    "starttime": "22:00",
+                    "endtime": "24:00",
+                    "temperature": 18.0,
                 },
             ],
-        )
+        }
 
         # Should work
         await climate.set_simple_schedule_weekday(
@@ -2167,9 +2144,9 @@ class TestAdvancedValidation:
 
         # Create weekday data with slots that need sorting
         weekday_data = {
-            3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
+            3: {"endtime": "24:00", "temperature": 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "12:00", "temperature": 21.0},
         }
 
         # Should succeed - normalization will sort and fill
@@ -2267,34 +2244,34 @@ class TestComplexScheduleScenarios:
             WeekdayStr.FRIDAY,
         ]:
             # Workday schedule
-            full_week_schedule[weekday] = (
-                18.0,
-                [
+            full_week_schedule[weekday] = {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "06:00",
-                        ScheduleSlotType.ENDTIME: "08:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "06:00",
+                        "endtime": "08:00",
+                        "temperature": 21.0,
                     },
                     {
-                        ScheduleSlotType.STARTTIME: "17:00",
-                        ScheduleSlotType.ENDTIME: "22:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "17:00",
+                        "endtime": "22:00",
+                        "temperature": 21.0,
                     },
                 ],
-            )
+            }
 
         for weekday in [WeekdayStr.SATURDAY, WeekdayStr.SUNDAY]:
             # Weekend schedule
-            full_week_schedule[weekday] = (
-                18.0,
-                [
+            full_week_schedule[weekday] = {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "08:00",
-                        ScheduleSlotType.ENDTIME: "23:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "08:00",
+                        "endtime": "23:00",
+                        "temperature": 21.0,
                     }
                 ],
-            )
+            }
 
         # Set the full week schedule
         await climate.set_simple_schedule_profile(profile=ScheduleProfile.P5, simple_profile_data=full_week_schedule)
@@ -2322,41 +2299,41 @@ class TestComplexScheduleScenarios:
         )
 
         # Create schedule with 6 temperature changes
-        simple_weekday_data = (
-            17.0,
-            [
+        simple_weekday_data = {
+            "base_temperature": 17.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "08:00",
-                    ScheduleSlotType.TEMPERATURE: 21.0,
+                    "starttime": "06:00",
+                    "endtime": "08:00",
+                    "temperature": 21.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "08:00",
-                    ScheduleSlotType.ENDTIME: "12:00",
-                    ScheduleSlotType.TEMPERATURE: 19.0,
+                    "starttime": "08:00",
+                    "endtime": "12:00",
+                    "temperature": 19.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "12:00",
-                    ScheduleSlotType.ENDTIME: "14:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "starttime": "12:00",
+                    "endtime": "14:00",
+                    "temperature": 20.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "14:00",
-                    ScheduleSlotType.ENDTIME: "17:00",
-                    ScheduleSlotType.TEMPERATURE: 19.0,
+                    "starttime": "14:00",
+                    "endtime": "17:00",
+                    "temperature": 19.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "17:00",
-                    ScheduleSlotType.ENDTIME: "22:00",
-                    ScheduleSlotType.TEMPERATURE: 21.5,
+                    "starttime": "17:00",
+                    "endtime": "22:00",
+                    "temperature": 21.5,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "22:00",
-                    ScheduleSlotType.ENDTIME: "24:00",
-                    ScheduleSlotType.TEMPERATURE: 18.5,
+                    "starttime": "22:00",
+                    "endtime": "24:00",
+                    "temperature": 18.5,
                 },
             ],
-        )
+        }
 
         # Set and verify
         await climate.set_simple_schedule_weekday(
@@ -2422,15 +2399,15 @@ class TestEdgeCasesAndErrorPaths:
         """Test that filter returns empty dict when all slots are redundant 24:00."""
         # Create weekday data with only 24:00 slots (except one should be kept)
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "24:00", "temperature": 18.0},
+            2: {"endtime": "24:00", "temperature": 18.0},
+            3: {"endtime": "24:00", "temperature": 18.0},
         }
 
         result = _filter_weekday_entries(weekday_data=weekday_data)
         # Should keep only one 24:00 slot
         assert len(result) == 1
-        assert result[1][ScheduleSlotType.ENDTIME] == "24:00"
+        assert result[1]["endtime"] == "24:00"
 
     @pytest.mark.parametrize(
         (
@@ -2504,8 +2481,8 @@ class TestEdgeCasesAndErrorPaths:
 
         # Create fresh weekday data for a profile that might not exist
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 20.0},
-            2: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "12:00", "temperature": 20.0},
+            2: {"endtime": "24:00", "temperature": 18.0},
         }
 
         # Set for a profile (P6)
@@ -2543,7 +2520,7 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             profile_data = {
                 WeekdayStr.MONDAY: {
-                    1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 0.0},
+                    1: {"endtime": "24:00", "temperature": 0.0},
                 }
             }
 
@@ -2571,14 +2548,14 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             profile_data = {
                 WeekdayStr.MONDAY: {
-                    1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                    2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                    3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                    1: {"endtime": "06:00", "temperature": 18.0},
+                    2: {"endtime": "22:00", "temperature": 21.0},
+                    3: {"endtime": "24:00", "temperature": 18.0},
                 },
                 WeekdayStr.TUESDAY: {
-                    1: {ScheduleSlotType.ENDTIME: "07:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                    2: {ScheduleSlotType.ENDTIME: "23:00", ScheduleSlotType.TEMPERATURE: 22.0},
-                    3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                    1: {"endtime": "07:00", "temperature": 18.0},
+                    2: {"endtime": "23:00", "temperature": 22.0},
+                    3: {"endtime": "24:00", "temperature": 18.0},
                 },
             }
 
@@ -2587,10 +2564,10 @@ class TestInverseScheduleConverters:
             # Should have both weekdays
             assert WeekdayStr.MONDAY in result
             assert WeekdayStr.TUESDAY in result
-            assert len(result[WeekdayStr.MONDAY][1]) == 2
-            assert len(result[WeekdayStr.TUESDAY][1]) == 2
-            assert result[WeekdayStr.MONDAY][1][0][ScheduleSlotType.TEMPERATURE] == 18.0
-            assert result[WeekdayStr.TUESDAY][1][0][ScheduleSlotType.TEMPERATURE] == 18.0
+            assert len(result[WeekdayStr.MONDAY]["periods"]) == 2
+            assert len(result[WeekdayStr.TUESDAY]["periods"]) == 2
+            assert result[WeekdayStr.MONDAY]["periods"][0]["temperature"] == 18.0
+            assert result[WeekdayStr.TUESDAY]["periods"][0]["temperature"] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -2613,26 +2590,26 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             # Start with simple profile
             original_simple_profile = {
-                WeekdayStr.MONDAY: (
-                    18.0,
-                    [
+                WeekdayStr.MONDAY: {
+                    "base_temperature": 18.0,
+                    "periods": [
                         {
-                            ScheduleSlotType.STARTTIME: "06:00",
-                            ScheduleSlotType.ENDTIME: "22:00",
-                            ScheduleSlotType.TEMPERATURE: 21.0,
+                            "starttime": "06:00",
+                            "endtime": "22:00",
+                            "temperature": 21.0,
                         }
                     ],
-                ),
-                WeekdayStr.FRIDAY: (
-                    18.0,
-                    [
+                },
+                WeekdayStr.FRIDAY: {
+                    "base_temperature": 18.0,
+                    "periods": [
                         {
-                            ScheduleSlotType.STARTTIME: "08:00",
-                            ScheduleSlotType.ENDTIME: "20:00",
-                            ScheduleSlotType.TEMPERATURE: 20.0,
+                            "starttime": "08:00",
+                            "endtime": "20:00",
+                            "temperature": 20.0,
                         }
                     ],
-                ),
+                },
             }
 
             # Convert to full format
@@ -2672,16 +2649,16 @@ class TestInverseScheduleConverters:
             # Start with simple schedule
             original_simple_schedule = {
                 ScheduleProfile.P1: {
-                    WeekdayStr.MONDAY: (
-                        18.0,
-                        [
+                    WeekdayStr.MONDAY: {
+                        "base_temperature": 18.0,
+                        "periods": [
                             {
-                                ScheduleSlotType.STARTTIME: "06:00",
-                                ScheduleSlotType.ENDTIME: "22:00",
-                                ScheduleSlotType.TEMPERATURE: 21.0,
+                                "starttime": "06:00",
+                                "endtime": "22:00",
+                                "temperature": 21.0,
                             }
                         ],
-                    )
+                    }
                 }
             }
 
@@ -2719,21 +2696,21 @@ class TestInverseScheduleConverters:
 
         if climate.device.week_profile:
             # Start with simple format
-            original_simple = (
-                18.0,
-                [
+            original_simple = {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "06:00",
-                        ScheduleSlotType.ENDTIME: "08:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "06:00",
+                        "endtime": "08:00",
+                        "temperature": 21.0,
                     },
                     {
-                        ScheduleSlotType.STARTTIME: "18:00",
-                        ScheduleSlotType.ENDTIME: "22:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "18:00",
+                        "endtime": "22:00",
+                        "temperature": 21.0,
                     },
                 ],
-            )
+            }
 
             # Convert to full format
             full_format = climate.device.week_profile._validate_and_convert_simple_to_weekday(
@@ -2746,12 +2723,12 @@ class TestInverseScheduleConverters:
             )
 
             # Should match original
-            assert len(result_simple) == len(original_simple)
-            _, _result_simple = result_simple
+            assert len(result_simple["periods"]) == len(original_simple["periods"])
+            _result_simple = result_simple["periods"]
             for i, slot in enumerate(_result_simple):
-                assert slot[ScheduleSlotType.STARTTIME] == original_simple[1][i][ScheduleSlotType.STARTTIME]
-                assert slot[ScheduleSlotType.ENDTIME] == original_simple[1][i][ScheduleSlotType.ENDTIME]
-                assert slot[ScheduleSlotType.TEMPERATURE] == original_simple[1][i][ScheduleSlotType.TEMPERATURE]
+                assert slot["starttime"] == original_simple["periods"][i]["starttime"]
+                assert slot["endtime"] == original_simple["periods"][i]["endtime"]
+                assert slot["temperature"] == original_simple["periods"][i]["temperature"]
 
     @pytest.mark.parametrize(
         (
@@ -2777,7 +2754,7 @@ class TestInverseScheduleConverters:
             schedule_data = {
                 ScheduleProfile.P1: {
                     WeekdayStr.MONDAY: {
-                        1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 999.0},
+                        1: {"endtime": "24:00", "temperature": 999.0},
                     }
                 }
             }
@@ -2807,16 +2784,16 @@ class TestInverseScheduleConverters:
             schedule_data = {
                 ScheduleProfile.P1: {
                     WeekdayStr.MONDAY: {
-                        1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                        2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                        3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                        1: {"endtime": "06:00", "temperature": 18.0},
+                        2: {"endtime": "22:00", "temperature": 21.0},
+                        3: {"endtime": "24:00", "temperature": 18.0},
                     },
                 },
                 ScheduleProfile.P2: {
                     WeekdayStr.TUESDAY: {
-                        1: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                        2: {ScheduleSlotType.ENDTIME: "20:00", ScheduleSlotType.TEMPERATURE: 20.0},
-                        3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                        1: {"endtime": "08:00", "temperature": 18.0},
+                        2: {"endtime": "20:00", "temperature": 20.0},
+                        3: {"endtime": "24:00", "temperature": 18.0},
                     },
                 },
             }
@@ -2850,13 +2827,13 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             # All slots at base temperature
             weekday_data = {
-                1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {"endtime": "24:00", "temperature": 18.0},
             }
 
             result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce empty list (no non-base periods)
-            assert len(result[1]) == 0
+            assert len(result["periods"]) == 0
 
     @pytest.mark.parametrize(
         (
@@ -2879,18 +2856,18 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             # Full weekday with one non-base temperature period
             weekday_data = {
-                1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {"endtime": "06:00", "temperature": 18.0},
+                2: {"endtime": "22:00", "temperature": 21.0},
+                3: {"endtime": "24:00", "temperature": 18.0},
             }
 
             result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce single entry from 06:00-22:00 at 21.0
-            assert len(result[1]) == 2
-            assert result[1][0][ScheduleSlotType.STARTTIME] == "00:00"
-            assert result[1][0][ScheduleSlotType.ENDTIME] == "06:00"
-            assert result[1][0][ScheduleSlotType.TEMPERATURE] == 18.0
+            assert len(result["periods"]) == 2
+            assert result["periods"][0]["starttime"] == "00:00"
+            assert result["periods"][0]["endtime"] == "06:00"
+            assert result["periods"][0]["temperature"] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -2913,22 +2890,22 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             # Consecutive slots with different temperatures
             weekday_data = {
-                1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                2: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 20.0},
-                3: {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 22.0},
-                4: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {"endtime": "06:00", "temperature": 18.0},
+                2: {"endtime": "12:00", "temperature": 20.0},
+                3: {"endtime": "18:00", "temperature": 22.0},
+                4: {"endtime": "24:00", "temperature": 18.0},
             }
 
             result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce two separate entries (different temps)
             assert len(result) == 2
-            assert result[1][0][ScheduleSlotType.STARTTIME] == "06:00"
-            assert result[1][0][ScheduleSlotType.ENDTIME] == "12:00"
-            assert result[1][0][ScheduleSlotType.TEMPERATURE] == 20.0
-            assert result[1][1][ScheduleSlotType.STARTTIME] == "12:00"
-            assert result[1][1][ScheduleSlotType.ENDTIME] == "18:00"
-            assert result[1][1][ScheduleSlotType.TEMPERATURE] == 22.0
+            assert result["periods"][0]["starttime"] == "06:00"
+            assert result["periods"][0]["endtime"] == "12:00"
+            assert result["periods"][0]["temperature"] == 20.0
+            assert result["periods"][1]["starttime"] == "12:00"
+            assert result["periods"][1]["endtime"] == "18:00"
+            assert result["periods"][1]["temperature"] == 22.0
 
     @pytest.mark.parametrize(
         (
@@ -2950,7 +2927,7 @@ class TestInverseScheduleConverters:
 
         if climate.device.week_profile:
             weekday_data = {
-                1: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 100.0},
+                1: {"endtime": "24:00", "temperature": 100.0},
             }
 
             # Base temperature out of range
@@ -2978,20 +2955,20 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             # Multiple consecutive slots at same non-base temperature
             weekday_data = {
-                1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                2: {ScheduleSlotType.ENDTIME: "12:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                3: {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                4: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {"endtime": "06:00", "temperature": 18.0},
+                2: {"endtime": "12:00", "temperature": 21.0},
+                3: {"endtime": "18:00", "temperature": 21.0},
+                4: {"endtime": "22:00", "temperature": 21.0},
+                5: {"endtime": "24:00", "temperature": 18.0},
             }
 
             result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should merge into single entry from 06:00-22:00
-            assert len(result[1]) == 2
-            assert result[1][1][ScheduleSlotType.STARTTIME] == "22:00"
-            assert result[1][1][ScheduleSlotType.ENDTIME] == "24:00"
-            assert result[1][1][ScheduleSlotType.TEMPERATURE] == 18.0
+            assert len(result["periods"]) == 2
+            assert result["periods"][1]["starttime"] == "22:00"
+            assert result["periods"][1]["endtime"] == "24:00"
+            assert result["periods"][1]["temperature"] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -3014,23 +2991,23 @@ class TestInverseScheduleConverters:
         if climate.device.week_profile:
             # Full weekday with two non-base periods separated by base temperature
             weekday_data = {
-                1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                3: {ScheduleSlotType.ENDTIME: "18:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                4: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {"endtime": "06:00", "temperature": 18.0},
+                2: {"endtime": "08:00", "temperature": 21.0},
+                3: {"endtime": "18:00", "temperature": 18.0},
+                4: {"endtime": "22:00", "temperature": 21.0},
+                5: {"endtime": "24:00", "temperature": 18.0},
             }
 
             result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
             # Should produce two entries
-            assert len(result[1]) == 2
-            assert result[1][0][ScheduleSlotType.STARTTIME] == "06:00"
-            assert result[1][0][ScheduleSlotType.ENDTIME] == "08:00"
-            assert result[1][0][ScheduleSlotType.TEMPERATURE] == 21.0
-            assert result[1][1][ScheduleSlotType.STARTTIME] == "18:00"
-            assert result[1][1][ScheduleSlotType.ENDTIME] == "22:00"
-            assert result[1][1][ScheduleSlotType.TEMPERATURE] == 21.0
+            assert len(result["periods"]) == 2
+            assert result["periods"][0]["starttime"] == "06:00"
+            assert result["periods"][0]["endtime"] == "08:00"
+            assert result["periods"][0]["temperature"] == 21.0
+            assert result["periods"][1]["starttime"] == "18:00"
+            assert result["periods"][1]["endtime"] == "22:00"
+            assert result["periods"][1]["temperature"] == 21.0
 
 
 class TestWeekProfileHelperMethods:
@@ -3073,8 +3050,8 @@ class TestWeekProfileHelperMethods:
         # Should have valid slot
         assert 1 in result[ScheduleProfile.P1][WeekdayStr.MONDAY]
         slot = result[ScheduleProfile.P1][WeekdayStr.MONDAY][1]
-        assert ScheduleSlotType.TEMPERATURE in slot
-        assert ScheduleSlotType.ENDTIME in slot
+        assert "temperature" in slot
+        assert "endtime" in slot
 
     @pytest.mark.parametrize(
         (
@@ -3260,8 +3237,8 @@ class TestWeekProfileHelperMethods:
                         if weekday_data:
                             # At least verify the data structure is correct
                             for slot in weekday_data.values():
-                                assert ScheduleSlotType.ENDTIME in slot
-                                assert ScheduleSlotType.TEMPERATURE in slot
+                                assert "endtime" in slot
+                                assert "temperature" in slot
 
     @pytest.mark.parametrize(
         (
@@ -3350,9 +3327,9 @@ class TestValidateAndConvertMethods:
         # Create full profile data
         profile_data = {
             WeekdayStr.MONDAY: {
-                1: {ScheduleSlotType.ENDTIME: "07:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                1: {"endtime": "07:00", "temperature": 18.0},
+                2: {"endtime": "22:00", "temperature": 21.0},
+                3: {"endtime": "24:00", "temperature": 18.0},
             },
         }
 
@@ -3367,11 +3344,11 @@ class TestValidateAndConvertMethods:
         # Should have Monday
         assert WeekdayStr.MONDAY in simple_profile
         # Monday should have 1 entry (07:00-22:00 at 21.0)
-        _, monday_data = simple_profile[WeekdayStr.MONDAY]
+        monday_data = simple_profile[WeekdayStr.MONDAY]["periods"]
         assert len(monday_data) == 2
-        assert monday_data[0][ScheduleSlotType.STARTTIME] == "00:00"
-        assert monday_data[0][ScheduleSlotType.ENDTIME] == "07:00"
-        assert monday_data[0][ScheduleSlotType.TEMPERATURE] == 18.0
+        assert monday_data[0]["starttime"] == "00:00"
+        assert monday_data[0]["endtime"] == "07:00"
+        assert monday_data[0]["temperature"] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -3405,9 +3382,9 @@ class TestValidateAndConvertMethods:
         schedule_data = {
             ScheduleProfile.P1: {
                 WeekdayStr.MONDAY: {
-                    1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-                    2: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 21.0},
-                    3: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+                    1: {"endtime": "06:00", "temperature": 18.0},
+                    2: {"endtime": "22:00", "temperature": 21.0},
+                    3: {"endtime": "24:00", "temperature": 18.0},
                 },
             },
         }
@@ -3429,11 +3406,11 @@ class TestValidateAndConvertMethods:
         # P1 should have Monday
         assert WeekdayStr.MONDAY in simple_schedule[ScheduleProfile.P1]
         # Monday should have 1 entry (06:00-22:00 at 21.0)
-        _, monday_data = simple_schedule[ScheduleProfile.P1][WeekdayStr.MONDAY]
+        monday_data = simple_schedule[ScheduleProfile.P1][WeekdayStr.MONDAY]["periods"]
         assert len(monday_data) == 2
-        assert monday_data[1][ScheduleSlotType.STARTTIME] == "22:00"
-        assert monday_data[1][ScheduleSlotType.ENDTIME] == "24:00"
-        assert monday_data[1][ScheduleSlotType.TEMPERATURE] == 18.0
+        assert monday_data[1]["starttime"] == "22:00"
+        assert monday_data[1]["endtime"] == "24:00"
+        assert monday_data[1]["temperature"] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -3465,26 +3442,26 @@ class TestValidateAndConvertMethods:
 
         # Create simple profile data
         simple_profile = {
-            WeekdayStr.MONDAY: (
-                18.0,
-                [
+            WeekdayStr.MONDAY: {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "07:00",
-                        ScheduleSlotType.ENDTIME: "22:00",
-                        ScheduleSlotType.TEMPERATURE: 21.0,
+                        "starttime": "07:00",
+                        "endtime": "22:00",
+                        "temperature": 21.0,
                     },
                 ],
-            ),
-            WeekdayStr.TUESDAY: (
-                18.0,
-                [
+            },
+            WeekdayStr.TUESDAY: {
+                "base_temperature": 18.0,
+                "periods": [
                     {
-                        ScheduleSlotType.STARTTIME: "08:00",
-                        ScheduleSlotType.ENDTIME: "20:00",
-                        ScheduleSlotType.TEMPERATURE: 20.0,
+                        "starttime": "08:00",
+                        "endtime": "20:00",
+                        "temperature": 20.0,
                     },
                 ],
-            ),
+            },
         }
 
         # Convert simple to full profile format
@@ -3530,28 +3507,28 @@ class TestValidateAndConvertMethods:
         # Create simple schedule data
         simple_schedule = {
             ScheduleProfile.P1: {
-                WeekdayStr.MONDAY: (
-                    18.0,
-                    [
+                WeekdayStr.MONDAY: {
+                    "base_temperature": 18.0,
+                    "periods": [
                         {
-                            ScheduleSlotType.STARTTIME: "06:00",
-                            ScheduleSlotType.ENDTIME: "22:00",
-                            ScheduleSlotType.TEMPERATURE: 21.0,
+                            "starttime": "06:00",
+                            "endtime": "22:00",
+                            "temperature": 21.0,
                         },
                     ],
-                ),
+                },
             },
             ScheduleProfile.P2: {
-                WeekdayStr.TUESDAY: (
-                    18.0,
-                    [
+                WeekdayStr.TUESDAY: {
+                    "base_temperature": 18.0,
+                    "periods": [
                         {
-                            ScheduleSlotType.STARTTIME: "07:00",
-                            ScheduleSlotType.ENDTIME: "20:00",
-                            ScheduleSlotType.TEMPERATURE: 20.0,
+                            "starttime": "07:00",
+                            "endtime": "20:00",
+                            "temperature": 20.0,
                         },
                     ],
-                ),
+                },
             },
         }
 
@@ -3596,21 +3573,21 @@ class TestValidateAndConvertMethods:
         ), "Device should have ClimeateWeekProfile"
 
         # Create simple weekday data
-        simple_weekday = (
-            18.0,
-            [
+        simple_weekday = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "08:00",
-                    ScheduleSlotType.TEMPERATURE: 21.0,
+                    "starttime": "06:00",
+                    "endtime": "08:00",
+                    "temperature": 21.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "17:00",
-                    ScheduleSlotType.ENDTIME: "22:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "starttime": "17:00",
+                    "endtime": "22:00",
+                    "temperature": 20.0,
                 },
             ],
-        )
+        }
 
         # Convert simple to full weekday format
         weekday_data = climate.device.week_profile._validate_and_convert_simple_to_weekday(
@@ -3620,20 +3597,20 @@ class TestValidateAndConvertMethods:
         # Should have 13 slots
         assert len(weekday_data) == 13
         # First slot: base temp until 06:00
-        assert weekday_data[1][ScheduleSlotType.ENDTIME] == "06:00"
-        assert weekday_data[1][ScheduleSlotType.TEMPERATURE] == 18.0
+        assert weekday_data[1]["endtime"] == "06:00"
+        assert weekday_data[1]["temperature"] == 18.0
         # Second slot: heated period 06:00-08:00
-        assert weekday_data[2][ScheduleSlotType.ENDTIME] == "08:00"
-        assert weekday_data[2][ScheduleSlotType.TEMPERATURE] == 21.0
+        assert weekday_data[2]["endtime"] == "08:00"
+        assert weekday_data[2]["temperature"] == 21.0
         # Third slot: base temp 08:00-17:00
-        assert weekday_data[3][ScheduleSlotType.ENDTIME] == "17:00"
-        assert weekday_data[3][ScheduleSlotType.TEMPERATURE] == 18.0
+        assert weekday_data[3]["endtime"] == "17:00"
+        assert weekday_data[3]["temperature"] == 18.0
         # Fourth slot: heated period 17:00-22:00
-        assert weekday_data[4][ScheduleSlotType.ENDTIME] == "22:00"
-        assert weekday_data[4][ScheduleSlotType.TEMPERATURE] == 20.0
+        assert weekday_data[4]["endtime"] == "22:00"
+        assert weekday_data[4]["temperature"] == 20.0
         # Remaining slots: base temp until 24:00
-        assert weekday_data[5][ScheduleSlotType.ENDTIME] == "24:00"
-        assert weekday_data[5][ScheduleSlotType.TEMPERATURE] == 18.0
+        assert weekday_data[5]["endtime"] == "24:00"
+        assert weekday_data[5]["temperature"] == 18.0
 
     @pytest.mark.parametrize(
         (
@@ -3665,34 +3642,34 @@ class TestValidateAndConvertMethods:
 
         # Create full weekday data (13 slots)
         weekday_data = {
-            1: {ScheduleSlotType.ENDTIME: "06:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            2: {ScheduleSlotType.ENDTIME: "08:00", ScheduleSlotType.TEMPERATURE: 21.0},
-            3: {ScheduleSlotType.ENDTIME: "17:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            4: {ScheduleSlotType.ENDTIME: "22:00", ScheduleSlotType.TEMPERATURE: 20.0},
-            5: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            6: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            7: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            8: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            9: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            10: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            11: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            12: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
-            13: {ScheduleSlotType.ENDTIME: "24:00", ScheduleSlotType.TEMPERATURE: 18.0},
+            1: {"endtime": "06:00", "temperature": 18.0},
+            2: {"endtime": "08:00", "temperature": 21.0},
+            3: {"endtime": "17:00", "temperature": 18.0},
+            4: {"endtime": "22:00", "temperature": 20.0},
+            5: {"endtime": "24:00", "temperature": 18.0},
+            6: {"endtime": "24:00", "temperature": 18.0},
+            7: {"endtime": "24:00", "temperature": 18.0},
+            8: {"endtime": "24:00", "temperature": 18.0},
+            9: {"endtime": "24:00", "temperature": 18.0},
+            10: {"endtime": "24:00", "temperature": 18.0},
+            11: {"endtime": "24:00", "temperature": 18.0},
+            12: {"endtime": "24:00", "temperature": 18.0},
+            13: {"endtime": "24:00", "temperature": 18.0},
         }
 
         # Convert full to simple weekday format
         simple_weekday = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
 
         # Should have 2 entries (only non-base temperature periods)
-        assert len(simple_weekday[1]) == 2
+        assert len(simple_weekday["periods"]) == 2
         # First heated period: 06:00-08:00 at 21.0
-        assert simple_weekday[1][0][ScheduleSlotType.STARTTIME] == "06:00"
-        assert simple_weekday[1][0][ScheduleSlotType.ENDTIME] == "08:00"
-        assert simple_weekday[1][0][ScheduleSlotType.TEMPERATURE] == 21.0
+        assert simple_weekday["periods"][0]["starttime"] == "06:00"
+        assert simple_weekday["periods"][0]["endtime"] == "08:00"
+        assert simple_weekday["periods"][0]["temperature"] == 21.0
         # Second heated period: 17:00-22:00 at 20.0
-        assert simple_weekday[1][1][ScheduleSlotType.STARTTIME] == "17:00"
-        assert simple_weekday[1][1][ScheduleSlotType.ENDTIME] == "22:00"
-        assert simple_weekday[1][1][ScheduleSlotType.TEMPERATURE] == 20.0
+        assert simple_weekday["periods"][1]["starttime"] == "17:00"
+        assert simple_weekday["periods"][1]["endtime"] == "22:00"
+        assert simple_weekday["periods"][1]["temperature"] == 20.0
 
     @pytest.mark.parametrize(
         (
@@ -3723,21 +3700,21 @@ class TestValidateAndConvertMethods:
         ), "Device should have ClimeateWeekProfile"
 
         # Original simple data
-        original_simple = (
-            18.0,
-            [
+        original_simple = {
+            "base_temperature": 18.0,
+            "periods": [
                 {
-                    ScheduleSlotType.STARTTIME: "06:00",
-                    ScheduleSlotType.ENDTIME: "08:00",
-                    ScheduleSlotType.TEMPERATURE: 21.0,
+                    "starttime": "06:00",
+                    "endtime": "08:00",
+                    "temperature": 21.0,
                 },
                 {
-                    ScheduleSlotType.STARTTIME: "17:00",
-                    ScheduleSlotType.ENDTIME: "22:00",
-                    ScheduleSlotType.TEMPERATURE: 20.0,
+                    "starttime": "17:00",
+                    "endtime": "22:00",
+                    "temperature": 20.0,
                 },
             ],
-        )
+        }
 
         # Convert simple -> full
         full_data = climate.device.week_profile._validate_and_convert_simple_to_weekday(
@@ -3748,9 +3725,9 @@ class TestValidateAndConvertMethods:
         result_simple = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=full_data)
 
         # Should match original (might be in different order, so check contents)
-        assert len(result_simple) == len(original_simple)
-        _, _result_simple = result_simple
+        assert len(result_simple["periods"]) == len(original_simple["periods"])
+        _result_simple = result_simple["periods"]
         for i, slot in enumerate(_result_simple):
-            assert slot[ScheduleSlotType.STARTTIME] == original_simple[1][i][ScheduleSlotType.STARTTIME]
-            assert slot[ScheduleSlotType.ENDTIME] == original_simple[1][i][ScheduleSlotType.ENDTIME]
-            assert slot[ScheduleSlotType.TEMPERATURE] == original_simple[1][i][ScheduleSlotType.TEMPERATURE]
+            assert slot["starttime"] == original_simple["periods"][i]["starttime"]
+            assert slot["endtime"] == original_simple["periods"][i]["endtime"]
+            assert slot["temperature"] == original_simple["periods"][i]["temperature"]

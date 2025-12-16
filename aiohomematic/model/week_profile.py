@@ -55,11 +55,15 @@ Example:
    }
 
 3. CLIMATE_WEEKDAY_DICT (Single Weekday)
-   Structure: dict[int, dict[str, str | float]]
+   Structure: dict[int, ScheduleSlot]
 
-   Contains 13 time slots for a single weekday. Each slot has an "endtime" and "temperature"
-   (lowercase string keys). Slots define periods where the thermostat maintains a specific
-   temperature until the endtime is reached.
+   Contains 13 time slots for a single weekday. Each slot is a ScheduleSlot TypedDict with
+   "endtime" and "temperature" keys. Slots define periods where the thermostat maintains
+   a specific temperature until the endtime is reached.
+
+   ScheduleSlot TypedDict:
+       endtime: str      # End time in "HH:MM" format
+       temperature: float  # Target temperature in Celsius
 
 Example:
    {
@@ -756,7 +760,8 @@ class ClimateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
             Output: {ScheduleProfile.P1: {"MONDAY": {1: {"temperature": 20.0, "endtime": "06:00"}}}}
 
         """
-        schedule_data: CLIMATE_SCHEDULE_DICT = {}
+        # Use permissive type during incremental construction, final type is CLIMATE_SCHEDULE_DICT
+        schedule_data: dict[ScheduleProfile, dict[WeekdayStr, dict[int, dict[str, str | float]]]] = {}
 
         # Process each schedule entry
         for slot_name, slot_value in raw_schedule.items():
@@ -792,7 +797,8 @@ class ClimateWeekProfile(WeekProfile[CLIMATE_SCHEDULE_DICT]):
 
             schedule_data[_profile][_weekday][_slot_no][_slot_type] = final_value
 
-        return schedule_data
+        # Cast to CLIMATE_SCHEDULE_DICT since we built it with all required keys
+        return cast(CLIMATE_SCHEDULE_DICT, schedule_data)
 
     @property
     def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:

@@ -24,6 +24,14 @@
     - `ClimateWeekProfile.get_schedule_simple_profile()` returns `SimpleProfileSchedule`
     - `CustomDpClimate.set_simple_schedule_weekday()` accepts `SimpleWeekdaySchedule`
 
+### Improvements
+
+- **Add `ScheduleSlot` TypedDict**: Improve type safety for normal schedule format
+  - New TypedDict class with `endtime: str` and `temperature: float` fields
+  - `CLIMATE_WEEKDAY_DICT` now uses `dict[int, ScheduleSlot]` instead of `dict[int, dict[str, str | float]]`
+  - Provides IDE autocomplete and better type checking for schedule slot access
+  - Non-breaking change: existing code continues to work, only type annotations are stricter
+
 ### Documentation
 
 - Create comprehensive migration guide: `docs/migrations/simple_schedule_migration_2025_12.md`

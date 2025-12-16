@@ -48,6 +48,7 @@ from aiohomematic.const import (
     HubValueType,
     Interface,
     ParameterData,
+    ParameterStatus,
     ParameterType,
     ParamsetKey,
     ProductGroup,
@@ -130,13 +131,23 @@ class CallbackDataPointProtocol(Protocol):
 
     @property
     @abstractmethod
+    def is_refreshed(self) -> bool:
+        """Return if the data_point has been refreshed (received a value)."""
+
+    @property
+    @abstractmethod
     def is_registered(self) -> bool:
         """Return if data point is registered externally."""
 
     @property
     @abstractmethod
+    def is_status_valid(self) -> bool:
+        """Return if the status indicates a valid value."""
+
+    @property
+    @abstractmethod
     def is_valid(self) -> bool:
-        """Return if the value of the data point is valid."""
+        """Return if the value is valid (refreshed and status is OK)."""
 
     @property
     @abstractmethod
@@ -592,6 +603,16 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def status(self) -> ParameterStatus | None:
+        """Return the current status of this parameter value."""
+
+    @property
+    @abstractmethod
+    def status_dpk(self) -> DataPointKey | None:
+        """Return the DataPointKey for the STATUS parameter."""
+
+    @property
+    @abstractmethod
     def supports_events(self) -> bool:
         """Return if data point supports events."""
 
@@ -635,6 +656,10 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     def update_parameter_data(self) -> None:
         """Update parameter data."""
+
+    @abstractmethod
+    def update_status(self, *, status_value: int) -> None:
+        """Update the status from a STATUS parameter event."""
 
     @abstractmethod
     def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:

@@ -475,6 +475,37 @@ class DataPointUsage(StrEnum):
     NO_CREATE = "no_create"
 
 
+class ParameterStatus(IntEnum):
+    """
+    Status values for paired *_STATUS parameters.
+
+    These indicate the validity/quality of the associated parameter value.
+    Note: Some *_STATUS parameters (LED_STATUS, BACKLIGHT_AT_STATUS, etc.)
+    have different value semantics and should not use this enum.
+    """
+
+    NORMAL = 0
+    """Value is valid and within expected range."""
+
+    UNKNOWN = 1
+    """Value is unknown (device hasn't reported yet, or communication issue)."""
+
+    OVERFLOW = 2
+    """Value exceeds the maximum expected range."""
+
+    UNDERFLOW = 3
+    """Value is below the minimum expected range."""
+
+    ERROR = 4
+    """Measurement error occurred."""
+
+    INVALID = 5
+    """Value is invalid."""
+
+    UNUSED = 6
+    """Parameter is not used."""
+
+
 class DescriptionMarker(StrEnum):
     """Enum with default description markers."""
 

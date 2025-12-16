@@ -208,6 +208,28 @@ class DataPointUpdatedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
+class DataPointStatusUpdatedEvent(Event):
+    """
+    Fired when a STATUS parameter value is updated from the backend.
+
+    Key is the DataPointKey of the MAIN parameter (not the STATUS parameter).
+
+    This event is routed to the main parameter's data point to update
+    its status attribute. For example, a LEVEL_STATUS event is routed
+    to the LEVEL data point.
+    """
+
+    dpk: DataPointKey
+    status_value: int
+    received_at: datetime
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.dpk
+
+
+@dataclass(frozen=True, slots=True)
 class BackendParameterEvent(Event):
     """
     Raw parameter update event from backend (re-published from RPC callbacks).

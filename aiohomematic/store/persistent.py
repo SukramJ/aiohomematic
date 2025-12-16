@@ -532,6 +532,15 @@ class ParamsetDescriptionCache(
         """Return if interface is in paramset_descriptions cache."""
         return interface_id in self._raw_paramset_descriptions
 
+    def has_parameter(
+        self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+    ) -> bool:
+        """Check if a parameter exists in the paramset description."""
+        try:
+            return parameter in self._raw_paramset_descriptions[interface_id][channel_address][paramset_key]
+        except KeyError:
+            return False
+
     def is_in_multiple_channels(self, *, channel_address: str, parameter: str) -> bool:
         """Check if parameter is in multiple channels per device."""
         if ADDRESS_SEPARATOR not in channel_address:

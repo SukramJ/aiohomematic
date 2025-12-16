@@ -28,7 +28,12 @@ if TYPE_CHECKING:
 
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.decorators import callback_event
-from aiohomematic.central.event_bus import BackendParameterEvent, DataPointUpdatedEvent, EventBus
+from aiohomematic.central.event_bus import (
+    BackendParameterEvent,
+    DataPointStatusUpdatedEvent,
+    DataPointUpdatedEvent,
+    EventBus,
+)
 from aiohomematic.central.integration_events import (
     DataPointsCreatedEvent,
     DeviceLifecycleEvent,
@@ -148,6 +153,9 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
 
             self._event_bus.subscribe(event_type=DataPointUpdatedEvent, event_key=data_point.dpk, handler=event_handler)
 
+        # Also subscribe for status events if applicable
+        self._add_status_subscription(data_point=data_point)
+
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
         """
@@ -186,14 +194,35 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                     client.ping_pong_cache.handle_received_pong(pong_token=token)
             return
 
+        received_at = datetime.now()
+
+        # Check if this is a STATUS parameter (e.g., LEVEL_STATUS)
+        # If so, also publish a status event to the main parameter
+        if parameter.endswith("_STATUS"):
+            main_param = parameter[:-7]  # Remove "_STATUS" suffix
+            main_dpk = DataPointKey(
+                interface_id=interface_id,
+                channel_address=channel_address,
+                paramset_key=ParamsetKey.VALUES,
+                parameter=main_param,
+            )
+            # Publish status update event to main parameter (if subscribed)
+            await self._event_bus.publish(
+                event=DataPointStatusUpdatedEvent(
+                    timestamp=datetime.now(),
+                    dpk=main_dpk,
+                    status_value=value,
+                    received_at=received_at,
+                )
+            )
+
+        # Always publish normal parameter event (for the parameter itself)
         dpk = DataPointKey(
             interface_id=interface_id,
             channel_address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
         )
-
-        received_at = datetime.now()
 
         # Publish to EventBus (await directly for synchronous event processing)
         await self._event_bus.publish(
@@ -334,6 +363,32 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
 
         # Update health tracker with event received
         self._health_tracker.record_event_received(interface_id=interface_id)
+
+    def _add_status_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
+        """
+        Add status parameter event subscription for a data point.
+
+        This method subscribes the data point to receive STATUS parameter events
+        if the data point has a paired STATUS parameter.
+
+        Args:
+        ----
+            data_point: Data point to subscribe for status events
+
+        """
+        if not hasattr(data_point, "status_dpk") or data_point.status_dpk is None:
+            return
+
+        async def status_event_handler(*, event: DataPointStatusUpdatedEvent) -> None:
+            """Filter and handle status events."""
+            if event.dpk == data_point.dpk:
+                data_point.update_status(status_value=event.status_value)
+
+        self._event_bus.subscribe(
+            event_type=DataPointStatusUpdatedEvent,
+            event_key=data_point.dpk,
+            handler=status_event_handler,
+        )
 
     def _emit_device_removed_event(self, *, timestamp: datetime, **kwargs: Unpack[DeviceRemovedEventArgs]) -> None:
         """Emit DeviceLifecycleEvent for DELETE_DEVICES."""

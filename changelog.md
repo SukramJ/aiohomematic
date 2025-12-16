@@ -1,3 +1,37 @@
+# Version 2025.12.32 (2025-12-16)
+
+## What's Changed
+
+### Breaking Changes
+
+- **Refactor Simple Schedule Format**: Complete overhaul of simple schedule data structures used by climate thermostats
+  - Old format: Tuple-based `(base_temperature, [periods])` with `ScheduleSlotType` enum keys
+  - New format: TypedDict-based with lowercase string keys (e.g., `"starttime"`, `"endtime"`, `"temperature"`)
+  - Replaces:
+    - `CLIMATE_SIMPLE_WEEKDAY_DATA` → `SimpleWeekdaySchedule` TypedDict
+    - `CLIMATE_SIMPLE_PROFILE_DICT` → `SimpleProfileSchedule` type alias
+    - `CLIMATE_SIMPLE_SCHEDULE_DICT` → `SimpleScheduleDict` type alias
+  - New TypedDict class: `SimpleSchedulePeriod` for individual schedule periods
+  - Benefits:
+    - ✅ Full JSON serialization support (enables Home Assistant custom cards)
+    - ✅ Better type safety with TypedDict
+    - ✅ Cleaner, more intuitive API with string keys
+    - ✅ Reduced memory overhead (no enum objects)
+  - **Migration required**: See `docs/migrations/simple_schedule_migration_2025_12.md` for step-by-step guide
+  - Updated method signatures:
+    - `ClimateWeekProfile.get_schedule_simple_weekday()` returns `SimpleWeekdaySchedule`
+    - `ClimateWeekProfile.set_simple_weekday()` accepts `SimpleWeekdaySchedule`
+    - `ClimateWeekProfile.get_schedule_simple_profile()` returns `SimpleProfileSchedule`
+    - `CustomDpClimate.set_simple_schedule_weekday()` accepts `SimpleWeekdaySchedule`
+
+### Documentation
+
+- Create comprehensive migration guide: `docs/migrations/simple_schedule_migration_2025_12.md`
+  - Includes before/after code examples
+  - Search-and-replace patterns for automated migration
+  - JSON serialization examples
+  - Detailed API change documentation
+
 # Version 2025.12.31 (2025-12-16)
 
 ## What's Changed

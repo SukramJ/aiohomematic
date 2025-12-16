@@ -1692,17 +1692,63 @@ class WeekdayStr(StrEnum):
 
 CLIMATE_MAX_SCHEDULER_TIME: Final = "24:00"
 CLIMATE_MIN_SCHEDULER_TIME: Final = "00:00"
-CLIMATE_WEEKDAY_DICT = dict[int, dict[ScheduleSlotType, str | float]]
+CLIMATE_WEEKDAY_DICT = dict[int, dict[str, str | float]]
 CLIMATE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_WEEKDAY_DICT]
-CLIMATE_RELEVANT_SLOT_TYPES: Final = (ScheduleSlotType.ENDTIME, ScheduleSlotType.TEMPERATURE)
+CLIMATE_RELEVANT_SLOT_TYPES: Final = ("endtime", "temperature")
 CLIMATE_SCHEDULE_DICT = dict[ScheduleProfile, CLIMATE_PROFILE_DICT]
 CLIMATE_SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
 CLIMATE_SCHEDULE_SLOT_RANGE: Final = range(1, 13)
 CLIMATE_SCHEDULE_TIME_RANGE: Final = range(1441)
-CLIMATE_SIMPLE_WEEKDAY_LIST = list[dict[ScheduleSlotType, str | float]]
-CLIMATE_SIMPLE_WEEKDAY_DATA = tuple[float, CLIMATE_SIMPLE_WEEKDAY_LIST]
-CLIMATE_SIMPLE_PROFILE_DICT = dict[WeekdayStr, CLIMATE_SIMPLE_WEEKDAY_DATA]
-CLIMATE_SIMPLE_SCHEDULE_DICT = dict[ScheduleProfile, CLIMATE_SIMPLE_PROFILE_DICT]
+
+
+class SimpleSchedulePeriod(TypedDict):
+    """
+    A single temperature period in a simple schedule.
+
+    Uses lowercase string keys for JSON serialization compatibility with custom cards.
+
+    Attributes:
+        starttime: Start time in "HH:MM" format (e.g., "06:00")
+        endtime: End time in "HH:MM" format (e.g., "22:00")
+        temperature: Target temperature in degrees Celsius
+
+    """
+
+    starttime: str
+    endtime: str
+    temperature: float
+
+
+class SimpleWeekdaySchedule(TypedDict):
+    """
+    Schedule for a single weekday with base temperature and heating periods.
+
+    Attributes:
+        base_temperature: Default temperature when no period is active
+        periods: List of temperature periods with start/end times
+
+    Example:
+        {
+            "base_temperature": 18.0,
+            "periods": [
+                {"starttime": "06:00", "endtime": "08:00", "temperature": 21.0},
+                {"starttime": "17:00", "endtime": "22:00", "temperature": 21.0}
+            ]
+        }
+
+    """
+
+    base_temperature: float
+    periods: list[SimpleSchedulePeriod]
+
+
+# Type aliases for higher-level structures
+SimpleProfileSchedule = dict[WeekdayStr, SimpleWeekdaySchedule]
+"""Schedule for all weekdays in a profile."""
+
+SimpleScheduleDict = dict[ScheduleProfile, SimpleProfileSchedule]
+"""Complete schedule with all profiles."""
+
 DEFAULT_CLIMATE_FILL_TEMPERATURE: Final = 18.0
 DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]
 DEFAULT_SCHEDULE_DICT = dict[int, DEFAULT_SCHEDULE_GROUP]

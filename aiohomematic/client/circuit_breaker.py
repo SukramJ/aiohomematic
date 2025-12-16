@@ -71,7 +71,7 @@ if TYPE_CHECKING:
 from typing import Protocol
 
 
-class HealthRecordCallback(Protocol):
+class HealthRecordCallbackProtocol(Protocol):
     """Protocol for health recording callbacks."""
 
     def __call__(self, *, interface_id: str, success: bool) -> None:
@@ -155,7 +155,7 @@ class CircuitBreaker:
         interface_id: str,
         connection_state: CentralConnectionState | None = None,
         issuer: Any = None,
-        health_record_callback: HealthRecordCallback | None = None,
+        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> None:
         """
         Initialize the circuit breaker.

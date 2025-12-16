@@ -302,7 +302,7 @@ class ServiceScope(StrEnum):
     INTERNAL = "internal"
 
 
-class CalulatedParameter(StrEnum):
+class CalculatedParameter(StrEnum):
     """Enum with calculated Homematic parameters."""
 
     APPARENT_TEMPERATURE = "APPARENT_TEMPERATURE"

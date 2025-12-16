@@ -60,7 +60,7 @@ import orjson
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, HealthRecordCallback
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, HealthRecordCallbackProtocol
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
@@ -240,7 +240,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
         circuit_breaker_config: CircuitBreakerConfig | None = None,
-        health_record_callback: HealthRecordCallback | None = None,
+        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> None:
         """Session setup."""
         self._client_session: Final = (

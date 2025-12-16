@@ -337,7 +337,7 @@ Besides `ConnectionStateChangedEvent` and `CentralStateChangedEvent`, the EventB
 ### Removed APIs (Breaking Changes)
 
 - ❌ `CentralConnectionState.register_state_change_callback()` - Use `EventBus.subscribe(ConnectionStateChangedEvent)` instead
-- ❌ `StateChangeCallback` type alias - No longer needed
+- ❌ `StateChangeCallback` type alias - Renamed to `StateChangeCallbackProtocol`
 
 ### Deprecated APIs (Still Available)
 

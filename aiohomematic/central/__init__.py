@@ -535,7 +535,7 @@ class CentralUnit(
         self,
         *,
         interface_config: hmcl.InterfaceConfig,
-        health_record_callback: hmcl.HealthRecordCallback | None = None,
+        health_record_callback: hmcl.HealthRecordCallbackProtocol | None = None,
     ) -> ClientProtocol:
         """
         Create a client for the given interface configuration.
@@ -1506,7 +1506,7 @@ class CentralConfig:
         self,
         *,
         central: CentralUnit,
-        health_record_callback: hmcl.HealthRecordCallback | None = None,
+        health_record_callback: hmcl.HealthRecordCallbackProtocol | None = None,
     ) -> AioJsonRpcAioHttpClient:
         """Create a json rpc client."""
         return AioJsonRpcAioHttpClient(

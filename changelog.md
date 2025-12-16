@@ -2,9 +2,21 @@
 
 ## What's Changed
 
+### Breaking Changes
+
+- Rename Protocol classes to follow `-Protocol` suffix convention:
+  - `StateChangeCallback` → `StateChangeCallbackProtocol`
+  - `HealthRecordCallback` → `HealthRecordCallbackProtocol`
+  - `SyncEventHandler` → `SyncEventHandlerProtocol`
+  - `AsyncEventHandler` → `AsyncEventHandlerProtocol`
+
+### Bug Fixes
+
+- Fix typo in enum name: `CalulatedParameter` → `CalculatedParameter`
+
 ### Improvements
 
-- Align naming
+- Document intentional camelCase exceptions for RPC callbacks in CLAUDE.md
 
 # Version 2025.12.29 (2025-12-15)
 
@@ -246,7 +258,7 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 - Migrate `CentralConnectionState` callbacks to unified EventBus pattern:
   - Add `ConnectionStateChangedEvent` for connection state changes (connected/disconnected)
   - Add `EventBus.publish_sync()` method for synchronous event publishing from non-async code
-  - Remove `StateChangeCallback` type alias and `register_state_change_callback()` method
+  - Rename `StateChangeCallback` to `StateChangeCallbackProtocol` and remove `register_state_change_callback()` method
   - Add `event_bus` property to `ClientDependencies` protocol
   - All connection state notifications now use the same EventBus as other events
 - EventBus now uses TaskScheduler (Looper) for proper task lifecycle management:

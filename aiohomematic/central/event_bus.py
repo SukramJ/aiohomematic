@@ -139,21 +139,21 @@ class EventPriority(IntEnum):
 
 
 # Event handler protocols - handlers receive event as keyword-only argument
-class SyncEventHandler(Protocol):
+class SyncEventHandlerProtocol(Protocol):
     """Protocol for synchronous event handlers with keyword-only event parameter."""
 
     def __call__(self, *, event: Any) -> None:
         """Handle event synchronously."""
 
 
-class AsyncEventHandler(Protocol):
+class AsyncEventHandlerProtocol(Protocol):
     """Protocol for asynchronous event handlers with keyword-only event parameter."""
 
     def __call__(self, *, event: Any) -> Coroutine[Any, Any, None]:
         """Handle event asynchronously."""
 
 
-EventHandler = SyncEventHandler | AsyncEventHandler
+EventHandler = SyncEventHandlerProtocol | AsyncEventHandlerProtocol
 
 
 @dataclass(slots=True)

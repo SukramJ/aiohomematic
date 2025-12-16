@@ -154,7 +154,7 @@ Calculated data points compute values from one or more underlying GenericDataPoi
 ### Steps to add a new calculated data point:
 
 1. Implement a subclass of CalculatedDataPoint
-   - Set the \_calculated_parameter to a value from aiohomematic.const.CalulatedParameter (this becomes the parameter name exposed by the DP)
+   - Set the \_calculated_parameter to a value from aiohomematic.const.CalculatedParameter (this becomes the parameter name exposed by the DP)
    - In \_init_data_point_fields(), attach required source GenericDataPoints using \_add_data_point(...)
    - Provide properties using decorators:
      - @state_property def value(self) -> T: return computed_value
@@ -175,11 +175,11 @@ Calculated data points compute values from one or more underlying GenericDataPoi
 from __future__ import annotations
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.property_decorators import state_property, config_property
-from aiohomematic.const import CalulatedParameter, ParamsetKey
+from aiohomematic.const import CalculatedParameter, ParamsetKey
 
 
 class MyMetric(CalculatedDataPoint[float]):
-    _calculated_parameter = CalulatedParameter.MY_METRIC
+    _calculated_parameter = CalculatedParameter.MY_METRIC
 
     def _init_data_point_fields(self) -> None:
         super()._init_data_point_fields()

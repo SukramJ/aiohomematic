@@ -37,7 +37,7 @@ import xmlrpc.client
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, HealthRecordCallback
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, HealthRecordCallbackProtocol
 from aiohomematic.const import ISO_8859_1
 from aiohomematic.exceptions import (
     AuthFailure,
@@ -105,7 +105,7 @@ class BaseRpcProxy(ABC):
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
         circuit_breaker_config: CircuitBreakerConfig | None = None,
-        health_record_callback: HealthRecordCallback | None = None,
+        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         self._interface_id: Final = interface_id
@@ -198,7 +198,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         tls: bool = False,
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
-        health_record_callback: HealthRecordCallback | None = None,
+        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         super().__init__(

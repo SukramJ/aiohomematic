@@ -1,3 +1,16 @@
+# Version 2025.12.33 (2025-12-17)
+
+## What's Changed
+
+### Improvements
+
+- **Refactor `get_system_update_info.fn` script**: Simplified and optimized firmware update check script
+  - Simplified version parsing using shell pipeline (`grep | tr | cut`)
+  - Streamlined exit code handling (exit codes: 0 = no update, 1 = update available, >4 = error/script unavailable)
+  - Simplified available version extraction from checkFirmwareUpdate.sh output
+  - Removed complex validation logic while maintaining functionality
+  - Co-Authored-By: @Baxxy13
+
 # Version 2025.12.32 (2025-12-16)
 
 ## What's Changed

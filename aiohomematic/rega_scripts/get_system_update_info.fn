@@ -3,87 +3,37 @@
 !# This script checks if a firmware update is available.
 !# Only supported on OpenCCU (uses checkFirmwareUpdate.sh).
 !#
-!# The script validates:
-!# 1. checkFirmwareUpdate.sh exists and is executable
-!# 2. Script supports required flags (-a, -r) via -h output
-!#
 
 string sFwCurrent = "";
 string sFwAvailable = "";
+string sResult = "";
 boolean bUpdateAvailable = false;
 boolean bCheckScriptAvailable = false;
-string sResult = "";
-string sTemp = "";
 integer iPos;
 integer iExitCode;
 
 !# Get current firmware version from /VERSION file
-system.Exec("cat /VERSION 2>/dev/null", &sResult);
-if (sResult) {
-    sResult = sResult.Trim();
-    iPos = sResult.Find("VERSION=");
-    if (iPos >= 0) {
-        sTemp = sResult.Substr(iPos + 8, sResult.Length());
-        iPos = sTemp.Find("\n");
-        if (iPos > 0) {
-            sFwCurrent = sTemp.Substr(0, iPos).Trim();
-        } else {
-            sFwCurrent = sTemp.Trim();
-        }
-    }
+system.Exec("grep VERSION= /VERSION | tr -d '[:space:]' | cut -d= -f2", &sFwCurrent);
+sFwCurrent = sFwCurrent.Trim();
+
+!# Check if checkFirmwareUpdate.sh is available and working
+system.Exec("/bin/checkFirmwareUpdate.sh 2>/dev/null; echo \"EXIT_CODE=$?\"", &sResult);
+sResult = sResult.Trim();
+iPos = sResult.Find("EXIT_CODE=");
+iExitCode = (sResult.Substr(iPos + 10, sResult.Length())).ToInteger();
+
+!# Check Exit codes: 0 = no update, 1 = update available, > 4 = error or script not available
+if (iExitCode < 5) {
+  bCheckScriptAvailable = true;
+  if (iExitCode == 1) {
+    bUpdateAvailable = true;
+    sResult = sResult.Replace("\n\n",";");
+    sResult = sResult.StrValueByIndex(";",1);
+    sResult = sResult.Replace(" ",";");
+    sFwAvailable = sResult.StrValueByIndex(";",3);
+  }
 }
-
-!# Check if checkFirmwareUpdate.sh is available and supports required flags
-sResult = "";
-system.Exec("test -x /bin/checkFirmwareUpdate.sh && /bin/checkFirmwareUpdate.sh -h 2>&1", &sResult);
-if (sResult) {
-    !# Verify script supports required flags: -a (apply), -r (reboot)
-    boolean bHasApply = (sResult.Find("-a") >= 0);
-    boolean bHasReboot = (sResult.Find("-r") >= 0);
-
-    if (bHasApply && bHasReboot) {
-        bCheckScriptAvailable = true;
-
-        !# Check for updates using checkFirmwareUpdate.sh
-        !# Exit codes: 0 = no update, 1 = update available
-        sResult = "";
-        system.Exec("/bin/checkFirmwareUpdate.sh 2>/dev/null; echo \"EXIT_CODE=$?\"", &sResult);
-
-        !# Parse exit code from output
-        iPos = sResult.Find("EXIT_CODE=");
-        if (iPos >= 0) {
-            sTemp = sResult.Substr(iPos + 10, sResult.Length());
-            iPos = sTemp.Find("\n");
-            if (iPos > 0) {
-                sTemp = sTemp.Substr(0, iPos).Trim();
-            } else {
-                sTemp = sTemp.Trim();
-            }
-            iExitCode = sTemp.ToInteger();
-
-            !# Exit code 1 means update is available
-            if (iExitCode == 1) {
-                bUpdateAvailable = true;
-                !# Get available version from GitHub API
-                sResult = "";
-                system.Exec("wget -q -O - 'https://api.github.com/repos/openccu/openccu/releases/latest' 2>/dev/null | grep -o '\"tag_name\"[[:space:]]*:[[:space:]]*\"[^\"]*\"' | head -1 | cut -d'\"' -f4", &sResult);
-                if (sResult) {
-                    sFwAvailable = sResult.Trim();
-                }
-            }
-        }
-    }
-}
-
-Write('{"current_firmware":"' # sFwCurrent # '",');
-Write('"available_firmware":"' # sFwAvailable # '",');
-if (bUpdateAvailable) {
-    Write('"update_available":true,');
-} else {
-    Write('"update_available":false,');
-}
-if (bCheckScriptAvailable) {
-    Write('"check_script_available":true}');
-} else {
-    Write('"check_script_available":false}');
-}
+Write('{"current_firmware":"'# sFwCurrent #'",');
+Write('"available_firmware":"'# sFwAvailable #'",');
+Write('"update_available":'# bUpdateAvailable #',');
+Write('"check_script_available":'# bCheckScriptAvailable #'}');

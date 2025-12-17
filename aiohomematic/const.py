@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.32"
+VERSION: Final = "2025.12.33"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -151,7 +151,7 @@ DEVICE_FIRMWARE_CHECK_INTERVAL: Final = 21600  # 6h
 DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL: Final = 3600  # 1h
 DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
 DUMMY_SERIAL: Final = "SN0815"
-SYSTEM_UPDATE_CHECK_INTERVAL: Final = 3600  # 1h
+SYSTEM_UPDATE_CHECK_INTERVAL: Final = 14400  # 4h
 SYSTEM_UPDATE_PROGRESS_CHECK_INTERVAL: Final = 30  # 30s during active update
 SYSTEM_UPDATE_PROGRESS_TIMEOUT: Final = 1800  # 30min timeout for update monitoring
 FILE_DEVICES: Final = "homematic_devices"

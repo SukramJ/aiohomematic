@@ -103,17 +103,15 @@ from aiohomematic.const import (
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
     DEFAULT_ENABLE_PROGRAM_SCAN,
     DEFAULT_ENABLE_SYSVAR_SCAN,
-    DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
     DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
     DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
     DEFAULT_LOCALE,
     DEFAULT_MAX_READ_WORKERS,
     DEFAULT_OPTIONAL_SETTINGS,
-    DEFAULT_PERIODIC_REFRESH_INTERVAL,
     DEFAULT_PROGRAM_MARKERS,
+    DEFAULT_SCHEDULE_TIMER_CONFIG,
     DEFAULT_SESSION_RECORDER_START_FOR_SECONDS,
     DEFAULT_STORAGE_DIRECTORY,
-    DEFAULT_SYS_SCAN_INTERVAL,
     DEFAULT_SYSVAR_MARKERS,
     DEFAULT_TIMEOUT_CONFIG,
     DEFAULT_TLS,
@@ -138,6 +136,7 @@ from aiohomematic.const import (
     OptionalSettings,
     ParamsetKey,
     RpcServerType,
+    ScheduleTimerConfig,
     SourceOfDeviceCreation,
     SystemInformation,
     TimeoutConfig,
@@ -1105,9 +1104,10 @@ class CentralUnit(
             except AioHomematicException:
                 ip_addr = LOCAL_HOST
             if ip_addr is None:
+                schedule_cfg = self._config.schedule_timer_config
                 timeout_cfg = self._config.timeout_config
                 _LOGGER.warning(  # i18n-log: ignore
-                    "GET_IP_ADDR: Waiting for %.1f s,", timeout_cfg.connection_checker_interval
+                    "GET_IP_ADDR: Waiting for %.1f s,", schedule_cfg.connection_checker_interval
                 )
                 await asyncio.sleep(timeout_cfg.rpc_timeout / 10)
         return ip_addr
@@ -1200,7 +1200,6 @@ class CentralConfig:
         enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
         enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
         enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
-        hm_master_poll_after_send_intervals: tuple[int, ...] = DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS,
         ignore_custom_device_definition_models: frozenset[str] = DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
         interfaces_requiring_periodic_refresh: frozenset[Interface] = DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
         json_port: int | None = None,
@@ -1208,11 +1207,10 @@ class CentralConfig:
         listen_port_xml_rpc: int | None = None,
         max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
         optional_settings: tuple[OptionalSettings | str, ...] = DEFAULT_OPTIONAL_SETTINGS,
-        periodic_refresh_interval: int = DEFAULT_PERIODIC_REFRESH_INTERVAL,
         program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
+        schedule_timer_config: ScheduleTimerConfig = DEFAULT_SCHEDULE_TIMER_CONFIG,
         start_direct: bool = False,
         storage_directory: str = DEFAULT_STORAGE_DIRECTORY,
-        sys_scan_interval: int = DEFAULT_SYS_SCAN_INTERVAL,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         timeout_config: TimeoutConfig = DEFAULT_TIMEOUT_CONFIG,
         tls: bool = DEFAULT_TLS,
@@ -1236,7 +1234,6 @@ class CentralConfig:
         self.enable_device_firmware_check: Final = enable_device_firmware_check
         self.enable_program_scan: Final = enable_program_scan
         self.enable_sysvar_scan: Final = enable_sysvar_scan
-        self.hm_master_poll_after_send_intervals: Final = hm_master_poll_after_send_intervals
         self.host: Final = host
         self.ignore_custom_device_definition_models: Final = frozenset(ignore_custom_device_definition_models or ())
         self.interfaces_requiring_periodic_refresh: Final = frozenset(interfaces_requiring_periodic_refresh or ())
@@ -1246,7 +1243,6 @@ class CentralConfig:
         self.max_read_workers = max_read_workers
         self.name: Final = name
         self.password: Final = password
-        self.periodic_refresh_interval = periodic_refresh_interval
         self.program_markers: Final = program_markers
         self.start_direct: Final = start_direct
         self.session_recorder_randomize_output = (
@@ -1258,8 +1254,8 @@ class CentralConfig:
             else 0
         )
         self.session_recorder_start = self.session_recorder_start_for_seconds > 0
+        self.schedule_timer_config: Final = schedule_timer_config
         self.storage_directory: Final = storage_directory
-        self.sys_scan_interval: Final = sys_scan_interval
         self.sysvar_markers: Final = sysvar_markers
         self.timeout_config: Final = timeout_config
         self.tls: Final = tls

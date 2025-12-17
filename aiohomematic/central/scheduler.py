@@ -28,12 +28,8 @@ from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import (
-    DEVICE_FIRMWARE_CHECK_INTERVAL,
-    DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
-    DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
     SCHEDULER_LOOP_SLEEP,
     SCHEDULER_NOT_STARTED_SLEEP,
-    SYSTEM_UPDATE_CHECK_INTERVAL,
     Backend,
     CentralState,
     DeviceFirmwareState,
@@ -205,39 +201,39 @@ class BackgroundScheduler:
         self._scheduler_jobs: Final[list[SchedulerJob]] = [
             SchedulerJob(
                 task=self._check_connection,
-                run_interval=int(self._config_provider.config.timeout_config.connection_checker_interval),
+                run_interval=self._config_provider.config.schedule_timer_config.connection_checker_interval,
             ),
             SchedulerJob(
                 task=self._refresh_client_data,
-                run_interval=self._config_provider.config.periodic_refresh_interval,
+                run_interval=self._config_provider.config.schedule_timer_config.periodic_refresh_interval,
             ),
             SchedulerJob(
                 task=self._refresh_program_data,
-                run_interval=self._config_provider.config.sys_scan_interval,
+                run_interval=self._config_provider.config.schedule_timer_config.sys_scan_interval,
             ),
             SchedulerJob(
                 task=self._refresh_sysvar_data,
-                run_interval=self._config_provider.config.sys_scan_interval,
+                run_interval=self._config_provider.config.schedule_timer_config.sys_scan_interval,
             ),
             SchedulerJob(
                 task=self._refresh_inbox_data,
-                run_interval=self._config_provider.config.sys_scan_interval,
+                run_interval=self._config_provider.config.schedule_timer_config.sys_scan_interval,
             ),
             SchedulerJob(
                 task=self._refresh_system_update_data,
-                run_interval=SYSTEM_UPDATE_CHECK_INTERVAL,
+                run_interval=self._config_provider.config.schedule_timer_config.system_update_check_interval,
             ),
             SchedulerJob(
                 task=self._fetch_device_firmware_update_data,
-                run_interval=DEVICE_FIRMWARE_CHECK_INTERVAL,
+                run_interval=self._config_provider.config.schedule_timer_config.device_firmware_check_interval,
             ),
             SchedulerJob(
                 task=self._fetch_device_firmware_update_data_in_delivery,
-                run_interval=DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL,
+                run_interval=self._config_provider.config.schedule_timer_config.device_firmware_delivering_check_interval,
             ),
             SchedulerJob(
                 task=self._fetch_device_firmware_update_data_in_update,
-                run_interval=DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL,
+                run_interval=self._config_provider.config.schedule_timer_config.device_firmware_updating_check_interval,
             ),
         ]
 

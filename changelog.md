@@ -2,6 +2,23 @@
 
 ## What's Changed
 
+### Breaking Changes
+
+- **Consolidate scheduler intervals in `ScheduleTimerConfig`**: Centralized all scheduler-related intervals and timeouts
+  - Introduced new `ScheduleTimerConfig` class (similar to `TimeoutConfig`)
+  - Moved from `CentralConfig`:
+    - `periodic_refresh_interval` (default: 15s)
+    - `sys_scan_interval` (default: 30s)
+  - Moved from `TimeoutConfig`:
+    - `connection_checker_interval` (default: 15s)
+  - Added to `ScheduleTimerConfig`:
+    - `device_firmware_check_interval` (default: 6h)
+    - `device_firmware_delivering_check_interval` (default: 1h)
+    - `device_firmware_updating_check_interval` (default: 5m)
+    - `system_update_check_interval` (default: 4h)
+    - `system_update_progress_check_interval` (default: 30s)
+    - `system_update_progress_timeout` (default: 30min)
+
 ### Improvements
 
 - **Refactor `get_system_update_info.fn` script**: Simplified and optimized firmware update check script

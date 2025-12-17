@@ -550,7 +550,7 @@ class DeviceHandler(
                     """Load master paramset values."""
                     if not channel:
                         return
-                    for interval in self._client_deps.config.hm_master_poll_after_send_intervals:
+                    for interval in self._client_deps.config.schedule_timer_config.master_poll_after_send_intervals:
                         await asyncio.sleep(interval)
                         for dp in channel.get_readable_data_points(
                             paramset_key=ParamsetKey(paramset_key_or_link_address)

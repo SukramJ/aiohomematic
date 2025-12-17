@@ -12,13 +12,7 @@ from typing import Final
 from slugify import slugify
 
 from aiohomematic import i18n
-from aiohomematic.const import (
-    HUB_ADDRESS,
-    SYSTEM_UPDATE_PROGRESS_CHECK_INTERVAL,
-    SYSTEM_UPDATE_PROGRESS_TIMEOUT,
-    DataPointCategory,
-    SystemUpdateData,
-)
+from aiohomematic.const import HUB_ADDRESS, DataPointCategory, SystemUpdateData
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
@@ -48,6 +42,7 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
 
     __slots__ = (
         "_available_firmware",
+        "_config_provider",
         "_current_firmware",
         "_name_data",
         "_primary_client_provider",
@@ -92,6 +87,7 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
             paramset_description_provider=paramset_description_provider,
             parameter_visibility_provider=parameter_visibility_provider,
         )
+        self._config_provider: Final = config_provider
         self._primary_client_provider: Final = primary_client_provider
         self._state_uncertain: bool = True
         self._current_firmware: str = ""
@@ -212,8 +208,12 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         start_time = datetime.now()
 
         try:
-            while (datetime.now() - start_time).total_seconds() < SYSTEM_UPDATE_PROGRESS_TIMEOUT:
-                await asyncio.sleep(SYSTEM_UPDATE_PROGRESS_CHECK_INTERVAL)
+            while (
+                datetime.now() - start_time
+            ).total_seconds() < self._config_provider.config.schedule_timer_config.system_update_progress_timeout:
+                await asyncio.sleep(
+                    self._config_provider.config.schedule_timer_config.system_update_progress_check_interval
+                )
 
                 if client := self._primary_client_provider.primary_client:
                     try:
@@ -247,7 +247,7 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
                 _LOGGER.warning(
                     i18n.tr(
                         "log.model.hub.update.progress_timeout",
-                        timeout=SYSTEM_UPDATE_PROGRESS_TIMEOUT,
+                        timeout=self._config_provider.config.schedule_timer_config.system_update_progress_timeout,
                     )
                 )
         finally:

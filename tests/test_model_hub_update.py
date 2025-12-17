@@ -20,12 +20,29 @@ from aiohomematic.const import SystemUpdateData
 from aiohomematic.model.hub.update import HmUpdate
 
 
+class _FakeScheduleTimerConfig:
+    """Minimal fake ScheduleTimerConfig for testing."""
+
+    def __init__(self) -> None:
+        """Initialize fake schedule timer config."""
+        self.connection_checker_interval = 1  # Fast for testing
+        self.device_firmware_check_interval = 21600
+        self.device_firmware_delivering_check_interval = 3600
+        self.device_firmware_updating_check_interval = 300
+        self.periodic_refresh_interval = 15
+        self.sys_scan_interval = 30
+        self.system_update_check_interval = 14400
+        self.system_update_progress_check_interval = 0.01  # Fast for testing
+        self.system_update_progress_timeout = 0.1  # Fast timeout for testing
+
+
 class _FakeConfig:
     """Minimal fake config for testing."""
 
     def __init__(self) -> None:
         """Initialize fake config."""
         self.central_id = "TestCentral"
+        self.schedule_timer_config = _FakeScheduleTimerConfig()
 
 
 class _FakeConfigProvider:
@@ -327,13 +344,10 @@ class TestHmUpdateProgressTracking:
                 primary_client_provider._client = None
             await original_sleep(0)
 
-        # Patch with short timeout
-        with (
-            patch("aiohomematic.model.hub.update.SYSTEM_UPDATE_PROGRESS_TIMEOUT", 0.1),
-            patch(
-                "aiohomematic.model.hub.update.asyncio.sleep",
-                side_effect=mock_sleep,
-            ),
+        # Patch sleep to control timing
+        with patch(
+            "aiohomematic.model.hub.update.asyncio.sleep",
+            side_effect=mock_sleep,
         ):
             await hm_update._monitor_update_progress()
 
@@ -358,14 +372,11 @@ class TestHmUpdateProgressTracking:
             check_script_available=True,
         )
 
-        # Patch timeout to be very short and sleep to be instant
-        with (
-            patch("aiohomematic.model.hub.update.SYSTEM_UPDATE_PROGRESS_TIMEOUT", 0.1),
-            patch(
-                "aiohomematic.model.hub.update.asyncio.sleep",
-                new_callable=AsyncMock,
-            ) as mock_sleep,
-        ):
+        # Patch sleep to be instant
+        with patch(
+            "aiohomematic.model.hub.update.asyncio.sleep",
+            new_callable=AsyncMock,
+        ) as mock_sleep:
             # Make sleep simulate time passing
             async def advance_time(seconds: float) -> None:
                 pass

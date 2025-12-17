@@ -31,7 +31,6 @@ DEFAULT_DELAY_NEW_DEVICE_CREATION: Final = False
 DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK: Final = False
 DEFAULT_ENABLE_PROGRAM_SCAN: Final = True
 DEFAULT_ENABLE_SYSVAR_SCAN: Final = True
-DEFAULT_HM_MASTER_POLL_AFTER_SEND_INTERVALS: Final = (5,)
 DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS: Final[frozenset[str]] = frozenset()
 DEFAULT_INCLUDE_INTERNAL_PROGRAMS: Final = False
 DEFAULT_INCLUDE_INTERNAL_SYSVARS: Final = True
@@ -40,12 +39,10 @@ DEFAULT_MAX_READ_WORKERS: Final = 1
 DEFAULT_MAX_WORKERS: Final = 1
 DEFAULT_MULTIPLIER: Final = 1.0
 DEFAULT_OPTIONAL_SETTINGS: Final[tuple[OptionalSettings | str, ...]] = ()
-DEFAULT_PERIODIC_REFRESH_INTERVAL: Final = 15
 DEFAULT_PROGRAM_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_SESSION_RECORDER_START_FOR_SECONDS: Final = 180
 DEFAULT_STORAGE_DIRECTORY: Final = "aiohomematic_storage"
 DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
-DEFAULT_SYS_SCAN_INTERVAL: Final = 30
 DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
@@ -59,9 +56,6 @@ class TimeoutConfig(NamedTuple):
 
     All values are in seconds unless otherwise noted.
     """
-
-    connection_checker_interval: float = 1 if _TEST_SPEEDUP else 15
-    """Interval between connection health checks (default: 15s)."""
 
     reconnect_initial_delay: float = 0.5 if _TEST_SPEEDUP else 2
     """Initial delay before first reconnect attempt (default: 2s)."""
@@ -98,6 +92,47 @@ class TimeoutConfig(NamedTuple):
 
 
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()
+
+
+class ScheduleTimerConfig(NamedTuple):
+    """
+    Configuration for scheduler intervals and timeouts.
+
+    All values are in seconds.
+    """
+
+    connection_checker_interval: int = 1 if _TEST_SPEEDUP else 15
+    """Interval between connection health checks (default: 15s)."""
+
+    device_firmware_check_interval: int = 21600  # 6h
+    """Interval for periodic device firmware update checks (default: 6h)."""
+
+    device_firmware_delivering_check_interval: int = 3600  # 1h
+    """Interval for checking firmware delivery progress (default: 1h)."""
+
+    device_firmware_updating_check_interval: int = 300  # 5m
+    """Interval for checking firmware update progress (default: 5m)."""
+
+    master_poll_after_send_intervals: tuple[int, ...] = (5,)
+    """Interval for polling HM master after sending commands (default: 5s)."""
+
+    periodic_refresh_interval: int = 15
+    """Interval for periodic data refresh (default: 15s)."""
+
+    sys_scan_interval: int = 30
+    """Interval for system variable and program scans (default: 30s)."""
+
+    system_update_check_interval: int = 14400  # 4h
+    """Interval for periodic system update checks (default: 4h)."""
+
+    system_update_progress_check_interval: int = 30  # 30s
+    """Interval for checking system update progress during active update (default: 30s)."""
+
+    system_update_progress_timeout: int = 1800  # 30min
+    """Timeout for system update monitoring (default: 30min)."""
+
+
+DEFAULT_SCHEDULE_TIMER_CONFIG: Final = ScheduleTimerConfig()
 
 # Default encoding for json service calls, persistent cache
 UTF_8: Final = "utf-8"
@@ -147,13 +182,7 @@ CONF_USERNAME: Final = "username"
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
 DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
 DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
-DEVICE_FIRMWARE_CHECK_INTERVAL: Final = 21600  # 6h
-DEVICE_FIRMWARE_DELIVERING_CHECK_INTERVAL: Final = 3600  # 1h
-DEVICE_FIRMWARE_UPDATING_CHECK_INTERVAL: Final = 300  # 5m
 DUMMY_SERIAL: Final = "SN0815"
-SYSTEM_UPDATE_CHECK_INTERVAL: Final = 14400  # 4h
-SYSTEM_UPDATE_PROGRESS_CHECK_INTERVAL: Final = 30  # 30s during active update
-SYSTEM_UPDATE_PROGRESS_TIMEOUT: Final = 1800  # 30min timeout for update monitoring
 FILE_DEVICES: Final = "homematic_devices"
 FILE_PARAMSETS: Final = "homematic_paramsets"
 FILE_SESSION_RECORDER: Final = "homematic_session_recorder"

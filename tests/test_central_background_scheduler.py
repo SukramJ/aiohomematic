@@ -9,7 +9,26 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 import pytest
 
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob
-from aiohomematic.const import CentralState
+from aiohomematic.const import CentralState, ScheduleTimerConfig
+
+
+def _create_schedule_timer_config(
+    *,
+    periodic_refresh_interval: int = 60,
+    sys_scan_interval: int = 300,
+) -> ScheduleTimerConfig:
+    """Create a ScheduleTimerConfig for testing."""
+    return ScheduleTimerConfig(
+        connection_checker_interval=1,  # Fast for tests
+        device_firmware_check_interval=21600,
+        device_firmware_delivering_check_interval=3600,
+        device_firmware_updating_check_interval=300,
+        periodic_refresh_interval=periodic_refresh_interval,
+        sys_scan_interval=sys_scan_interval,
+        system_update_check_interval=14400,
+        system_update_progress_check_interval=30,
+        system_update_progress_timeout=1800,
+    )
 
 
 class TestSchedulerJobBasics:
@@ -119,8 +138,7 @@ class TestBackgroundSchedulerBasics:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -153,8 +171,7 @@ class TestBackgroundSchedulerBasics:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -191,8 +208,7 @@ class TestBackgroundSchedulerBasics:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -230,8 +246,7 @@ class TestBackgroundSchedulerBasics:
         unsubscribe_callback = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=unsubscribe_callback)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -270,8 +285,7 @@ class TestBackgroundSchedulerBasics:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -304,8 +318,7 @@ class TestBackgroundSchedulerBasics:
         unsubscribe_callback = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=unsubscribe_callback)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -343,8 +356,7 @@ class TestBackgroundSchedulerEventHandling:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -386,8 +398,7 @@ class TestBackgroundSchedulerEventHandling:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -431,8 +442,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         # Make all_clients_active raise an exception
@@ -468,8 +478,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.all_clients_active = True
 
@@ -505,8 +514,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.all_clients_active = True
 
@@ -538,8 +546,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = False
         central.available = True
 
@@ -576,8 +583,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = False
 
@@ -614,8 +620,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = True
 
@@ -657,8 +662,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.config.enable_program_scan = True
         central.available = True
@@ -695,8 +699,7 @@ class TestBackgroundSchedulerJobExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.config.enable_sysvar_scan = True
         central.available = True
@@ -824,8 +827,7 @@ class TestSchedulerLoopExecution:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.state = CentralState.INITIALIZING
         central.connection_state = MagicMock()
@@ -858,8 +860,7 @@ class TestSchedulerLoopExecution:
         unsubscribe = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=unsubscribe)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
@@ -903,8 +904,7 @@ class TestSchedulerJobFiltering:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = True
         central.poll_clients = []
@@ -940,8 +940,7 @@ class TestSchedulerJobFiltering:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = True
         central.poll_clients = None
@@ -977,8 +976,7 @@ class TestSchedulerJobFiltering:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = False
 
@@ -1013,8 +1011,7 @@ class TestSchedulerJobFiltering:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.config.enable_program_scan = True
         central.available = True
@@ -1051,8 +1048,7 @@ class TestSchedulerJobFiltering:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.config.enable_program_scan = False
         central.available = True
@@ -1088,8 +1084,7 @@ class TestSchedulerJobFiltering:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.config.enable_sysvar_scan = True
         central.available = True
@@ -1126,8 +1121,7 @@ class TestSchedulerJobFiltering:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.config.enable_sysvar_scan = False
         central.available = True
@@ -1167,8 +1161,7 @@ class TestSchedulerFirmwareChecks:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = True
         central.refresh_firmware_data = AsyncMock()
@@ -1203,8 +1196,7 @@ class TestSchedulerFirmwareChecks:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = True
         central.refresh_firmware_data_by_state = AsyncMock()
@@ -1239,8 +1231,7 @@ class TestSchedulerFirmwareChecks:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = True
         central.refresh_firmware_data_by_state = AsyncMock()
@@ -1343,8 +1334,7 @@ class TestSchedulerErrorRecovery:
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
         central.config = MagicMock()
-        central.config.periodic_refresh_interval = 60
-        central.config.sys_scan_interval = 300
+        central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
         central.available = True
 

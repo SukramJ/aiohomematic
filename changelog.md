@@ -1,4 +1,4 @@
-# Version 2025.12.34 (2025-12-17)
+# Version 2025.12.33 (2025-12-17)
 
 ## What's Changed
 
@@ -18,18 +18,6 @@
     - `system_update_check_interval` (default: 4h)
     - `system_update_progress_check_interval` (default: 30s)
     - `system_update_progress_timeout` (default: 30min)
-  - Migration:
-    - Old: `CentralConfig(sys_scan_interval=60, periodic_refresh_interval=30)`
-    - New: `CentralConfig(schedule_timer_config=ScheduleTimerConfig(sys_scan_interval=60, periodic_refresh_interval=30))`
-  - Benefits:
-    - ✅ All scheduler timings configurable in one place
-    - ✅ Consistent structure with `TimeoutConfig`
-    - ✅ Clearer separation: `TimeoutConfig` for timeouts, `ScheduleTimerConfig` for intervals
-    - ✅ Easier to customize scheduler behavior
-
-# Version 2025.12.33 (2025-12-17)
-
-## What's Changed
 
 ### Improvements
 

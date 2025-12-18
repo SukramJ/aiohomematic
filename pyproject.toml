@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=80"]
+requires = ["setuptools>=80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -38,10 +38,12 @@ dependencies = [
 ]
 
 [project.urls]
+"Homepage" = "https://github.com/sukramj/aiohomematic"
 "Source Code" = "https://github.com/sukramj/aiohomematic"
 "Bug Reports" = "https://github.com/sukramj/aiohomematic/issues"
-"Docs: Dev"   = "https://github.com/sukramj/aiohomematic"
-"Forum"       = "https://github.com/sukramj/aiohomematic/discussions"
+"Changelog" = "https://github.com/sukramj/aiohomematic/blob/devel/changelog.md"
+"Documentation" = "https://github.com/sukramj/aiohomematic"
+"Forum" = "https://github.com/sukramj/aiohomematic/discussions"
 
 [project.scripts]
 aiohomematic = "aiohomematic.hmcli:main"

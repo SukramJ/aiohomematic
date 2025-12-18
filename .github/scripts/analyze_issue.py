@@ -9,11 +9,119 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from typing import Any, cast
 
 from anthropic import Anthropic
 from github import Auth, Github, GithubException, Repository
+
+# Version constants for Homematic(IP) Local
+CURRENT_STABLE_VERSION = "1.90.2"
+CURRENT_PRERELEASE_VERSION = "1.91.0b32"
+VALID_MAJOR_VERSIONS = (1, 2)  # 1.x.x is current, 2.x.x is next major
+
+
+def parse_version(version_str: str) -> tuple[int, int, int, str] | None:
+    """
+    Parse a version string into components.
+
+    Returns tuple of (major, minor, patch, prerelease) or None if invalid.
+    """
+    if not version_str:
+        return None
+
+    # Match patterns like "1.90.2", "1.91.0b32"
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(b\d+)?$", version_str.strip())
+    if not match:
+        return None
+
+    major = int(match.group(1))
+    minor = int(match.group(2))
+    patch = int(match.group(3))
+    prerelease = match.group(4) or ""
+
+    return (major, minor, patch, prerelease)
+
+
+def validate_integration_version(version_str: str) -> dict[str, Any]:
+    """
+    Validate if the reported version is a valid Homematic(IP) Local version.
+
+    Returns a dict with validation results.
+    """
+    result: dict[str, Any] = {
+        "reported_version": version_str,
+        "is_valid_format": False,
+        "is_valid_homematicip_local": False,
+        "is_prerelease": False,
+        "needs_update": False,
+        "current_stable": CURRENT_STABLE_VERSION,
+        "current_prerelease": CURRENT_PRERELEASE_VERSION,
+        "issue": None,
+        "issue_description": None,
+    }
+
+    parsed = parse_version(version_str)
+    if not parsed:
+        result["issue"] = "invalid_format"
+        result["issue_description"] = (
+            f"Version '{version_str}' does not match expected format (e.g., 1.90.2 or 1.91.0b32)"
+        )
+        return result
+
+    major, minor, patch, prerelease = parsed
+    result["is_valid_format"] = True
+    result["is_prerelease"] = bool(prerelease)
+
+    # Check for valid major version (1.x.x or 2.x.x)
+    if major not in VALID_MAJOR_VERSIONS:
+        result["issue"] = "invalid_major_version"
+        result["issue_description"] = (
+            f"Version '{version_str}' is not a valid Homematic(IP) Local version. "
+            f"Valid versions start with 1.x.x (current) or 2.x.x (future). "
+            f"You may have reported the CCU firmware version instead of the integration version, "
+            f"or you are using an old/different integration."
+        )
+        return result
+
+    result["is_valid_homematicip_local"] = True
+
+    # Compare with current stable version
+    current_parsed = parse_version(CURRENT_STABLE_VERSION)
+    if current_parsed:
+        current_major, current_minor, current_patch, _ = current_parsed
+        reported_tuple = (major, minor, patch)
+        current_tuple = (current_major, current_minor, current_patch)
+
+        if reported_tuple < current_tuple:
+            result["needs_update"] = True
+            result["issue"] = "outdated_version"
+            result["issue_description"] = (
+                f"Version '{version_str}' is outdated. "
+                f"Current stable version is {CURRENT_STABLE_VERSION}. "
+                f"Please update to the latest version before reporting issues."
+            )
+
+    return result
+
+
+def extract_version_from_issue(issue_body: str) -> str | None:
+    """Extract the reported version from issue body."""
+    # Look for version pattern in issue body (from template field)
+    # The template asks for version in format like "1.8x.x"
+    patterns = [
+        r"(?:version|Version)[:\s]*(\d+\.\d+\.\d+(?:b\d+)?)",
+        r"(\d+\.\d+\.\d+(?:b\d+)?)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, issue_body)
+        if match:
+            return match.group(1)
+
+    return None
+
 
 # Documentation links
 DOCS_LINKS = {
@@ -46,6 +154,20 @@ Context:
 - This repository (aiohomematic) is a Python library for controlling Homematic and HomematicIP devices
 - Issues may relate to either the library itself or the Home Assistant integration "Homematic(IP) Local"
 - Issues should follow a specific template with required information
+
+CRITICAL - Version Validation:
+- Valid Homematic(IP) Local versions: 1.x.x (current) or 2.x.x (future major version)
+- Current stable version: {current_stable}
+- Current pre-release version: {current_prerelease} (pre-releases contain 'b', e.g., 1.91.0b32)
+- If a user reports a version that does NOT start with 1.x.x or 2.x.x (e.g., 3.69.7), this is INVALID:
+  - They may have confused the integration version with the CCU firmware version (CCU3 uses 3.x.x)
+  - They may be using an old/different integration not based on aiohomematic
+  - This MUST be flagged as a critical issue requiring clarification
+- If the reported version is older than the current stable version, the user should be asked to update first
+- Support can only be provided for the current stable version or newer
+
+Version check result for this issue:
+{version_check_json}
 
 Terminology (from our Glossary):
 - Integration: A Home Assistant component connecting to external services. Homematic(IP) Local is an INTEGRATION.
@@ -89,6 +211,11 @@ Available documentation:
 Please respond in JSON format with the following structure:
 {{
   "is_complete": boolean,
+  "version_issue": {{
+    "has_issue": boolean,
+    "severity": "critical|warning|info|none",
+    "message": "explanation of the version issue in detected language (or null if no issue)"
+  }},
   "missing_information": [
     {{
       "field": "field name",
@@ -136,7 +263,29 @@ def get_claude_analysis(title: str, body: str, api_key: str) -> dict[str, Any]:
 
     docs_str = "\n".join([f"- {key}: {url}" for key, url in DOCS_LINKS.items()])
 
-    prompt = CLAUDE_ANALYSIS_PROMPT.format(title=title, body=body or "(empty)", docs=docs_str)
+    # Extract and validate version from issue body
+    extracted_version = extract_version_from_issue(body or "")
+    if extracted_version:
+        version_check = validate_integration_version(extracted_version)
+    else:
+        version_check = {
+            "reported_version": None,
+            "is_valid_format": False,
+            "is_valid_homematicip_local": False,
+            "issue": "no_version_found",
+            "issue_description": "No version number found in issue body",
+            "current_stable": CURRENT_STABLE_VERSION,
+            "current_prerelease": CURRENT_PRERELEASE_VERSION,
+        }
+
+    prompt = CLAUDE_ANALYSIS_PROMPT.format(
+        title=title,
+        body=body or "(empty)",
+        docs=docs_str,
+        current_stable=CURRENT_STABLE_VERSION,
+        current_prerelease=CURRENT_PRERELEASE_VERSION,
+        version_check_json=json.dumps(version_check, indent=2),
+    )
 
     message = client.messages.create(
         model="claude-sonnet-4-5", max_tokens=2000, messages=[{"role": "user", "content": prompt}]
@@ -206,6 +355,45 @@ def has_bot_comment(issue: Any) -> bool:
     return False
 
 
+def _format_version_issue(analysis: dict[str, Any], is_german: bool) -> str:
+    """Format version issue section of the comment."""
+    version_issue = analysis.get("version_issue", {})
+    if not version_issue.get("has_issue"):
+        return ""
+    if version_issue.get("severity") not in ("critical", "warning"):
+        return ""
+
+    severity = version_issue.get("severity", "warning")
+    message = version_issue.get("message", "")
+
+    is_critical = severity == "critical"
+    emoji = "🚨" if is_critical else "⚠️"
+    header = (
+        ("KRITISCH: Versionsproblem" if is_german else "CRITICAL: Version Issue")
+        if is_critical
+        else ("Versionshinweis" if is_german else "Version Notice")
+    )
+
+    result = f"### {emoji} {header}\n\n{message}\n\n"
+
+    if is_german:
+        result += (
+            f"**Aktuelle stabile Version:** {CURRENT_STABLE_VERSION}\n"
+            f"**Aktuelle Pre-Release:** {CURRENT_PRERELEASE_VERSION}\n\n"
+            f"Bitte stelle sicher, dass du die [aktuelle Version]({DOCS_LINKS['releases']}) verwendest, "
+            f"bevor du ein Problem meldest. Support kann nur für die aktuelle Version geleistet werden.\n\n"
+        )
+    else:
+        result += (
+            f"**Current stable version:** {CURRENT_STABLE_VERSION}\n"
+            f"**Current pre-release:** {CURRENT_PRERELEASE_VERSION}\n\n"
+            f"Please ensure you are using the [latest version]({DOCS_LINKS['releases']}) "
+            f"before reporting issues. Support can only be provided for the current version.\n\n"
+        )
+
+    return result
+
+
 def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]) -> str:
     """Format the comment to post on the issue."""
     lang = analysis.get("language", "en")
@@ -218,6 +406,9 @@ def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]
     else:
         comment = "## Automatic Issue Analysis\n\n"
         comment += f"**Summary:** {analysis.get('summary', 'Issue detected')}\n\n"
+
+    # Version issue (highest priority - show first if critical)
+    comment += _format_version_issue(analysis, is_german)
 
     # Terminology issues
     terminology_issues = analysis.get("terminology_issues", [])
@@ -379,8 +570,14 @@ def main() -> None:
     comment_body = format_comment(analysis, similar_items)
 
     # Only post if there's something useful to say
+    version_issue = analysis.get("version_issue", {})
+    has_version_issue = version_issue.get("has_issue") and version_issue.get("severity") in (
+        "critical",
+        "warning",
+    )
     has_useful_feedback = (
-        analysis.get("missing_information")
+        has_version_issue
+        or analysis.get("missing_information")
         or analysis.get("terminology_issues")
         or analysis.get("attachment_analysis", {}).get("findings")
         or analysis.get("suggested_docs")

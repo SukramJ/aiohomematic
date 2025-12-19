@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from typing import Final, Protocol
 
-from aiohomematic.const import ClientState
+from aiohomematic.const import ClientState, FailureReason
 
 
 class StateChangeCallbackProtocol(Protocol):
@@ -131,6 +131,8 @@ class ClientStateMachine:
     """
 
     __slots__ = (
+        "_failure_message",
+        "_failure_reason",
         "_interface_id",
         "_state",
         "on_state_change",
@@ -147,12 +149,24 @@ class ClientStateMachine:
         """
         self._interface_id: Final = interface_id
         self._state: ClientState = ClientState.CREATED
+        self._failure_reason: FailureReason = FailureReason.NONE
+        self._failure_message: str = ""
         self.on_state_change: StateChangeCallbackProtocol | None = None
 
     @property
     def can_reconnect(self) -> bool:
         """Return True if reconnection is allowed from current state."""
         return ClientState.RECONNECTING in _VALID_TRANSITIONS.get(self._state, frozenset())
+
+    @property
+    def failure_message(self) -> str:
+        """Return human-readable failure message."""
+        return self._failure_message
+
+    @property
+    def failure_reason(self) -> FailureReason:
+        """Return the reason for the failed state."""
+        return self._failure_reason
 
     @property
     def is_available(self) -> bool:
@@ -202,13 +216,22 @@ class ClientStateMachine:
         """
         old_state = self._state
         self._state = ClientState.CREATED
+        self._failure_reason = FailureReason.NONE
+        self._failure_message = ""
         _LOGGER.warning(  # i18n-log: ignore
             "STATE_MACHINE: %s: Reset from %s to CREATED",
             self._interface_id,
             old_state.value,
         )
 
-    def transition_to(self, *, target: ClientState, reason: str = "", force: bool = False) -> None:
+    def transition_to(
+        self,
+        *,
+        target: ClientState,
+        reason: str = "",
+        force: bool = False,
+        failure_reason: FailureReason = FailureReason.NONE,
+    ) -> None:
         """
         Transition to a new state.
 
@@ -217,6 +240,7 @@ class ClientStateMachine:
             target: Target state to transition to
             reason: Human-readable reason for the transition
             force: If True, skip validation (use with caution)
+            failure_reason: Categorized failure reason (only used when target is FAILED)
 
         Raises:
         ------
@@ -233,14 +257,25 @@ class ClientStateMachine:
         old_state = self._state
         self._state = target
 
+        # Track failure reason when entering FAILED state
+        if target == ClientState.FAILED:
+            self._failure_reason = failure_reason
+            self._failure_message = reason
+        elif target in (ClientState.CONNECTED, ClientState.INITIALIZED):
+            # Clear failure info on successful states
+            self._failure_reason = FailureReason.NONE
+            self._failure_message = ""
+
         # Log at INFO level for important transitions, DEBUG for others
         if target in (ClientState.CONNECTED, ClientState.DISCONNECTED, ClientState.FAILED):
+            failure_info = f" [reason={failure_reason.value}]" if target == ClientState.FAILED else ""
             _LOGGER.info(  # i18n-log: ignore
-                "CLIENT_STATE: %s: %s -> %s%s",
+                "CLIENT_STATE: %s: %s -> %s%s%s",
                 self._interface_id,
                 old_state.value,
                 target.value,
                 f" ({reason})" if reason else "",
+                failure_info,
             )
         else:
             _LOGGER.debug(

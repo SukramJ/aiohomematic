@@ -47,7 +47,7 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.const import CentralState
+from aiohomematic.const import CentralState, FailureReason
 from aiohomematic.interfaces.central import CentralStateMachineProtocol
 
 if TYPE_CHECKING:
@@ -154,6 +154,9 @@ class CentralStateMachine(CentralStateMachineProtocol):
     __slots__ = (
         "_central_name",
         "_event_bus",
+        "_failure_interface_id",
+        "_failure_message",
+        "_failure_reason",
         "_last_state_change",
         "_state",
         "_state_history",
@@ -177,9 +180,27 @@ class CentralStateMachine(CentralStateMachineProtocol):
         self._central_name: Final = central_name
         self._event_bus = event_bus
         self._state: CentralState = CentralState.STARTING
+        self._failure_reason: FailureReason = FailureReason.NONE
+        self._failure_message: str = ""
+        self._failure_interface_id: str | None = None
         self._last_state_change: datetime = datetime.now()
         self._state_history: list[tuple[datetime, CentralState, CentralState, str]] = []
         self.on_state_change: Callable[[CentralState, CentralState, str], None] | None = None
+
+    @property
+    def failure_interface_id(self) -> str | None:
+        """Return the interface ID that caused the failure, if applicable."""
+        return self._failure_interface_id
+
+    @property
+    def failure_message(self) -> str:
+        """Return human-readable failure message."""
+        return self._failure_message
+
+    @property
+    def failure_reason(self) -> FailureReason:
+        """Return the reason for the failed state."""
+        return self._failure_reason
 
     @property
     def is_degraded(self) -> bool:
@@ -256,7 +277,15 @@ class CentralStateMachine(CentralStateMachineProtocol):
         """
         self._event_bus = event_bus
 
-    def transition_to(self, *, target: CentralState, reason: str = "", force: bool = False) -> None:
+    def transition_to(
+        self,
+        *,
+        target: CentralState,
+        reason: str = "",
+        force: bool = False,
+        failure_reason: FailureReason = FailureReason.NONE,
+        failure_interface_id: str | None = None,
+    ) -> None:
         """
         Transition to a new state.
 
@@ -264,6 +293,8 @@ class CentralStateMachine(CentralStateMachineProtocol):
             target: Target state to transition to
             reason: Human-readable reason for the transition
             force: If True, skip validation (use with caution)
+            failure_reason: Categorized failure reason (only used when target is FAILED)
+            failure_interface_id: Interface ID that caused the failure (optional)
 
         Raises:
             InvalidCentralStateTransitionError: If transition is not valid and force=False
@@ -280,6 +311,17 @@ class CentralStateMachine(CentralStateMachineProtocol):
         self._state = target
         self._last_state_change = datetime.now()
 
+        # Track failure reason when entering FAILED state
+        if target == CentralState.FAILED:
+            self._failure_reason = failure_reason
+            self._failure_message = reason
+            self._failure_interface_id = failure_interface_id
+        elif target == CentralState.RUNNING:
+            # Clear failure info on successful state
+            self._failure_reason = FailureReason.NONE
+            self._failure_message = ""
+            self._failure_interface_id = None
+
         # Record in history (keep last 100 transitions)
         self._state_history.append((self._last_state_change, old_state, target, reason))
         if len(self._state_history) > 100:
@@ -287,12 +329,14 @@ class CentralStateMachine(CentralStateMachineProtocol):
 
         # Log the transition
         if old_state != target:
+            failure_info = f" [reason={failure_reason.value}]" if target == CentralState.FAILED else ""
             _LOGGER.info(  # i18n-log: ignore
-                "CENTRAL_STATE: %s: %s -> %s (%s)",
+                "CENTRAL_STATE: %s: %s -> %s (%s)%s",
                 self._central_name,
                 old_state.value,
                 target.value,
                 reason or "no reason specified",
+                failure_info,
             )
 
         # Call the callback
@@ -323,9 +367,15 @@ class CentralStateMachine(CentralStateMachineProtocol):
         from aiohomematic.central.integration_events import SystemStatusEvent  # noqa: PLC0415
 
         if self._event_bus is not None:
+            # Include failure info when transitioning to FAILED state
+            failure_reason = self._failure_reason if new_state == CentralState.FAILED else None
+            failure_interface_id = self._failure_interface_id if new_state == CentralState.FAILED else None
+
             self._event_bus.publish_sync(
                 event=SystemStatusEvent(
                     timestamp=self._last_state_change,
                     central_state=new_state,
+                    failure_reason=failure_reason,
+                    failure_interface_id=failure_interface_id,
                 )
             )

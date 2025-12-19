@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.33"
+VERSION: Final = "2025.12.34"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -434,6 +434,58 @@ class CentralState(StrEnum):
 
     STOPPED = "stopped"
     """Central has been stopped."""
+
+
+class FailureReason(StrEnum):
+    """
+    Reason for a failure state in state machines.
+
+    This enum provides detailed failure categorization for FAILED states
+    in both ClientStateMachine and CentralStateMachine, enabling integrations
+    to distinguish between different error types and show appropriate messages.
+
+    Usage
+    -----
+    When transitioning to a FAILED state, specify the failure reason:
+
+    ```python
+    state_machine.transition_to(
+        target=ClientState.FAILED,
+        reason="Authentication failed",
+        failure_reason=FailureReason.AUTH,
+    )
+    ```
+
+    The integration can then check the failure reason:
+
+    ```python
+    if central.state_machine.failure_reason == FailureReason.AUTH:
+        show_auth_error_dialog()
+    elif central.state_machine.failure_reason == FailureReason.NETWORK:
+        show_connection_error_dialog()
+    ```
+    """
+
+    NONE = "none"
+    """No failure - normal operation."""
+
+    AUTH = "auth"
+    """Authentication/authorization failure (wrong credentials)."""
+
+    NETWORK = "network"
+    """Network connectivity issue (host unreachable, connection refused)."""
+
+    INTERNAL = "internal"
+    """Internal backend error (CCU internal error)."""
+
+    TIMEOUT = "timeout"
+    """Operation timed out."""
+
+    CIRCUIT_BREAKER = "circuit_breaker"
+    """Circuit breaker is open due to repeated failures."""
+
+    UNKNOWN = "unknown"
+    """Unknown or unclassified error."""
 
 
 class CommandRxMode(StrEnum):

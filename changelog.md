@@ -1,3 +1,18 @@
+# Version 2025.12.34 (2025-12-19)
+
+## What's Changed
+
+### New Features
+
+- **Add `FailureReason` support for state machines**: Enable differentiation between failure types when Central or Client enters FAILED state
+  - New `FailureReason` enum with values: `NONE`, `AUTH`, `NETWORK`, `INTERNAL`, `TIMEOUT`, `CIRCUIT_BREAKER`, `UNKNOWN`
+  - Extended `ClientStateMachine` with `failure_reason`, `failure_message` properties
+  - Extended `CentralStateMachine` with `failure_reason`, `failure_message`, `failure_interface_id` properties
+  - Extended `SystemStatusEvent` with `failure_reason` and `failure_interface_id` fields
+  - New helper function `exception_to_failure_reason()` for mapping exceptions to failure reasons
+  - **Integration benefit**: Home Assistant can now show specific error messages (e.g., "Check your credentials" for auth failures vs "Check network connection" for network errors)
+  - See `docs/migrations/failure_reason_migration_2025_12.md` for migration guide
+
 # Version 2025.12.33 (2025-12-17)
 
 ## What's Changed

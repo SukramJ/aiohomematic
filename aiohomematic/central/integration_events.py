@@ -62,7 +62,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from aiohomematic.central.event_bus import Event
-from aiohomematic.const import CentralState, ClientState, DataPointCategory
+from aiohomematic.const import CentralState, ClientState, DataPointCategory, FailureReason
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.model import CallbackDataPointProtocol
@@ -115,7 +115,10 @@ class SystemStatusEvent(Event):
         ```python
         async def on_system_status(*, event: SystemStatusEvent) -> None:
             if event.central_state == CentralState.FAILED:
-                async_create_issue(...)
+                if event.failure_reason == FailureReason.AUTH:
+                    async_create_issue(..., translation_key="auth_failed")
+                elif event.failure_reason == FailureReason.NETWORK:
+                    async_create_issue(..., translation_key="connection_failed")
 
             for issue in event.issues:
                 async_create_issue(...)
@@ -132,6 +135,19 @@ class SystemStatusEvent(Event):
     # Lifecycle
     central_state: CentralState | None = None
     """Central unit state change (STARTING, INITIALIZING, RUNNING, DEGRADED, RECOVERING, FAILED, STOPPED)."""
+
+    # Failure details (populated when central_state is FAILED)
+    failure_reason: FailureReason | None = None
+    """
+    Categorized reason for the failure.
+
+    Only set when central_state is FAILED. Enables integrations to distinguish
+    between different error types (AUTH, NETWORK, INTERNAL, etc.) and show
+    appropriate user-facing messages.
+    """
+
+    failure_interface_id: str | None = None
+    """Interface ID that caused the failure, if applicable."""
 
     # Infrastructure
     connection_state: tuple[str, bool] | None = None

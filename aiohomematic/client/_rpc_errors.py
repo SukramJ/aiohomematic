@@ -23,9 +23,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 import re
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic.exceptions import AuthFailure, ClientException, InternalBackendException, NoConnectionException
+
+if TYPE_CHECKING:
+    from aiohomematic.const import FailureReason
 
 # Patterns that may contain sensitive information
 _SENSITIVE_PATTERNS: Final[tuple[tuple[str, str], ...]] = (
@@ -137,3 +140,49 @@ def map_xmlrpc_fault(*, code: int, fault_string: str, ctx: RpcContext) -> Except
     if "internal" in fault_string.lower():
         return InternalBackendException(fault_msg)
     return ClientException(fault_msg)
+
+
+def exception_to_failure_reason(exc: BaseException) -> FailureReason:
+    """
+    Map an exception to a FailureReason enum value.
+
+    This function translates exceptions into categorized failure reasons
+    that can be used by state machines and propagated to integrations.
+
+    Args:
+        exc: The exception to categorize.
+
+    Returns:
+        The appropriate FailureReason for the exception type.
+
+    Example:
+        ```python
+        try:
+            await client.login()
+        except BaseException as exc:
+            reason = exception_to_failure_reason(exc)
+            state_machine.transition_to(
+                target=ClientState.FAILED,
+                reason=str(exc),
+                failure_reason=reason,
+            )
+        ```
+
+    """
+    # Import here to avoid circular dependency
+    from asyncio import TimeoutError as AsyncTimeoutError  # noqa: PLC0415
+
+    from aiohomematic.const import FailureReason  # noqa: PLC0415
+    from aiohomematic.exceptions import CircuitBreakerOpenException  # noqa: PLC0415
+
+    if isinstance(exc, AuthFailure):
+        return FailureReason.AUTH
+    if isinstance(exc, NoConnectionException):
+        return FailureReason.NETWORK
+    if isinstance(exc, InternalBackendException):
+        return FailureReason.INTERNAL
+    if isinstance(exc, CircuitBreakerOpenException):
+        return FailureReason.CIRCUIT_BREAKER
+    if isinstance(exc, TimeoutError | AsyncTimeoutError):
+        return FailureReason.TIMEOUT
+    return FailureReason.UNKNOWN

@@ -18,6 +18,7 @@ from aiohomematic.const import (
     DeviceFirmwareState,
     EventKey,
     EventType,
+    FailureReason,
     Interface,
     ParamsetKey,
     SystemEventType,
@@ -495,6 +496,21 @@ class CentralStateMachineProtocol(Protocol):
 
     @property
     @abstractmethod
+    def failure_interface_id(self) -> str | None:
+        """Return the interface ID that caused the failure, if applicable."""
+
+    @property
+    @abstractmethod
+    def failure_message(self) -> str:
+        """Return human-readable failure message."""
+
+    @property
+    @abstractmethod
+    def failure_reason(self) -> FailureReason:
+        """Return the reason for the failed state."""
+
+    @property
+    @abstractmethod
     def is_degraded(self) -> bool:
         """Return True if system is in degraded state."""
 
@@ -533,7 +549,15 @@ class CentralStateMachineProtocol(Protocol):
         """Check if transition to target state is valid."""
 
     @abstractmethod
-    def transition_to(self, *, target: CentralState, reason: str = "", force: bool = False) -> None:
+    def transition_to(
+        self,
+        *,
+        target: CentralState,
+        reason: str = "",
+        force: bool = False,
+        failure_reason: FailureReason = FailureReason.NONE,
+        failure_interface_id: str | None = None,
+    ) -> None:
         """Transition to a new state."""
 
 

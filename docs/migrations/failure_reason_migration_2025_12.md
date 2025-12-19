@@ -1,7 +1,7 @@
 # Migration Guide: FailureReason Support
 
 **Date**: December 2025
-**Version**: 2025.12.34+
+**Version**: 2025.12.34+ (propagation fix in 2025.12.35)
 **Breaking Change**: No (additive API)
 
 ## Overview
@@ -203,6 +203,40 @@ if central.state_machine.is_failed:
 - The new `failure_reason` parameter has a default value of `FailureReason.NONE`
 - If you don't pass `failure_reason`, the behavior is unchanged
 - The `failure_reason` and `failure_interface_id` fields on `SystemStatusEvent` are `None` when not in FAILED state
+
+## Failure Reason Propagation Path
+
+The failure reason is propagated through the system as follows:
+
+1. **Exception occurs** during client operation (e.g., login failure, network error)
+2. **Client state machine** captures the failure reason via `exception_to_failure_reason()`
+3. **ClientCoordinator** tracks the last failure reason and interface_id
+4. **Central state machine** receives the failure info when transitioning to FAILED
+5. **SystemStatusEvent** is published with `failure_reason` and `failure_interface_id`
+6. **Integration** receives the event and can display appropriate error messages
+
+### New Protocol: ClientStateMachineProtocol
+
+A new protocol is available for accessing client state machine properties:
+
+```python
+from aiohomematic.interfaces.client import ClientStateMachineProtocol
+
+# Access via client
+client.state_machine.is_failed         # bool
+client.state_machine.failure_reason    # FailureReason
+client.state_machine.failure_message   # str
+```
+
+### ClientCoordinator Changes
+
+The `ClientCoordinator` now tracks the last failure from client creation:
+
+```python
+# Access failure info from ClientCoordinator
+coordinator.last_failure_reason        # FailureReason
+coordinator.last_failure_interface_id  # str | None
+```
 
 ## Testing
 

@@ -20,7 +20,8 @@ import logging
 from typing import Final
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, Interface, ProxyInitState
+from aiohomematic.client._rpc_errors import exception_to_failure_reason
+from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, FailureReason, Interface, ProxyInitState
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
@@ -46,6 +47,8 @@ class ClientCoordinator(ClientProviderProtocol):
         "_config_provider",
         "_coordinator_provider",
         "_health_tracker",
+        "_last_failure_interface_id",
+        "_last_failure_reason",
         "_primary_client",
         "_system_info_provider",
     )
@@ -84,6 +87,10 @@ class ClientCoordinator(ClientProviderProtocol):
         self._clients: Final[dict[str, ClientProtocol]] = {}
         self._clients_started: bool = False
         self._primary_client: ClientProtocol | None = None
+
+        # Track last failure for propagation to central state machine
+        self._last_failure_reason: FailureReason = FailureReason.NONE
+        self._last_failure_interface_id: str | None = None
 
     @property
     def all_clients_active(self) -> bool:
@@ -125,6 +132,16 @@ class ClientCoordinator(ClientProviderProtocol):
     def is_alive(self) -> bool:
         """Return if all clients have alive callbacks."""
         return all(client.is_callback_alive() for client in self._clients.values())
+
+    @property
+    def last_failure_interface_id(self) -> str | None:
+        """Return the interface ID of the last client that failed."""
+        return self._last_failure_interface_id
+
+    @property
+    def last_failure_reason(self) -> FailureReason:
+        """Return the failure reason from the last client creation failure."""
+        return self._last_failure_reason
 
     @property
     def poll_clients(self) -> tuple[ClientProtocol, ...]:
@@ -242,6 +259,10 @@ class ClientCoordinator(ClientProviderProtocol):
             True if all clients started successfully, False otherwise
 
         """
+        # Clear previous failure info before attempting to start
+        self._last_failure_reason = FailureReason.NONE
+        self._last_failure_interface_id = None
+
         if not await self._create_clients():
             return False
 
@@ -319,6 +340,9 @@ class ClientCoordinator(ClientProviderProtocol):
                 )
                 return True
         except BaseHomematicException as bhexc:  # pragma: no cover
+            # Track failure reason for propagation to central state machine
+            self._last_failure_reason = exception_to_failure_reason(bhexc)
+            self._last_failure_interface_id = interface_config.interface_id
             _LOGGER.error(
                 i18n.tr(
                     "log.central.create_client.no_connection",

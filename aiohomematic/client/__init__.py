@@ -298,6 +298,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return self._state_machine.state
 
     @property
+    def state_machine(self) -> ClientStateMachine:
+        """Return the client state machine."""
+        return self._state_machine
+
+    @property
     def supports_backup(self) -> bool:
         """Return if the backend supports backup creation and download."""
         return self._system_information.supports_backup

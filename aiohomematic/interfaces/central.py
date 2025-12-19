@@ -496,6 +496,11 @@ class CentralStateMachineProtocol(Protocol):
 
     @property
     @abstractmethod
+    def degraded_interfaces(self) -> Mapping[str, FailureReason]:
+        """Return the interfaces that are degraded with their failure reasons."""
+
+    @property
+    @abstractmethod
     def failure_interface_id(self) -> str | None:
         """Return the interface ID that caused the failure, if applicable."""
 
@@ -557,6 +562,7 @@ class CentralStateMachineProtocol(Protocol):
         force: bool = False,
         failure_reason: FailureReason = FailureReason.NONE,
         failure_interface_id: str | None = None,
+        degraded_interfaces: Mapping[str, FailureReason] | None = None,
     ) -> None:
         """Transition to a new state."""
 

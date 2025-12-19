@@ -120,6 +120,11 @@ class SystemStatusEvent(Event):
                 elif event.failure_reason == FailureReason.NETWORK:
                     async_create_issue(..., translation_key="connection_failed")
 
+            elif event.central_state == CentralState.DEGRADED:
+                # Show status per degraded interface
+                for iface_id, reason in (event.degraded_interfaces or {}).items():
+                    _LOGGER.warning("Interface %s degraded: %s", iface_id, reason)
+
             for issue in event.issues:
                 async_create_issue(...)
 
@@ -148,6 +153,16 @@ class SystemStatusEvent(Event):
 
     failure_interface_id: str | None = None
     """Interface ID that caused the failure, if applicable."""
+
+    # Degraded details (populated when central_state is DEGRADED)
+    degraded_interfaces: Mapping[str, FailureReason] | None = None
+    """
+    Interfaces that are degraded with their failure reasons.
+
+    Only set when central_state is DEGRADED. Maps interface_id to its
+    FailureReason, enabling integrations to show detailed status per interface.
+    Example: {"ccu-HmIP-RF": FailureReason.NETWORK, "ccu-BidCos-RF": FailureReason.AUTH}
+    """
 
     # Infrastructure
     connection_state: tuple[str, bool] | None = None

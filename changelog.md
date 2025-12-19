@@ -1,3 +1,21 @@
+# Version 2025.12.36 (2025-12-19)
+
+## What's Changed
+
+### New Features
+
+- **Add `degraded_interfaces` tracking for DEGRADED state**: Show which interfaces are degraded and why
+  - New `degraded_interfaces` property on `CentralStateMachine`: `Mapping[str, FailureReason]`
+  - New `degraded_interfaces` field on `SystemStatusEvent` for integration consumption
+  - Updated `transition_to()` method with `degraded_interfaces` parameter
+  - Log output now shows interface-specific failure reasons: `[interfaces: HmIP-RF=network, BidCos-RF=auth]`
+  - **Integration benefit**: Home Assistant can now show detailed status per interface in DEGRADED state
+  - See `docs/migrations/failure_reason_migration_2025_12.md` for usage examples
+
+### Improvements
+
+- **Recovery max-retries now propagates failure info**: When recovery fails after max retries, the FAILED transition now includes `failure_reason` and `failure_interface_id`
+
 # Version 2025.12.35 (2025-12-19)
 
 ## What's Changed

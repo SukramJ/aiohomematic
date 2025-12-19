@@ -65,6 +65,7 @@ from aiohomematic.const import CentralState, FailureReason
 if TYPE_CHECKING:
     from aiohomematic.central.health import HealthTracker
     from aiohomematic.central.state_machine import CentralStateMachine
+    from aiohomematic.interfaces.client import ClientProviderProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -231,6 +232,7 @@ class RecoveryCoordinator:
 
     __slots__ = (
         "_central_name",
+        "_client_provider",
         "_health_tracker",
         "_in_recovery",
         "_recovery_states",
@@ -244,6 +246,7 @@ class RecoveryCoordinator:
         central_name: str,
         state_machine: CentralStateMachine | None = None,
         health_tracker: HealthTracker | None = None,
+        client_provider: ClientProviderProtocol | None = None,
     ) -> None:
         """
         Initialize the recovery coordinator.
@@ -252,11 +255,13 @@ class RecoveryCoordinator:
             central_name: Name of the central unit
             state_machine: Optional central state machine reference
             health_tracker: Optional health tracker reference
+            client_provider: Optional client provider for failure reason lookup
 
         """
         self._central_name: Final = central_name
         self._state_machine = state_machine
         self._health_tracker = health_tracker
+        self._client_provider = client_provider
         self._recovery_states: dict[str, RecoveryState] = {}
         self._in_recovery: bool = False
         self._shutdown: bool = False
@@ -632,9 +637,9 @@ class RecoveryCoordinator:
             return RecoveryResult.MAX_RETRIES
 
         if success_count > 0:
-            # Partial recovery - get failed interfaces from recovery states
+            # Partial recovery - get failed interfaces with actual failure reasons from clients
             degraded_interfaces = {
-                iface_id: FailureReason.UNKNOWN
+                iface_id: self._get_client_failure_reason(interface_id=iface_id)
                 for iface_id, state in self._recovery_states.items()
                 if state.consecutive_failures > 0
             }
@@ -646,9 +651,9 @@ class RecoveryCoordinator:
                 )
             return RecoveryResult.PARTIAL
 
-        # All failed but not max retries yet
+        # All failed but not max retries yet - get actual failure reasons from clients
         degraded_interfaces = {
-            iface_id: FailureReason.UNKNOWN
+            iface_id: self._get_client_failure_reason(interface_id=iface_id)
             for iface_id, state in self._recovery_states.items()
             if state.consecutive_failures > 0
         }
@@ -659,6 +664,27 @@ class RecoveryCoordinator:
                 degraded_interfaces=degraded_interfaces,
             )
         return RecoveryResult.FAILED
+
+    def _get_client_failure_reason(self, *, interface_id: str) -> FailureReason:
+        """
+        Get the failure reason for a client from its state machine.
+
+        Args:
+            interface_id: The interface ID to look up
+
+        Returns:
+            FailureReason from the client's state machine, or UNKNOWN if not available
+
+        """
+        if self._client_provider is None:
+            return FailureReason.UNKNOWN
+        try:
+            client = self._client_provider.get_client(interface_id=interface_id)
+            reason = client.state_machine.failure_reason
+        except Exception:  # noqa: BLE001
+            return FailureReason.UNKNOWN
+        else:
+            return reason if reason != FailureReason.NONE else FailureReason.UNKNOWN
 
     async def _verify_data_load(
         self,

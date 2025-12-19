@@ -53,6 +53,7 @@ from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
@@ -92,6 +93,7 @@ from aiohomematic.const import (
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,
+    FailureReason,
     ForcedDeviceAvailability,
     InboxDeviceData,
     Interface,
@@ -683,8 +685,12 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 )
                 self._init_handlers()
             self._state_machine.transition_to(target=ClientState.INITIALIZED)
-        except Exception:
-            self._state_machine.transition_to(target=ClientState.FAILED)
+        except Exception as exc:
+            self._state_machine.transition_to(
+                target=ClientState.FAILED,
+                reason=str(exc),
+                failure_reason=exception_to_failure_reason(exc),
+            )
             raise
 
     async def initialize_proxy(self) -> ProxyInitState:
@@ -699,7 +705,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                     target=ClientState.CONNECTED, reason="proxy initialized (no callback)"
                 )
                 return ProxyInitState.INIT_SUCCESS
-            self._state_machine.transition_to(target=ClientState.FAILED, reason="device listing failed")
+            self._state_machine.transition_to(
+                target=ClientState.FAILED,
+                reason="device listing failed",
+                failure_reason=FailureReason.NETWORK,
+            )
             # Mark devices as unavailable when device listing fails
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             return ProxyInitState.INIT_FAILED
@@ -748,7 +758,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 self.interface_id,
             )
             self.modified_at = INIT_DATETIME
-            self._state_machine.transition_to(target=ClientState.FAILED, reason="proxy init failed")
+            self._state_machine.transition_to(
+                target=ClientState.FAILED,
+                reason="proxy init failed",
+                failure_reason=exception_to_failure_reason(bhexc),
+            )
             # Mark devices as unavailable when proxy init fails
             # This ensures entities show unavailable during CCU restart/recovery
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)

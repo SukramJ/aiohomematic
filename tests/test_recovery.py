@@ -37,6 +37,18 @@ class TestRecoveryState:
         state.attempt_count = MAX_RECOVERY_ATTEMPTS - 1
         assert state.can_retry is True
 
+    def test_history_trimming(self) -> None:
+        """Test history is trimmed to last 20 attempts."""
+        state = RecoveryState(interface_id="test-interface")
+
+        # Record more than 20 attempts
+        for _ in range(25):
+            state.record_attempt(result=RecoveryResult.FAILED, stage=DataLoadStage.BASIC)
+
+        # History should be trimmed to 20
+        assert len(state.history) == 20
+        assert state.attempt_count == 25
+
     def test_initial_state(self) -> None:
         """Test initial recovery state."""
         state = RecoveryState(interface_id="test-interface")
@@ -205,6 +217,37 @@ class TestRecoveryCoordinator:
         assert result == RecoveryResult.CANCELLED
 
     @pytest.mark.asyncio
+    async def test_heartbeat_retry_in_failed_state(self) -> None:
+        """Test heartbeat retry actually attempts recovery in FAILED state."""
+        health_tracker = MagicMock()
+        health_tracker.health.failed_clients = ["interface-1"]
+
+        state_machine = MagicMock()
+        state_machine.state = CentralState.FAILED
+        state_machine.can_transition_to.return_value = True
+
+        coordinator = RecoveryCoordinator(
+            central_name="test-central",
+            state_machine=state_machine,
+            health_tracker=health_tracker,
+        )
+
+        # Simulate interface at max retries
+        state = coordinator.register_interface(interface_id="interface-1")
+        state.attempt_count = MAX_RECOVERY_ATTEMPTS
+
+        reconnect_func = AsyncMock(return_value=True)
+        get_reconnect_func = lambda iface_id: reconnect_func
+
+        result = await coordinator.heartbeat_retry(
+            get_reconnect_func=get_reconnect_func,
+        )
+
+        # Recovery was successful, so counter was reset
+        assert state.attempt_count == 0
+        assert result == RecoveryResult.SUCCESS
+
+    @pytest.mark.asyncio
     async def test_heartbeat_retry_not_in_failed_state(self) -> None:
         """Test heartbeat retry when not in FAILED state."""
         state_machine = MagicMock()
@@ -232,6 +275,36 @@ class TestRecoveryCoordinator:
 
         result = await coordinator.recover_all_failed()
         assert result == RecoveryResult.CANCELLED
+
+    @pytest.mark.asyncio
+    async def test_recover_all_failed_max_retries_transitions_to_failed(self) -> None:
+        """Test transition to FAILED state when all clients hit max retries."""
+        health_tracker = MagicMock()
+        health_tracker.health.failed_clients = ["interface-1", "interface-2"]
+
+        state_machine = MagicMock()
+        state_machine.can_transition_to.return_value = True
+        state_machine.state = CentralState.DEGRADED
+
+        coordinator = RecoveryCoordinator(
+            central_name="test-central",
+            health_tracker=health_tracker,
+            state_machine=state_machine,
+        )
+
+        # Set both interfaces at max retries
+        state1 = coordinator.register_interface(interface_id="interface-1")
+        state1.attempt_count = MAX_RECOVERY_ATTEMPTS
+        state2 = coordinator.register_interface(interface_id="interface-2")
+        state2.attempt_count = MAX_RECOVERY_ATTEMPTS
+
+        result = await coordinator.recover_all_failed()
+
+        # Should transition to FAILED state
+        assert result == RecoveryResult.MAX_RETRIES
+        state_machine.transition_to.assert_called()
+        call_args = state_machine.transition_to.call_args
+        assert call_args.kwargs["target"] == CentralState.FAILED
 
     @pytest.mark.asyncio
     async def test_recover_all_failed_no_failed_clients(self) -> None:
@@ -363,6 +436,25 @@ class TestRecoveryCoordinator:
         assert result == RecoveryResult.MAX_RETRIES
 
     @pytest.mark.asyncio
+    async def test_recover_client_partial_recovery(self) -> None:
+        """Test partial recovery when data load verification fails."""
+        coordinator = RecoveryCoordinator(central_name="test-central")
+
+        reconnect_func = AsyncMock(return_value=True)
+        verify_func = AsyncMock(return_value=False)  # Verification fails
+
+        result = await coordinator.recover_client(
+            interface_id="test-interface",
+            reconnect_func=reconnect_func,
+            verify_func=verify_func,
+        )
+
+        assert result == RecoveryResult.PARTIAL
+        state = coordinator.get_recovery_state(interface_id="test-interface")
+        assert state is not None
+        assert state.attempt_count == 1
+
+    @pytest.mark.asyncio
     async def test_recover_client_reconnect_fails(self) -> None:
         """Test client recovery when reconnect fails."""
         coordinator = RecoveryCoordinator(central_name="test-central")
@@ -393,6 +485,22 @@ class TestRecoveryCoordinator:
         assert result == RecoveryResult.SUCCESS
         reconnect_func.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_recover_client_verify_exception(self) -> None:
+        """Test recovery when verify function raises exception."""
+        coordinator = RecoveryCoordinator(central_name="test-central")
+
+        reconnect_func = AsyncMock(return_value=True)
+        verify_func = AsyncMock(side_effect=RuntimeError("Verification error"))
+
+        result = await coordinator.recover_client(
+            interface_id="test-interface",
+            reconnect_func=reconnect_func,
+            verify_func=verify_func,
+        )
+
+        assert result == RecoveryResult.PARTIAL
+
     def test_register_interface(self) -> None:
         """Test registering an interface."""
         coordinator = RecoveryCoordinator(central_name="test-central")
@@ -417,6 +525,22 @@ class TestRecoveryCoordinator:
         coordinator.reset_interface(interface_id="test-interface")
         assert state.attempt_count == 0
 
+    def test_set_health_tracker(self) -> None:
+        """Test setting health tracker."""
+        coordinator = RecoveryCoordinator(central_name="test-central")
+        health_tracker = MagicMock()
+
+        coordinator.set_health_tracker(health_tracker=health_tracker)
+        assert coordinator._health_tracker is health_tracker
+
+    def test_set_state_machine(self) -> None:
+        """Test setting state machine."""
+        coordinator = RecoveryCoordinator(central_name="test-central")
+        state_machine = MagicMock()
+
+        coordinator.set_state_machine(state_machine=state_machine)
+        assert coordinator._state_machine is state_machine
+
     def test_shutdown(self) -> None:
         """Test shutdown flag."""
         coordinator = RecoveryCoordinator(central_name="test-central")
@@ -424,6 +548,15 @@ class TestRecoveryCoordinator:
 
         coordinator.shutdown()
         assert coordinator._shutdown is True
+
+    def test_unregister_interface(self) -> None:
+        """Test unregistering an interface."""
+        coordinator = RecoveryCoordinator(central_name="test-central")
+        coordinator.register_interface(interface_id="test-interface")
+        assert "test-interface" in coordinator.recovery_states
+
+        coordinator.unregister_interface(interface_id="test-interface")
+        assert "test-interface" not in coordinator.recovery_states
 
 
 class TestDataLoadStage:

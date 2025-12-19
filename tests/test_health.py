@@ -93,6 +93,30 @@ class TestConnectionHealth:
         # Should be close to 1.0
         assert health.health_score >= 0.9
 
+    def test_health_score_json_rpc_closed(self) -> None:
+        """Test health score with JSON-RPC circuit closed."""
+        health = ConnectionHealth(
+            interface_id="test",
+            interface=Interface.HMIP_RF,
+            client_state=ClientState.CONNECTED,
+            xml_rpc_circuit=CircuitState.CLOSED,
+            json_rpc_circuit=CircuitState.CLOSED,
+        )
+        score = health.health_score
+        assert score >= 0.7
+
+    def test_health_score_json_rpc_half_open(self) -> None:
+        """Test health score with JSON-RPC circuit half-open."""
+        health = ConnectionHealth(
+            interface_id="test",
+            interface=Interface.HMIP_RF,
+            client_state=ClientState.CONNECTED,
+            xml_rpc_circuit=CircuitState.CLOSED,
+            json_rpc_circuit=CircuitState.HALF_OPEN,
+        )
+        score = health.health_score
+        assert 0.5 <= score <= 0.9
+
     def test_health_score_old_activity(self) -> None:
         """Test health score with old activity timestamps."""
         health = ConnectionHealth(
@@ -416,6 +440,17 @@ class TestCentralHealth:
         client1.client_state = ClientState.CONNECTED
         client2.client_state = ClientState.CONNECTED
 
+        assert health.primary_client_healthy is True
+
+    def test_primary_client_healthy_last_resort(self) -> None:
+        """Test primary_client_healthy uses first client as last resort."""
+        health = CentralHealth()
+
+        # Only BIDCOS_RF, no HmIP-RF
+        client1 = health.register_client(interface_id="c1", interface=Interface.BIDCOS_RF)
+        client1.client_state = ClientState.CONNECTED
+
+        # Should use first (and only) client as last resort
         assert health.primary_client_healthy is True
 
     def test_primary_client_healthy_with_primary_interface(self) -> None:

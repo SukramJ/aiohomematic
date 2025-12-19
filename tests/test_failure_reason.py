@@ -280,3 +280,137 @@ class TestCentralStateMachineEventPublishing:
         assert event.central_state == CentralState.RUNNING
         assert event.failure_reason is None
         assert event.failure_interface_id is None
+
+
+class TestCentralStateMachineDegradedInterfaces:
+    """Tests for CentralStateMachine degraded interface tracking."""
+
+    def test_initial_degraded_interfaces_is_empty(self) -> None:
+        """Test that initial degraded_interfaces is empty."""
+        sm = CentralStateMachine(central_name="test-central")
+        assert len(sm.degraded_interfaces) == 0
+
+    def test_transition_to_degraded_sets_interfaces(self) -> None:
+        """Test that transitioning to DEGRADED sets the degraded interfaces."""
+        sm = CentralStateMachine(central_name="test-central")
+        sm.transition_to(target=CentralState.INITIALIZING)
+        sm.transition_to(
+            target=CentralState.DEGRADED,
+            reason="Some clients not connected",
+            degraded_interfaces={
+                "HmIP-RF": FailureReason.NETWORK,
+                "BidCos-RF": FailureReason.AUTH,
+            },
+        )
+        assert len(sm.degraded_interfaces) == 2
+        assert sm.degraded_interfaces["HmIP-RF"] == FailureReason.NETWORK
+        assert sm.degraded_interfaces["BidCos-RF"] == FailureReason.AUTH
+        assert sm.is_degraded is True
+
+    def test_transition_to_failed_clears_degraded_interfaces(self) -> None:
+        """Test that transitioning to FAILED clears degraded interfaces."""
+        sm = CentralStateMachine(central_name="test-central")
+        sm.transition_to(target=CentralState.INITIALIZING)
+        sm.transition_to(
+            target=CentralState.DEGRADED,
+            reason="HmIP-RF not connected",
+            degraded_interfaces={"HmIP-RF": FailureReason.NETWORK},
+        )
+        assert len(sm.degraded_interfaces) == 1
+
+        # Transition to FAILED
+        sm.transition_to(
+            target=CentralState.FAILED,
+            reason="All clients failed",
+            failure_reason=FailureReason.NETWORK,
+        )
+        assert len(sm.degraded_interfaces) == 0
+
+    def test_transition_to_running_clears_degraded_interfaces(self) -> None:
+        """Test that transitioning to RUNNING clears degraded interfaces."""
+        sm = CentralStateMachine(central_name="test-central")
+        sm.transition_to(target=CentralState.INITIALIZING)
+        sm.transition_to(
+            target=CentralState.DEGRADED,
+            reason="HmIP-RF not connected",
+            degraded_interfaces={"HmIP-RF": FailureReason.NETWORK},
+        )
+        assert len(sm.degraded_interfaces) == 1
+
+        # Recover to RUNNING
+        sm.transition_to(target=CentralState.RUNNING)
+        assert len(sm.degraded_interfaces) == 0
+
+
+class TestSystemStatusEventDegradedInterfaces:
+    """Tests for SystemStatusEvent degraded_interfaces field."""
+
+    def test_event_with_degraded_interfaces(self) -> None:
+        """Test creating SystemStatusEvent with degraded interfaces."""
+        from datetime import datetime
+
+        degraded = {"HmIP-RF": FailureReason.NETWORK, "BidCos-RF": FailureReason.AUTH}
+        event = SystemStatusEvent(
+            timestamp=datetime.now(),
+            central_state=CentralState.DEGRADED,
+            degraded_interfaces=degraded,
+        )
+        assert event.central_state == CentralState.DEGRADED
+        assert event.degraded_interfaces is not None
+        assert len(event.degraded_interfaces) == 2
+        assert event.degraded_interfaces["HmIP-RF"] == FailureReason.NETWORK
+        assert event.degraded_interfaces["BidCos-RF"] == FailureReason.AUTH
+
+    def test_event_without_degraded_interfaces(self) -> None:
+        """Test creating SystemStatusEvent without degraded interfaces."""
+        from datetime import datetime
+
+        event = SystemStatusEvent(
+            timestamp=datetime.now(),
+            central_state=CentralState.RUNNING,
+        )
+        assert event.central_state == CentralState.RUNNING
+        assert event.degraded_interfaces is None
+
+
+class TestCentralStateMachineDegradedEventPublishing:
+    """Tests for CentralStateMachine event publishing with degraded interfaces."""
+
+    def test_publish_degraded_event_includes_interfaces(self) -> None:
+        """Test that DEGRADED state change event includes degraded interfaces."""
+        mock_event_bus = MagicMock()
+        sm = CentralStateMachine(central_name="test-central", event_bus=mock_event_bus)
+
+        sm.transition_to(target=CentralState.INITIALIZING)
+        sm.transition_to(
+            target=CentralState.DEGRADED,
+            reason="HmIP-RF not connected",
+            degraded_interfaces={"HmIP-RF": FailureReason.NETWORK},
+        )
+
+        # Check that publish_sync was called with correct event
+        assert mock_event_bus.publish_sync.called
+        call_args = mock_event_bus.publish_sync.call_args
+        event = call_args.kwargs["event"]
+
+        assert isinstance(event, SystemStatusEvent)
+        assert event.central_state == CentralState.DEGRADED
+        assert event.degraded_interfaces is not None
+        assert len(event.degraded_interfaces) == 1
+        assert event.degraded_interfaces["HmIP-RF"] == FailureReason.NETWORK
+
+    def test_publish_running_event_has_no_degraded_interfaces(self) -> None:
+        """Test that RUNNING event does not include degraded interfaces."""
+        mock_event_bus = MagicMock()
+        sm = CentralStateMachine(central_name="test-central", event_bus=mock_event_bus)
+
+        sm.transition_to(target=CentralState.INITIALIZING)
+        sm.transition_to(target=CentralState.RUNNING)
+
+        # Check the last call to publish_sync
+        call_args = mock_event_bus.publish_sync.call_args
+        event = call_args.kwargs["event"]
+
+        assert isinstance(event, SystemStatusEvent)
+        assert event.central_state == CentralState.RUNNING
+        assert event.degraded_interfaces is None

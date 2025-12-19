@@ -992,10 +992,20 @@ class CentralUnit(
             and not all_connected
             and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED)
         ):
-            disconnected = [c.interface_id for c in clients if c.state != ClientState.CONNECTED]
+            # Build map of disconnected interfaces with their failure reasons
+            degraded_interfaces: dict[str, FailureReason] = {
+                client.interface_id: (
+                    reason
+                    if (reason := client.state_machine.failure_reason) != FailureReason.NONE
+                    else FailureReason.UNKNOWN
+                )
+                for client in clients
+                if client.state != ClientState.CONNECTED
+            }
             self._central_state_machine.transition_to(
                 target=CentralState.DEGRADED,
-                reason=f"clients not connected: {', '.join(disconnected)}",
+                reason=f"clients not connected: {', '.join(degraded_interfaces.keys())}",
+                degraded_interfaces=degraded_interfaces,
             )
         elif not any_connected and self._central_state_machine.can_transition_to(target=CentralState.FAILED):
             self._central_state_machine.transition_to(
@@ -1143,14 +1153,27 @@ class CentralUnit(
                     target=CentralState.RUNNING,
                     reason=f"all clients connected (triggered by {interface_id})",
                 )
-            elif any_connected and not all_connected and current_state == CentralState.RUNNING:
+            elif (
+                any_connected
+                and not all_connected
+                and current_state == CentralState.RUNNING
+                and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED)
+            ):
                 # Only transition to DEGRADED from RUNNING when some (but not all) clients connected
-                if self._central_state_machine.can_transition_to(target=CentralState.DEGRADED):
-                    disconnected = [c.interface_id for c in clients if c.state != ClientState.CONNECTED]
-                    self._central_state_machine.transition_to(
-                        target=CentralState.DEGRADED,
-                        reason=f"clients not connected: {', '.join(disconnected)}",
+                degraded_interfaces: dict[str, FailureReason] = {
+                    client.interface_id: (
+                        reason
+                        if (reason := client.state_machine.failure_reason) != FailureReason.NONE
+                        else FailureReason.UNKNOWN
                     )
+                    for client in clients
+                    if client.state != ClientState.CONNECTED
+                }
+                self._central_state_machine.transition_to(
+                    target=CentralState.DEGRADED,
+                    reason=f"clients not connected: {', '.join(degraded_interfaces.keys())}",
+                    degraded_interfaces=degraded_interfaces,
+                )
             elif (
                 not any_connected
                 and current_state in (CentralState.RUNNING, CentralState.DEGRADED)

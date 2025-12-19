@@ -60,7 +60,7 @@ from enum import StrEnum
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from aiohomematic.const import CentralState
+from aiohomematic.const import CentralState, FailureReason
 
 if TYPE_CHECKING:
     from aiohomematic.central.health import HealthTracker
@@ -611,11 +611,18 @@ class RecoveryCoordinator:
             return RecoveryResult.SUCCESS
 
         if max_retries_count > 0 and success_count == 0:
-            # All failed with max retries
+            # All failed with max retries - get first failed interface for reporting
+            failure_interface_id: str | None = None
+            for iface_id, state in self._recovery_states.items():
+                if state.attempt_count >= MAX_RECOVERY_ATTEMPTS:
+                    failure_interface_id = iface_id
+                    break
             if self._state_machine.can_transition_to(target=CentralState.FAILED):
                 self._state_machine.transition_to(
                     target=CentralState.FAILED,
                     reason=f"Max retries reached for {max_retries_count} client(s) - manual intervention required",
+                    failure_reason=FailureReason.UNKNOWN,
+                    failure_interface_id=failure_interface_id,
                 )
             _LOGGER.error(  # i18n-log: ignore
                 "RECOVERY: %s: FAILED state entered - max retries reached. Will retry every %d seconds via heartbeat.",
@@ -625,19 +632,31 @@ class RecoveryCoordinator:
             return RecoveryResult.MAX_RETRIES
 
         if success_count > 0:
-            # Partial recovery
+            # Partial recovery - get failed interfaces from recovery states
+            degraded_interfaces = {
+                iface_id: FailureReason.UNKNOWN
+                for iface_id, state in self._recovery_states.items()
+                if state.consecutive_failures > 0
+            }
             if self._state_machine.can_transition_to(target=CentralState.DEGRADED):
                 self._state_machine.transition_to(
                     target=CentralState.DEGRADED,
                     reason=f"Partial recovery: {success_count}/{total_count} clients recovered",
+                    degraded_interfaces=degraded_interfaces,
                 )
             return RecoveryResult.PARTIAL
 
         # All failed but not max retries yet
+        degraded_interfaces = {
+            iface_id: FailureReason.UNKNOWN
+            for iface_id, state in self._recovery_states.items()
+            if state.consecutive_failures > 0
+        }
         if self._state_machine.can_transition_to(target=CentralState.DEGRADED):
             self._state_machine.transition_to(
                 target=CentralState.DEGRADED,
                 reason=f"Recovery failed for {failed_count} client(s), will retry",
+                degraded_interfaces=degraded_interfaces,
             )
         return RecoveryResult.FAILED
 

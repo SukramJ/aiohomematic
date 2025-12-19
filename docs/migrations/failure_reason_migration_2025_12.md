@@ -1,7 +1,7 @@
 # Migration Guide: FailureReason Support
 
 **Date**: December 2025
-**Version**: 2025.12.34+ (propagation fix in 2025.12.35)
+**Version**: 2025.12.34+ (propagation fix in 2025.12.35, degraded_interfaces in 2025.12.36)
 **Breaking Change**: No (additive API)
 
 ## Overview
@@ -236,6 +236,37 @@ The `ClientCoordinator` now tracks the last failure from client creation:
 # Access failure info from ClientCoordinator
 coordinator.last_failure_reason        # FailureReason
 coordinator.last_failure_interface_id  # str | None
+```
+
+### 6. Degraded Interfaces Tracking (Option B)
+
+When the system enters `DEGRADED` state, you can now see which interfaces are affected and why:
+
+```python
+# New field on SystemStatusEvent
+event.degraded_interfaces -> Mapping[str, FailureReason] | None
+# Example: {"HmIP-RF": FailureReason.NETWORK, "BidCos-RF": FailureReason.AUTH}
+
+# New property on CentralStateMachine
+sm.degraded_interfaces -> Mapping[str, FailureReason]
+```
+
+#### Example Usage
+
+```python
+async def on_system_status(*, event: SystemStatusEvent) -> None:
+    if event.central_state == CentralState.DEGRADED:
+        for interface_id, reason in (event.degraded_interfaces or {}).items():
+            if reason == FailureReason.AUTH:
+                _LOGGER.warning(
+                    "Interface %s: Authentication failed - check credentials",
+                    interface_id,
+                )
+            elif reason == FailureReason.NETWORK:
+                _LOGGER.warning(
+                    "Interface %s: Network error - check connectivity",
+                    interface_id,
+                )
 ```
 
 ## Testing

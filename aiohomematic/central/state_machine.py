@@ -42,9 +42,10 @@ overall system state:
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
 import logging
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic.const import CentralState, FailureReason
@@ -153,6 +154,7 @@ class CentralStateMachine(CentralStateMachineProtocol):
 
     __slots__ = (
         "_central_name",
+        "_degraded_interfaces",
         "_event_bus",
         "_failure_interface_id",
         "_failure_message",
@@ -183,9 +185,15 @@ class CentralStateMachine(CentralStateMachineProtocol):
         self._failure_reason: FailureReason = FailureReason.NONE
         self._failure_message: str = ""
         self._failure_interface_id: str | None = None
+        self._degraded_interfaces: Mapping[str, FailureReason] = MappingProxyType({})
         self._last_state_change: datetime = datetime.now()
         self._state_history: list[tuple[datetime, CentralState, CentralState, str]] = []
         self.on_state_change: Callable[[CentralState, CentralState, str], None] | None = None
+
+    @property
+    def degraded_interfaces(self) -> Mapping[str, FailureReason]:
+        """Return the interfaces that are degraded with their failure reasons."""
+        return self._degraded_interfaces
 
     @property
     def failure_interface_id(self) -> str | None:
@@ -285,6 +293,7 @@ class CentralStateMachine(CentralStateMachineProtocol):
         force: bool = False,
         failure_reason: FailureReason = FailureReason.NONE,
         failure_interface_id: str | None = None,
+        degraded_interfaces: Mapping[str, FailureReason] | None = None,
     ) -> None:
         """
         Transition to a new state.
@@ -295,6 +304,7 @@ class CentralStateMachine(CentralStateMachineProtocol):
             force: If True, skip validation (use with caution)
             failure_reason: Categorized failure reason (only used when target is FAILED)
             failure_interface_id: Interface ID that caused the failure (optional)
+            degraded_interfaces: Map of interface_id to failure reason (only used when target is DEGRADED)
 
         Raises:
             InvalidCentralStateTransitionError: If transition is not valid and force=False
@@ -316,11 +326,16 @@ class CentralStateMachine(CentralStateMachineProtocol):
             self._failure_reason = failure_reason
             self._failure_message = reason
             self._failure_interface_id = failure_interface_id
+            self._degraded_interfaces = MappingProxyType({})
+        elif target == CentralState.DEGRADED:
+            # Track degraded interfaces with their reasons
+            self._degraded_interfaces = MappingProxyType(dict(degraded_interfaces or {}))
         elif target == CentralState.RUNNING:
-            # Clear failure info on successful state
+            # Clear failure and degraded info on successful state
             self._failure_reason = FailureReason.NONE
             self._failure_message = ""
             self._failure_interface_id = None
+            self._degraded_interfaces = MappingProxyType({})
 
         # Record in history (keep last 100 transitions)
         self._state_history.append((self._last_state_change, old_state, target, reason))
@@ -329,14 +344,19 @@ class CentralStateMachine(CentralStateMachineProtocol):
 
         # Log the transition
         if old_state != target:
-            failure_info = f" [reason={failure_reason.value}]" if target == CentralState.FAILED else ""
+            extra_info = ""
+            if target == CentralState.FAILED:
+                extra_info = f" [reason={failure_reason.value}]"
+            elif target == CentralState.DEGRADED and degraded_interfaces:
+                iface_reasons = ", ".join(f"{k}={v.value}" for k, v in degraded_interfaces.items())
+                extra_info = f" [interfaces: {iface_reasons}]"
             _LOGGER.info(  # i18n-log: ignore
                 "CENTRAL_STATE: %s: %s -> %s (%s)%s",
                 self._central_name,
                 old_state.value,
                 target.value,
                 reason or "no reason specified",
-                failure_info,
+                extra_info,
             )
 
         # Call the callback
@@ -371,11 +391,15 @@ class CentralStateMachine(CentralStateMachineProtocol):
             failure_reason = self._failure_reason if new_state == CentralState.FAILED else None
             failure_interface_id = self._failure_interface_id if new_state == CentralState.FAILED else None
 
+            # Include degraded interfaces when transitioning to DEGRADED state
+            degraded_interfaces = self._degraded_interfaces if new_state == CentralState.DEGRADED else None
+
             self._event_bus.publish_sync(
                 event=SystemStatusEvent(
                     timestamp=self._last_state_change,
                     central_state=new_state,
                     failure_reason=failure_reason,
                     failure_interface_id=failure_interface_id,
+                    degraded_interfaces=degraded_interfaces,
                 )
             )

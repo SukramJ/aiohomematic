@@ -1,3 +1,12 @@
+# Version 2025.12.37 (2025-12-19)
+
+## What's Changed
+
+### Improvements
+
+- **Recovery now uses actual client failure reasons**: `RecoveryCoordinator` now queries client state machines for actual failure reasons instead of using `FailureReason.UNKNOWN` for all degraded interfaces
+- **XML-RPC server binding failure now includes failure reason**: OSError during XML-RPC server startup now passes `FailureReason.INTERNAL`
+
 # Version 2025.12.36 (2025-12-19)
 
 ## What's Changed

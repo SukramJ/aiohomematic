@@ -309,6 +309,7 @@ class CentralUnit(
             central_name=self._config.name,
             state_machine=self._central_state_machine,
             health_tracker=self._health_tracker,
+            client_provider=self._client_coordinator,
         )
 
         # Subscribe to system status events to update central state machine
@@ -944,6 +945,7 @@ class CentralUnit(
                 self._central_state_machine.transition_to(
                     target=CentralState.FAILED,
                     reason=f"XML-RPC server failed: {extract_exc_args(exc=oserr)}",
+                    failure_reason=FailureReason.INTERNAL,
                 )
             raise AioHomematicException(
                 i18n.tr(

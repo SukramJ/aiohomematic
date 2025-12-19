@@ -45,6 +45,7 @@ from aiohomematic.const import (
     ClientState,
     DataPointKey,
     DeviceDescription,
+    FailureReason,
     InboxDeviceData,
     Interface,
     ParameterData,
@@ -72,6 +73,32 @@ if TYPE_CHECKING:
 # =============================================================================
 # Client Sub-Protocol Interfaces
 # =============================================================================
+
+
+class ClientStateMachineProtocol(Protocol):
+    """
+    Protocol for client state machine operations.
+
+    Provides access to state machine properties for failure tracking.
+    """
+
+    __slots__ = ()
+
+    @property
+    def failure_message(self) -> str:
+        """Return human-readable failure message."""
+
+    @property
+    def failure_reason(self) -> FailureReason:
+        """Return the reason for the failed state."""
+
+    @property
+    def is_failed(self) -> bool:
+        """Return True if client is in failed state."""
+
+    @property
+    def state(self) -> ClientState:
+        """Return the current state."""
 
 
 class ClientIdentityProtocol(Protocol):
@@ -140,6 +167,10 @@ class ClientConnectionProtocol(Protocol):
     @property
     def state(self) -> ClientState:
         """Return the current client state."""
+
+    @property
+    def state_machine(self) -> ClientStateMachineProtocol:
+        """Return the client state machine."""
 
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""

@@ -131,6 +131,7 @@ from aiohomematic.const import (
     DataPointCategory,
     DescriptionMarker,
     EventType,
+    FailureReason,
     Interface,
     Operations,
     OptionalSettings,
@@ -1000,6 +1001,8 @@ class CentralUnit(
             self._central_state_machine.transition_to(
                 target=CentralState.FAILED,
                 reason="no clients connected",
+                failure_reason=self._client_coordinator.last_failure_reason,
+                failure_interface_id=self._client_coordinator.last_failure_interface_id,
             )
 
     async def stop(self) -> None:
@@ -1153,10 +1156,19 @@ class CentralUnit(
                 and current_state in (CentralState.RUNNING, CentralState.DEGRADED)
                 and self._central_state_machine.can_transition_to(target=CentralState.FAILED)
             ):
-                # All clients failed
+                # All clients failed - get failure reason from first failed client
+                failure_reason = FailureReason.NETWORK  # Default for disconnection
+                failure_interface_id: str | None = None
+                for client in clients:
+                    if client.state_machine.is_failed and client.state_machine.failure_reason != FailureReason.NONE:
+                        failure_reason = client.state_machine.failure_reason
+                        failure_interface_id = client.interface_id
+                        break
                 self._central_state_machine.transition_to(
                     target=CentralState.FAILED,
                     reason="all clients disconnected",
+                    failure_reason=failure_reason,
+                    failure_interface_id=failure_interface_id,
                 )
 
     def _start_scheduler(self) -> None:

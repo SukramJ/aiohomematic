@@ -1,3 +1,18 @@
+# Version 2025.12.35 (2025-12-19)
+
+## What's Changed
+
+### Improvements
+
+- **Complete `FailureReason` propagation from client to central**: Fix failure reason not being propagated when client creation fails
+  - `ClientCoordinator` now tracks `last_failure_reason` and `last_failure_interface_id` from failed client creation attempts
+  - Central state machine now receives failure info when transitioning to FAILED state
+  - Added `ClientStateMachineProtocol` for type-safe access to client state machine properties
+  - Added `state_machine` property to `ClientProtocol` for accessing client state machine
+  - **Before**: Log showed `[reason=none]` even for authentication failures
+  - **After**: Log correctly shows `[reason=auth]` for authentication failures, `[reason=network]` for network issues, etc.
+  - Updated migration documentation with full propagation path
+
 # Version 2025.12.34 (2025-12-19)
 
 ## What's Changed

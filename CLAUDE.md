@@ -1593,6 +1593,14 @@ This section defines mandatory rules for all implementations in this project.
 
 ### Changelog Versioning Rules
 
+**Version Schema**: `YYYY.MM.NN` (Year.Month.RunningNumber)
+
+- `YYYY` = Year (e.g., 2025)
+- `MM` = Month (e.g., 12 for December)
+- `NN` = Running number within that month, incremented for each release
+
+Example: `2025.12.41` = 41st release in December 2025
+
 **CRITICAL**: When updating `changelog.md`, ALWAYS check if the version has already been tagged:
 
 1. **Check existing tags** before modifying any version entry:

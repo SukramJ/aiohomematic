@@ -303,7 +303,9 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         timestamp = datetime.now()
         interface_id = str(event_data.get(EventKey.INTERFACE_ID, ""))
         model = event_data.get(EventKey.MODEL, "")
-        channel_address = str(event_data.get(EventKey.ADDRESS, ""))
+        device_address = str(event_data.get(EventKey.ADDRESS, ""))
+        channel_no = event_data.get(EventKey.CHANNEL_NO)
+        channel_address = f"{device_address}:{channel_no}" if channel_no else device_address
         parameter = str(event_data.get(EventKey.PARAMETER, ""))
         value = event_data.get(EventKey.VALUE, "")
 

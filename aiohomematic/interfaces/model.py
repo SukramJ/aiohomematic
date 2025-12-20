@@ -665,7 +665,7 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Update parameter data."""
 
     @abstractmethod
-    def update_status(self, *, status_value: str) -> None:
+    def update_status(self, *, status_value: int | str) -> None:
         """Update the status from a STATUS parameter event."""
 
     @abstractmethod

@@ -1,3 +1,15 @@
+# Version 2025.12.41 (2025-12-20)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix `update_status` to accept integer values from backend**: Backend sends integer indices for STATUS parameters
+  - `update_status` now accepts both `int` (backend index) and `str` (enum value)
+  - Integer indices are converted to strings using the cached VALUE_LIST from the status parameter's paramset description
+  - This ensures correct mapping regardless of `ParameterStatus` enum order
+  - `DataPointStatusUpdatedEvent.status_value` type is `int | str`
+
 # Version 2025.12.40 (2025-12-20)
 
 ## What's Changed

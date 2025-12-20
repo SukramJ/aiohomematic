@@ -220,7 +220,7 @@ class DataPointStatusUpdatedEvent(Event):
     """
 
     dpk: DataPointKey
-    status_value: str
+    status_value: int | str
     received_at: datetime
 
     @property

@@ -50,7 +50,7 @@ class TestActionDataPoint:
             channel_address="VCU9724704:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="LOCK_TARGET_LEVEL",
-            value=2,
+            value="OPEN",
         )
         await action.send_value(value=1)
         assert mock_client.method_calls[-1] == call.set_value(

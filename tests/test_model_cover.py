@@ -16,6 +16,7 @@ from aiohomematic.model.custom.cover import (
     _OPEN_TILT_LEVEL,
     _WD_CLOSED_LEVEL,
     _GarageDoorActivity,
+    _GarageDoorCommand,
 )
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
@@ -978,7 +979,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=1,
+            value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -990,7 +991,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=3,
+            value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -1003,7 +1004,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=4,
+            value=_GarageDoorCommand.PARTIAL_OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -1016,7 +1017,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=3,
+            value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -1029,7 +1030,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=1,
+            value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await cover.stop()
@@ -1037,7 +1038,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=2,
+            value=_GarageDoorCommand.STOP,
         )
 
         await central.event_coordinator.data_point_event(
@@ -1123,7 +1124,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=1,
+            value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -1135,7 +1136,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=3,
+            value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -1148,7 +1149,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=4,
+            value=_GarageDoorCommand.PARTIAL_OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -1161,7 +1162,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=3,
+            value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -1174,7 +1175,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=1,
+            value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await cover.stop()
@@ -1182,7 +1183,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=2,
+            value=_GarageDoorCommand.STOP,
         )
 
         await central.event_coordinator.data_point_event(

@@ -30,17 +30,25 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
     @state_property
     def value(self) -> int | str:
         """Get the value of the data_point."""
+        # For index-based ENUMs (HM), convert integer index to string value.
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value
+        # For string-based ENUMs (HmIP), return the string value directly if valid.
+        if isinstance(self._value, str) and self._values is not None and self._value in self._values:
+            return self._value
         return self._default
 
-    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int:
+    def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int | str:
         """Prepare value before sending."""
         # We allow setting the value via index as well, just in case.
         if isinstance(value, int | float) and self._values and 0 <= value < len(self._values):
             return int(value)
         if self._values and value in self._values:
-            return self._values.index(value)
+            # For string-based ENUMs (HmIP), send the string value directly.
+            # For index-based ENUMs (HM), convert string to index.
+            if self._enum_value_is_index:
+                return self._values.index(value)
+            return str(value)
         raise ValidationException(
             i18n.tr(
                 "exception.model.select.value_not_in_value_list",

@@ -9,6 +9,7 @@ import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
+from aiohomematic.model.custom.siren import _SirenCommand
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -73,9 +74,9 @@ class TestIpSiren:
             channel_address="VCU8249617:3",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "ACOUSTIC_ALARM_SELECTION": 3,
-                "OPTICAL_ALARM_SELECTION": 1,
-                "DURATION_UNIT": 0,
+                "ACOUSTIC_ALARM_SELECTION": "FREQUENCY_RISING_AND_FALLING",
+                "OPTICAL_ALARM_SELECTION": "BLINKING_ALTERNATELY_REPEATING",
+                "DURATION_UNIT": "S",
                 "DURATION_VALUE": 30,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
@@ -90,9 +91,9 @@ class TestIpSiren:
             channel_address="VCU8249617:3",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "ACOUSTIC_ALARM_SELECTION": 3,
-                "OPTICAL_ALARM_SELECTION": 1,
-                "DURATION_UNIT": 0,
+                "ACOUSTIC_ALARM_SELECTION": "FREQUENCY_RISING_AND_FALLING",
+                "OPTICAL_ALARM_SELECTION": "BLINKING_ALTERNATELY_REPEATING",
+                "DURATION_UNIT": "S",
                 "DURATION_VALUE": 30,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
@@ -119,9 +120,9 @@ class TestIpSiren:
             channel_address="VCU8249617:3",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "ACOUSTIC_ALARM_SELECTION": 0,
-                "OPTICAL_ALARM_SELECTION": 0,
-                "DURATION_UNIT": 0,
+                "ACOUSTIC_ALARM_SELECTION": "DISABLE_ACOUSTIC_SIGNAL",
+                "OPTICAL_ALARM_SELECTION": "DISABLE_OPTICAL_SIGNAL",
+                "DURATION_UNIT": "S",
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
@@ -194,7 +195,7 @@ class TestIpSirenSmoke:
             channel_address="VCU2822385:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="SMOKE_DETECTOR_COMMAND",
-            value=2,
+            value=_SirenCommand.ON,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -203,7 +204,7 @@ class TestIpSirenSmoke:
             channel_address="VCU2822385:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="SMOKE_DETECTOR_COMMAND",
-            value=1,
+            value=_SirenCommand.OFF,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 

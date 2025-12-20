@@ -1,3 +1,21 @@
+# Version 2025.12.38 (2025-12-20)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix ENUM parameter handling for HmIP devices**: Properly detect and handle string-based ENUMs vs index-based ENUMs
+  - **Root cause**: HM devices use integer MIN/MAX/DEFAULT for ENUMs (send as index), while HmIP devices use string MIN/MAX/DEFAULT (send as string value)
+  - Added `_enum_value_is_index` detection based on `isinstance(MIN, int)` in `BaseParameterDataPoint`
+  - Updated `DpAction` and `DpSelect` to send string values for HmIP devices
+  - Affects all ENUM parameters on HmIP devices including:
+    - Time units: `RAMP_TIME_UNIT`, `DURATION_UNIT`, `ON_TIME_UNIT` (now "S", "M", "H" instead of 0, 1, 2)
+    - Lock commands: `LOCK_TARGET_LEVEL` (now "LOCKED", "UNLOCKED", "OPEN")
+    - Garage commands: `DOOR_COMMAND` (now "OPEN", "CLOSE", "STOP", "PARTIAL_OPEN")
+    - Siren alarms: `ACOUSTIC_ALARM_SELECTION`, `OPTICAL_ALARM_SELECTION`, `SMOKE_DETECTOR_COMMAND`
+    - Light effects: `COLOR`, `COLOR_BEHAVIOUR`
+  - Resolves issues with HmIP-RGBW, HmIP-LSC, HmIP-BSL, HmIP-DRG-DALI, HmIPW-WRC6, and other HmIP devices
+
 # Version 2025.12.37 (2025-12-19)
 
 ## What's Changed

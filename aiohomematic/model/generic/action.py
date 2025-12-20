@@ -31,6 +31,10 @@ class DpAction(GenericDataPoint[None, Any]):
 
     def _prepare_value_for_sending(self, *, value: Any, do_validate: bool = True) -> Any:
         """Prepare value before sending."""
-        if (index := get_index_of_value_from_value_list(value=value, value_list=self._values)) is not None:
-            return index
+        # For string-based ENUMs (HmIP), send the string value directly.
+        # For index-based ENUMs (HM), convert string to index.
+        if self._values is not None and isinstance(value, str) and value in self._values:
+            if self._enum_value_is_index:
+                return get_index_of_value_from_value_list(value=value, value_list=self._values)
+            return value
         return value

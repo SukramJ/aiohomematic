@@ -43,8 +43,8 @@ from aiohomematic.central.integration_events import (
 from aiohomematic.const import (
     DataPointCategory,
     DataPointKey,
+    DeviceTriggerEventType,
     EventKey,
-    EventType,
     Parameter,
     ParamsetKey,
     SystemEventType,
@@ -286,7 +286,9 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         )
 
     @loop_check
-    def publish_device_trigger_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+    def publish_device_trigger_event(
+        self, *, trigger_type: DeviceTriggerEventType, event_data: dict[EventKey, Any]
+    ) -> None:
         """
         Publish device trigger event for Homematic callbacks.
 
@@ -294,7 +296,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
 
         Args:
         ----
-            event_type: Type of Homematic event (unused, kept for interface compatibility)
+            trigger_type: Type of Homematic event
             event_data: Event data dictionary containing interface_id, address, parameter, value
 
         """
@@ -312,6 +314,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
             await self._event_bus.publish(
                 event=DeviceTriggerEvent(
                     timestamp=timestamp,
+                    trigger_type=trigger_type,
                     interface_id=interface_id,
                     channel_address=channel_address,
                     parameter=parameter,

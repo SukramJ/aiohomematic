@@ -130,7 +130,7 @@ from aiohomematic.const import (
     ClientState,
     DataPointCategory,
     DescriptionMarker,
-    EventType,
+    DeviceTriggerEventType,
     FailureReason,
     Interface,
     Operations,
@@ -606,7 +606,7 @@ class CentralUnit(
         return None
 
     def get_events(
-        self, *, event_type: EventType, registered: bool | None = None
+        self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
     ) -> tuple[tuple[GenericEventProtocol, ...], ...]:
         """Return all channel event data points."""
         hm_channel_events: list[tuple[GenericEventProtocol, ...]] = []

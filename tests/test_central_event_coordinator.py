@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aiohomematic.central.event_coordinator import EventCoordinator
-from aiohomematic.const import DataPointKey, EventKey, EventType, Parameter, ParamsetKey, SystemEventType
+from aiohomematic.const import DataPointKey, DeviceTriggerEventType, EventKey, Parameter, ParamsetKey, SystemEventType
 from aiohomematic.model.generic import GenericDataPoint
 
 
@@ -326,7 +326,7 @@ class TestEventCoordinatorEmitMethods:
         )  # type: ignore[arg-type]
 
         coordinator.publish_device_trigger_event(
-            event_type=EventType.KEYPRESS,
+            trigger_type=DeviceTriggerEventType.KEYPRESS,
             event_data={
                 EventKey.INTERFACE_ID: "BidCos-RF",
                 EventKey.ADDRESS: "VCU0000001",

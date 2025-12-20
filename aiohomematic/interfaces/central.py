@@ -16,8 +16,8 @@ from aiohomematic.const import (
     BackupData,
     CentralState,
     DeviceFirmwareState,
+    DeviceTriggerEventType,
     EventKey,
-    EventType,
     FailureReason,
     Interface,
     ParamsetKey,
@@ -200,7 +200,9 @@ class EventPublisherProtocol(Protocol):
     """
 
     @abstractmethod
-    def publish_device_trigger_event(self, *, event_type: EventType, event_data: dict[EventKey, Any]) -> None:
+    def publish_device_trigger_event(
+        self, *, trigger_type: DeviceTriggerEventType, event_data: dict[EventKey, Any]
+    ) -> None:
         """Publish a Homematic event."""
 
     @abstractmethod

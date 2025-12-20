@@ -62,7 +62,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from aiohomematic.central.event_bus import Event
-from aiohomematic.const import CentralState, ClientState, DataPointCategory, FailureReason
+from aiohomematic.const import CentralState, ClientState, DataPointCategory, DeviceTriggerEventType, FailureReason
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.model import CallbackDataPointProtocol
@@ -308,6 +308,7 @@ class DeviceTriggerEvent(Event):
             hass.bus.async_fire(
                 event_type=f"{DOMAIN}.event",
                 event_data={
+                    "trigger_type": event.trigger_type,
                     "interface_id": event.interface_id,
                     "channel_address": event.channel_address,
                     "parameter": event.parameter,
@@ -323,6 +324,9 @@ class DeviceTriggerEvent(Event):
         ```
 
     """
+
+    trigger_type: DeviceTriggerEventType
+    """Type of device trigger event."""
 
     interface_id: str
     """Interface ID where event occurred."""

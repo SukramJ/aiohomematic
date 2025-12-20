@@ -669,7 +669,7 @@ class EventKey(StrEnum):
     VALUE = "value"
 
 
-class EventType(StrEnum):
+class DeviceTriggerEventType(StrEnum):
     """Enum with aiohomematic event types."""
 
     DEVICE_ERROR = "homematic.device_error"
@@ -1148,10 +1148,10 @@ CLICK_EVENTS: Final[frozenset[Parameter]] = frozenset(
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-DATA_POINT_EVENTS: Final[frozenset[EventType]] = frozenset(
+DATA_POINT_EVENTS: Final[frozenset[DeviceTriggerEventType]] = frozenset(
     {
-        EventType.IMPULSE,
-        EventType.KEYPRESS,
+        DeviceTriggerEventType.IMPULSE,
+        DeviceTriggerEventType.KEYPRESS,
     }
 )
 

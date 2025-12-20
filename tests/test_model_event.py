@@ -7,7 +7,7 @@ from typing import cast
 import pytest
 
 from aiohomematic.central.integration_events import DeviceTriggerEvent
-from aiohomematic.const import DataPointUsage, EventType
+from aiohomematic.const import DataPointUsage, DeviceTriggerEventType
 from aiohomematic.model.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
 from aiohomematic_test_support import const
 
@@ -39,7 +39,7 @@ class TestClickEvent:
         central, _, factory = central_client_factory_with_homegear_client
         event: ClickEvent = cast(ClickEvent, central.get_event(channel_address="VCU2128127:1", parameter="PRESS_SHORT"))
         assert event.usage == DataPointUsage.EVENT
-        assert event.event_type == EventType.KEYPRESS
+        assert event.event_type == DeviceTriggerEventType.KEYPRESS
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:1", parameter="PRESS_SHORT", value=True
         )
@@ -87,7 +87,7 @@ class TestImpulseEvent:
             ImpulseEvent, central.get_event(channel_address="VCU0000263:1", parameter="SEQUENCE_OK")
         )
         assert event.usage == DataPointUsage.EVENT
-        assert event.event_type == EventType.IMPULSE
+        assert event.event_type == DeviceTriggerEventType.IMPULSE
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000263:1", parameter="SEQUENCE_OK", value=True
         )
@@ -136,7 +136,7 @@ class TestDeviceErrorEvent:
             central.get_event(channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT"),
         )
         assert event.usage == DataPointUsage.EVENT
-        assert event.event_type == EventType.DEVICE_ERROR
+        assert event.event_type == DeviceTriggerEventType.DEVICE_ERROR
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU2128127:0", parameter="ERROR_OVERHEAT", value=True
         )

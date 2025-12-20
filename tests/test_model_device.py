@@ -13,7 +13,7 @@ from aiohomematic.const import (
     PARAMSET_DESCRIPTIONS_DIR,
     REPORT_VALUE_USAGE_VALUE_ID,
     VIRTUAL_REMOTE_MODELS,
-    EventType,
+    DeviceTriggerEventType,
     ForcedDeviceAvailability,
     ParamsetKey,
 )
@@ -374,7 +374,9 @@ class TestDeviceChannelOperations:
 
         # pick a channel that has KEYPRESS events
         ch = next(
-            ch for ch in device.channels.values() if any(e.event_type is EventType.KEYPRESS for e in ch.generic_events)
+            ch
+            for ch in device.channels.values()
+            if any(e.event_type is DeviceTriggerEventType.KEYPRESS for e in ch.generic_events)
         )
 
         # Spy for report_value_usage
@@ -517,7 +519,7 @@ class TestDeviceDataPoints:
 
         # get_data_points/get_events via channel delegation (just ensure it does not crash)
         all_dps = device.get_data_points()
-        all_events = device.get_events(event_type=EventType.KEYPRESS)
+        all_events = device.get_events(event_type=DeviceTriggerEventType.KEYPRESS)
         assert isinstance(all_dps, tuple)
         assert isinstance(all_events, dict)
 

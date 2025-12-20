@@ -44,6 +44,7 @@ from aiohomematic.const import (
     DataPointUsage,
     DeviceFirmwareState,
     DeviceTriggerEventType,
+    EventData,
     ForcedDeviceAvailability,
     HubValueType,
     Interface,
@@ -657,7 +658,7 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Change the category of the data point to sensor (read-only)."""
 
     @abstractmethod
-    def get_event_data(self, *, value: Any = None) -> dict[Any, Any]:
+    def get_event_data(self, *, value: Any = None) -> EventData:
         """Get the event data."""
 
     @abstractmethod

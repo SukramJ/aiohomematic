@@ -44,7 +44,7 @@ from aiohomematic.const import (
     DataPointCategory,
     DataPointKey,
     DeviceTriggerEventType,
-    EventKey,
+    EventData,
     Parameter,
     ParamsetKey,
     SystemEventType,
@@ -286,9 +286,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         )
 
     @loop_check
-    def publish_device_trigger_event(
-        self, *, trigger_type: DeviceTriggerEventType, event_data: dict[EventKey, Any]
-    ) -> None:
+    def publish_device_trigger_event(self, *, trigger_type: DeviceTriggerEventType, event_data: EventData) -> None:
         """
         Publish device trigger event for Homematic callbacks.
 
@@ -297,19 +295,12 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         Args:
         ----
             trigger_type: Type of Homematic event
-            event_data: Event data dictionary containing interface_id, address, parameter, value
+            event_data: Typed event data containing interface_id, address, parameter, value
 
         """
         timestamp = datetime.now()
-        interface_id = str(event_data.get(EventKey.INTERFACE_ID, ""))
-        model = event_data.get(EventKey.MODEL, "")
-        device_address = str(event_data.get(EventKey.ADDRESS, ""))
-        channel_no = event_data.get(EventKey.CHANNEL_NO)
-        channel_address = f"{device_address}:{channel_no}" if channel_no else device_address
-        parameter = str(event_data.get(EventKey.PARAMETER, ""))
-        value = event_data.get(EventKey.VALUE, "")
 
-        if not (interface_id and channel_address and parameter):
+        if not (event_data.interface_id and event_data.channel_address and event_data.parameter):
             return
 
         async def _publish_device_trigger_event() -> None:
@@ -318,11 +309,11 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                 event=DeviceTriggerEvent(
                     timestamp=timestamp,
                     trigger_type=trigger_type,
-                    model=model,
-                    interface_id=interface_id,
-                    channel_address=channel_address,
-                    parameter=parameter,
-                    value=value,
+                    model=event_data.model,
+                    interface_id=event_data.interface_id,
+                    channel_address=event_data.channel_address,
+                    parameter=event_data.parameter,
+                    value=event_data.value,
                 )
             )
 
@@ -330,7 +321,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         # and avoid lambda closure capturing variables
         self._task_scheduler.create_task(
             target=partial(_publish_device_trigger_event),
-            name=f"event-bus-device-trigger-{channel_address}-{parameter}",
+            name=f"event-bus-device-trigger-{event_data.channel_address}-{event_data.parameter}",
         )
 
     @loop_check

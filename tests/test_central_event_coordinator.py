@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aiohomematic.central.event_coordinator import EventCoordinator
-from aiohomematic.const import DataPointKey, DeviceTriggerEventType, EventKey, Parameter, ParamsetKey, SystemEventType
+from aiohomematic.const import DataPointKey, DeviceTriggerEventType, EventData, Parameter, ParamsetKey, SystemEventType
 from aiohomematic.model.generic import GenericDataPoint
 
 
@@ -327,11 +327,13 @@ class TestEventCoordinatorEmitMethods:
 
         coordinator.publish_device_trigger_event(
             trigger_type=DeviceTriggerEventType.KEYPRESS,
-            event_data={
-                EventKey.INTERFACE_ID: "BidCos-RF",
-                EventKey.ADDRESS: "VCU0000001",
-                EventKey.PARAMETER: "PRESS_SHORT",
-            },
+            event_data=EventData(
+                interface_id="BidCos-RF",
+                model="HM-Test",
+                address="VCU0000001",
+                channel_no=None,
+                parameter="PRESS_SHORT",
+            ),
         )
 
         # Should have created a task to publish to EventBus

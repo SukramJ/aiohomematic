@@ -556,35 +556,39 @@ class DataPointUsage(StrEnum):
     NO_CREATE = "no_create"
 
 
-class ParameterStatus(IntEnum):
+class ParameterStatus(StrEnum):
     """
     Status values for paired *_STATUS parameters.
 
     These indicate the validity/quality of the associated parameter value.
+    HmIP devices use string-based ENUMs for status parameters.
     Note: Some *_STATUS parameters (LED_STATUS, BACKLIGHT_AT_STATUS, etc.)
     have different value semantics and should not use this enum.
     """
 
-    NORMAL = 0
+    NORMAL = "NORMAL"
     """Value is valid and within expected range."""
 
-    UNKNOWN = 1
+    UNKNOWN = "UNKNOWN"
     """Value is unknown (device hasn't reported yet, or communication issue)."""
 
-    OVERFLOW = 2
+    OVERFLOW = "OVERFLOW"
     """Value exceeds the maximum expected range."""
 
-    UNDERFLOW = 3
+    UNDERFLOW = "UNDERFLOW"
     """Value is below the minimum expected range."""
 
-    ERROR = 4
+    ERROR = "ERROR"
     """Measurement error occurred."""
 
-    INVALID = 5
+    INVALID = "INVALID"
     """Value is invalid."""
 
-    UNUSED = 6
+    UNUSED = "UNUSED"
     """Parameter is not used."""
+
+    EXTERNAL = "EXTERNAL"
+    """Value is from an external source."""
 
 
 class DescriptionMarker(StrEnum):

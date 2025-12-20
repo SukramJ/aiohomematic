@@ -1086,11 +1086,13 @@ class BaseParameterDataPoint[
         ):
             self._assign_parameter_data(parameter_data=parameter_data)
 
-    def update_status(self, *, status_value: int) -> None:
+    def update_status(self, *, status_value: str) -> None:
         """Update the status from a STATUS parameter event only if changed."""
-        try:
+        new_status: ParameterStatus | None = None
+        if status_value in ParameterStatus.__members__:
             new_status = ParameterStatus(status_value)
-        except ValueError:
+
+        if new_status is None:
             _LOGGER.warning(  # i18n-log: ignore
                 "UPDATE_STATUS: Invalid status value %s for %s, ignoring",
                 status_value,

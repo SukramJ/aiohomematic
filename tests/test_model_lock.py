@@ -9,6 +9,7 @@ import pytest
 
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpLock, CustomDpRfLock
+from aiohomematic.model.custom.lock import _LockTargetLevel
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -141,7 +142,7 @@ class TestIpLock:
             channel_address="VCU9724704:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="LOCK_TARGET_LEVEL",
-            value=0,
+            value=_LockTargetLevel.LOCKED,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -153,7 +154,7 @@ class TestIpLock:
             channel_address="VCU9724704:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="LOCK_TARGET_LEVEL",
-            value=1,
+            value=_LockTargetLevel.UNLOCKED,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         await central.event_coordinator.data_point_event(
@@ -165,7 +166,7 @@ class TestIpLock:
             channel_address="VCU9724704:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="LOCK_TARGET_LEVEL",
-            value=2,
+            value=_LockTargetLevel.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 

@@ -730,6 +730,7 @@ class BaseParameterDataPoint[
         "_cached__enabled_by_channel_operation_mode",
         "_current_value",
         "_default",
+        "_enum_value_is_index",
         "_ignore_on_initial_load",
         "_is_forced_sensor",
         "_is_un_ignored",
@@ -1143,8 +1144,15 @@ class BaseParameterDataPoint[
         """Assign parameter data to instance variables."""
         self._type: ParameterType = ParameterType(parameter_data["TYPE"])
         self._values = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
+        # Determine if ENUM values should be sent as index (int) or string.
+        # HM devices use integer MIN/MAX/DEFAULT → send as index.
+        # HmIP devices use string MIN/MAX/DEFAULT → send as string.
+        raw_min = parameter_data["MIN"]
+        self._enum_value_is_index: bool = (
+            self._type == ParameterType.ENUM and self._values is not None and isinstance(raw_min, int)
+        )
         self._max: ParameterT = self._convert_value(value=parameter_data["MAX"])
-        self._min: ParameterT = self._convert_value(value=parameter_data["MIN"])
+        self._min: ParameterT = self._convert_value(value=raw_min)
         self._default: ParameterT = self._convert_value(value=parameter_data.get("DEFAULT")) or self._min
         flags: int = parameter_data["FLAGS"]
         self._visible: bool = flags & Flag.VISIBLE == Flag.VISIBLE

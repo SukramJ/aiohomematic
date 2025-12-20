@@ -149,7 +149,7 @@ class TestGenericSelect:
             channel_address="VCU6354483:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="WINDOW_STATE",
-            value=1,
+            value="OPEN",
         )
         assert select.value == "OPEN"
 

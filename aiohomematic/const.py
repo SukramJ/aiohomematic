@@ -669,12 +669,29 @@ class EventKey(StrEnum):
     VALUE = "value"
 
 
-class EventType(StrEnum):
+class DeviceTriggerEventType(StrEnum):
     """Enum with aiohomematic event types."""
 
     DEVICE_ERROR = "homematic.device_error"
     IMPULSE = "homematic.impulse"
     KEYPRESS = "homematic.keypress"
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class EventData:
+    """Data for device trigger events."""
+
+    interface_id: str
+    model: str
+    address: str
+    channel_no: int | None
+    parameter: str
+    value: Any = None
+
+    @property
+    def channel_address(self) -> str:
+        """Return the channel address."""
+        return f"{self.address}:{self.channel_no}" if self.channel_no is not None else self.address
 
 
 class Field(Enum):
@@ -1148,10 +1165,10 @@ CLICK_EVENTS: Final[frozenset[Parameter]] = frozenset(
 
 DEVICE_ERROR_EVENTS: Final[tuple[Parameter, ...]] = (Parameter.ERROR, Parameter.SENSOR_ERROR)
 
-DATA_POINT_EVENTS: Final[frozenset[EventType]] = frozenset(
+DATA_POINT_EVENTS: Final[frozenset[DeviceTriggerEventType]] = frozenset(
     {
-        EventType.IMPULSE,
-        EventType.KEYPRESS,
+        DeviceTriggerEventType.IMPULSE,
+        DeviceTriggerEventType.KEYPRESS,
     }
 )
 

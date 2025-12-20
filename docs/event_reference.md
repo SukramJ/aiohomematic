@@ -145,13 +145,15 @@ Homematic-specific events (button presses, interface events, etc.).
 
 ```python
 from aiohomematic.central.event_bus import HomematicEvent
-from aiohomematic.const import EventType, EventKey
+from aiohomematic.const import DeviceTriggerEventType, EventKey
+
 
 async def handler(*, event: HomematicEvent) -> None:
-    if event.event_type == EventType.KEYPRESS:
+    if event.event_type == DeviceTriggerEventType.KEYPRESS:
         channel = event.event_data[EventKey.CHANNEL_ADDRESS]
         param = event.event_data[EventKey.PARAMETER]
         print(f"Button press on {channel}: {param}")
+
 
 unsubscribe = central.event_bus.subscribe(
     event_type=HomematicEvent,

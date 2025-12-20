@@ -75,7 +75,7 @@ from aiohomematic.const import (
     DataPointUsage,
     DeviceDescription,
     DeviceFirmwareState,
-    EventType,
+    DeviceTriggerEventType,
     ForcedDeviceAvailability,
     Interface,
     Manufacturer,
@@ -785,7 +785,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return tuple(all_data_points)
 
     def get_events(
-        self, *, event_type: EventType, registered: bool | None = None
+        self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
     ) -> Mapping[int | None, tuple[GenericEventProtocol, ...]]:
         """Return a list of specific events of a channel."""
         events: dict[int | None, tuple[GenericEventProtocol, ...]] = {}
@@ -1144,7 +1144,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     @property
     def _has_key_press_events(self) -> bool:
         """Return if channel has KEYPRESS events."""
-        return any(event for event in self.generic_events if event.event_type is EventType.KEYPRESS)
+        return any(event for event in self.generic_events if event.event_type is DeviceTriggerEventType.KEYPRESS)
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
@@ -1402,7 +1402,9 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             and (registered is None or dp.is_registered == registered)
         )
 
-    def get_events(self, *, event_type: EventType, registered: bool | None = None) -> tuple[GenericEventProtocol, ...]:
+    def get_events(
+        self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
+    ) -> tuple[GenericEventProtocol, ...]:
         """Return a list of specific events of a channel."""
         return tuple(
             event

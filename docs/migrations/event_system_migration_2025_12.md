@@ -39,13 +39,14 @@ The following have been removed:
 **Before (Legacy):**
 
 ```python
-from aiohomematic.const import EventKey, EventType, InterfaceEventType
+from aiohomematic.const import EventKey, DeviceTriggerEventType, InterfaceEventType
+
 
 def _async_on_homematic_event(
-    event_type: EventType,
-    event_data: dict[EventKey, Any],
+        event_type: DeviceTriggerEventType,
+        event_data: dict[EventKey, Any],
 ) -> None:
-    if event_type != EventType.INTERFACE:
+    if event_type != DeviceTriggerEventType.INTERFACE:
         return
 
     data = event_data.get(EventKey.DATA, {})
@@ -62,6 +63,7 @@ def _async_on_homematic_event(
                 interface_id,
                 seconds,
             )
+
 
 # Registration
 central.register_homematic_callback(callback=_async_on_homematic_event)

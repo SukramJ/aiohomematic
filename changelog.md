@@ -2,6 +2,13 @@
 
 ## What's Changed
 
+### Breaking Changes
+
+- **Rename `EventType` to `DeviceTriggerEventType`**: Clearer naming for device trigger events
+  - `EventType` → `DeviceTriggerEventType` in `aiohomematic.const`
+  - Affects: `DEVICE_ERROR`, `IMPULSE`, `KEYPRESS` event types
+  - Update imports: `from aiohomematic.const import DeviceTriggerEventType`
+
 ### Bug Fixes
 
 - **Fix `update_status` to accept integer values from backend**: Backend sends integer indices for STATUS parameters

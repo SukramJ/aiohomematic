@@ -41,7 +41,7 @@ from aiohomematic.const import (
     IMPULSE_EVENTS,
     DataPointCategory,
     DataPointUsage,
-    EventType,
+    DeviceTriggerEventType,
     Operations,
     ParameterData,
     ParamsetKey,
@@ -61,16 +61,17 @@ __all__ = [
     "create_event_and_append_to_channel",
 ]
 
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 
 class GenericEvent(BaseParameterDataPointAny, GenericEventProtocol):
     """Base class for events."""
 
-    __slots__ = ("_event_type",)
+    __slots__ = ("_device_trigger_event_type",)
 
     _category = DataPointCategory.EVENT
-    _event_type: EventType
+    _device_trigger_event_type: DeviceTriggerEventType
 
     def __init__(
         self,
@@ -89,9 +90,9 @@ class GenericEvent(BaseParameterDataPointAny, GenericEventProtocol):
         )
 
     @property
-    def event_type(self) -> EventType:
+    def event_type(self) -> DeviceTriggerEventType:
         """Return the event_type of the event."""
-        return self._event_type
+        return self._device_trigger_event_type
 
     @property
     def usage(self) -> DataPointUsage:
@@ -111,7 +112,7 @@ class GenericEvent(BaseParameterDataPointAny, GenericEventProtocol):
     def publish_event(self, *, value: Any) -> None:
         """Do what is needed to publish an event."""
         self._event_publisher.publish_device_trigger_event(
-            event_type=self.event_type, event_data=self.get_event_data(value=value)
+            trigger_type=self.event_type, event_data=self.get_event_data(value=value)
         )
 
     def _get_data_point_name(self) -> DataPointNameData:
@@ -131,7 +132,7 @@ class ClickEvent(GenericEvent):
 
     __slots__ = ()
 
-    _event_type = EventType.KEYPRESS
+    _device_trigger_event_type = DeviceTriggerEventType.KEYPRESS
 
 
 class DeviceErrorEvent(GenericEvent):
@@ -139,7 +140,7 @@ class DeviceErrorEvent(GenericEvent):
 
     __slots__ = ()
 
-    _event_type = EventType.DEVICE_ERROR
+    _device_trigger_event_type = DeviceTriggerEventType.DEVICE_ERROR
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
@@ -160,7 +161,7 @@ class ImpulseEvent(GenericEvent):
 
     __slots__ = ()
 
-    _event_type = EventType.IMPULSE
+    _device_trigger_event_type = DeviceTriggerEventType.IMPULSE
 
 
 @inspector(scope=ServiceScope.INTERNAL)

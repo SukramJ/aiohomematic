@@ -48,7 +48,7 @@ from aiohomematic.const import (
     DataPointCategory,
     DataPointKey,
     DataPointUsage,
-    EventKey,
+    EventData,
     Flag,
     InternalCustomID,
     Operations,
@@ -98,7 +98,6 @@ __all__ = [
     "bind_collector",
 ]
 
-from aiohomematic.schemas import EVENT_DATA_SCHEMA
 
 # Type variable used for decorator typing
 CallableT = TypeVar("CallableT", bound=CallableAny)
@@ -1039,18 +1038,16 @@ class BaseParameterDataPoint[
         )
         self._is_forced_sensor = True
 
-    def get_event_data(self, *, value: Any = None) -> dict[EventKey, Any]:
+    def get_event_data(self, *, value: Any = None) -> EventData:
         """Get the event_data."""
-        event_data = {
-            EventKey.ADDRESS: self._device.address,
-            EventKey.CHANNEL_NO: self._channel.no,
-            EventKey.MODEL: self._device.model,
-            EventKey.INTERFACE_ID: self._device.interface_id,
-            EventKey.PARAMETER: self._parameter,
-        }
-        if value is not None:
-            event_data[EventKey.VALUE] = value
-        return cast(dict[EventKey, Any], EVENT_DATA_SCHEMA(event_data))
+        return EventData(
+            interface_id=self._device.interface_id,
+            model=self._device.model,
+            address=self._device.address,
+            channel_no=self._channel.no,
+            parameter=self._parameter,
+            value=value,
+        )
 
     @inspector(re_raise=False)
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:

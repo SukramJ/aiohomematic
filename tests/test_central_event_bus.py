@@ -10,7 +10,7 @@ import pytest
 
 from aiohomematic.central.event_bus import BackendParameterEvent, DataPointUpdatedEvent, EventBus, SysvarUpdatedEvent
 from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType, DeviceTriggerEvent
-from aiohomematic.const import DataPointKey, ParamsetKey
+from aiohomematic.const import DataPointKey, DeviceTriggerEventType, ParamsetKey
 
 
 class TestEventBus:
@@ -193,6 +193,8 @@ class TestEventBus:
 
         event = DeviceTriggerEvent(
             timestamp=datetime.now(),
+            trigger_type=DeviceTriggerEventType.KEYPRESS,
+            model="HmIP-DRBL1",
             interface_id="BidCos-RF",
             channel_address="VCU0000001:1",
             parameter="PRESS_SHORT",
@@ -273,6 +275,8 @@ class TestEventBus:
 
         event = DeviceTriggerEvent(
             timestamp=datetime.now(),
+            trigger_type=DeviceTriggerEventType.KEYPRESS,
+            model="HmIP-DRBL1",
             interface_id="HmIP-RF",
             channel_address="VCU0000001:1",
             parameter="PRESS_SHORT",

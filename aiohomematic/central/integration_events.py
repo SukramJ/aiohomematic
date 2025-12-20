@@ -62,7 +62,8 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from aiohomematic.central.event_bus import Event
-from aiohomematic.const import CentralState, ClientState, DataPointCategory, FailureReason
+from aiohomematic.const import CentralState, ClientState, DataPointCategory, DeviceTriggerEventType, FailureReason
+from aiohomematic.support import get_channel_no, get_device_address
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.model import CallbackDataPointProtocol
@@ -308,6 +309,7 @@ class DeviceTriggerEvent(Event):
             hass.bus.async_fire(
                 event_type=f"{DOMAIN}.event",
                 event_data={
+                    "trigger_type": event.trigger_type,
                     "interface_id": event.interface_id,
                     "channel_address": event.channel_address,
                     "parameter": event.parameter,
@@ -324,6 +326,12 @@ class DeviceTriggerEvent(Event):
 
     """
 
+    trigger_type: DeviceTriggerEventType
+    """Type of device trigger event."""
+
+    model: str
+    """Model of the device."""
+
     interface_id: str
     """Interface ID where event occurred."""
 
@@ -335,6 +343,16 @@ class DeviceTriggerEvent(Event):
 
     value: str | int | float | bool
     """Event value."""
+
+    @property
+    def channel_no(self) -> int | None:
+        """Return channel number."""
+        return get_channel_no(address=self.channel_address)
+
+    @property
+    def device_address(self) -> str:
+        """Return device address."""
+        return get_device_address(address=self.channel_address)
 
     @property
     def key(self) -> Any:

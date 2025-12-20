@@ -43,7 +43,8 @@ from aiohomematic.const import (
     DataPointKey,
     DataPointUsage,
     DeviceFirmwareState,
-    EventType,
+    DeviceTriggerEventType,
+    EventData,
     ForcedDeviceAvailability,
     HubValueType,
     Interface,
@@ -657,7 +658,7 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Change the category of the data point to sensor (read-only)."""
 
     @abstractmethod
-    def get_event_data(self, *, value: Any = None) -> dict[Any, Any]:
+    def get_event_data(self, *, value: Any = None) -> EventData:
         """Get the event data."""
 
     @abstractmethod
@@ -734,7 +735,7 @@ class GenericEventProtocol(BaseParameterDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def event_type(self) -> EventType:
+    def event_type(self) -> DeviceTriggerEventType:
         """Return the event type of the event."""
 
     @property
@@ -1058,7 +1059,9 @@ class ChannelDataPointAccessProtocol(Protocol):
         """Return all data points of the channel."""
 
     @abstractmethod
-    def get_events(self, *, event_type: EventType, registered: bool | None = None) -> tuple[GenericEventProtocol, ...]:
+    def get_events(
+        self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
+    ) -> tuple[GenericEventProtocol, ...]:
         """Return a list of specific events of a channel."""
 
     @abstractmethod
@@ -1348,7 +1351,7 @@ class DeviceChannelAccessProtocol(Protocol):
 
     @abstractmethod
     def get_events(
-        self, *, event_type: EventType, registered: bool | None = None
+        self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
     ) -> Mapping[int | None, tuple[GenericEventProtocol, ...]]:
         """Return a list of specific events of a channel."""
 

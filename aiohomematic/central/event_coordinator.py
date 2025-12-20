@@ -302,6 +302,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         """
         timestamp = datetime.now()
         interface_id = str(event_data.get(EventKey.INTERFACE_ID, ""))
+        model = event_data.get(EventKey.MODEL, "")
         channel_address = str(event_data.get(EventKey.ADDRESS, ""))
         parameter = str(event_data.get(EventKey.PARAMETER, ""))
         value = event_data.get(EventKey.VALUE, "")
@@ -315,6 +316,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                 event=DeviceTriggerEvent(
                     timestamp=timestamp,
                     trigger_type=trigger_type,
+                    model=model,
                     interface_id=interface_id,
                     channel_address=channel_address,
                     parameter=parameter,

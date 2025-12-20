@@ -161,7 +161,7 @@ class ImpulseEvent(GenericEvent):
 
     __slots__ = ()
 
-    _event_type = DeviceTriggerEventType.IMPULSE
+    _device_trigger_event_type = DeviceTriggerEventType.IMPULSE
 
 
 @inspector(scope=ServiceScope.INTERNAL)

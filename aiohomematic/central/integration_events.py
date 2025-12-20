@@ -328,6 +328,9 @@ class DeviceTriggerEvent(Event):
     trigger_type: DeviceTriggerEventType
     """Type of device trigger event."""
 
+    model: str
+    """Model of the device."""
+
     interface_id: str
     """Interface ID where event occurred."""
 

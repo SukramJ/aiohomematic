@@ -1,3 +1,14 @@
+# Version 2025.12.39 (2025-12-20)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Change `ParameterStatus` from `IntEnum` to `StrEnum`**: Align enum with actual HmIP parameter values
+  - All `*_STATUS` ENUM parameters (LEVEL_STATUS, ACTUAL_TEMPERATURE_STATUS, etc.) use string-based VALUE_LISTs
+  - Values: `NORMAL`, `UNKNOWN`, `OVERFLOW`, `UNDERFLOW`, `ERROR`, `INVALID`, `UNUSED`
+  - `DataPointStatusUpdatedEvent.status_value` type changed to `str`
+
 # Version 2025.12.38 (2025-12-20)
 
 ## What's Changed

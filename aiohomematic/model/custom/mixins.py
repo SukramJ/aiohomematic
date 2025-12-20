@@ -362,9 +362,9 @@ class BrightnessMixin:
 class _TimeUnit:
     """Time unit constants for timer conversion."""
 
-    SECONDS: int = 0
-    MINUTES: int = 1
-    HOURS: int = 2
+    SECONDS: str = "S"
+    MINUTES: str = "M"
+    HOURS: str = "H"
 
 
 # Marker value indicating timer is not used
@@ -397,7 +397,7 @@ class TimerUnitMixin:
     _dp_ramp_time_unit: Any
 
     @staticmethod
-    def _recalc_unit_timer(*, time: float) -> tuple[float, int | None]:
+    def _recalc_unit_timer(*, time: float) -> tuple[float, str]:
         """
         Recalculate unit and value of timer.
 
@@ -405,16 +405,19 @@ class TimerUnitMixin:
         - > 16343 seconds -> minutes
         - > 16343 minutes -> hours
 
+        For the NOT_USED marker (111600), returns HOURS as unit to ensure
+        the device interprets the value correctly (111600 hours ≈ 554 days).
+
         Args:
             time: Time value in seconds.
 
         Returns:
-            Tuple of (converted_time, unit) where unit is None if time equals NOT_USED marker.
+            Tuple of (converted_time, unit) where unit is "S"/"M"/"H".
 
         """
         time_unit = _TimeUnit.SECONDS
         if time == _TIMER_NOT_USED:
-            return time, None
+            return time, _TimeUnit.HOURS
         if time > _TIME_UNIT_THRESHOLD:
             time /= 60
             time_unit = _TimeUnit.MINUTES

@@ -1,3 +1,14 @@
+# Version 2025.12.38 (2025-12-20)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix time unit parameters for HmIP-RGBW and HmIP-LSC**: Changed time unit values from integers (0, 1, 2) to strings ("S", "M", "H") to match HomeMatic device requirements
+  - Affects `RAMP_TIME_UNIT`, `DURATION_UNIT`, `ON_TIME_UNIT`, and `RAMP_TIME_TO_OFF_UNIT` parameters
+  - Devices: HmIP-RGBW, HmIP-LSC, HmIP-BSL, HmIP-DRG-DALI, HmIPW-WRC6
+  - Resolves issue where devices expected string values but received integers
+
 # Version 2025.12.37 (2025-12-19)
 
 ## What's Changed

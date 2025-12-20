@@ -1065,6 +1065,7 @@ class TestCustomDpIpRGBWLight:
             values={
                 "HUE": 44,
                 "SATURATION": 0.66,
+                "DURATION_UNIT": _TimeUnit.HOURS,
                 "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
                 "RAMP_TIME_VALUE": 5,
@@ -1078,6 +1079,7 @@ class TestCustomDpIpRGBWLight:
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
+                "DURATION_UNIT": _TimeUnit.HOURS,
                 "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
                 "RAMP_TIME_VALUE": 5,

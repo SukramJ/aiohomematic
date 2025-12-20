@@ -572,8 +572,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value with automatic unit conversion."""
         on_time, on_time_unit = self._recalc_unit_timer(time=on_time)
-        if on_time_unit is not None:
-            await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
+        await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
         await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
 
     async def _set_ramp_time_off_value(
@@ -581,8 +580,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     ) -> None:
         """Set the ramp time off value with automatic unit conversion."""
         ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
-        if ramp_time_unit is not None:
-            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
+        await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
         await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
     async def _set_ramp_time_on_value(
@@ -590,8 +588,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     ) -> None:
         """Set the ramp time on value with automatic unit conversion."""
         ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
-        if ramp_time_unit is not None:
-            await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
+        await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
         await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
 
 

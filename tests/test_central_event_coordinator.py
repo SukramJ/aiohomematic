@@ -330,7 +330,7 @@ class TestEventCoordinatorEmitMethods:
             event_data=EventData(
                 interface_id="BidCos-RF",
                 model="HM-Test",
-                address="VCU0000001",
+                device_address="VCU0000001",
                 channel_no=None,
                 parameter="PRESS_SHORT",
             ),
@@ -339,7 +339,7 @@ class TestEventCoordinatorEmitMethods:
         # Should have created a task to publish to EventBus
         assert len(central.looper.tasks) == 1
         # Task name now includes address and parameter
-        assert "event-bus-device-trigger-VCU0000001-PRESS_SHORT" in central.looper.tasks[0]["name"]
+        assert "event-bus-device-trigger-VCU0000001-None-PRESS_SHORT" in central.looper.tasks[0]["name"]
 
 
 class TestEventCoordinatorLastEventSeen:

@@ -665,15 +665,10 @@ class EventData:
 
     interface_id: str
     model: str
-    address: str
+    device_address: str
     channel_no: int | None
     parameter: str
     value: Any = None
-
-    @property
-    def channel_address(self) -> str:
-        """Return the channel address."""
-        return f"{self.address}:{self.channel_no}" if self.channel_no is not None else self.address
 
 
 class Field(Enum):

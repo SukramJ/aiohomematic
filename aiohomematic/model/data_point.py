@@ -748,6 +748,7 @@ class BaseParameterDataPoint[
         "_status_dpk",
         "_status_parameter",
         "_status_value",
+        "_status_value_list",
         "_temporary_value",
         "_type",
         "_unit",
@@ -800,6 +801,7 @@ class BaseParameterDataPoint[
         self._status_parameter: str | None = self._detect_status_parameter()
         self._status_value: ParameterStatus | None = None
         self._status_dpk: DataPointKey | None = None
+        self._status_value_list: tuple[str, ...] | None = None
         if self._status_parameter:
             self._status_dpk = DataPointKey(
                 interface_id=self._device.interface_id,
@@ -807,6 +809,15 @@ class BaseParameterDataPoint[
                 paramset_key=self._paramset_key,
                 parameter=self._status_parameter,
             )
+            # Cache the VALUE_LIST for the status parameter
+            status_param_data = self._paramset_description_provider.get_parameter_data(
+                interface_id=self._device.interface_id,
+                channel_address=self._channel.address,
+                paramset_key=self._paramset_key,
+                parameter=self._status_parameter,
+            )
+            if status_param_data and (value_list := status_param_data.get("VALUE_LIST")):
+                self._status_value_list = tuple(value_list)
 
     @property
     def _value(self) -> ParameterT:
@@ -1086,10 +1097,17 @@ class BaseParameterDataPoint[
         ):
             self._assign_parameter_data(parameter_data=parameter_data)
 
-    def update_status(self, *, status_value: str) -> None:
+    def update_status(self, *, status_value: int | str) -> None:
         """Update the status from a STATUS parameter event only if changed."""
         new_status: ParameterStatus | None = None
-        if status_value in ParameterStatus.__members__:
+        # Backend may send integer indices - convert using cached VALUE_LIST
+        if (
+            isinstance(status_value, int)
+            and self._status_value_list
+            and 0 <= status_value < len(self._status_value_list)
+        ):
+            status_value = self._status_value_list[status_value]
+        if isinstance(status_value, str) and status_value in ParameterStatus.__members__:
             new_status = ParameterStatus(status_value)
 
         if new_status is None:

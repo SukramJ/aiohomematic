@@ -1591,6 +1591,45 @@ This section defines mandatory rules for all implementations in this project.
 □ 5. Changelog     - changelog.md updated with version entry
 ```
 
+### Changelog Versioning Rules
+
+**Version Schema**: `YYYY.MM.NN` (Year.Month.RunningNumber)
+
+- `YYYY` = Year (e.g., 2025)
+- `MM` = Month (e.g., 12 for December)
+- `NN` = Running number within that month, incremented for each release
+
+Example: `2025.12.41` = 41st release in December 2025
+
+**CRITICAL**: When updating `changelog.md`, ALWAYS check if the version has already been tagged:
+
+1. **Check existing tags** before modifying any version entry:
+
+   ```bash
+   git tag --list '2025.12.*' | tail -5
+   ```
+
+2. **NEVER modify already-tagged versions**. Tagged versions are immutable.
+
+3. **Create a NEW version** for new changes:
+
+   - If `2025.12.40` is already tagged, create `2025.12.41`
+   - New changes ALWAYS go into the untagged (newest) version
+
+4. **Version structure in changelog**:
+
+   ```markdown
+   # Version 2025.12.41 (2025-12-20) ← NEW, untagged - add changes here
+
+   ...
+
+   # Version 2025.12.40 (2025-12-20) ← Tagged - DO NOT MODIFY
+
+   ...
+   ```
+
+5. **When in doubt**, check git status to see which version is the latest untagged version.
+
 ### Implementation Plan Requirements
 
 **CRITICAL**: Implementation plans created by Opus/Sonnet MUST be executable by Haiku without errors.

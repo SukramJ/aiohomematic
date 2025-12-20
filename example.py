@@ -9,7 +9,11 @@ import sys
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig
-from aiohomematic.central.event_bus import SystemEventTypeData
+from aiohomematic.central.integration_events import (
+    DataPointsCreatedEvent,
+    DeviceLifecycleEvent,
+    DeviceLifecycleEventType,
+)
 from aiohomematic.client import InterfaceConfig
 
 logging.basicConfig(level=logging.DEBUG)
@@ -31,26 +35,18 @@ class Example:
         self.SLEEPCOUNTER = 0
         self.central = None
 
-    def _systemcallback(self, event: SystemEventTypeData) -> None:
-        """Handle system events from the backend."""
-        self.got_devices = True
-        if (
-            event.system_event == const.SystemEventType.NEW_DEVICES
-            and event.data
-            and event.data.get("device_descriptions")
-            and len(event.data["device_descriptions"]) > 0
-        ):
+    def _on_device_lifecycle(self, *, event: DeviceLifecycleEvent) -> None:
+        """Handle device lifecycle events."""
+        if event.event_type == DeviceLifecycleEventType.CREATED and event.device_addresses:
+            _LOGGER.info("Devices created: %s", event.device_addresses)
             self.got_devices = True
-            return
-        if (
-            event.system_event == const.SystemEventType.DEVICES_CREATED
-            and event.data
-            and event.data.get("new_data_points")
-            and len(event.data["new_data_points"]) > 0
-        ):
-            if len(event.data["new_data_points"]) > 1:
-                self.got_devices = True
-            return
+
+    def _on_datapoints_created(self, *, event: DataPointsCreatedEvent) -> None:
+        """Handle data points created events."""
+        total = sum(len(dps) for dps in event.new_data_points.values())
+        if total > 0:
+            _LOGGER.info("Data points created: %d", total)
+            self.got_devices = True
 
     async def example_run(self):
         """Process the example."""
@@ -87,11 +83,17 @@ class Example:
 
         # For testing we set a short INIT_TIMEOUT
         const.INIT_TIMEOUT = 10
-        # Subscribe to system events via EventBus
+        # Subscribe to device lifecycle events
         self.central.event_bus.subscribe(
-            event_type=SystemEventTypeData,
+            event_type=DeviceLifecycleEvent,
             event_key=None,
-            handler=self._systemcallback,
+            handler=self._on_device_lifecycle,
+        )
+        # Subscribe to data points created events
+        self.central.event_bus.subscribe(
+            event_type=DataPointsCreatedEvent,
+            event_key=None,
+            handler=self._on_datapoints_created,
         )
 
         await self.central.start()

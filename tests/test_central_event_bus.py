@@ -196,7 +196,8 @@ class TestEventBus:
             trigger_type=DeviceTriggerEventType.KEYPRESS,
             model="HmIP-DRBL1",
             interface_id="BidCos-RF",
-            channel_address="VCU0000001:1",
+            device_address="VCU0000001",
+            channel_no=1,
             parameter="PRESS_SHORT",
             value=True,
         )
@@ -278,7 +279,8 @@ class TestEventBus:
             trigger_type=DeviceTriggerEventType.KEYPRESS,
             model="HmIP-DRBL1",
             interface_id="HmIP-RF",
-            channel_address="VCU0000001:1",
+            device_address="VCU0000001",
+            channel_no=1,
             parameter="PRESS_SHORT",
             value=True,
         )

@@ -63,7 +63,6 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from aiohomematic.central.event_bus import Event
 from aiohomematic.const import CentralState, ClientState, DataPointCategory, DeviceTriggerEventType, FailureReason
-from aiohomematic.support import get_channel_no, get_device_address
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.model import CallbackDataPointProtocol
@@ -310,8 +309,10 @@ class DeviceTriggerEvent(Event):
                 event_type=f"{DOMAIN}.event",
                 event_data={
                     "trigger_type": event.trigger_type,
+                    "model": event.model,
                     "interface_id": event.interface_id,
-                    "channel_address": event.channel_address,
+                    "device_address": event.device_address,
+                    "channel_no": event.channel_no,
                     "parameter": event.parameter,
                     "value": event.value,
                 },
@@ -335,24 +336,17 @@ class DeviceTriggerEvent(Event):
     interface_id: str
     """Interface ID where event occurred."""
 
-    channel_address: str
-    """Channel address of the device."""
+    device_address: str
+    """Device address of the device."""
+
+    channel_no: int | None
+    """Channel number of the device."""
 
     parameter: str
     """Parameter name (e.g., PRESS_SHORT, MOTION)."""
 
     value: str | int | float | bool
     """Event value."""
-
-    @property
-    def channel_no(self) -> int | None:
-        """Return channel number."""
-        return get_channel_no(address=self.channel_address)
-
-    @property
-    def device_address(self) -> str:
-        """Return device address."""
-        return get_device_address(address=self.channel_address)
 
     @property
     def key(self) -> Any:

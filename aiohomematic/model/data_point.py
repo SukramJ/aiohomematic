@@ -1043,7 +1043,7 @@ class BaseParameterDataPoint[
         return EventData(
             interface_id=self._device.interface_id,
             model=self._device.model,
-            address=self._device.address,
+            device_address=self._device.address,
             channel_no=self._channel.no,
             parameter=self._parameter,
             value=value,

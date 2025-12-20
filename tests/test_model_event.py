@@ -57,7 +57,8 @@ class TestClickEvent:
         event_obj = trigger_events[-1]
         assert event_obj.interface_id == const.INTERFACE_ID
         # channel_address is the full channel address from EventData
-        assert event_obj.channel_address == "VCU2128127:1"
+        assert event_obj.device_address == "VCU2128127"
+        assert event_obj.channel_no == 1
         assert event_obj.parameter == "PRESS_SHORT"
         assert event_obj.value is True
 
@@ -105,7 +106,8 @@ class TestImpulseEvent:
         event_obj = trigger_events[-1]
         assert event_obj.interface_id == const.INTERFACE_ID
         # channel_address is the full channel address from EventData
-        assert event_obj.channel_address == "VCU0000263:1"
+        assert event_obj.device_address == "VCU0000263"
+        assert event_obj.channel_no == 1
         assert event_obj.parameter == "SEQUENCE_OK"
         assert event_obj.value is True
 
@@ -154,6 +156,7 @@ class TestDeviceErrorEvent:
         event_obj = trigger_events[-1]
         assert event_obj.interface_id == const.INTERFACE_ID
         # channel_address is the full channel address from EventData
-        assert event_obj.channel_address == "VCU2128127:0"
+        assert event_obj.device_address == "VCU2128127"
+        assert event_obj.channel_no == 0
         assert event_obj.parameter == "ERROR_OVERHEAT"
         assert event_obj.value is True

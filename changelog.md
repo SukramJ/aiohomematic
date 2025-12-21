@@ -10,6 +10,14 @@
   - New category: `DataPointCategory.ACTION_SELECT`
   - Located in `aiohomematic/model/generic/action_select.py`
 
+### Improvements
+
+- **Standardize DataPoint field naming convention**: Private DataPoint reference fields use `_dp_` prefix
+  - `_data_point_config_pending` → `_dp_config_pending`
+  - `_data_point_un_reach` → `_dp_un_reach`
+  - `_data_point_sticky_un_reach` → `_dp_sticky_un_reach`
+  - Convention: `_dp_*` for DP instances, `data_point` (spelled out) for public APIs
+
 ### Bug Fixes
 
 - **Fix custom data point type annotations**: Verified all custom data point types against pydevccu paramset descriptions

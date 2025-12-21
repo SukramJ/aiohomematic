@@ -349,24 +349,24 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
-    def _data_point_config_pending(self) -> DpBinarySensor | None:
-        """Return th CONFIG_PENDING data_point."""
+    def _dp_config_pending(self) -> DpBinarySensor | None:
+        """Return the CONFIG_PENDING data point."""
         return cast(
             DpBinarySensor | None,
             self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING),
         )
 
     @property
-    def _data_point_sticky_un_reach(self) -> DpBinarySensor | None:
-        """Return th STICKY_UN_REACH data_point."""
+    def _dp_sticky_un_reach(self) -> DpBinarySensor | None:
+        """Return the STICKY_UN_REACH data point."""
         return cast(
             DpBinarySensor | None,
             self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH),
         )
 
     @property
-    def _data_point_un_reach(self) -> DpBinarySensor | None:
-        """Return th UN REACH data_point."""
+    def _dp_un_reach(self) -> DpBinarySensor | None:
+        """Return the UN_REACH data point."""
         return cast(
             DpBinarySensor | None,
             self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH),
@@ -419,8 +419,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @property
     def config_pending(self) -> bool:
         """Return if a config change of the device is pending."""
-        if self._data_point_config_pending is not None and self._data_point_config_pending.value is not None:
-            return self._data_point_config_pending.value is True
+        if self._dp_config_pending is not None and self._dp_config_pending.value is not None:
+            return self._dp_config_pending.value is True
         return False
 
     @property
@@ -641,8 +641,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Return the availability of the device."""
         if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
             return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
-        if (un_reach := self._data_point_un_reach) is None:
-            un_reach = self._data_point_sticky_un_reach
+        if (un_reach := self._dp_un_reach) is None:
+            un_reach = self._dp_sticky_un_reach
         if un_reach is not None and un_reach.value is not None:
             return not un_reach.value
         return True

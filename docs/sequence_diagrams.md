@@ -349,15 +349,13 @@ VALID_CENTRAL_TRANSITIONS = {
 
 ### Event emission
 
-State changes are published to the EventBus as `CentralStateChangedEvent`:
+State changes are published to external integrations via the `SystemStatusEvent`:
 
 ```python
-@dataclass
-class CentralStateChangedEvent:
-    timestamp: datetime
-    old_state: CentralState
-    new_state: CentralState
-    reason: str
+from aiohomematic.central.integration_events import SystemStatusEvent, SystemStatusEventType
+
+# SystemStatusEvent is emitted for integration consumers (e.g., Home Assistant)
+# with status_type indicating the nature of the change
 ```
 
 ### Notes
@@ -421,19 +419,20 @@ sequenceDiagram
 
 ### Event types
 
-| Event                         | Key             | Description                           |
-| ----------------------------- | --------------- | ------------------------------------- |
-| DataPointUpdatedEvent         | DataPointKey    | Backend data point value update       |
-| BackendParameterEvent         | DataPointKey    | Raw parameter event from RPC          |
-| BackendSystemEventData        | None            | System events (DEVICES_CREATED, etc.) |
-| HomematicEvent                | None            | Homematic events (KEYPRESS, etc.)     |
-| SysvarUpdatedEvent            | state_path      | System variable update                |
-| InterfaceEvent                | interface_id    | Interface state changes               |
-| DeviceUpdatedEvent            | device_address  | Device state update                   |
-| FirmwareUpdatedEvent          | device_address  | Firmware info update                  |
-| LinkPeerChangedEvent          | channel_address | Channel link changes                  |
-| DataPointUpdatedCallbackEvent | unique_id       | External integration notification     |
-| DeviceRemovedEvent            | unique_id       | Device/data point removal             |
+| Event                         | Key             | Description                         |
+| ----------------------------- | --------------- | ----------------------------------- |
+| DataPointUpdatedEvent         | DataPointKey    | Backend data point value update     |
+| BackendParameterEvent         | DataPointKey    | Raw parameter event from RPC        |
+| DataPointStatusUpdatedEvent   | DataPointKey    | Data point availability status      |
+| SysvarUpdatedEvent            | state_path      | System variable update              |
+| DeviceUpdatedEvent            | device_address  | Device state update                 |
+| FirmwareUpdatedEvent          | device_address  | Firmware info update                |
+| LinkPeerChangedEvent          | channel_address | Channel link changes                |
+| DataPointUpdatedCallbackEvent | unique_id       | External integration notification   |
+| DeviceRemovedEvent            | unique_id       | Device/data point removal           |
+| SystemStatusEvent             | None            | System status changes (integration) |
+| DeviceLifecycleEvent          | None            | Device lifecycle (created, removed) |
+| DeviceTriggerEvent            | None            | Device triggers (KEYPRESS, etc.)    |
 
 ### Notes
 
@@ -598,7 +597,7 @@ sequenceDiagram
 
         CX->>SM: transition_to(CONNECTED)
         CX->>CS: remove_issue(interface_id)
-        CS->>EB: publish(InterfaceEvent, connected=true)
+        CS->>EB: publish(SystemStatusEvent)
 
         CX-->>Sched: reconnected
 
@@ -986,7 +985,7 @@ sequenceDiagram
 
     alt Callback registered
         CSM->>Client: on_state_change(old_state, new_state)
-        Client->>EB: publish(ClientStateChangedEvent)
+        Client->>EB: notify state change
     end
 
     Note over HT: Update health tracking
@@ -1198,9 +1197,9 @@ flowchart TB
     HT -->|health status| CSM
     HT -->|failed_clients| RC
     RC -->|transition_to| CSM
-    CSM -->|CentralStateChangedEvent| EB
+    CSM -->|SystemStatusEvent| EB
 
-    EB -->|ClientStateChangedEvent| HT
+    EB -->|state updates| HT
     HT -->|update health| HT
 
     RC -->|reconnect| SM1
@@ -1210,11 +1209,11 @@ flowchart TB
 ### State propagation flow
 
 1. **Client state change**: ClientStateMachine transitions (e.g., CONNECTED → DISCONNECTED)
-2. **Event emission**: Client emits ClientStateChangedEvent to EventBus
+2. **Event emission**: Client notifies state change via callback
 3. **Health update**: HealthTracker updates ConnectionHealth for the interface
 4. **Central state evaluation**: CentralHealth determines if state change is needed
 5. **Central transition**: CentralStateMachine transitions (e.g., RUNNING → DEGRADED)
-6. **Central event**: CentralStateChangedEvent emitted for external consumers
+6. **Central event**: SystemStatusEvent emitted for external consumers (e.g., Home Assistant)
 
 ### Key decision points
 

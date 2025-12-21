@@ -1155,6 +1155,40 @@ python script/check_i18n.py aiohomematic/  # Check usage in code
 python script/check_i18n_catalogs.py       # Check catalog sync
 ```
 
+### Updating Documentation
+
+After refactoring or renaming classes/methods/files, verify that `docs/*.md` files remain accurate:
+
+1. **Check for stale references**:
+
+```bash
+# Search for old class/method/file names in docs
+grep -rn "OldClassName\|old_method_name\|old_file.py" docs/*.md
+```
+
+2. **Common documentation issues to check**:
+
+   - **File paths**: Directory renames (e.g., `caches/` → `store/`)
+   - **Class names**: Renamed classes (e.g., `XmlRpcProxy` → `AioXmlRpcProxy`)
+   - **Method signatures**: Changed to keyword-only arguments
+   - **Event types**: Non-existent or renamed event classes
+   - **Protocol names**: Updated protocol interface names
+
+3. **Key documentation files to verify**:
+
+   - `docs/architecture.md` - Component descriptions and relationships
+   - `docs/data_flow.md` - Data flow diagrams and class references
+   - `docs/extension_points.md` - Method signatures and examples
+   - `docs/event_bus.md`, `docs/event_reference.md` - Event type listings
+   - `docs/sequence_diagrams.md` - Handler and event references
+
+4. **Validation command**:
+
+```bash
+# Check for common stale patterns
+grep -rn "aiohomematic/caches\|BackendSystemEventData\|HomematicEvent\|xml_rpc_server\.py" docs/*.md
+```
+
 ### Debugging Tips
 
 #### Enable Debug Logging
@@ -1812,6 +1846,7 @@ This policy ensures:
 ✅ **Always** run pre-commit hooks before committing
 ✅ **Always** write tests for new functionality
 ✅ **Always** update documentation when changing public APIs
+✅ **Always** verify `docs/*.md` accuracy after refactoring (class names, method signatures, file paths, event types)
 ✅ **Always** use keyword-only arguments for ALL parameters (excluding self/cls)
 ✅ **Always** use descriptive variable names
 ✅ **Always** handle exceptions with proper context
@@ -1869,5 +1904,5 @@ Before finalizing any implementation plan, verify:
 
 ---
 
-**Last Updated**: 2025-12-16
-**Version**: 2025.12.30
+**Last Updated**: 2025-12-21
+**Version**: 2025.12.41

@@ -17,7 +17,7 @@ Audience: Contributors and integrators who need a precise understanding of messa
 - CentralUnit (aiohomematic/central): orchestrates clients, runs XML-RPC callback server, stores caches, and hosts the runtime model.
 - Clients (aiohomematic/client): protocol adapters for XML-RPC (XmlRpcProxy) and JSON-RPC (JsonRpcAioHttpClient).
 - Model (aiohomematic/model): Device, Channel, DataPoints, Events; strictly no network I/O.
-- Caches (aiohomematic/caches): persistent descriptions and dynamic value/state caches.
+- Store (aiohomematic/store): persistent descriptions and dynamic value/state caches.
 
 ---
 
@@ -35,7 +35,7 @@ Purpose: Event callbacks from backend; many CCU operations can also be done via 
 ### Inbound events (push from backend)
 
 1. Backend calls the local callback server started by Central (xml_rpc_server.XmlRpcServer), method RPCFunctions.event(interface_id, channel_address, parameter, value).
-2. RPCFunctions looks up the Central for interface_id and forwards the event via decorators to CentralUnit.data_point_event(...).
+2. RPCFunctions looks up the Central for interface_id and forwards the event via decorators to Central's event_coordinator.data_point_event(...).
 3. Central resolves the target DataPoint from (channel_address, parameter), converts value if needed, updates dynamic caches and the DataPoint's internal state.
 4. Central publishes events via the EventBus system (DataPointUpdatedEvent, DeviceUpdatedEvent, etc.). Subscribers receive notifications through the modern `subscribe_to_*` API. Connection health metadata (PingPongCache, last-seen timestamps) is updated. Pending CommandCache entries may be reconciled if the event confirms a write.
 5. If the event indicates structural changes (newDevices, deleteDevices, updateDevice, replaceDevice, readdedDevice), the respective RPCFunctions handlers forward to Central which triggers model updates (reload descriptions, add/remove devices/channels).
@@ -48,12 +48,12 @@ Purpose: Alternative/optional transport for CCU JSON API and ReGa interactions (
 
 ### Outbound calls (read/write)
 
-1. Consumer requests go through ClientCCU/ClienJsonCCU, which uses JsonRpcAioHttpClient.
+1. Consumer requests go through ClientCCU/ClientJsonCCU, which uses JsonRpcAioHttpClient.
 2. JsonRpcAioHttpClient ensures an authenticated session (login or renew). Requests are posted via \_post/\_do_post with method names defined in \_JsonRpcMethod.
 3. Responses are parsed safely (\_get_json_reponse) and converted to domain structures:
    - Device details → Names, Rooms, Functions
-   - Device descriptions → DeviceDescription (ClienJsonCCU)
-   - Paramset descriptions → ParameterData (ClienJsonCCU)
+   - Device descriptions → DeviceDescription (ClientJsonCCU)
+   - Paramset descriptions → ParameterData (ClientJsonCCU)
    - Program/system variable data → ProgramData/SystemVariableData
    - Values (get/set) are converted via model.support.convert_value where needed.
 4. Dynamic caches in Central are updated. For writes, CommandCache may record the pending state until a confirming callback (if provided via XML-RPC) or a subsequent read reconciles the value.
@@ -176,10 +176,10 @@ sequenceDiagram
 
 ## 6. Where to look in code
 
-- XML-RPC server: aiohomematic/central/xml_rpc_server.py
+- XML-RPC server: aiohomematic/central/rpc_server.py
   - RPCFunctions.event/newDevices/... and XmlRpcServer lifecycle
-- XML-RPC client: aiohomematic/client/xml_rpc.py
-  - XmlRpcProxy, supported methods, async request handling
+- XML-RPC client: aiohomematic/client/rpc_proxy.py
+  - AioXmlRpcProxy, supported methods, async request handling
 - JSON-RPC client: aiohomematic/client/json_rpc.py
   - JsonRpcAioHttpClient, login/session, methods, conversions
 - Client: aiohomematic/client/**init**.py
@@ -192,4 +192,4 @@ sequenceDiagram
 
 ## Notes
 
-- Tests under tests/ verify many of these flows; see tests/test_central.py, tests/test_json_rpc.py, tests/test_event.py, and device/data point related tests.
+- Tests under tests/ verify many of these flows; see tests/test_central.py, tests/test_client_json_rpc_client.py, tests/test_central_event_bus.py, tests/test_central_event_coordinator.py, and device/data point related tests.

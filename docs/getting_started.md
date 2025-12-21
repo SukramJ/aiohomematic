@@ -288,23 +288,25 @@ unsubscribe()
 For more control over event handling:
 
 ```python
-from aiohomematic.central.event_bus import DataPointUpdatedEvent, BackendSystemEventData
+from aiohomematic.central.event_bus import DataPointUpdatedEvent, DeviceUpdatedEvent
 
-async def on_datapoint_update(event: DataPointUpdatedEvent) -> None:
-    print(f"DataPoint {event.channel_address}.{event.parameter} = {event.value}")
+async def on_datapoint_update(*, event: DataPointUpdatedEvent) -> None:
+    print(f"DataPoint {event.dpk} = {event.value}")
 
-async def on_system_event(event: BackendSystemEventData) -> None:
-    print(f"System event: {event.system_event}")
+async def on_device_update(*, event: DeviceUpdatedEvent) -> None:
+    print(f"Device updated: {event.device_address}")
 
 # Subscribe to specific events
 central.event_bus.subscribe(
     event_type=DataPointUpdatedEvent,
+    event_key=None,
     handler=on_datapoint_update,
 )
 
 central.event_bus.subscribe(
-    event_type=BackendSystemEventData,
-    handler=on_system_event,
+    event_type=DeviceUpdatedEvent,
+    event_key=None,
+    handler=on_device_update,
 )
 ```
 
@@ -346,16 +348,16 @@ if api.is_connected:
 else:
     print("Not connected")
 
-# Subscribe to connection state changes (using EventBus)
-from aiohomematic.central.event_bus import ConnectionStateChangedEvent
+# Subscribe to device availability changes
+from aiohomematic.central.event_bus import DeviceUpdatedEvent
 
-async def on_connection_state_changed(event: ConnectionStateChangedEvent) -> None:
-    status = "connected" if event.connected else "disconnected"
-    print(f"Interface {event.interface_id} is now {status}")
+async def on_device_updated(*, event: DeviceUpdatedEvent) -> None:
+    print(f"Device {event.device_address} was updated")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=ConnectionStateChangedEvent,
-    handler=on_connection_state_changed
+    event_type=DeviceUpdatedEvent,
+    event_key=None,
+    handler=on_device_updated,
 )
 ```
 

@@ -160,7 +160,7 @@ Calculated data points compute values from one or more underlying GenericDataPoi
      - @state_property def value(self) -> T: return computed_value
      - @config_property def unit(self) -> str | None: return unit string (e.g., "°C")
      - Optionally @cached_slot_property for static metadata
-   - Implement classmethod is_relevant_for_model(channel) -> bool to guard which channels get this DP
+   - Implement staticmethod is_relevant_for_model(\*, channel: ChannelProtocol) -> bool to guard which channels get this DP
 2. Register your class
    - Add the class to \_CALCULATED_DATA_POINTS in aiohomematic.model.calculated.**init** so the factory can discover it:
      \_CALCULATED_DATA_POINTS = (ApparentTemperature, ..., YourNewCalculatedDP)
@@ -176,6 +176,8 @@ from __future__ import annotations
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.property_decorators import state_property, config_property
 from aiohomematic.const import CalculatedParameter, ParamsetKey
+from aiohomematic.interfaces.model import ChannelProtocol
+from aiohomematic.model.generic.sensor import DpSensor
 
 
 class MyMetric(CalculatedDataPoint[float]):
@@ -184,13 +186,24 @@ class MyMetric(CalculatedDataPoint[float]):
     def _init_data_point_fields(self) -> None:
         super()._init_data_point_fields()
         # Attach sources from the same channel (examples):
-        self._dp_temp = self._add_data_point("TEMPERATURE", ParamsetKey.VALUES, data_point_type=type(self))
-        self._dp_hum = self._add_data_point("HUMIDITY", ParamsetKey.VALUES, data_point_type=type(self))
+        # Note: All parameters are keyword-only
+        self._dp_temp = self._add_data_point(
+            parameter="TEMPERATURE",
+            paramset_key=ParamsetKey.VALUES,
+            data_point_type=DpSensor,
+        )
+        self._dp_hum = self._add_data_point(
+            parameter="HUMIDITY",
+            paramset_key=ParamsetKey.VALUES,
+            data_point_type=DpSensor,
+        )
 
-    @classmethod
-    def is_relevant_for_model(cls, channel) -> bool:
+    @staticmethod
+    def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         # Only add if required sources exist on this channel
-        return channel.get_generic_data_point("TEMPERATURE", ParamsetKey.VALUES) is not None
+        return channel.get_generic_data_point(
+            parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES
+        ) is not None
 
     @state_property
     def value(self) -> float | None:

@@ -69,39 +69,23 @@ elif central.central_state == CentralState.FAILED:
 if central.connection_state.has_any_issue:
     print(f"Connection issues: {central.connection_state.issue_count}")
 
-# Subscribe to connection state changes (per interface)
-from aiohomematic.central.event_bus import ConnectionStateChangedEvent
+# Subscribe to device state changes
+from aiohomematic.central.event_bus import DeviceUpdatedEvent
 
 
-async def on_connection_state_changed(event: ConnectionStateChangedEvent) -> None:
-    """Handle interface connection state changes."""
-    status = "connected" if event.connected else "disconnected"
-    print(f"{event.interface_id}: {status}")
+async def on_device_updated(*, event: DeviceUpdatedEvent) -> None:
+    """Handle device state changes."""
+    print(f"Device updated: {event.device_address}")
 
 
-unsubscribe_connection = central.event_bus.subscribe(
-    event_type=ConnectionStateChangedEvent,
-    handler=on_connection_state_changed
-)
-
-# Subscribe to central state changes (overall system)
-from aiohomematic.central.event_bus import CentralStateChangedEvent
-
-
-async def on_central_state_changed(event: CentralStateChangedEvent) -> None:
-    """Handle overall system state changes."""
-    print(f"Central: {event.old_state} → {event.new_state}")
-    print(f"Reason: {event.reason}")
-
-
-unsubscribe_central = central.event_bus.subscribe(
-    event_type=CentralStateChangedEvent,
-    handler=on_central_state_changed
+unsubscribe_device = central.event_bus.subscribe(
+    event_type=DeviceUpdatedEvent,
+    event_key=None,
+    handler=on_device_updated,
 )
 
 # Later: stop receiving notifications
-unsubscribe_connection()
-unsubscribe_central()
+unsubscribe_device()
 ```
 
 > **Migration Note:** The old `register_state_change_callback()` API has been removed in version 2025.12.23. Use the EventBus-based API shown above. See [Migration Guide](migrations/central_state_machine_2025_12.md) for details.
@@ -308,54 +292,58 @@ unsubscribe()
 ```python
 from aiohomematic.central.event_bus import (
     DataPointUpdatedEvent,
-    BackendSystemEventData,
-    DeviceCreatedEvent,
+    DeviceUpdatedEvent,
+    FirmwareUpdatedEvent,
 )
 
 # Data point updates
-async def on_datapoint_update(event: DataPointUpdatedEvent) -> None:
-    print(f"Channel: {event.channel_address}")
-    print(f"Parameter: {event.parameter}")
+async def on_datapoint_update(*, event: DataPointUpdatedEvent) -> None:
+    print(f"DataPointKey: {event.dpk}")
     print(f"Value: {event.value}")
-    print(f"Interface: {event.interface_id}")
 
 central.event_bus.subscribe(
     event_type=DataPointUpdatedEvent,
+    event_key=None,
     handler=on_datapoint_update,
 )
 
-# System events
-async def on_system_event(event: BackendSystemEventData) -> None:
-    from aiohomematic.const import BackendSystemEvent
-
-    if event.system_event == BackendSystemEvent.NEW_DEVICES:
-        print(f"New devices discovered: {event.data}")
-    elif event.system_event == BackendSystemEvent.DEVICES_CREATED:
-        print("Devices created")
+# Device events
+async def on_device_event(*, event: DeviceUpdatedEvent) -> None:
+    print(f"Device updated: {event.device_address}")
 
 central.event_bus.subscribe(
-    event_type=BackendSystemEventData,
-    handler=on_system_event,
+    event_type=DeviceUpdatedEvent,
+    event_key=None,
+    handler=on_device_event,
 )
 ```
 
 ### Filtering Events
 
 ```python
-# Subscribe to specific device
-async def on_specific_device(event: DataPointUpdatedEvent) -> None:
-    if event.channel_address.startswith("VCU0000001"):
-        print(f"My device: {event.parameter} = {event.value}")
+from aiohomematic.const import DataPointKey, ParamsetKey
+
+# Subscribe to specific device by filtering in handler
+async def on_specific_device(*, event: DataPointUpdatedEvent) -> None:
+    if event.dpk.channel_address.startswith("VCU0000001"):
+        print(f"My device: {event.dpk.parameter} = {event.value}")
 
 central.event_bus.subscribe(
     event_type=DataPointUpdatedEvent,
+    event_key=None,
     handler=on_specific_device,
 )
 
-# Subscribe with event key filter
+# Subscribe with specific DataPointKey filter
+specific_dpk = DataPointKey(
+    interface_id="BidCos-RF",
+    channel_address="VCU0000001:1",
+    paramset_key=ParamsetKey.VALUES,
+    parameter="STATE",
+)
 central.event_bus.subscribe(
     event_type=DataPointUpdatedEvent,
-    event_key="VCU0000001:1",  # Filter by channel
+    event_key=specific_dpk,
     handler=on_datapoint_update,
 )
 ```

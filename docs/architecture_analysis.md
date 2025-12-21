@@ -249,13 +249,16 @@ class DataPointUpdatedEvent(Event):
     dpk: DataPointKey
     value: ParamType
 
-# 13 Event Types:
+# Core Event Types (from event_bus.py):
 # - DataPointUpdatedEvent, DataPointUpdatedCallbackEvent
-# - BackendParameterEvent, BackendSystemEventData
-# - HomematicEvent, SysvarUpdatedEvent
-# - InterfaceEvent, DeviceUpdatedEvent
+# - BackendParameterEvent, DataPointStatusUpdatedEvent
+# - SysvarUpdatedEvent, DeviceUpdatedEvent
 # - FirmwareUpdatedEvent, LinkPeerChangedEvent
-# - DeviceRemovedEvent, plus more
+# - DeviceRemovedEvent
+#
+# Integration Event Types (from integration_events.py):
+# - SystemStatusEvent, DeviceLifecycleEvent
+# - DeviceTriggerEvent, DataPointsCreatedEvent
 ```
 
 ### 4.4 Circuit Breaker Pattern

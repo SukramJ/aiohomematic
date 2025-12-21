@@ -1,6 +1,6 @@
 # unignore
 
-_AioHomematic_ maintains [multiple lists](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/caches/visibility.py#L86) of parameters that should be ignored when entities are created.
+_AioHomematic_ maintains [multiple lists](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/store/visibility.py#L284) of parameters that should be ignored when entities are created.
 These parameters are filtered out to provide a better user experience for the majority of the users.
 
 But there is also a group of users that wants to do more... _things_.

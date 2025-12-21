@@ -1,3 +1,20 @@
+# Version 2025.12.42 (2025-12-21)
+
+## What's Changed
+
+### Documentation
+
+- **Fix documentation accuracy across all `docs/*.md` files**: Updated stale references after recent refactoring
+  - Fixed directory references: `caches/` → `store/`
+  - Fixed file references: `xml_rpc_server.py` → `rpc_server.py`, `xml_rpc.py` → `rpc_proxy.py`
+  - Fixed class names: `XmlRpcProxy` → `AioXmlRpcProxy`
+  - Removed non-existent event types: `BackendSystemEventData`, `HomematicEvent`, `InterfaceEvent`, `CentralStateChangedEvent`, `ClientStateChangedEvent`
+  - Added correct event types from `event_bus.py` and `integration_events.py`
+  - Fixed method signatures in examples to use keyword-only arguments
+  - Updated `docs/unignore.md` path reference
+  - Updated `docs/homematicip_local_api_usage.md` event references
+- **Add documentation maintenance instructions to CLAUDE.md**: New section for verifying `docs/*.md` accuracy after refactoring
+
 # Version 2025.12.41 (2025-12-20)
 
 ## What's Changed

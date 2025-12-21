@@ -641,8 +641,8 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         self._dp_door_command: DpActionSelect = self._get_data_point(
             field=Field.DOOR_COMMAND, data_point_type=DpActionSelect
         )
-        self._dp_section: DpSensor[str | None] = self._get_data_point(
-            field=Field.SECTION, data_point_type=DpSensor[str | None]
+        self._dp_section: DpSensor[int | None] = self._get_data_point(
+            field=Field.SECTION, data_point_type=DpSensor[int | None]
         )
 
 

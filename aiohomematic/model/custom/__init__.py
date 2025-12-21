@@ -4,7 +4,7 @@
 Custom data points for AioHomematic.
 
 This subpackage provides higher-level, device-specific data points that combine
-multiple backend parameters into single, meaningful entities (for example: a
+multiple backend parameters into single, meaningful data points (for example: a
 thermostat, a blind with tilt, a fixed-color light, a lock, a siren, a switch,
 or an irrigation valve). It also contains discovery helpers and a schema-based
 validation for model-specific configurations.
@@ -14,7 +14,7 @@ What this package does
   matching custom definition exists and the device is not ignored for customs,
   creates the appropriate custom data point(s) and attaches them to the device.
 - Definitions: The definition module holds the catalog of supported models and
-  the rules that describe which parameters form each custom entity. It exposes
+  the rules that describe which parameters form each custom data point. It exposes
   helpers to query availability, enumerate required parameters, and validate the
   definition schema.
 - Specializations: Rich custom data point classes for climate, light, cover,
@@ -25,7 +25,7 @@ What this package does
 How it relates to the generic layer
 Custom data points build on top of generic data points. While the generic layer
 maps one backend parameter to one data point, this package groups multiple
-parameters across channels (where needed) into a single higher-level entity. The
+parameters across channels (where needed) into a single higher-level data point. The
 result is a simpler interface for automations and UIs, while still allowing the
 underlying generic data points to be created when desired.
 

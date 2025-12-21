@@ -4,7 +4,7 @@
 Shared mixins for custom data point implementations.
 
 This module provides reusable mixin classes that extract common patterns
-from custom entity implementations to reduce code duplication.
+from custom data point implementations to reduce code duplication.
 
 Mixins
 ------
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 
 class StateChangeArg(StrEnum):
-    """Common state change arguments for on/off entities."""
+    """Common state change arguments for on/off data points."""
 
     OFF = "off"
     ON = "on"
@@ -75,7 +75,7 @@ class StateChangeArgs(TypedDict, total=False):
 
 @runtime_checkable
 class TimerCapable(Protocol):
-    """Protocol for entities with timer capabilities."""
+    """Protocol for data points with timer capabilities."""
 
     @property
     def timer_on_time(self) -> float | None:
@@ -100,7 +100,7 @@ class TimerCapable(Protocol):
 
 @runtime_checkable
 class ValueCapable(Protocol):
-    """Protocol for entities with value property."""
+    """Protocol for data points with value property."""
 
     @property
     def value(self) -> bool | None:
@@ -112,7 +112,7 @@ class StateChangeTimerMixin:
     Mixin providing timer-based state change detection.
 
     This mixin implements the common state change detection pattern used
-    by switch, valve, light, and similar entities that support on_time timers.
+    by switch, valve, light, and similar data points that support on_time timers.
 
     Provides:
     - is_timer_state_change(): Timer-only state change detection
@@ -159,7 +159,7 @@ class StateChangeTimerMixin:
         - Timer is currently running
         - Timer on_time is set
 
-        This is useful for entities like lights that have more complex
+        This is useful for data points like lights that have more complex
         on/off logic but still need timer-based state change detection.
         """
         if self.timer_on_time_running is True:
@@ -233,10 +233,10 @@ class OnOffActionMixin:
 
 class GroupStateMixin:
     """
-    Mixin for entities that have a group state.
+    Mixin for data points that have a group state.
 
     Provides common group_value property pattern used by switches,
-    valves, and other entities with group state tracking.
+    valves, and other data points with group state tracking.
     """
 
     __slots__ = ()
@@ -253,10 +253,10 @@ class GroupStateMixin:
 
 class PositionMixin:
     """
-    Mixin for entities with position values (0-100%).
+    Mixin for data points with position values (0-100%).
 
     Provides common position conversion logic for covers, blinds,
-    and similar entities that work with percentage positions.
+    and similar data points that work with percentage positions.
     """
 
     __slots__ = ()
@@ -299,7 +299,7 @@ class PositionMixin:
 
 class BrightnessMixin:
     """
-    Mixin for entities with brightness values (0-255 or 0-100%).
+    Mixin for data points with brightness values (0-255 or 0-100%).
 
     Provides common brightness conversion logic for lights and dimmers.
     """

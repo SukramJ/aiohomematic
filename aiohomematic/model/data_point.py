@@ -287,7 +287,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
 
     @state_property
     def additional_information(self) -> dict[str, Any]:
-        """Return additional information about the entity."""
+        """Return additional information about the data point."""
         return {}
 
     @state_property
@@ -392,7 +392,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             Performance optimization: Instead of creating one task per subscriber,
             we create a single task that uses asyncio.gather() to publish all events
             concurrently. This reduces task creation overhead when there are many
-            subscribers (common in Home Assistant with multiple entities).
+            subscribers (common in Home Assistant with multiple data points).
 
             The return_exceptions=True ensures one failing handler doesn't prevent
             other handlers from receiving the event.
@@ -444,7 +444,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
 
         Subscription pattern with reference counting:
             Multiple handlers can subscribe with the same custom_id (e.g., Home Assistant
-            entity and its device tracker). We track subscription counts per custom_id
+            data point and its device tracker). We track subscription counts per custom_id
             so that the custom_id is only removed from _registered_custom_ids when ALL
             subscriptions for that custom_id have been unsubscribed.
 

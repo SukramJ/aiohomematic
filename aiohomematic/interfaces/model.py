@@ -244,7 +244,7 @@ class GenericHubDataPointProtocol(CallbackDataPointProtocol, Protocol):
     Protocol for hub-level data points (programs, sysvars).
 
     Extends CallbackDataPointProtocol with properties specific to
-    hub-level entities that are not bound to device channels.
+    hub-level data points that are not bound to device channels.
     """
 
     __slots__ = ()
@@ -378,7 +378,7 @@ class GenericProgramDataPointProtocol(GenericHubDataPointProtocol, Protocol):
 @runtime_checkable
 class HubSensorDataPointProtocol(GenericHubDataPointProtocol, Protocol):
     """
-    Protocol for sensors bases on hub entities, that ar no sysvars.
+    Protocol for sensors bases on hub data points, that ar no sysvars.
 
     Provides properties like data_type.
     """

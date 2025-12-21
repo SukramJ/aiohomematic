@@ -901,7 +901,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         Return the current activity.
 
         The preferred sources for determining the activity are this channel's `LEVEL` and `STATE` data points.
-        Some devices don't expose one or both; in that case we try to use the same datapoints from the linked peer channels instead.
+        Some devices don't expose one or both; in that case we try to use the same data points from the linked peer channels instead.
         """
         # Determine effective data point values for LEVEL and STATE.
         level_dp = self._dp_level if self._dp_level.is_hmtype else None

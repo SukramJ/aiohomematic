@@ -769,7 +769,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 failure_reason=exception_to_failure_reason(bhexc),
             )
             # Mark devices as unavailable when proxy init fails
-            # This ensures entities show unavailable during CCU restart/recovery
+            # This ensures data points show unavailable during CCU restart/recovery
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             return ProxyInitState.INIT_FAILED
         self.modified_at = datetime.now()
@@ -1107,7 +1107,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Mark device's availability state for this interface."""
         available = forced_availability != ForcedDeviceAvailability.FORCE_FALSE
         # Always update devices when marking unavailable (FORCE_FALSE) to ensure
-        # entities show unavailable during connection failures.
+        # data points show unavailable during connection failures.
         # Only skip updates when already in matching available state.
         if not available or self._state_machine.is_available != available:
             for device in self.central.device_registry.devices:

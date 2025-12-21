@@ -90,7 +90,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
 
     @state_property
     def additional_information(self) -> dict[str, Any]:
-        """Return additional information about the entity."""
+        """Return additional information about the data point."""
         ainfo = super().additional_information
         if self._battery_data is not None:
             ainfo.update(

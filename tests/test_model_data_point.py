@@ -1,4 +1,4 @@
-"""Tests for entity and data point functionality of aiohomematic."""
+"""Tests for data point functionality of aiohomematic."""
 
 from __future__ import annotations
 

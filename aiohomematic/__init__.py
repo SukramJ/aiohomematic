@@ -10,7 +10,7 @@ and HomematicIP systems. It enables device discovery, data point manipulation, e
 handling, and management of programs and system variables.
 
 The library is designed for integration with Home Assistant but can be used standalone.
-It features automatic entity discovery, flexible customization through device-specific
+It features automatic data point discovery, flexible customization through device-specific
 implementations, and fast startup through intelligent caching.
 
 Architecture
@@ -21,7 +21,7 @@ The library is organized into four main layers:
   creation, event handling, and background tasks.
 - **aiohomematic.client**: Protocol adapters (JSON-RPC/XML-RPC) for backend communication.
 - **aiohomematic.model**: Runtime representation of devices, channels, and data points
-  with generic, custom, calculated, and hub entity types.
+  with generic, custom, calculated, and hub data point types.
 - **aiohomematic.store**: Persistence layer for device descriptions, paramsets, and
   runtime caches.
 

@@ -3,7 +3,7 @@
 """
 Hub coordinator for managing programs and system variables.
 
-This module provides centralized management of system-level entities like
+This module provides centralized management of system-level data points like
 programs and system variables that are exposed through the Hub.
 
 The HubCoordinator provides:
@@ -45,7 +45,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
-    """Coordinator for hub-level entities (programs and system variables)."""
+    """Coordinator for hub-level data points (programs and system variables)."""
 
     __slots__ = (
         "_central_info",

@@ -7,7 +7,7 @@ Overview
 --------
 This package provides the runtime model layer that transforms device and channel
 parameter descriptions from Homematic backends into typed data point objects and
-events. It orchestrates the creation of entity hierarchies (devices, channels,
+events. It orchestrates the creation of data point hierarchies (devices, channels,
 data points) and manages their lifecycle.
 
 The model layer is purely domain-focused with no I/O operations. All backend
@@ -15,7 +15,7 @@ communication is delegated to the client layer through protocol interfaces.
 
 Subpackages
 -----------
-The model is organized into specialized entity types:
+The model is organized into specialized data point types:
 
 - **generic**: Default data point implementations (switch, number, sensor, select,
   binary_sensor, button, action, text) for standard parameter types.
@@ -23,7 +23,7 @@ The model is organized into specialized entity types:
   (climate, cover, light, lock, siren, valve) for complex multi-parameter devices.
 - **calculated**: Derived data points computing values from other data points
   (e.g., dew point, apparent temperature, battery level percentage).
-- **hub**: Backend system entities including programs and system variables exposed
+- **hub**: Backend system data points including programs and system variables exposed
   by the CCU/Homegear hub.
 
 Public API

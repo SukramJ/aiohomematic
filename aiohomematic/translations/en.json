@@ -63,6 +63,7 @@
   "exception.config.check.username.empty": "Username must not be empty",
   "exception.config.invalid": "Invalid configuration: {failures}",
   "exception.create_central.failed": "Not able to create a central: {reason}",
+  "exception.model.action_select.value_not_in_value_list": "ACTION_SELECT {name} (unique_id={unique_id}): Value not in value list",
   "exception.model.custom.climate.set_temperature.invalid": "SET_TEMPERATURE failed: Invalid temperature: {temperature} (min: {min}, max: {max})",
   "exception.model.custom.definition.create_custom_data_point.failed": "_CREATE_CUSTOM_DATA_POINT: unable to create custom data point: {reason}",
   "exception.model.custom.siren.invalid_light": "Invalid light specified for data_point {full_name}: {value}",

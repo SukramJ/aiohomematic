@@ -63,6 +63,7 @@
   "exception.config.check.username.empty": "Benutzername darf nicht leer sein",
   "exception.config.invalid": "Ungültige Konfiguration: {failures}",
   "exception.create_central.failed": "Zentrale konnte nicht erstellt werden: {reason}",
+  "exception.model.action_select.value_not_in_value_list": "ACTION_SELECT {name} (unique_id={unique_id}): Wert nicht in Werteliste",
   "exception.model.custom.climate.set_temperature.invalid": "SET_TEMPERATURE fehlgeschlagen: Ungültige Temperatur: {temperature} (min: {min}, max: {max})",
   "exception.model.custom.definition.create_custom_data_point.failed": "_CREATE_CUSTOM_DATA_POINT: benutzerdefinierter Datenpunkt konnte nicht erstellt werden: {reason}",
   "exception.model.custom.siren.invalid_light": "Ungültiges Licht für Datenpunkt {full_name}: {value}",

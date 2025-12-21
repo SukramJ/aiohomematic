@@ -510,6 +510,7 @@ class DataPointCategory(StrEnum):
     """Enum with data point types."""
 
     ACTION = "action"
+    ACTION_SELECT = "action_select"
     BINARY_SENSOR = "binary_sensor"
     BUTTON = "button"
     CLIMATE = "climate"
@@ -1180,7 +1181,10 @@ KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, frozenset[str]]] = Map
     }
 )
 
-BLOCKED_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (DataPointCategory.ACTION,)
+BLOCKED_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.ACTION,
+    DataPointCategory.ACTION_SELECT,
+)
 
 HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.HUB_BINARY_SENSOR,

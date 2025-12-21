@@ -2,6 +2,26 @@
 
 ## What's Changed
 
+### New Features
+
+- **Introduce `DpActionSelect` data point type**: New category for write-only ENUM parameters with VALUE_LIST
+  - Provides a `value` getter to read the current selection (unlike `DpAction` which is write-only)
+  - Automatically created by factory for write-only parameters with VALUE_LIST
+  - New category: `DataPointCategory.ACTION_SELECT`
+  - Located in `aiohomematic/model/generic/action_select.py`
+
+### Bug Fixes
+
+- **Fix custom data point type annotations**: Verified all custom data point types against pydevccu paramset descriptions
+
+  - **cover.py**: Changed `_dp_section` from `DpSensor[str | None]` to `DpSensor[int | None]` (SECTION is INTEGER 0-15, not STRING)
+
+- **Update custom data points to use `DpActionSelect`**: Parameters with VALUE_LIST now correctly use `DpActionSelect` instead of `DpAction`
+  - **siren.py**: `ACOUSTIC_ALARM_SELECTION`, `OPTICAL_ALARM_SELECTION`, `DURATION_UNIT`, `SMOKE_DETECTOR_COMMAND`
+  - **lock.py**: `LOCK_TARGET_LEVEL`
+  - **light.py**: `ON_TIME_UNIT`, `EFFECT`, `RAMP_TIME_TO_OFF_UNIT`, `RAMP_TIME_UNIT`
+  - **cover.py**: `DOOR_COMMAND`
+
 ### Documentation
 
 - **Fix documentation accuracy across all `docs/*.md` files**: Updated stale references after recent refactoring

@@ -68,6 +68,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model.generic.action import DpAction
+from aiohomematic.model.generic.action_select import DpActionSelect
 from aiohomematic.model.generic.binary_sensor import DpBinarySensor
 from aiohomematic.model.generic.button import DpButton
 from aiohomematic.model.generic.data_point import GenericDataPoint, GenericDataPointAny
@@ -83,6 +84,7 @@ __all__ = [
     "BaseDpNumber",
     "DataPointTypeResolver",
     "DpAction",
+    "DpActionSelect",
     "DpBinarySensor",
     "DpButton",
     "DpDummy",
@@ -126,6 +128,7 @@ class DataPointTypeResolver:
         *,
         channel: ChannelProtocol,
         parameter: str,
+        parameter_data: ParameterData,
         p_operations: int,
     ) -> type[GenericDataPointAny]:
         """Resolve data point type for ACTION parameters."""
@@ -133,6 +136,9 @@ class DataPointTypeResolver:
             # Write-only action
             if parameter in _BUTTON_ACTIONS or channel.device.model in VIRTUAL_REMOTE_MODELS:
                 return DpButton
+            # Write-only action with value_list -> DpActionSelect
+            if parameter_data.get("VALUE_LIST"):
+                return DpActionSelect
             return DpAction
 
         if parameter in CLICK_EVENTS:
@@ -164,6 +170,7 @@ class DataPointTypeResolver:
         *,
         channel: ChannelProtocol,
         parameter: str,
+        parameter_data: ParameterData,
         p_type: ParameterType,
         p_operations: int,
     ) -> type[GenericDataPointAny] | None:
@@ -173,11 +180,15 @@ class DataPointTypeResolver:
             return cls._resolve_action(
                 channel=channel,
                 parameter=parameter,
+                parameter_data=parameter_data,
                 p_operations=p_operations,
             )
 
         # Write-only non-ACTION parameters
         if p_operations == Operations.WRITE:
+            # Write-only with value_list -> DpActionSelect
+            if parameter_data.get("VALUE_LIST"):
+                return DpActionSelect
             return DpAction
 
         # Use lookup table for standard types
@@ -210,6 +221,7 @@ class DataPointTypeResolver:
             return cls._resolve_writable(
                 channel=channel,
                 parameter=parameter,
+                parameter_data=parameter_data,
                 p_type=p_type,
                 p_operations=p_operations,
             )

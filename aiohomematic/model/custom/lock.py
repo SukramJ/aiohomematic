@@ -15,7 +15,7 @@ from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Paramete
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpSensor, DpSwitch
+from aiohomematic.model.generic import DpAction, DpActionSelect, DpSensor, DpSwitch
 from aiohomematic.property_decorators import state_property
 
 
@@ -154,8 +154,8 @@ class CustomDpIpLock(BaseCustomDpLock):
         self._dp_lock_state: DpSensor[str | None] = self._get_data_point(
             field=Field.LOCK_STATE, data_point_type=DpSensor[str | None]
         )
-        self._dp_lock_target_level: DpAction = self._get_data_point(
-            field=Field.LOCK_TARGET_LEVEL, data_point_type=DpAction
+        self._dp_lock_target_level: DpActionSelect = self._get_data_point(
+            field=Field.LOCK_TARGET_LEVEL, data_point_type=DpActionSelect
         )
         self._dp_direction: DpSensor[str | None] = self._get_data_point(
             field=Field.DIRECTION, data_point_type=DpSensor[str | None]

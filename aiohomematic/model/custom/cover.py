@@ -19,7 +19,7 @@ from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpFloat, DpSelect, DpSensor
+from aiohomematic.model.generic import DpAction, DpActionSelect, DpFloat, DpSelect, DpSensor
 from aiohomematic.property_decorators import state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -638,9 +638,11 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         self._dp_door_state: DpSensor[str | None] = self._get_data_point(
             field=Field.DOOR_STATE, data_point_type=DpSensor[str | None]
         )
-        self._dp_door_command: DpAction = self._get_data_point(field=Field.DOOR_COMMAND, data_point_type=DpAction)
-        self._dp_section: DpSensor[str | None] = self._get_data_point(
-            field=Field.SECTION, data_point_type=DpSensor[str | None]
+        self._dp_door_command: DpActionSelect = self._get_data_point(
+            field=Field.DOOR_COMMAND, data_point_type=DpActionSelect
+        )
+        self._dp_section: DpSensor[int | None] = self._get_data_point(
+            field=Field.SECTION, data_point_type=DpSensor[int | None]
         )
 
 

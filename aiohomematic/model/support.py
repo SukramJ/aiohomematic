@@ -162,10 +162,10 @@ class HubNameData:
 
 
 def check_length_and_log(name: str | None, value: Any) -> Any:
-    """Check the length of a datapoint and log if too long."""
+    """Check the length of a data point and log if too long."""
     if isinstance(value, str) and len(value) > 255:
         _LOGGER.debug(
-            "Value of datapoint %s exceedes maximum allowed length of 255 chars. Value will be limited to 255 chars",
+            "Value of data point %s exceedes maximum allowed length of 255 chars. Value will be limited to 255 chars",
             name,
         )
         return value[0:255:1]
@@ -320,12 +320,12 @@ class HubPathData(PathData):
 
     @property
     def set_path(self) -> str:
-        """Return the base set path of the hub entity."""
+        """Return the base set path of the hub data point."""
         return self._set_path
 
     @property
     def state_path(self) -> str:
-        """Return the base state path of the hub entity."""
+        """Return the base state path of the hub data point."""
         return self._state_path
 
 

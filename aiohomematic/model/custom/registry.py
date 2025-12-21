@@ -149,13 +149,13 @@ class DeviceProfileRegistry:
 
         Result aggregation:
             A model can match multiple categories (e.g., a thermostat might have both
-            CLIMATE and SENSOR entities). Results from all matching categories are
+            CLIMATE and SENSOR data points). Results from all matching categories are
             combined into a single tuple.
 
         Storage format:
             Registry entries can be either:
             - Single DeviceConfig: For simple devices
-            - Tuple of DeviceConfigs: For devices with multiple entity types
+            - Tuple of DeviceConfigs: For devices with multiple data point types
               (e.g., lock + button_lock on same device)
         """
         # Normalize model name for consistent matching

@@ -17,11 +17,11 @@ Event Hierarchy
 Integration Events (this module):
     - SystemStatusEvent: Infrastructure + lifecycle changes
     - DeviceLifecycleEvent: Device creation, removal, availability
-    - DataPointsCreatedEvent: Entity discovery
+    - DataPointsCreatedEvent: data point discovery
     - DeviceTriggerEvent: Device triggers (button press, etc.)
 
-Entity-Level Events (event_bus.py):
-    - DataPointUpdatedEvent: High-frequency value updates (per-entity subscription)
+Data Point-Level Events (event_bus.py):
+    - DataPointUpdatedEvent: High-frequency value updates (per-data point subscription)
 
 Design Philosophy
 -----------------
@@ -203,7 +203,7 @@ class DeviceLifecycleEvent(Event):
 
     **HA Registration Points**:
     - `control_unit.py`: Device registry updates, virtual remotes
-    - `generic_entity.py`: Entity availability updates (optional)
+    - `generic_entity.py`: Data point availability updates (optional)
 
     Example:
         ```python
@@ -214,7 +214,7 @@ class DeviceLifecycleEvent(Event):
                     device_registry.async_get_or_create(...)
 
             elif event.event_type == DeviceLifecycleEventType.AVAILABILITY_CHANGED:
-                # Update entity availability
+                # Update data point availability
                 for address, available in event.availability_changes:
                     ...
 

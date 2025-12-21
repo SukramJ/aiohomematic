@@ -238,7 +238,7 @@ class TestDeviceAvailability:
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address=f"{device.address}:0", parameter="UNREACH", value=0
         )
-        # STICKY_UNREACH is ignored if UNREACH datapoint exists; availability is True again
+        # STICKY_UNREACH is ignored if UNREACH data point exists; availability is True again
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address=f"{device.address}:0", parameter="STICKY_UNREACH", value=1
         )

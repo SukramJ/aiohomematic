@@ -798,9 +798,9 @@ class TestTextCleanup:
 
     @pytest.mark.asyncio
     async def test_cleanup_text_from_html_tags(self) -> None:
-        """cleanup_text_from_html_tags removes HTML tags and entities while keeping inner text intact."""
+        """cleanup_text_from_html_tags removes HTML tags and data points while keeping inner text intact."""
         text = "<div>Hello <b>World</b> &amp; everyone!</div>"
-        # Pattern also removes html entities like &amp;
+        # Pattern also removes html data points like &amp;
         assert cleanup_text_from_html_tags(text=text) == "Hello World  everyone!"
 
 

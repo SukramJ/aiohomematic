@@ -434,7 +434,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                     )
                 )
 
-            # Emit DataPointsCreatedEvent for entity discovery
+            # Emit DataPointsCreatedEvent for data point discovery
             if new_data_points:
                 await self._event_bus.publish(
                     event=DataPointsCreatedEvent(

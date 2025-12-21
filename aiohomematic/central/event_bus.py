@@ -332,7 +332,7 @@ class DataPointUpdatedCallbackEvent(Event):
     Key is unique_id.
 
     This event is fired when a data point's value changes and external
-    consumers (like Home Assistant entities) need to be notified.
+    consumers (like Home Assistant data points) need to be notified.
     Unlike DataPointUpdatedEvent which handles internal backend updates,
     this event is for external integration points.
     """

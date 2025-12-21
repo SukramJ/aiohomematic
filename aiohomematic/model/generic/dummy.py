@@ -12,7 +12,7 @@ points that are not implemented in the backend.
 Key properties:
 - It never triggers backend I/O (no reads, no writes, no subscriptions).
 - It always reports `usage = DataPointUsage.NO_CREATE` so it is not created as a
-  real entity.
+  real data point.
 - It is not readable or writable and does not require polling nor support
   events.
 - It exposes safe, static defaults for metadata and state.
@@ -106,7 +106,7 @@ class DpDummy(GenericDataPointAny):
 
     @property
     def usage(self) -> DataPointUsage:
-        """Never create/ expose this data point as a real entity."""
+        """Never create/ expose this data point as a real data point."""
         return DataPointUsage.NO_CREATE
 
     @property

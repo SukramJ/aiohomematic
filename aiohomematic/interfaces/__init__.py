@@ -106,7 +106,7 @@ Protocol Categories
     *Device/Channel:*
         - `DeviceProtocol`: Physical device representation
         - `ChannelProtocol`: Device channel representation
-        - `HubProtocol`: Hub-level entity
+        - `HubProtocol`: Hub-level data point
 
     *DataPoint Hierarchy:*
         - `CallbackDataPointProtocol`: Base for all callback data points

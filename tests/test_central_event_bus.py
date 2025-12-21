@@ -824,7 +824,7 @@ class TestEventBusIntegration:
         # Verify all events were received
         assert len(ha_datapoint_updates) == 3
         assert len(ha_lifecycle_events) == 1
-        assert len(monitoring_all_events) == 4  # 3 datapoint + 1 lifecycle
+        assert len(monitoring_all_events) == 4  # 3 data point + 1 lifecycle
 
         # Verify stats
         stats = bus.get_event_stats()

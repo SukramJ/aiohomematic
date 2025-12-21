@@ -18,7 +18,15 @@ from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin, TimerUnitMixin
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
+from aiohomematic.model.generic import (
+    DpAction,
+    DpActionSelect,
+    DpFloat,
+    DpInteger,
+    DpSelect,
+    DpSensor,
+    GenericDataPointAny,
+)
 from aiohomematic.property_decorators import state_property
 
 _DIMMER_OFF: Final = 0.0
@@ -556,16 +564,20 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
         self._dp_device_operation_mode: DpSelect = self._get_data_point(
             field=Field.DEVICE_OPERATION_MODE, data_point_type=DpSelect
         )
-        self._dp_on_time_unit: DpAction = self._get_data_point(field=Field.ON_TIME_UNIT, data_point_type=DpAction)
-        self._dp_effect: DpAction = self._get_data_point(field=Field.EFFECT, data_point_type=DpAction)
+        self._dp_on_time_unit: DpActionSelect = self._get_data_point(
+            field=Field.ON_TIME_UNIT, data_point_type=DpActionSelect
+        )
+        self._dp_effect: DpActionSelect = self._get_data_point(field=Field.EFFECT, data_point_type=DpActionSelect)
         self._dp_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
-        self._dp_ramp_time_to_off_unit: DpAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpAction
+        self._dp_ramp_time_to_off_unit: DpActionSelect = self._get_data_point(
+            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpActionSelect
         )
         self._dp_ramp_time_to_off_value: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
         )
-        self._dp_ramp_time_unit: DpAction = self._get_data_point(field=Field.RAMP_TIME_UNIT, data_point_type=DpAction)
+        self._dp_ramp_time_unit: DpActionSelect = self._get_data_point(
+            field=Field.RAMP_TIME_UNIT, data_point_type=DpActionSelect
+        )
         self._dp_saturation: DpFloat = self._get_data_point(field=Field.SATURATION, data_point_type=DpFloat)
 
     @bind_collector
@@ -656,16 +668,20 @@ class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
         self._dp_color_temperature_kelvin: DpInteger = self._get_data_point(
             field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
         )
-        self._dp_on_time_unit: DpAction = self._get_data_point(field=Field.ON_TIME_UNIT, data_point_type=DpAction)
-        self._dp_effect: DpAction = self._get_data_point(field=Field.EFFECT, data_point_type=DpAction)
+        self._dp_on_time_unit: DpActionSelect = self._get_data_point(
+            field=Field.ON_TIME_UNIT, data_point_type=DpActionSelect
+        )
+        self._dp_effect: DpActionSelect = self._get_data_point(field=Field.EFFECT, data_point_type=DpActionSelect)
         self._dp_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
-        self._dp_ramp_time_to_off_unit: DpAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpAction
+        self._dp_ramp_time_to_off_unit: DpActionSelect = self._get_data_point(
+            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpActionSelect
         )
         self._dp_ramp_time_to_off_value: DpAction = self._get_data_point(
             field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
         )
-        self._dp_ramp_time_unit: DpAction = self._get_data_point(field=Field.RAMP_TIME_UNIT, data_point_type=DpAction)
+        self._dp_ramp_time_unit: DpActionSelect = self._get_data_point(
+            field=Field.RAMP_TIME_UNIT, data_point_type=DpActionSelect
+        )
         self._dp_saturation: DpFloat = self._get_data_point(field=Field.SATURATION, data_point_type=DpFloat)
 
 
@@ -749,8 +765,12 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
         self._dp_channel_color: DpSensor[str | None] = self._get_data_point(
             field=Field.CHANNEL_COLOR, data_point_type=DpSensor[str | None]
         )
-        self._dp_on_time_unit: DpAction = self._get_data_point(field=Field.ON_TIME_UNIT, data_point_type=DpAction)
-        self._dp_ramp_time_unit: DpAction = self._get_data_point(field=Field.RAMP_TIME_UNIT, data_point_type=DpAction)
+        self._dp_on_time_unit: DpActionSelect = self._get_data_point(
+            field=Field.ON_TIME_UNIT, data_point_type=DpActionSelect
+        )
+        self._dp_ramp_time_unit: DpActionSelect = self._get_data_point(
+            field=Field.RAMP_TIME_UNIT, data_point_type=DpActionSelect
+        )
         self._dp_effect: DpSelect = self._get_data_point(field=Field.COLOR_BEHAVIOUR, data_point_type=DpSelect)
         self._effect_list = (
             tuple(str(item) for item in self._dp_effect.values if item not in _EXCLUDE_FROM_COLOR_BEHAVIOUR)

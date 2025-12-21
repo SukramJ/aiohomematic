@@ -18,7 +18,7 @@ from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSensor
+from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor, DpSensor
 from aiohomematic.property_decorators import state_property
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
@@ -127,13 +127,12 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     @bind_collector
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
-        await self._dp_acoustic_alarm_selection.send_value(
-            value=self._dp_acoustic_alarm_selection.default, collector=collector
-        )
-        await self._dp_optical_alarm_selection.send_value(
-            value=self._dp_optical_alarm_selection.default, collector=collector
-        )
-        await self._dp_duration_unit.send_value(value=self._dp_duration_unit.default, collector=collector)
+        if (acoustic_default := self._dp_acoustic_alarm_selection.default) is not None:
+            await self._dp_acoustic_alarm_selection.send_value(value=acoustic_default, collector=collector)
+        if (optical_default := self._dp_optical_alarm_selection.default) is not None:
+            await self._dp_optical_alarm_selection.send_value(value=optical_default, collector=collector)
+        if (duration_unit_default := self._dp_duration_unit.default) is not None:
+            await self._dp_duration_unit.send_value(value=duration_unit_default, collector=collector)
         await self._dp_duration.send_value(value=self._dp_duration.default, collector=collector)
 
     @bind_collector
@@ -144,7 +143,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         **kwargs: Unpack[SirenOnArgs],
     ) -> None:
         """Turn the device on."""
-        acoustic_alarm = kwargs.get("acoustic_alarm", self._dp_acoustic_alarm_selection.default)
+        acoustic_alarm = kwargs.get("acoustic_alarm") or self._dp_acoustic_alarm_selection.default
         if self.available_tones and acoustic_alarm and acoustic_alarm not in self.available_tones:
             raise ValidationException(
                 i18n.tr(
@@ -154,7 +153,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
                 )
             )
 
-        optical_alarm = kwargs.get("optical_alarm", self._dp_optical_alarm_selection.default)
+        optical_alarm = kwargs.get("optical_alarm") or self._dp_optical_alarm_selection.default
         if self.available_lights and optical_alarm and optical_alarm not in self.available_lights:
             raise ValidationException(
                 i18n.tr(
@@ -164,10 +163,13 @@ class CustomDpIpSiren(BaseCustomDpSiren):
                 )
             )
 
-        await self._dp_acoustic_alarm_selection.send_value(value=acoustic_alarm, collector=collector)
-        await self._dp_optical_alarm_selection.send_value(value=optical_alarm, collector=collector)
-        await self._dp_duration_unit.send_value(value=self._dp_duration_unit.default, collector=collector)
-        duration = kwargs.get("duration", self._dp_duration.default)
+        if acoustic_alarm is not None:
+            await self._dp_acoustic_alarm_selection.send_value(value=acoustic_alarm, collector=collector)
+        if optical_alarm is not None:
+            await self._dp_optical_alarm_selection.send_value(value=optical_alarm, collector=collector)
+        if (duration_unit_default := self._dp_duration_unit.default) is not None:
+            await self._dp_duration_unit.send_value(value=duration_unit_default, collector=collector)
+        duration = kwargs.get("duration") or self._dp_duration.default
         await self._dp_duration.send_value(value=duration, collector=collector)
 
     def _init_data_point_fields(self) -> None:
@@ -177,17 +179,19 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         self._dp_acoustic_alarm_active: DpBinarySensor = self._get_data_point(
             field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=DpBinarySensor
         )
-        self._dp_acoustic_alarm_selection: DpAction = self._get_data_point(
-            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=DpAction
+        self._dp_acoustic_alarm_selection: DpActionSelect = self._get_data_point(
+            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=DpActionSelect
         )
         self._dp_optical_alarm_active: DpBinarySensor = self._get_data_point(
             field=Field.OPTICAL_ALARM_ACTIVE, data_point_type=DpBinarySensor
         )
-        self._dp_optical_alarm_selection: DpAction = self._get_data_point(
-            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=DpAction
+        self._dp_optical_alarm_selection: DpActionSelect = self._get_data_point(
+            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=DpActionSelect
         )
         self._dp_duration: DpAction = self._get_data_point(field=Field.DURATION, data_point_type=DpAction)
-        self._dp_duration_unit: DpAction = self._get_data_point(field=Field.DURATION_UNIT, data_point_type=DpAction)
+        self._dp_duration_unit: DpActionSelect = self._get_data_point(
+            field=Field.DURATION_UNIT, data_point_type=DpActionSelect
+        )
 
 
 class CustomDpIpSirenSmoke(BaseCustomDpSiren):
@@ -242,8 +246,8 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         self._dp_smoke_detector_alarm_status: DpSensor[str | None] = self._get_data_point(
             field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=DpSensor[str | None]
         )
-        self._dp_smoke_detector_command: DpAction = self._get_data_point(
-            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=DpAction
+        self._dp_smoke_detector_command: DpActionSelect = self._get_data_point(
+            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=DpActionSelect
         )
 
 

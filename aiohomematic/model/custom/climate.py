@@ -43,16 +43,7 @@ from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroup
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import (
-    DpAction,
-    DpActionSelect,
-    DpBinarySensor,
-    DpFloat,
-    DpInteger,
-    DpSelect,
-    DpSensor,
-    DpSwitch,
-)
+from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
 from aiohomematic.property_decorators import config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -1067,9 +1058,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
         self._dp_active_profile: DpInteger = self._get_data_point(field=Field.ACTIVE_PROFILE, data_point_type=DpInteger)
         self._dp_boost_mode: DpSwitch = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpSwitch)
-        self._dp_control_mode: DpActionSelect = self._get_data_point(
-            field=Field.CONTROL_MODE, data_point_type=DpActionSelect
-        )
+        self._dp_control_mode: DpAction = self._get_data_point(field=Field.CONTROL_MODE, data_point_type=DpAction)
         self._dp_heating_mode: DpSelect = self._get_data_point(field=Field.HEATING_COOLING, data_point_type=DpSelect)
         self._dp_heating_valve_type: DpSelect = self._get_data_point(
             field=Field.HEATING_VALVE_TYPE, data_point_type=DpSelect

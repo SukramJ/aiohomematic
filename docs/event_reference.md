@@ -74,93 +74,17 @@ Raw parameter update event from the backend (re-published from RPC callbacks).
 
 **Key:** `DataPointKey` (constructed from fields)
 
-#### BackendSystemEventData
+#### DataPointStatusUpdatedEvent
 
-System-level events from the backend.
+Data point status (availability) changed.
 
-| Field          | Type                 | Description                |
-| -------------- | -------------------- | -------------------------- |
-| `timestamp`    | `datetime`           | When the event was created |
-| `system_event` | `BackendSystemEvent` | Type of system event       |
-| `data`         | `dict[str, Any]`     | Event-specific data        |
+| Field       | Type           | Description                          |
+| ----------- | -------------- | ------------------------------------ |
+| `timestamp` | `datetime`     | When the event was created           |
+| `dpk`       | `DataPointKey` | Unique identifier for the data point |
+| `available` | `bool`         | Whether the data point is available  |
 
-**Key:** `None` (global event)
-
-**BackendSystemEvent values:**
-
-- `DEVICES_CREATED` - New devices were created
-- `DEVICES_DELETED` - Devices were deleted
-- `DELETE_DEVICES` - Request to delete devices
-- `ERROR` - System error occurred
-- `HUB_REFRESHED` - Hub data was refreshed
-- `LIST_DEVICES` - Device list updated
-- `NEW_DEVICES` - New devices discovered
-- `RE_ADDED_DEVICE` - Device was re-added
-- `REPLACE_DEVICE` - Device was replaced
-- `UPDATE_DEVICE` - Device was updated
-
-```python
-from aiohomematic.central.event_bus import BackendSystemEventData
-from aiohomematic.const import BackendSystemEvent
-
-async def handler(*, event: BackendSystemEventData) -> None:
-    if event.system_event == BackendSystemEvent.DEVICES_CREATED:
-        print(f"New devices: {event.data}")
-
-unsubscribe = central.event_bus.subscribe(
-    event_type=BackendSystemEventData,
-    event_key=None,
-    handler=handler,
-)
-```
-
----
-
-### Homematic Events
-
-#### HomematicEvent
-
-Homematic-specific events (button presses, interface events, etc.).
-
-| Field        | Type                  | Description                |
-| ------------ | --------------------- | -------------------------- |
-| `timestamp`  | `datetime`            | When the event was created |
-| `event_type` | `EventType`           | Type of Homematic event    |
-| `event_data` | `dict[EventKey, Any]` | Event-specific data        |
-
-**Key:** `None` (global event)
-
-**EventType values:**
-
-- `KEYPRESS` - Button press event
-- `IMPULSE` - Impulse event
-- `INTERFACE` - Interface event
-
-**EventKey values (in event_data):**
-
-- `CHANNEL_ADDRESS` - Channel that triggered the event
-- `INTERFACE_ID` - Interface identifier
-- `PARAMETER` - Parameter name
-- `VALUE` - Parameter value
-
-```python
-from aiohomematic.central.event_bus import HomematicEvent
-from aiohomematic.const import DeviceTriggerEventType, EventKey
-
-
-async def handler(*, event: HomematicEvent) -> None:
-    if event.event_type == DeviceTriggerEventType.KEYPRESS:
-        channel = event.event_data[EventKey.CHANNEL_ADDRESS]
-        param = event.event_data[EventKey.PARAMETER]
-        print(f"Button press on {channel}: {param}")
-
-
-unsubscribe = central.event_bus.subscribe(
-    event_type=HomematicEvent,
-    event_key=None,
-    handler=handler,
-)
-```
+**Key:** `DataPointKey`
 
 ---
 
@@ -229,199 +153,70 @@ Channel link peer addresses have changed.
 
 ---
 
-### Connection Events
+### Integration Events
 
-#### FetchDataFailedEvent
+These events are defined in `aiohomematic/central/integration_events.py` and are primarily used for Home Assistant integration.
 
-Data fetch operation failed for an interface.
+#### SystemStatusEvent
 
-| Field          | Type       | Description                |
-| -------------- | ---------- | -------------------------- |
-| `timestamp`    | `datetime` | When the event was created |
-| `interface_id` | `str`      | Interface identifier       |
+System status changes for integration consumers.
 
-**Key:** `interface_id`
-
-```python
-from aiohomematic.central.event_bus import FetchDataFailedEvent
-
-async def handler(*, event: FetchDataFailedEvent) -> None:
-    print(f"Data fetch failed for {event.interface_id}")
-
-unsubscribe = central.event_bus.subscribe(
-    event_type=FetchDataFailedEvent,
-    event_key=None,
-    handler=handler,
-)
-```
-
-#### PingPongMismatchEvent
-
-PING/PONG mismatch detected for an interface. Published when:
-
-- `PENDING`: A PING was sent but no PONG was received in time
-- `UNKNOWN`: A PONG was received without a matching PING
-
-| Field            | Type                   | Description                                |
-| ---------------- | ---------------------- | ------------------------------------------ |
-| `timestamp`      | `datetime`             | When the event was created                 |
-| `interface_id`   | `str`                  | Interface identifier                       |
-| `mismatch_type`  | `PingPongMismatchType` | `PENDING` or `UNKNOWN`                     |
-| `mismatch_count` | `int`                  | Current count of mismatched PINGs/PONGs    |
-| `acceptable`     | `bool`                 | Whether mismatch count is within threshold |
-
-**Key:** `interface_id`
-
-```python
-from aiohomematic.central.event_bus import PingPongMismatchEvent
-from aiohomematic.const import PingPongMismatchType
-
-async def handler(*, event: PingPongMismatchEvent) -> None:
-    if event.mismatch_type == PingPongMismatchType.PENDING:
-        print(f"Pending PONG mismatch on {event.interface_id}: {event.mismatch_count}")
-    elif event.mismatch_type == PingPongMismatchType.UNKNOWN:
-        print(f"Unknown PONG on {event.interface_id}: {event.mismatch_count}")
-
-unsubscribe = central.event_bus.subscribe(
-    event_type=PingPongMismatchEvent,
-    event_key=None,
-    handler=handler,
-)
-```
-
-#### DeviceAvailabilityChangedEvent
-
-Device availability has changed. Published when UN_REACH or STICKY_UN_REACH parameter changes.
-
-| Field             | Type       | Description                             |
-| ----------------- | ---------- | --------------------------------------- |
-| `timestamp`       | `datetime` | When the event was created              |
-| `device_address`  | `str`      | Device address (e.g., "VCU0000001")     |
-| `channel_address` | `str`      | Channel address (e.g., "VCU0000001:0")  |
-| `parameter`       | `str`      | Parameter that changed (UN_REACH, etc.) |
-| `available`       | `bool`     | Whether the device is available         |
-
-**Key:** `device_address`
-
-```python
-from aiohomematic.central.event_bus import DeviceAvailabilityChangedEvent
-
-async def handler(*, event: DeviceAvailabilityChangedEvent) -> None:
-    if event.available:
-        print(f"Device {event.device_address} is now available")
-    else:
-        print(f"Device {event.device_address} is now unavailable")
-
-unsubscribe = central.event_bus.subscribe(
-    event_type=DeviceAvailabilityChangedEvent,
-    event_key=None,  # All devices, or specific device_address
-    handler=handler,
-)
-```
-
-#### ConnectionStateChangedEvent
-
-Connection state has changed for an interface.
-
-| Field          | Type       | Description                        |
-| -------------- | ---------- | ---------------------------------- |
-| `timestamp`    | `datetime` | When the event was created         |
-| `interface_id` | `str`      | Interface identifier               |
-| `connected`    | `bool`     | Whether the interface is connected |
-
-**Key:** `interface_id`
-
-#### CallbackStateChangedEvent
-
-Callback channel state has changed for an interface. This is the modern replacement for `InterfaceEvent` with `InterfaceEventType.CALLBACK`.
-
-| Field                      | Type       | Description                           |
-| -------------------------- | ---------- | ------------------------------------- | ------------------------------------------ |
-| `timestamp`                | `datetime` | When the event was created            |
-| `interface_id`             | `str`      | Interface identifier                  |
-| `alive`                    | `bool`     | Whether the callback channel is alive |
-| `seconds_since_last_event` | `int       | None`                                 | Seconds since last event (None when alive) |
-
-**Key:** `interface_id`
-
-The callback channel is considered alive when events are received from the CCU. If no events are received for the configured timeout period (`callback_warn_interval`), it is considered dead.
-
-```python
-from aiohomematic.central.event_bus import CallbackStateChangedEvent
-
-async def handler(*, event: CallbackStateChangedEvent) -> None:
-    if not event.alive:
-        print(f"Callback dead for {event.interface_id}, "
-              f"no events for {event.seconds_since_last_event}s")
-    else:
-        print(f"Callback alive for {event.interface_id}")
-
-unsubscribe = central.event_bus.subscribe(
-    event_type=CallbackStateChangedEvent,
-    event_key=None,
-    handler=handler,
-)
-```
-
-#### ClientStateChangedEvent
-
-Client state machine state has changed.
-
-| Field          | Type          | Description                |
-| -------------- | ------------- | -------------------------- |
-| `timestamp`    | `datetime`    | When the event was created |
-| `interface_id` | `str`         | Interface identifier       |
-| `old_state`    | `ClientState` | Previous state             |
-| `new_state`    | `ClientState` | New state                  |
-
-**Key:** `interface_id`
-
-**ClientState values:**
-
-- `INIT` - Initial state
-- `CONNECTING` - Connecting to backend
-- `CONNECTED` - Connected and operational
-- `RECONNECTING` - Attempting to reconnect
-- `DISCONNECTED` - Disconnected from backend
-- `ERROR` - Error state
-
-#### CentralStateChangedEvent
-
-Central state machine state has changed.
-
-| Field       | Type           | Description                 |
-| ----------- | -------------- | --------------------------- |
-| `timestamp` | `datetime`     | When the event was created  |
-| `old_state` | `CentralState` | Previous state              |
-| `new_state` | `CentralState` | New state                   |
-| `reason`    | `str`          | Reason for the state change |
+| Field          | Type                    | Description                     |
+| -------------- | ----------------------- | ------------------------------- |
+| `timestamp`    | `datetime`              | When the event was created      |
+| `status_type`  | `SystemStatusEventType` | Type of status event            |
+| `central_name` | `str`                   | Name of the central             |
+| `available`    | `bool \| None`          | Whether the system is available |
 
 **Key:** `None` (global event)
 
-**CentralState values:**
+#### DeviceLifecycleEvent
 
-- `INIT` - Initial state
-- `STARTING` - System is starting
-- `RUNNING` - System is running normally
-- `RECONNECTING` - Reconnecting after connection loss
-- `STOPPING` - System is stopping
-- `STOPPED` - System has stopped
-- `ERROR` - Error state
+Device lifecycle events (created, removed, availability).
+
+| Field                  | Type                       | Description                         |
+| ---------------------- | -------------------------- | ----------------------------------- |
+| `timestamp`            | `datetime`                 | When the event was created          |
+| `event_type`           | `DeviceLifecycleEventType` | Type of lifecycle event             |
+| `availability_changes` | `tuple`                    | Tuple of (address, available) pairs |
+
+**Key:** `None` (global event)
+
+**DeviceLifecycleEventType values:**
+
+- `AVAILABILITY_CHANGED` - Device availability changed
+- `DATA_POINTS_CREATED` - Data points were created
+
+#### DeviceTriggerEvent
+
+Device trigger events (button press, etc.).
+
+| Field            | Type                     | Description                |
+| ---------------- | ------------------------ | -------------------------- |
+| `timestamp`      | `datetime`               | When the event was created |
+| `event_type`     | `DeviceTriggerEventType` | Type of trigger event      |
+| `device_address` | `str`                    | Address of the device      |
+| `channel_no`     | `int`                    | Channel number             |
+| `parameter`      | `str`                    | Parameter name             |
+| `value`          | `Any`                    | Parameter value            |
+
+**Key:** `None` (global event)
+
+**DeviceTriggerEventType values:**
+
+- `KEYPRESS` - Button press event
+- `KEYPRESS_LONG_START` - Long press start event
+- `IMPULSE` - Impulse event
 
 ```python
-from aiohomematic.central.event_bus import CentralStateChangedEvent
-from aiohomematic.const import CentralState
+from aiohomematic.central.integration_events import DeviceTriggerEvent
+from aiohomematic.const import DeviceTriggerEventType
 
-async def handler(*, event: CentralStateChangedEvent) -> None:
-    print(f"Central state: {event.old_state} -> {event.new_state}")
-    if event.new_state == CentralState.RUNNING:
-        print("System is ready!")
+async def handler(*, event: DeviceTriggerEvent) -> None:
+    if event.event_type == DeviceTriggerEventType.KEYPRESS:
+        print(f"Button press on {event.device_address}:{event.channel_no}: {event.parameter}")
 
-unsubscribe = central.event_bus.subscribe(
-    event_type=CentralStateChangedEvent,
-    event_key=None,
-    handler=handler,
-)
+# Subscribe via integration callback, not directly via EventBus
 ```
 
 ---

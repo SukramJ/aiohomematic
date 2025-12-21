@@ -1155,6 +1155,40 @@ python script/check_i18n.py aiohomematic/  # Check usage in code
 python script/check_i18n_catalogs.py       # Check catalog sync
 ```
 
+### Updating Documentation
+
+After refactoring or renaming classes/methods/files, verify that `docs/*.md` files remain accurate:
+
+1. **Check for stale references**:
+
+```bash
+# Search for old class/method/file names in docs
+grep -rn "OldClassName\|old_method_name\|old_file.py" docs/*.md
+```
+
+2. **Common documentation issues to check**:
+
+   - **File paths**: Directory renames (e.g., `caches/` → `store/`)
+   - **Class names**: Renamed classes (e.g., `XmlRpcProxy` → `AioXmlRpcProxy`)
+   - **Method signatures**: Changed to keyword-only arguments
+   - **Event types**: Non-existent or renamed event classes
+   - **Protocol names**: Updated protocol interface names
+
+3. **Key documentation files to verify**:
+
+   - `docs/architecture.md` - Component descriptions and relationships
+   - `docs/data_flow.md` - Data flow diagrams and class references
+   - `docs/extension_points.md` - Method signatures and examples
+   - `docs/event_bus.md`, `docs/event_reference.md` - Event type listings
+   - `docs/sequence_diagrams.md` - Handler and event references
+
+4. **Validation command**:
+
+```bash
+# Check for common stale patterns
+grep -rn "aiohomematic/caches\|BackendSystemEventData\|HomematicEvent\|xml_rpc_server\.py" docs/*.md
+```
+
 ### Debugging Tips
 
 #### Enable Debug Logging
@@ -1588,7 +1622,8 @@ This section defines mandatory rules for all implementations in this project.
 □ 2. Migration     - Migration guide in docs/migrations/ (for breaking changes)
 □ 3. Tests         - pytest tests/ passes without errors
 □ 4. Linting       - pre-commit run --all-files passes without errors
-□ 5. Changelog     - changelog.md updated with version entry
+□ 5. Changelog     - changelog.md updated (check tags first: git tag --list '2025.12.*')
+□ 6. Version Sync  - aiohomematic/const.py:VERSION matches changelog version
 ```
 
 ### Changelog Versioning Rules
@@ -1601,34 +1636,55 @@ This section defines mandatory rules for all implementations in this project.
 
 Example: `2025.12.41` = 41st release in December 2025
 
-**CRITICAL**: When updating `changelog.md`, ALWAYS check if the version has already been tagged:
+**CRITICAL**: Changelog and VERSION must always be in sync. Follow this procedure:
 
-1. **Check existing tags** before modifying any version entry:
+#### Step 1: Check existing tags FIRST (MANDATORY)
 
-   ```bash
-   git tag --list '2025.12.*' | tail -5
-   ```
+```bash
+git tag --list '2025.12.*' | sort -V | tail -5
+```
 
-2. **NEVER modify already-tagged versions**. Tagged versions are immutable.
+**NEVER skip this step.** You must know which versions are already tagged before making any changes.
 
-3. **Create a NEW version** for new changes:
+#### Step 2: Determine the correct version
 
-   - If `2025.12.40` is already tagged, create `2025.12.41`
-   - New changes ALWAYS go into the untagged (newest) version
+- If `2025.12.41` is the latest tag → create `2025.12.42`
+- **NEVER modify already-tagged versions** - tagged versions are immutable
 
-4. **Version structure in changelog**:
+#### Step 3: Update BOTH files together
 
-   ```markdown
-   # Version 2025.12.41 (2025-12-20) ← NEW, untagged - add changes here
+When creating a new version, update **BOTH** files in the same commit:
 
-   ...
+1. **`changelog.md`**: Add new version entry at the top
+2. **`aiohomematic/const.py`**: Update `VERSION` constant
 
-   # Version 2025.12.40 (2025-12-20) ← Tagged - DO NOT MODIFY
+```bash
+# Verify both are in sync after changes:
+head -1 changelog.md
+grep "^VERSION" aiohomematic/const.py
+```
 
-   ...
-   ```
+#### Step 4: Version structure in changelog
 
-5. **When in doubt**, check git status to see which version is the latest untagged version.
+```markdown
+# Version 2025.12.42 (2025-12-21) ← NEW, untagged - add changes here
+
+...
+
+# Version 2025.12.41 (2025-12-20) ← Tagged - DO NOT MODIFY
+
+...
+```
+
+#### Quick Reference Commands
+
+```bash
+# Check latest tags
+git tag --list '2025.12.*' | sort -V | tail -3
+
+# Verify version sync
+echo "Changelog: $(head -1 changelog.md)" && echo "const.py:  VERSION = $(grep '^VERSION' aiohomematic/const.py)"
+```
 
 ### Implementation Plan Requirements
 
@@ -1812,11 +1868,13 @@ This policy ensures:
 ✅ **Always** run pre-commit hooks before committing
 ✅ **Always** write tests for new functionality
 ✅ **Always** update documentation when changing public APIs
+✅ **Always** verify `docs/*.md` accuracy after refactoring (class names, method signatures, file paths, event types)
 ✅ **Always** use keyword-only arguments for ALL parameters (excluding self/cls)
 ✅ **Always** use descriptive variable names
 ✅ **Always** handle exceptions with proper context
 ✅ **Always** complete the Refactoring Completion Checklist before finishing
-✅ **Always** update changelog.md with breaking changes
+✅ **Always** check `git tag --list` BEFORE modifying changelog.md (tagged versions are immutable)
+✅ **Always** update BOTH `changelog.md` AND `aiohomematic/const.py:VERSION` together (must be in sync)
 ✅ **Always** create implementation plans that are Haiku-executable
 
 ### Don'ts
@@ -1869,5 +1927,5 @@ Before finalizing any implementation plan, verify:
 
 ---
 
-**Last Updated**: 2025-12-16
-**Version**: 2025.12.30
+**Last Updated**: 2025-12-21
+**Version**: 2025.12.42

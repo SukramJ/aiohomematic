@@ -48,20 +48,24 @@ class Event:
     timestamp: datetime
 ```
 
-Key event types:
+Key event types (defined in `aiohomematic/central/event_bus.py`):
 
 - **DataPointUpdatedEvent**: Data point value changed
+- **DataPointStatusUpdatedEvent**: Data point status (availability) changed
 - **BackendParameterEvent**: Raw parameter update from backend
-- **BackendSystemEventData**: System events (devices created, deleted, etc.)
-- **HomematicEvent**: Homematic-specific events (KEYPRESS, etc.)
 - **SysvarUpdatedEvent**: System variable changed
-- **CentralStateChangedEvent**: Central state machine state changed
-- **ClientStateChangedEvent**: Client state machine state changed
-- **CallbackStateChangedEvent**: Callback channel state changed
-- **ConnectionStateChangedEvent**: Interface connection state changed
-- **FetchDataFailedEvent**: Data fetch operation failed
-- **PingPongMismatchEvent**: PING/PONG mismatch detected
-- **DeviceAvailabilityChangedEvent**: Device availability changed
+- **DeviceUpdatedEvent**: Device state changed
+- **FirmwareUpdatedEvent**: Firmware state changed
+- **LinkPeerChangedEvent**: Link peer configuration changed
+- **DataPointUpdatedCallbackEvent**: Callback event for data point updates
+- **DeviceRemovedEvent**: Device was removed
+
+Integration events (defined in `aiohomematic/central/integration_events.py`):
+
+- **SystemStatusEvent**: System status changes (for Home Assistant integration)
+- **DeviceLifecycleEvent**: Device lifecycle events (created, removed, availability)
+- **DeviceTriggerEvent**: Device trigger events (button press, etc.)
+- **DataPointsCreatedEvent**: Data points were created
 
 ### EventBus Class
 
@@ -129,11 +133,11 @@ bus.subscribe(event_type=DataPointUpdatedEvent, handler=on_update_async)
 def on_datapoint(event: DataPointUpdatedEvent) -> None:
     print(f"DataPoint: {event.dpk} = {event.value}")
 
-def on_system(event: BackendSystemEventData) -> None:
-    print(f"System: {event.system_event}")
+def on_device(event: DeviceUpdatedEvent) -> None:
+    print(f"Device: {event.device_address}")
 
 bus.subscribe(event_type=DataPointUpdatedEvent, handler=on_datapoint)
-bus.subscribe(event_type=BackendSystemEventData, handler=on_system)
+bus.subscribe(event_type=DeviceUpdatedEvent, handler=on_device)
 ```
 
 ## Integration with CentralUnit
@@ -147,15 +151,8 @@ class CentralUnit:
     def __init__(self, ...):
         self._event_bus = EventBus(enable_event_logging=debug_mode)
 
-    # Legacy compatibility layer
-    def register_backend_system_callback(
-        self,
-        callback: BackendSystemCallback,
-    ) -> UnregisterCallback:
-        """Register callback for system events (legacy API)."""
-        def adapter(event: BackendSystemEventData) -> None:
-            callback(system_event=event.system_event, **event.data)
-        return self._event_bus.subscribe(event_type=BackendSystemEventData, handler=adapter)
+    # Legacy compatibility example (no longer applicable - use EventBus directly)
+    # The EventBus now handles all event types directly without adapters
 ```
 
 ## Migration Strategy
@@ -279,17 +276,17 @@ async def test_with_central():
     central = CentralUnit(...)
     received_events = []
 
-    async def handler(event: BackendSystemEventData) -> None:
+    async def handler(event: DeviceUpdatedEvent) -> None:
         received_events.append(event)
 
-    central.event_bus.subscribe(event_type=BackendSystemEventData, handler=handler)
+    central.event_bus.subscribe(event_type=DeviceUpdatedEvent, handler=handler)
 
-    # Trigger device creation
-    await central.create_devices(...)
+    # Trigger device update
+    await central.refresh_device(...)
 
     # Verify event was published
     assert len(received_events) > 0
-    assert received_events[0].system_event == BackendSystemEvent.DEVICES_CREATED
+    assert received_events[0].device_address is not None
 ```
 
 ## Best Practices
@@ -371,17 +368,11 @@ class CentralUnit:
     def __init__(self):
         self._event_bus = EventBus()
 
-    def register_backend_system_callback(self, cb: BackendSystemCallback):
-        """Legacy compatibility wrapper."""
-        def adapter(event: BackendSystemEventData) -> None:
-            cb(system_event=event.system_event, **event.data)
-        return self._event_bus.subscribe(event_type=BackendSystemEventData, handler=adapter)
-
-    async def publish_backend_system_event(self, event: BackendSystemEvent, **data):
-        await self._event_bus.publish(event=BackendSystemEventData(
+    # Direct EventBus usage - recommended approach
+    async def publish_device_updated_event(self, device_address: str) -> None:
+        await self._event_bus.publish(event=DeviceUpdatedEvent(
             timestamp=datetime.now(),
-            system_event=event,
-            data=data,
+            device_address=device_address,
         ))
 ```
 
@@ -428,13 +419,12 @@ print(f"Failed handlers: {stats['failed_handlers']}")
 
 ## Changelog
 
-### 2025-12-26 - Legacy Events Removed
+### 2025-12-21 - Documentation Accuracy Update
 
-- Removed legacy `InterfaceEvent` system completely
-- Added `FetchDataFailedEvent` (replaces `InterfaceEventType.FETCH_DATA`)
-- Added `PingPongMismatchEvent` (replaces `PENDING_PONG` and `UNKNOWN_PONG`)
-- Added `DeviceAvailabilityChangedEvent` (new)
-- Updated event types list
+- Updated event types list to reflect actual implementation
+- Removed references to non-existent event classes
+- Added integration events from `integration_events.py`
+- Fixed code examples to use existing event types
 
 ### 2025-12-07 - Documentation Update
 

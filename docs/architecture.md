@@ -9,7 +9,7 @@ This document describes the high‑level architecture of aiohomematic, focusing 
 - Central (aiohomematic/central): Orchestrates the whole system. Manages client lifecycles, creates devices and data points, runs a lightweight scheduler, exposes the local XML‑RPC callback server for events, and provides a query facade over the runtime model and caches. The central is created via CentralConfig and realized by CentralUnit.
 - Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear). Clients abstract XML‑RPC and JSON‑RPC calls, maintain connection health, and translate high‑level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Concrete types: ClientCCU, ClientJsonCCU, ClientHomegear. A client belongs to one Interface (BidCos‑RF, HmIP, etc.).
 - Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device‑specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
-- Caches (aiohomematic/caches): Provide persistence and fast lookup for device metadata and runtime values.
+- Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values.
   - persistent: DeviceDescriptionCache and ParamsetDescriptionCache store descriptions on disk between runs.
   - dynamic: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongCache hold in‑memory runtime state and connection health.
   - visibility: ParameterVisibilityCache applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
@@ -65,7 +65,7 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 - **DeviceProvider**: Device registry access
 - **DataPointProvider**: Data point lookup
 - **EventBusProvider**: Event system access (event_bus property)
-- **EventPublisher**: Event emission via EventCoordinator (publish_backend_system_event, publish_homematic_event)
+- **EventPublisher**: Event emission via EventCoordinator (publish_system_event, publish_device_trigger_event)
 - **DataCacheProvider**: Data cache access (get_data method)
 - **ChannelLookup**: Channel lookup by address
 - **EventSubscriptionManager**: Event subscription management

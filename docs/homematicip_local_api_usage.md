@@ -14,7 +14,7 @@ The Homematic(IP) Local integration interacts with 13 aiohomematic classes acros
 
 1. **CentralUnit** (45 methods) - Main orchestration and device management
 2. **Client** (9 methods) - Low-level RPC communication
-3. **ClientStateChangedEvent** (3 properties) - Event bus integration
+3. **SystemStatusEvent** (3 properties) - Event bus integration
 
 ### Model Layer (10 classes)
 
@@ -160,15 +160,15 @@ The Client class provides low-level RPC communication with the CCU/backend.
 
 ---
 
-### 3. aiohomematic.central.event_bus.ClientStateChangedEvent (3 properties)
+### 3. aiohomematic.central.integration_events.SystemStatusEvent (3 properties)
 
-Event data for client state changes.
+Event data for system status changes (used by Home Assistant integration).
 
 #### Properties
 
-- **`interface_id`** - Interface identifier (e.g., "BidCos-RF")
-- **`new_state`** - New client connection state
-- **`old_state`** - Previous client connection state
+- **`status_type`** - Type of status event (SystemStatusEventType)
+- **`central_name`** - Name of the central unit
+- **`available`** - Whether the system is available (optional)
 
 ---
 

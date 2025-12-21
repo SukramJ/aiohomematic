@@ -44,7 +44,7 @@ Event and value processing during operation:
   - The DataPoint writes the new value via `write_value` and checks for state change (`is_state_change`).
   - Special handling:
     - `CONFIG_PENDING`: Transition from True→False triggers reloading the paramset descriptions and a refresh of readable MASTER parameters (see `GenericDataPoint.event`).
-    - Availability (`UN_REACH`, `STICKY_UN_REACH`): Triggers `publish_device_updated_event` on the device and publishes `EventType.DEVICE_AVAILABILITY` via EventBus so HA can adjust availability.
+    - Availability (`UN_REACH`, `STICKY_UN_REACH`): Triggers `publish_device_updated_event` on the device and publishes `DeviceLifecycleEvent` with `DeviceLifecycleEventType.AVAILABILITY_CHANGED` so HA can adjust availability.
 - Reading/sending values:
   - Read: Via `DataPoint.load_data_point_value()` in conjunction with the device store/client. Cache is consulted to avoid unnecessary CCU calls.
   - Write: `GenericDataPoint.send_value()` validates, converts, de‑duplicates (no sending without a state change), and calls `client.set_value()`.
@@ -78,7 +78,7 @@ Orderly teardown at different levels:
 
 Signals/callbacks relevant for integration developers:
 
-- Device availability: `EventType.DEVICE_AVAILABILITY` as well as `Device.subscribe_to_device_updated()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
+- Device availability: `DeviceLifecycleEvent` with `DeviceLifecycleEventType.AVAILABILITY_CHANGED` as well as `Device.subscribe_to_device_updated()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
 - DataPoint updates: DataPoints publishes event after `write_value`; HA uses this to update entity state.
 - Firmware: `DpUpdate.subscribe_to_data_point_updated()` reflects firmware changes and progress.
 
@@ -99,7 +99,7 @@ Signals/callbacks relevant for integration developers:
 - `aiohomematic/model/device.py`: Device/Channel, removal, cache init, callback mechanisms, firmware functions.
 - `aiohomematic/model/generic/data_point.py`: Event processing, usage decision, send/read logic, availability events, config‑pending handling.
 - `aiohomematic/model/update.py`: `DpUpdate` for firmware status and actions.
-- `aiohomematic/client/xml_rpc.py` and `aiohomematic/client/json_rpc.py`: Transport, login/session, method probing.
+- `aiohomematic/client/rpc_proxy.py` and `aiohomematic/client/json_rpc.py`: Transport, login/session, method probing.
 
 ---
 

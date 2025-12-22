@@ -11,7 +11,7 @@ They provide a value getter for displaying the current selection.
 
 from __future__ import annotations
 
-import datetime
+from datetime import datetime
 
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory

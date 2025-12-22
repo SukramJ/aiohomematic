@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import cast
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -96,3 +96,48 @@ class TestActionSelectDataPoint:
         action_select.value = 2
         # When using index, value returns the string representation
         assert action_select.value == "OPEN"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_action_select_value_setter_emits_event(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test DpActionSelect value setter emits update event."""
+        central, _, _ = central_client_factory_with_homegear_client
+        action_select: DpActionSelect = cast(
+            DpActionSelect,
+            central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
+        )
+
+        # Track event emissions
+        event_handler = MagicMock()
+        unregister = action_select.subscribe_to_data_point_updated(handler=event_handler, custom_id="test_event")
+
+        # Set value - should emit event
+        action_select.value = "UNLOCKED"
+        await central.looper.block_till_done()
+        assert event_handler.call_count == 1
+
+        # Set another value - should emit another event
+        action_select.value = "OPEN"
+        await central.looper.block_till_done()
+        assert event_handler.call_count == 2
+
+        # Set by index - should also emit event
+        action_select.value = 0
+        await central.looper.block_till_done()
+        assert event_handler.call_count == 3
+
+        # Cleanup
+        unregister()

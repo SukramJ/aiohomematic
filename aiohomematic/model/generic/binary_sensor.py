@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.generic.data_point import GenericDataPoint
-from aiohomematic.property_decorators import state_property
 
 
 class DpBinarySensor(GenericDataPoint[bool | None, bool]):
@@ -24,9 +23,8 @@ class DpBinarySensor(GenericDataPoint[bool | None, bool]):
 
     _category = DataPointCategory.BINARY_SENSOR
 
-    @state_property
-    def value(self) -> bool | None:
-        """Return the value of the data_point."""
+    def _get_value(self) -> bool | None:
+        """Return the value for readings."""
         if self._value is not None:
             return self._value
         return self._default

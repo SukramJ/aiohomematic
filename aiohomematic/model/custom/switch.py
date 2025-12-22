@@ -13,6 +13,7 @@ from typing import Final, Unpack
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeArgs, StateChangeTimerMixin
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -25,13 +26,14 @@ _LOGGER: Final = logging.getLogger(__name__)
 class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
     """Class for Homematic switch data point."""
 
-    __slots__ = (
-        "_dp_group_state",
-        "_dp_on_time_value",
-        "_dp_state",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     _category = DataPointCategory.SWITCH
+
+    # Declarative data point field definitions
+    _dp_group_state = DataPointField(field=Field.GROUP_STATE, dpt=DpBinarySensor)
+    _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
+    _dp_state = DataPointField(field=Field.STATE, dpt=DpSwitch)
 
     @state_property
     def value(self) -> bool | None:
@@ -63,16 +65,6 @@ class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
         if (timer := self.get_and_start_timer()) is not None:
             await self._dp_on_time_value.send_value(value=timer, collector=collector, do_validate=False)
         await self._dp_state.turn_on(collector=collector)
-
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
-        self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
-        self._dp_group_state: DpBinarySensor = self._get_data_point(
-            field=Field.GROUP_STATE, data_point_type=DpBinarySensor
-        )
 
 
 # =============================================================================

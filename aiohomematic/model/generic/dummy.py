@@ -39,6 +39,7 @@ from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic import GenericDataPointAny
 from aiohomematic.model.support import DataPointNameData
+from aiohomematic.property_decorators import Kind, _GenericProperty
 
 
 class DpDummy(GenericDataPointAny):
@@ -109,10 +110,21 @@ class DpDummy(GenericDataPointAny):
         """Never create/ expose this data point as a real data point."""
         return DataPointUsage.NO_CREATE
 
-    @property
-    def value(self) -> Any:
+    def _get_value(self) -> Any:
         """Return the value of the data_point."""
         return None
+
+    def _set_value(self, value: Any) -> None:  # kwonly: disable
+        """Ignore setting value for dummy data point."""
+
+    # Note: Explicit _GenericProperty construction with kind=Kind.STATE is functionally
+    # equivalent to @state_property decorator, but preserves generic type information
+    # for mypy (which the decorator+setter pattern breaks due to mypy limitations).
+    value: _GenericProperty[Any, Any] = _GenericProperty(
+        fget=_get_value,
+        fset=_set_value,
+        kind=Kind.STATE,
+    )
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Ignore backend events entirely."""

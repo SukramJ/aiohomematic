@@ -51,7 +51,11 @@ from aiohomematic.const import (
 )
 from aiohomematic.interfaces.central import EventBusProviderProtocol, EventPublisherProtocol, HealthTrackerProtocol
 from aiohomematic.interfaces.client import ClientProviderProtocol, LastEventTrackerProtocol
-from aiohomematic.interfaces.model import BaseParameterDataPointProtocol, GenericDataPointProtocol, GenericEventProtocol
+from aiohomematic.interfaces.model import (
+    BaseParameterDataPointProtocolAny,
+    GenericDataPointProtocol,
+    GenericEventProtocol,
+)
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")
@@ -130,7 +134,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         """
         return self._event_bus
 
-    def add_data_point_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
+    def add_data_point_subscription(self, *, data_point: BaseParameterDataPointProtocolAny) -> None:
         """
         Add data point to event subscription.
 
@@ -363,7 +367,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         # Update health tracker with event received
         self._health_tracker.record_event_received(interface_id=interface_id)
 
-    def _add_status_subscription(self, *, data_point: BaseParameterDataPointProtocol) -> None:
+    def _add_status_subscription(self, *, data_point: BaseParameterDataPointProtocolAny) -> None:
         """
         Add status parameter event subscription for a data point.
 

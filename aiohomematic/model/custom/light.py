@@ -15,6 +15,7 @@ from typing import Final, TypedDict, Unpack
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin, TimerUnitMixin
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -140,13 +141,15 @@ class LightOffArgs(TypedDict, total=False):
 class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     """Base class for Homematic light data point."""
 
-    __slots__ = (
-        "_dp_group_level",
-        "_dp_level",
-        "_dp_on_time_value",
-        "_dp_ramp_time_value",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
     _category = DataPointCategory.LIGHT
+
+    # Declarative data point field definitions
+    _dp_group_level = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
+    _dp_level = DataPointField(field=Field.LEVEL, dpt=DpFloat)
+    _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
+    _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpAction)
 
     @property
     def brightness_pct(self) -> int | None:
@@ -275,17 +278,6 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         level = self.brightness_to_level(brightness)
         await self._dp_level.send_value(value=level, collector=collector)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._dp_group_level: DpSensor[float | None] = self._get_data_point(
-            field=Field.GROUP_LEVEL, data_point_type=DpSensor[float | None]
-        )
-        self._dp_on_time_value: DpAction = self._get_data_point(field=Field.ON_TIME_VALUE, data_point_type=DpAction)
-        self._dp_ramp_time_value: DpAction = self._get_data_point(field=Field.RAMP_TIME_VALUE, data_point_type=DpAction)
-
     @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value in seconds."""
@@ -307,7 +299,10 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
 class CustomDpColorDimmer(CustomDpDimmer):
     """Class for Homematic dimmer with color data point."""
 
-    __slots__ = ("_dp_color",)
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_color = DataPointField(field=Field.COLOR, dpt=DpInteger)
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
@@ -336,17 +331,11 @@ class CustomDpColorDimmer(CustomDpDimmer):
             await self._dp_color.send_value(value=color, collector=collector)
         await super().turn_on(collector=collector, **kwargs)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_color: DpInteger = self._get_data_point(field=Field.COLOR, data_point_type=DpInteger)
-
 
 class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     """Class for Homematic dimmer with color data point."""
 
-    __slots__ = ("_dp_effect",)
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     _effects: tuple[str, ...] = (
         _EFFECT_OFF,
@@ -357,6 +346,9 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
         "Waterfall",
         "TV simulation",
     )
+
+    # Declarative data point field definitions
+    _dp_effect = DataPointField(field=Field.PROGRAM, dpt=DpInteger)
 
     @state_property
     def effect(self) -> str | None:
@@ -388,17 +380,14 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
 
         await super().turn_on(collector=collector, **kwargs)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_effect: DpInteger = self._get_data_point(field=Field.PROGRAM, data_point_type=DpInteger)
-
 
 class CustomDpColorTempDimmer(CustomDpDimmer):
     """Class for Homematic dimmer with color temperature."""
 
-    __slots__ = ("_dp_color_level",)
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_color_level = DataPointField(field=Field.COLOR_LEVEL, dpt=DpFloat)
 
     @state_property
     def color_temp_kelvin(self) -> int | None:
@@ -418,28 +407,23 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
 
         await super().turn_on(collector=collector, **kwargs)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_color_level: DpFloat = self._get_data_point(field=Field.COLOR_LEVEL, data_point_type=DpFloat)
-
 
 class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     """Class for HomematicIP HmIP-RGBW light data point."""
 
-    __slots__ = (
-        "_dp_activity_state",
-        "_dp_color_temperature_kelvin",
-        "_dp_device_operation_mode",
-        "_dp_effect",
-        "_dp_hue",
-        "_dp_on_time_unit",
-        "_dp_ramp_time_to_off_unit",
-        "_dp_ramp_time_to_off_value",
-        "_dp_ramp_time_unit",
-        "_dp_saturation",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_activity_state = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_color_temperature_kelvin = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
+    _dp_device_operation_mode = DataPointField(field=Field.DEVICE_OPERATION_MODE, dpt=DpSelect)
+    _dp_effect = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
+    _dp_hue = DataPointField(field=Field.HUE, dpt=DpInteger)
+    _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_to_off_unit = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_to_off_value = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
+    _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
+    _dp_saturation = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
     @property
     def _device_operation_mode(self) -> _DeviceOperationMode:
@@ -551,35 +535,6 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
 
         await super().turn_on(collector=collector, **kwargs)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_activity_state: DpSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
-        )
-        self._dp_color_temperature_kelvin: DpInteger = self._get_data_point(
-            field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
-        )
-        self._dp_device_operation_mode: DpSelect = self._get_data_point(
-            field=Field.DEVICE_OPERATION_MODE, data_point_type=DpSelect
-        )
-        self._dp_on_time_unit: DpActionSelect = self._get_data_point(
-            field=Field.ON_TIME_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_effect: DpActionSelect = self._get_data_point(field=Field.EFFECT, data_point_type=DpActionSelect)
-        self._dp_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
-        self._dp_ramp_time_to_off_unit: DpActionSelect = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_ramp_time_to_off_value: DpAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
-        )
-        self._dp_ramp_time_unit: DpActionSelect = self._get_data_point(
-            field=Field.RAMP_TIME_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_saturation: DpFloat = self._get_data_point(field=Field.SATURATION, data_point_type=DpFloat)
-
     @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value with automatic unit conversion."""
@@ -607,16 +562,17 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
 class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
     """Class for HomematicIP HmIP-DRG-DALI light data point."""
 
-    __slots__ = (
-        "_dp_color_temperature_kelvin",
-        "_dp_effect",
-        "_dp_hue",
-        "_dp_on_time_unit",
-        "_dp_ramp_time_to_off_unit",
-        "_dp_ramp_time_to_off_value",
-        "_dp_ramp_time_unit",
-        "_dp_saturation",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_color_temperature_kelvin = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
+    _dp_effect = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
+    _dp_hue = DataPointField(field=Field.HUE, dpt=DpInteger)
+    _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_to_off_unit = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_to_off_value = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
+    _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
+    _dp_saturation = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
     @property
     def _relevant_data_points(self) -> tuple[GenericDataPointAny, ...]:
@@ -661,41 +617,20 @@ class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
 
         await super().turn_on(collector=collector, **kwargs)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_color_temperature_kelvin: DpInteger = self._get_data_point(
-            field=Field.COLOR_TEMPERATURE, data_point_type=DpInteger
-        )
-        self._dp_on_time_unit: DpActionSelect = self._get_data_point(
-            field=Field.ON_TIME_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_effect: DpActionSelect = self._get_data_point(field=Field.EFFECT, data_point_type=DpActionSelect)
-        self._dp_hue: DpInteger = self._get_data_point(field=Field.HUE, data_point_type=DpInteger)
-        self._dp_ramp_time_to_off_unit: DpActionSelect = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_ramp_time_to_off_value: DpAction = self._get_data_point(
-            field=Field.RAMP_TIME_TO_OFF_VALUE, data_point_type=DpAction
-        )
-        self._dp_ramp_time_unit: DpActionSelect = self._get_data_point(
-            field=Field.RAMP_TIME_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_saturation: DpFloat = self._get_data_point(field=Field.SATURATION, data_point_type=DpFloat)
-
 
 class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
     """Class for HomematicIP HmIP-BSL light data point."""
 
-    __slots__ = (
-        "_dp_channel_color",
-        "_dp_color",
-        "_dp_effect",
-        "_dp_on_time_unit",
-        "_dp_ramp_time_unit",
-        "_effect_list",
-    )
+    __slots__ = ("_effect_list",)  # Keep instance variable, descriptors are class-level
+
+    # Declarative data point field definitions
+    _dp_channel_color = DataPointField(field=Field.CHANNEL_COLOR, dpt=DpSensor[str | None])
+    _dp_color = DataPointField(field=Field.COLOR, dpt=DpSelect)
+    _dp_effect = DataPointField(field=Field.COLOR_BEHAVIOUR, dpt=DpSelect)
+    _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
+
+    _effect_list: tuple[str, ...]
 
     @property
     def channel_color_name(self) -> str | None:
@@ -757,21 +692,10 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
 
         await super().turn_on(collector=collector, **kwargs)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
+    def _post_init(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init()
 
-        self._dp_color: DpSelect = self._get_data_point(field=Field.COLOR, data_point_type=DpSelect)
-        self._dp_channel_color: DpSensor[str | None] = self._get_data_point(
-            field=Field.CHANNEL_COLOR, data_point_type=DpSensor[str | None]
-        )
-        self._dp_on_time_unit: DpActionSelect = self._get_data_point(
-            field=Field.ON_TIME_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_ramp_time_unit: DpActionSelect = self._get_data_point(
-            field=Field.RAMP_TIME_UNIT, data_point_type=DpActionSelect
-        )
-        self._dp_effect: DpSelect = self._get_data_point(field=Field.COLOR_BEHAVIOUR, data_point_type=DpSelect)
         self._effect_list = (
             tuple(str(item) for item in self._dp_effect.values if item not in _EXCLUDE_FROM_COLOR_BEHAVIOUR)
             if (self._dp_effect and self._dp_effect.values)

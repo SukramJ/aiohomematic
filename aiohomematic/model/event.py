@@ -49,7 +49,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces.model import ChannelProtocol, GenericEventProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, GenericEventProtocolAny
 from aiohomematic.model.data_point import BaseParameterDataPointAny
 from aiohomematic.model.support import DataPointNameData, get_event_name
 
@@ -65,7 +65,7 @@ __all__ = [
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class GenericEvent(BaseParameterDataPointAny, GenericEventProtocol):
+class GenericEvent(BaseParameterDataPointAny, GenericEventProtocolAny):
     """Base class for events."""
 
     __slots__ = ("_device_trigger_event_type",)

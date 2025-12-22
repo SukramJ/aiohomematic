@@ -223,6 +223,7 @@ from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
 from aiohomematic.interfaces.model import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
+    BaseParameterDataPointProtocolAny,
     CalculatedDataPointProtocol,
     CallbackDataPointProtocol,
     # Channel sub-protocols
@@ -247,7 +248,9 @@ from aiohomematic.interfaces.model import (
     DeviceProvidersProtocol,
     DeviceWeekProfileProtocol,
     GenericDataPointProtocol,
+    GenericDataPointProtocolAny,
     GenericEventProtocol,
+    GenericEventProtocolAny,
     GenericHubDataPointProtocol,
     GenericInstallModeDataPointProtocol,
     GenericProgramDataPointProtocol,
@@ -360,11 +363,14 @@ __all__ = [
     # Model Protocols - DataPoint Hierarchy
     "BaseDataPointProtocol",
     "BaseParameterDataPointProtocol",
+    "BaseParameterDataPointProtocolAny",
     "CalculatedDataPointProtocol",
     "CallbackDataPointProtocol",
     "CustomDataPointProtocol",
     "GenericDataPointProtocol",
+    "GenericDataPointProtocolAny",
     "GenericEventProtocol",
+    "GenericEventProtocolAny",
     # Model Protocols - Hub DataPoints
     "GenericHubDataPointProtocol",
     "GenericInstallModeDataPointProtocol",

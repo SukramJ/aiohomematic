@@ -188,7 +188,7 @@ class _MyCalc(CalculatedDataPoint[float | None]):
     # Make two VALUES data points relevant so _should_publish_data_point_updated_callback checks the branch
     @property
     def _relevant_values_data_points(self) -> tuple[_FakeGenericDP, ...]:  # type: ignore[override]
-        return tuple(dp for dp in self._data_points if dp.paramset_key == ParamsetKey.VALUES)  # type: ignore[attr-defined]
+        return tuple(dp for dp in self._data_points.values() if dp.paramset_key == ParamsetKey.VALUES)  # type: ignore[attr-defined]
 
 
 @dataclass
@@ -219,9 +219,9 @@ class TestCalculatedDataPoint:
 
         calc = _MyCalc(channel=ch)
         # Use protected helpers to attach
-        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, data_point_type=_FakeGenericDP)  # type: ignore[arg-type]
-        calc._add_data_point(parameter="B", paramset_key=ParamsetKey.VALUES, data_point_type=_FakeGenericDP)  # type: ignore[arg-type]
-        calc._add_data_point(parameter="C", paramset_key=ParamsetKey.MASTER, data_point_type=_FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="B", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="C", paramset_key=ParamsetKey.MASTER, dpt=_FakeGenericDP)  # type: ignore[arg-type]
 
         # Ops flags from base: READ + EVENT, not WRITE
         assert calc.is_readable is True
@@ -271,9 +271,7 @@ class TestCalculatedDataPoint:
         """Test when a requested source DP is missing, a placeholder (DpDummy) is returned and stored."""
         ch = _FakeChannel()
         calc = _MyCalc(channel=ch)
-        none_dp = calc._add_data_point(
-            parameter="MISSING", paramset_key=ParamsetKey.VALUES, data_point_type=_FakeGenericDP
-        )  # type: ignore[arg-type]
+        none_dp = calc._add_data_point(parameter="MISSING", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
         # DpDummy is a GenericDataPoint-like placeholder; it exposes generic attributes safely
         assert hasattr(none_dp, "is_readable")
         # And the overall calc still exposes expected operation flags
@@ -296,7 +294,7 @@ class TestCalculatedDataPoint:
         ch.add_fake(dp)
 
         calc = _MyCalc(channel=ch)
-        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, data_point_type=_FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
 
         # Access simple properties to hit return lines
         _ = calc.default

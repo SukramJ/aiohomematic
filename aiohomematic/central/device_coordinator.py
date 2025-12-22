@@ -56,7 +56,7 @@ from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
     ChannelProtocol,
     DeviceProtocol,
-    GenericEventProtocol,
+    GenericEventProtocolAny,
 )
 from aiohomematic.interfaces.operations import (
     DeviceDescriptionProviderProtocol,
@@ -828,7 +828,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             self._delayed_device_descriptions[device_address].append(dev_desc)
 
 
-def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocol, ...], ...]:
+def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocolAny, ...], ...]:
     """
     Return new channel events.
 
@@ -841,7 +841,7 @@ def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[
         Tuple of channel event tuples
 
     """
-    channel_events: list[tuple[GenericEventProtocol, ...]] = []
+    channel_events: list[tuple[GenericEventProtocolAny, ...]] = []
 
     for device in new_devices:
         for event_type in DATA_POINT_EVENTS:

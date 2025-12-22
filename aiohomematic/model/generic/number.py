@@ -14,7 +14,6 @@ from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.generic.data_point import GenericDataPoint
-from aiohomematic.property_decorators import state_property
 
 
 class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[NumberParameterT, int | float | str]):
@@ -58,11 +57,6 @@ class DpFloat(BaseDpNumber[float | None]):
 
     __slots__ = ()
 
-    @state_property
-    def value(self) -> float | None:
-        """Return the value of the data_point."""
-        return self._value
-
     def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> float | None:
         """Prepare value before sending."""
         return self._prepare_number_for_sending(value=value, type_converter=float, do_validate=do_validate)
@@ -76,11 +70,6 @@ class DpInteger(BaseDpNumber[int | None]):
     """
 
     __slots__ = ()
-
-    @state_property
-    def value(self) -> int | None:
-        """Return the value of the data_point."""
-        return self._value
 
     def _prepare_value_for_sending(self, *, value: int | float | str, do_validate: bool = True) -> int | None:
         """Prepare value before sending."""

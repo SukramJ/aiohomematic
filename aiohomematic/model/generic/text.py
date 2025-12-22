@@ -13,7 +13,6 @@ from typing import cast
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.generic.data_point import GenericDataPoint
 from aiohomematic.model.support import check_length_and_log
-from aiohomematic.property_decorators import state_property
 
 
 class DpText(GenericDataPoint[str, str]):
@@ -27,9 +26,8 @@ class DpText(GenericDataPoint[str, str]):
 
     _category = DataPointCategory.TEXT
 
-    @state_property
-    def value(self) -> str:
-        """Get the value of the data_point."""
+    def _get_value(self) -> str:
+        """Return the value for readings."""
         if (val := check_length_and_log(name=self.name, value=self._value)) is not None:
             return cast(str, val)
         return self._default

@@ -12,17 +12,16 @@ from collections.abc import Mapping
 import contextlib
 from datetime import datetime
 import logging
-from typing import Any, Final, Unpack, cast
+from typing import Any, Final, Unpack
 
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.model import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroup
 from aiohomematic.model.custom.registry import DeviceConfig
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.generic import DpDummy
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -78,10 +77,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
         self._allow_undefined_generic_data_points: Final[bool] = channel_group.allow_undefined_generic_data_points
-        self._data_points: Final[dict[Field, GenericDataPointProtocol]] = {}
+        self._data_points: Final[dict[Field, GenericDataPointProtocolAny]] = {}
         self._init_data_points()
-        self._init_data_point_fields()
-        self._post_init_data_point_fields()
+        self._post_init()
         if self.usage == DataPointUsage.CDP_PRIMARY:
             self._device.init_week_profile(data_point=self)
 
@@ -91,12 +89,12 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             self.unsubscribe_from_data_point_updated()
 
     @property
-    def _readable_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def _readable_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points.values() if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
@@ -241,7 +239,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         self,
         *,
         field: Field,
-        data_point: GenericDataPointProtocol | None,
+        data_point: GenericDataPointProtocolAny | None,
         is_visible: bool | None = None,
     ) -> None:
         """Add data point to collection and subscribed handler."""
@@ -256,27 +254,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
         )
         self._data_points[field] = data_point
-
-    def _get_data_point[DataPointT: GenericDataPointProtocol](
-        self, *, field: Field, data_point_type: type[DataPointT]
-    ) -> DataPointT:
-        """Get data point."""
-        if dp := self._data_points.get(field):
-            if type(dp).__name__ != data_point_type.__name__:
-                # not isinstance(data_point, data_point_type): # does not work with generic type
-                _LOGGER.debug(  # pragma: no cover
-                    "GET_DATA_POINT: type mismatch for requested sub data_point: "
-                    "expected: %s, but is %s for field name %s of data_point %s",
-                    data_point_type.name,
-                    type(dp),
-                    field,
-                    self.name,
-                )
-            return cast(data_point_type, dp)  # type: ignore[valid-type]
-        return cast(
-            data_point_type,  # type:ignore[valid-type]
-            DpDummy(channel=self._channel, param_field=field),
-        )
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data point."""
@@ -313,13 +290,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix}"
-
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        _LOGGER.debug(
-            "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
-            self.full_name,
-        )
 
     def _init_data_points(self) -> None:
         """Initialize data point collection."""
@@ -384,7 +354,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
                 for channel_no in channel_nos:
                     self._mark_data_point(channel_no=channel_no, parameters=parameters)
 
-    def _post_init_data_point_fields(self) -> None:
+    def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         _LOGGER.debug(
             "POST_INIT_DATA_POINT_FIELDS: Post action after initialisation of the data point fields for %s",

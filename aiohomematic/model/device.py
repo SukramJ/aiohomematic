@@ -112,7 +112,9 @@ from aiohomematic.interfaces.model import (
     CustomDataPointProtocol,
     DeviceProtocol,
     GenericDataPointProtocol,
+    GenericDataPointProtocolAny,
     GenericEventProtocol,
+    GenericEventProtocolAny,
 )
 from aiohomematic.interfaces.operations import (
     DeviceDescriptionProviderProtocol,
@@ -504,17 +506,17 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return DeviceFirmwareState(self._device_description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the generic data points."""
-        data_points: list[GenericDataPointProtocol] = []
+        data_points: list[GenericDataPointProtocolAny] = []
         for channel in self._channels.values():
             data_points.extend(channel.generic_data_points)
         return tuple(data_points)
 
     @property
-    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
+    def generic_events(self) -> tuple[GenericEventProtocolAny, ...]:
         """Return the generic events."""
-        events: list[GenericEventProtocol] = []
+        events: list[GenericEventProtocolAny] = []
         for channel in self._channels.values():
             events.extend(channel.generic_events)
         return tuple(events)
@@ -786,9 +788,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     def get_events(
         self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
-    ) -> Mapping[int | None, tuple[GenericEventProtocol, ...]]:
+    ) -> Mapping[int | None, tuple[GenericEventProtocolAny, ...]]:
         """Return a list of specific events of a channel."""
-        events: dict[int | None, tuple[GenericEventProtocol, ...]] = {}
+        events: dict[int | None, tuple[GenericEventProtocolAny, ...]] = {}
         for channel in self._channels.values():
             if (values := channel.get_events(event_type=event_type, registered=registered)) and len(values) > 0:
                 events[channel.no] = values
@@ -801,7 +803,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         parameter: str | None = None,
         paramset_key: ParamsetKey | None = None,
         state_path: str | None = None,
-    ) -> GenericDataPointProtocol | None:
+    ) -> GenericDataPointProtocolAny | None:
         """Return a generic data_point from device."""
         if channel_address is None:
             for ch in self._channels.values():
@@ -817,7 +819,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     def get_generic_event(
         self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEventProtocol | None:
+    ) -> GenericEventProtocolAny | None:
         """Return a generic event from device."""
         if channel_address is None:
             for ch in self._channels.values():
@@ -829,9 +831,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             return channel.get_generic_event(parameter=parameter, state_path=state_path)
         return None
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the list of readable master data points."""
-        data_points: list[GenericDataPointProtocol] = []
+        data_points: list[GenericDataPointProtocolAny] = []
         for channel in self._channels.values():
             data_points.extend(channel.get_readable_data_points(paramset_key=paramset_key))
         return tuple(data_points)
@@ -1105,8 +1107,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         self._is_in_multi_group: bool | None = None
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPointProtocol]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
-        self._generic_data_points: Final[dict[DataPointKey, GenericDataPointProtocol]] = {}
-        self._generic_events: Final[dict[DataPointKey, GenericEventProtocol]] = {}
+        self._generic_data_points: Final[dict[DataPointKey, GenericDataPointProtocolAny]] = {}
+        self._generic_events: Final[dict[DataPointKey, GenericEventProtocolAny]] = {}
         self._state_path_to_dpk: Final[dict[str, DataPointKey]] = {}
         self._link_peer_addresses: tuple[str, ...] = ()
         self._link_source_roles: tuple[str, ...] = (
@@ -1177,12 +1179,12 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         return self._function
 
     @property
-    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the generic data points."""
         return tuple(self._generic_data_points.values())
 
     @property
-    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
+    def generic_events(self) -> tuple[GenericEventProtocolAny, ...]:
         """Return the generic events."""
         return tuple(self._generic_events.values())
 
@@ -1404,7 +1406,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     def get_events(
         self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
-    ) -> tuple[GenericEventProtocol, ...]:
+    ) -> tuple[GenericEventProtocolAny, ...]:
         """Return a list of specific events of a channel."""
         return tuple(
             event
@@ -1414,7 +1416,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     def get_generic_data_point(
         self, *, parameter: str | None = None, paramset_key: ParamsetKey | None = None, state_path: str | None = None
-    ) -> GenericDataPointProtocol | None:
+    ) -> GenericDataPointProtocolAny | None:
         """Return a generic data_point from device."""
         if state_path is not None and (dpk := self._state_path_to_dpk.get(state_path)) is not None:
             return self._generic_data_points.get(dpk)
@@ -1450,7 +1452,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     def get_generic_event(
         self, *, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEventProtocol | None:
+    ) -> GenericEventProtocolAny | None:
         """Return a generic event from device."""
         if state_path is not None and (dpk := self._state_path_to_dpk.get(state_path)) is not None:
             return self._generic_events.get(dpk)
@@ -1466,7 +1468,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             )
         )
 
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the list of readable master data points."""
         return tuple(
             ge for ge in self._generic_data_points.values() if ge.is_readable and ge.paramset_key == paramset_key
@@ -1753,7 +1755,7 @@ class _ValueCache:
         # to avoid repetitive calls to the backend within max_age
         self._device_cache[dpk] = CacheEntry(value=value, refresh_at=datetime.now())
 
-    def _get_base_data_points(self) -> set[GenericDataPointProtocol]:
+    def _get_base_data_points(self) -> set[GenericDataPointProtocolAny]:
         """Get data points of channel 0 and master."""
         return {
             dp
@@ -1766,7 +1768,7 @@ class _ValueCache:
             or dp.paramset_key == ParamsetKey.MASTER
         }
 
-    def _get_readable_events(self) -> set[GenericEventProtocol]:
+    def _get_readable_events(self) -> set[GenericEventProtocolAny]:
         """Get readable events."""
         return {event for event in self._device.generic_events if event.is_readable}
 

@@ -13,6 +13,7 @@ from enum import StrEnum
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpSensor, DpSwitch
@@ -102,11 +103,12 @@ class BaseCustomDpLock(CustomDataPoint):
 class CustomDpIpLock(BaseCustomDpLock):
     """Class for HomematicIP lock data point."""
 
-    __slots__ = (
-        "_dp_direction",
-        "_dp_lock_state",
-        "_dp_lock_target_level",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_direction = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_lock_state = DataPointField(field=Field.LOCK_STATE, dpt=DpSensor[str | None])
+    _dp_lock_target_level = DataPointField(field=Field.LOCK_TARGET_LEVEL, dpt=DpActionSelect)
 
     @property
     def supports_open(self) -> bool:
@@ -147,25 +149,14 @@ class CustomDpIpLock(BaseCustomDpLock):
         """Unlock the lock."""
         await self._dp_lock_target_level.send_value(value=_LockTargetLevel.UNLOCKED, collector=collector)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_lock_state: DpSensor[str | None] = self._get_data_point(
-            field=Field.LOCK_STATE, data_point_type=DpSensor[str | None]
-        )
-        self._dp_lock_target_level: DpActionSelect = self._get_data_point(
-            field=Field.LOCK_TARGET_LEVEL, data_point_type=DpActionSelect
-        )
-        self._dp_direction: DpSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
-        )
-
 
 class CustomDpButtonLock(BaseCustomDpLock):
     """Class for HomematicIP button lock data point."""
 
-    __slots__ = ("_dp_button_lock",)
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_button_lock = DataPointField(field=Field.BUTTON_LOCK, dpt=DpSwitch)
 
     @property
     def data_point_name_postfix(self) -> str:
@@ -197,22 +188,17 @@ class CustomDpButtonLock(BaseCustomDpLock):
         """Unlock the lock."""
         await self._dp_button_lock.turn_off(collector=collector)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_button_lock: DpSwitch = self._get_data_point(field=Field.BUTTON_LOCK, data_point_type=DpSwitch)
-
 
 class CustomDpRfLock(BaseCustomDpLock):
     """Class for classic Homematic lock data point."""
 
-    __slots__ = (
-        "_dp_direction",
-        "_dp_error",
-        "_dp_open",
-        "_dp_state",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_direction = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_error = DataPointField(field=Field.ERROR, dpt=DpSensor[str | None])
+    _dp_open = DataPointField(field=Field.OPEN, dpt=DpAction)
+    _dp_state = DataPointField(field=Field.STATE, dpt=DpSwitch)
 
     @property
     def supports_open(self) -> bool:
@@ -257,19 +243,6 @@ class CustomDpRfLock(BaseCustomDpLock):
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
         await self._dp_state.send_value(value=True, collector=collector)
-
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_state: DpSwitch = self._get_data_point(field=Field.STATE, data_point_type=DpSwitch)
-        self._dp_open: DpAction = self._get_data_point(field=Field.OPEN, data_point_type=DpAction)
-        self._dp_direction: DpSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
-        )
-        self._dp_error: DpSensor[str | None] = self._get_data_point(
-            field=Field.ERROR, data_point_type=DpSensor[str | None]
-        )
 
 
 # =============================================================================

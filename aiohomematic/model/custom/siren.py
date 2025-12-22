@@ -16,6 +16,7 @@ from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor, DpSensor
@@ -95,14 +96,15 @@ class BaseCustomDpSiren(CustomDataPoint):
 class CustomDpIpSiren(BaseCustomDpSiren):
     """Class for HomematicIP siren data point."""
 
-    __slots__ = (
-        "_dp_acoustic_alarm_active",
-        "_dp_acoustic_alarm_selection",
-        "_dp_duration",
-        "_dp_duration_unit",
-        "_dp_optical_alarm_active",
-        "_dp_optical_alarm_selection",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_acoustic_alarm_active = DataPointField(field=Field.ACOUSTIC_ALARM_ACTIVE, dpt=DpBinarySensor)
+    _dp_acoustic_alarm_selection = DataPointField(field=Field.ACOUSTIC_ALARM_SELECTION, dpt=DpActionSelect)
+    _dp_duration = DataPointField(field=Field.DURATION, dpt=DpAction)
+    _dp_duration_unit = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
+    _dp_optical_alarm_active = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
+    _dp_optical_alarm_selection = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
 
     @property
     def supports_duration(self) -> bool:
@@ -180,35 +182,15 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         duration = kwargs.get("duration") or self._dp_duration.default
         await self._dp_duration.send_value(value=duration, collector=collector)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_acoustic_alarm_active: DpBinarySensor = self._get_data_point(
-            field=Field.ACOUSTIC_ALARM_ACTIVE, data_point_type=DpBinarySensor
-        )
-        self._dp_acoustic_alarm_selection: DpActionSelect = self._get_data_point(
-            field=Field.ACOUSTIC_ALARM_SELECTION, data_point_type=DpActionSelect
-        )
-        self._dp_optical_alarm_active: DpBinarySensor = self._get_data_point(
-            field=Field.OPTICAL_ALARM_ACTIVE, data_point_type=DpBinarySensor
-        )
-        self._dp_optical_alarm_selection: DpActionSelect = self._get_data_point(
-            field=Field.OPTICAL_ALARM_SELECTION, data_point_type=DpActionSelect
-        )
-        self._dp_duration: DpAction = self._get_data_point(field=Field.DURATION, data_point_type=DpAction)
-        self._dp_duration_unit: DpActionSelect = self._get_data_point(
-            field=Field.DURATION_UNIT, data_point_type=DpActionSelect
-        )
-
 
 class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     """Class for HomematicIP siren smoke data point."""
 
-    __slots__ = (
-        "_dp_smoke_detector_alarm_status",
-        "_dp_smoke_detector_command",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_smoke_detector_alarm_status = DataPointField(field=Field.SMOKE_DETECTOR_ALARM_STATUS, dpt=DpSensor[str | None])
+    _dp_smoke_detector_command = DataPointField(field=Field.SMOKE_DETECTOR_COMMAND, dpt=DpActionSelect)
 
     @property
     def supports_duration(self) -> bool:
@@ -246,17 +228,6 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     ) -> None:
         """Turn the device on."""
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.ON, collector=collector)
-
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_smoke_detector_alarm_status: DpSensor[str | None] = self._get_data_point(
-            field=Field.SMOKE_DETECTOR_ALARM_STATUS, data_point_type=DpSensor[str | None]
-        )
-        self._dp_smoke_detector_command: DpActionSelect = self._get_data_point(
-            field=Field.SMOKE_DETECTOR_COMMAND, data_point_type=DpActionSelect
-        )
 
 
 # =============================================================================

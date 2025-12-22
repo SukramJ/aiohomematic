@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine, Mapping
 from typing import Any, TypeAlias
 
-type ParamType = bool | int | float | str | None
+ParamType = bool | int | float | str | None
 
 # Generic zero-argument handler that returns nothing
 ZeroArgHandler: TypeAlias = Callable[[], None]

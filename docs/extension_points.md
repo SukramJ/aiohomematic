@@ -190,12 +190,12 @@ class MyMetric(CalculatedDataPoint[float]):
         self._dp_temp = self._add_data_point(
             parameter="TEMPERATURE",
             paramset_key=ParamsetKey.VALUES,
-            data_point_type=DpSensor,
+            dpt=DpSensor,
         )
         self._dp_hum = self._add_data_point(
             parameter="HUMIDITY",
             paramset_key=ParamsetKey.VALUES,
-            data_point_type=DpSensor,
+            dpt=DpSensor,
         )
 
     @staticmethod

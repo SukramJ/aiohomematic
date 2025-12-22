@@ -15,7 +15,6 @@ from typing import Any, Final, cast
 from aiohomematic.const import DataPointCategory, Parameter, ParameterType
 from aiohomematic.model.generic.data_point import GenericDataPoint
 from aiohomematic.model.support import check_length_and_log, get_value_from_value_list
-from aiohomematic.property_decorators import state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -31,9 +30,14 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
 
     _category = DataPointCategory.SENSOR
 
-    @state_property
-    def value(self) -> SensorT:
-        """Return the value."""
+    def _get_converter_func(self) -> Any:
+        """Return a converter based on sensor."""
+        if convert_func := _VALUE_CONVERTERS_BY_PARAM.get(self.parameter):
+            return convert_func
+        return None
+
+    def _get_value(self) -> SensorT:
+        """Return the value for readings."""
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return cast(SensorT, value)
         if convert_func := self._get_converter_func():
@@ -44,12 +48,6 @@ class DpSensor[SensorT: float | int | str | None](GenericDataPoint[SensorT, None
             if self._type == ParameterType.STRING
             else self._value,
         )
-
-    def _get_converter_func(self) -> Any:
-        """Return a converter based on sensor."""
-        if convert_func := _VALUE_CONVERTERS_BY_PARAM.get(self.parameter):
-            return convert_func
-        return None
 
 
 def _fix_rssi(*, value: Any) -> int | None:

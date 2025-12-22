@@ -35,7 +35,7 @@ if TYPE_CHECKING:
         CallbackDataPointProtocol,
         ChannelProtocol,
         DeviceProtocol,
-        GenericDataPointProtocol,
+        GenericDataPointProtocolAny,
         GenericProgramDataPointProtocol,
         GenericSysvarDataPointProtocol,
     )
@@ -226,7 +226,7 @@ class DataPointProviderProtocol(Protocol):
         *,
         paramset_key: ParamsetKey | None = None,
         interface: Interface | None = None,
-    ) -> tuple[GenericDataPointProtocol, ...]:
+    ) -> tuple[GenericDataPointProtocolAny, ...]:
         """Get readable generic data points."""
 
 

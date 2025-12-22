@@ -688,8 +688,8 @@ class TestCustomDpIpThermostat:
         assert climate.mode in (ClimateMode.AUTO, ClimateMode.HEAT)
 
         # Force own LEVEL/STATE to be dummy so fallback path is used
-        climate._dp_state = DpDummy(channel=climate._channel, param_field=Field.STATE)
-        climate._dp_level = DpDummy(channel=climate._channel, param_field=Field.LEVEL)
+        climate._data_points[Field.STATE] = DpDummy(channel=climate._channel, param_field=Field.STATE)
+        climate._data_points[Field.LEVEL] = DpDummy(channel=climate._channel, param_field=Field.LEVEL)
 
         # Point link peer to channel 9 which exposes a usable STATE
         device = central.device_coordinator.get_device(address="VCU1769958")

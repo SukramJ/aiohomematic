@@ -11,6 +11,8 @@ They provide a value getter for displaying the current selection.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
@@ -47,7 +49,7 @@ class DpActionSelect(GenericDataPoint[int | str | None, int | str]):
     @value.setter  # type: ignore[no-redef]
     def value(self, value: int | str) -> None:
         """Set the local value."""
-        self._current_value = value
+        self.write_value(value=value, write_at=datetime.now())
 
     def _prepare_value_for_sending(self, *, value: int | str, do_validate: bool = True) -> int | str:
         """Prepare value before sending with validation against value_list."""

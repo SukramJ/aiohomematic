@@ -565,10 +565,12 @@ IP_SIREN_CONFIG: Final = ProfileConfig(
         repeating_fields={
             Field.ACOUSTIC_ALARM_ACTIVE: Parameter.ACOUSTIC_ALARM_ACTIVE,
             Field.OPTICAL_ALARM_ACTIVE: Parameter.OPTICAL_ALARM_ACTIVE,
-            Field.ACOUSTIC_ALARM_SELECTION: Parameter.ACOUSTIC_ALARM_SELECTION,
-            Field.OPTICAL_ALARM_SELECTION: Parameter.OPTICAL_ALARM_SELECTION,
             Field.DURATION: Parameter.DURATION_VALUE,
             Field.DURATION_UNIT: Parameter.DURATION_UNIT,
+        },
+        visible_repeating_fields={
+            Field.ACOUSTIC_ALARM_SELECTION: Parameter.ACOUSTIC_ALARM_SELECTION,
+            Field.OPTICAL_ALARM_SELECTION: Parameter.OPTICAL_ALARM_SELECTION,
         },
     ),
 )

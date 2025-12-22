@@ -1,3 +1,13 @@
+# Version 2025.12.43 (2025-12-22)
+
+## What's Changed
+
+### Improvements
+
+- **Make `ACOUSTIC_ALARM_SELECTION` and `OPTICAL_ALARM_SELECTION` visible**: These siren parameters are now exposed as entities
+- **Enhance `siren.turn_on` service**: Now uses values from `ACOUSTIC_ALARM_SELECTION` and `OPTICAL_ALARM_SELECTION` entities as fallback when not provided in service call
+- **`DpActionSelect` value setter uses `write_value`**: Keeps history clean and fires update events when value is set
+
 # Version 2025.12.42 (2025-12-21)
 
 ## What's Changed
@@ -9,14 +19,6 @@
   - Automatically created by factory for write-only parameters with VALUE_LIST
   - New category: `DataPointCategory.ACTION_SELECT`
   - Located in `aiohomematic/model/generic/action_select.py`
-
-### Improvements
-
-- **Standardize DataPoint field naming convention**: Private DataPoint reference fields use `_dp_` prefix
-  - `_data_point_config_pending` → `_dp_config_pending`
-  - `_data_point_un_reach` → `_dp_un_reach`
-  - `_data_point_sticky_un_reach` → `_dp_sticky_un_reach`
-  - Convention: `_dp_*` for DP instances, `data_point` (spelled out) for public APIs
 
 ### Bug Fixes
 

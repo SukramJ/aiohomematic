@@ -143,7 +143,11 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         **kwargs: Unpack[SirenOnArgs],
     ) -> None:
         """Turn the device on."""
-        acoustic_alarm = kwargs.get("acoustic_alarm") or self._dp_acoustic_alarm_selection.default
+        acoustic_alarm = (
+            kwargs.get("acoustic_alarm")
+            or self._dp_acoustic_alarm_selection.value
+            or self._dp_acoustic_alarm_selection.default
+        )
         if self.available_tones and acoustic_alarm and acoustic_alarm not in self.available_tones:
             raise ValidationException(
                 i18n.tr(
@@ -153,7 +157,11 @@ class CustomDpIpSiren(BaseCustomDpSiren):
                 )
             )
 
-        optical_alarm = kwargs.get("optical_alarm") or self._dp_optical_alarm_selection.default
+        optical_alarm = (
+            kwargs.get("optical_alarm")
+            or self._dp_optical_alarm_selection.value
+            or self._dp_optical_alarm_selection.default
+        )
         if self.available_lights and optical_alarm and optical_alarm not in self.available_lights:
             raise ValidationException(
                 i18n.tr(

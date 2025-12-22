@@ -133,6 +133,217 @@ class TestIpSiren:
         await siren.turn_off()
         assert (call_count + 1) == len(mock_client.method_calls)
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ip_siren_turn_on_kwargs_override_prefilled_values(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test turn_on kwargs override pre-filled data point values."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
+
+        # Pre-fill data points
+        siren._dp_acoustic_alarm_selection.value = "FREQUENCY_FALLING"
+        siren._dp_optical_alarm_selection.value = "DOUBLE_FLASHING_REPEATING"
+
+        # Call with kwargs - should override pre-filled values
+        await siren.turn_on(
+            acoustic_alarm="FREQUENCY_RISING_AND_FALLING",
+            optical_alarm="BLINKING_ALTERNATELY_REPEATING",
+        )
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU8249617:3",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "ACOUSTIC_ALARM_SELECTION": "FREQUENCY_RISING_AND_FALLING",
+                "OPTICAL_ALARM_SELECTION": "BLINKING_ALTERNATELY_REPEATING",
+                "DURATION_UNIT": "S",
+                "DURATION_VALUE": 0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ip_siren_turn_on_partial_kwargs_with_prefilled_values(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test turn_on with partial kwargs uses pre-filled values for missing params."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
+
+        # Pre-fill both data points
+        siren._dp_acoustic_alarm_selection.value = "FREQUENCY_FALLING"
+        siren._dp_optical_alarm_selection.value = "DOUBLE_FLASHING_REPEATING"
+
+        # Only override acoustic_alarm - optical_alarm should use pre-filled value
+        await siren.turn_on(acoustic_alarm="FREQUENCY_RISING_AND_FALLING")
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU8249617:3",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "ACOUSTIC_ALARM_SELECTION": "FREQUENCY_RISING_AND_FALLING",
+                "OPTICAL_ALARM_SELECTION": "DOUBLE_FLASHING_REPEATING",
+                "DURATION_UNIT": "S",
+                "DURATION_VALUE": 0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+        )
+
+        # Only override optical_alarm - acoustic_alarm should use pre-filled value
+        await siren.turn_on(optical_alarm="BLINKING_ALTERNATELY_REPEATING")
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU8249617:3",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "ACOUSTIC_ALARM_SELECTION": "FREQUENCY_FALLING",
+                "OPTICAL_ALARM_SELECTION": "BLINKING_ALTERNATELY_REPEATING",
+                "DURATION_UNIT": "S",
+                "DURATION_VALUE": 0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ip_siren_turn_on_uses_prefilled_dp_values(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test turn_on uses pre-filled data point values when no kwargs provided."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
+
+        # Pre-fill data points via value setter
+        siren._dp_acoustic_alarm_selection.value = "FREQUENCY_FALLING"
+        siren._dp_optical_alarm_selection.value = "DOUBLE_FLASHING_REPEATING"
+
+        await siren.turn_on()
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU8249617:3",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "ACOUSTIC_ALARM_SELECTION": "FREQUENCY_FALLING",
+                "OPTICAL_ALARM_SELECTION": "DOUBLE_FLASHING_REPEATING",
+                "DURATION_UNIT": "S",
+                "DURATION_VALUE": 0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ip_siren_turn_on_with_partial_params(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test turn_on with only some parameters uses defaults for missing ones."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
+
+        # Only acoustic_alarm provided
+        await siren.turn_on(acoustic_alarm="FREQUENCY_RISING_AND_FALLING")
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU8249617:3",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "ACOUSTIC_ALARM_SELECTION": "FREQUENCY_RISING_AND_FALLING",
+                "OPTICAL_ALARM_SELECTION": "DISABLE_OPTICAL_SIGNAL",
+                "DURATION_UNIT": "S",
+                "DURATION_VALUE": 0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+        )
+
+        # Only optical_alarm provided
+        await siren.turn_on(optical_alarm="BLINKING_ALTERNATELY_REPEATING")
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU8249617:3",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "ACOUSTIC_ALARM_SELECTION": "DISABLE_ACOUSTIC_SIGNAL",
+                "OPTICAL_ALARM_SELECTION": "BLINKING_ALTERNATELY_REPEATING",
+                "DURATION_UNIT": "S",
+                "DURATION_VALUE": 0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ip_siren_turn_on_without_params_uses_defaults(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test turn_on without parameters uses default values."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        siren: CustomDpIpSiren = cast(CustomDpIpSiren, get_prepared_custom_data_point(central, "VCU8249617", 3))
+
+        await siren.turn_on()
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU8249617:3",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "ACOUSTIC_ALARM_SELECTION": "DISABLE_ACOUSTIC_SIGNAL",
+                "OPTICAL_ALARM_SELECTION": "DISABLE_OPTICAL_SIGNAL",
+                "DURATION_UNIT": "S",
+                "DURATION_VALUE": 0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+        )
+
 
 class TestIpSirenSmoke:
     """Tests for CustomDpIpSirenSmoke data points."""

@@ -2,9 +2,11 @@
 
 ## What's Changed
 
-### Bug Fixes
+### Improvements
 
 - **Make `ACOUSTIC_ALARM_SELECTION` and `OPTICAL_ALARM_SELECTION` visible**: These siren parameters are now exposed as entities
+- **Enhance `siren.turn_on` service**: Now uses values from `ACOUSTIC_ALARM_SELECTION` and `OPTICAL_ALARM_SELECTION` entities as fallback when not provided in service call
+- **`DpActionSelect` value setter uses `write_value`**: Keeps history clean and fires update events when value is set
 
 # Version 2025.12.42 (2025-12-21)
 

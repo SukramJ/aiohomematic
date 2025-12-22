@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.42"
+VERSION: Final = "2025.12.43"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1198,6 +1198,7 @@ HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
 )
 
 CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.ACTION_SELECT,
     DataPointCategory.BINARY_SENSOR,
     DataPointCategory.BUTTON,
     DataPointCategory.CLIMATE,

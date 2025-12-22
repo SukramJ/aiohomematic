@@ -1640,16 +1640,19 @@ Example: `2025.12.41` = 41st release in December 2025
 
 #### Step 1: Check existing tags FIRST (MANDATORY)
 
+**⚠️ STOP - DO NOT EDIT changelog.md UNTIL YOU RUN THIS COMMAND:**
+
 ```bash
-git tag --list '2025.12.*' | sort -V | tail -5
+git tag --list '2025.12.*' | sort -V | tail -3
 ```
 
-**NEVER skip this step.** You must know which versions are already tagged before making any changes.
+You MUST run this command and identify the latest tagged version BEFORE making ANY changes to the changelog. This is non-negotiable.
 
 #### Step 2: Determine the correct version
 
-- If `2025.12.41` is the latest tag → create `2025.12.42`
+- If `2025.12.42` is the latest tag → create `2025.12.43`
 - **NEVER modify already-tagged versions** - tagged versions are immutable
+- **NEVER trust conversation context** - always verify with `git tag` command
 
 #### Step 3: Update BOTH files together
 

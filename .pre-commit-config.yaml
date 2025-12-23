@@ -111,3 +111,10 @@ repos:
         language: script
         types_or: [python, pyi]
         files: ^(aiohomematic|aiohomematic_test_support)/.+\.py$
+      - id: lint-delegated-property
+        name: lint-delegated-property
+        entry: script/run-in-env.sh python script/lint_delegated_property.py -v
+        language: script
+        types_or: [python]
+        files: ^aiohomematic/.+\.py$
+        pass_filenames: false

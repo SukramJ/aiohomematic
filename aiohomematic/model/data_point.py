@@ -154,6 +154,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     """
 
     __slots__ = (
+        "__weakref__",
         "_cached_enabled_default",
         "_cached_service_method_names",
         "_cached_service_methods",

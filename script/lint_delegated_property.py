@@ -326,6 +326,46 @@ def get_all_subclasses(class_name: str, subclass_map: dict[str, list[str]]) -> s
     return result
 
 
+def _class_has_weakref_in_hierarchy(
+    class_name: str,
+    all_visitors: list[DelegatedPropertyVisitor],
+) -> bool:
+    """
+    Check if a class or any of its parent classes has __weakref__ or __dict__ in slots.
+
+    This is needed because __weakref__ in a parent class's __slots__ enables weak
+    references for all subclasses.
+    """
+    # Build maps for efficient lookup
+    class_slots: dict[str, list[str]] = {}
+    class_bases: dict[str, list[str]] = {}
+    for visitor in all_visitors:
+        class_slots.update(visitor.class_slots)
+        class_bases.update(visitor.class_bases)
+
+    # Check this class and all parent classes
+    visited: set[str] = set()
+    to_check = [class_name]
+
+    while to_check:
+        current = to_check.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+
+        # Check if this class has __weakref__ or __dict__ in its slots
+        if current in class_slots:
+            slots = class_slots[current]
+            if "__dict__" in slots or "__weakref__" in slots:
+                return True
+
+        # Add parent classes to check
+        if current in class_bases:
+            to_check.extend(class_bases[current])
+
+    return False
+
+
 def lint_delegated_properties(verbose: bool = False) -> LintResult:
     """Lint all DelegatedProperty usages in the codebase."""
     result = LintResult()
@@ -403,8 +443,9 @@ def lint_delegated_properties(verbose: bool = False) -> LintResult:
             for visitor in all_visitors:
                 if visitor.file_path == dp.file_path:
                     if dp.class_name in visitor.class_slots:
-                        slots = visitor.class_slots[dp.class_name]
-                        if "__dict__" not in slots and "__weakref__" not in slots:
+                        # Check if __weakref__ or __dict__ is in this class or any parent class
+                        has_weakref = _class_has_weakref_in_hierarchy(dp.class_name, all_visitors)
+                        if not has_weakref:
                             result.issues.append(
                                 LintIssue(
                                     file_path=dp.file_path,

@@ -880,7 +880,7 @@ class EventBatch:
         """Exit the async context and flush events."""
         await self.flush()
 
-    is_flushed = DelegatedProperty[bool](path="_flushed")
+    is_flushed: Final = DelegatedProperty[bool](path="_flushed")
 
     @property
     def event_count(self) -> int:

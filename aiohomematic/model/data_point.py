@@ -218,11 +218,11 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Return, the default category of the data_point."""
         return cls._category
 
-    custom_id = DelegatedProperty[str | None](path="_custom_id")
-    published_event_at = DelegatedProperty[datetime](path="_published_event_at")
-    set_path = DelegatedProperty[str](path="_path_data.set_path")
-    signature = DelegatedProperty[str](path="_signature")
-    state_path = DelegatedProperty[str](path="_path_data.state_path")
+    custom_id: Final = DelegatedProperty[str | None](path="_custom_id")
+    published_event_at: Final = DelegatedProperty[datetime](path="_published_event_at")
+    set_path: Final = DelegatedProperty[str](path="_path_data.set_path")
+    signature: Final = DelegatedProperty[str](path="_signature")
+    state_path: Final = DelegatedProperty[str](path="_path_data.state_path")
 
     @property
     def _should_publish_data_point_updated_callback(self) -> bool:
@@ -595,16 +595,16 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         self._timer_on_time: float | None = None
         self._timer_on_time_end: datetime = INIT_DATETIME
 
-    available = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
-    channel = DelegatedProperty[ChannelProtocol](path="_channel", log_context=True)
-    device = DelegatedProperty[DeviceProtocol](path="_device")
-    full_name = DelegatedProperty[str](path="_data_point_name_data.full_name")
-    function = DelegatedProperty[str | None](path="_channel.function")
-    is_in_multiple_channels = DelegatedProperty[bool](path="_is_in_multiple_channels")
-    name = DelegatedProperty[str](path="_data_point_name_data.name", kind=Kind.CONFIG, cached=True)
-    name_data = DelegatedProperty[DataPointNameData](path="_data_point_name_data")
-    room = DelegatedProperty[str | None](path="_channel.room")
-    rooms = DelegatedProperty[set[str]](path="_channel.rooms")
+    available: Final = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
+    channel: Final = DelegatedProperty[ChannelProtocol](path="_channel", log_context=True)
+    device: Final = DelegatedProperty[DeviceProtocol](path="_device")
+    full_name: Final = DelegatedProperty[str](path="_data_point_name_data.full_name")
+    function: Final = DelegatedProperty[str | None](path="_channel.function")
+    is_in_multiple_channels: Final = DelegatedProperty[bool](path="_is_in_multiple_channels")
+    name: Final = DelegatedProperty[str](path="_data_point_name_data.name", kind=Kind.CONFIG, cached=True)
+    name_data: Final = DelegatedProperty[DataPointNameData](path="_data_point_name_data")
+    room: Final = DelegatedProperty[str | None](path="_channel.room")
+    rooms: Final = DelegatedProperty[set[str]](path="_channel.rooms")
     timer_on_time = DelegatedProperty[float | None](path="_timer_on_time")
 
     @property
@@ -775,16 +775,16 @@ class BaseParameterDataPoint[
         """Return, the category of the data_point."""
         return DataPointCategory.SENSOR if self._is_forced_sensor else self._category
 
-    default = DelegatedProperty[ParameterT](path="_default")
+    default: Final = DelegatedProperty[ParameterT](path="_default")
 
     @property
     def has_status_parameter(self) -> bool:
         """Return if this parameter has a paired STATUS parameter."""
         return self._status_parameter is not None
 
-    hmtype = DelegatedProperty[ParameterType](path="_type")
-    ignore_on_initial_load = DelegatedProperty[bool](path="_ignore_on_initial_load")
-    is_forced_sensor = DelegatedProperty[bool](path="_is_forced_sensor")
+    hmtype: Final = DelegatedProperty[ParameterType](path="_type")
+    ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
+    is_forced_sensor: Final = DelegatedProperty[bool](path="_is_forced_sensor")
 
     @property
     def is_readable(self) -> bool:
@@ -798,7 +798,7 @@ class BaseParameterDataPoint[
             return True
         return self._status_value == ParameterStatus.NORMAL
 
-    is_un_ignored = DelegatedProperty[bool](path="_is_un_ignored")
+    is_un_ignored: Final = DelegatedProperty[bool](path="_is_un_ignored")
 
     @property
     def is_unit_fixed(self) -> bool:
@@ -810,20 +810,20 @@ class BaseParameterDataPoint[
         """Return, if data_point is writable."""
         return False if self._is_forced_sensor else bool(self._operations & Operations.WRITE)
 
-    multiplier = DelegatedProperty[float](path="_multiplier")
-    paramset_key = DelegatedProperty[ParamsetKey](path="_paramset_key")
-    previous_value = DelegatedProperty[ParameterT | None](path="_previous_value")
-    raw_unit = DelegatedProperty[str | None](path="_raw_unit")
-    service = DelegatedProperty[bool](path="_service")
+    multiplier: Final = DelegatedProperty[float](path="_multiplier")
+    paramset_key: Final = DelegatedProperty[ParamsetKey](path="_paramset_key")
+    previous_value: Final = DelegatedProperty[ParameterT | None](path="_previous_value")
+    raw_unit: Final = DelegatedProperty[str | None](path="_raw_unit")
+    service: Final = DelegatedProperty[bool](path="_service")
 
     @property
     def state_uncertain(self) -> bool:
         """Return the state uncertain status."""
         return self._state_uncertain
 
-    status = DelegatedProperty[ParameterStatus | None](path="_status_value")
-    status_dpk = DelegatedProperty[DataPointKey | None](path="_status_dpk")
-    status_parameter = DelegatedProperty[str | None](path="_status_parameter")
+    status: Final = DelegatedProperty[ParameterStatus | None](path="_status_value")
+    status_dpk: Final = DelegatedProperty[DataPointKey | None](path="_status_dpk")
+    status_parameter: Final = DelegatedProperty[str | None](path="_status_parameter")
 
     @property
     def supports_events(self) -> bool:
@@ -838,17 +838,17 @@ class BaseParameterDataPoint[
             self._client.last_value_send_cache.get_last_value_send(dpk=self.dpk),
         )
 
-    visible = DelegatedProperty[bool](path="_visible")
-    max = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
-    min = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
+    visible: Final = DelegatedProperty[bool](path="_visible")
+    max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
+    min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
 
     @config_property
     def unique_id(self) -> str:
         """Return the unique_id."""
         return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
 
-    unit = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
-    values = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
+    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
 
     def _get_value(self) -> ParameterT | None:
         """
@@ -903,7 +903,7 @@ class BaseParameterDataPoint[
             parameter=self._parameter,
         )
 
-    parameter = DelegatedProperty[str](path="_parameter", log_context=True)
+    parameter: Final = DelegatedProperty[str](path="_parameter", log_context=True)
 
     @hm_property(cached=True)
     def requires_polling(self) -> bool:

@@ -106,17 +106,19 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         """Return if this calculated data point is relevant for the channel."""
         return False
 
-    _relevant_data_points = DelegatedProperty[tuple[GenericDataPointProtocolAny, ...]](path="_readable_data_points")
-    default = DelegatedProperty[ParameterT](path="_default")
-    hmtype = DelegatedProperty[ParameterType](path="_type")
-    max = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
-    min = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
-    multiplier = DelegatedProperty[float](path="_multiplier")
-    parameter = DelegatedProperty[str](path="_calculated_parameter")
-    service = DelegatedProperty[bool](path="_service")
-    unit = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
-    values = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
-    visible = DelegatedProperty[bool](path="_visible")
+    _relevant_data_points: Final = DelegatedProperty[tuple[GenericDataPointProtocolAny, ...]](
+        path="_readable_data_points"
+    )
+    default: Final = DelegatedProperty[ParameterT](path="_default")
+    hmtype: Final = DelegatedProperty[ParameterType](path="_type")
+    max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
+    min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
+    multiplier: Final = DelegatedProperty[float](path="_multiplier")
+    parameter: Final = DelegatedProperty[str](path="_calculated_parameter")
+    service: Final = DelegatedProperty[bool](path="_service")
+    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
+    visible: Final = DelegatedProperty[bool](path="_visible")
 
     @property
     def _readable_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:

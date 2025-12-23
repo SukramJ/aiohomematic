@@ -33,13 +33,13 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
 
     _category = DataPointCategory.SENSOR
 
-    _dp_humidity = CalculatedDataPointField(
+    _dp_humidity: Final = CalculatedDataPointField(
         parameter=Parameter.HUMIDITY,
         paramset_key=ParamsetKey.VALUES,
         dpt=DpSensor,
         fallback_parameters=[Parameter.ACTUAL_HUMIDITY],
     )
-    _dp_temperature = CalculatedDataPointField(
+    _dp_temperature: Final = CalculatedDataPointField(
         parameter=Parameter.TEMPERATURE,
         paramset_key=ParamsetKey.VALUES,
         dpt=DpSensor,
@@ -59,7 +59,7 @@ class ApparentTemperature(BaseClimateSensor[float | None]):
 
     _calculated_parameter = CalculatedParameter.APPARENT_TEMPERATURE
 
-    _dp_wind_speed = CalculatedDataPointField(
+    _dp_wind_speed: Final = CalculatedDataPointField(
         parameter=Parameter.WIND_SPEED,
         paramset_key=ParamsetKey.VALUES,
         dpt=DpSensor,

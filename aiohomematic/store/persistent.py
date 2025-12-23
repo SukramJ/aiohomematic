@@ -470,7 +470,7 @@ class ParamsetDescriptionCache(
         # {(device_address, parameter), [channel_no]}
         self._address_parameter_cache: Final[dict[tuple[str, str], set[int | None]]] = {}
 
-    raw_paramset_descriptions = DelegatedProperty[
+    raw_paramset_descriptions: Final = DelegatedProperty[
         Mapping[str, Mapping[str, Mapping[ParamsetKey, Mapping[str, ParameterData]]]]
     ](path="_raw_paramset_descriptions")
 
@@ -663,7 +663,7 @@ class SessionRecorder(BasePersistentFile):
         self.cleanup()
         return f"{self.__class__.__name__}({self._store})"
 
-    active = DelegatedProperty[bool](path="_active")
+    active: Final = DelegatedProperty[bool](path="_active")
 
     @property
     def _should_save(self) -> bool:

@@ -90,7 +90,7 @@ class GenericEvent(BaseParameterDataPointAny, GenericEventProtocolAny):
             unique_id_prefix=f"event_{channel.device.central_info.name}",
         )
 
-    event_type = DelegatedProperty[DeviceTriggerEventType](path="_device_trigger_event_type")
+    event_type: Final = DelegatedProperty[DeviceTriggerEventType](path="_device_trigger_event_type")
 
     @property
     def usage(self) -> DataPointUsage:

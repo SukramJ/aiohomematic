@@ -149,14 +149,14 @@ class BaseCustomDpClimate(CustomDataPoint):
     _category = DataPointCategory.CLIMATE
 
     # Declarative data point field definitions
-    _dp_humidity = DataPointField(field=Field.HUMIDITY, dpt=DpSensor[int | None])
-    _dp_min_max_value_not_relevant_for_manu_mode = DataPointField(
+    _dp_humidity: Final = DataPointField(field=Field.HUMIDITY, dpt=DpSensor[int | None])
+    _dp_min_max_value_not_relevant_for_manu_mode: Final = DataPointField(
         field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, dpt=DpSwitch
     )
-    _dp_setpoint = DataPointField(field=Field.SETPOINT, dpt=DpFloat)
-    _dp_temperature = DataPointField(field=Field.TEMPERATURE, dpt=DpSensor[float | None])
-    _dp_temperature_maximum = DataPointField(field=Field.TEMPERATURE_MAXIMUM, dpt=DpFloat)
-    _dp_temperature_minimum = DataPointField(field=Field.TEMPERATURE_MINIMUM, dpt=DpFloat)
+    _dp_setpoint: Final = DataPointField(field=Field.SETPOINT, dpt=DpFloat)
+    _dp_temperature: Final = DataPointField(field=Field.TEMPERATURE, dpt=DpSensor[float | None])
+    _dp_temperature_maximum: Final = DataPointField(field=Field.TEMPERATURE_MAXIMUM, dpt=DpFloat)
+    _dp_temperature_minimum: Final = DataPointField(field=Field.TEMPERATURE_MINIMUM, dpt=DpFloat)
 
     def __init__(
         self,
@@ -184,9 +184,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
         self._old_manu_setpoint: float | None = None
 
-    current_humidity = DelegatedProperty[int | None](path="_dp_humidity.value", kind=Kind.STATE)
-    current_temperature = DelegatedProperty[float | None](path="_dp_temperature.value", kind=Kind.STATE)
-    target_temperature = DelegatedProperty[float | None](path="_dp_setpoint.value", kind=Kind.STATE)
+    current_humidity: Final = DelegatedProperty[int | None](path="_dp_humidity.value", kind=Kind.STATE)
+    current_temperature: Final = DelegatedProperty[float | None](path="_dp_temperature.value", kind=Kind.STATE)
+    target_temperature: Final = DelegatedProperty[float | None](path="_dp_setpoint.value", kind=Kind.STATE)
 
     @property
     def _temperature_for_heat_mode(self) -> float:
@@ -592,15 +592,15 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_auto_mode = DataPointField(field=Field.AUTO_MODE, dpt=DpAction)
-    _dp_boost_mode = DataPointField(field=Field.BOOST_MODE, dpt=DpAction)
-    _dp_comfort_mode = DataPointField(field=Field.COMFORT_MODE, dpt=DpAction)
-    _dp_control_mode = DataPointField(field=Field.CONTROL_MODE, dpt=DpSensor[str | None])
-    _dp_lowering_mode = DataPointField(field=Field.LOWERING_MODE, dpt=DpAction)
-    _dp_manu_mode = DataPointField(field=Field.MANU_MODE, dpt=DpAction)
-    _dp_temperature_offset = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpSelect)
-    _dp_valve_state = DataPointField(field=Field.VALVE_STATE, dpt=DpSensor[int | None])
-    _dp_week_program_pointer = DataPointField(field=Field.WEEK_PROGRAM_POINTER, dpt=DpSelect)
+    _dp_auto_mode: Final = DataPointField(field=Field.AUTO_MODE, dpt=DpAction)
+    _dp_boost_mode: Final = DataPointField(field=Field.BOOST_MODE, dpt=DpAction)
+    _dp_comfort_mode: Final = DataPointField(field=Field.COMFORT_MODE, dpt=DpAction)
+    _dp_control_mode: Final = DataPointField(field=Field.CONTROL_MODE, dpt=DpSensor[str | None])
+    _dp_lowering_mode: Final = DataPointField(field=Field.LOWERING_MODE, dpt=DpAction)
+    _dp_manu_mode: Final = DataPointField(field=Field.MANU_MODE, dpt=DpAction)
+    _dp_temperature_offset: Final = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpSelect)
+    _dp_valve_state: Final = DataPointField(field=Field.VALVE_STATE, dpt=DpSensor[int | None])
+    _dp_week_program_pointer: Final = DataPointField(field=Field.WEEK_PROGRAM_POINTER, dpt=DpSelect)
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -793,20 +793,20 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_active_profile = DataPointField(field=Field.ACTIVE_PROFILE, dpt=DpInteger)
-    _dp_boost_mode = DataPointField(field=Field.BOOST_MODE, dpt=DpSwitch)
-    _dp_control_mode = DataPointField(field=Field.CONTROL_MODE, dpt=DpAction)
-    _dp_heating_mode = DataPointField(field=Field.HEATING_COOLING, dpt=DpSelect)
-    _dp_heating_valve_type = DataPointField(field=Field.HEATING_VALVE_TYPE, dpt=DpSelect)
-    _dp_level = DataPointField(field=Field.LEVEL, dpt=DpFloat)
-    _dp_optimum_start_stop = DataPointField(field=Field.OPTIMUM_START_STOP, dpt=DpSwitch)
-    _dp_party_mode = DataPointField(field=Field.PARTY_MODE, dpt=DpBinarySensor)
-    _dp_set_point_mode = DataPointField(field=Field.SET_POINT_MODE, dpt=DpInteger)
-    _dp_state = DataPointField(field=Field.STATE, dpt=DpBinarySensor)
-    _dp_temperature_offset = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpFloat)
+    _dp_active_profile: Final = DataPointField(field=Field.ACTIVE_PROFILE, dpt=DpInteger)
+    _dp_boost_mode: Final = DataPointField(field=Field.BOOST_MODE, dpt=DpSwitch)
+    _dp_control_mode: Final = DataPointField(field=Field.CONTROL_MODE, dpt=DpAction)
+    _dp_heating_mode: Final = DataPointField(field=Field.HEATING_COOLING, dpt=DpSelect)
+    _dp_heating_valve_type: Final = DataPointField(field=Field.HEATING_VALVE_TYPE, dpt=DpSelect)
+    _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
+    _dp_optimum_start_stop: Final = DataPointField(field=Field.OPTIMUM_START_STOP, dpt=DpSwitch)
+    _dp_party_mode: Final = DataPointField(field=Field.PARTY_MODE, dpt=DpBinarySensor)
+    _dp_set_point_mode: Final = DataPointField(field=Field.SET_POINT_MODE, dpt=DpInteger)
+    _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpBinarySensor)
+    _dp_temperature_offset: Final = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpFloat)
 
-    optimum_start_stop = DelegatedProperty[bool | None](path="_dp_optimum_start_stop.value")
-    temperature_offset = DelegatedProperty[float | None](path="_dp_temperature_offset.value", kind=Kind.STATE)
+    optimum_start_stop: Final = DelegatedProperty[bool | None](path="_dp_optimum_start_stop.value")
+    temperature_offset: Final = DelegatedProperty[float | None](path="_dp_temperature_offset.value", kind=Kind.STATE)
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:

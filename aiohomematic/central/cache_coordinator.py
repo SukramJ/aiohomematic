@@ -122,12 +122,12 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             active=session_recorder_active,
         )
 
-    data_cache = DelegatedProperty[CentralDataCache](path="_data_cache")
-    device_descriptions = DelegatedProperty[DeviceDescriptionCache](path="_device_descriptions_cache")
-    device_details = DelegatedProperty[DeviceDetailsCache](path="_device_details_cache")
-    parameter_visibility = DelegatedProperty[ParameterVisibilityCache](path="_parameter_visibility_cache")
-    paramset_descriptions = DelegatedProperty[ParamsetDescriptionCache](path="_paramset_descriptions_cache")
-    recorder = DelegatedProperty[SessionRecorder](path="_session_recorder")
+    data_cache: Final = DelegatedProperty[CentralDataCache](path="_data_cache")
+    device_descriptions: Final = DelegatedProperty[DeviceDescriptionCache](path="_device_descriptions_cache")
+    device_details: Final = DelegatedProperty[DeviceDetailsCache](path="_device_details_cache")
+    parameter_visibility: Final = DelegatedProperty[ParameterVisibilityCache](path="_parameter_visibility_cache")
+    paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionCache](path="_paramset_descriptions_cache")
+    recorder: Final = DelegatedProperty[SessionRecorder](path="_session_recorder")
 
     async def clear_all(self) -> None:
         """Clear all caches and remove stored files."""

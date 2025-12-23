@@ -107,10 +107,10 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
     _open_level: float = _OPEN_LEVEL
 
     # Declarative data point field definitions
-    _dp_direction = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
-    _dp_group_level = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
-    _dp_level = DataPointField(field=Field.LEVEL, dpt=DpFloat)
-    _dp_stop = DataPointField(field=Field.STOP, dpt=DpAction)
+    _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_group_level: Final = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
+    _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
+    _dp_stop: Final = DataPointField(field=Field.STOP, dpt=DpAction)
 
     @property
     def _group_level(self) -> float:
@@ -266,8 +266,8 @@ class CustomDpBlind(CustomDpCover):
 
     # Declarative data point field definitions
     _dp_combined = DataPointField(field=Field.LEVEL_COMBINED, dpt=DpAction)
-    _dp_group_level_2 = DataPointField(field=Field.GROUP_LEVEL_2, dpt=DpSensor[float | None])
-    _dp_level_2 = DataPointField(field=Field.LEVEL_2, dpt=DpFloat)
+    _dp_group_level_2: Final = DataPointField(field=Field.GROUP_LEVEL_2, dpt=DpSensor[float | None])
+    _dp_level_2: Final = DataPointField(field=Field.LEVEL_2, dpt=DpFloat)
 
     @property
     def _group_tilt_level(self) -> float:
@@ -497,7 +497,7 @@ class CustomDpIpBlind(CustomDpBlind):
 
     # Declarative data point field definitions (override parent)
     _dp_combined = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpAction)
-    _dp_operation_mode = DataPointField(field=Field.OPERATION_MODE, dpt=DpSelect)
+    _dp_operation_mode: Final = DataPointField(field=Field.OPERATION_MODE, dpt=DpSelect)
 
     @property
     def operation_mode(self) -> str | None:
@@ -528,9 +528,9 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     _category = DataPointCategory.COVER
 
     # Declarative data point field definitions
-    _dp_door_command = DataPointField(field=Field.DOOR_COMMAND, dpt=DpActionSelect)
-    _dp_door_state = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
-    _dp_section = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
+    _dp_door_command: Final = DataPointField(field=Field.DOOR_COMMAND, dpt=DpActionSelect)
+    _dp_door_state: Final = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
+    _dp_section: Final = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
 
     @state_property
     def current_position(self) -> int | None:

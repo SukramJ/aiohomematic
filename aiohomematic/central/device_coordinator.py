@@ -159,7 +159,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         self._delayed_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         self._device_add_semaphore: Final = asyncio.Semaphore()
 
-    device_registry = DelegatedProperty["DeviceRegistry"](path="_coordinator_provider.device_registry")
+    device_registry: Final = DelegatedProperty["DeviceRegistry"](path="_coordinator_provider.device_registry")
 
     @property
     def devices(self) -> tuple[DeviceProtocol, ...]:

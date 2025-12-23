@@ -96,15 +96,15 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         self._update_in_progress: bool = False
         self._version_before_update: str | None = None
 
-    available = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
-    available_firmware = DelegatedProperty[str](path="_available_firmware", kind=Kind.STATE)
-    current_firmware = DelegatedProperty[str](path="_current_firmware", kind=Kind.STATE)
-    enabled_default = DelegatedProperty[bool](path="_enabled_default")
-    full_name = DelegatedProperty[str](path="_name_data.full_name")
-    in_progress = DelegatedProperty[bool](path="_update_in_progress", kind=Kind.STATE)
-    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
-    state_uncertain = DelegatedProperty[bool](path="_state_uncertain")
-    update_available = DelegatedProperty[bool](path="_update_available", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    available_firmware: Final = DelegatedProperty[str](path="_available_firmware", kind=Kind.STATE)
+    current_firmware: Final = DelegatedProperty[str](path="_current_firmware", kind=Kind.STATE)
+    enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
+    full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
+    in_progress: Final = DelegatedProperty[bool](path="_update_in_progress", kind=Kind.STATE)
+    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
+    update_available: Final = DelegatedProperty[bool](path="_update_available", kind=Kind.STATE)
 
     @property
     def channel(self) -> ChannelProtocol | None:

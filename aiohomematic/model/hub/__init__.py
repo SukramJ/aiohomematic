@@ -222,9 +222,9 @@ class Hub(HubProtocol):
         self._inbox_dp: HmInboxSensor | None = None
         self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
 
-    inbox_dp = DelegatedProperty[HmInboxSensor | None](path="_inbox_dp")
-    install_mode_dps = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_install_mode_dps")
-    update_dp = DelegatedProperty[HmUpdate | None](path="_update_dp")
+    inbox_dp: Final = DelegatedProperty[HmInboxSensor | None](path="_inbox_dp")
+    install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_install_mode_dps")
+    update_dp: Final = DelegatedProperty[HmUpdate | None](path="_update_dp")
 
     def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """

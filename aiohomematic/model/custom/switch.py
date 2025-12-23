@@ -33,9 +33,9 @@ class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
     # Declarative data point field definitions
     _dp_group_state = DataPointField(field=Field.GROUP_STATE, dpt=DpBinarySensor)
     _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
-    _dp_state = DataPointField(field=Field.STATE, dpt=DpSwitch)
+    _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
 
-    value = DelegatedProperty[bool | None](path="_dp_state.value", kind=Kind.STATE)
+    value: Final = DelegatedProperty[bool | None](path="_dp_state.value", kind=Kind.STATE)
 
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""

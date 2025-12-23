@@ -182,8 +182,8 @@ class CircuitBreaker:
         self._last_failure_time: datetime | None = None
         self._metrics: CircuitBreakerMetrics = CircuitBreakerMetrics()
 
-    metrics = DelegatedProperty[CircuitBreakerMetrics](path="_metrics")
-    state = DelegatedProperty[CircuitState](path="_state")
+    metrics: Final = DelegatedProperty[CircuitBreakerMetrics](path="_metrics")
+    state: Final = DelegatedProperty[CircuitState](path="_state")
 
     @property
     def is_available(self) -> bool:

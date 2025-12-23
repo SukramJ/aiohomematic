@@ -88,9 +88,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         with contextlib.suppress(Exception):
             self.unsubscribe_from_data_point_updated()
 
-    allow_undefined_generic_data_points = DelegatedProperty[bool](path="_allow_undefined_generic_data_points")
-    device_config = DelegatedProperty[DeviceConfig](path="_device_config")
-    group_no = DelegatedProperty[int | None](path="_group_no")
+    allow_undefined_generic_data_points: Final = DelegatedProperty[bool](path="_allow_undefined_generic_data_points")
+    device_config: Final = DelegatedProperty[DeviceConfig](path="_device_config")
+    group_no: Final = DelegatedProperty[int | None](path="_group_no")
 
     @property
     def _readable_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:

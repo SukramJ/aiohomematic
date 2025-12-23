@@ -332,29 +332,29 @@ class CentralUnit(
         """Provide some useful information."""
         return f"central: {self.name}"
 
-    available = DelegatedProperty[bool](path="_client_coordinator.available")
-    cache_coordinator = DelegatedProperty[CacheCoordinator](path="_cache_coordinator")
-    callback_ip_addr = DelegatedProperty[str](path="_rpc_callback_ip")
-    central_state_machine = DelegatedProperty[CentralStateMachine](path="_central_state_machine")
-    client_coordinator = DelegatedProperty[ClientCoordinator](path="_client_coordinator")
-    config = DelegatedProperty["CentralConfig"](path="_config")
-    connection_state = DelegatedProperty["CentralConnectionState"](path="_connection_state")
-    device_coordinator = DelegatedProperty[DeviceCoordinator](path="_device_coordinator")
-    device_registry = DelegatedProperty[DeviceRegistry](path="_device_registry")
-    devices = DelegatedProperty[tuple[DeviceProtocol, ...]](path="_device_registry.devices")
-    event_bus = DelegatedProperty[EventBus](path="_event_bus")
-    event_coordinator = DelegatedProperty[EventCoordinator](path="_event_coordinator")
-    health = DelegatedProperty[CentralHealth](path="_health_tracker.health")
-    health_tracker = DelegatedProperty[HealthTracker](path="_health_tracker")
-    hub_coordinator = DelegatedProperty[HubCoordinator](path="_hub_coordinator")
-    interfaces = DelegatedProperty[frozenset[Interface]](path="_client_coordinator.interfaces")
-    listen_ip_addr = DelegatedProperty[str](path="_listen_ip_addr")
-    listen_port_xml_rpc = DelegatedProperty[int](path="_listen_port_xml_rpc")
-    looper = DelegatedProperty[Looper](path="_looper")
-    name = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
-    recovery_coordinator = DelegatedProperty[RecoveryCoordinator](path="_recovery_coordinator")
-    state = DelegatedProperty[CentralState](path="_central_state_machine.state")
-    url = DelegatedProperty[str](path="_url", kind=Kind.INFO, log_context=True)
+    available: Final = DelegatedProperty[bool](path="_client_coordinator.available")
+    cache_coordinator: Final = DelegatedProperty[CacheCoordinator](path="_cache_coordinator")
+    callback_ip_addr: Final = DelegatedProperty[str](path="_rpc_callback_ip")
+    central_state_machine: Final = DelegatedProperty[CentralStateMachine](path="_central_state_machine")
+    client_coordinator: Final = DelegatedProperty[ClientCoordinator](path="_client_coordinator")
+    config: Final = DelegatedProperty["CentralConfig"](path="_config")
+    connection_state: Final = DelegatedProperty["CentralConnectionState"](path="_connection_state")
+    device_coordinator: Final = DelegatedProperty[DeviceCoordinator](path="_device_coordinator")
+    device_registry: Final = DelegatedProperty[DeviceRegistry](path="_device_registry")
+    devices: Final = DelegatedProperty[tuple[DeviceProtocol, ...]](path="_device_registry.devices")
+    event_bus: Final = DelegatedProperty[EventBus](path="_event_bus")
+    event_coordinator: Final = DelegatedProperty[EventCoordinator](path="_event_coordinator")
+    health: Final = DelegatedProperty[CentralHealth](path="_health_tracker.health")
+    health_tracker: Final = DelegatedProperty[HealthTracker](path="_health_tracker")
+    hub_coordinator: Final = DelegatedProperty[HubCoordinator](path="_hub_coordinator")
+    interfaces: Final = DelegatedProperty[frozenset[Interface]](path="_client_coordinator.interfaces")
+    listen_ip_addr: Final = DelegatedProperty[str](path="_listen_ip_addr")
+    listen_port_xml_rpc: Final = DelegatedProperty[int](path="_listen_port_xml_rpc")
+    looper: Final = DelegatedProperty[Looper](path="_looper")
+    name: Final = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
+    recovery_coordinator: Final = DelegatedProperty[RecoveryCoordinator](path="_recovery_coordinator")
+    state: Final = DelegatedProperty[CentralState](path="_central_state_machine.state")
+    url: Final = DelegatedProperty[str](path="_url", kind=Kind.INFO, log_context=True)
 
     @property
     def _has_active_threads(self) -> bool:
@@ -1366,7 +1366,7 @@ class CentralConfig:
             **kwargs,
         )
 
-    optional_settings = DelegatedProperty[frozenset[OptionalSettings | str]](path="_optional_settings")
+    optional_settings: Final = DelegatedProperty[frozenset[OptionalSettings | str]](path="_optional_settings")
 
     @property
     def connection_check_port(self) -> int:

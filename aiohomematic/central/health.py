@@ -496,7 +496,7 @@ class HealthTracker(HealthTrackerProtocol):
         self._state_machine = state_machine
         self._central_health: Final = CentralHealth()
 
-    health = DelegatedProperty[CentralHealth](path="_central_health")
+    health: Final = DelegatedProperty[CentralHealth](path="_central_health")
 
     def get_client_health(self, *, interface_id: str) -> ConnectionHealth | None:
         """

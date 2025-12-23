@@ -64,7 +64,7 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
         self._supports_backup: Final = supports_backup
         self._system_information: Final = system_information
 
-    supports_backup = DelegatedProperty[bool](path="_supports_backup")
+    supports_backup: Final = DelegatedProperty[bool](path="_supports_backup")
 
     @inspector(re_raise=False)
     async def create_backup_and_download(

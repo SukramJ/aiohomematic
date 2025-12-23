@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from typing import Final
+
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.model.hub.data_point import GenericProgramDataPoint, GenericSysvarDataPoint
@@ -26,7 +28,7 @@ class ProgramDpSwitch(GenericProgramDataPoint):
 
     _category = DataPointCategory.HUB_SWITCH
 
-    value = DelegatedProperty[bool | None](path="_is_active", kind=Kind.STATE)
+    value: Final = DelegatedProperty[bool | None](path="_is_active", kind=Kind.STATE)
 
     @inspector
     async def turn_off(self) -> None:

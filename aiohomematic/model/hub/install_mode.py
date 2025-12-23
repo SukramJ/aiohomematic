@@ -94,9 +94,9 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         )
         self._primary_client_provider: Final = primary_client_provider
 
-    channel = DelegatedProperty[ChannelProtocol | None](path="_channel")
-    full_name = DelegatedProperty[str](path="_name_data.full_name")
-    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    channel: Final = DelegatedProperty[ChannelProtocol | None](path="_channel")
+    full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
+    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
 
     @property
     def enabled_default(self) -> bool:
@@ -350,7 +350,7 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
         )
         self._sensor: Final = sensor
 
-    sensor = DelegatedProperty[GenericInstallModeDataPointProtocol](path="_sensor")
+    sensor: Final = DelegatedProperty[GenericInstallModeDataPointProtocol](path="_sensor")
 
     @inspector
     async def activate(

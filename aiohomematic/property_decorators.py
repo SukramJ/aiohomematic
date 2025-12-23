@@ -67,17 +67,17 @@ class DelegatedProperty[ValueT]:
 
     Usage:
         # Simple delegation:
-        interface = DelegatedProperty[Interface](path="_config.interface")
+        interface: Final = DelegatedProperty[Interface](path="_config.interface")
 
         # With caching and kind:
-        state = DelegatedProperty[ClientState](
+        state: Final = DelegatedProperty[ClientState](
             path="_state_machine.state",
             kind=Kind.STATE,
             cached=True,
         )
 
         # With log_context:
-        interface_id = DelegatedProperty[str](
+        interface_id: Final = DelegatedProperty[str](
             path="_config.interface_id",
             kind=Kind.INFO,
             log_context=True,

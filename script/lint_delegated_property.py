@@ -284,7 +284,7 @@ def parse_file(file_path: Path) -> DelegatedPropertyVisitor | None:
     try:
         source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(file_path))
-        visitor = DelegatedPropertyVisitor(file_path)
+        visitor: Final = DelegatedPropertyVisitor(file_path)
         visitor.visit(tree)
     except SyntaxError as e:
         print(f"Syntax error in {file_path}: {e}", file=sys.stderr)

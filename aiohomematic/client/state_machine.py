@@ -154,9 +154,9 @@ class ClientStateMachine:
         self._failure_message: str = ""
         self.on_state_change: StateChangeCallbackProtocol | None = None
 
-    failure_message = DelegatedProperty[str](path="_failure_message")
-    failure_reason = DelegatedProperty[FailureReason](path="_failure_reason")
-    state = DelegatedProperty[ClientState](path="_state")
+    failure_message: Final = DelegatedProperty[str](path="_failure_message")
+    failure_reason: Final = DelegatedProperty[FailureReason](path="_failure_reason")
+    state: Final = DelegatedProperty[ClientState](path="_state")
 
     @property
     def can_reconnect(self) -> bool:

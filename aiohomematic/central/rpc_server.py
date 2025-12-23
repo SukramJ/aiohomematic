@@ -209,8 +209,8 @@ class RpcServer(threading.Thread):
         self._instances[self._address] = self
         threading.Thread.__init__(self, name=f"RpcServer {self._listen_ip_addr}:{self._listen_port}")
 
-    listen_ip_addr = DelegatedProperty[str](path="_listen_ip_addr")
-    listen_port = DelegatedProperty[int](path="_listen_port")
+    listen_ip_addr: Final = DelegatedProperty[str](path="_listen_ip_addr")
+    listen_port: Final = DelegatedProperty[int](path="_listen_port")
 
     @property
     def no_central_assigned(self) -> bool:

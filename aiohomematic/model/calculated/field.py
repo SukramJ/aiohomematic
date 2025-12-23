@@ -38,14 +38,14 @@ class CalculatedDataPointField[DataPointT: GenericDataPointProtocolAny]:
     Usage:
         class MyCalculatedSensor(CalculatedDataPoint):
             # Simple field
-            _dp_wind_speed = CalculatedDataPointField(
+            _dp_wind_speed: Final = CalculatedDataPointField(
                 parameter=Parameter.WIND_SPEED,
                 paramset_key=ParamsetKey.VALUES,
                 dpt=DpSensor,
             )
 
             # Field with fallback parameters
-            _dp_temperature = CalculatedDataPointField(
+            _dp_temperature: Final = CalculatedDataPointField(
                 parameter=Parameter.TEMPERATURE,
                 paramset_key=ParamsetKey.VALUES,
                 dpt=DpSensor,
@@ -53,7 +53,7 @@ class CalculatedDataPointField[DataPointT: GenericDataPointProtocolAny]:
             )
 
             # Field with device fallback (tries device address if not on channel)
-            _dp_low_bat_limit = CalculatedDataPointField(
+            _dp_low_bat_limit: Final = CalculatedDataPointField(
                 parameter=Parameter.LOW_BAT_LIMIT,
                 paramset_key=ParamsetKey.MASTER,
                 dpt=DpFloat,
@@ -142,6 +142,6 @@ class CalculatedDataPointField[DataPointT: GenericDataPointProtocolAny]:
         instance._data_points[key] = dp
         return cast(DataPointT, dp)
 
-    data_point_type = DelegatedProperty[type[DataPointT]](path="_data_point_type")
-    parameter = DelegatedProperty[str](path="_parameter")
-    paramset_key = DelegatedProperty[ParamsetKey | None](path="_paramset_key")
+    data_point_type: Final = DelegatedProperty[type[DataPointT]](path="_data_point_type")
+    parameter: Final = DelegatedProperty[str](path="_parameter")
+    paramset_key: Final = DelegatedProperty[ParamsetKey | None](path="_paramset_key")

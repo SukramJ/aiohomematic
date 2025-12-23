@@ -267,7 +267,7 @@ class RecoveryCoordinator:
         self._in_recovery: bool = False
         self._shutdown: bool = False
 
-    in_recovery = DelegatedProperty[bool](path="_in_recovery")
+    in_recovery: Final = DelegatedProperty[bool](path="_in_recovery")
 
     @property
     def recovery_states(self) -> dict[str, RecoveryState]:

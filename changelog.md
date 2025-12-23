@@ -1,3 +1,17 @@
+# Version 2025.12.45 (2025-12-23)
+
+## What's Changed
+
+### Improvements
+
+- **Enhance `sort_class_members.py` for property assignments**: Improved handling of property-like class attributes
+
+  - Support `DelegatedProperty` with `ast.AnnAssign` (annotated assignments like `name: Final = DelegatedProperty[...]()`)
+  - Sort `_GenericProperty` assignments to the end of classes (ensures referenced methods are already defined)
+  - Added `GENERIC_PROPERTY` group constant for proper ordering
+
+- **Add DP006 validation to lint-delegated-property**: Reports when `DelegatedProperty(cached=True)` is used without the required `_cached_{property_name}` slot
+
 # Version 2025.12.44 (2025-12-23)
 
 ## What's Changed

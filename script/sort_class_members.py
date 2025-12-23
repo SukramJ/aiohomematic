@@ -16,6 +16,7 @@ Order according to the requested convention:
 6. Public methods (no leading underscore)
 7. Protected methods (single leading underscore)
 8. Private methods (double leading underscore, but not dunder)
+9. _GenericProperty assignments (sorted last - they reference methods by name)
 
 Additional rules implemented:
 - Alphabetical sorting within groups (by function name).
@@ -74,6 +75,7 @@ PROPERTY = "property"
 PUBLIC = "public"
 PROTECTED = "protected"
 PRIVATE = "private"
+GENERIC_PROPERTY = "generic_property"  # Sorted last - references methods by name
 
 
 def read_file(path: Path) -> str:
@@ -139,41 +141,64 @@ def _decorator_name(dec: ast.expr) -> tuple[str | None, str | None]:
     return None, None
 
 
-def _is_delegated_property(node: ast.AST) -> str | None:
+def _is_property_assignment(node: ast.AST) -> tuple[str | None, str | None]:
     """
-    Check if a node is a DelegatedProperty assignment.
+    Check if a node is a property-like assignment (DelegatedProperty or _GenericProperty).
 
-    Returns the property name if it is, None otherwise.
+    Returns (property_name, property_type) if it is, (None, None) otherwise.
+    property_type is "DelegatedProperty" or "_GenericProperty".
 
     Detects patterns like:
+        name = DelegatedProperty[Type](path="path")
         name: Final = DelegatedProperty[Type](path="path")
-        name: Final = DelegatedProperty[Type](path="path", cached=True)
+        name: _GenericProperty[T, S] = _GenericProperty(fget=..., fset=...)
 
     """
-    if not isinstance(node, ast.Assign):
-        return None
-
-    # Must have exactly one target that is a simple name
-    if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
-        return None
+    # Handle both ast.Assign and ast.AnnAssign (annotated assignment with Final)
+    if isinstance(node, ast.Assign):
+        # Must have exactly one target that is a simple name
+        if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+            return None, None
+        target_name = node.targets[0].id
+        value = node.value
+    elif isinstance(node, ast.AnnAssign):
+        # Annotated assignment: name: Final = DelegatedProperty[...]()
+        if not isinstance(node.target, ast.Name) or node.value is None:
+            return None, None
+        target_name = node.target.id
+        value = node.value
+    else:
+        return None, None
 
     # Value must be a Call
-    if not isinstance(node.value, ast.Call):
-        return None
+    if not isinstance(value, ast.Call):
+        return None, None
 
-    func = node.value.func
+    func = value.func
 
     # Check for DelegatedProperty[...](...)
-    if not isinstance(func, ast.Subscript):
-        return None
+    if isinstance(func, ast.Subscript) and isinstance(func.value, ast.Name) and func.value.id == "DelegatedProperty":
+        return target_name, "DelegatedProperty"
 
-    if not isinstance(func.value, ast.Name):
-        return None
+    # Check for _GenericProperty(...) - may or may not have type subscript
+    if isinstance(func, ast.Name) and func.id == "_GenericProperty":
+        return target_name, "_GenericProperty"
+    if isinstance(func, ast.Subscript) and isinstance(func.value, ast.Name) and func.value.id == "_GenericProperty":
+        return target_name, "_GenericProperty"
 
-    if func.value.id != "DelegatedProperty":
-        return None
+    return None, None
 
-    return node.targets[0].id
+
+def _is_delegated_property(node: ast.AST) -> str | None:
+    """Check if a node is a DelegatedProperty assignment. Returns property name or None."""
+    name, prop_type = _is_property_assignment(node)
+    return name if prop_type == "DelegatedProperty" else None
+
+
+def _is_generic_property(node: ast.AST) -> str | None:
+    """Check if a node is a _GenericProperty assignment. Returns property name or None."""
+    name, prop_type = _is_property_assignment(node)
+    return name if prop_type == "_GenericProperty" else None
 
 
 def _member_span(node: ast.AST) -> tuple[int, int]:
@@ -200,7 +225,7 @@ def _method_span(node: ast.AST) -> tuple[int, int]:
 
 
 def _collect_members(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]:
-    """Collect sortable class members (methods and DelegatedProperty assignments)."""
+    """Collect sortable class members (methods, DelegatedProperty and _GenericProperty assignments)."""
     members: list[MethodSeg] = []
     for node in cls.body:
         # Check for DelegatedProperty assignment first
@@ -215,6 +240,25 @@ def _collect_members(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]
                     end=end,
                     text=text,
                     group=DELEGATED_PROPERTY,
+                    subgroup="",
+                    propname=None,
+                    prop_kind=None,
+                )
+            )
+            continue
+
+        # Check for _GenericProperty assignment (sorted last - references methods by name)
+        gp_name = _is_generic_property(node)
+        if gp_name is not None:
+            start, end = _member_span(node)
+            text = "".join(src_lines[start - 1 : end])
+            members.append(
+                MethodSeg(
+                    name=gp_name,
+                    start=start,
+                    end=end,
+                    text=text,
+                    group=GENERIC_PROPERTY,
                     subgroup="",
                     propname=None,
                     prop_kind=None,
@@ -342,6 +386,7 @@ def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
     public = [m for m in methods if m.group == PUBLIC]
     protected = [m for m in methods if m.group == PROTECTED]
     private = [m for m in methods if m.group == PRIVATE]
+    generic_props = [m for m in methods if m.group == GENERIC_PROPERTY]
 
     def alpha(ms: list[MethodSeg]) -> list[MethodSeg]:
         return sorted(ms, key=lambda m: m.name)
@@ -358,6 +403,8 @@ def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
     ordered += alpha(public)
     ordered += alpha(protected)
     ordered += alpha(private)
+    # _GenericProperty assignments go last - they reference methods by name
+    ordered += alpha(generic_props)
 
     return ordered
 
@@ -373,10 +420,12 @@ def _rewrite_class(src_lines: list[str], cls: ast.ClassDef) -> tuple[bool, list[
 
     # Safety: if there are non-sortable statements between sortable members, skip this class
     for node in cls.body:
-        # Skip sortable members (functions and DelegatedProperty assignments)
+        # Skip sortable members (functions, DelegatedProperty and _GenericProperty assignments)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         if _is_delegated_property(node) is not None:
+            continue
+        if _is_generic_property(node) is not None:
             continue
 
         n_start = getattr(node, "lineno", None)

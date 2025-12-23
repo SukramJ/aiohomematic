@@ -765,6 +765,26 @@ class BaseParameterDataPoint[
             if status_param_data and (value_list := status_param_data.get("VALUE_LIST")):
                 self._status_value_list = tuple(value_list)
 
+    default: Final = DelegatedProperty[ParameterT](path="_default")
+    hmtype: Final = DelegatedProperty[ParameterType](path="_type")
+    ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
+    is_forced_sensor: Final = DelegatedProperty[bool](path="_is_forced_sensor")
+    is_un_ignored: Final = DelegatedProperty[bool](path="_is_un_ignored")
+    max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
+    min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
+    multiplier: Final = DelegatedProperty[float](path="_multiplier")
+    parameter: Final = DelegatedProperty[str](path="_parameter", log_context=True)
+    paramset_key: Final = DelegatedProperty[ParamsetKey](path="_paramset_key")
+    previous_value: Final = DelegatedProperty[ParameterT | None](path="_previous_value")
+    raw_unit: Final = DelegatedProperty[str | None](path="_raw_unit")
+    service: Final = DelegatedProperty[bool](path="_service")
+    status: Final = DelegatedProperty[ParameterStatus | None](path="_status_value")
+    status_dpk: Final = DelegatedProperty[DataPointKey | None](path="_status_dpk")
+    status_parameter: Final = DelegatedProperty[str | None](path="_status_parameter")
+    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
+    visible: Final = DelegatedProperty[bool](path="_visible")
+
     @property
     def _value(self) -> ParameterT | None:
         """Return the value of the data_point."""
@@ -775,16 +795,10 @@ class BaseParameterDataPoint[
         """Return, the category of the data_point."""
         return DataPointCategory.SENSOR if self._is_forced_sensor else self._category
 
-    default: Final = DelegatedProperty[ParameterT](path="_default")
-
     @property
     def has_status_parameter(self) -> bool:
         """Return if this parameter has a paired STATUS parameter."""
         return self._status_parameter is not None
-
-    hmtype: Final = DelegatedProperty[ParameterType](path="_type")
-    ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
-    is_forced_sensor: Final = DelegatedProperty[bool](path="_is_forced_sensor")
 
     @property
     def is_readable(self) -> bool:
@@ -798,8 +812,6 @@ class BaseParameterDataPoint[
             return True
         return self._status_value == ParameterStatus.NORMAL
 
-    is_un_ignored: Final = DelegatedProperty[bool](path="_is_un_ignored")
-
     @property
     def is_unit_fixed(self) -> bool:
         """Return if the unit is fixed."""
@@ -810,20 +822,10 @@ class BaseParameterDataPoint[
         """Return, if data_point is writable."""
         return False if self._is_forced_sensor else bool(self._operations & Operations.WRITE)
 
-    multiplier: Final = DelegatedProperty[float](path="_multiplier")
-    paramset_key: Final = DelegatedProperty[ParamsetKey](path="_paramset_key")
-    previous_value: Final = DelegatedProperty[ParameterT | None](path="_previous_value")
-    raw_unit: Final = DelegatedProperty[str | None](path="_raw_unit")
-    service: Final = DelegatedProperty[bool](path="_service")
-
     @property
     def state_uncertain(self) -> bool:
         """Return the state uncertain status."""
         return self._state_uncertain
-
-    status: Final = DelegatedProperty[ParameterStatus | None](path="_status_value")
-    status_dpk: Final = DelegatedProperty[DataPointKey | None](path="_status_dpk")
-    status_parameter: Final = DelegatedProperty[str | None](path="_status_parameter")
 
     @property
     def supports_events(self) -> bool:
@@ -838,49 +840,10 @@ class BaseParameterDataPoint[
             self._client.last_value_send_cache.get_last_value_send(dpk=self.dpk),
         )
 
-    visible: Final = DelegatedProperty[bool](path="_visible")
-    max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
-    min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
-
     @config_property
     def unique_id(self) -> str:
         """Return the unique_id."""
         return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
-
-    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
-    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
-
-    def _get_value(self) -> ParameterT | None:
-        """
-        Return the value for readings. Override in subclasses for custom value processing.
-
-        Subclasses like DpSelect, DpSensor, DpBinarySensor override this to:
-        - Convert integer indices to string values from VALUE_LIST
-        - Apply value converters (e.g., RSSI negation)
-        - Return defaults when value is None
-        """
-        return self._value
-
-    def __get_value_proxy(self) -> ParameterT | None:
-        """
-        Proxy method for the value property getter.
-
-        This indirection is necessary because _GenericProperty(fget=method) binds the
-        method at class definition time, bypassing MRO. By calling self._get_value()
-        here, we ensure subclass overrides of _get_value() are properly invoked.
-        """
-        return self._get_value()
-
-    def _set_value(self, value: ParameterT) -> None:  # kwonly: disable
-        """Set the local value."""
-        self.write_value(value=value, write_at=datetime.now())
-
-    # Note: Explicit _GenericProperty construction with kind=Kind.STATE is functionally
-    # equivalent to @state_property decorator, but preserves generic type information
-    # for mypy (which the decorator+setter pattern breaks due to mypy limitations).
-    value: _GenericProperty[ParameterT | None, ParameterT] = _GenericProperty(
-        fget=__get_value_proxy, fset=_set_value, kind=Kind.STATE
-    )
 
     @hm_property(cached=True)
     def _enabled_by_channel_operation_mode(self) -> bool | None:
@@ -902,8 +865,6 @@ class BaseParameterDataPoint[
             paramset_key=self._paramset_key,
             parameter=self._parameter,
         )
-
-    parameter: Final = DelegatedProperty[str](path="_parameter", log_context=True)
 
     @hm_property(cached=True)
     def requires_polling(self) -> bool:
@@ -1169,10 +1130,39 @@ class BaseParameterDataPoint[
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self._parameter}"
 
+    def _get_value(self) -> ParameterT | None:
+        """
+        Return the value for readings. Override in subclasses for custom value processing.
+
+        Subclasses like DpSelect, DpSensor, DpBinarySensor override this to:
+        - Convert integer indices to string values from VALUE_LIST
+        - Apply value converters (e.g., RSSI negation)
+        - Return defaults when value is None
+        """
+        return self._value
+
     def _reset_temporary_value(self) -> None:
         """Reset the temp storage."""
         self._temporary_value = None
         self._reset_temporary_timestamps()
+
+    def _set_value(self, value: ParameterT) -> None:  # kwonly: disable
+        """Set the local value."""
+        self.write_value(value=value, write_at=datetime.now())
+
+    def __get_value_proxy(self) -> ParameterT | None:
+        """
+        Proxy method for the value property getter.
+
+        This indirection is necessary because _GenericProperty(fget=method) binds the
+        method at class definition time, bypassing MRO. By calling self._get_value()
+        here, we ensure subclass overrides of _get_value() are properly invoked.
+        """
+        return self._get_value()
+
+    value: _GenericProperty[ParameterT | None, ParameterT] = _GenericProperty(
+        fget=__get_value_proxy, fset=_set_value, kind=Kind.STATE
+    )
 
 
 BaseParameterDataPointAny: TypeAlias = BaseParameterDataPoint[Any, Any]

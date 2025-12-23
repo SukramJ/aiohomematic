@@ -35,6 +35,12 @@
 
 - **Optimize field descriptors**: Removed unused `_attr_name` slot and `__set_name__` method from `DataPointField` and `CalculatedDataPointField`
 
+- **Use `@hm_property(cached=True)` for lazy properties**: Applied caching to properties that perform expensive computations or iterate over collections
+  - `Channel`: `group_master`, `group_no`, `is_in_multi_group`
+  - `Device`: `allow_undefined_generic_data_points`, `has_sub_devices`
+  - `BaseDataPoint`: `name`
+  - `CustomDpDimmer`: `supports_brightness`, `supports_transition`
+
 # Version 2025.12.43 (2025-12-22)
 
 ## What's Changed

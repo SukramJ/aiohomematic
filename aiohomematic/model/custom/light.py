@@ -28,7 +28,7 @@ from aiohomematic.model.generic import (
     DpSensor,
     GenericDataPointAny,
 )
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import hm_property, state_property
 
 _DIMMER_OFF: Final = 0.0
 _EFFECT_OFF: Final = "Off"
@@ -141,7 +141,10 @@ class LightOffArgs(TypedDict, total=False):
 class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     """Base class for Homematic light data point."""
 
-    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+    __slots__ = (
+        "_cached_supports_brightness",
+        "_cached_supports_transition",
+    )
 
     _category = DataPointCategory.LIGHT
 
@@ -171,11 +174,6 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         return None
 
     @property
-    def supports_brightness(self) -> bool:
-        """Flag if light supports brightness."""
-        return isinstance(self._dp_level, DpFloat)
-
-    @property
     def supports_color_temperature(self) -> bool:
         """Flag if light supports color temperature."""
         return self.color_temp_kelvin is not None
@@ -189,11 +187,6 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     def supports_hs_color(self) -> bool:
         """Flag if light supports color."""
         return self.hs_color is not None
-
-    @property
-    def supports_transition(self) -> bool:
-        """Flag if light supports transition."""
-        return isinstance(self._dp_ramp_time_value, DpAction)
 
     @state_property
     def brightness(self) -> int | None:
@@ -224,6 +217,16 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     def is_on(self) -> bool | None:
         """Return true if dimmer is on."""
         return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
+
+    @hm_property(cached=True)
+    def supports_brightness(self) -> bool:
+        """Flag if light supports brightness."""
+        return isinstance(self._dp_level, DpFloat)
+
+    @hm_property(cached=True)
+    def supports_transition(self) -> bool:
+        """Flag if light supports transition."""
+        return isinstance(self._dp_ramp_time_value, DpAction)
 
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""

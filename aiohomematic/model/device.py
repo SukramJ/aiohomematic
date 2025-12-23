@@ -133,7 +133,7 @@ from aiohomematic.model.support import (
     get_device_name,
 )
 from aiohomematic.model.update import DpUpdate
-from aiohomematic.property_decorators import hm_property, info_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, info_property, state_property
 from aiohomematic.support import (
     CacheEntry,
     LogContextMixin,
@@ -352,6 +352,47 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             f"events: {len(self.generic_events)}"
         )
 
+    address = DelegatedProperty[str](path="_address", kind=Kind.INFO, log_context=True)
+    central_info = DelegatedProperty[CentralInfoProtocol](path="_central_info")
+    channel_lookup = DelegatedProperty[ChannelLookupProtocol](path="_channel_lookup")
+    channels = DelegatedProperty[Mapping[str, ChannelProtocol]](path="_channels")
+    client = DelegatedProperty[ClientProtocol](path="_client")
+    config_provider = DelegatedProperty[ConfigProviderProtocol](path="_config_provider")
+    data_cache_provider = DelegatedProperty[DataCacheProviderProtocol](path="_data_cache_provider")
+    data_point_provider = DelegatedProperty[DataPointProviderProtocol](path="_data_point_provider")
+    device_data_refresher = DelegatedProperty[FirmwareDataRefresherProtocol](path="_device_data_refresher")
+    device_description_provider = DelegatedProperty[DeviceDescriptionProviderProtocol](
+        path="_device_description_provider"
+    )
+    device_details_provider = DelegatedProperty[DeviceDetailsProviderProtocol](path="_device_details_provider")
+    event_bus_provider = DelegatedProperty[EventBusProviderProtocol](path="_event_bus_provider")
+    event_publisher = DelegatedProperty[EventPublisherProtocol](path="_event_publisher")
+    event_subscription_manager = DelegatedProperty[EventSubscriptionManagerProtocol](path="_event_subscription_manager")
+    has_custom_data_point_definition = DelegatedProperty[bool](path="_has_custom_data_point_definition")
+    ignore_for_custom_data_point = DelegatedProperty[bool](path="_ignore_for_custom_data_point")
+    ignore_on_initial_load = DelegatedProperty[bool](path="_ignore_on_initial_load")
+    interface = DelegatedProperty[Interface](path="_interface")
+    interface_id = DelegatedProperty[str](path="_interface_id", log_context=True)
+    is_updatable = DelegatedProperty[bool](path="_is_updatable")
+    manufacturer = DelegatedProperty[str](path="_manufacturer", kind=Kind.INFO)
+    model = DelegatedProperty[str](path="_model", kind=Kind.INFO, log_context=True)
+    name = DelegatedProperty[str](path="_name", kind=Kind.INFO)
+    parameter_visibility_provider = DelegatedProperty[ParameterVisibilityProviderProtocol](
+        path="_parameter_visibility_provider"
+    )
+    paramset_description_provider = DelegatedProperty[ParamsetDescriptionProviderProtocol](
+        path="_paramset_description_provider"
+    )
+    product_group = DelegatedProperty[ProductGroup](path="_product_group")
+    rega_id = DelegatedProperty[int](path="_rega_id")
+    rooms = DelegatedProperty[set[str]](path="_rooms")
+    rx_modes = DelegatedProperty[tuple[RxMode, ...]](path="_rx_modes")
+    sub_model = DelegatedProperty[str | None](path="_sub_model")
+    task_scheduler = DelegatedProperty[TaskSchedulerProtocol](path="_task_scheduler")
+    update_data_point = DelegatedProperty[DpUpdate | None](path="_update_data_point")
+    value_cache = DelegatedProperty["_ValueCache"](path="_value_cache")
+    week_profile = DelegatedProperty[wp.WeekProfile[dict[Any, Any]] | None](path="_week_profile")
+
     @property
     def _dp_config_pending(self) -> DpBinarySensor | None:
         """Return the CONFIG_PENDING data point."""
@@ -390,36 +431,11 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return tuple(data_points)
 
     @property
-    def central_info(self) -> CentralInfoProtocol:
-        """Return the central info of the device."""
-        return self._central_info
-
-    @property
-    def channel_lookup(self) -> ChannelLookupProtocol:
-        """Return the channel lookup provider."""
-        return self._channel_lookup
-
-    @property
-    def channels(self) -> Mapping[str, ChannelProtocol]:
-        """Return the channels."""
-        return self._channels
-
-    @property
-    def client(self) -> ClientProtocol:
-        """Return the client of the device."""
-        return self._client
-
-    @property
     def config_pending(self) -> bool:
         """Return if a config change of the device is pending."""
         if self._dp_config_pending is not None and self._dp_config_pending.value is not None:
             return self._dp_config_pending.value is True
         return False
-
-    @property
-    def config_provider(self) -> ConfigProviderProtocol:
-        """Return the config provider."""
-        return self._config_provider
 
     @property
     def custom_data_points(self) -> tuple[hmce.CustomDataPoint, ...]:
@@ -431,11 +447,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
-    def data_cache_provider(self) -> DataCacheProviderProtocol:
-        """Return the DataCacheProviderProtocol of the device."""
-        return self._data_cache_provider
-
-    @property
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
         data_point_paths: list[str] = []
@@ -444,47 +455,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return tuple(data_point_paths)
 
     @property
-    def data_point_provider(self) -> DataPointProviderProtocol:
-        """Return the data point provider."""
-        return self._data_point_provider
-
-    @property
     def default_schedule_channel(self) -> ChannelProtocol | None:
         """Return the schedule channel address."""
         for channel in self._channels.values():
             if channel.is_schedule_channel:
                 return channel
         return None
-
-    @property
-    def device_data_refresher(self) -> FirmwareDataRefresherProtocol:
-        """Return the device data refresher."""
-        return self._device_data_refresher
-
-    @property
-    def device_description_provider(self) -> DeviceDescriptionProviderProtocol:
-        """Return the device description provider."""
-        return self._device_description_provider
-
-    @property
-    def device_details_provider(self) -> DeviceDetailsProviderProtocol:
-        """Return the device details provider."""
-        return self._device_details_provider
-
-    @property
-    def event_bus_provider(self) -> EventBusProviderProtocol:
-        """Return the EventBusProviderProtocol of the device."""
-        return self._event_bus_provider
-
-    @property
-    def event_publisher(self) -> EventPublisherProtocol:
-        """Return the EventPublisherProtocol of the device."""
-        return self._event_publisher
-
-    @property
-    def event_subscription_manager(self) -> EventSubscriptionManagerProtocol:
-        """Return the event subscription manager."""
-        return self._event_subscription_manager
 
     @property
     def firmware_updatable(self) -> bool:
@@ -513,36 +489,11 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return tuple(events)
 
     @property
-    def has_custom_data_point_definition(self) -> bool:
-        """Return if custom_data_point definition is available for the device."""
-        return self._has_custom_data_point_definition
-
-    @property
-    def ignore_for_custom_data_point(self) -> bool:
-        """Return if device should be ignored for custom data_point."""
-        return self._ignore_for_custom_data_point
-
-    @property
-    def ignore_on_initial_load(self) -> bool:
-        """Return if model should be ignored on initial load."""
-        return self._ignore_on_initial_load
-
-    @property
     def info(self) -> Mapping[str, Any]:
         """Return the device info."""
         device_info = dict(self.info_payload)
         device_info["central"] = self._central_info.info_payload
         return device_info
-
-    @property
-    def interface(self) -> Interface:
-        """Return the interface of the device."""
-        return self._interface
-
-    @property
-    def is_updatable(self) -> bool:
-        """Return if the device is updatable."""
-        return self._is_updatable
 
     @property
     def link_peer_channels(self) -> Mapping[ChannelProtocol, tuple[ChannelProtocol, ...]]:
@@ -552,66 +503,11 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         }
 
     @property
-    def parameter_visibility_provider(self) -> ParameterVisibilityProviderProtocol:
-        """Return the parameter visibility provider."""
-        return self._parameter_visibility_provider
-
-    @property
-    def paramset_description_provider(self) -> ParamsetDescriptionProviderProtocol:
-        """Return the paramset description provider."""
-        return self._paramset_description_provider
-
-    @property
-    def product_group(self) -> ProductGroup:
-        """Return the product group of the device."""
-        return self._product_group
-
-    @property
-    def rega_id(self) -> int:
-        """Return the id of the device."""
-        return self._rega_id
-
-    @property
-    def rooms(self) -> set[str]:
-        """Return all rooms of the device."""
-        return self._rooms
-
-    @property
-    def rx_modes(self) -> tuple[RxMode, ...]:
-        """Return the rx mode."""
-        return self._rx_modes
-
-    @property
-    def sub_model(self) -> str | None:
-        """Return the sub model of the device."""
-        return self._sub_model
-
-    @property
     def supports_week_profile(self) -> bool:
         """Return if the device supports week profiles."""
         if self._week_profile is None:
             return False
         return self._week_profile.supports_schedule
-
-    @property
-    def task_scheduler(self) -> TaskSchedulerProtocol:
-        """Return the task scheduler."""
-        return self._task_scheduler
-
-    @property
-    def update_data_point(self) -> DpUpdate | None:
-        """Return the device firmware update data_point of the device."""
-        return self._update_data_point
-
-    @property
-    def value_cache(self) -> _ValueCache:
-        """Return the value_cache of the device."""
-        return self._value_cache
-
-    @property
-    def week_profile(self) -> wp.WeekProfile[dict[Any, Any]] | None:
-        """Return the week profile of the device."""
-        return self._week_profile
 
     @state_property
     def available(self) -> bool:
@@ -624,11 +520,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             return not un_reach.value
         return True
 
-    @info_property(log_context=True)
-    def address(self) -> str:
-        """Return the address of the device."""
-        return self._address
-
     @info_property
     def firmware(self) -> str:
         """Return the firmware of the device."""
@@ -638,21 +529,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     def identifier(self) -> str:
         """Return the identifier of the device."""
         return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
-
-    @info_property
-    def manufacturer(self) -> str:
-        """Return the manufacturer of the device."""
-        return self._manufacturer
-
-    @info_property(log_context=True)
-    def model(self) -> str:
-        """Return the model of the device."""
-        return self._model
-
-    @info_property
-    def name(self) -> str:
-        """Return the name of the device."""
-        return self._name
 
     @info_property
     def room(self) -> str | None:
@@ -689,11 +565,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
                 return True
 
         return False
-
-    @hm_property(log_context=True)
-    def interface_id(self) -> str:
-        """Return the interface_id of the device."""
-        return self._interface_id
 
     @hm_property(cached=True)
     def relevant_for_central_link_management(self) -> bool:
@@ -1142,6 +1013,25 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             f"events: {len(self._generic_events)}"
         )
 
+    address = DelegatedProperty[str](path="_address", kind=Kind.INFO)
+    custom_data_point = DelegatedProperty[hmce.CustomDataPoint | None](path="_custom_data_point")
+    description = DelegatedProperty[DeviceDescription](path="_channel_description")
+    device = DelegatedProperty[DeviceProtocol](path="_device", log_context=True)
+    full_name = DelegatedProperty[str](path="_name_data.full_name")
+    function = DelegatedProperty[str | None](path="_function")
+    is_schedule_channel = DelegatedProperty[bool](path="_is_schedule_channel")
+    link_peer_addresses = DelegatedProperty[tuple[str, ...]](path="_link_peer_addresses")
+    link_peer_source_categories = DelegatedProperty[tuple[str, ...]](path="_link_source_categories")
+    link_peer_target_categories = DelegatedProperty[tuple[str, ...]](path="_link_target_categories")
+    name = DelegatedProperty[str](path="_name_data.channel_name")
+    name_data = DelegatedProperty[ChannelNameData](path="_name_data")
+    no = DelegatedProperty[int | None](path="_no", log_context=True)
+    paramset_keys = DelegatedProperty[tuple[ParamsetKey, ...]](path="_paramset_keys")
+    rega_id = DelegatedProperty[int](path="_rega_id")
+    rooms = DelegatedProperty[set[str]](path="_rooms")
+    type_name = DelegatedProperty[str](path="_type_name")
+    unique_id = DelegatedProperty[str](path="_unique_id")
+
     @property
     def _has_key_press_events(self) -> bool:
         """Return if channel has KEYPRESS events."""
@@ -1153,29 +1043,9 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         return tuple(self._calculated_data_points.values())
 
     @property
-    def custom_data_point(self) -> hmce.CustomDataPoint | None:
-        """Return the custom data point."""
-        return self._custom_data_point
-
-    @property
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
         return tuple(self._state_path_to_dpk.keys())
-
-    @property
-    def description(self) -> DeviceDescription:
-        """Return the device description for the channel."""
-        return self._channel_description
-
-    @property
-    def full_name(self) -> str:
-        """Return the full name of the channel."""
-        return self._name_data.full_name
-
-    @property
-    def function(self) -> str | None:
-        """Return the function of the channel."""
-        return self._function
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
@@ -1193,16 +1063,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         return self.group_no == self._no
 
     @property
-    def is_schedule_channel(self) -> bool:
-        """Return if channel is a schedule channel."""
-        return self._is_schedule_channel
-
-    @property
-    def link_peer_addresses(self) -> tuple[str, ...]:
-        """Return the link peer addresses."""
-        return self._link_peer_addresses
-
-    @property
     def link_peer_channels(self) -> tuple[ChannelProtocol, ...]:
         """Return the link peer channel."""
         return tuple(
@@ -1211,26 +1071,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             if self._link_peer_addresses
             and (channel := self._device.channel_lookup.get_channel(channel_address=address)) is not None
         )
-
-    @property
-    def link_peer_source_categories(self) -> tuple[str, ...]:
-        """Return the link peer source categories."""
-        return self._link_source_categories
-
-    @property
-    def link_peer_target_categories(self) -> tuple[str, ...]:
-        """Return the link peer target categories."""
-        return self._link_target_categories
-
-    @property
-    def name(self) -> str:
-        """Return the name of the channel."""
-        return self._name_data.channel_name
-
-    @property
-    def name_data(self) -> ChannelNameData:
-        """Return the name data of the channel."""
-        return self._name_data
 
     @property
     def operation_mode(self) -> str | None:
@@ -1248,36 +1088,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             interface_id=self._device.interface_id, channel_address=self._address
         )
 
-    @property
-    def paramset_keys(self) -> tuple[ParamsetKey, ...]:
-        """Return the paramset_keys of the channel."""
-        return self._paramset_keys
-
-    @property
-    def rega_id(self) -> int:
-        """Return the id of the channel."""
-        return self._rega_id
-
-    @property
-    def rooms(self) -> set[str]:
-        """Return all rooms of the channel."""
-        return self._rooms
-
-    @property
-    def type_name(self) -> str:
-        """Return the type name of the channel."""
-        return self._type_name
-
-    @property
-    def unique_id(self) -> str:
-        """Return the unique_id of the channel."""
-        return self._unique_id
-
-    @info_property
-    def address(self) -> str:
-        """Return the address of the channel."""
-        return self._address
-
     @info_property
     def room(self) -> str | None:
         """Return the room of the device, if only one assigned in the backend."""
@@ -1288,11 +1098,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         if (master_channel := self.group_master) is not None:
             return master_channel.room
         return None
-
-    @hm_property(log_context=True)
-    def device(self) -> DeviceProtocol:
-        """Return the device of the channel."""
-        return self._device
 
     @hm_property(cached=True)
     def group_master(self) -> ChannelProtocol | None:
@@ -1314,11 +1119,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     def is_in_multi_group(self) -> bool:
         """Return if multiple channels are in the group."""
         return self._device.is_in_multi_channel_group(channel_no=self._no)
-
-    @hm_property(log_context=True)
-    def no(self) -> int | None:
-        """Return the channel_no of the channel."""
-        return self._no
 
     def add_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:
         """Add a data_point to a channel."""

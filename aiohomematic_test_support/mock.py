@@ -55,6 +55,7 @@ from aiohomematic.client import BaseRpcProxy
 from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
 from aiohomematic.client.rpc_proxy import _RpcMethod
 from aiohomematic.const import UTF_8, DataOperationResult, Parameter, ParamsetKey, RPCType
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent import _cleanup_params_for_session, _freeze_params, _unfreeze_params
 from aiohomematic_test_support import const
 
@@ -66,6 +67,7 @@ _LOGGER = logging.getLogger(__name__)
 def _get_not_mockable_method_names(*, instance: Any, exclude_methods: set[str]) -> set[str]:
     """Return all relevant method names for mocking."""
     methods: set[str] = set(_get_properties(data_object=instance, decorator=property))
+    methods |= _get_properties(data_object=instance, decorator=DelegatedProperty)
 
     for method in dir(instance):
         if method in exclude_methods:
@@ -479,9 +481,11 @@ def get_mock(
                     setattr(instance, attr, getattr(instance._mock_wraps, attr))
         return instance
 
-    # Step 1: Identify all @property decorated attributes on the class
+    # Step 1: Identify all @property and DelegatedProperty decorated attributes on the class
     # These need special handling because MagicMock doesn't delegate property access
     property_names = _get_properties(data_object=instance, decorator=property)
+    # Also include DelegatedProperty descriptors which are now used extensively
+    property_names |= _get_properties(data_object=instance, decorator=DelegatedProperty)
 
     # Step 2: Create a dynamic MagicMock subclass
     # We add property descriptors to this subclass that delegate to _mock_wraps.

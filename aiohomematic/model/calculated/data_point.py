@@ -36,7 +36,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_data_point_name_data,
 )
-from aiohomematic.property_decorators import config_property, hm_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, state_property
 from aiohomematic.type_aliases import ParamType, UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -106,15 +106,22 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         """Return if this calculated data point is relevant for the channel."""
         return False
 
+    _relevant_data_points = DelegatedProperty[tuple[GenericDataPointProtocolAny, ...]](path="_readable_data_points")
+    default = DelegatedProperty[ParameterT](path="_default")
+    hmtype = DelegatedProperty[ParameterType](path="_type")
+    max = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
+    min = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
+    multiplier = DelegatedProperty[float](path="_multiplier")
+    parameter = DelegatedProperty[str](path="_calculated_parameter")
+    service = DelegatedProperty[bool](path="_service")
+    unit = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    values = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
+    visible = DelegatedProperty[bool](path="_visible")
+
     @property
     def _readable_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points.values() if dp.is_readable)
-
-    @property
-    def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """Returns the list of relevant data points. To be overridden by subclasses."""
-        return self._readable_data_points
 
     @property
     def _relevant_values_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
@@ -140,19 +147,9 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         return ""
 
     @property
-    def default(self) -> ParameterT:
-        """Return default value."""
-        return self._default
-
-    @property
     def has_data_points(self) -> bool:
         """Return if there are data points."""
         return len(self._data_points) > 0
-
-    @property
-    def hmtype(self) -> ParameterType:
-        """Return the Homematic type."""
-        return self._type
 
     @property
     def is_readable(self) -> bool:
@@ -175,24 +172,9 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         return bool(self._operations & Operations.WRITE)
 
     @property
-    def multiplier(self) -> float:
-        """Return multiplier value."""
-        return self._multiplier
-
-    @property
-    def parameter(self) -> str:
-        """Return parameter name."""
-        return self._calculated_parameter
-
-    @property
     def paramset_key(self) -> ParamsetKey:
         """Return paramset_key name."""
         return ParamsetKey.CALCULATED
-
-    @property
-    def service(self) -> bool:
-        """Return the if data_point is visible in ccu."""
-        return self._service
 
     @property
     def state_uncertain(self) -> bool:
@@ -203,31 +185,6 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def supports_events(self) -> bool:
         """Return, if data_point is supports events."""
         return bool(self._operations & Operations.EVENT)
-
-    @property
-    def visible(self) -> bool:
-        """Return the if data_point is visible in ccu."""
-        return self._visible
-
-    @config_property
-    def max(self) -> ParameterT:
-        """Return max value."""
-        return self._max
-
-    @config_property
-    def min(self) -> ParameterT:
-        """Return min value."""
-        return self._min
-
-    @config_property
-    def unit(self) -> str | None:
-        """Return unit value."""
-        return self._unit
-
-    @config_property
-    def values(self) -> tuple[str, ...] | None:
-        """Return the values."""
-        return self._values
 
     @state_property
     def modified_at(self) -> datetime:

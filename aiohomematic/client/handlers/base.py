@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Final
 
 from aiohomematic.const import Interface
 from aiohomematic.decorators import inspector
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
@@ -65,35 +66,12 @@ class BaseHandler:
         self._proxy: Final = proxy
         self._proxy_read: Final = proxy_read
 
-    @property
-    def client_deps(self) -> ClientDependenciesProtocol:
-        """Return the client dependencies."""
-        return self._client_deps
-
-    @property
-    def interface(self) -> Interface:
-        """Return the interface type."""
-        return self._interface
-
-    @property
-    def interface_id(self) -> str:
-        """Return the interface ID."""
-        return self._interface_id
-
-    @property
-    def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
-        """Return the JSON-RPC client."""
-        return self._json_rpc_client
-
-    @property
-    def proxy(self) -> BaseRpcProxy:
-        """Return the XML-RPC proxy for write operations."""
-        return self._proxy
-
-    @property
-    def proxy_read(self) -> BaseRpcProxy:
-        """Return the XML-RPC proxy for read operations."""
-        return self._proxy_read
+    client_deps = DelegatedProperty["ClientDependenciesProtocol"](path="_client_deps")
+    interface = DelegatedProperty[Interface](path="_interface")
+    interface_id = DelegatedProperty[str](path="_interface_id")
+    json_rpc_client = DelegatedProperty["AioJsonRpcAioHttpClient"](path="_json_rpc_client")
+    proxy = DelegatedProperty["BaseRpcProxy"](path="_proxy")
+    proxy_read = DelegatedProperty["BaseRpcProxy"](path="_proxy_read")
 
 
 # Re-export inspector decorator for use in handlers

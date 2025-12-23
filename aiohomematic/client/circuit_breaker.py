@@ -63,6 +63,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
@@ -181,6 +182,9 @@ class CircuitBreaker:
         self._last_failure_time: datetime | None = None
         self._metrics: CircuitBreakerMetrics = CircuitBreakerMetrics()
 
+    metrics = DelegatedProperty[CircuitBreakerMetrics](path="_metrics")
+    state = DelegatedProperty[CircuitState](path="_state")
+
     @property
     def is_available(self) -> bool:
         """
@@ -205,16 +209,6 @@ class CircuitBreaker:
 
         # HALF_OPEN - allow one request through
         return True
-
-    @property
-    def metrics(self) -> CircuitBreakerMetrics:
-        """Return current metrics."""
-        return self._metrics
-
-    @property
-    def state(self) -> CircuitState:
-        """Return the current circuit state."""
-        return self._state
 
     def record_failure(self) -> None:
         """

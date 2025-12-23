@@ -100,6 +100,7 @@ import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
 from aiohomematic.const import DataPointKey, ParamsetKey
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 if TYPE_CHECKING:
@@ -879,15 +880,12 @@ class EventBatch:
         """Exit the async context and flush events."""
         await self.flush()
 
+    is_flushed = DelegatedProperty[bool](path="_flushed")
+
     @property
     def event_count(self) -> int:
         """Return the number of events in the batch."""
         return len(self._events)
-
-    @property
-    def is_flushed(self) -> bool:
-        """Return whether the batch has been flushed."""
-        return self._flushed
 
     def add(self, *, event: Event) -> None:
         """

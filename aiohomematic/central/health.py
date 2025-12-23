@@ -52,6 +52,7 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.client.circuit_breaker import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
 from aiohomematic.interfaces.central import CentralHealthProtocol, ConnectionHealthProtocol, HealthTrackerProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from typing import Any
@@ -495,10 +496,7 @@ class HealthTracker(HealthTrackerProtocol):
         self._state_machine = state_machine
         self._central_health: Final = CentralHealth()
 
-    @property
-    def health(self) -> CentralHealth:
-        """Return the aggregated central health."""
-        return self._central_health
+    health = DelegatedProperty[CentralHealth](path="_central_health")
 
     def get_client_health(self, *, interface_id: str) -> ConnectionHealth | None:
         """

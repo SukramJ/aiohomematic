@@ -105,7 +105,7 @@ from aiohomematic.exceptions import (
     UnsupportedException,
 )
 from aiohomematic.model.support import convert_value
-from aiohomematic.property_decorators import hm_property
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.retry import with_retry
 from aiohomematic.store import SessionRecorder
 from aiohomematic.support import (
@@ -335,6 +335,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return parameter_data
 
+    circuit_breaker = DelegatedProperty[CircuitBreaker](path="_circuit_breaker")
+    tls = DelegatedProperty[bool](path="_tls", log_context=True)
+    url = DelegatedProperty[str | None](path="_url", log_context=True)
+
     @property
     def _has_credentials(self) -> bool:
         """Return if credentials are available."""
@@ -349,24 +353,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         return delta.seconds < JSON_SESSION_AGE
 
     @property
-    def circuit_breaker(self) -> CircuitBreaker:
-        """Return the circuit breaker instance."""
-        return self._circuit_breaker
-
-    @property
     def is_activated(self) -> bool:
         """If session exists, then it is activated."""
         return self._session_id is not None
-
-    @hm_property(log_context=True)
-    def tls(self) -> bool:
-        """Return tls."""
-        return self._tls
-
-    @hm_property(log_context=True)
-    def url(self) -> str | None:
-        """Return url."""
-        return self._url
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """

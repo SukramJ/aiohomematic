@@ -52,6 +52,7 @@ from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import ChannelProtocol, GenericEventProtocolAny
 from aiohomematic.model.data_point import BaseParameterDataPointAny
 from aiohomematic.model.support import DataPointNameData, get_event_name
+from aiohomematic.property_decorators import DelegatedProperty
 
 __all__ = [
     "ClickEvent",
@@ -89,10 +90,7 @@ class GenericEvent(BaseParameterDataPointAny, GenericEventProtocolAny):
             unique_id_prefix=f"event_{channel.device.central_info.name}",
         )
 
-    @property
-    def event_type(self) -> DeviceTriggerEventType:
-        """Return the event_type of the event."""
-        return self._device_trigger_event_type
+    event_type = DelegatedProperty[DeviceTriggerEventType](path="_device_trigger_event_type")
 
     @property
     def usage(self) -> DataPointUsage:

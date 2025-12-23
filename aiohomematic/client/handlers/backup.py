@@ -16,6 +16,7 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import BackupData, BackupStatus, SystemInformation
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.client import BackupOperationsProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
@@ -63,10 +64,7 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
         self._supports_backup: Final = supports_backup
         self._system_information: Final = system_information
 
-    @property
-    def supports_backup(self) -> bool:
-        """Return if the backend supports backup creation and download."""
-        return self._supports_backup
+    supports_backup = DelegatedProperty[bool](path="_supports_backup")
 
     @inspector(re_raise=False)
     async def create_backup_and_download(

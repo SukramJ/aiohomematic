@@ -120,11 +120,7 @@ class DpDummy(GenericDataPointAny):
     # Note: Explicit _GenericProperty construction with kind=Kind.STATE is functionally
     # equivalent to @state_property decorator, but preserves generic type information
     # for mypy (which the decorator+setter pattern breaks due to mypy limitations).
-    value: _GenericProperty[Any, Any] = _GenericProperty(
-        fget=_get_value,
-        fset=_set_value,
-        kind=Kind.STATE,
-    )
+    value: _GenericProperty[Any, Any] = _GenericProperty(fget=_get_value, fset=_set_value, kind=Kind.STATE)
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Ignore backend events entirely."""

@@ -59,6 +59,7 @@ from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.event_bus import DataPointUpdatedEvent
 from aiohomematic.const import ParamsetKey
 from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.retry import with_retry
 from aiohomematic.support import get_device_address
 from aiohomematic.type_aliases import UnsubscribeCallback
@@ -218,6 +219,8 @@ class HomematicAPI:
             value=value,
         )
 
+    config = DelegatedProperty[CentralConfig](path="_config")
+
     @property
     def central(self) -> CentralUnit:
         """Return the underlying CentralUnit instance."""
@@ -225,11 +228,6 @@ class HomematicAPI:
             msg = "API not started. Call start() first."
             raise RuntimeError(msg)
         return self._central
-
-    @property
-    def config(self) -> CentralConfig:
-        """Return the configuration."""
-        return self._config
 
     @property
     def is_connected(self) -> bool:

@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
@@ -312,10 +313,7 @@ class DeviceDetailsCache(DeviceDetailsProviderProtocol, DeviceDetailsWriterProto
         self._names_cache: Final[dict[str, str]] = {}
         self._refreshed_at = INIT_DATETIME
 
-    @property
-    def device_channel_rega_ids(self) -> Mapping[str, int]:
-        """Return device channel ids."""
-        return self._device_channel_rega_ids
+    device_channel_rega_ids = DelegatedProperty[Mapping[str, int]](path="_device_channel_rega_ids")
 
     def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
         """Add channel id for a channel."""
@@ -583,6 +581,8 @@ class PingPongCache:
         self._unknown_pongs: Final[set[str]] = set()
         self._unknown_seen_at: Final[dict[str, float]] = {}
 
+    allowed_delta = DelegatedProperty[int](path="_allowed_delta")
+
     @property
     def _pending_pong_count(self) -> int:
         """Return the pending pong count."""
@@ -592,11 +592,6 @@ class PingPongCache:
     def _unknown_pong_count(self) -> int:
         """Return the unknown pong count."""
         return len(self._unknown_pongs)
-
-    @property
-    def allowed_delta(self) -> int:
-        """Return the allowed delta."""
-        return self._allowed_delta
 
     @property
     def has_connection_issue(self) -> bool:

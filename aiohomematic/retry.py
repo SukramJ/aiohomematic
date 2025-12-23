@@ -59,6 +59,7 @@ from aiohomematic.exceptions import (
     UnsupportedException,
     ValidationException,
 )
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -171,15 +172,12 @@ class RetryStrategy:
         self._current_attempt: int = 0
         self._current_backoff: float = initial_backoff
 
+    current_attempt = DelegatedProperty[int](path="_current_attempt")
+
     @property
     def attempts_remaining(self) -> int:
         """Return the number of attempts remaining."""
         return max(0, self._max_attempts - self._current_attempt)
-
-    @property
-    def current_attempt(self) -> int:
-        """Return the current attempt number (1-indexed)."""
-        return self._current_attempt
 
     async def execute(
         self,

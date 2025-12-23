@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Final, cast, overload
 
 from aiohomematic.const import ParamsetKey
 from aiohomematic.interfaces.model import GenericDataPointProtocolAny
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from typing import Self
@@ -141,17 +142,6 @@ class CalculatedDataPointField[DataPointT: GenericDataPointProtocolAny]:
         instance._data_points[key] = dp
         return cast(DataPointT, dp)
 
-    @property
-    def data_point_type(self) -> type[DataPointT]:
-        """Return the expected data point type."""
-        return self._data_point_type
-
-    @property
-    def parameter(self) -> str:
-        """Return the parameter name."""
-        return self._parameter
-
-    @property
-    def paramset_key(self) -> ParamsetKey | None:
-        """Return the paramset key."""
-        return self._paramset_key
+    data_point_type = DelegatedProperty[type[DataPointT]](path="_data_point_type")
+    parameter = DelegatedProperty[str](path="_parameter")
+    paramset_key = DelegatedProperty[ParamsetKey | None](path="_paramset_key")

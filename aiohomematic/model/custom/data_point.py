@@ -29,7 +29,7 @@ from aiohomematic.model.support import (
     check_channel_is_the_only_primary_channel,
     get_custom_data_point_name,
 )
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import DelegatedProperty, state_property
 from aiohomematic.support import get_channel_address
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -88,6 +88,10 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         with contextlib.suppress(Exception):
             self.unsubscribe_from_data_point_updated()
 
+    allow_undefined_generic_data_points = DelegatedProperty[bool](path="_allow_undefined_generic_data_points")
+    device_config = DelegatedProperty[DeviceConfig](path="_device_config")
+    group_no = DelegatedProperty[int | None](path="_group_no")
+
     @property
     def _readable_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of readable data points."""
@@ -99,24 +103,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return self._readable_data_points
 
     @property
-    def allow_undefined_generic_data_points(self) -> bool:
-        """Return if undefined generic data points of this device are allowed."""
-        return self._allow_undefined_generic_data_points
-
-    @property
     def data_point_name_postfix(self) -> str:
         """Return the data point name postfix."""
         return ""
-
-    @property
-    def device_config(self) -> DeviceConfig:
-        """Return the device config."""
-        return self._device_config
-
-    @property
-    def group_no(self) -> int | None:
-        """Return the base channel no of the data point."""
-        return self._group_no
 
     @property
     def has_data_points(self) -> bool:

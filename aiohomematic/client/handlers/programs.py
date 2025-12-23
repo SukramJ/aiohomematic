@@ -13,6 +13,7 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import DescriptionMarker, ProgramData
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.client import ProgramOperationsProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient
@@ -60,10 +61,7 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
         )
         self._supports_programs: Final = supports_programs
 
-    @property
-    def supports_programs(self) -> bool:
-        """Return if interface supports programs."""
-        return self._supports_programs
+    supports_programs = DelegatedProperty[bool](path="_supports_programs")
 
     @inspector
     async def execute_program(self, *, pid: str) -> bool:

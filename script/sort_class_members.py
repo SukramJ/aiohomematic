@@ -9,25 +9,26 @@ Order according to the requested convention:
    - other dunder methods next (e.g., __str__, __repr__, ...)
 2. Class methods (@classmethod)
 3. Static methods (@staticmethod)
-4. Properties
+4. DelegatedProperty assignments (sorted alphabetically)
+5. Properties
    - Getter decorators define cross-property sort order: property, config_property, state_property, info_property, hm_property.
    - For each property, place its Setter (@<name>.setter) and Deleter (@<name>.deleter) immediately after its Getter.
-5. Public methods (no leading underscore)
-6. Protected methods (single leading underscore)
-7. Private methods (double leading underscore, but not dunder)
+6. Public methods (no leading underscore)
+7. Protected methods (single leading underscore)
+8. Private methods (double leading underscore, but not dunder)
 
 Additional rules implemented:
 - Alphabetical sorting within groups (by function name).
 - Async methods are handled the same as sync methods (normal alphabetical within their group).
-- We only reorder method/function definitions; other class-level statements are kept untouched.
-- Rewriting preserves original source text for methods (including decorators and comments
+- DelegatedProperty class attributes are detected and sorted alphabetically.
+- Rewriting preserves original source text for members (including decorators and comments
   attached immediately above them) by using AST line spans to slice and reassemble.
 
 Limitations:
-- If non-function statements are interleaved between methods, we keep only the contiguous
-  methods block between the first and last method of the class and reorder methods within
-  that block. Non-function statements inside this span will remain where they are, which
-  may lead to less-than-perfect placement in rare cases.
+- If non-sortable statements are interleaved between methods/properties, we keep only the
+  contiguous block between the first and last sortable member and reorder within that block.
+  Non-sortable statements inside this span will remain where they are, which may lead to
+  less-than-perfect placement in rare cases.
 
 Usage:
   python script/sort_class_members.py [FILES...]
@@ -68,6 +69,7 @@ DUUNDER = "dunder"
 DUUNDER_INIT = "dunder_init"
 CLASSMETHOD = "classmethod"
 STATICMETHOD = "staticmethod"
+DELEGATED_PROPERTY = "delegated_property"
 PROPERTY = "property"
 PUBLIC = "public"
 PROTECTED = "protected"
@@ -137,6 +139,55 @@ def _decorator_name(dec: ast.expr) -> tuple[str | None, str | None]:
     return None, None
 
 
+def _is_delegated_property(node: ast.AST) -> str | None:
+    """
+    Check if a node is a DelegatedProperty assignment.
+
+    Returns the property name if it is, None otherwise.
+
+    Detects patterns like:
+        name = DelegatedProperty[Type](path="path")
+        name = DelegatedProperty[Type](path="path", cached=True)
+
+    """
+    if not isinstance(node, ast.Assign):
+        return None
+
+    # Must have exactly one target that is a simple name
+    if len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+        return None
+
+    # Value must be a Call
+    if not isinstance(node.value, ast.Call):
+        return None
+
+    func = node.value.func
+
+    # Check for DelegatedProperty[...](...)
+    if not isinstance(func, ast.Subscript):
+        return None
+
+    if not isinstance(func.value, ast.Name):
+        return None
+
+    if func.value.id != "DelegatedProperty":
+        return None
+
+    return node.targets[0].id
+
+
+def _member_span(node: ast.AST) -> tuple[int, int]:
+    """Return the line span (start, end) for a class member node."""
+    assert hasattr(node, "lineno") and hasattr(node, "end_lineno")
+    start = node.lineno
+    # include decorators if present (for functions)
+    decos = getattr(node, "decorator_list", []) or []
+    if decos:
+        start = min(getattr(d, "lineno", start) for d in decos)
+    end = getattr(node, "end_lineno", start)
+    return start, end
+
+
 def _method_span(node: ast.AST) -> tuple[int, int]:
     assert hasattr(node, "lineno") and hasattr(node, "end_lineno")
     start = node.lineno
@@ -148,9 +199,29 @@ def _method_span(node: ast.AST) -> tuple[int, int]:
     return start, end
 
 
-def _collect_methods(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]:
-    methods: list[MethodSeg] = []
+def _collect_members(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]:
+    """Collect sortable class members (methods and DelegatedProperty assignments)."""
+    members: list[MethodSeg] = []
     for node in cls.body:
+        # Check for DelegatedProperty assignment first
+        dp_name = _is_delegated_property(node)
+        if dp_name is not None:
+            start, end = _member_span(node)
+            text = "".join(src_lines[start - 1 : end])
+            members.append(
+                MethodSeg(
+                    name=dp_name,
+                    start=start,
+                    end=end,
+                    text=text,
+                    group=DELEGATED_PROPERTY,
+                    subgroup="",
+                    propname=None,
+                    prop_kind=None,
+                )
+            )
+            continue
+
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             start, end = _method_span(node)
             # Extract exact text
@@ -205,7 +276,7 @@ def _collect_methods(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]
                 else:
                     group = PUBLIC
 
-            methods.append(
+            members.append(
                 MethodSeg(
                     name=name,
                     start=start,
@@ -217,7 +288,12 @@ def _collect_methods(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]
                     prop_kind=prop_kind,
                 )
             )
-    return methods
+    return members
+
+
+def _collect_methods(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]:
+    """Collect sortable class members (methods and DelegatedProperty assignments)."""
+    return _collect_members(src_lines, cls)
 
 
 def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
@@ -235,6 +311,7 @@ def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
     dunder_other = [m for m in methods if m.group == DUUNDER]
     classmethods = [m for m in methods if m.group == CLASSMETHOD]
     staticmethods = [m for m in methods if m.group == STATICMETHOD]
+    delegated_props = [m for m in methods if m.group == DELEGATED_PROPERTY]
 
     # Properties assembled with priority by getter decorator kind and adjacency of setter/deleter
     PRIORITY = ["property", "config_property", "state_property", "info_property", "hm_property"]
@@ -274,6 +351,7 @@ def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
     ordered += alpha(dunder_other)
     ordered += alpha(classmethods)
     ordered += alpha(staticmethods)
+    ordered += alpha(delegated_props)
     for _prio, _pname, grp in prop_groups:
         ordered += grp
     ordered += alpha(stray_props)
@@ -293,16 +371,21 @@ def _rewrite_class(src_lines: list[str], cls: ast.ClassDef) -> tuple[bool, list[
     span_start = min(m.start for m in methods)
     span_end = max(m.end for m in methods)
 
-    # Safety: if there are non-method statements between methods, skip this class
+    # Safety: if there are non-sortable statements between sortable members, skip this class
     for node in cls.body:
-        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            n_start = getattr(node, "lineno", None)
-            n_end = getattr(node, "end_lineno", None)
-            if n_start is None or n_end is None:
-                continue
-            # If this node lies within the methods span, then it's interleaved
-            if span_start <= n_start <= span_end or span_start <= n_end <= span_end:
-                return False, src_lines
+        # Skip sortable members (functions and DelegatedProperty assignments)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if _is_delegated_property(node) is not None:
+            continue
+
+        n_start = getattr(node, "lineno", None)
+        n_end = getattr(node, "end_lineno", None)
+        if n_start is None or n_end is None:
+            continue
+        # If this node lies within the sortable members span, then it's interleaved
+        if span_start <= n_start <= span_end or span_start <= n_end <= span_end:
+            return False, src_lines
 
     # Desired new order
     ordered = _reorder_methods(methods)
@@ -314,16 +397,23 @@ def _rewrite_class(src_lines: list[str], cls: ast.ClassDef) -> tuple[bool, list[
         return False, src_lines
 
     # Build the replacement text while keeping blocks largely intact.
-    parts: list[str] = []
-    for _i, m in enumerate(ordered):
-        block = m.text
-        # Ensure block ends with a single newline so blocks don't stick together
-        if not block.endswith("\n"):
-            block += "\n"
-        parts.append(block.rstrip("\n"))
+    # DelegatedProperty definitions should not have blank lines between them.
+    result_parts: list[str] = []
+    prev_group: str | None = None
+    for m in ordered:
+        block = m.text.rstrip("\n")
 
-    # Keep exactly one blank line between method blocks; avoid trimming users' interior spacing
-    replacement = ("\n\n".join(parts)) + "\n"
+        # Add blank line separator unless both current and previous are DelegatedProperty
+        if result_parts:
+            if prev_group == DELEGATED_PROPERTY and m.group == DELEGATED_PROPERTY:
+                result_parts.append("\n")  # Single newline, no blank line
+            else:
+                result_parts.append("\n\n")  # Blank line between other members
+
+        result_parts.append(block)
+        prev_group = m.group
+
+    replacement = "".join(result_parts) + "\n"
 
     new_lines = [*src_lines[: span_start - 1], replacement, *src_lines[span_end:]]
     return True, new_lines

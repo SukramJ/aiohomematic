@@ -32,6 +32,7 @@ from aiohomematic.interfaces.client import (
 )
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store import (
     CentralDataCache,
     DeviceDescriptionCache,
@@ -121,35 +122,12 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             active=session_recorder_active,
         )
 
-    @property
-    def data_cache(self) -> CentralDataCache:
-        """Return data cache."""
-        return self._data_cache
-
-    @property
-    def device_descriptions(self) -> DeviceDescriptionCache:
-        """Return device descriptions cache."""
-        return self._device_descriptions_cache
-
-    @property
-    def device_details(self) -> DeviceDetailsCache:
-        """Return device details cache."""
-        return self._device_details_cache
-
-    @property
-    def parameter_visibility(self) -> ParameterVisibilityCache:
-        """Return parameter visibility cache."""
-        return self._parameter_visibility_cache
-
-    @property
-    def paramset_descriptions(self) -> ParamsetDescriptionCache:
-        """Return paramset descriptions cache."""
-        return self._paramset_descriptions_cache
-
-    @property
-    def recorder(self) -> SessionRecorder:
-        """Return the session recorder."""
-        return self._session_recorder
+    data_cache = DelegatedProperty[CentralDataCache](path="_data_cache")
+    device_descriptions = DelegatedProperty[DeviceDescriptionCache](path="_device_descriptions_cache")
+    device_details = DelegatedProperty[DeviceDetailsCache](path="_device_details_cache")
+    parameter_visibility = DelegatedProperty[ParameterVisibilityCache](path="_parameter_visibility_cache")
+    paramset_descriptions = DelegatedProperty[ParamsetDescriptionCache](path="_paramset_descriptions_cache")
+    recorder = DelegatedProperty[SessionRecorder](path="_session_recorder")
 
     async def clear_all(self) -> None:
         """Clear all caches and remove stored files."""

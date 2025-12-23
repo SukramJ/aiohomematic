@@ -28,7 +28,7 @@ from aiohomematic.model.generic import (
     DpSensor,
     GenericDataPointAny,
 )
-from aiohomematic.property_decorators import hm_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, state_property
 
 _DIMMER_OFF: Final = 0.0
 _EFFECT_OFF: Final = "Off"
@@ -353,17 +353,14 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     # Declarative data point field definitions
     _dp_effect = DataPointField(field=Field.PROGRAM, dpt=DpInteger)
 
+    effects = DelegatedProperty[tuple[str, ...] | None](path="_effects", kind=Kind.STATE)
+
     @state_property
     def effect(self) -> str | None:
         """Return the current effect."""
         if self._dp_effect.value is not None:
             return self._effects[int(self._dp_effect.value)]
         return None
-
-    @state_property
-    def effects(self) -> tuple[str, ...] | None:
-        """Return the supported effects."""
-        return self._effects
 
     @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
@@ -635,10 +632,8 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
 
     _effect_list: tuple[str, ...]
 
-    @property
-    def channel_color_name(self) -> str | None:
-        """Return the name of the channel color."""
-        return self._dp_channel_color.value
+    channel_color_name = DelegatedProperty[str | None](path="_dp_channel_color.value")
+    effects = DelegatedProperty[tuple[str, ...] | None](path="_effect_list", kind=Kind.STATE)
 
     @property
     def channel_hs_color(self) -> tuple[float, float] | None:
@@ -659,11 +654,6 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
         if (effect := self._dp_effect.value) is not None and effect in self._effect_list:
             return effect if isinstance(effect, str) else None
         return None
-
-    @state_property
-    def effects(self) -> tuple[str, ...] | None:
-        """Return the supported effects."""
-        return self._effect_list
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:

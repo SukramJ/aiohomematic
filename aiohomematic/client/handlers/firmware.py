@@ -15,6 +15,7 @@ from aiohomematic.const import ProductGroup
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
 from aiohomematic.interfaces.client import FirmwareOperationsProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -66,15 +67,8 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
         self._supports_device_firmware_update: Final = supports_device_firmware_update
         self._supports_firmware_update_trigger: Final = supports_firmware_update_trigger
 
-    @property
-    def supports_device_firmware_update(self) -> bool:
-        """Return if the backend supports device firmware updates."""
-        return self._supports_device_firmware_update
-
-    @property
-    def supports_firmware_update_trigger(self) -> bool:
-        """Return if the backend supports triggering system firmware updates."""
-        return self._supports_firmware_update_trigger
+    supports_device_firmware_update = DelegatedProperty[bool](path="_supports_device_firmware_update")
+    supports_firmware_update_trigger = DelegatedProperty[bool](path="_supports_firmware_update_trigger")
 
     @inspector(re_raise=False)
     async def trigger_firmware_update(self) -> bool:

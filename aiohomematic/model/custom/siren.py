@@ -20,7 +20,7 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor, DpSensor
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
 
@@ -106,20 +106,17 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     _dp_optical_alarm_active = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_optical_alarm_selection = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
 
+    available_lights = DelegatedProperty[tuple[str, ...] | None](
+        path="_dp_optical_alarm_selection.values", kind=Kind.STATE
+    )
+    available_tones = DelegatedProperty[tuple[str, ...] | None](
+        path="_dp_acoustic_alarm_selection.values", kind=Kind.STATE
+    )
+
     @property
     def supports_duration(self) -> bool:
         """Flag if siren supports duration."""
         return True
-
-    @state_property
-    def available_lights(self) -> tuple[str, ...] | None:
-        """Return available lights."""
-        return self._dp_optical_alarm_selection.values
-
-    @state_property
-    def available_tones(self) -> tuple[str, ...] | None:
-        """Return available tones."""
-        return self._dp_acoustic_alarm_selection.values
 
     @state_property
     def is_on(self) -> bool:

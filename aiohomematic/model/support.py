@@ -36,6 +36,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.interfaces.central import ConfigProviderProtocol
 from aiohomematic.interfaces.model import ChannelProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import to_bool
 
 __all__ = [
@@ -246,15 +247,8 @@ class DataPointPathData(PathData):
             f"{VIRTDEV_STATE_PATH_ROOT if interface == Interface.CCU_JACK else STATE_PATH_ROOT}/{path_item}"
         )
 
-    @property
-    def set_path(self) -> str:
-        """Return the base set path of the data_point."""
-        return self._set_path
-
-    @property
-    def state_path(self) -> str:
-        """Return the base state path of the data_point."""
-        return self._state_path
+    set_path = DelegatedProperty[str](path="_set_path")
+    state_path = DelegatedProperty[str](path="_state_path")
 
 
 class ProgramPathData(PathData):
@@ -270,15 +264,8 @@ class ProgramPathData(PathData):
         self._set_path: Final = f"{PROGRAM_SET_PATH_ROOT}/{pid}"
         self._state_path: Final = f"{PROGRAM_STATE_PATH_ROOT}/{pid}"
 
-    @property
-    def set_path(self) -> str:
-        """Return the base set path of the program."""
-        return self._set_path
-
-    @property
-    def state_path(self) -> str:
-        """Return the base state path of the program."""
-        return self._state_path
+    set_path = DelegatedProperty[str](path="_set_path")
+    state_path = DelegatedProperty[str](path="_state_path")
 
 
 class SysvarPathData(PathData):
@@ -294,15 +281,8 @@ class SysvarPathData(PathData):
         self._set_path: Final = f"{SYSVAR_SET_PATH_ROOT}/{vid}"
         self._state_path: Final = f"{SYSVAR_STATE_PATH_ROOT}/{vid}"
 
-    @property
-    def set_path(self) -> str:
-        """Return the base set path of the sysvar."""
-        return self._set_path
-
-    @property
-    def state_path(self) -> str:
-        """Return the base state path of the sysvar."""
-        return self._state_path
+    set_path = DelegatedProperty[str](path="_set_path")
+    state_path = DelegatedProperty[str](path="_state_path")
 
 
 class HubPathData(PathData):
@@ -318,15 +298,8 @@ class HubPathData(PathData):
         self._set_path: Final = f"{HUB_SET_PATH_ROOT}/{name}"
         self._state_path: Final = f"{HUB_STATE_PATH_ROOT}/{name}"
 
-    @property
-    def set_path(self) -> str:
-        """Return the base set path of the hub data point."""
-        return self._set_path
-
-    @property
-    def state_path(self) -> str:
-        """Return the base state path of the hub data point."""
-        return self._state_path
+    set_path = DelegatedProperty[str](path="_set_path")
+    state_path = DelegatedProperty[str](path="_state_path")
 
 
 def get_data_point_name_data(

@@ -26,8 +26,6 @@ from enum import Enum, StrEnum
 from typing import Any, Final, ParamSpec, Self, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
-from aiohomematic import support as hms
-
 __all__ = [
     "DelegatedProperty",
     "Kind",
@@ -68,18 +66,18 @@ class DelegatedProperty[ValueT]:
 
     Usage:
         # Simple delegation:
-        interface = DelegatedProperty[Interface]("_config.interface")
+        interface = DelegatedProperty[Interface](path="_config.interface")
 
         # With caching and kind:
         state = DelegatedProperty[ClientState](
-            "_state_machine.state",
+            path="_state_machine.state",
             kind=Kind.STATE,
             cached=True,
         )
 
         # With log_context:
         interface_id = DelegatedProperty[str](
-            "_config.interface_id",
+            path="_config.interface_id",
             kind=Kind.INFO,
             log_context=True,
         )
@@ -90,14 +88,14 @@ class DelegatedProperty[ValueT]:
 
     """
 
-    __slots__ = ("_cache_attr", "_cached", "_doc", "_parts", "_path", "kind", "log_context")
+    __slots__ = ("_cache_attr", "_cached", "_doc", "_parts", "_path", "_slots_cache", "kind", "log_context")
 
     __kwonly_check__ = False
 
     def __init__(
         self,
-        path: str,
         *,
+        path: str,
         doc: str | None = None,
         kind: Kind = Kind.SIMPLE,
         cached: bool = False,
@@ -124,6 +122,8 @@ class DelegatedProperty[ValueT]:
             # Generate cache attribute name from the last part of the path
             cache_name = path.replace(".", "_").lstrip("_")
             self._cache_attr = f"_cached_dp_{cache_name}"
+            # Fallback cache for objects using __slots__ without the cache attribute
+            self._slots_cache: WeakKeyDictionary[object, Any] = WeakKeyDictionary()
 
     @overload
     def __get__(self, instance: None, owner: type) -> Self: ...
@@ -155,14 +155,21 @@ class DelegatedProperty[ValueT]:
                 value = getattr(value, part)
             inst_dict[cache_attr] = value
         except AttributeError:
-            # Object uses __slots__, fall back to getattr/setattr
+            # Object uses __slots__, try WeakKeyDictionary fallback cache
+            slots_cache = self._slots_cache
             try:
-                return cast(ValueT, getattr(instance, cache_attr))
-            except AttributeError:
+                if instance in slots_cache:
+                    return cast(ValueT, slots_cache[instance])
+
                 value = instance
                 for part in self._parts:
                     value = getattr(value, part)
-                setattr(instance, cache_attr, value)
+                slots_cache[instance] = value
+            except TypeError:
+                # Object doesn't support weak references, skip caching
+                value = instance
+                for part in self._parts:
+                    value = getattr(value, part)
         return cast(ValueT, value)
 
     def __set__(self, instance: object, value: Any) -> None:
@@ -546,6 +553,9 @@ def get_hm_property_by_kind(data_object: Any, kind: Kind, context: bool = False)
         remains robust and side-effect free.
 
     """
+    # Lazy import to avoid circular dependency
+    from aiohomematic.support import LogContextMixin  # noqa: PLC0415
+
     cls = data_object.__class__
 
     # Get or create the per-class cache dict
@@ -567,7 +577,7 @@ def get_hm_property_by_kind(data_object: Any, kind: Kind, context: bool = False)
             continue
         try:
             value = getattr(data_object, name)
-            if isinstance(value, hms.LogContextMixin):
+            if isinstance(value, LogContextMixin):
                 result.update({f"{name[:1]}.{k}": v for k, v in value.log_context.items()})
             else:
                 result[name] = _get_text_value(value)

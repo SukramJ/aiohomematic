@@ -121,6 +121,7 @@ from aiohomematic.model.hub.sensor import SysvarDpSensor
 from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from aiohomematic.model.hub.text import SysvarDpText
 from aiohomematic.model.hub.update import HmUpdate
+from aiohomematic.property_decorators import DelegatedProperty
 
 __all__ = [
     "GenericHubDataPoint",
@@ -221,20 +222,9 @@ class Hub(HubProtocol):
         self._inbox_dp: HmInboxSensor | None = None
         self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
 
-    @property
-    def inbox_dp(self) -> HmInboxSensor | None:
-        """Return the inbox data point."""
-        return self._inbox_dp
-
-    @property
-    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
-        """Return the install mode data points by interface."""
-        return self._install_mode_dps
-
-    @property
-    def update_dp(self) -> HmUpdate | None:
-        """Return the system update data point."""
-        return self._update_dp
+    inbox_dp = DelegatedProperty[HmInboxSensor | None](path="_inbox_dp")
+    install_mode_dps = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_install_mode_dps")
+    update_dp = DelegatedProperty[HmUpdate | None](path="_update_dp")
 
     def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """

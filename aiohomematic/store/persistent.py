@@ -74,6 +74,7 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import (
     check_or_create_directory,
     cleanup_script_for_session_recorder,
@@ -469,12 +470,9 @@ class ParamsetDescriptionCache(
         # {(device_address, parameter), [channel_no]}
         self._address_parameter_cache: Final[dict[tuple[str, str], set[int | None]]] = {}
 
-    @property
-    def raw_paramset_descriptions(
-        self,
-    ) -> Mapping[str, Mapping[str, Mapping[ParamsetKey, Mapping[str, ParameterData]]]]:
-        """Return the paramset descriptions."""
-        return self._raw_paramset_descriptions
+    raw_paramset_descriptions = DelegatedProperty[
+        Mapping[str, Mapping[str, Mapping[ParamsetKey, Mapping[str, ParameterData]]]]
+    ](path="_raw_paramset_descriptions")
 
     def add(
         self,
@@ -665,16 +663,13 @@ class SessionRecorder(BasePersistentFile):
         self.cleanup()
         return f"{self.__class__.__name__}({self._store})"
 
+    active = DelegatedProperty[bool](path="_active")
+
     @property
     def _should_save(self) -> bool:
         """Determine if save operation should proceed."""
         self.cleanup()
         return len(self._store.items()) > 0
-
-    @property
-    def active(self) -> bool:
-        """Return if session recorder is active."""
-        return self._active
 
     async def activate(
         self, *, on_time: int = 0, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool

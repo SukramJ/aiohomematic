@@ -14,6 +14,7 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
 from aiohomematic.interfaces.client import LinkOperationsProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -61,10 +62,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
         )
         self._supports_linking: Final = supports_linking
 
-    @property
-    def supports_linking(self) -> bool:
-        """Return if the backend supports device linking operations."""
-        return self._supports_linking
+    supports_linking = DelegatedProperty[bool](path="_supports_linking")
 
     @inspector
     async def add_link(

@@ -44,8 +44,9 @@
 
 - **Add `DelegatedProperty` descriptor**: New descriptor for delegating property access to nested attribute paths
   - Supports `kind` (config/info/state/simple) for categorization via `get_hm_property_by_kind()`
-  - Supports `cached=True` for per-instance caching of delegated values
+  - Supports `cached=True` for per-instance caching of delegated values (uses WeakKeyDictionary fallback for `__slots__` classes)
   - Supports `log_context=True` for structured logging
+  - Migrated 266 simple delegation properties across the codebase to use `DelegatedProperty`
   - Note: Cannot be used when subclasses override with `@property` due to mypy limitations
 
 # Version 2025.12.43 (2025-12-22)

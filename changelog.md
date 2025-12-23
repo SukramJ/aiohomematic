@@ -14,6 +14,13 @@
   - Automatic context propagation through async call chains
   - 42 tests covering all context functionality
 
+- **Add DP004 path validation to lint-delegated-property**: The linter now validates that `DelegatedProperty` paths reference existing attributes
+
+  - DP004 error: Reports when `path` references an attribute not defined in `__slots__`, `__init__`, class-level assignments, or `@property`
+  - Enhanced AST visitor to detect `DelegatedProperty` in annotated assignments (e.g., `name: Final = DelegatedProperty[...]`)
+  - Tracks class-level plain assignments (e.g., `_enabled_default = True`)
+  - Validates path resolution across class inheritance hierarchy
+
 - **Add `CentralConfigBuilder` for fluent configuration**: Implement Builder Pattern for `CentralConfig` with step-by-step configuration and validation
 
   - `CentralConfigBuilder` class with fluent method chaining (`.with_name()`, `.with_host()`, `.add_hmip_interface()`, etc.)

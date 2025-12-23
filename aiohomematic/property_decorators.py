@@ -29,6 +29,7 @@ from weakref import WeakKeyDictionary
 from aiohomematic import support as hms
 
 __all__ = [
+    "DelegatedProperty",
     "Kind",
     "_GenericProperty",
     "config_property",
@@ -50,6 +51,123 @@ class Kind(StrEnum):
     INFO = "info"
     SIMPLE = "simple"
     STATE = "state"
+
+
+class DelegatedProperty[ValueT]:
+    """
+    Descriptor that delegates property access to a nested attribute path.
+
+    This descriptor simplifies forwarding properties that just return an
+    attribute from a nested object, eliminating boilerplate. It behaves
+    like a read-only @property and can be overridden by subclasses.
+
+    Supports the same features as the other property decorators:
+    - kind: Categorize as config/info/state/simple for get_hm_property_by_kind()
+    - cached: Cache the delegated value on first access
+    - log_context: Include in structured log context
+
+    Usage:
+        # Simple delegation:
+        interface = DelegatedProperty[Interface]("_config.interface")
+
+        # With caching and kind:
+        state = DelegatedProperty[ClientState](
+            "_state_machine.state",
+            kind=Kind.STATE,
+            cached=True,
+        )
+
+        # With log_context:
+        interface_id = DelegatedProperty[str](
+            "_config.interface_id",
+            kind=Kind.INFO,
+            log_context=True,
+        )
+
+    Note:
+        Do NOT use type annotations on the left side like `interface: Interface = ...`
+        as this confuses mypy. The generic type parameter provides type information.
+
+    """
+
+    __slots__ = ("_cache_attr", "_cached", "_doc", "_parts", "_path", "kind", "log_context")
+
+    __kwonly_check__ = False
+
+    def __init__(
+        self,
+        path: str,
+        *,
+        doc: str | None = None,
+        kind: Kind = Kind.SIMPLE,
+        cached: bool = False,
+        log_context: bool = False,
+    ) -> None:
+        """
+        Initialize the delegated property descriptor.
+
+        Args:
+            path: Dot-separated attribute path (e.g., "_config.interface").
+            doc: Optional docstring for the property.
+            kind: Categorize as config/info/state/simple.
+            cached: Enable per-instance caching of the delegated value.
+            log_context: Include this property in structured log context if True.
+
+        """
+        self._path: Final = path
+        self._parts: Final = tuple(path.split("."))
+        self._doc = doc
+        self.kind: Final = kind
+        self._cached: Final = cached
+        self.log_context = log_context
+        if cached:
+            # Generate cache attribute name from the last part of the path
+            cache_name = path.replace(".", "_").lstrip("_")
+            self._cache_attr = f"_cached_dp_{cache_name}"
+
+    @overload
+    def __get__(self, instance: None, owner: type) -> Self: ...
+
+    @overload
+    def __get__(self, instance: object, owner: type) -> ValueT: ...
+
+    def __get__(self, instance: object | None, owner: type) -> ValueT | Self:
+        """Return the delegated attribute value."""
+        if instance is None:
+            return self
+
+        if not self._cached:
+            value: Any = instance
+            for part in self._parts:
+                value = getattr(value, part)
+            return cast(ValueT, value)
+
+        # Caching enabled - check cache first
+        cache_attr = self._cache_attr
+        try:
+            inst_dict = instance.__dict__
+            if cache_attr in inst_dict:
+                return cast(ValueT, inst_dict[cache_attr])
+
+            # Not cached yet, resolve and store
+            value = instance
+            for part in self._parts:
+                value = getattr(value, part)
+            inst_dict[cache_attr] = value
+        except AttributeError:
+            # Object uses __slots__, fall back to getattr/setattr
+            try:
+                return cast(ValueT, getattr(instance, cache_attr))
+            except AttributeError:
+                value = instance
+                for part in self._parts:
+                    value = getattr(value, part)
+                setattr(instance, cache_attr, value)
+        return cast(ValueT, value)
+
+    def __set__(self, instance: object, value: Any) -> None:
+        """Raise AttributeError - this is a read-only property."""
+        raise AttributeError("can't set attribute")  # i18n-exc: ignore
 
 
 class _GenericProperty[GETTER, SETTER](property):
@@ -437,7 +555,9 @@ def get_hm_property_by_kind(data_object: Any, kind: Kind, context: bool = False)
 
     if (names := decorator_cache.get(kind)) is None:
         names = tuple(
-            y for y in dir(cls) if (gp := getattr(cls, y)) and isinstance(gp, _GenericProperty) and gp.kind == kind
+            y
+            for y in dir(cls)
+            if (gp := getattr(cls, y)) and isinstance(gp, _GenericProperty | DelegatedProperty) and gp.kind == kind
         )
         decorator_cache[kind] = names
 

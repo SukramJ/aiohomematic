@@ -24,7 +24,7 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.model import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.data_point import BaseDataPoint
@@ -40,6 +40,9 @@ from aiohomematic.property_decorators import config_property, hm_property, state
 from aiohomematic.type_aliases import ParamType, UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+# Key type for calculated data point dictionary
+type _DataPointKey = tuple[str, ParamsetKey | None]
 
 
 class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPointProtocol):
@@ -80,7 +83,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             unique_id=unique_id,
             is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
         )
-        self._data_points: Final[list[GenericDataPointProtocol]] = []
+        self._data_points: Final[dict[_DataPointKey, GenericDataPointProtocolAny]] = {}
         self._type: ParameterType = None  # type: ignore[assignment]
         self._values: tuple[str, ...] | None = None
         self._max: ParameterT = None  # type: ignore[assignment]
@@ -91,8 +94,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         self._operations: int = 5
         self._unit: str | None = None
         self._multiplier: float = 1.0
-        self._init_data_point_fields()
-        self._post_init_data_point_fields()
+        self._post_init()
 
     def __del__(self) -> None:
         """Clean up subscriptions when the object is garbage collected."""
@@ -105,17 +107,17 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         return False
 
     @property
-    def _readable_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def _readable_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of readable data points."""
-        return tuple(dp for dp in self._data_points if dp.is_readable)
+        return tuple(dp for dp in self._data_points.values() if dp.is_readable)
 
     @property
-    def _relevant_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return self._readable_data_points
 
     @property
-    def _relevant_values_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def _relevant_values_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of relevant VALUES data points. To be overridden by subclasses."""
         return tuple(dp for dp in self._readable_data_points if dp.paramset_key == ParamsetKey.VALUES)
 
@@ -280,46 +282,38 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
                 unreg()
         self._unsubscribe_callbacks.clear()
 
-    def _add_data_point[DataPointT: GenericDataPointProtocol](
-        self, *, parameter: str, paramset_key: ParamsetKey | None, data_point_type: type[DataPointT]
+    def _add_data_point[DataPointT: GenericDataPointProtocolAny](
+        self, *, parameter: str, paramset_key: ParamsetKey | None, dpt: type[DataPointT]
     ) -> DataPointT:
-        """Add a new data point."""
-        if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
-            self._data_points.append(generic_data_point)
-            self._unsubscribe_callbacks.append(
-                generic_data_point.subscribe_to_internal_data_point_updated(
-                    handler=self.publish_data_point_updated_event
-                )
-            )
-            return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
-        return cast(
-            data_point_type,  # type:ignore[valid-type]
-            DpDummy(channel=self._channel, param_field=parameter),
-        )
+        """Add a new data point and store it in the dict."""
+        key: _DataPointKey = (parameter, paramset_key)
+        dp = self._resolve_data_point(parameter=parameter, paramset_key=paramset_key)
+        self._data_points[key] = dp
+        return cast(dpt, dp)  # type: ignore[valid-type]
 
-    def _add_device_data_point[DataPointT: GenericDataPointProtocol](
+    def _add_device_data_point[DataPointT: GenericDataPointProtocolAny](
         self,
         *,
         channel_address: str,
         parameter: str,
         paramset_key: ParamsetKey | None,
-        data_point_type: type[DataPointT],
+        dpt: type[DataPointT],
     ) -> DataPointT:
-        """Add a new data point."""
+        """Add a new data point from a different channel and store it in the dict."""
+        key: _DataPointKey = (parameter, paramset_key)
         if generic_data_point := self._channel.device.get_generic_data_point(
             channel_address=channel_address, parameter=parameter, paramset_key=paramset_key
         ):
-            self._data_points.append(generic_data_point)
+            self._data_points[key] = generic_data_point
             self._unsubscribe_callbacks.append(
                 generic_data_point.subscribe_to_internal_data_point_updated(
                     handler=self.publish_data_point_updated_event
                 )
             )
-            return cast(data_point_type, generic_data_point)  # type: ignore[valid-type]
-        return cast(
-            data_point_type,  # type:ignore[valid-type]
-            DpDummy(channel=self._channel, param_field=parameter),
-        )
+            return cast(dpt, generic_data_point)  # type: ignore[valid-type]
+        dummy = DpDummy(channel=self._channel, param_field=parameter)
+        self._data_points[key] = dummy
+        return cast(dpt, dummy)  # type: ignore[valid-type]
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data point."""
@@ -342,16 +336,20 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self._calculated_parameter}"
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        _LOGGER.debug(
-            "INIT_DATA_POINT_FIELDS: Initialising the data point fields for %s",
-            self.full_name,
-        )
-
-    def _post_init_data_point_fields(self) -> None:
+    def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         _LOGGER.debug(
             "POST_INIT_DATA_POINT_FIELDS: Post action after initialisation of the data point fields for %s",
             self.full_name,
         )
+
+    def _resolve_data_point(self, *, parameter: str, paramset_key: ParamsetKey | None) -> GenericDataPointProtocolAny:
+        """Resolve a data point by parameter and paramset_key, returning DpDummy if not found."""
+        if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
+            self._unsubscribe_callbacks.append(
+                generic_data_point.subscribe_to_internal_data_point_updated(
+                    handler=self.publish_data_point_updated_event
+                )
+            )
+            return generic_data_point
+        return DpDummy(channel=self._channel, param_field=parameter)

@@ -1706,9 +1706,9 @@ The file `release_summary.md` provides a **user-focused, high-level summary** of
 
 #### Release States
 
-| State | Format | Meaning |
-|-------|--------|---------|
-| Open | `Version 2025.11.07 -` | Collecting changes from 2025.11.07 onwards |
+| State  | Format                            | Meaning                                           |
+| ------ | --------------------------------- | ------------------------------------------------- |
+| Open   | `Version 2025.11.07 -`            | Collecting changes from 2025.11.07 onwards        |
 | Closed | `Version 2025.11.07 - 2025.12.43` | Summary of versions 2025.11.07 through 2025.12.43 |
 
 #### Task: "update release summary"
@@ -1716,26 +1716,31 @@ The file `release_summary.md` provides a **user-focused, high-level summary** of
 When the user requests "update release summary":
 
 1. **Read current state**:
+
    ```bash
    head -1 release_summary.md
    git tag --list '2025.12.*' | sort -V | tail -1
    ```
 
 2. **If release is closed** (has end version):
+
    - Create new open release starting from the next version
    - Example: `Version 2025.12.43 - 2025.12.50` → add `Version 2025.12.50 -`
 
 3. **Analyze git commits** (NOT the changelog):
+
    ```bash
    # Get all commits in the date range
    git log --oneline --since="2025-11-05" --until="2025-12-23" | head -100
    ```
+
    - **IMPORTANT**: Base the summary on actual git commits, not changelog.md
    - The changelog may be incomplete or inaccurate - git commits are the source of truth
    - Look for PR titles and commit messages to understand what changed
    - Group related commits into user-facing categories
 
 4. **Write the summary**:
+
    - Summarize from **user perspective** (not developer perspective)
    - Group related changes into categories
    - Consolidate and update existing points if they evolved
@@ -1750,6 +1755,7 @@ When the user requests "update release summary":
 #### Example Transformation
 
 **Git commits** (developer-focused):
+
 ```
 b4240776 Introduce `DpActionSelect` data point type (#2611)
 74453f5f Make ACOUSTIC_ALARM_SELECTION and OPTICAL_ALARM_SELECTION visible (#2613)
@@ -1757,6 +1763,7 @@ b4240776 Introduce `DpActionSelect` data point type (#2611)
 ```
 
 **Release summary** (user-focused):
+
 ```
 ### Siren Control
 

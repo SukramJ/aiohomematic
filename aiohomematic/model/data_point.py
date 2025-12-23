@@ -79,7 +79,7 @@ from aiohomematic.interfaces.operations import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
-from aiohomematic.property_decorators import config_property, hm_property, state_property
+from aiohomematic.property_decorators import Kind, _GenericProperty, config_property, hm_property, state_property
 from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
 from aiohomematic.type_aliases import (
     CallableAny,
@@ -717,7 +717,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
 class BaseParameterDataPoint[
     ParameterT: ParamType,
     InputParameterT: ParamType,
-](BaseDataPoint, BaseParameterDataPointProtocol):
+](BaseDataPoint, BaseParameterDataPointProtocol[ParameterT | None]):
     """
     Base class for parameter-backed data points with typed values.
 
@@ -788,9 +788,9 @@ class BaseParameterDataPoint[
             parameter=self._parameter,
             custom_only=True,
         )
-        self._current_value: ParameterT = None  # type: ignore[assignment]
-        self._previous_value: ParameterT = None  # type: ignore[assignment]
-        self._temporary_value: ParameterT = None  # type: ignore[assignment]
+        self._current_value: ParameterT | None = None
+        self._previous_value: ParameterT | None = None
+        self._temporary_value: ParameterT | None = None
 
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
@@ -819,7 +819,7 @@ class BaseParameterDataPoint[
                 self._status_value_list = tuple(value_list)
 
     @property
-    def _value(self) -> ParameterT:
+    def _value(self) -> ParameterT | None:
         """Return the value of the data_point."""
         return self._temporary_value if self._temporary_refreshed_at > self._refreshed_at else self._current_value
 
@@ -891,7 +891,7 @@ class BaseParameterDataPoint[
         return self._paramset_key
 
     @property
-    def previous_value(self) -> ParameterT:
+    def previous_value(self) -> ParameterT | None:
         """Return the previous value of the data_point."""
         return self._previous_value
 
@@ -968,10 +968,39 @@ class BaseParameterDataPoint[
         """Return the values."""
         return self._values
 
-    @state_property
-    def value(self) -> ParameterT:
-        """Return the value of the data_point."""
+    def _get_value(self) -> ParameterT | None:
+        """
+        Return the value for readings. Override in subclasses for custom value processing.
+
+        Subclasses like DpSelect, DpSensor, DpBinarySensor override this to:
+        - Convert integer indices to string values from VALUE_LIST
+        - Apply value converters (e.g., RSSI negation)
+        - Return defaults when value is None
+        """
         return self._value
+
+    def __get_value_proxy(self) -> ParameterT | None:
+        """
+        Proxy method for the value property getter.
+
+        This indirection is necessary because _GenericProperty(fget=method) binds the
+        method at class definition time, bypassing MRO. By calling self._get_value()
+        here, we ensure subclass overrides of _get_value() are properly invoked.
+        """
+        return self._get_value()
+
+    def _set_value(self, value: ParameterT) -> None:  # kwonly: disable
+        """Set the local value."""
+        self.write_value(value=value, write_at=datetime.now())
+
+    # Note: Explicit _GenericProperty construction with kind=Kind.STATE is functionally
+    # equivalent to @state_property decorator, but preserves generic type information
+    # for mypy (which the decorator+setter pattern breaks due to mypy limitations).
+    value: _GenericProperty[ParameterT | None, ParameterT] = _GenericProperty(
+        fget=__get_value_proxy,
+        fset=_set_value,
+        kind=Kind.STATE,
+    )
 
     @hm_property(cached=True)
     def _enabled_by_channel_operation_mode(self) -> bool | None:
@@ -1135,7 +1164,7 @@ class BaseParameterDataPoint[
             self._state_uncertain = True
         self.publish_data_point_updated_event()
 
-    def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT, ParameterT]:
+    def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT | None, ParameterT | None]:
         """Update value of the data_point."""
         self._reset_temporary_value()
 
@@ -1144,7 +1173,7 @@ class BaseParameterDataPoint[
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
                 self.publish_data_point_updated_event()
-            return (old_value, None)  # type: ignore[return-value]
+            return (old_value, None)
 
         new_value = self._convert_value(value=value)
         if old_value == new_value:
@@ -1265,7 +1294,7 @@ class BaseParameterDataPoint[
 
     def _reset_temporary_value(self) -> None:
         """Reset the temp storage."""
-        self._temporary_value = None  # type: ignore[assignment]
+        self._temporary_value = None
         self._reset_temporary_timestamps()
 
 

@@ -12,7 +12,6 @@ from aiohomematic.const import DataPointCategory, Parameter, ParameterType
 from aiohomematic.decorators import inspector
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic.data_point import GenericDataPoint
-from aiohomematic.property_decorators import state_property
 
 
 class DpSwitch(GenericDataPoint[bool | None, bool]):
@@ -25,13 +24,6 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
     __slots__ = ()
 
     _category = DataPointCategory.SWITCH
-
-    @state_property
-    def value(self) -> bool | None:
-        """Get the value of the data_point."""
-        if self._type == ParameterType.ACTION:
-            return False
-        return self._value
 
     @inspector
     async def set_on_time(self, *, on_time: float) -> None:
@@ -54,3 +46,9 @@ class DpSwitch(GenericDataPoint[bool | None, bool]):
         if on_time is not None:
             await self.set_on_time(on_time=on_time)
         await self.send_value(value=True, collector=collector)
+
+    def _get_value(self) -> bool | None:
+        """Return the value for readings."""
+        if self._type == ParameterType.ACTION:
+            return False
+        return self._value

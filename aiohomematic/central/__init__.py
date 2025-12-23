@@ -158,7 +158,8 @@ from aiohomematic.interfaces.model import (
     CustomDataPointProtocol,
     DeviceProtocol,
     GenericDataPointProtocol,
-    GenericEventProtocol,
+    GenericDataPointProtocolAny,
+    GenericEventProtocolAny,
 )
 from aiohomematic.model.hub import InstallModeDpType
 from aiohomematic.property_decorators import info_property
@@ -593,7 +594,7 @@ class CentralUnit(
 
     def get_event(
         self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEventProtocol | None:
+    ) -> GenericEventProtocolAny | None:
         """Return the hm event."""
         if channel_address is None:
             for dev in self._device_registry.devices:
@@ -607,9 +608,9 @@ class CentralUnit(
 
     def get_events(
         self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
-    ) -> tuple[tuple[GenericEventProtocol, ...], ...]:
+    ) -> tuple[tuple[GenericEventProtocolAny, ...], ...]:
         """Return all channel event data points."""
-        hm_channel_events: list[tuple[GenericEventProtocol, ...]] = []
+        hm_channel_events: list[tuple[GenericEventProtocolAny, ...]] = []
         for device in self._device_registry.devices:
             for channel_events in device.get_events(event_type=event_type).values():
                 if registered is None or (channel_events[0].is_registered == registered):
@@ -624,7 +625,7 @@ class CentralUnit(
         parameter: str | None = None,
         paramset_key: ParamsetKey | None = None,
         state_path: str | None = None,
-    ) -> GenericDataPointProtocol | None:
+    ) -> GenericDataPointProtocolAny | None:
         """Get data_point by channel_address and parameter."""
         if channel_address is None:
             for dev in self._device_registry.devices:
@@ -739,7 +740,7 @@ class CentralUnit(
 
     def get_readable_generic_data_points(
         self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
-    ) -> tuple[GenericDataPointProtocol, ...]:
+    ) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the readable generic data points."""
         return tuple(
             ge
@@ -1760,9 +1761,9 @@ def _get_new_data_points(
     return data_points_by_category
 
 
-def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocol, ...], ...]:
+def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocolAny, ...], ...]:
     """Return new channel events by category."""
-    channel_events: list[tuple[GenericEventProtocol, ...]] = []
+    channel_events: list[tuple[GenericEventProtocolAny, ...]] = []
 
     for device in new_devices:
         for event_type in DATA_POINT_EVENTS:

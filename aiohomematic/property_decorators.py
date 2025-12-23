@@ -23,14 +23,17 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from enum import Enum, StrEnum
-from typing import Any, Final, ParamSpec, TypeVar, cast, overload
+from typing import Any, Final, ParamSpec, Self, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
 from aiohomematic import support as hms
 
 __all__ = [
+    "Kind",
+    "_GenericProperty",
     "config_property",
     "get_hm_property_by_kind",
+    "hm_property",
     "info_property",
     "state_property",
 ]
@@ -122,7 +125,13 @@ class _GenericProperty[GETTER, SETTER](property):
             raise AttributeError("can't delete attribute")  # i18n-exc: ignore
         self.fdel(instance)
 
-    def __get__(self, instance: Any, gtype: type | None = None, /) -> GETTER:  # type: ignore[override]
+    @overload
+    def __get__(self, instance: None, owner: type[Any], /) -> Self: ...
+
+    @overload
+    def __get__(self, instance: object, owner: type[Any] | None = None, /) -> GETTER: ...
+
+    def __get__(self, instance: object | None, owner: type[Any] | None = None, /) -> GETTER | Self:
         """
         Return the attribute value.
 
@@ -131,7 +140,7 @@ class _GenericProperty[GETTER, SETTER](property):
         """
         if instance is None:
             # Accessed from class, return the descriptor itself
-            return cast(GETTER, self)
+            return self
 
         if (fget := self.fget) is None:
             raise AttributeError("unreadable attribute")  # i18n-exc: ignore

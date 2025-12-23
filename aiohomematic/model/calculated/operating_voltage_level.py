@@ -13,6 +13,7 @@ from typing import Any, Final
 from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
+from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.calculated.support import calculate_operating_voltage_level
 from aiohomematic.model.generic import DpFloat, DpSensor
 from aiohomematic.property_decorators import state_property
@@ -32,14 +33,25 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
 
     __slots__ = (
         "_battery_data",
-        "_dp_low_bat_limit",
-        "_dp_operating_voltage",
         "_low_bat_limit_default",
         "_voltage_max",
     )
 
     _calculated_parameter = CalculatedParameter.OPERATING_VOLTAGE_LEVEL
     _category = DataPointCategory.SENSOR
+
+    _dp_low_bat_limit = CalculatedDataPointField(
+        parameter=Parameter.LOW_BAT_LIMIT,
+        paramset_key=ParamsetKey.MASTER,
+        dpt=DpFloat,
+        use_device_fallback=True,
+    )
+    _dp_operating_voltage = CalculatedDataPointField(
+        parameter=Parameter.OPERATING_VOLTAGE,
+        paramset_key=ParamsetKey.VALUES,
+        dpt=DpSensor,
+        fallback_parameters=[Parameter.BATTERY_STATE],
+    )
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
@@ -121,39 +133,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             )
         return None
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        super()._init_data_point_fields()
+    def _post_init(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init()
 
         self._battery_data = _get_battery_data(model=self._channel.device.model)
-
-        operating_voltage: DpSensor[float | None] = self._add_data_point(
-            parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-        )
-
-        self._dp_operating_voltage: DpSensor[float | None] = (
-            operating_voltage
-            if isinstance(operating_voltage, DpSensor)
-            else self._add_data_point(
-                parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-            )
-        )
-
-        low_bat_limit: DpSensor[float | None] = self._add_data_point(
-            parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, data_point_type=DpSensor
-        )
-
-        self._dp_low_bat_limit: DpFloat = (
-            low_bat_limit
-            if isinstance(low_bat_limit, DpFloat)
-            else self._add_device_data_point(
-                channel_address=self.channel.device.address,
-                parameter=Parameter.LOW_BAT_LIMIT,
-                paramset_key=ParamsetKey.MASTER,
-                data_point_type=DpFloat,
-            )
-        )
-
         self._low_bat_limit_default = (
             float(self._dp_low_bat_limit.default)
             if isinstance(self._dp_low_bat_limit, DpFloat) and self._dp_low_bat_limit.default is not None

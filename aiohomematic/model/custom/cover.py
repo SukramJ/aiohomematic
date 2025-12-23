@@ -16,6 +16,7 @@ from typing import Final, Unpack
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -97,16 +98,19 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
 
     __slots__ = (
         "_command_processing_lock",
-        "_dp_direction",
-        "_dp_group_level",
-        "_dp_level",
-        "_dp_stop",
         "_use_group_channel_for_cover_state",
     )
+
     _category = DataPointCategory.COVER
     _closed_level: float = _CLOSED_LEVEL
     _closed_position: int = int(_CLOSED_LEVEL * _LEVEL_TO_POSITION_MULTIPLIER)
     _open_level: float = _OPEN_LEVEL
+
+    # Declarative data point field definitions
+    _dp_direction = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_group_level = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
+    _dp_level = DataPointField(field=Field.LEVEL, dpt=DpFloat)
+    _dp_stop = DataPointField(field=Field.STOP, dpt=DpAction)
 
     @property
     def _group_level(self) -> float:
@@ -195,19 +199,11 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
         """Stop the device if in motion."""
         await self._dp_stop.send_value(value=True, collector=collector)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        super()._init_data_point_fields()
+    def _post_init(self) -> None:
+        """Post action after initialisation of the data point fields."""
+        super()._post_init()
 
         self._command_processing_lock = asyncio.Lock()
-        self._dp_direction: DpSensor[str | None] = self._get_data_point(
-            field=Field.DIRECTION, data_point_type=DpSensor[str | None]
-        )
-        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._dp_stop: DpAction = self._get_data_point(field=Field.STOP, data_point_type=DpAction)
-        self._dp_group_level: DpSensor[float | None] = self._get_data_point(
-            field=Field.GROUP_LEVEL, data_point_type=DpSensor[float | None]
-        )
         self._use_group_channel_for_cover_state = self._device.config_provider.config.use_group_channel_for_cover_state
 
     async def _set_level(
@@ -264,12 +260,14 @@ class CustomDpWindowDrive(CustomDpCover):
 class CustomDpBlind(CustomDpCover):
     """Class for Homematic blind data point."""
 
-    __slots__ = (
-        "_dp_combined",
-        "_dp_group_level_2",
-        "_dp_level_2",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
     _open_tilt_level: float = _OPEN_TILT_LEVEL
+
+    # Declarative data point field definitions
+    _dp_combined = DataPointField(field=Field.LEVEL_COMBINED, dpt=DpAction)
+    _dp_group_level_2 = DataPointField(field=Field.GROUP_LEVEL_2, dpt=DpSensor[float | None])
+    _dp_level_2 = DataPointField(field=Field.LEVEL_2, dpt=DpFloat)
 
     @property
     def _group_tilt_level(self) -> float:
@@ -415,16 +413,6 @@ class CustomDpBlind(CustomDpCover):
             return ",".join(levels)
         return None
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_group_level_2: DpSensor[float | None] = self._get_data_point(
-            field=Field.GROUP_LEVEL_2, data_point_type=DpSensor[float | None]
-        )
-        self._dp_level_2: DpFloat = self._get_data_point(field=Field.LEVEL_2, data_point_type=DpFloat)
-        self._dp_combined: DpAction = self._get_data_point(field=Field.LEVEL_COMBINED, data_point_type=DpAction)
-
     @bind_collector
     async def _send_level(
         self,
@@ -505,7 +493,11 @@ class CustomDpBlind(CustomDpCover):
 class CustomDpIpBlind(CustomDpBlind):
     """Class for HomematicIP blind data point."""
 
-    __slots__ = ("_dp_operation_mode",)
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions (override parent)
+    _dp_combined = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpAction)
+    _dp_operation_mode = DataPointField(field=Field.OPERATION_MODE, dpt=DpSelect)
 
     @property
     def operation_mode(self) -> str | None:
@@ -527,23 +519,18 @@ class CustomDpIpBlind(CustomDpBlind):
             return ",".join(levels)
         return None
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_operation_mode: DpSelect = self._get_data_point(field=Field.OPERATION_MODE, data_point_type=DpSelect)
-        self._dp_combined: DpAction = self._get_data_point(field=Field.COMBINED_PARAMETER, data_point_type=DpAction)
-
 
 class CustomDpGarage(PositionMixin, CustomDataPoint):
     """Class for Homematic garage data point."""
 
-    __slots__ = (
-        "_dp_door_command",
-        "_dp_door_state",
-        "_dp_section",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
     _category = DataPointCategory.COVER
+
+    # Declarative data point field definitions
+    _dp_door_command = DataPointField(field=Field.DOOR_COMMAND, dpt=DpActionSelect)
+    _dp_door_state = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
+    _dp_section = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
 
     @state_property
     def current_position(self) -> int | None:
@@ -630,20 +617,6 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         if not self.is_state_change(vent=True):
             return
         await self._dp_door_command.send_value(value=_GarageDoorCommand.PARTIAL_OPEN, collector=collector)
-
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_door_state: DpSensor[str | None] = self._get_data_point(
-            field=Field.DOOR_STATE, data_point_type=DpSensor[str | None]
-        )
-        self._dp_door_command: DpActionSelect = self._get_data_point(
-            field=Field.DOOR_COMMAND, data_point_type=DpActionSelect
-        )
-        self._dp_section: DpSensor[int | None] = self._get_data_point(
-            field=Field.SECTION, data_point_type=DpSensor[int | None]
-        )
 
 
 # =============================================================================

@@ -11,14 +11,11 @@ They provide a value getter for displaying the current selection.
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.generic.data_point import GenericDataPoint
 from aiohomematic.model.support import get_value_from_value_list
-from aiohomematic.property_decorators import state_property
 
 
 class DpActionSelect(GenericDataPoint[int | str | None, int | str]):
@@ -35,9 +32,8 @@ class DpActionSelect(GenericDataPoint[int | str | None, int | str]):
     _category = DataPointCategory.ACTION_SELECT
     _validate_state_change = False
 
-    @state_property
-    def value(self) -> int | str | None:
-        """Return the value of the data_point."""
+    def _get_value(self) -> int | str | None:
+        """Return the value for readings."""
         # For index-based ENUMs (HM), convert integer index to string value.
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value
@@ -45,11 +41,6 @@ class DpActionSelect(GenericDataPoint[int | str | None, int | str]):
         if isinstance(self._value, str) and self._values is not None and self._value in self._values:
             return self._value
         return self._default
-
-    @value.setter  # type: ignore[no-redef]
-    def value(self, value: int | str) -> None:
-        """Set the local value."""
-        self.write_value(value=value, write_at=datetime.now())
 
     def _prepare_value_for_sending(self, *, value: int | str, do_validate: bool = True) -> int | str:
         """Prepare value before sending with validation against value_list."""

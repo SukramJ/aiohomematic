@@ -27,7 +27,8 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
-    hme.BaseParameterDataPoint[ParameterT, InputParameterT], GenericDataPointProtocol
+    hme.BaseParameterDataPoint[ParameterT, InputParameterT],
+    GenericDataPointProtocol[ParameterT | None],
 ):
     """Base class for generic data point."""
 
@@ -89,7 +90,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
                 )
             )
 
-    def is_state_change(self, *, value: ParameterT) -> bool:
+    def is_state_change(self, *, value: ParameterT | None) -> bool:
         """
         Check if the state/value changes.
 

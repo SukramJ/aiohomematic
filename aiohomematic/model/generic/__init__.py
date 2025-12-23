@@ -66,7 +66,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.generic.action import DpAction
 from aiohomematic.model.generic.action_select import DpActionSelect
 from aiohomematic.model.generic.binary_sensor import DpBinarySensor
@@ -306,7 +306,7 @@ def _safe_create_data_point(
         ) from exc
 
 
-def _check_switch_to_sensor(*, data_point: GenericDataPointProtocol) -> bool:
+def _check_switch_to_sensor(*, data_point: GenericDataPointProtocolAny) -> bool:
     """Check if parameter of a device should be wrapped to a different category."""
     if data_point.device.parameter_visibility_provider.parameter_is_un_ignored(
         channel=data_point.channel,

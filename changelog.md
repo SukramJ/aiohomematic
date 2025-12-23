@@ -1,3 +1,40 @@
+# Version 2025.12.44 (2025-12-22)
+
+## What's Changed
+
+### Improvements
+
+- **Make data point protocols generic for improved type safety**: Protocols now preserve generic type information for mypy
+
+  - `BaseParameterDataPointProtocol[ParameterT]` - properties like `default`, `max`, `min`, `previous_value`, `value` now return `ParameterT` instead of `Any`
+  - `GenericDataPointProtocol[ParameterT]` - extends base protocol with typed value handling
+  - Added type aliases for heterogeneous collections: `BaseParameterDataPointProtocolAny`, `GenericDataPointProtocolAny`, `GenericEventProtocolAny`
+
+- **Fix property decorators to preserve generic type information for mypy**: The `value` property on data points now correctly infers types (e.g., `DpSwitch.value` → `bool | None`, `DpSensor[float].value` → `float | None`)
+
+  - Changed `BaseParameterDataPoint.value` from `@state_property` decorator to explicit `_GenericProperty` construction with `kind=Kind.STATE`
+  - Added `__get__` overloads to `_GenericProperty` for proper type inference
+  - Exported `Kind` and `_GenericProperty` from `property_decorators.py`
+  - Subclasses override `_get_value()` method for custom value reading logic
+
+- **Refactor `CustomDataPoint` to use `DataPointField` descriptor**: Declarative field definitions replace imperative `_init_data_point_fields()`
+
+  - `DataPointField` now uses keyword-only `__init__` parameters
+  - Eliminated `_init_data_point_fields()` method from `CustomDataPoint` base class
+  - Applied `DataPointField` pattern to all custom data point classes (climate, cover, light, lock, siren, switch, valve)
+  - Subclasses use `_post_init()` for additional initialization after field resolution
+
+- **Add `CalculatedDataPointField` descriptor for calculated data points**: Mirrors the `DataPointField` descriptor pattern from custom data points
+
+  - New file `aiohomematic/model/calculated/field.py` with `CalculatedDataPointField` descriptor
+  - Changed `CalculatedDataPoint._data_points` from `list` to `dict` for O(1) lookup by `(parameter, paramset_key)` key
+  - Added `_resolve_data_point()` method for lazy data point resolution with subscription handling
+  - Added `fallback_parameters` support for trying alternative parameters (e.g., `TEMPERATURE` → `ACTUAL_TEMPERATURE`)
+  - Added `use_device_fallback` support for trying device address (channel 0) if not found on current channel
+  - Refactored `BaseClimateSensor`, `ApparentTemperature`, and `OperatingVoltageLevel` to use declarative field descriptors
+
+- **Optimize field descriptors**: Removed unused `_attr_name` slot and `__set_name__` method from `DataPointField` and `CalculatedDataPointField`
+
 # Version 2025.12.43 (2025-12-22)
 
 ## What's Changed

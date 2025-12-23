@@ -36,9 +36,10 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocolAny
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroup
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
@@ -139,18 +140,23 @@ class BaseCustomDpClimate(CustomDataPoint):
     """Base Homematic climate data_point."""
 
     __slots__ = (
-        "_dp_humidity",
-        "_dp_min_max_value_not_relevant_for_manu_mode",
-        "_dp_setpoint",
-        "_dp_temperature",
-        "_dp_temperature_maximum",
-        "_dp_temperature_minimum",
         "_old_manu_setpoint",
         "_peer_level_dp",
         "_peer_state_dp",
         "_peer_unsubscribe_callbacks",
     )
+
     _category = DataPointCategory.CLIMATE
+
+    # Declarative data point field definitions
+    _dp_humidity = DataPointField(field=Field.HUMIDITY, dpt=DpSensor[int | None])
+    _dp_min_max_value_not_relevant_for_manu_mode = DataPointField(
+        field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, dpt=DpSwitch
+    )
+    _dp_setpoint = DataPointField(field=Field.SETPOINT, dpt=DpFloat)
+    _dp_temperature = DataPointField(field=Field.TEMPERATURE, dpt=DpSensor[float | None])
+    _dp_temperature_maximum = DataPointField(field=Field.TEMPERATURE_MAXIMUM, dpt=DpFloat)
+    _dp_temperature_minimum = DataPointField(field=Field.TEMPERATURE_MINIMUM, dpt=DpFloat)
 
     def __init__(
         self,
@@ -485,30 +491,9 @@ class BaseCustomDpClimate(CustomDataPoint):
 
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_humidity: DpSensor[int | None] = self._get_data_point(
-            field=Field.HUMIDITY, data_point_type=DpSensor[int | None]
-        )
-        self._dp_min_max_value_not_relevant_for_manu_mode: DpSwitch = self._get_data_point(
-            field=Field.MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE, data_point_type=DpSwitch
-        )
-        self._dp_setpoint: DpFloat = self._get_data_point(field=Field.SETPOINT, data_point_type=DpFloat)
-        self._dp_temperature: DpSensor[float | None] = self._get_data_point(
-            field=Field.TEMPERATURE, data_point_type=DpSensor[float | None]
-        )
-        self._dp_temperature_maximum: DpFloat = self._get_data_point(
-            field=Field.TEMPERATURE_MAXIMUM, data_point_type=DpFloat
-        )
-        self._dp_temperature_minimum: DpFloat = self._get_data_point(
-            field=Field.TEMPERATURE_MINIMUM, data_point_type=DpFloat
-        )
-
     @abstractmethod
     def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
     ) -> None:
         """Handle device state changes."""
 
@@ -523,9 +508,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         # Inform listeners that relevant inputs may have changed
         self.publish_data_point_updated_event()
 
-    def _post_init_data_point_fields(self) -> None:
+    def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
-        super()._post_init_data_point_fields()
+        super()._post_init()
 
         self._unsubscribe_callbacks.append(
             self._dp_setpoint.subscribe_to_data_point_updated(
@@ -607,7 +592,7 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
     __slots__ = ()
 
     def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
     ) -> None:
         """Handle device state changes."""
 
@@ -615,17 +600,18 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 class CustomDpRfThermostat(BaseCustomDpClimate):
     """Classic Homematic thermostat like HM-CC-RT-DN."""
 
-    __slots__ = (
-        "_dp_auto_mode",
-        "_dp_boost_mode",
-        "_dp_comfort_mode",
-        "_dp_control_mode",
-        "_dp_lowering_mode",
-        "_dp_manu_mode",
-        "_dp_temperature_offset",
-        "_dp_valve_state",
-        "_dp_week_program_pointer",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_auto_mode = DataPointField(field=Field.AUTO_MODE, dpt=DpAction)
+    _dp_boost_mode = DataPointField(field=Field.BOOST_MODE, dpt=DpAction)
+    _dp_comfort_mode = DataPointField(field=Field.COMFORT_MODE, dpt=DpAction)
+    _dp_control_mode = DataPointField(field=Field.CONTROL_MODE, dpt=DpSensor[str | None])
+    _dp_lowering_mode = DataPointField(field=Field.LOWERING_MODE, dpt=DpAction)
+    _dp_manu_mode = DataPointField(field=Field.MANU_MODE, dpt=DpAction)
+    _dp_temperature_offset = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpSelect)
+    _dp_valve_state = DataPointField(field=Field.VALVE_STATE, dpt=DpSensor[int | None])
+    _dp_week_program_pointer = DataPointField(field=Field.WEEK_PROGRAM_POINTER, dpt=DpSelect)
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -772,30 +758,8 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                     value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector
                 )
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_boost_mode: DpAction = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpAction)
-        self._dp_auto_mode: DpAction = self._get_data_point(field=Field.AUTO_MODE, data_point_type=DpAction)
-        self._dp_manu_mode: DpAction = self._get_data_point(field=Field.MANU_MODE, data_point_type=DpAction)
-        self._dp_comfort_mode: DpAction = self._get_data_point(field=Field.COMFORT_MODE, data_point_type=DpAction)
-        self._dp_lowering_mode: DpAction = self._get_data_point(field=Field.LOWERING_MODE, data_point_type=DpAction)
-        self._dp_control_mode: DpSensor[str | None] = self._get_data_point(
-            field=Field.CONTROL_MODE, data_point_type=DpSensor[str | None]
-        )
-        self._dp_temperature_offset: DpSelect = self._get_data_point(
-            field=Field.TEMPERATURE_OFFSET, data_point_type=DpSelect
-        )
-        self._dp_valve_state: DpSensor[int | None] = self._get_data_point(
-            field=Field.VALVE_STATE, data_point_type=DpSensor[int | None]
-        )
-        self._dp_week_program_pointer: DpSelect = self._get_data_point(
-            field=Field.WEEK_PROGRAM_POINTER, data_point_type=DpSelect
-        )
-
     def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
     ) -> None:
         """Handle device state changes."""
         if (
@@ -812,9 +776,9 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         ):
             self._old_manu_setpoint = self.target_temperature
 
-    def _post_init_data_point_fields(self) -> None:
+    def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
-        super()._post_init_data_point_fields()
+        super()._post_init()
 
         # subscribe to control_mode updates to track manual target temp
         self._unsubscribe_callbacks.append(
@@ -837,19 +801,20 @@ def _party_mode_code(*, start: datetime, end: datetime, away_temperature: float)
 class CustomDpIpThermostat(BaseCustomDpClimate):
     """HomematicIP thermostat like HmIP-BWTH, HmIP-eTRV-X."""
 
-    __slots__ = (
-        "_dp_active_profile",
-        "_dp_boost_mode",
-        "_dp_control_mode",
-        "_dp_heating_mode",
-        "_dp_heating_valve_type",
-        "_dp_level",
-        "_dp_optimum_start_stop",
-        "_dp_party_mode",
-        "_dp_set_point_mode",
-        "_dp_state",
-        "_dp_temperature_offset",
-    )
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Declarative data point field definitions
+    _dp_active_profile = DataPointField(field=Field.ACTIVE_PROFILE, dpt=DpInteger)
+    _dp_boost_mode = DataPointField(field=Field.BOOST_MODE, dpt=DpSwitch)
+    _dp_control_mode = DataPointField(field=Field.CONTROL_MODE, dpt=DpAction)
+    _dp_heating_mode = DataPointField(field=Field.HEATING_COOLING, dpt=DpSelect)
+    _dp_heating_valve_type = DataPointField(field=Field.HEATING_VALVE_TYPE, dpt=DpSelect)
+    _dp_level = DataPointField(field=Field.LEVEL, dpt=DpFloat)
+    _dp_optimum_start_stop = DataPointField(field=Field.OPTIMUM_START_STOP, dpt=DpSwitch)
+    _dp_party_mode = DataPointField(field=Field.PARTY_MODE, dpt=DpBinarySensor)
+    _dp_set_point_mode = DataPointField(field=Field.SET_POINT_MODE, dpt=DpInteger)
+    _dp_state = DataPointField(field=Field.STATE, dpt=DpBinarySensor)
+    _dp_temperature_offset = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpFloat)
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -1052,32 +1017,8 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             if profile_idx := self._profiles.get(profile):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
 
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data_point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_active_profile: DpInteger = self._get_data_point(field=Field.ACTIVE_PROFILE, data_point_type=DpInteger)
-        self._dp_boost_mode: DpSwitch = self._get_data_point(field=Field.BOOST_MODE, data_point_type=DpSwitch)
-        self._dp_control_mode: DpAction = self._get_data_point(field=Field.CONTROL_MODE, data_point_type=DpAction)
-        self._dp_heating_mode: DpSelect = self._get_data_point(field=Field.HEATING_COOLING, data_point_type=DpSelect)
-        self._dp_heating_valve_type: DpSelect = self._get_data_point(
-            field=Field.HEATING_VALVE_TYPE, data_point_type=DpSelect
-        )
-        self._dp_level: DpFloat = self._get_data_point(field=Field.LEVEL, data_point_type=DpFloat)
-        self._dp_optimum_start_stop: DpSwitch = self._get_data_point(
-            field=Field.OPTIMUM_START_STOP, data_point_type=DpSwitch
-        )
-        self._dp_party_mode: DpBinarySensor = self._get_data_point(
-            field=Field.PARTY_MODE, data_point_type=DpBinarySensor
-        )
-        self._dp_set_point_mode: DpInteger = self._get_data_point(field=Field.SET_POINT_MODE, data_point_type=DpInteger)
-        self._dp_state: DpBinarySensor = self._get_data_point(field=Field.STATE, data_point_type=DpBinarySensor)
-        self._dp_temperature_offset: DpFloat = self._get_data_point(
-            field=Field.TEMPERATURE_OFFSET, data_point_type=DpFloat
-        )
-
     def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocol | None = None, custom_id: str | None = None
+        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
     ) -> None:
         """Handle device state changes."""
         if (
@@ -1094,9 +1035,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         ):
             self._old_manu_setpoint = self.target_temperature
 
-    def _post_init_data_point_fields(self) -> None:
+    def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
-        super()._post_init_data_point_fields()
+        super()._post_init()
 
         # subscribe to set_point_mode updates to track manual target temp
         self._unsubscribe_callbacks.append(

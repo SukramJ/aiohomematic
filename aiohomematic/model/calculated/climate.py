@@ -10,6 +10,7 @@ from typing import Final
 from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
 from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
+from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
     calculate_dew_point,
@@ -28,41 +29,27 @@ _LOGGER: Final = logging.getLogger(__name__)
 class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
     """Implementation of a calculated climate sensor."""
 
-    __slots__ = (
-        "_dp_humidity",
-        "_dp_temperature",
-        "_dp_wind_speed",
-    )
+    __slots__ = ()
 
     _category = DataPointCategory.SENSOR
+
+    _dp_humidity = CalculatedDataPointField(
+        parameter=Parameter.HUMIDITY,
+        paramset_key=ParamsetKey.VALUES,
+        dpt=DpSensor,
+        fallback_parameters=[Parameter.ACTUAL_HUMIDITY],
+    )
+    _dp_temperature = CalculatedDataPointField(
+        parameter=Parameter.TEMPERATURE,
+        paramset_key=ParamsetKey.VALUES,
+        dpt=DpSensor,
+        fallback_parameters=[Parameter.ACTUAL_TEMPERATURE],
+    )
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
         super().__init__(channel=channel)
         self._type = ParameterType.FLOAT
-
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_temperature: DpSensor[float | None] = (
-            self._add_data_point(
-                parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-            )
-            if self._channel.get_generic_data_point(parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES)
-            else self._add_data_point(
-                parameter=Parameter.ACTUAL_TEMPERATURE, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-            )
-        )
-        self._dp_humidity: DpSensor[int | None] = (
-            self._add_data_point(
-                parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-            )
-            if self._channel.get_generic_data_point(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES)
-            else self._add_data_point(
-                parameter=Parameter.ACTUAL_HUMIDITY, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-            )
-        )
 
 
 class ApparentTemperature(BaseClimateSensor[float | None]):
@@ -71,6 +58,12 @@ class ApparentTemperature(BaseClimateSensor[float | None]):
     __slots__ = ()
 
     _calculated_parameter = CalculatedParameter.APPARENT_TEMPERATURE
+
+    _dp_wind_speed = CalculatedDataPointField(
+        parameter=Parameter.WIND_SPEED,
+        paramset_key=ParamsetKey.VALUES,
+        dpt=DpSensor,
+    )
 
     def __init__(self, *, channel: ChannelProtocol) -> None:
         """Initialize the data point."""
@@ -106,14 +99,6 @@ class ApparentTemperature(BaseClimateSensor[float | None]):
                 wind_speed=self._dp_wind_speed.value,
             )
         return None
-
-    def _init_data_point_fields(self) -> None:
-        """Initialize the data point fields."""
-        super()._init_data_point_fields()
-
-        self._dp_wind_speed: DpSensor[float | None] = self._add_data_point(
-            parameter=Parameter.WIND_SPEED, paramset_key=ParamsetKey.VALUES, data_point_type=DpSensor
-        )
 
 
 class DewPoint(BaseClimateSensor[float | None]):

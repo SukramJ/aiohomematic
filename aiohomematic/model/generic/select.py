@@ -13,7 +13,6 @@ from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.generic.data_point import GenericDataPoint
 from aiohomematic.model.support import get_value_from_value_list
-from aiohomematic.property_decorators import state_property
 
 
 class DpSelect(GenericDataPoint[int | str, int | float | str]):
@@ -27,9 +26,8 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
 
     _category = DataPointCategory.SELECT
 
-    @state_property
-    def value(self) -> int | str:
-        """Get the value of the data_point."""
+    def _get_value(self) -> int | str:
+        """Return the value for readings."""
         # For index-based ENUMs (HM), convert integer index to string value.
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:
             return value

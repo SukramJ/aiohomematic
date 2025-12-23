@@ -34,7 +34,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Protocol, Unpack, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, TypeAlias, Unpack, runtime_checkable
 
 from aiohomematic.const import (
     DP_KEY_VALUE,
@@ -64,6 +64,7 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.property_decorators import state_property
 from aiohomematic.type_aliases import DataPointUpdatedHandler, DeviceRemovedHandler, FirmwareUpdateHandler
 
 if TYPE_CHECKING:
@@ -503,20 +504,23 @@ class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
 
 
 @runtime_checkable
-class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
+class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol):
     """
     Protocol for parameter-backed data points with typed values.
 
     Extends BaseDataPointProtocol with value handling, unit conversion,
     validation, and RPC communication for data points mapped to
     Homematic device parameters.
+
+    Type Parameters:
+        ParameterT: The type of value this data point holds and returns.
     """
 
     __slots__ = ()
 
     @property
     @abstractmethod
-    def default(self) -> Any:
+    def default(self) -> ParameterT:
         """Return default value."""
 
     @property
@@ -561,12 +565,12 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def max(self) -> Any:
+    def max(self) -> ParameterT:
         """Return max value."""
 
     @property
     @abstractmethod
-    def min(self) -> Any:
+    def min(self) -> ParameterT:
         """Return min value."""
 
     @property
@@ -586,7 +590,7 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def previous_value(self) -> Any:
+    def previous_value(self) -> ParameterT:
         """Return the previous value of the data point."""
 
     @property
@@ -626,18 +630,13 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def unconfirmed_last_value_send(self) -> Any:
+    def unconfirmed_last_value_send(self) -> ParameterT:
         """Return the unconfirmed value send for the data point."""
 
     @property
     @abstractmethod
     def unit(self) -> str | None:
         """Return unit value."""
-
-    @property
-    @abstractmethod
-    def value(self) -> Any:
-        """Return the value."""
 
     @property
     @abstractmethod
@@ -648,6 +647,11 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     def visible(self) -> bool:
         """Return if data point is visible in backend."""
+
+    @state_property
+    @abstractmethod
+    def value(self) -> ParameterT:
+        """Return the value."""
 
     @abstractmethod
     async def event(self, *, value: Any, received_at: datetime) -> None:
@@ -674,17 +678,20 @@ class BaseParameterDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Update the temporary value of the data point."""
 
     @abstractmethod
-    def write_value(self, *, value: Any, write_at: datetime) -> tuple[Any, Any]:
+    def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT, ParameterT]:
         """Update value of the data point."""
 
 
 @runtime_checkable
-class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
+class GenericDataPointProtocol[ParameterT](BaseParameterDataPointProtocol[ParameterT], Protocol):
     """
     Protocol for generic parameter-backed data points.
 
     Extends BaseParameterDataPointProtocol with the usage property
     and send_value method specific to generic data points.
+
+    Type Parameters:
+        ParameterT: The type of value this data point holds and returns.
     """
 
     __slots__ = ()
@@ -699,7 +706,7 @@ class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
         """Finalize the data point init action."""
 
     @abstractmethod
-    def is_state_change(self, *, value: Any) -> bool:
+    def is_state_change(self, *, value: ParameterT) -> bool:
         """Check if the state/value changes."""
 
     @abstractmethod
@@ -723,12 +730,15 @@ class GenericDataPointProtocol(BaseParameterDataPointProtocol, Protocol):
 
 
 @runtime_checkable
-class GenericEventProtocol(BaseParameterDataPointProtocol, Protocol):
+class GenericEventProtocol[ParameterT](BaseParameterDataPointProtocol[ParameterT], Protocol):
     """
     Protocol for event data points.
 
     Extends BaseParameterDataPointProtocol with event-specific functionality
     for handling button presses, device errors, and impulse notifications.
+
+    Type Parameters:
+        ParameterT: The type of value this event holds.
     """
 
     __slots__ = ()
@@ -1032,12 +1042,12 @@ class ChannelDataPointAccessProtocol(Protocol):
 
     @property
     @abstractmethod
-    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the generic data points."""
 
     @property
     @abstractmethod
-    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
+    def generic_events(self) -> tuple[GenericEventProtocolAny, ...]:
         """Return the generic events."""
 
     @abstractmethod
@@ -1061,23 +1071,23 @@ class ChannelDataPointAccessProtocol(Protocol):
     @abstractmethod
     def get_events(
         self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
-    ) -> tuple[GenericEventProtocol, ...]:
+    ) -> tuple[GenericEventProtocolAny, ...]:
         """Return a list of specific events of a channel."""
 
     @abstractmethod
     def get_generic_data_point(
         self, *, parameter: str | None = None, paramset_key: ParamsetKey | None = None, state_path: str | None = None
-    ) -> GenericDataPointProtocol | None:
+    ) -> GenericDataPointProtocolAny | None:
         """Return a generic data_point from device."""
 
     @abstractmethod
     def get_generic_event(
         self, *, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEventProtocol | None:
+    ) -> GenericEventProtocolAny | None:
         """Return a generic event from device."""
 
     @abstractmethod
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the list of readable data points."""
 
 
@@ -1323,12 +1333,12 @@ class DeviceChannelAccessProtocol(Protocol):
 
     @property
     @abstractmethod
-    def generic_data_points(self) -> tuple[GenericDataPointProtocol, ...]:
+    def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return all generic data points."""
 
     @property
     @abstractmethod
-    def generic_events(self) -> tuple[GenericEventProtocol, ...]:
+    def generic_events(self) -> tuple[GenericEventProtocolAny, ...]:
         """Return the generic events."""
 
     @abstractmethod
@@ -1352,7 +1362,7 @@ class DeviceChannelAccessProtocol(Protocol):
     @abstractmethod
     def get_events(
         self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
-    ) -> Mapping[int | None, tuple[GenericEventProtocol, ...]]:
+    ) -> Mapping[int | None, tuple[GenericEventProtocolAny, ...]]:
         """Return a list of specific events of a channel."""
 
     @abstractmethod
@@ -1363,17 +1373,17 @@ class DeviceChannelAccessProtocol(Protocol):
         parameter: str | None = None,
         paramset_key: ParamsetKey | None = None,
         state_path: str | None = None,
-    ) -> GenericDataPointProtocol | None:
+    ) -> GenericDataPointProtocolAny | None:
         """Return a generic data_point from device."""
 
     @abstractmethod
     def get_generic_event(
         self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEventProtocol | None:
+    ) -> GenericEventProtocolAny | None:
         """Return a generic event from device."""
 
     @abstractmethod
-    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocol, ...]:
+    def get_readable_data_points(self, *, paramset_key: ParamsetKey) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the list of readable data points."""
 
     @abstractmethod
@@ -1854,3 +1864,14 @@ class WeekProfileProtocol[SCHEDULE_DICT_T: dict[Any, Any]](Protocol):
     @abstractmethod
     async def set_schedule(self, *, schedule_data: SCHEDULE_DICT_T) -> None:
         """Persist the provided schedule dictionary."""
+
+
+# =============================================================================
+# Type Aliases for Heterogeneous Collections
+# =============================================================================
+# These aliases provide `[Any]`-parameterized versions of the generic protocols
+# for use in collections where different value types are mixed (e.g., device.generic_data_points).
+
+BaseParameterDataPointProtocolAny: TypeAlias = BaseParameterDataPointProtocol[Any]
+GenericDataPointProtocolAny: TypeAlias = GenericDataPointProtocol[Any]
+GenericEventProtocolAny: TypeAlias = GenericEventProtocol[Any]

@@ -43,3 +43,5 @@
 - Event bus system replacing legacy callback patterns
 - Strict type checking throughout codebase
 - Translatable log messages and exceptions
+- Generic protocols for improved mypy type inference on data point values
+- Declarative field descriptors for custom and calculated data points

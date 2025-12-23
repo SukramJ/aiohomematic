@@ -52,7 +52,8 @@ Custom device profiles are used when a specific device (model) requires a bespok
 
    - Most cases can use an existing CustomDataPoint subclass (e.g., `CustomDpIpThermostat`, `CustomDpSwitch`).
    - If you need special behavior, subclass CustomDataPoint and override:
-     - `_init_data_point_fields` (to adjust defaults, units, operations)
+     - Use `DataPointField` descriptors for declarative field definitions
+     - Override `_post_init()` for additional initialization after field resolution
      - `_readable_data_points` / `_relevant_data_points` (to tune exposure)
      - `state_property` getters if you compute an aggregate state
 
@@ -135,95 +136,145 @@ Calculated data points compute values from one or more underlying GenericDataPoi
 
 ### Key modules and types:
 
-- aiohomematic.model.calculated.data_point.CalculatedDataPoint: Base class to inherit from
-  - \_add_data_point(...) / \_add_device_data_point(...) for attaching sources
-  - publish_data_point_updated_event is triggered when any source updates
-  - Decorators: @state_property, @config_property, @cached_slot_property
-- aiohomematic.model.calculated.**init**
-  - create_calculated_data_points(channel): factory that evaluates relevance and attaches instances to channels
-  - \_CALCULATED_DATA_POINTS: tuple of registered calculated DP classes
+- **aiohomematic.model.calculated.field.CalculatedDataPointField**: Descriptor for declarative field definitions
+  - `parameter`: The parameter name to resolve
+  - `paramset_key`: The paramset key (VALUES, MASTER, etc.)
+  - `dpt`: Expected data point type (e.g., DpSensor, DpFloat)
+  - `fallback_parameters`: Optional list of fallback parameter names
+  - `use_device_fallback`: If True, tries device address (channel 0) if not found
+- **aiohomematic.model.calculated.data_point.CalculatedDataPoint**: Base class to inherit from
+  - `_resolve_data_point(...)` / `_add_device_data_point(...)` for manual data point resolution
+  - `publish_data_point_updated_event` is triggered when any source updates
+  - Decorators: @state_property, @config_property
+- **aiohomematic.model.calculated.\_\_init\_\_**
+  - `create_calculated_data_points(channel)`: factory that evaluates relevance and attaches instances to channels
+  - `_CALCULATED_DATA_POINTS`: tuple of registered calculated DP classes
 - Existing implementations for reference:
   - climate.py: ApparentTemperature, DewPoint, FrostPoint, VaporConcentration
   - operating_voltage_level.py: OperatingVoltageLevel
 
 ### Lifecycle:
 
-- On channel initialization, create_calculated_data_points(channel) iterates all registered classes, calls Class.is_relevant_for_model(channel) and adds instances for those that apply by calling channel.add_data_point(...).
-- Each CalculatedDataPoint registers callbacks to its source GenericDataPoints in **init** via \_add_data_point/\_add_device_data_point and recomputes its value on updates.
+- On channel initialization, `create_calculated_data_points(channel)` iterates all registered classes, calls `Class.is_relevant_for_model(channel)` and adds instances for those that apply.
+- Each CalculatedDataPoint uses `CalculatedDataPointField` descriptors for lazy data point resolution with automatic subscription handling.
+- When any source data point updates, the calculated data point's value is recomputed.
 
 ### Steps to add a new calculated data point:
 
-1. Implement a subclass of CalculatedDataPoint
-   - Set the \_calculated_parameter to a value from aiohomematic.const.CalculatedParameter (this becomes the parameter name exposed by the DP)
-   - In \_init_data_point_fields(), attach required source GenericDataPoints using \_add_data_point(...)
+1. **Implement a subclass of CalculatedDataPoint**
+
+   - Set `_calculated_parameter` to a value from `aiohomematic.const.CalculatedParameter`
+   - Use `CalculatedDataPointField` descriptors to declare source data points:
+     ```python
+     _dp_temp = CalculatedDataPointField(
+         parameter=Parameter.TEMPERATURE,
+         paramset_key=ParamsetKey.VALUES,
+         dpt=DpSensor,
+     )
+     ```
+   - For fallback parameters (try alternatives if primary not found):
+     ```python
+     _dp_temp = CalculatedDataPointField(
+         parameter=Parameter.TEMPERATURE,
+         paramset_key=ParamsetKey.VALUES,
+         dpt=DpSensor,
+         fallback_parameters=[Parameter.ACTUAL_TEMPERATURE],
+     )
+     ```
+   - For device-level fallback (try device address if not on channel):
+     ```python
+     _dp_limit = CalculatedDataPointField(
+         parameter=Parameter.LOW_BAT_LIMIT,
+         paramset_key=ParamsetKey.MASTER,
+         dpt=DpFloat,
+         use_device_fallback=True,
+     )
+     ```
    - Provide properties using decorators:
-     - @state_property def value(self) -> T: return computed_value
-     - @config_property def unit(self) -> str | None: return unit string (e.g., "°C")
-     - Optionally @cached_slot_property for static metadata
-   - Implement staticmethod is_relevant_for_model(\*, channel: ChannelProtocol) -> bool to guard which channels get this DP
-2. Register your class
-   - Add the class to \_CALCULATED_DATA_POINTS in aiohomematic.model.calculated.**init** so the factory can discover it:
-     \_CALCULATED_DATA_POINTS = (ApparentTemperature, ..., YourNewCalculatedDP)
-3. Ensure correctness
-   - The base class manages subscriptions and updating. Call self.publish_data_point_updated_event() if you maintain extra state.
-   - Use helper conversions in aiohomematic.model.calculated.support if your formula needs them.
+     - `@state_property def value(self) -> T:` return computed value
+     - `@config_property def unit(self) -> str | None:` return unit string
+   - Implement `staticmethod is_relevant_for_model(*, channel: ChannelProtocol) -> bool` to guard which channels get this DP
+   - Override `_post_init()` for additional initialization after descriptor resolution
+
+2. **Register your class**
+
+   - Add the class to `_CALCULATED_DATA_POINTS` in `aiohomematic.model.calculated.__init__`:
+     ```python
+     _CALCULATED_DATA_POINTS = (ApparentTemperature, ..., YourNewCalculatedDP)
+     ```
+
+3. **Ensure correctness**
+   - The base class manages subscriptions automatically via descriptors
+   - Use helper functions in `aiohomematic.model.calculated.support` for common calculations
 
 ### Minimal template:
 
 ```python
 # aiohomematic/model/calculated/my_metric.py
 from __future__ import annotations
-from aiohomematic.model.calculated.data_point import CalculatedDataPoint
-from aiohomematic.property_decorators import state_property, config_property
-from aiohomematic.const import CalculatedParameter, ParamsetKey
+
+from aiohomematic.const import CalculatedParameter, Parameter, ParameterType, ParamsetKey
 from aiohomematic.interfaces.model import ChannelProtocol
-from aiohomematic.model.generic.sensor import DpSensor
+from aiohomematic.model.calculated.data_point import CalculatedDataPoint
+from aiohomematic.model.calculated.field import CalculatedDataPointField
+from aiohomematic.model.generic import DpSensor
+from aiohomematic.property_decorators import state_property
 
 
-class MyMetric(CalculatedDataPoint[float]):
+class MyMetric(CalculatedDataPoint[float | None]):
+    """Calculate a custom metric from temperature and humidity."""
+
+    __slots__ = ()
+
     _calculated_parameter = CalculatedParameter.MY_METRIC
 
-    def _init_data_point_fields(self) -> None:
-        super()._init_data_point_fields()
-        # Attach sources from the same channel (examples):
-        # Note: All parameters are keyword-only
-        self._dp_temp = self._add_data_point(
-            parameter="TEMPERATURE",
-            paramset_key=ParamsetKey.VALUES,
-            dpt=DpSensor,
-        )
-        self._dp_hum = self._add_data_point(
-            parameter="HUMIDITY",
-            paramset_key=ParamsetKey.VALUES,
-            dpt=DpSensor,
-        )
+    # Declarative field definitions using descriptors
+    _dp_temp = CalculatedDataPointField(
+        parameter=Parameter.TEMPERATURE,
+        paramset_key=ParamsetKey.VALUES,
+        dpt=DpSensor,
+    )
+    _dp_hum = CalculatedDataPointField(
+        parameter=Parameter.HUMIDITY,
+        paramset_key=ParamsetKey.VALUES,
+        dpt=DpSensor,
+    )
+
+    def __init__(self, *, channel: ChannelProtocol) -> None:
+        """Initialize the data point."""
+        super().__init__(channel=channel)
+        self._type = ParameterType.FLOAT
+        self._unit = "unit"
 
     @staticmethod
     def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
-        # Only add if required sources exist on this channel
-        return channel.get_generic_data_point(
-            parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES
-        ) is not None
+        """Return if this calculated data point is relevant for the model."""
+        return (
+            channel.get_generic_data_point(
+                parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES
+            )
+            is not None
+            and channel.get_generic_data_point(
+                parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES
+            )
+            is not None
+        )
 
     @state_property
     def value(self) -> float | None:
-        t = self._dp_temp.value if hasattr(self, "_dp_temp") else None
-        h = self._dp_hum.value if hasattr(self, "_dp_hum") else None
-        if t is None or h is None:
+        """Return the calculated value."""
+        if self._dp_temp.value is None or self._dp_hum.value is None:
             return None
-        # implement your calculation here
-        return (t + h) / 2
-
-    @config_property
-    def unit(self) -> str | None:
-        return "unit"
+        # Implement your calculation here
+        return (self._dp_temp.value + self._dp_hum.value) / 2
 ```
 
 ### Notes:
 
-- Use \_add_device_data_point(...) if you need to read from other channels of the same device.
-- The base class exposes helper attributes like self.\_unit, \_min/\_max, etc., which you can set in \_init_data_point_fields() if needed.
-- Keep calculations side-effect free. The base class will debounce via event callbacks from sources.
+- Use `use_device_fallback=True` or `_add_device_data_point(...)` if you need to read from other channels of the same device.
+- The base class exposes helper attributes like `self._unit`, `_min`/`_max`, etc., which you can set in `__init__()`.
+- Override `_post_init()` for additional initialization that depends on resolved data points.
+- Keep calculations side-effect free. The base class handles event subscriptions automatically.
 
 ---
 

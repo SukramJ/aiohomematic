@@ -35,8 +35,8 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
 
     Usage:
         class CustomDpSwitch(CustomDataPoint):
-            _dp_state = DataPointField(field=Field.STATE, dpt=DpSwitch)
-            _dp_on_time = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
+            _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
+            _dp_on_time: Final = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
 
             # No _init_data_point_fields() override needed for these fields!
 
@@ -85,5 +85,5 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
         instance._data_points[self._field] = dummy
         return cast(DataPointT, dummy)
 
-    data_point_type = DelegatedProperty[type[DataPointT]](path="_data_point_type")
-    field = DelegatedProperty[Field](path="_field")
+    data_point_type: Final = DelegatedProperty[type[DataPointT]](path="_data_point_type")
+    field: Final = DelegatedProperty[Field](path="_field")

@@ -37,6 +37,12 @@
 - DeviceProfileRegistry for centralized device-to-profile mappings
 - DpActionSelect data point type for write-only selection parameters
 
+### Developer Experience
+
+- **Fluent Configuration**: New `CentralConfigBuilder` with method chaining and factory presets for CCU/Homegear
+- **Request Tracing**: Context variables pattern for request tracking through async call chains with automatic log prefixing
+- **Type Converters**: Extensible `to_homematic_value()` / `from_homematic_value()` using singledispatch pattern
+
 ### Internal Improvements
 
 - Protocol-based architecture for better testability and decoupling
@@ -45,3 +51,5 @@
 - Translatable log messages and exceptions
 - Generic protocols for improved mypy type inference on data point values
 - Declarative field descriptors for custom and calculated data points
+- `DelegatedProperty` descriptor for simple property delegation with caching support
+- Enhanced linter with DP004 path validation for DelegatedProperty definitions

@@ -93,9 +93,9 @@ class ClientCoordinator(ClientProviderProtocol):
         self._last_failure_reason: FailureReason = FailureReason.NONE
         self._last_failure_interface_id: str | None = None
 
-    clients_started = DelegatedProperty[bool](path="_clients_started")
-    last_failure_interface_id = DelegatedProperty[str | None](path="_last_failure_interface_id")
-    last_failure_reason = DelegatedProperty[FailureReason](path="_last_failure_reason")
+    clients_started: Final = DelegatedProperty[bool](path="_clients_started")
+    last_failure_interface_id: Final = DelegatedProperty[str | None](path="_last_failure_interface_id")
+    last_failure_reason: Final = DelegatedProperty[FailureReason](path="_last_failure_reason")
 
     @property
     def all_clients_active(self) -> bool:

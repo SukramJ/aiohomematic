@@ -219,7 +219,7 @@ class HomematicAPI:
             value=value,
         )
 
-    config = DelegatedProperty[CentralConfig](path="_config")
+    config: Final = DelegatedProperty[CentralConfig](path="_config")
 
     @property
     def central(self) -> CentralUnit:

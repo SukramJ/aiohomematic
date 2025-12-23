@@ -40,13 +40,13 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
     _calculated_parameter = CalculatedParameter.OPERATING_VOLTAGE_LEVEL
     _category = DataPointCategory.SENSOR
 
-    _dp_low_bat_limit = CalculatedDataPointField(
+    _dp_low_bat_limit: Final = CalculatedDataPointField(
         parameter=Parameter.LOW_BAT_LIMIT,
         paramset_key=ParamsetKey.MASTER,
         dpt=DpFloat,
         use_device_fallback=True,
     )
-    _dp_operating_voltage = CalculatedDataPointField(
+    _dp_operating_voltage: Final = CalculatedDataPointField(
         parameter=Parameter.OPERATING_VOLTAGE,
         paramset_key=ParamsetKey.VALUES,
         dpt=DpSensor,

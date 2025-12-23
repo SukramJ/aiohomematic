@@ -191,12 +191,12 @@ class CentralStateMachine(CentralStateMachineProtocol):
         self._state_history: list[tuple[datetime, CentralState, CentralState, str]] = []
         self.on_state_change: Callable[[CentralState, CentralState, str], None] | None = None
 
-    degraded_interfaces = DelegatedProperty[Mapping[str, FailureReason]](path="_degraded_interfaces")
-    failure_interface_id = DelegatedProperty[str | None](path="_failure_interface_id")
-    failure_message = DelegatedProperty[str](path="_failure_message")
-    failure_reason = DelegatedProperty[FailureReason](path="_failure_reason")
-    last_state_change = DelegatedProperty[datetime](path="_last_state_change")
-    state = DelegatedProperty[CentralState](path="_state")
+    degraded_interfaces: Final = DelegatedProperty[Mapping[str, FailureReason]](path="_degraded_interfaces")
+    failure_interface_id: Final = DelegatedProperty[str | None](path="_failure_interface_id")
+    failure_message: Final = DelegatedProperty[str](path="_failure_message")
+    failure_reason: Final = DelegatedProperty[FailureReason](path="_failure_reason")
+    last_state_change: Final = DelegatedProperty[datetime](path="_last_state_change")
+    state: Final = DelegatedProperty[CentralState](path="_state")
 
     @property
     def is_degraded(self) -> bool:

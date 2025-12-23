@@ -115,7 +115,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             task_scheduler=task_scheduler,
         )
 
-    install_mode_dps = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_hub.install_mode_dps")
+    install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_hub.install_mode_dps")
 
     @property
     def data_point_paths(self) -> tuple[str, ...]:

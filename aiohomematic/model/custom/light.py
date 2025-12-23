@@ -149,8 +149,8 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     _category = DataPointCategory.LIGHT
 
     # Declarative data point field definitions
-    _dp_group_level = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
-    _dp_level = DataPointField(field=Field.LEVEL, dpt=DpFloat)
+    _dp_group_level: Final = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
+    _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
     _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
     _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpAction)
 
@@ -305,7 +305,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_color = DataPointField(field=Field.COLOR, dpt=DpInteger)
+    _dp_color: Final = DataPointField(field=Field.COLOR, dpt=DpInteger)
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
@@ -351,9 +351,9 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     )
 
     # Declarative data point field definitions
-    _dp_effect = DataPointField(field=Field.PROGRAM, dpt=DpInteger)
+    _dp_effect: Final = DataPointField(field=Field.PROGRAM, dpt=DpInteger)
 
-    effects = DelegatedProperty[tuple[str, ...] | None](path="_effects", kind=Kind.STATE)
+    effects: Final = DelegatedProperty[tuple[str, ...] | None](path="_effects", kind=Kind.STATE)
 
     @state_property
     def effect(self) -> str | None:
@@ -387,7 +387,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_color_level = DataPointField(field=Field.COLOR_LEVEL, dpt=DpFloat)
+    _dp_color_level: Final = DataPointField(field=Field.COLOR_LEVEL, dpt=DpFloat)
 
     @state_property
     def color_temp_kelvin(self) -> int | None:
@@ -414,16 +414,17 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_activity_state = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
-    _dp_color_temperature_kelvin = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
-    _dp_device_operation_mode = DataPointField(field=Field.DEVICE_OPERATION_MODE, dpt=DpSelect)
-    _dp_effect = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
-    _dp_hue = DataPointField(field=Field.HUE, dpt=DpInteger)
+    _dp_activity_state: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_color_temperature_kelvin: Final = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
+    _dp_device_operation_mode: Final = DataPointField(field=Field.DEVICE_OPERATION_MODE, dpt=DpSelect)
+    _dp_effect: Final = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
+
+    _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_to_off_unit = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_to_off_value = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
+    _dp_ramp_time_to_off_unit: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_to_off_value: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
     _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
-    _dp_saturation = DataPointField(field=Field.SATURATION, dpt=DpFloat)
+    _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
     @property
     def _device_operation_mode(self) -> _DeviceOperationMode:
@@ -565,14 +566,14 @@ class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_color_temperature_kelvin = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
-    _dp_effect = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
-    _dp_hue = DataPointField(field=Field.HUE, dpt=DpInteger)
+    _dp_color_temperature_kelvin: Final = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
+    _dp_effect: Final = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
+    _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_to_off_unit = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_to_off_value = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
+    _dp_ramp_time_to_off_unit: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_to_off_value: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
     _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
-    _dp_saturation = DataPointField(field=Field.SATURATION, dpt=DpFloat)
+    _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
     @property
     def _relevant_data_points(self) -> tuple[GenericDataPointAny, ...]:
@@ -624,16 +625,16 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
     __slots__ = ("_effect_list",)  # Keep instance variable, descriptors are class-level
 
     # Declarative data point field definitions
-    _dp_channel_color = DataPointField(field=Field.CHANNEL_COLOR, dpt=DpSensor[str | None])
-    _dp_color = DataPointField(field=Field.COLOR, dpt=DpSelect)
-    _dp_effect = DataPointField(field=Field.COLOR_BEHAVIOUR, dpt=DpSelect)
+    _dp_channel_color: Final = DataPointField(field=Field.CHANNEL_COLOR, dpt=DpSensor[str | None])
+    _dp_color: Final = DataPointField(field=Field.COLOR, dpt=DpSelect)
+    _dp_effect: Final = DataPointField(field=Field.COLOR_BEHAVIOUR, dpt=DpSelect)
     _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
     _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
 
     _effect_list: tuple[str, ...]
 
-    channel_color_name = DelegatedProperty[str | None](path="_dp_channel_color.value")
-    effects = DelegatedProperty[tuple[str, ...] | None](path="_effect_list", kind=Kind.STATE)
+    channel_color_name: Final = DelegatedProperty[str | None](path="_dp_channel_color.value")
+    effects: Final = DelegatedProperty[tuple[str, ...] | None](path="_effect_list", kind=Kind.STATE)
 
     @property
     def channel_hs_color(self) -> tuple[float, float] | None:

@@ -61,7 +61,7 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
         )
         self._supports_programs: Final = supports_programs
 
-    supports_programs = DelegatedProperty[bool](path="_supports_programs")
+    supports_programs: Final = DelegatedProperty[bool](path="_supports_programs")
 
     @inspector
     async def execute_program(self, *, pid: str) -> bool:

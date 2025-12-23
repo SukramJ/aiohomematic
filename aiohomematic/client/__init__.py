@@ -230,18 +230,18 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Provide some useful information."""
         return f"interface_id: {self.interface_id}"
 
-    available = DelegatedProperty[bool](path="_state_machine.is_available")
-    central = DelegatedProperty[ClientDependenciesProtocol](path="_config.client_deps")
-    interface = DelegatedProperty[Interface](path="_config.interface")
-    interface_id = DelegatedProperty[str](path="_config.interface_id", log_context=True)
-    last_value_send_cache = DelegatedProperty[CommandCache](path="_last_value_send_cache")
-    ping_pong_cache = DelegatedProperty[PingPongCache](path="_ping_pong_cache")
-    state = DelegatedProperty[ClientState](path="_state_machine.state")
-    state_machine = DelegatedProperty[ClientStateMachine](path="_state_machine")
-    supports_push_updates = DelegatedProperty[bool](path="_config.supports_push_updates")
-    supports_rpc_callback = DelegatedProperty[bool](path="_config.supports_rpc_callback")
-    system_information = DelegatedProperty[SystemInformation](path="_system_information")
-    version = DelegatedProperty[str](path="_config.version")
+    available: Final = DelegatedProperty[bool](path="_state_machine.is_available")
+    central: Final = DelegatedProperty[ClientDependenciesProtocol](path="_config.client_deps")
+    interface: Final = DelegatedProperty[Interface](path="_config.interface")
+    interface_id: Final = DelegatedProperty[str](path="_config.interface_id", log_context=True)
+    last_value_send_cache: Final = DelegatedProperty[CommandCache](path="_last_value_send_cache")
+    ping_pong_cache: Final = DelegatedProperty[PingPongCache](path="_ping_pong_cache")
+    state: Final = DelegatedProperty[ClientState](path="_state_machine.state")
+    state_machine: Final = DelegatedProperty[ClientStateMachine](path="_state_machine")
+    supports_push_updates: Final = DelegatedProperty[bool](path="_config.supports_push_updates")
+    supports_rpc_callback: Final = DelegatedProperty[bool](path="_config.supports_rpc_callback")
+    system_information: Final = DelegatedProperty[SystemInformation](path="_system_information")
+    version: Final = DelegatedProperty[str](path="_config.version")
 
     @property
     def all_circuit_breakers_closed(self) -> bool:
@@ -1736,7 +1736,7 @@ class InterfaceConfig:
         self._init_validate()
         self._enabled: bool = True
 
-    enabled = DelegatedProperty[bool](path="_enabled")
+    enabled: Final = DelegatedProperty[bool](path="_enabled")
 
     def disable(self) -> None:
         """Disable the interface config."""

@@ -172,7 +172,7 @@ class RetryStrategy:
         self._current_attempt: int = 0
         self._current_backoff: float = initial_backoff
 
-    current_attempt = DelegatedProperty[int](path="_current_attempt")
+    current_attempt: Final = DelegatedProperty[int](path="_current_attempt")
 
     @property
     def attempts_remaining(self) -> int:

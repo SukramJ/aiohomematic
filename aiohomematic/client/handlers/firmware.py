@@ -67,8 +67,8 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
         self._supports_device_firmware_update: Final = supports_device_firmware_update
         self._supports_firmware_update_trigger: Final = supports_firmware_update_trigger
 
-    supports_device_firmware_update = DelegatedProperty[bool](path="_supports_device_firmware_update")
-    supports_firmware_update_trigger = DelegatedProperty[bool](path="_supports_firmware_update_trigger")
+    supports_device_firmware_update: Final = DelegatedProperty[bool](path="_supports_device_firmware_update")
+    supports_firmware_update_trigger: Final = DelegatedProperty[bool](path="_supports_firmware_update_trigger")
 
     @inspector(re_raise=False)
     async def trigger_firmware_update(self) -> bool:

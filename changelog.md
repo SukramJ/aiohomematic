@@ -1,8 +1,40 @@
-# Version 2025.12.44 (2025-12-22)
+# Version 2025.12.44 (2025-12-23)
 
 ## What's Changed
 
 ### Improvements
+
+- **Add Context Variables pattern for request tracking and tracing**: Implement `contextvars`-based context propagation for async call chains
+
+  - `RequestContext` dataclass with request ID, operation, device address, and timing
+  - `request_context` context manager for scoped context setting
+  - `ContextualLoggerAdapter` for automatic request ID prefixing in log messages
+  - `RequestContextFilter` for structured logging with context fields
+  - `Span` and `span` context manager for performance tracing with parent-child relationships
+  - Automatic context propagation through async call chains
+  - 42 tests covering all context functionality
+
+- **Add DP004 path validation to lint-delegated-property**: The linter now validates that `DelegatedProperty` paths reference existing attributes
+
+  - DP004 error: Reports when `path` references an attribute not defined in `__slots__`, `__init__`, class-level assignments, or `@property`
+  - Enhanced AST visitor to detect `DelegatedProperty` in annotated assignments (e.g., `name: Final = DelegatedProperty[...]`)
+  - Tracks class-level plain assignments (e.g., `_enabled_default = True`)
+  - Validates path resolution across class inheritance hierarchy
+
+- **Add `CentralConfigBuilder` for fluent configuration**: Implement Builder Pattern for `CentralConfig` with step-by-step configuration and validation
+
+  - `CentralConfigBuilder` class with fluent method chaining (`.with_name()`, `.with_host()`, `.add_hmip_interface()`, etc.)
+  - Factory presets: `CentralConfigBuilder.for_ccu()` and `CentralConfigBuilder.for_homegear()`
+  - Early validation via `.validate()` method returning list of `ValidationError`
+  - Automatic interface port resolution based on TLS settings
+  - 36 tests covering all builder functionality
+
+- **Introduce singledispatch pattern for type converters**: Added extensible type conversion using Python's `functools.singledispatch`
+
+  - New `to_homematic_value()` converter: Python types → Homematic-compatible values (bool→int, float→rounded, datetime→ISO, timedelta→seconds, Enum→value, list/dict→recursive)
+  - New `from_homematic_value()` converter: Homematic values → Python types with optional target_type hints
+  - Refactored `_get_text_value()` in property_decorators.py to use singledispatch
+  - Both converters are extensible via `@converter.register(YourType)`
 
 - **Make data point protocols generic for improved type safety**: Protocols now preserve generic type information for mypy
 

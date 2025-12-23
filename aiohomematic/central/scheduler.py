@@ -89,8 +89,8 @@ class SchedulerJob:
         self._next_run = next_run or datetime.now()
         self._run_interval: Final = run_interval
 
-    name = DelegatedProperty[str](path="_task.__name__")
-    next_run = DelegatedProperty[datetime](path="_next_run")
+    name: Final = DelegatedProperty[str](path="_task.__name__")
+    next_run: Final = DelegatedProperty[datetime](path="_next_run")
 
     @property
     def ready(self) -> bool:
@@ -231,7 +231,9 @@ class BackgroundScheduler:
             ),
         ]
 
-    has_connection_issue = DelegatedProperty[bool](path="_connection_state_provider.connection_state.has_any_issue")
+    has_connection_issue: Final = DelegatedProperty[bool](
+        path="_connection_state_provider.connection_state.has_any_issue"
+    )
 
     @property
     def devices_created(self) -> bool:

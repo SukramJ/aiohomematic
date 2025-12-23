@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from enum import StrEnum
+from typing import Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.model.custom.data_point import CustomDataPoint
@@ -106,9 +107,9 @@ class CustomDpIpLock(BaseCustomDpLock):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_direction = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
-    _dp_lock_state = DataPointField(field=Field.LOCK_STATE, dpt=DpSensor[str | None])
-    _dp_lock_target_level = DataPointField(field=Field.LOCK_TARGET_LEVEL, dpt=DpActionSelect)
+    _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_lock_state: Final = DataPointField(field=Field.LOCK_STATE, dpt=DpSensor[str | None])
+    _dp_lock_target_level: Final = DataPointField(field=Field.LOCK_TARGET_LEVEL, dpt=DpActionSelect)
 
     @property
     def supports_open(self) -> bool:
@@ -156,7 +157,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_button_lock = DataPointField(field=Field.BUTTON_LOCK, dpt=DpSwitch)
+    _dp_button_lock: Final = DataPointField(field=Field.BUTTON_LOCK, dpt=DpSwitch)
 
     @property
     def data_point_name_postfix(self) -> str:
@@ -195,10 +196,10 @@ class CustomDpRfLock(BaseCustomDpLock):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_direction = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
-    _dp_error = DataPointField(field=Field.ERROR, dpt=DpSensor[str | None])
-    _dp_open = DataPointField(field=Field.OPEN, dpt=DpAction)
-    _dp_state = DataPointField(field=Field.STATE, dpt=DpSwitch)
+    _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_error: Final = DataPointField(field=Field.ERROR, dpt=DpSensor[str | None])
+    _dp_open: Final = DataPointField(field=Field.OPEN, dpt=DpAction)
+    _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
 
     @property
     def supports_open(self) -> bool:

@@ -23,6 +23,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from enum import Enum, StrEnum
+from functools import singledispatch
 from typing import Any, Final, ParamSpec, Self, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
@@ -66,17 +67,17 @@ class DelegatedProperty[ValueT]:
 
     Usage:
         # Simple delegation:
-        interface = DelegatedProperty[Interface](path="_config.interface")
+        interface: Final = DelegatedProperty[Interface](path="_config.interface")
 
         # With caching and kind:
-        state = DelegatedProperty[ClientState](
+        state: Final = DelegatedProperty[ClientState](
             path="_state_machine.state",
             kind=Kind.STATE,
             cached=True,
         )
 
         # With log_context:
-        interface_id = DelegatedProperty[str](
+        interface_id: Final = DelegatedProperty[str](
             path="_config.interface_id",
             kind=Kind.INFO,
             log_context=True,
@@ -587,29 +588,50 @@ def get_hm_property_by_kind(data_object: Any, kind: Kind, context: bool = False)
     return result
 
 
+@singledispatch
 def _get_text_value(value: Any) -> Any:
     """
     Normalize values for payload/logging purposes.
 
-    - list/tuple/set are converted to tuples and their items normalized recursively
-    - Enum values are converted to their string representation
-    - datetime objects are converted to unix timestamps (float)
-    - all other types are returned unchanged
+    Uses singledispatch for type-based conversion. Register new type handlers
+    with @_get_text_value.register(YourType).
+
+    Default behavior (unregistered types):
+        Returns value unchanged.
+
+    Registered conversions:
+        - list/tuple/set → tuple (items normalized recursively)
+        - Enum → str representation
+        - datetime → unix timestamp (float)
 
     Args:
         value: The input value to normalize into a log-/JSON-friendly representation.
 
     Returns:
-        Any: The normalized value, potentially converted as described above.
+        The normalized value, potentially converted as described above.
 
     """
-    if isinstance(value, list | tuple | set):
-        return tuple(_get_text_value(v) for v in value)
-    if isinstance(value, Enum):
-        return str(value)
-    if isinstance(value, datetime):
-        return datetime.timestamp(value)
     return value
+
+
+@_get_text_value.register(list)
+@_get_text_value.register(tuple)
+@_get_text_value.register(set)
+def _get_text_value_sequence(value: list[Any] | tuple[Any, ...] | set[Any]) -> tuple[Any, ...]:
+    """Convert sequence types to tuple with normalized items."""
+    return tuple(_get_text_value(v) for v in value)
+
+
+@_get_text_value.register(Enum)
+def _get_text_value_enum(value: Enum) -> str:
+    """Convert Enum to string representation."""
+    return str(value)
+
+
+@_get_text_value.register(datetime)
+def _get_text_value_datetime(value: datetime) -> float:
+    """Convert datetime to unix timestamp."""
+    return datetime.timestamp(value)
 
 
 def get_hm_property_by_log_context(data_object: Any) -> Mapping[str, Any]:

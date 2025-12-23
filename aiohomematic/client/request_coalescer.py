@@ -117,7 +117,7 @@ class RequestCoalescer:
         self._pending: dict[str, _PendingRequest] = {}
         self._metrics: CoalescerMetrics = CoalescerMetrics()
 
-    metrics = DelegatedProperty[CoalescerMetrics](path="_metrics")
+    metrics: Final = DelegatedProperty[CoalescerMetrics](path="_metrics")
 
     @property
     def pending_count(self) -> int:

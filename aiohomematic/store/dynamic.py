@@ -313,7 +313,7 @@ class DeviceDetailsCache(DeviceDetailsProviderProtocol, DeviceDetailsWriterProto
         self._names_cache: Final[dict[str, str]] = {}
         self._refreshed_at = INIT_DATETIME
 
-    device_channel_rega_ids = DelegatedProperty[Mapping[str, int]](path="_device_channel_rega_ids")
+    device_channel_rega_ids: Final = DelegatedProperty[Mapping[str, int]](path="_device_channel_rega_ids")
 
     def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
         """Add channel id for a channel."""
@@ -581,7 +581,7 @@ class PingPongCache:
         self._unknown_pongs: Final[set[str]] = set()
         self._unknown_seen_at: Final[dict[str, float]] = {}
 
-    allowed_delta = DelegatedProperty[int](path="_allowed_delta")
+    allowed_delta: Final = DelegatedProperty[int](path="_allowed_delta")
 
     @property
     def _pending_pong_count(self) -> int:

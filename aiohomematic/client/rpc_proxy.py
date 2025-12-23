@@ -138,8 +138,8 @@ class BaseRpcProxy(ABC):
         """Magic method dispatcher."""
         return self._magic_method(self._async_request, *args, **kwargs)
 
-    circuit_breaker = DelegatedProperty[CircuitBreaker](path="_circuit_breaker")
-    supported_methods = DelegatedProperty[tuple[str, ...]](path="_supported_methods")
+    circuit_breaker: Final = DelegatedProperty[CircuitBreaker](path="_circuit_breaker")
+    supported_methods: Final = DelegatedProperty[tuple[str, ...]](path="_supported_methods")
 
     def clear_connection_issue(self) -> None:
         """

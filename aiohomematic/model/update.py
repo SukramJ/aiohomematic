@@ -56,10 +56,10 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         )
         self._set_modified_at(modified_at=datetime.now())
 
-    available = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
-    device = DelegatedProperty[DeviceProtocol](path="_device")
-    firmware = DelegatedProperty[str | None](path="_device.firmware", kind=Kind.STATE)
-    firmware_update_state = DelegatedProperty[str | None](path="_device.firmware_update_state", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
+    device: Final = DelegatedProperty[DeviceProtocol](path="_device")
+    firmware: Final = DelegatedProperty[str | None](path="_device.firmware", kind=Kind.STATE)
+    firmware_update_state: Final = DelegatedProperty[str | None](path="_device.firmware_update_state", kind=Kind.STATE)
 
     @property
     def full_name(self) -> str:

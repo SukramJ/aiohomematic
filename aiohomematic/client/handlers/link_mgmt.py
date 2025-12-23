@@ -62,7 +62,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
         )
         self._supports_linking: Final = supports_linking
 
-    supports_linking = DelegatedProperty[bool](path="_supports_linking")
+    supports_linking: Final = DelegatedProperty[bool](path="_supports_linking")
 
     @inspector
     async def add_link(

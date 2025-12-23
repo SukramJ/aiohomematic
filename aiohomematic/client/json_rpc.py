@@ -335,9 +335,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return parameter_data
 
-    circuit_breaker = DelegatedProperty[CircuitBreaker](path="_circuit_breaker")
-    tls = DelegatedProperty[bool](path="_tls", log_context=True)
-    url = DelegatedProperty[str | None](path="_url", log_context=True)
+    circuit_breaker: Final = DelegatedProperty[CircuitBreaker](path="_circuit_breaker")
+    tls: Final = DelegatedProperty[bool](path="_tls", log_context=True)
+    url: Final = DelegatedProperty[str | None](path="_url", log_context=True)
 
     @property
     def _has_credentials(self) -> bool:

@@ -80,12 +80,12 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         self._devices: tuple[InboxDeviceData, ...] = ()
         self._previous_value: int = 0
 
-    available = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
-    devices = DelegatedProperty[tuple[InboxDeviceData, ...]](path="_devices", kind=Kind.STATE)
-    enabled_default = DelegatedProperty[bool](path="_enabled_default")
-    full_name = DelegatedProperty[str](path="_name_data.full_name")
-    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
-    state_uncertain = DelegatedProperty[bool](path="_state_uncertain")
+    available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    devices: Final = DelegatedProperty[tuple[InboxDeviceData, ...]](path="_devices", kind=Kind.STATE)
+    enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
+    full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
+    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
 
     @property
     def channel(self) -> ChannelProtocol | None:

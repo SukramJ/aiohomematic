@@ -121,7 +121,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         # Store last event seen datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
 
-    event_bus = DelegatedProperty[EventBus](path="_event_bus")
+    event_bus: Final = DelegatedProperty[EventBus](path="_event_bus")
 
     def add_data_point_subscription(self, *, data_point: BaseParameterDataPointProtocolAny) -> None:
         """

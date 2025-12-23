@@ -99,17 +99,17 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_acoustic_alarm_active = DataPointField(field=Field.ACOUSTIC_ALARM_ACTIVE, dpt=DpBinarySensor)
-    _dp_acoustic_alarm_selection = DataPointField(field=Field.ACOUSTIC_ALARM_SELECTION, dpt=DpActionSelect)
-    _dp_duration = DataPointField(field=Field.DURATION, dpt=DpAction)
-    _dp_duration_unit = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
-    _dp_optical_alarm_active = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
-    _dp_optical_alarm_selection = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
+    _dp_acoustic_alarm_active: Final = DataPointField(field=Field.ACOUSTIC_ALARM_ACTIVE, dpt=DpBinarySensor)
+    _dp_acoustic_alarm_selection: Final = DataPointField(field=Field.ACOUSTIC_ALARM_SELECTION, dpt=DpActionSelect)
+    _dp_duration: Final = DataPointField(field=Field.DURATION, dpt=DpAction)
+    _dp_duration_unit: Final = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
+    _dp_optical_alarm_active: Final = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
+    _dp_optical_alarm_selection: Final = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
 
-    available_lights = DelegatedProperty[tuple[str, ...] | None](
+    available_lights: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_optical_alarm_selection.values", kind=Kind.STATE
     )
-    available_tones = DelegatedProperty[tuple[str, ...] | None](
+    available_tones: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_acoustic_alarm_selection.values", kind=Kind.STATE
     )
 
@@ -186,8 +186,10 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_smoke_detector_alarm_status = DataPointField(field=Field.SMOKE_DETECTOR_ALARM_STATUS, dpt=DpSensor[str | None])
-    _dp_smoke_detector_command = DataPointField(field=Field.SMOKE_DETECTOR_COMMAND, dpt=DpActionSelect)
+    _dp_smoke_detector_alarm_status: Final = DataPointField(
+        field=Field.SMOKE_DETECTOR_ALARM_STATUS, dpt=DpSensor[str | None]
+    )
+    _dp_smoke_detector_command: Final = DataPointField(field=Field.SMOKE_DETECTOR_COMMAND, dpt=DpActionSelect)
 
     @property
     def supports_duration(self) -> bool:

@@ -105,13 +105,13 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
         self._state_uncertain: bool = True
         self._primary_client_provider: Final = primary_client_provider
 
-    channel = DelegatedProperty[ChannelProtocol | None](path="_channel")
-    description = DelegatedProperty[str | None](path="_description", kind=Kind.CONFIG)
-    enabled_default = DelegatedProperty[bool](path="_enabled_default")
-    full_name = DelegatedProperty[str](path="_name_data.full_name")
-    legacy_name = DelegatedProperty[str | None](path="_legacy_name")
-    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
-    state_uncertain = DelegatedProperty[bool](path="_state_uncertain")
+    channel: Final = DelegatedProperty[ChannelProtocol | None](path="_channel")
+    description: Final = DelegatedProperty[str | None](path="_description", kind=Kind.CONFIG)
+    enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
+    full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
+    legacy_name: Final = DelegatedProperty[str | None](path="_legacy_name")
+    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
 
     @state_property
     def available(self) -> bool:
@@ -178,13 +178,13 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         self._previous_value: SYSVAR_TYPE = None
         self._temporary_value: SYSVAR_TYPE = None
 
-    is_extended = DelegatedProperty[bool](path="_is_extended")
-    max = DelegatedProperty[float | int | None](path="_max", kind=Kind.CONFIG)
-    min = DelegatedProperty[float | int | None](path="_min", kind=Kind.CONFIG)
-    previous_value = DelegatedProperty[SYSVAR_TYPE](path="_previous_value")
-    unit = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
-    values = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.STATE)
-    vid = DelegatedProperty[str](path="_vid", kind=Kind.CONFIG)
+    is_extended: Final = DelegatedProperty[bool](path="_is_extended")
+    max: Final = DelegatedProperty[float | int | None](path="_max", kind=Kind.CONFIG)
+    min: Final = DelegatedProperty[float | int | None](path="_min", kind=Kind.CONFIG)
+    previous_value: Final = DelegatedProperty[SYSVAR_TYPE](path="_previous_value")
+    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.STATE)
+    vid: Final = DelegatedProperty[str](path="_vid", kind=Kind.CONFIG)
 
     @property
     def _value(self) -> Any | None:
@@ -321,10 +321,10 @@ class GenericProgramDataPoint(GenericHubDataPoint, GenericProgramDataPointProtoc
         self._state_uncertain: bool = True
         self._hub_data_fetcher: Final = hub_data_fetcher
 
-    is_active = DelegatedProperty[bool](path="_is_active", kind=Kind.STATE)
-    is_internal = DelegatedProperty[bool](path="_is_internal", kind=Kind.CONFIG)
-    last_execute_time = DelegatedProperty[str](path="_last_execute_time", kind=Kind.STATE)
-    pid = DelegatedProperty[str](path="_pid", kind=Kind.CONFIG)
+    is_active: Final = DelegatedProperty[bool](path="_is_active", kind=Kind.STATE)
+    is_internal: Final = DelegatedProperty[bool](path="_is_internal", kind=Kind.CONFIG)
+    last_execute_time: Final = DelegatedProperty[str](path="_last_execute_time", kind=Kind.STATE)
+    pid: Final = DelegatedProperty[str](path="_pid", kind=Kind.CONFIG)
 
     def update_data(self, *, data: ProgramData) -> None:
         """Set variable value on the backend."""

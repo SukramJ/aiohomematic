@@ -66,12 +66,12 @@ class BaseHandler:
         self._proxy: Final = proxy
         self._proxy_read: Final = proxy_read
 
-    client_deps = DelegatedProperty["ClientDependenciesProtocol"](path="_client_deps")
-    interface = DelegatedProperty[Interface](path="_interface")
-    interface_id = DelegatedProperty[str](path="_interface_id")
-    json_rpc_client = DelegatedProperty["AioJsonRpcAioHttpClient"](path="_json_rpc_client")
-    proxy = DelegatedProperty["BaseRpcProxy"](path="_proxy")
-    proxy_read = DelegatedProperty["BaseRpcProxy"](path="_proxy_read")
+    client_deps: Final = DelegatedProperty["ClientDependenciesProtocol"](path="_client_deps")
+    interface: Final = DelegatedProperty[Interface](path="_interface")
+    interface_id: Final = DelegatedProperty[str](path="_interface_id")
+    json_rpc_client: Final = DelegatedProperty["AioJsonRpcAioHttpClient"](path="_json_rpc_client")
+    proxy: Final = DelegatedProperty["BaseRpcProxy"](path="_proxy")
+    proxy_read: Final = DelegatedProperty["BaseRpcProxy"](path="_proxy_read")
 
 
 # Re-export inspector decorator for use in handlers

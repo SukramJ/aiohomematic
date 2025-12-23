@@ -247,8 +247,8 @@ class DataPointPathData(PathData):
             f"{VIRTDEV_STATE_PATH_ROOT if interface == Interface.CCU_JACK else STATE_PATH_ROOT}/{path_item}"
         )
 
-    set_path = DelegatedProperty[str](path="_set_path")
-    state_path = DelegatedProperty[str](path="_state_path")
+    set_path: Final = DelegatedProperty[str](path="_set_path")
+    state_path: Final = DelegatedProperty[str](path="_state_path")
 
 
 class ProgramPathData(PathData):
@@ -264,8 +264,8 @@ class ProgramPathData(PathData):
         self._set_path: Final = f"{PROGRAM_SET_PATH_ROOT}/{pid}"
         self._state_path: Final = f"{PROGRAM_STATE_PATH_ROOT}/{pid}"
 
-    set_path = DelegatedProperty[str](path="_set_path")
-    state_path = DelegatedProperty[str](path="_state_path")
+    set_path: Final = DelegatedProperty[str](path="_set_path")
+    state_path: Final = DelegatedProperty[str](path="_state_path")
 
 
 class SysvarPathData(PathData):
@@ -281,8 +281,8 @@ class SysvarPathData(PathData):
         self._set_path: Final = f"{SYSVAR_SET_PATH_ROOT}/{vid}"
         self._state_path: Final = f"{SYSVAR_STATE_PATH_ROOT}/{vid}"
 
-    set_path = DelegatedProperty[str](path="_set_path")
-    state_path = DelegatedProperty[str](path="_state_path")
+    set_path: Final = DelegatedProperty[str](path="_set_path")
+    state_path: Final = DelegatedProperty[str](path="_state_path")
 
 
 class HubPathData(PathData):
@@ -298,8 +298,8 @@ class HubPathData(PathData):
         self._set_path: Final = f"{HUB_SET_PATH_ROOT}/{name}"
         self._state_path: Final = f"{HUB_STATE_PATH_ROOT}/{name}"
 
-    set_path = DelegatedProperty[str](path="_set_path")
-    state_path = DelegatedProperty[str](path="_state_path")
+    set_path: Final = DelegatedProperty[str](path="_set_path")
+    state_path: Final = DelegatedProperty[str](path="_state_path")
 
 
 def get_data_point_name_data(

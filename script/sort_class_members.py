@@ -146,8 +146,8 @@ def _is_delegated_property(node: ast.AST) -> str | None:
     Returns the property name if it is, None otherwise.
 
     Detects patterns like:
-        name = DelegatedProperty[Type](path="path")
-        name = DelegatedProperty[Type](path="path", cached=True)
+        name: Final = DelegatedProperty[Type](path="path")
+        name: Final = DelegatedProperty[Type](path="path", cached=True)
 
     """
     if not isinstance(node, ast.Assign):

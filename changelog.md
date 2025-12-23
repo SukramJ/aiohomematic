@@ -4,6 +4,16 @@
 
 ### Improvements
 
+- **Add Context Variables pattern for request tracking and tracing**: Implement `contextvars`-based context propagation for async call chains
+
+  - `RequestContext` dataclass with request ID, operation, device address, and timing
+  - `request_context` context manager for scoped context setting
+  - `ContextualLoggerAdapter` for automatic request ID prefixing in log messages
+  - `RequestContextFilter` for structured logging with context fields
+  - `Span` and `span` context manager for performance tracing with parent-child relationships
+  - Automatic context propagation through async call chains
+  - 42 tests covering all context functionality
+
 - **Add `CentralConfigBuilder` for fluent configuration**: Implement Builder Pattern for `CentralConfig` with step-by-step configuration and validation
 
   - `CentralConfigBuilder` class with fluent method chaining (`.with_name()`, `.with_host()`, `.add_hmip_interface()`, etc.)

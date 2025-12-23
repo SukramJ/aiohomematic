@@ -50,6 +50,7 @@ from typing import TYPE_CHECKING, Final
 
 from aiohomematic.const import CentralState, FailureReason
 from aiohomematic.interfaces.central import CentralStateMachineProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central.event_bus import EventBus
@@ -190,25 +191,12 @@ class CentralStateMachine(CentralStateMachineProtocol):
         self._state_history: list[tuple[datetime, CentralState, CentralState, str]] = []
         self.on_state_change: Callable[[CentralState, CentralState, str], None] | None = None
 
-    @property
-    def degraded_interfaces(self) -> Mapping[str, FailureReason]:
-        """Return the interfaces that are degraded with their failure reasons."""
-        return self._degraded_interfaces
-
-    @property
-    def failure_interface_id(self) -> str | None:
-        """Return the interface ID that caused the failure, if applicable."""
-        return self._failure_interface_id
-
-    @property
-    def failure_message(self) -> str:
-        """Return human-readable failure message."""
-        return self._failure_message
-
-    @property
-    def failure_reason(self) -> FailureReason:
-        """Return the reason for the failed state."""
-        return self._failure_reason
+    degraded_interfaces = DelegatedProperty[Mapping[str, FailureReason]](path="_degraded_interfaces")
+    failure_interface_id = DelegatedProperty[str | None](path="_failure_interface_id")
+    failure_message = DelegatedProperty[str](path="_failure_message")
+    failure_reason = DelegatedProperty[FailureReason](path="_failure_reason")
+    last_state_change = DelegatedProperty[datetime](path="_last_state_change")
+    state = DelegatedProperty[CentralState](path="_state")
 
     @property
     def is_degraded(self) -> bool:
@@ -241,19 +229,9 @@ class CentralStateMachine(CentralStateMachineProtocol):
         return self._state == CentralState.STOPPED
 
     @property
-    def last_state_change(self) -> datetime:
-        """Return timestamp of last state change."""
-        return self._last_state_change
-
-    @property
     def seconds_in_current_state(self) -> float:
         """Return seconds since last state change."""
         return (datetime.now() - self._last_state_change).total_seconds()
-
-    @property
-    def state(self) -> CentralState:
-        """Return the current state."""
-        return self._state
 
     @property
     def state_history(self) -> list[tuple[datetime, CentralState, CentralState, str]]:

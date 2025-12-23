@@ -61,6 +61,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic.const import CentralState, FailureReason
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central.health import HealthTracker
@@ -266,10 +267,7 @@ class RecoveryCoordinator:
         self._in_recovery: bool = False
         self._shutdown: bool = False
 
-    @property
-    def in_recovery(self) -> bool:
-        """Return True if recovery is in progress."""
-        return self._in_recovery
+    in_recovery = DelegatedProperty[bool](path="_in_recovery")
 
     @property
     def recovery_states(self) -> dict[str, RecoveryState]:

@@ -68,10 +68,11 @@ from aiohomematic.interfaces.operations import (
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
 from aiohomematic.model.device import Device
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
-    from aiohomematic.central.device_registry import DeviceRegistry
+    from aiohomematic.central.device_registry import DeviceRegistry  # noqa: F401
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -158,10 +159,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         self._delayed_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         self._device_add_semaphore: Final = asyncio.Semaphore()
 
-    @property
-    def device_registry(self) -> DeviceRegistry:
-        """Return the device registry."""
-        return self._coordinator_provider.device_registry
+    device_registry = DelegatedProperty["DeviceRegistry"](path="_coordinator_provider.device_registry")
 
     @property
     def devices(self) -> tuple[DeviceProtocol, ...]:

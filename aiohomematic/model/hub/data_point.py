@@ -47,7 +47,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_hub_data_point_name_data,
 )
-from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 from aiohomematic.support import PayloadMixin, parse_sys_var
 
 
@@ -105,40 +105,13 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
         self._state_uncertain: bool = True
         self._primary_client_provider: Final = primary_client_provider
 
-    @property
-    def channel(self) -> ChannelProtocol | None:
-        """Return the identified channel."""
-        return self._channel
-
-    @property
-    def enabled_default(self) -> bool:
-        """Return if the data_point should be enabled."""
-        return self._enabled_default
-
-    @property
-    def full_name(self) -> str:
-        """Return the fullname of the data_point."""
-        return self._name_data.full_name
-
-    @property
-    def legacy_name(self) -> str | None:
-        """Return the original sysvar name."""
-        return self._legacy_name
-
-    @property
-    def state_uncertain(self) -> bool:
-        """Return, if the state is uncertain."""
-        return self._state_uncertain
-
-    @config_property
-    def description(self) -> str | None:
-        """Return sysvar description."""
-        return self._description
-
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return self._name_data.name
+    channel = DelegatedProperty[ChannelProtocol | None](path="_channel")
+    description = DelegatedProperty[str | None](path="_description", kind=Kind.CONFIG)
+    enabled_default = DelegatedProperty[bool](path="_enabled_default")
+    full_name = DelegatedProperty[str](path="_name_data.full_name")
+    legacy_name = DelegatedProperty[str | None](path="_legacy_name")
+    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    state_uncertain = DelegatedProperty[bool](path="_state_uncertain")
 
     @state_property
     def available(self) -> bool:
@@ -205,6 +178,14 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         self._previous_value: SYSVAR_TYPE = None
         self._temporary_value: SYSVAR_TYPE = None
 
+    is_extended = DelegatedProperty[bool](path="_is_extended")
+    max = DelegatedProperty[float | int | None](path="_max", kind=Kind.CONFIG)
+    min = DelegatedProperty[float | int | None](path="_min", kind=Kind.CONFIG)
+    previous_value = DelegatedProperty[SYSVAR_TYPE](path="_previous_value")
+    unit = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    values = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.STATE)
+    vid = DelegatedProperty[str](path="_vid", kind=Kind.CONFIG)
+
     @property
     def _value(self) -> Any | None:
         """Return the value."""
@@ -212,7 +193,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
 
     @property
     def data_type(self) -> HubValueType | None:
-        """Return the availability of the device."""
+        """Return the data type."""
         return self._data_type
 
     @data_type.setter
@@ -220,45 +201,10 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         """Write data_type."""
         self._data_type = data_type
 
-    @property
-    def is_extended(self) -> bool:
-        """Return if the data_point is an extended type."""
-        return self._is_extended
-
-    @property
-    def previous_value(self) -> SYSVAR_TYPE:
-        """Return the previous value."""
-        return self._previous_value
-
-    @config_property
-    def max(self) -> float | int | None:
-        """Return the max value."""
-        return self._max
-
-    @config_property
-    def min(self) -> float | int | None:
-        """Return the min value."""
-        return self._min
-
-    @config_property
-    def unit(self) -> str | None:
-        """Return the unit of the data_point."""
-        return self._unit
-
-    @config_property
-    def vid(self) -> str:
-        """Return sysvar id."""
-        return self._vid
-
     @state_property
     def value(self) -> Any | None:
         """Return the value."""
         return self._value
-
-    @state_property
-    def values(self) -> tuple[str, ...] | None:
-        """Return the value_list."""
-        return self._values
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
@@ -375,25 +321,10 @@ class GenericProgramDataPoint(GenericHubDataPoint, GenericProgramDataPointProtoc
         self._state_uncertain: bool = True
         self._hub_data_fetcher: Final = hub_data_fetcher
 
-    @config_property
-    def is_internal(self) -> bool:
-        """Return the program is internal."""
-        return self._is_internal
-
-    @config_property
-    def pid(self) -> str:
-        """Return the program id."""
-        return self._pid
-
-    @state_property
-    def is_active(self) -> bool:
-        """Return the program is active."""
-        return self._is_active
-
-    @state_property
-    def last_execute_time(self) -> str:
-        """Return the last execute time."""
-        return self._last_execute_time
+    is_active = DelegatedProperty[bool](path="_is_active", kind=Kind.STATE)
+    is_internal = DelegatedProperty[bool](path="_is_internal", kind=Kind.CONFIG)
+    last_execute_time = DelegatedProperty[str](path="_last_execute_time", kind=Kind.STATE)
+    pid = DelegatedProperty[str](path="_pid", kind=Kind.CONFIG)
 
     def update_data(self, *, data: ProgramData) -> None:
         """Set variable value on the backend."""

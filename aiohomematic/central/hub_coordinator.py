@@ -40,6 +40,7 @@ from aiohomematic.interfaces.operations import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.model.hub import Hub, InstallModeDpType, ProgramDpType
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -114,15 +115,12 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             task_scheduler=task_scheduler,
         )
 
+    install_mode_dps = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_hub.install_mode_dps")
+
     @property
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
         return tuple(self._state_path_to_name.keys())
-
-    @property
-    def install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
-        """Return the install mode data points by interface."""
-        return self._hub.install_mode_dps
 
     @property
     def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:

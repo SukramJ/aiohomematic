@@ -19,6 +19,7 @@ from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType
 from aiohomematic.interfaces.central import RpcServerCentralProtocol, RpcServerTaskSchedulerProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -208,15 +209,8 @@ class RpcServer(threading.Thread):
         self._instances[self._address] = self
         threading.Thread.__init__(self, name=f"RpcServer {self._listen_ip_addr}:{self._listen_port}")
 
-    @property
-    def listen_ip_addr(self) -> str:
-        """Return the local ip address."""
-        return self._listen_ip_addr
-
-    @property
-    def listen_port(self) -> int:
-        """Return the local port."""
-        return self._listen_port
+    listen_ip_addr = DelegatedProperty[str](path="_listen_ip_addr")
+    listen_port = DelegatedProperty[int](path="_listen_port")
 
     @property
     def no_central_assigned(self) -> bool:

@@ -162,7 +162,7 @@ from aiohomematic.interfaces.model import (
     GenericEventProtocolAny,
 )
 from aiohomematic.model.hub import InstallModeDpType
-from aiohomematic.property_decorators import info_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
@@ -329,6 +329,30 @@ class CentralUnit(
         """Provide some useful information."""
         return f"central: {self.name}"
 
+    available = DelegatedProperty[bool](path="_client_coordinator.available")
+    cache_coordinator = DelegatedProperty[CacheCoordinator](path="_cache_coordinator")
+    callback_ip_addr = DelegatedProperty[str](path="_rpc_callback_ip")
+    central_state_machine = DelegatedProperty[CentralStateMachine](path="_central_state_machine")
+    client_coordinator = DelegatedProperty[ClientCoordinator](path="_client_coordinator")
+    config = DelegatedProperty["CentralConfig"](path="_config")
+    connection_state = DelegatedProperty["CentralConnectionState"](path="_connection_state")
+    device_coordinator = DelegatedProperty[DeviceCoordinator](path="_device_coordinator")
+    device_registry = DelegatedProperty[DeviceRegistry](path="_device_registry")
+    devices = DelegatedProperty[tuple[DeviceProtocol, ...]](path="_device_registry.devices")
+    event_bus = DelegatedProperty[EventBus](path="_event_bus")
+    event_coordinator = DelegatedProperty[EventCoordinator](path="_event_coordinator")
+    health = DelegatedProperty[CentralHealth](path="_health_tracker.health")
+    health_tracker = DelegatedProperty[HealthTracker](path="_health_tracker")
+    hub_coordinator = DelegatedProperty[HubCoordinator](path="_hub_coordinator")
+    interfaces = DelegatedProperty[frozenset[Interface]](path="_client_coordinator.interfaces")
+    listen_ip_addr = DelegatedProperty[str](path="_listen_ip_addr")
+    listen_port_xml_rpc = DelegatedProperty[int](path="_listen_port_xml_rpc")
+    looper = DelegatedProperty[Looper](path="_looper")
+    name = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
+    recovery_coordinator = DelegatedProperty[RecoveryCoordinator](path="_recovery_coordinator")
+    state = DelegatedProperty[CentralState](path="_central_state_machine.state")
+    url = DelegatedProperty[str](path="_url", kind=Kind.INFO, log_context=True)
+
     @property
     def _has_active_threads(self) -> bool:
         """Return if active sub threads are alive."""
@@ -339,95 +363,6 @@ class CentralUnit(
         )
 
     @property
-    def available(self) -> bool:
-        """Return availability (internal use - use client_coordinator.available for external access)."""
-        return self._client_coordinator.available
-
-    @property
-    def cache_coordinator(self) -> CacheCoordinator:
-        """Return the cache coordinator."""
-        return self._cache_coordinator
-
-    @property
-    def callback_ip_addr(self) -> str:
-        """Return the xml rpc server callback ip address."""
-        return self._rpc_callback_ip
-
-    @property
-    def central_state_machine(self) -> CentralStateMachine:
-        """Return the central state machine."""
-        return self._central_state_machine
-
-    @property
-    def client_coordinator(self) -> ClientCoordinator:
-        """Return the client coordinator."""
-        return self._client_coordinator
-
-    @property
-    def config(self) -> CentralConfig:
-        """Return central config."""
-        return self._config
-
-    @property
-    def connection_state(self) -> CentralConnectionState:
-        """Return the connection state."""
-        return self._connection_state
-
-    @property
-    def device_coordinator(self) -> DeviceCoordinator:
-        """Return the device coordinator."""
-        return self._device_coordinator
-
-    @property
-    def device_registry(self) -> DeviceRegistry:
-        """Return the device registry."""
-        return self._device_registry
-
-    @property
-    def devices(self) -> tuple[DeviceProtocol, ...]:
-        """Return all devices (internal use - use device_registry.devices for external access)."""
-        return self._device_registry.devices
-
-    @property
-    def event_bus(self) -> EventBus:
-        """
-        Return the EventBus for event subscription.
-
-        The EventBus provides a type-safe API for subscribing to events.
-
-        Example:
-        -------
-            central.event_bus.subscribe(DataPointUpdatedEvent, my_handler)
-
-        """
-        return self._event_bus
-
-    @property
-    def event_coordinator(self) -> EventCoordinator:
-        """Return the event coordinator."""
-        return self._event_coordinator
-
-    @property
-    def health(self) -> CentralHealth:
-        """Return the aggregated central health."""
-        return self._health_tracker.health
-
-    @property
-    def health_tracker(self) -> HealthTracker:
-        """Return the health tracker."""
-        return self._health_tracker
-
-    @property
-    def hub_coordinator(self) -> HubCoordinator:
-        """Return the hub coordinator."""
-        return self._hub_coordinator
-
-    @property
-    def interfaces(self) -> frozenset[Interface]:
-        """Return all interfaces (internal use - use client_coordinator.interfaces for external access)."""
-        return self._client_coordinator.interfaces
-
-    @property
     def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
         """Return the json rpc client."""
         if not self._json_rpc_client:
@@ -436,31 +371,6 @@ class CentralUnit(
                 health_record_callback=self._client_coordinator.on_health_record,
             )
         return self._json_rpc_client
-
-    @property
-    def listen_ip_addr(self) -> str:
-        """Return the xml rpc server listening ip address."""
-        return self._listen_ip_addr
-
-    @property
-    def listen_port_xml_rpc(self) -> int:
-        """Return the xml rpc listening server port."""
-        return self._listen_port_xml_rpc
-
-    @property
-    def looper(self) -> Looper:
-        """Return the loop support."""
-        return self._looper
-
-    @property
-    def recovery_coordinator(self) -> RecoveryCoordinator:
-        """Return the recovery coordinator."""
-        return self._recovery_coordinator
-
-    @property
-    def state(self) -> CentralState:
-        """Return the current central state from the state machine."""
-        return self._central_state_machine.state
 
     @property
     def supports_ping_pong(self) -> bool:
@@ -482,16 +392,6 @@ class CentralUnit(
         if not self._model and (client := self._client_coordinator.primary_client):
             self._model = client.model
         return self._model
-
-    @info_property(log_context=True)
-    def name(self) -> str:
-        """Return the name of the backend."""
-        return self._config.name
-
-    @info_property(log_context=True)
-    def url(self) -> str:
-        """Return the central url."""
-        return self._url
 
     @info_property
     def version(self) -> str | None:
@@ -1463,6 +1363,8 @@ class CentralConfig:
             **kwargs,
         )
 
+    optional_settings = DelegatedProperty[frozenset[OptionalSettings | str]](path="_optional_settings")
+
     @property
     def connection_check_port(self) -> int:
         """Return the connection check port."""
@@ -1486,11 +1388,6 @@ class CentralConfig:
     def load_un_ignore(self) -> bool:
         """Return if un_ignore should be loaded."""
         return self.start_direct is False
-
-    @property
-    def optional_settings(self) -> frozenset[OptionalSettings | str]:
-        """Return the optional settings."""
-        return self._optional_settings
 
     @property
     def use_caches(self) -> bool:

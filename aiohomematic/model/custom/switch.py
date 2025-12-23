@@ -18,7 +18,7 @@ from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeArgs, S
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -35,10 +35,7 @@ class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
     _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
     _dp_state = DataPointField(field=Field.STATE, dpt=DpSwitch)
 
-    @state_property
-    def value(self) -> bool | None:
-        """Return the current channel value of the switch."""
-        return self._dp_state.value
+    value = DelegatedProperty[bool | None](path="_dp_state.value", kind=Kind.STATE)
 
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""

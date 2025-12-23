@@ -31,6 +31,7 @@ from aiohomematic.interfaces.central import (
 )
 from aiohomematic.interfaces.client import ClientFactoryProtocol, ClientProtocol, ClientProviderProtocol
 from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -92,6 +93,10 @@ class ClientCoordinator(ClientProviderProtocol):
         self._last_failure_reason: FailureReason = FailureReason.NONE
         self._last_failure_interface_id: str | None = None
 
+    clients_started = DelegatedProperty[bool](path="_clients_started")
+    last_failure_interface_id = DelegatedProperty[str | None](path="_last_failure_interface_id")
+    last_failure_reason = DelegatedProperty[FailureReason](path="_last_failure_reason")
+
     @property
     def all_clients_active(self) -> bool:
         """Check if all configured clients exist and are active."""
@@ -107,11 +112,6 @@ class ClientCoordinator(ClientProviderProtocol):
     def clients(self) -> tuple[ClientProtocol, ...]:
         """Return all clients."""
         return tuple(self._clients.values())
-
-    @property
-    def clients_started(self) -> bool:
-        """Return if clients have been started."""
-        return self._clients_started
 
     @property
     def has_clients(self) -> bool:
@@ -132,16 +132,6 @@ class ClientCoordinator(ClientProviderProtocol):
     def is_alive(self) -> bool:
         """Return if all clients have alive callbacks."""
         return all(client.is_callback_alive() for client in self._clients.values())
-
-    @property
-    def last_failure_interface_id(self) -> str | None:
-        """Return the interface ID of the last client that failed."""
-        return self._last_failure_interface_id
-
-    @property
-    def last_failure_reason(self) -> FailureReason:
-        """Return the failure reason from the last client creation failure."""
-        return self._last_failure_reason
 
     @property
     def poll_clients(self) -> tuple[ClientProtocol, ...]:

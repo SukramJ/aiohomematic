@@ -19,7 +19,7 @@ from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
-from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.support import PayloadMixin
 from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeCallback
 
@@ -56,10 +56,10 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         )
         self._set_modified_at(modified_at=datetime.now())
 
-    @property
-    def device(self) -> DeviceProtocol:
-        """Return the device of the data_point."""
-        return self._device
+    available = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
+    device = DelegatedProperty[DeviceProtocol](path="_device")
+    firmware = DelegatedProperty[str | None](path="_device.firmware", kind=Kind.STATE)
+    firmware_update_state = DelegatedProperty[str | None](path="_device.firmware_update_state", kind=Kind.STATE)
 
     @property
     def full_name(self) -> str:
@@ -70,21 +70,6 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
     def name(self) -> str:
         """Return the name of the data_point."""
         return "Update"
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self._device.available
-
-    @state_property
-    def firmware(self) -> str | None:
-        """Version installed and in use."""
-        return self._device.firmware
-
-    @state_property
-    def firmware_update_state(self) -> str | None:
-        """Latest version available for install."""
-        return self._device.firmware_update_state
 
     @state_property
     def in_progress(self) -> bool:

@@ -33,7 +33,7 @@ from aiohomematic.interfaces.operations import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.support import PayloadMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -94,20 +94,14 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         )
         self._primary_client_provider: Final = primary_client_provider
 
-    @property
-    def channel(self) -> ChannelProtocol | None:
-        """Return the identified channel."""
-        return self._channel
+    channel = DelegatedProperty[ChannelProtocol | None](path="_channel")
+    full_name = DelegatedProperty[str](path="_name_data.full_name")
+    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
 
     @property
     def enabled_default(self) -> bool:
         """Return if the data_point should be enabled."""
         return True
-
-    @property
-    def full_name(self) -> str:
-        """Return the fullname of the data_point."""
-        return self._name_data.full_name
 
     @property
     def legacy_name(self) -> str | None:
@@ -123,11 +117,6 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
     def description(self) -> str | None:
         """Return description."""
         return None
-
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return self._name_data.name
 
     @state_property
     def available(self) -> bool:
@@ -361,10 +350,7 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
         )
         self._sensor: Final = sensor
 
-    @property
-    def sensor(self) -> GenericInstallModeDataPointProtocol:
-        """Return the associated sensor."""
-        return self._sensor
+    sensor = DelegatedProperty[GenericInstallModeDataPointProtocol](path="_sensor")
 
     @inspector
     async def activate(

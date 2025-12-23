@@ -25,7 +25,7 @@ from aiohomematic.interfaces.operations import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.support import PayloadMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -80,6 +80,13 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         self._devices: tuple[InboxDeviceData, ...] = ()
         self._previous_value: int = 0
 
+    available = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    devices = DelegatedProperty[tuple[InboxDeviceData, ...]](path="_devices", kind=Kind.STATE)
+    enabled_default = DelegatedProperty[bool](path="_enabled_default")
+    full_name = DelegatedProperty[str](path="_name_data.full_name")
+    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    state_uncertain = DelegatedProperty[bool](path="_state_uncertain")
+
     @property
     def channel(self) -> ChannelProtocol | None:
         """Return the identified channel."""
@@ -96,44 +103,14 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         return None
 
     @property
-    def enabled_default(self) -> bool:
-        """Return if the data_point should be enabled."""
-        return self._enabled_default
-
-    @property
-    def full_name(self) -> str:
-        """Return the fullname of the data_point."""
-        return self._name_data.full_name
-
-    @property
     def legacy_name(self) -> str | None:
         """Return the original name."""
         return None
-
-    @property
-    def state_uncertain(self) -> bool:
-        """Return, if the state is uncertain."""
-        return self._state_uncertain
-
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return self._name_data.name
 
     @config_property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return None
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self._central_info.available
-
-    @state_property
-    def devices(self) -> tuple[InboxDeviceData, ...]:
-        """Return the inbox devices."""
-        return self._devices
 
     @state_property
     def value(self) -> int:

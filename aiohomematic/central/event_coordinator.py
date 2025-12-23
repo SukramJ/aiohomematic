@@ -22,6 +22,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final, TypedDict, Unpack
 
 from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.model.data_point import BaseDataPoint  # noqa: F401
@@ -120,19 +121,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         # Store last event seen datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
 
-    @property
-    def event_bus(self) -> EventBus:
-        """
-        Return the EventBus for event subscription.
-
-        The EventBus provides a type-safe API for subscribing to events.
-
-        Example:
-        -------
-            central.event_coordinator.event_bus.subscribe(DataPointUpdatedEvent, my_handler)
-
-        """
-        return self._event_bus
+    event_bus = DelegatedProperty[EventBus](path="_event_bus")
 
     def add_data_point_subscription(self, *, data_point: BaseParameterDataPointProtocolAny) -> None:
         """

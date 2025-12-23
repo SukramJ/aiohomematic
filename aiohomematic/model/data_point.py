@@ -79,7 +79,14 @@ from aiohomematic.interfaces.operations import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
-from aiohomematic.property_decorators import Kind, _GenericProperty, config_property, hm_property, state_property
+from aiohomematic.property_decorators import (
+    DelegatedProperty,
+    Kind,
+    _GenericProperty,
+    config_property,
+    hm_property,
+    state_property,
+)
 from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
 from aiohomematic.type_aliases import (
     CallableAny,
@@ -147,6 +154,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     """
 
     __slots__ = (
+        "__weakref__",
         "_cached_enabled_default",
         "_cached_service_method_names",
         "_cached_service_methods",
@@ -210,6 +218,12 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Return, the default category of the data_point."""
         return cls._category
 
+    custom_id = DelegatedProperty[str | None](path="_custom_id")
+    published_event_at = DelegatedProperty[datetime](path="_published_event_at")
+    set_path = DelegatedProperty[str](path="_path_data.set_path")
+    signature = DelegatedProperty[str](path="_signature")
+    state_path = DelegatedProperty[str](path="_path_data.state_path")
+
     @property
     def _should_publish_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
@@ -219,11 +233,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     def category(self) -> DataPointCategory:
         """Return, the category of the data point."""
         return self._category
-
-    @property
-    def custom_id(self) -> str | None:
-        """Return the custom id."""
-        return self._custom_id
 
     @property
     @abstractmethod
@@ -249,26 +258,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     def is_valid(self) -> bool:
         """Return if the value is valid (refreshed and status is OK)."""
         return self.is_refreshed and self.is_status_valid
-
-    @property
-    def published_event_at(self) -> datetime:
-        """Return the data point updated published an event at."""
-        return self._published_event_at
-
-    @property
-    def set_path(self) -> str:
-        """Return the base set path of the data_point."""
-        return self._path_data.set_path
-
-    @property
-    def signature(self) -> str:
-        """Return the data_point signature."""
-        return self._signature
-
-    @property
-    def state_path(self) -> str:
-        """Return the base state path of the data_point."""
-        return self._path_data.state_path
 
     @property
     def usage(self) -> DataPointUsage:
@@ -606,45 +595,17 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         self._timer_on_time: float | None = None
         self._timer_on_time_end: datetime = INIT_DATETIME
 
-    @property
-    def device(self) -> DeviceProtocol:
-        """Return the device of the data_point."""
-        return self._device
-
-    @property
-    def full_name(self) -> str:
-        """Return the full name of the data_point."""
-        return self._data_point_name_data.full_name
-
-    @property
-    def function(self) -> str | None:
-        """Return the function."""
-        return self._channel.function
-
-    @property
-    def is_in_multiple_channels(self) -> bool:
-        """Return the parameter/CE is also in multiple channels."""
-        return self._is_in_multiple_channels
-
-    @property
-    def name_data(self) -> DataPointNameData:
-        """Return the data_point name data of the data_point."""
-        return self._data_point_name_data
-
-    @property
-    def room(self) -> str | None:
-        """Return the room, if only one exists."""
-        return self._channel.room
-
-    @property
-    def rooms(self) -> set[str]:
-        """Return the rooms assigned to a data_point."""
-        return self._channel.rooms
-
-    @property
-    def timer_on_time(self) -> float | None:
-        """Return the on_time."""
-        return self._timer_on_time
+    available = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
+    channel = DelegatedProperty[ChannelProtocol](path="_channel", log_context=True)
+    device = DelegatedProperty[DeviceProtocol](path="_device")
+    full_name = DelegatedProperty[str](path="_data_point_name_data.full_name")
+    function = DelegatedProperty[str | None](path="_channel.function")
+    is_in_multiple_channels = DelegatedProperty[bool](path="_is_in_multiple_channels")
+    name = DelegatedProperty[str](path="_data_point_name_data.name", kind=Kind.CONFIG, cached=True)
+    name_data = DelegatedProperty[DataPointNameData](path="_data_point_name_data")
+    room = DelegatedProperty[str | None](path="_channel.room")
+    rooms = DelegatedProperty[set[str]](path="_channel.rooms")
+    timer_on_time = DelegatedProperty[float | None](path="_timer_on_time")
 
     @property
     def timer_on_time_running(self) -> bool:
@@ -655,21 +616,6 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
     def usage(self) -> DataPointUsage:
         """Return the data_point usage."""
         return self._get_data_point_usage()
-
-    @config_property(cached=True)
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return self._data_point_name_data.name
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self._device.available
-
-    @hm_property(log_context=True)
-    def channel(self) -> ChannelProtocol:
-        """Return the channel the data_point."""
-        return self._channel
 
     def force_usage(self, *, forced_usage: DataPointUsage) -> None:
         """Set the data_point usage."""
@@ -829,30 +775,16 @@ class BaseParameterDataPoint[
         """Return, the category of the data_point."""
         return DataPointCategory.SENSOR if self._is_forced_sensor else self._category
 
-    @property
-    def default(self) -> ParameterT:
-        """Return default value."""
-        return self._default
+    default = DelegatedProperty[ParameterT](path="_default")
 
     @property
     def has_status_parameter(self) -> bool:
         """Return if this parameter has a paired STATUS parameter."""
         return self._status_parameter is not None
 
-    @property
-    def hmtype(self) -> ParameterType:
-        """Return the Homematic type."""
-        return self._type
-
-    @property
-    def ignore_on_initial_load(self) -> bool:
-        """Return if parameter should be ignored on initial load."""
-        return self._ignore_on_initial_load
-
-    @property
-    def is_forced_sensor(self) -> bool:
-        """Return, if data_point is forced to read only."""
-        return self._is_forced_sensor
+    hmtype = DelegatedProperty[ParameterType](path="_type")
+    ignore_on_initial_load = DelegatedProperty[bool](path="_ignore_on_initial_load")
+    is_forced_sensor = DelegatedProperty[bool](path="_is_forced_sensor")
 
     @property
     def is_readable(self) -> bool:
@@ -866,10 +798,7 @@ class BaseParameterDataPoint[
             return True
         return self._status_value == ParameterStatus.NORMAL
 
-    @property
-    def is_un_ignored(self) -> bool:
-        """Return if the parameter is un ignored."""
-        return self._is_un_ignored
+    is_un_ignored = DelegatedProperty[bool](path="_is_un_ignored")
 
     @property
     def is_unit_fixed(self) -> bool:
@@ -881,50 +810,20 @@ class BaseParameterDataPoint[
         """Return, if data_point is writable."""
         return False if self._is_forced_sensor else bool(self._operations & Operations.WRITE)
 
-    @property
-    def multiplier(self) -> float:
-        """Return multiplier value."""
-        return self._multiplier
-
-    @property
-    def paramset_key(self) -> ParamsetKey:
-        """Return paramset_key name."""
-        return self._paramset_key
-
-    @property
-    def previous_value(self) -> ParameterT | None:
-        """Return the previous value of the data_point."""
-        return self._previous_value
-
-    @property
-    def raw_unit(self) -> str | None:
-        """Return raw unit value."""
-        return self._raw_unit
-
-    @property
-    def service(self) -> bool:
-        """Return the if data_point is relevant for service messages in the backend."""
-        return self._service
+    multiplier = DelegatedProperty[float](path="_multiplier")
+    paramset_key = DelegatedProperty[ParamsetKey](path="_paramset_key")
+    previous_value = DelegatedProperty[ParameterT | None](path="_previous_value")
+    raw_unit = DelegatedProperty[str | None](path="_raw_unit")
+    service = DelegatedProperty[bool](path="_service")
 
     @property
     def state_uncertain(self) -> bool:
-        """Return, if the state is uncertain."""
+        """Return the state uncertain status."""
         return self._state_uncertain
 
-    @property
-    def status(self) -> ParameterStatus | None:
-        """Return the current status of this parameter value."""
-        return self._status_value
-
-    @property
-    def status_dpk(self) -> DataPointKey | None:
-        """Return the DataPointKey for the STATUS parameter."""
-        return self._status_dpk
-
-    @property
-    def status_parameter(self) -> str | None:
-        """Return the paired STATUS parameter name."""
-        return self._status_parameter
+    status = DelegatedProperty[ParameterStatus | None](path="_status_value")
+    status_dpk = DelegatedProperty[DataPointKey | None](path="_status_dpk")
+    status_parameter = DelegatedProperty[str | None](path="_status_parameter")
 
     @property
     def supports_events(self) -> bool:
@@ -939,35 +838,17 @@ class BaseParameterDataPoint[
             self._client.last_value_send_cache.get_last_value_send(dpk=self.dpk),
         )
 
-    @property
-    def visible(self) -> bool:
-        """Return the if data_point is visible in the backend."""
-        return self._visible
-
-    @config_property
-    def max(self) -> ParameterT:
-        """Return max value."""
-        return self._max
-
-    @config_property
-    def min(self) -> ParameterT:
-        """Return min value."""
-        return self._min
+    visible = DelegatedProperty[bool](path="_visible")
+    max = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
+    min = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
 
     @config_property
     def unique_id(self) -> str:
         """Return the unique_id."""
         return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
 
-    @config_property
-    def unit(self) -> str | None:
-        """Return unit value."""
-        return self._unit
-
-    @config_property
-    def values(self) -> tuple[str, ...] | None:
-        """Return the values."""
-        return self._values
+    unit = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    values = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
 
     def _get_value(self) -> ParameterT | None:
         """
@@ -998,9 +879,7 @@ class BaseParameterDataPoint[
     # equivalent to @state_property decorator, but preserves generic type information
     # for mypy (which the decorator+setter pattern breaks due to mypy limitations).
     value: _GenericProperty[ParameterT | None, ParameterT] = _GenericProperty(
-        fget=__get_value_proxy,
-        fset=_set_value,
-        kind=Kind.STATE,
+        fget=__get_value_proxy, fset=_set_value, kind=Kind.STATE
     )
 
     @hm_property(cached=True)
@@ -1024,10 +903,7 @@ class BaseParameterDataPoint[
             parameter=self._parameter,
         )
 
-    @hm_property(log_context=True)
-    def parameter(self) -> str:
-        """Return parameter name."""
-        return self._parameter
+    parameter = DelegatedProperty[str](path="_parameter", log_context=True)
 
     @hm_property(cached=True)
     def requires_polling(self) -> bool:

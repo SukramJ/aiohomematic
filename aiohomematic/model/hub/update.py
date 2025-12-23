@@ -29,7 +29,7 @@ from aiohomematic.interfaces.operations import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind
 from aiohomematic.support import PayloadMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -96,6 +96,16 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         self._update_in_progress: bool = False
         self._version_before_update: str | None = None
 
+    available = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    available_firmware = DelegatedProperty[str](path="_available_firmware", kind=Kind.STATE)
+    current_firmware = DelegatedProperty[str](path="_current_firmware", kind=Kind.STATE)
+    enabled_default = DelegatedProperty[bool](path="_enabled_default")
+    full_name = DelegatedProperty[str](path="_name_data.full_name")
+    in_progress = DelegatedProperty[bool](path="_update_in_progress", kind=Kind.STATE)
+    name = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    state_uncertain = DelegatedProperty[bool](path="_state_uncertain")
+    update_available = DelegatedProperty[bool](path="_update_available", kind=Kind.STATE)
+
     @property
     def channel(self) -> ChannelProtocol | None:
         """Return the identified channel."""
@@ -107,54 +117,9 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         return None
 
     @property
-    def enabled_default(self) -> bool:
-        """Return if the data_point should be enabled."""
-        return self._enabled_default
-
-    @property
-    def full_name(self) -> str:
-        """Return the fullname of the data_point."""
-        return self._name_data.full_name
-
-    @property
     def legacy_name(self) -> str | None:
         """Return the original name."""
         return None
-
-    @property
-    def state_uncertain(self) -> bool:
-        """Return, if the state is uncertain."""
-        return self._state_uncertain
-
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return self._name_data.name
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self._central_info.available
-
-    @state_property
-    def available_firmware(self) -> str:
-        """Return the available firmware version."""
-        return self._available_firmware
-
-    @state_property
-    def current_firmware(self) -> str:
-        """Return the current firmware version."""
-        return self._current_firmware
-
-    @state_property
-    def in_progress(self) -> bool:
-        """Return if an update is currently in progress."""
-        return self._update_in_progress
-
-    @state_property
-    def update_available(self) -> bool:
-        """Return if an update is available."""
-        return self._update_available
 
     @inspector
     async def install(self) -> bool:

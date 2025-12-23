@@ -47,6 +47,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.retry import with_retry
 from aiohomematic.store import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
@@ -137,15 +138,8 @@ class BaseRpcProxy(ABC):
         """Magic method dispatcher."""
         return self._magic_method(self._async_request, *args, **kwargs)
 
-    @property
-    def circuit_breaker(self) -> CircuitBreaker:
-        """Return the circuit breaker instance."""
-        return self._circuit_breaker
-
-    @property
-    def supported_methods(self) -> tuple[str, ...]:
-        """Return the supported methods."""
-        return self._supported_methods
+    circuit_breaker = DelegatedProperty[CircuitBreaker](path="_circuit_breaker")
+    supported_methods = DelegatedProperty[tuple[str, ...]](path="_supported_methods")
 
     def clear_connection_issue(self) -> None:
         """

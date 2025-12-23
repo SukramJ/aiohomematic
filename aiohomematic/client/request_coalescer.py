@@ -55,6 +55,8 @@ from datetime import datetime
 import logging
 from typing import Any, Final, TypeVar, cast
 
+from aiohomematic.property_decorators import DelegatedProperty
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -115,10 +117,7 @@ class RequestCoalescer:
         self._pending: dict[str, _PendingRequest] = {}
         self._metrics: CoalescerMetrics = CoalescerMetrics()
 
-    @property
-    def metrics(self) -> CoalescerMetrics:
-        """Return current metrics."""
-        return self._metrics
+    metrics = DelegatedProperty[CoalescerMetrics](path="_metrics")
 
     @property
     def pending_count(self) -> int:

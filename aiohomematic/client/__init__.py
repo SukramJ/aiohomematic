@@ -114,7 +114,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 from aiohomematic.interfaces.model import DeviceProtocol
-from aiohomematic.property_decorators import hm_property
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store import CommandCache, PingPongCache
 from aiohomematic.support import LogContextMixin, build_xml_rpc_headers, build_xml_rpc_uri, extract_exc_args
 
@@ -230,6 +230,19 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Provide some useful information."""
         return f"interface_id: {self.interface_id}"
 
+    available = DelegatedProperty[bool](path="_state_machine.is_available")
+    central = DelegatedProperty[ClientDependenciesProtocol](path="_config.client_deps")
+    interface = DelegatedProperty[Interface](path="_config.interface")
+    interface_id = DelegatedProperty[str](path="_config.interface_id", log_context=True)
+    last_value_send_cache = DelegatedProperty[CommandCache](path="_last_value_send_cache")
+    ping_pong_cache = DelegatedProperty[PingPongCache](path="_ping_pong_cache")
+    state = DelegatedProperty[ClientState](path="_state_machine.state")
+    state_machine = DelegatedProperty[ClientStateMachine](path="_state_machine")
+    supports_push_updates = DelegatedProperty[bool](path="_config.supports_push_updates")
+    supports_rpc_callback = DelegatedProperty[bool](path="_config.supports_rpc_callback")
+    system_information = DelegatedProperty[SystemInformation](path="_system_information")
+    version = DelegatedProperty[str](path="_config.version")
+
     @property
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
@@ -244,21 +257,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return self._json_rpc_client.circuit_breaker.state == CircuitState.CLOSED
 
     @property
-    def available(self) -> bool:
-        """Return the availability of the client."""
-        return self._state_machine.is_available
-
-    @property
-    def central(self) -> ClientDependenciesProtocol:
-        """Return the central of the client."""
-        return self._config.client_deps
-
-    @property
-    def interface(self) -> Interface:
-        """Return the interface of the client."""
-        return self._config.interface
-
-    @property
     def is_initialized(self) -> bool:
         """Return if interface is initialized."""
         return self._state_machine.state in (
@@ -266,11 +264,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             ClientState.DISCONNECTED,
             ClientState.RECONNECTING,
         )
-
-    @property
-    def last_value_send_cache(self) -> CommandCache:
-        """Return the last value send cache."""
-        return self._last_value_send_cache
 
     @property
     def model(self) -> str:
@@ -286,21 +279,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def modified_at(self, value: datetime) -> None:
         """Write the last update datetime value."""
         self._modified_at = value
-
-    @property
-    def ping_pong_cache(self) -> PingPongCache:
-        """Return the ping pong cache."""
-        return self._ping_pong_cache
-
-    @property
-    def state(self) -> ClientState:
-        """Return the current client state."""
-        return self._state_machine.state
-
-    @property
-    def state_machine(self) -> ClientStateMachine:
-        """Return the client state machine."""
-        return self._state_machine
 
     @property
     def supports_backup(self) -> bool:
@@ -358,11 +336,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return True
 
     @property
-    def supports_push_updates(self) -> bool:
-        """Return the client supports push update."""
-        return self._config.supports_push_updates
-
-    @property
     def supports_rega_id_lookup(self) -> bool:
         """Return if the backend supports ReGa ID lookups."""
         return True
@@ -378,11 +351,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return True
 
     @property
-    def supports_rpc_callback(self) -> bool:
-        """Return if interface support rpc callback."""
-        return self._config.supports_rpc_callback
-
-    @property
     def supports_service_messages(self) -> bool:
         """Return if the backend supports service messages."""
         return True
@@ -396,21 +364,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def supports_value_usage_reporting(self) -> bool:
         """Return if the backend supports value usage reporting."""
         return True
-
-    @property
-    def system_information(self) -> SystemInformation:
-        """Return the system_information of the client."""
-        return self._system_information
-
-    @property
-    def version(self) -> str:
-        """Return the version id of the client."""
-        return self._config.version
-
-    @hm_property(log_context=True)
-    def interface_id(self) -> str:
-        """Return the interface id of the client."""
-        return self._config.interface_id
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
@@ -1783,10 +1736,7 @@ class InterfaceConfig:
         self._init_validate()
         self._enabled: bool = True
 
-    @property
-    def enabled(self) -> bool:
-        """Return if the interface config is enabled."""
-        return self._enabled
+    enabled = DelegatedProperty[bool](path="_enabled")
 
     def disable(self) -> None:
         """Disable the interface config."""

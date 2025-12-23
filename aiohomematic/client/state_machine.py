@@ -18,6 +18,7 @@ import logging
 from typing import Final, Protocol
 
 from aiohomematic.const import ClientState, FailureReason
+from aiohomematic.property_decorators import DelegatedProperty
 
 
 class StateChangeCallbackProtocol(Protocol):
@@ -153,20 +154,14 @@ class ClientStateMachine:
         self._failure_message: str = ""
         self.on_state_change: StateChangeCallbackProtocol | None = None
 
+    failure_message = DelegatedProperty[str](path="_failure_message")
+    failure_reason = DelegatedProperty[FailureReason](path="_failure_reason")
+    state = DelegatedProperty[ClientState](path="_state")
+
     @property
     def can_reconnect(self) -> bool:
         """Return True if reconnection is allowed from current state."""
         return ClientState.RECONNECTING in _VALID_TRANSITIONS.get(self._state, frozenset())
-
-    @property
-    def failure_message(self) -> str:
-        """Return human-readable failure message."""
-        return self._failure_message
-
-    @property
-    def failure_reason(self) -> FailureReason:
-        """Return the reason for the failed state."""
-        return self._failure_reason
 
     @property
     def is_available(self) -> bool:
@@ -187,11 +182,6 @@ class ClientStateMachine:
     def is_stopped(self) -> bool:
         """Return True if client is stopped."""
         return self._state == ClientState.STOPPED
-
-    @property
-    def state(self) -> ClientState:
-        """Return the current state."""
-        return self._state
 
     def can_transition_to(self, *, target: ClientState) -> bool:
         """

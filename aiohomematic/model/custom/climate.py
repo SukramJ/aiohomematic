@@ -45,7 +45,7 @@ from aiohomematic.model.custom.profile import RebasedChannelGroup
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
-from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -184,6 +184,10 @@ class BaseCustomDpClimate(CustomDataPoint):
         )
         self._old_manu_setpoint: float | None = None
 
+    current_humidity = DelegatedProperty[int | None](path="_dp_humidity.value", kind=Kind.STATE)
+    current_temperature = DelegatedProperty[float | None](path="_dp_temperature.value", kind=Kind.STATE)
+    target_temperature = DelegatedProperty[float | None](path="_dp_setpoint.value", kind=Kind.STATE)
+
     @property
     def _temperature_for_heat_mode(self) -> float:
         """
@@ -250,16 +254,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         return None
 
     @state_property
-    def current_humidity(self) -> int | None:
-        """Return the current humidity."""
-        return self._dp_humidity.value
-
-    @state_property
-    def current_temperature(self) -> float | None:
-        """Return current temperature."""
-        return self._dp_temperature.value
-
-    @state_property
     def max_temp(self) -> float:
         """Return the maximum temperature."""
         if self._dp_temperature_maximum.value is not None:
@@ -304,11 +298,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     def profiles(self) -> tuple[ClimateProfile, ...]:
         """Return available profiles."""
         return (ClimateProfile.NONE,)
-
-    @state_property
-    def target_temperature(self) -> float | None:
-        """Return target temperature."""
-        return self._dp_setpoint.value
 
     @inspector
     async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
@@ -816,6 +805,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     _dp_state = DataPointField(field=Field.STATE, dpt=DpBinarySensor)
     _dp_temperature_offset = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpFloat)
 
+    optimum_start_stop = DelegatedProperty[bool | None](path="_dp_optimum_start_stop.value")
+    temperature_offset = DelegatedProperty[float | None](path="_dp_temperature_offset.value", kind=Kind.STATE)
+
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
         """Return a profile index by name."""
@@ -844,11 +836,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                 profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i
 
         return profiles
-
-    @property
-    def optimum_start_stop(self) -> bool | None:
-        """Return if optimum_start_stop is enabled."""
-        return self._dp_optimum_start_stop.value
 
     @property
     def schedule_profile_nos(self) -> int:
@@ -943,11 +930,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         if self.mode == ClimateMode.AUTO:
             control_modes.extend(self._profile_names)
         return tuple(control_modes)
-
-    @state_property
-    def temperature_offset(self) -> float | None:
-        """Return the maximum temperature."""
-        return self._dp_temperature_offset.value
 
     @inspector
     async def disable_away_mode(self) -> None:

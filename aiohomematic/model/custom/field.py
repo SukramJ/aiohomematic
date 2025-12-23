@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Final, cast, overload
 from aiohomematic.const import Field
 from aiohomematic.interfaces.model import GenericDataPointProtocolAny
 from aiohomematic.model.generic import DpDummy
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from typing import Self
@@ -84,12 +85,5 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
         instance._data_points[self._field] = dummy
         return cast(DataPointT, dummy)
 
-    @property
-    def data_point_type(self) -> type[DataPointT]:
-        """Return the expected data point type."""
-        return self._data_point_type
-
-    @property
-    def field(self) -> Field:
-        """Return the field enum value."""
-        return self._field
+    data_point_type = DelegatedProperty[type[DataPointT]](path="_data_point_type")
+    field = DelegatedProperty[Field](path="_field")

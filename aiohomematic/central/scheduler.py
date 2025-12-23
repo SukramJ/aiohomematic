@@ -46,6 +46,7 @@ from aiohomematic.interfaces.central import (
     HubDataFetcherProtocol,
 )
 from aiohomematic.interfaces.client import ConnectionStateProviderProtocol, JsonRpcClientProviderProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -88,15 +89,8 @@ class SchedulerJob:
         self._next_run = next_run or datetime.now()
         self._run_interval: Final = run_interval
 
-    @property
-    def name(self) -> str:
-        """Return the name of the task."""
-        return self._task.__name__
-
-    @property
-    def next_run(self) -> datetime:
-        """Return the next scheduled run timestamp."""
-        return self._next_run
+    name = DelegatedProperty[str](path="_task.__name__")
+    next_run = DelegatedProperty[datetime](path="_next_run")
 
     @property
     def ready(self) -> bool:
@@ -237,15 +231,12 @@ class BackgroundScheduler:
             ),
         ]
 
+    has_connection_issue = DelegatedProperty[bool](path="_connection_state_provider.connection_state.has_any_issue")
+
     @property
     def devices_created(self) -> bool:
         """Return True if devices have been created."""
         return self._devices_created_event.is_set()
-
-    @property
-    def has_connection_issue(self) -> bool:
-        """Return True if there is a known connection issue."""
-        return self._connection_state_provider.connection_state.has_any_issue
 
     @property
     def is_active(self) -> bool:

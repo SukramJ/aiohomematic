@@ -21,6 +21,14 @@
   - Tracks class-level plain assignments (e.g., `_enabled_default = True`)
   - Validates path resolution across class inheritance hierarchy
 
+- **Replace `IN_SERVICE_VAR` with `RequestContext`**: Unified service call tracking through the new context variables pattern
+
+  - Removed standalone `IN_SERVICE_VAR: ContextVar[bool]` in favor of `RequestContext`
+  - Added `is_in_service()` helper that checks for `operation.startswith("service:")`
+  - `@inspector` decorator now creates `RequestContext(operation="service:{func_name}")` for service calls
+  - `@bind_collector` decorator uses the same pattern for consistent context propagation
+  - Breaking: `IN_SERVICE_VAR` is no longer exported from `aiohomematic.context`
+
 - **Add `CentralConfigBuilder` for fluent configuration**: Implement Builder Pattern for `CentralConfig` with step-by-step configuration and validation
 
   - `CentralConfigBuilder` class with fluent method chaining (`.with_name()`, `.with_host()`, `.add_hmip_interface()`, etc.)

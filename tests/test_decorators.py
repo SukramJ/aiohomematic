@@ -3,7 +3,7 @@ Tests for aiohomematic.decorators module to raise coverage above 95%.
 
 These tests cover:
 - sync and async behavior of @inspector including exception handling, re-raise logic,
-  IN_SERVICE_VAR context handling, performance logging, and lib_service attribute exposure.
+  RequestContext handling, performance logging, and lib_service attribute exposure.
 - get_service_calls discovery and caching of service methods.
 - measure_execution_time for sync and async functions including performance log contents.
 All tests include a docstring.
@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 
-from aiohomematic.context import IN_SERVICE_VAR
+from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 import aiohomematic.decorators as dec_mod
 from aiohomematic.decorators import (
     _LOGGER_PERFORMANCE,  # type: ignore[attr-defined]
@@ -102,12 +102,14 @@ class TestInspectorDecorator:
             def inner(self, ctx: DummyContext) -> None:
                 raise RuntimeError("boom")
 
-        token = IN_SERVICE_VAR.set(True)
+        # Simulate already being in a service call by setting request context
+        ctx = RequestContext(operation="service:outer")
+        token = set_request_context(ctx)
         try:
             with pytest.raises(RuntimeError):
                 Service().inner(DummyContext("D2"))
         finally:
-            IN_SERVICE_VAR.reset(token)
+            reset_request_context(token)
 
         assert not logged
 
@@ -129,12 +131,13 @@ class TestInspectorDecorator:
             def inner(self, ctx: DummyContext) -> None:
                 raise MyError("hm error")
 
-        # Simulate a nested service call by pre-setting the context var
-        token = IN_SERVICE_VAR.set(True)
+        # Simulate a nested service call by pre-setting request context
+        ctx = RequestContext(operation="service:outer")
+        token = set_request_context(ctx)
         try:
             Service().inner(DummyContext("D"))
         finally:
-            IN_SERVICE_VAR.reset(token)
+            reset_request_context(token)
 
         # No logging expected because it was a sub-service call
         assert not logged
@@ -188,8 +191,8 @@ class TestInspectorDecorator:
         svc = Service()
         assert getattr(svc.do_it, "lib_service", False) is True
 
-        # Ensure IN_SERVICE_VAR is False entering to test token handling and logging
-        assert IN_SERVICE_VAR.get() is False
+        # Ensure we're not in a service call to test token handling and logging
+        assert is_in_service() is False
 
         ctx = DummyContext("A")
         result = svc.do_it(ctx, 3)

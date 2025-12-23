@@ -61,7 +61,7 @@ from aiohomematic.const import (
     ServiceScope,
     check_ignore_parameter_on_initial_load,
 )
-from aiohomematic.context import IN_SERVICE_VAR
+from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces.central import CentralInfoProtocol, EventBusProviderProtocol, EventPublisherProtocol
@@ -1307,12 +1307,12 @@ def bind_collector[CallableBC: CallableAny](
             Wrap method to add collector.
 
             Context variable pattern for nested service calls:
-                IN_SERVICE_VAR tracks whether we're already inside a service call.
+                RequestContext tracks whether we're already inside a service call.
                 This prevents nested calls from creating duplicate collectors and
                 ensures errors are only logged at the outermost boundary.
 
             Algorithm:
-                1. Set IN_SERVICE_VAR context if not already set (track via token)
+                1. Set RequestContext if not already in service (track via token)
                 2. Check if collector already exists in args or kwargs
                 3. If no collector exists, create one and inject into kwargs
                 4. Execute the wrapped function
@@ -1321,15 +1321,16 @@ def bind_collector[CallableBC: CallableAny](
             """
             # Context variable management: Track if this is the outermost service call.
             # The token allows us to reset exactly to the previous state on exit.
-            token: Token[bool] | None = None
-            if not IN_SERVICE_VAR.get():
-                token = IN_SERVICE_VAR.set(True)
+            token: Token[RequestContext | None] | None = None
+            if not is_in_service():
+                ctx = RequestContext(operation=f"service:{func.__name__}")
+                token = set_request_context(ctx)
             try:
                 # Short-circuit if collector binding is disabled
                 if not enabled:
                     return_value = await func(*args, **kwargs)
                     if token:
-                        IN_SERVICE_VAR.reset(token)
+                        reset_request_context(token)
                     return return_value
 
                 # Detect if a collector was already provided by the caller.
@@ -1346,7 +1347,7 @@ def bind_collector[CallableBC: CallableAny](
                     # Collector provided by caller - they handle send_data()
                     return_value = await func(*args, **kwargs)
                     if token:
-                        IN_SERVICE_VAR.reset(token)
+                        reset_request_context(token)
                     return return_value
 
                 # No collector provided - create one automatically.
@@ -1358,9 +1359,8 @@ def bind_collector[CallableBC: CallableAny](
                 await collector.send_data(wait_for_callback=wait_for_callback)
             except BaseHomematicException as bhexc:
                 if token:
-                    IN_SERVICE_VAR.reset(token)
-                in_service = IN_SERVICE_VAR.get()
-                if not in_service and log_level > logging.NOTSET:
+                    reset_request_context(token)
+                if not is_in_service() and log_level > logging.NOTSET:
                     context_obj = args[0]
                     logger = logging.getLogger(context_obj.__module__)
                     log_context = context_obj.log_context if isinstance(context_obj, LogContextMixin) else None
@@ -1377,7 +1377,7 @@ def bind_collector[CallableBC: CallableAny](
                 raise
             else:
                 if token:
-                    IN_SERVICE_VAR.reset(token)
+                    reset_request_context(token)
                 return return_value
 
         if scope == ServiceScope.EXTERNAL:

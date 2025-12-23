@@ -77,9 +77,10 @@
 
 - **Optimize field descriptors**: Removed unused `_attr_name` slot and `__set_name__` method from `DataPointField` and `CalculatedDataPointField`
 
-- **Require explicit cache slots for `@hm_property(cached=True)`**: Removed `WeakKeyDictionary` fallback in favor of explicit slot definitions
+- **Require explicit cache slots for cached properties**: Removed `WeakKeyDictionary` fallback from both `@hm_property(cached=True)` and `DelegatedProperty(cached=True)` in favor of explicit slot definitions
 
-  - Classes using `@hm_property(cached=True)` must define `_cached_{property_name}` in `__slots__`
+  - Both decorators now validate at class-definition time that `_cached_{property_name}` exists in `__slots__`
+  - `TypeError` is raised immediately when class is defined if cache slot is missing (not at runtime)
   - Added cache slots to `Channel` (`_cached_group_master`, `_cached_group_no`, `_cached_is_in_multi_group`)
   - Added cache slot to `CalculatedDataPoint` (`_cached_dpk`)
   - DP005 linter rule validates cache slots exist (see lint-delegated-property changes above)
@@ -87,7 +88,7 @@
 
 - **Add `DelegatedProperty` descriptor**: New descriptor for delegating property access to nested attribute paths
   - Supports `kind` (config/info/state/simple) for categorization via `get_hm_property_by_kind()`
-  - Supports `cached=True` for per-instance caching of delegated values (uses WeakKeyDictionary fallback for `__slots__` classes)
+  - Supports `cached=True` for per-instance caching of delegated values (requires explicit `_cached_{name}` slot)
   - Supports `log_context=True` for structured logging
   - Migrated 266 simple delegation properties across the codebase to use `DelegatedProperty`
   - Note: Cannot be used when subclasses override with `@property` due to mypy limitations

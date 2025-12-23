@@ -1,8 +1,15 @@
-# Version 2025.12.44 (2025-12-22)
+# Version 2025.12.44 (2025-12-23)
 
 ## What's Changed
 
 ### Improvements
+
+- **Introduce singledispatch pattern for type converters**: Added extensible type conversion using Python's `functools.singledispatch`
+
+  - New `to_homematic_value()` converter: Python types → Homematic-compatible values (bool→int, float→rounded, datetime→ISO, timedelta→seconds, Enum→value, list/dict→recursive)
+  - New `from_homematic_value()` converter: Homematic values → Python types with optional target_type hints
+  - Refactored `_get_text_value()` in property_decorators.py to use singledispatch
+  - Both converters are extensible via `@converter.register(YourType)`
 
 - **Make data point protocols generic for improved type safety**: Protocols now preserve generic type information for mypy
 

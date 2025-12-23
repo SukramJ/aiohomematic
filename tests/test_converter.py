@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+from enum import Enum
+
 from aiohomematic.const import Parameter
 from aiohomematic.converter import (
     CONVERTABLE_PARAMETERS,
     convert_combined_parameter_to_paramset,
     convert_hm_level_to_cpv,
+    from_homematic_value,
+    to_homematic_value,
 )
 
 
@@ -172,3 +177,144 @@ class TestEdgeCases:
         result = convert_combined_parameter_to_paramset(parameter=Parameter.COMBINED_PARAMETER, value="L=75")
         assert Parameter.LEVEL in result
         assert result[Parameter.LEVEL] == 0.75
+
+
+# =============================================================================
+# SINGLEDISPATCH CONVERTER TESTS
+# =============================================================================
+
+
+class _TestEnum(Enum):
+    """Test enum for converter tests."""
+
+    VALUE_A = "a"
+    VALUE_B = 42
+
+
+class TestToHomematicValue:
+    """Test to_homematic_value singledispatch converter."""
+
+    def test_bool_to_int(self) -> None:
+        """Test boolean conversion to integer."""
+        assert to_homematic_value(True) == 1
+        assert to_homematic_value(False) == 0
+
+    def test_datetime_to_iso(self) -> None:
+        """Test datetime conversion to ISO string."""
+        dt = datetime(2025, 1, 15, 10, 30, 0)
+        result = to_homematic_value(dt)
+        assert result == "2025-01-15T10:30:00"
+
+    def test_dict_recursive(self) -> None:
+        """Test dict conversion with recursive value conversion."""
+        result = to_homematic_value({"on": True, "level": 3.14159265359})
+        assert result == {"on": 1, "level": 3.141593}
+
+    def test_enum_to_value(self) -> None:
+        """Test enum conversion to value."""
+        assert to_homematic_value(_TestEnum.VALUE_A) == "a"
+        assert to_homematic_value(_TestEnum.VALUE_B) == 42
+
+    def test_float_rounding(self) -> None:
+        """Test float rounding to 6 decimal places."""
+        assert to_homematic_value(3.14159265359) == 3.141593
+        assert to_homematic_value(1.0) == 1.0
+        assert to_homematic_value(0.123456789) == 0.123457
+
+    def test_int_passthrough(self) -> None:
+        """Test that integers pass through without conversion."""
+        # int is subclass of bool in Python, but singledispatch uses MRO
+        # so we need to ensure int values are not converted to 1/0
+        assert to_homematic_value(42) == 42
+        assert to_homematic_value(0) == 0
+        assert to_homematic_value(-1) == -1
+
+    def test_list_recursive(self) -> None:
+        """Test list conversion with recursive item conversion."""
+        result = to_homematic_value([True, False, 3.14159265359])
+        assert result == [1, 0, 3.141593]
+
+    def test_nested_structures(self) -> None:
+        """Test nested list/dict conversion."""
+        result = to_homematic_value({"values": [True, False], "nested": {"flag": True}})
+        assert result == {"values": [1, 0], "nested": {"flag": 1}}
+
+    def test_passthrough_types(self) -> None:
+        """Test that unregistered types pass through unchanged."""
+        assert to_homematic_value(42) == 42
+        assert to_homematic_value("hello") == "hello"
+        assert to_homematic_value(None) is None
+
+    def test_timedelta_to_seconds(self) -> None:
+        """Test timedelta conversion to total seconds."""
+        td = timedelta(hours=1, minutes=30)
+        assert to_homematic_value(td) == 5400.0
+
+        td_small = timedelta(seconds=45)
+        assert to_homematic_value(td_small) == 45.0
+
+
+class TestFromHomematicValue:
+    """Test from_homematic_value singledispatch converter."""
+
+    def test_int_to_bool(self) -> None:
+        """Test integer to boolean conversion with target_type."""
+        assert from_homematic_value(1, target_type=bool) is True
+        assert from_homematic_value(0, target_type=bool) is False
+        assert from_homematic_value(42, target_type=bool) is True
+
+    def test_int_without_target(self) -> None:
+        """Test integer passthrough without target_type."""
+        assert from_homematic_value(42) == 42
+        assert from_homematic_value(0) == 0
+
+    def test_passthrough_types(self) -> None:
+        """Test that unregistered types pass through unchanged."""
+        assert from_homematic_value(3.14) == 3.14
+        assert from_homematic_value([1, 2, 3]) == [1, 2, 3]
+        assert from_homematic_value(None) is None
+
+    def test_str_to_datetime(self) -> None:
+        """Test string to datetime conversion with target_type."""
+        result = from_homematic_value("2025-01-15T10:30:00", target_type=datetime)
+        assert isinstance(result, datetime)
+        assert result.year == 2025
+        assert result.month == 1
+        assert result.day == 15
+        assert result.hour == 10
+        assert result.minute == 30
+
+    def test_str_without_target(self) -> None:
+        """Test string passthrough without target_type."""
+        assert from_homematic_value("hello") == "hello"
+
+
+class TestSingledispatchExtensibility:
+    """Test that singledispatch can be extended with new types."""
+
+    def test_register_custom_type(self) -> None:
+        """Test registering a custom type converter."""
+
+        # Create a custom type
+        class Temperature:
+            def __init__(self, celsius: float) -> None:
+                self.celsius = celsius
+
+        # Register a converter for it
+        @to_homematic_value.register(Temperature)
+        def _to_hm_temperature(value: Temperature) -> float:
+            return value.celsius
+
+        # Test the converter
+        temp = Temperature(21.5)
+        assert to_homematic_value(temp) == 21.5
+
+    def test_registered_types_list(self) -> None:
+        """Test that we can inspect registered types."""
+        # singledispatch exposes .registry attribute
+        registry = to_homematic_value.registry
+        assert bool in registry
+        assert float in registry
+        assert datetime in registry
+        assert list in registry
+        assert dict in registry

@@ -19,6 +19,11 @@ DP003 (warning)
     DelegatedProperty uses cached=True but the class uses __slots__ without
     __weakref__. Caching will fall back to no-cache mode.
 
+DP004 (error)
+    DelegatedProperty path references an attribute that doesn't exist.
+    The first component of the path must be defined in __slots__ or
+    assigned as an instance attribute in __init__.
+
 DP100 (info)
     Suggestion for @property that could potentially use DelegatedProperty.
 
@@ -111,8 +116,11 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
         self.type_checking_imports: set[str] = set()
         self.regular_imports: set[str] = set()
         self.current_class: str | None = None
+        self.current_method: str | None = None
         self.class_bases: dict[str, list[str]] = {}
         self.class_slots: dict[str, list[str]] = {}
+        self.class_init_attrs: dict[str, set[str]] = {}  # class -> attributes assigned in __init__
+        self.class_level_attrs: dict[str, set[str]] = {}  # class -> class-level annotated assignments
         self.in_type_checking: bool = False
 
     def visit_If(self, node: ast.If) -> None:
@@ -176,12 +184,30 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
         self.current_class = old_class
 
     def visit_Assign(self, node: ast.Assign) -> None:
-        """Visit assignments to find DelegatedProperty."""
+        """Visit assignments to find DelegatedProperty and __init__ attributes."""
         if self.current_class is None:
             self.generic_visit(node)
             return
 
         for target in node.targets:
+            # Track self._attr assignments in __init__
+            if (
+                self.current_method == "__init__"
+                and isinstance(target, ast.Attribute)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "self"
+            ):
+                if self.current_class not in self.class_init_attrs:
+                    self.class_init_attrs[self.current_class] = set()
+                self.class_init_attrs[self.current_class].add(target.attr)
+                continue
+
+            # Track class-level plain assignments (e.g., _enabled_default = True)
+            if isinstance(target, ast.Name) and self.current_method is None:
+                if self.current_class not in self.class_level_attrs:
+                    self.class_level_attrs[self.current_class] = set()
+                self.class_level_attrs[self.current_class].add(target.id)
+
             if not isinstance(target, ast.Name):
                 continue
 
@@ -219,8 +245,65 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        """Visit annotated assignments to find __init__ attributes and DelegatedProperty."""
+        if self.current_class is None:
+            self.generic_visit(node)
+            return
+
+        target = node.target
+
+        # Track self._attr: Type = ... assignments in __init__
+        if (
+            self.current_method == "__init__"
+            and isinstance(target, ast.Attribute)
+            and isinstance(target.value, ast.Name)
+            and target.value.id == "self"
+        ):
+            if self.current_class not in self.class_init_attrs:
+                self.class_init_attrs[self.current_class] = set()
+            self.class_init_attrs[self.current_class].add(target.attr)
+
+        # Track class-level annotated assignments (e.g., _dp_state: Final = DataPointField(...))
+        # These are not in __init__ but are class-level attributes
+        if isinstance(target, ast.Name) and self.current_method is None:
+            if self.current_class not in self.class_level_attrs:
+                self.class_level_attrs[self.current_class] = set()
+            self.class_level_attrs[self.current_class].add(target.id)
+
+        # Check for DelegatedProperty in annotated assignments (e.g., name: Final = DelegatedProperty[...])
+        if isinstance(target, ast.Name) and node.value and isinstance(node.value, ast.Call):
+            prop_name = target.id
+            call = node.value
+            func = call.func
+
+            # Check for DelegatedProperty[...](...)
+            if (
+                isinstance(func, ast.Subscript)
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "DelegatedProperty"
+            ):
+                type_arg, is_forward_ref = self._get_type_arg(func.slice)
+                dp_path = self._get_path_arg(call)
+                cached = self._get_cached_arg(call)
+
+                self.delegated_properties.append(
+                    DelegatedPropertyInfo(
+                        class_name=self.current_class,
+                        property_name=prop_name,
+                        file_path=self.file_path,
+                        line_no=node.lineno,
+                        type_arg=type_arg,
+                        is_forward_reference=is_forward_ref,
+                        cached=cached,
+                        path=dp_path,
+                    )
+                )
+
+        self.generic_visit(node)
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Visit function definitions to find @property decorators."""
+        """Visit function definitions to find @property decorators and __init__ assignments."""
         if self.current_class is None:
             self.generic_visit(node)
             return
@@ -239,7 +322,14 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
                 )
                 break
 
-        self.generic_visit(node)
+        # Track __init__ method to find self._attr assignments
+        if node.name == "__init__":
+            old_method = self.current_method
+            self.current_method = node.name
+            self.generic_visit(node)
+            self.current_method = old_method
+        else:
+            self.generic_visit(node)
 
     def _get_type_arg(self, slice_node: ast.expr) -> tuple[str | None, bool]:
         """
@@ -366,6 +456,76 @@ def _class_has_weakref_in_hierarchy(
     return False
 
 
+def _get_class_attrs_in_hierarchy(
+    class_name: str,
+    all_visitors: list[DelegatedPropertyVisitor],
+) -> set[str]:
+    """
+    Get all available attributes for a class including inherited __slots__ and __init__ attrs.
+
+    Traverses the class hierarchy upward, collecting:
+    - __slots__ entries from this class and all parent classes
+    - Attributes assigned in __init__ from this class and all parent classes
+    - Class-level annotated assignments (like DataPointField)
+    - Property names (accessible via delegation)
+
+    Args:
+        class_name: The class to check.
+        all_visitors: All parsed file visitors.
+
+    Returns:
+        Set of attribute names available on instances of the class.
+
+    """
+    # Build maps for efficient lookup
+    class_slots: dict[str, list[str]] = {}
+    class_bases: dict[str, list[str]] = {}
+    class_init_attrs: dict[str, set[str]] = {}
+    class_level_attrs: dict[str, set[str]] = {}
+    class_properties: dict[str, set[str]] = defaultdict(set)
+
+    for visitor in all_visitors:
+        class_slots.update(visitor.class_slots)
+        class_bases.update(visitor.class_bases)
+        class_init_attrs.update(visitor.class_init_attrs)
+        class_level_attrs.update(visitor.class_level_attrs)
+        for prop in visitor.property_overrides:
+            class_properties[prop.class_name].add(prop.property_name)
+
+    # Collect all attributes from this class and parent classes
+    attrs: set[str] = set()
+    visited: set[str] = set()
+    to_check = [class_name]
+
+    while to_check:
+        current = to_check.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+
+        # Add __slots__ entries
+        if current in class_slots:
+            attrs.update(class_slots[current])
+
+        # Add __init__ assignments
+        if current in class_init_attrs:
+            attrs.update(class_init_attrs[current])
+
+        # Add class-level annotated assignments (e.g., DataPointField)
+        if current in class_level_attrs:
+            attrs.update(class_level_attrs[current])
+
+        # Add property names
+        if current in class_properties:
+            attrs.update(class_properties[current])
+
+        # Add parent classes to check
+        if current in class_bases:
+            to_check.extend(class_bases[current])
+
+    return attrs
+
+
 def lint_delegated_properties(verbose: bool = False) -> LintResult:
     """Lint all DelegatedProperty usages in the codebase."""
     result = LintResult()
@@ -460,6 +620,27 @@ def lint_delegated_properties(verbose: bool = False) -> LintResult:
                                 )
                             )
                     break
+
+        # Check 4: Path references non-existent attribute
+        if dp.path:
+            # Extract the first component of the path (e.g., "_config" from "_config.interface")
+            first_attr = dp.path.split(".")[0]
+            available_attrs = _get_class_attrs_in_hierarchy(dp.class_name, all_visitors)
+
+            if first_attr not in available_attrs:
+                result.issues.append(
+                    LintIssue(
+                        file_path=dp.file_path,
+                        line_no=dp.line_no,
+                        severity="error",
+                        code="DP004",
+                        message=(
+                            f"DelegatedProperty '{dp.property_name}' in {dp.class_name} "
+                            f"references path '{dp.path}', but attribute '{first_attr}' "
+                            f"is not defined in __slots__ or __init__."
+                        ),
+                    )
+                )
 
     return result
 

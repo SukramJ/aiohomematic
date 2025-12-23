@@ -28,6 +28,10 @@ DP005 (error)
     @hm_property(cached=True) requires a cache slot. Classes using __slots__
     must define "_cached_{property_name}" in their slots for caching to work.
 
+DP006 (error)
+    DelegatedProperty(cached=True) requires a cache slot. Classes using __slots__
+    must define "_cached_{property_name}" in their slots for caching to work.
+
 DP100 (info)
     Suggestion for @property that could potentially use DelegatedProperty.
 
@@ -568,6 +572,64 @@ def _get_class_attrs_in_hierarchy(
     return attrs
 
 
+def _check_cached_property_slots(
+    *,
+    result: LintResult,
+    all_visitors: list[DelegatedPropertyVisitor],
+) -> None:
+    """Check that cached properties have their cache slots defined in __slots__."""
+    # Check DelegatedProperty(cached=True) - DP006
+    for dp in result.delegated_properties:
+        if not dp.cached:
+            continue
+
+        cache_slot_name = f"_cached_{dp.property_name}"
+        available_attrs = _get_class_attrs_in_hierarchy(dp.class_name, all_visitors)
+
+        # Only check if the class uses __slots__ (otherwise __dict__ is available)
+        class_has_slots = any(
+            visitor.file_path == dp.file_path and dp.class_name in visitor.class_slots for visitor in all_visitors
+        )
+
+        if class_has_slots and cache_slot_name not in available_attrs:
+            result.issues.append(
+                LintIssue(
+                    file_path=dp.file_path,
+                    line_no=dp.line_no,
+                    severity="error",
+                    code="DP006",
+                    message=(
+                        f"DelegatedProperty(cached=True) '{dp.property_name}' in {dp.class_name} "
+                        f"requires cache slot '{cache_slot_name}' in __slots__."
+                    ),
+                )
+            )
+
+    # Check @hm_property(cached=True) - DP005
+    for cp in result.cached_properties:
+        cache_slot_name = f"_cached_{cp.property_name}"
+        available_attrs = _get_class_attrs_in_hierarchy(cp.class_name, all_visitors)
+
+        # Only check if the class uses __slots__ (otherwise __dict__ is available)
+        class_has_slots = any(
+            visitor.file_path == cp.file_path and cp.class_name in visitor.class_slots for visitor in all_visitors
+        )
+
+        if class_has_slots and cache_slot_name not in available_attrs:
+            result.issues.append(
+                LintIssue(
+                    file_path=cp.file_path,
+                    line_no=cp.line_no,
+                    severity="error",
+                    code="DP005",
+                    message=(
+                        f"@hm_property(cached=True) '{cp.property_name}' in {cp.class_name} "
+                        f"requires cache slot '{cache_slot_name}' in __slots__."
+                    ),
+                )
+            )
+
+
 def lint_delegated_properties(verbose: bool = False) -> LintResult:
     """Lint all DelegatedProperty usages in the codebase."""
     result = LintResult()
@@ -685,32 +747,8 @@ def lint_delegated_properties(verbose: bool = False) -> LintResult:
                     )
                 )
 
-    # Check 5: @hm_property(cached=True) requires cache slot in __slots__
-    for cp in result.cached_properties:
-        cache_slot_name = f"_cached_{cp.property_name}"
-        # Check if cache slot exists in this class or any parent class's __slots__
-        available_attrs = _get_class_attrs_in_hierarchy(cp.class_name, all_visitors)
-
-        # Only check if the class uses __slots__ (otherwise __dict__ is available)
-        class_has_slots = False
-        for visitor in all_visitors:
-            if visitor.file_path == cp.file_path and cp.class_name in visitor.class_slots:
-                class_has_slots = True
-                break
-
-        if class_has_slots and cache_slot_name not in available_attrs:
-            result.issues.append(
-                LintIssue(
-                    file_path=cp.file_path,
-                    line_no=cp.line_no,
-                    severity="error",
-                    code="DP005",
-                    message=(
-                        f"@hm_property(cached=True) '{cp.property_name}' in {cp.class_name} "
-                        f"requires cache slot '{cache_slot_name}' in __slots__."
-                    ),
-                )
-            )
+    # Check 5 & 6: Cached properties require cache slots in __slots__
+    _check_cached_property_slots(result=result, all_visitors=all_visitors)
 
     return result
 

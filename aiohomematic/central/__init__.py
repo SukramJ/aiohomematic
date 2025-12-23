@@ -78,6 +78,7 @@ from aiohomematic.async_support import Looper
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.cache_coordinator import CacheCoordinator
 from aiohomematic.central.client_coordinator import ClientCoordinator
+from aiohomematic.central.config_builder import CentralConfigBuilder, ValidationError
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.event_bus import EventBatch, EventBus, EventPriority
@@ -179,10 +180,12 @@ from aiohomematic.support import (
 
 __all__ = [
     "CentralConfig",
+    "CentralConfigBuilder",
     "CentralUnit",
     "DeviceRegistry",
     "EventBatch",
     "EventPriority",
+    "ValidationError",
     "_SchedulerJob",
 ]
 

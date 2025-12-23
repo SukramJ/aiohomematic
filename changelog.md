@@ -4,6 +4,14 @@
 
 ### Improvements
 
+- **Add `CentralConfigBuilder` for fluent configuration**: Implement Builder Pattern for `CentralConfig` with step-by-step configuration and validation
+
+  - `CentralConfigBuilder` class with fluent method chaining (`.with_name()`, `.with_host()`, `.add_hmip_interface()`, etc.)
+  - Factory presets: `CentralConfigBuilder.for_ccu()` and `CentralConfigBuilder.for_homegear()`
+  - Early validation via `.validate()` method returning list of `ValidationError`
+  - Automatic interface port resolution based on TLS settings
+  - 36 tests covering all builder functionality
+
 - **Introduce singledispatch pattern for type converters**: Added extensible type conversion using Python's `functools.singledispatch`
 
   - New `to_homematic_value()` converter: Python types → Homematic-compatible values (bool→int, float→rounded, datetime→ISO, timedelta→seconds, Enum→value, list/dict→recursive)

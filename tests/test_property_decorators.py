@@ -184,6 +184,51 @@ class TestCachedPropertiesWithSlots:
         assert test_obj.call_count == 2
 
 
+class TestCachedPropertySlotsMissing:
+    """Test that missing cache slots raise TypeError at class definition time."""
+
+    def test_cached_property_missing_slot_raises_type_error_at_class_definition(self) -> None:
+        """Test that defining a class with cached property but missing cache slot raises TypeError."""
+        # The error should be raised when the class is DEFINED, not when accessed
+        with pytest.raises(TypeError, match="missing cache slot '_cached_cached_value'"):
+
+            class SlotsClassMissingCacheSlot:
+                """Test class with __slots__ but WITHOUT the cache slot."""
+
+                __slots__ = ("_storage", "call_count")  # Missing _cached_cached_value!
+
+                def __init__(self):
+                    """Init SlotsClassMissingCacheSlot."""
+                    self._storage: str = "initial"
+                    self.call_count: int = 0
+
+                @hm_property(cached=True)
+                def cached_value(self) -> str:
+                    """Return a computed value that should be cached."""
+                    self.call_count += 1
+                    return f"slots_{self.call_count}"
+
+    def test_cached_property_with_dict_in_parent_is_allowed(self) -> None:
+        """Test that cached property is allowed if parent class has __dict__."""
+
+        class ParentWithDict:
+            """Parent class without __slots__ (has __dict__)."""
+
+        # This should NOT raise because ParentWithDict has __dict__
+        class ChildWithSlots(ParentWithDict):
+            """Child with __slots__ but parent has __dict__."""
+
+            __slots__ = ("_value",)
+
+            @hm_property(cached=True)
+            def cached_value(self) -> str:
+                """Return cached value."""
+                return "cached"
+
+        obj = ChildWithSlots()
+        assert obj.cached_value == "cached"
+
+
 class TestPropertyDocstrings:
     """Test that property docstrings are preserved."""
 

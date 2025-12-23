@@ -929,6 +929,9 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     __slots__ = (
         "_address",
+        "_cached_group_master",
+        "_cached_group_no",
+        "_cached_is_in_multi_group",
         "_calculated_data_points",
         "_custom_data_point",
         "_channel_description",
@@ -936,10 +939,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_function",
         "_generic_data_points",
         "_generic_events",
-        "_group_master",
-        "_group_no",
         "_rega_id",
-        "_is_in_multi_group",
         "_is_schedule_channel",
         "_link_peer_addresses",
         "_link_source_categories",

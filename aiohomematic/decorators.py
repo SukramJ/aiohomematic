@@ -17,7 +17,7 @@ from typing import Any, Final, cast, overload
 from weakref import WeakKeyDictionary
 
 from aiohomematic.const import ServiceScope
-from aiohomematic.context import IN_SERVICE_VAR
+from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.support import LogContextMixin, log_boundary_error
 from aiohomematic.type_aliases import CallableAny, ServiceMethodMap
@@ -137,35 +137,39 @@ def inspector[**P, R](  # noqa: C901
             start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
             start = monotonic() if start_needed else None
 
-            # Avoid repeated ContextVar.get() calls; only set/reset when needed
-            was_in_service = IN_SERVICE_VAR.get()
-            token = IN_SERVICE_VAR.set(True) if not was_in_service else None
+            # Check if already in a service call context
+            in_service = is_in_service()
+            token = None
+            if not in_service:
+                # Create new request context for this service call
+                ctx = RequestContext(operation=f"service:{func.__name__}")
+                token = set_request_context(ctx)
             context_obj = args[0] if args else None
             try:
                 return_value: R = func(*args, **kwargs)
             except BaseHomematicException as bhexc:
                 if token is not None:
-                    IN_SERVICE_VAR.reset(token)
+                    reset_request_context(token)
                 return handle_exception(
                     exc=bhexc,
                     func=func,
-                    is_sub_service_call=was_in_service,
+                    is_sub_service_call=in_service,
                     is_homematic=True,
                     context_obj=context_obj,
                 )
             except Exception as exc:
                 if token is not None:
-                    IN_SERVICE_VAR.reset(token)
+                    reset_request_context(token)
                 return handle_exception(
                     exc=exc,
                     func=func,
-                    is_sub_service_call=was_in_service,
+                    is_sub_service_call=in_service,
                     is_homematic=False,
                     context_obj=context_obj,
                 )
             else:
                 if token is not None:
-                    IN_SERVICE_VAR.reset(token)
+                    reset_request_context(token)
                 return return_value
             finally:
                 if start is not None:
@@ -177,34 +181,39 @@ def inspector[**P, R](  # noqa: C901
             start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
             start = monotonic() if start_needed else None
 
-            was_in_service = IN_SERVICE_VAR.get()
-            token = IN_SERVICE_VAR.set(True) if not was_in_service else None
+            # Check if already in a service call context
+            in_service = is_in_service()
+            token = None
+            if not in_service:
+                # Create new request context for this service call
+                ctx = RequestContext(operation=f"service:{func.__name__}")
+                token = set_request_context(ctx)
             context_obj = args[0] if args else None
             try:
                 return_value = await func(*args, **kwargs)  # type: ignore[misc]
             except BaseHomematicException as bhexc:
                 if token is not None:
-                    IN_SERVICE_VAR.reset(token)
+                    reset_request_context(token)
                 return handle_exception(
                     exc=bhexc,
                     func=func,
-                    is_sub_service_call=was_in_service,
+                    is_sub_service_call=in_service,
                     is_homematic=True,
                     context_obj=context_obj,
                 )
             except Exception as exc:
                 if token is not None:
-                    IN_SERVICE_VAR.reset(token)
+                    reset_request_context(token)
                 return handle_exception(
                     exc=exc,
                     func=func,
-                    is_sub_service_call=was_in_service,
+                    is_sub_service_call=in_service,
                     is_homematic=False,
                     context_obj=context_obj,
                 )
             else:
                 if token is not None:
-                    IN_SERVICE_VAR.reset(token)
+                    reset_request_context(token)
                 return cast(R, return_value)
             finally:
                 if start is not None:

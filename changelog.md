@@ -14,12 +14,22 @@
   - Automatic context propagation through async call chains
   - 42 tests covering all context functionality
 
-- **Add DP004 path validation to lint-delegated-property**: The linter now validates that `DelegatedProperty` paths reference existing attributes
+- **Add DP004/DP005 validation to lint-delegated-property**: The linter now validates property paths and cache slots
 
-  - DP004 error: Reports when `path` references an attribute not defined in `__slots__`, `__init__`, class-level assignments, or `@property`
+  - DP004 error: Reports when `DelegatedProperty` path references an attribute not defined in `__slots__`, `__init__`, class-level assignments, or `@property`
+  - DP005 error: Reports when `@hm_property(cached=True)` is used on a slotted class without the required `_cached_{property_name}` slot
   - Enhanced AST visitor to detect `DelegatedProperty` in annotated assignments (e.g., `name: Final = DelegatedProperty[...]`)
+  - Enhanced AST visitor to detect `@hm_property(cached=True)` and similar decorators
   - Tracks class-level plain assignments (e.g., `_enabled_default = True`)
-  - Validates path resolution across class inheritance hierarchy
+  - Validates path resolution and cache slots across class inheritance hierarchy
+
+- **Replace `IN_SERVICE_VAR` with `RequestContext`**: Unified service call tracking through the new context variables pattern
+
+  - Removed standalone `IN_SERVICE_VAR: ContextVar[bool]` in favor of `RequestContext`
+  - Added `is_in_service()` helper that checks for `operation.startswith("service:")`
+  - `@inspector` decorator now creates `RequestContext(operation="service:{func_name}")` for service calls
+  - `@bind_collector` decorator uses the same pattern for consistent context propagation
+  - Breaking: `IN_SERVICE_VAR` is no longer exported from `aiohomematic.context`
 
 - **Add `CentralConfigBuilder` for fluent configuration**: Implement Builder Pattern for `CentralConfig` with step-by-step configuration and validation
 
@@ -67,16 +77,18 @@
 
 - **Optimize field descriptors**: Removed unused `_attr_name` slot and `__set_name__` method from `DataPointField` and `CalculatedDataPointField`
 
-- **Use `@hm_property(cached=True)` for lazy properties**: Applied caching to properties that perform expensive computations or iterate over collections
+- **Require explicit cache slots for cached properties**: Removed `WeakKeyDictionary` fallback from both `@hm_property(cached=True)` and `DelegatedProperty(cached=True)` in favor of explicit slot definitions
 
-  - `Channel`: `group_master`, `group_no`, `is_in_multi_group`
-  - `Device`: `allow_undefined_generic_data_points`, `has_sub_devices`
-  - `BaseDataPoint`: `name`
-  - `CustomDpDimmer`: `supports_brightness`, `supports_transition`
+  - Both decorators now validate at class-definition time that `_cached_{property_name}` exists in `__slots__`
+  - `TypeError` is raised immediately when class is defined if cache slot is missing (not at runtime)
+  - Added cache slots to `Channel` (`_cached_group_master`, `_cached_group_no`, `_cached_is_in_multi_group`)
+  - Added cache slot to `CalculatedDataPoint` (`_cached_dpk`)
+  - DP005 linter rule validates cache slots exist (see lint-delegated-property changes above)
+  - Breaking: Classes that previously relied on `WeakKeyDictionary` fallback must add explicit slots
 
 - **Add `DelegatedProperty` descriptor**: New descriptor for delegating property access to nested attribute paths
   - Supports `kind` (config/info/state/simple) for categorization via `get_hm_property_by_kind()`
-  - Supports `cached=True` for per-instance caching of delegated values (uses WeakKeyDictionary fallback for `__slots__` classes)
+  - Supports `cached=True` for per-instance caching of delegated values (requires explicit `_cached_{name}` slot)
   - Supports `log_context=True` for structured logging
   - Migrated 266 simple delegation properties across the codebase to use `DelegatedProperty`
   - Note: Cannot be used when subclasses override with `@property` due to mypy limitations

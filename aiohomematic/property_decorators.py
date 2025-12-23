@@ -21,6 +21,7 @@ Notes on caching
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+import contextlib
 from datetime import datetime
 from enum import Enum, StrEnum
 from functools import singledispatch
@@ -89,7 +90,7 @@ class DelegatedProperty[ValueT]:
 
     """
 
-    __slots__ = ("_cache_attr", "_cached", "_doc", "_parts", "_path", "_slots_cache", "kind", "log_context")
+    __slots__ = ("_cache_attr", "_cached", "_doc", "_parts", "_path", "kind", "log_context")
 
     __kwonly_check__ = False
 
@@ -120,11 +121,9 @@ class DelegatedProperty[ValueT]:
         self._cached: Final = cached
         self.log_context = log_context
         if cached:
-            # Generate cache attribute name from the last part of the path
-            cache_name = path.replace(".", "_").lstrip("_")
-            self._cache_attr = f"_cached_dp_{cache_name}"
-            # Fallback cache for objects using __slots__ without the cache attribute
-            self._slots_cache: WeakKeyDictionary[object, Any] = WeakKeyDictionary()
+            # Use the property name (set in __set_name__) for cache attribute
+            # Fallback to path-based name if __set_name__ is not called
+            self._cache_attr = ""  # Will be set in __set_name__
 
     @overload
     def __get__(self, instance: None, owner: type) -> Self: ...
@@ -156,26 +155,55 @@ class DelegatedProperty[ValueT]:
                 value = getattr(value, part)
             inst_dict[cache_attr] = value
         except AttributeError:
-            # Object uses __slots__, try WeakKeyDictionary fallback cache
-            slots_cache = self._slots_cache
+            # Object uses __slots__, use slot for caching
             try:
-                if instance in slots_cache:
-                    return cast(ValueT, slots_cache[instance])
-
+                return cast(ValueT, getattr(instance, cache_attr))
+            except AttributeError:
+                # Cache slot exists but not set, compute and store
                 value = instance
                 for part in self._parts:
                     value = getattr(value, part)
-                slots_cache[instance] = value
-            except TypeError:
-                # Object doesn't support weak references, skip caching
-                value = instance
-                for part in self._parts:
-                    value = getattr(value, part)
+                setattr(instance, cache_attr, value)
         return cast(ValueT, value)
 
     def __set__(self, instance: object, value: Any) -> None:
         """Raise AttributeError - this is a read-only property."""
         raise AttributeError("can't set attribute")  # i18n-exc: ignore
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        """Set cache attribute name and validate cache slot exists when class is defined."""
+        if not self._cached:
+            return
+
+        # Set cache attribute name based on property name
+        self._cache_attr = f"_cached_{name}"
+
+        # Collect all slots from the class hierarchy
+        all_slots: set[str] = set()
+        has_dict = False
+
+        for cls in owner.__mro__:
+            if cls is object:
+                continue
+            if (cls_slots := getattr(cls, "__slots__", None)) is None:
+                # Class without __slots__ has __dict__
+                has_dict = True
+                continue
+            if isinstance(cls_slots, str):
+                all_slots.add(cls_slots)
+            else:
+                all_slots.update(cls_slots)
+            if "__dict__" in all_slots:
+                has_dict = True
+
+        # If class has __dict__, caching works via instance.__dict__
+        if has_dict:
+            return
+
+        # Check if cache slot exists in any class in the hierarchy
+        if (cache_attr := self._cache_attr) not in all_slots:
+            msg = f"Class {owner.__name__} uses __slots__ but is missing cache slot '{cache_attr}' required by DelegatedProperty(cached=True) on '{name}'"
+            raise TypeError(msg)  # i18n-exc: ignore
 
 
 class _GenericProperty[GETTER, SETTER](property):
@@ -225,6 +253,7 @@ class _GenericProperty[GETTER, SETTER](property):
         self.kind: Final = kind
         self._cached: Final = cached
         self.log_context = log_context
+        self._cache_attr: str = ""
         if cached:
             if fget is not None:
                 func_name = fget.__name__
@@ -240,12 +269,13 @@ class _GenericProperty[GETTER, SETTER](property):
         """Delete the attribute and invalidate cache if enabled."""
         # Delete the cached value so it can be recomputed on next access.
         if self._cached:
+            cache_attr = self._cache_attr
             try:
-                instance.__dict__.pop(self._cache_attr, None)
+                instance.__dict__.pop(cache_attr, None)
             except AttributeError:
-                # Object uses __slots__, fall back to delattr
-                if hasattr(instance, self._cache_attr):
-                    delattr(instance, self._cache_attr)
+                # Object uses __slots__, reset slot to unset state
+                with contextlib.suppress(AttributeError):
+                    delattr(instance, cache_attr)
 
         if self.fdel is None:
             raise AttributeError("can't delete attribute")  # i18n-exc: ignore
@@ -288,10 +318,11 @@ class _GenericProperty[GETTER, SETTER](property):
             value = fget(instance)
             inst_dict[cache_attr] = value
         except AttributeError:
-            # Object uses __slots__, fall back to getattr/setattr
+            # Object uses __slots__, use slot for caching
             try:
                 return cast(GETTER, getattr(instance, cache_attr))
             except AttributeError:
+                # Cache slot exists but not set, compute and store
                 value = fget(instance)
                 setattr(instance, cache_attr, value)
         return value
@@ -300,16 +331,49 @@ class _GenericProperty[GETTER, SETTER](property):
         """Set the attribute value and invalidate cache if enabled."""
         # Delete the cached value so it can be recomputed on next access.
         if self._cached:
+            cache_attr = self._cache_attr
             try:
-                instance.__dict__.pop(self._cache_attr, None)
+                instance.__dict__.pop(cache_attr, None)
             except AttributeError:
-                # Object uses __slots__, fall back to delattr
-                if hasattr(instance, self._cache_attr):
-                    delattr(instance, self._cache_attr)
+                # Object uses __slots__, reset slot to unset state
+                with contextlib.suppress(AttributeError):
+                    delattr(instance, cache_attr)
 
         if self.fset is None:
             raise AttributeError("can't set attribute")  # i18n-exc: ignore
         self.fset(instance, value)
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        """Validate cache slot exists when class is defined."""
+        if not self._cached:
+            return
+
+        # Collect all slots from the class hierarchy
+        all_slots: set[str] = set()
+        has_dict = False
+
+        for cls in owner.__mro__:
+            if cls is object:
+                continue
+            if (cls_slots := getattr(cls, "__slots__", None)) is None:
+                # Class without __slots__ has __dict__
+                has_dict = True
+                continue
+            if isinstance(cls_slots, str):
+                all_slots.add(cls_slots)
+            else:
+                all_slots.update(cls_slots)
+            if "__dict__" in all_slots:
+                has_dict = True
+
+        # If class has __dict__, caching works via instance.__dict__
+        if has_dict:
+            return
+
+        # Check if cache slot exists in any class in the hierarchy
+        if (cache_attr := self._cache_attr) not in all_slots:
+            msg = f"Class {owner.__name__} uses __slots__ but is missing cache slot '{cache_attr}' required by @hm_property(cached=True) on '{name}'"
+            raise TypeError(msg)  # i18n-exc: ignore
 
     def deleter(self, fdel: Callable[[Any], None], /) -> _GenericProperty[GETTER, SETTER]:
         """Return generic deleter."""

@@ -11,6 +11,7 @@ Key features:
 - RequestContext for tracking operations with correlation IDs
 - Automatic propagation through async call chains
 - Context manager for scoped context setting
+- Service call detection via is_in_service()
 
 Example:
     async with request_context(operation="set_value", device_address="ABC123"):
@@ -31,9 +32,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 import uuid
-
-# Context var for storing if call is running within a service
-IN_SERVICE_VAR: ContextVar[bool] = ContextVar("in_service_var", default=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -250,12 +248,27 @@ def reset_request_context(token: Token[RequestContext | None]) -> None:
     _request_context.reset(token)
 
 
+def is_in_service() -> bool:
+    """
+    Check if currently executing within a service call.
+
+    A service call is identified by having a RequestContext with an operation
+    that starts with "service:".
+
+    Returns:
+        True if currently inside a service call, False otherwise.
+
+    """
+    ctx = _request_context.get()
+    return ctx is not None and ctx.operation.startswith("service:")
+
+
 # Define public API for this module
 __all__ = [
-    "IN_SERVICE_VAR",
     "RequestContext",
     "get_request_context",
     "get_request_id",
+    "is_in_service",
     "request_context",
     "reset_request_context",
     "set_request_context",

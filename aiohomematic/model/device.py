@@ -200,6 +200,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     __slots__ = (
         "_address",
+        "_cached_allow_undefined_generic_data_points",
+        "_cached_has_sub_devices",
         "_cached_relevant_for_central_link_management",
         "_central_info",
         "_channel_to_group",
@@ -375,17 +377,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
-    def allow_undefined_generic_data_points(self) -> bool:
-        """Return if undefined generic data points of this device are allowed."""
-        return bool(
-            all(
-                channel.custom_data_point.allow_undefined_generic_data_points
-                for channel in self._channels.values()
-                if channel.custom_data_point is not None
-            )
-        )
-
-    @property
     def available_firmware(self) -> str | None:
         """Return the available firmware of the device."""
         return str(self._device_description.get("AVAILABLE_FIRMWARE", ""))
@@ -525,22 +516,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     def has_custom_data_point_definition(self) -> bool:
         """Return if custom_data_point definition is available for the device."""
         return self._has_custom_data_point_definition
-
-    @property
-    def has_sub_devices(self) -> bool:
-        """Return if device has multiple sub device channels."""
-        # If there is only one channel group, no sub devices are needed
-        if len(self._group_channels) <= 1:
-            return False
-        count = 0
-        # If there are multiple channel groups with more than one channel, there are sub devices
-        for gcs in self._group_channels.values():
-            if len(gcs) > 1:
-                count += 1
-            if count > 1:
-                return True
-
-        return False
 
     @property
     def ignore_for_custom_data_point(self) -> bool:
@@ -687,6 +662,33 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
             return maintenance_channel.room
         return None
+
+    @hm_property(cached=True)
+    def allow_undefined_generic_data_points(self) -> bool:
+        """Return if undefined generic data points of this device are allowed."""
+        return bool(
+            all(
+                channel.custom_data_point.allow_undefined_generic_data_points
+                for channel in self._channels.values()
+                if channel.custom_data_point is not None
+            )
+        )
+
+    @hm_property(cached=True)
+    def has_sub_devices(self) -> bool:
+        """Return if device has multiple sub device channels."""
+        # If there is only one channel group, no sub devices are needed
+        if len(self._group_channels) <= 1:
+            return False
+        count = 0
+        # If there are multiple channel groups with more than one channel, there are sub devices
+        for gcs in self._group_channels.values():
+            if len(gcs) > 1:
+                count += 1
+            if count > 1:
+                return True
+
+        return False
 
     @hm_property(log_context=True)
     def interface_id(self) -> str:
@@ -1102,9 +1104,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         self._unique_id: Final = generate_channel_unique_id(
             config_provider=self._device.config_provider, address=channel_address
         )
-        self._group_no: int | None = None
-        self._group_master: ChannelProtocol | None = None
-        self._is_in_multi_group: bool | None = None
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPointProtocol]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPointProtocolAny]] = {}
@@ -1189,36 +1188,9 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         return tuple(self._generic_events.values())
 
     @property
-    def group_master(self) -> ChannelProtocol | None:
-        """Return the master channel of the group."""
-        if self.group_no is None:
-            return None
-        if self._group_master is None:
-            self._group_master = (
-                self
-                if self.is_group_master
-                else self._device.get_channel(channel_address=f"{self._device.address}:{self.group_no}")
-            )
-        return self._group_master
-
-    @property
-    def group_no(self) -> int | None:
-        """Return the no of the channel group."""
-        if self._group_no is None:
-            self._group_no = self._device.get_channel_group_no(channel_no=self._no)
-        return self._group_no
-
-    @property
     def is_group_master(self) -> bool:
         """Return if group master of channel."""
         return self.group_no == self._no
-
-    @property
-    def is_in_multi_group(self) -> bool:
-        """Return if multiple channels are in the group."""
-        if self._is_in_multi_group is None:
-            self._is_in_multi_group = self._device.is_in_multi_channel_group(channel_no=self._no)
-        return self._is_in_multi_group
 
     @property
     def is_schedule_channel(self) -> bool:
@@ -1321,6 +1293,27 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     def device(self) -> DeviceProtocol:
         """Return the device of the channel."""
         return self._device
+
+    @hm_property(cached=True)
+    def group_master(self) -> ChannelProtocol | None:
+        """Return the master channel of the group."""
+        if self.group_no is None:
+            return None
+        return (
+            self
+            if self.is_group_master
+            else self._device.get_channel(channel_address=f"{self._device.address}:{self.group_no}")
+        )
+
+    @hm_property(cached=True)
+    def group_no(self) -> int | None:
+        """Return the no of the channel group."""
+        return self._device.get_channel_group_no(channel_no=self._no)
+
+    @hm_property(cached=True)
+    def is_in_multi_group(self) -> bool:
+        """Return if multiple channels are in the group."""
+        return self._device.is_in_multi_channel_group(channel_no=self._no)
 
     @hm_property(log_context=True)
     def no(self) -> int | None:

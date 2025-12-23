@@ -565,6 +565,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
 
     __slots__ = (
         "_cached_dpk",
+        "_cached_name",
         "_cached_requires_polling",
         "_channel",
         "_client",
@@ -655,7 +656,7 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         """Return the data_point usage."""
         return self._get_data_point_usage()
 
-    @config_property
+    @config_property(cached=True)
     def name(self) -> str:
         """Return the name of the data_point."""
         return self._data_point_name_data.name

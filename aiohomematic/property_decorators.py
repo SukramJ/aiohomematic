@@ -21,6 +21,7 @@ Notes on caching
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+import contextlib
 from datetime import datetime
 from enum import Enum, StrEnum
 from functools import singledispatch
@@ -225,6 +226,7 @@ class _GenericProperty[GETTER, SETTER](property):
         self.kind: Final = kind
         self._cached: Final = cached
         self.log_context = log_context
+        self._cache_attr: str = ""
         if cached:
             if fget is not None:
                 func_name = fget.__name__
@@ -240,12 +242,13 @@ class _GenericProperty[GETTER, SETTER](property):
         """Delete the attribute and invalidate cache if enabled."""
         # Delete the cached value so it can be recomputed on next access.
         if self._cached:
+            cache_attr = self._cache_attr
             try:
-                instance.__dict__.pop(self._cache_attr, None)
+                instance.__dict__.pop(cache_attr, None)
             except AttributeError:
-                # Object uses __slots__, fall back to delattr
-                if hasattr(instance, self._cache_attr):
-                    delattr(instance, self._cache_attr)
+                # Object uses __slots__, reset slot to unset state
+                with contextlib.suppress(AttributeError):
+                    delattr(instance, cache_attr)
 
         if self.fdel is None:
             raise AttributeError("can't delete attribute")  # i18n-exc: ignore
@@ -288,10 +291,11 @@ class _GenericProperty[GETTER, SETTER](property):
             value = fget(instance)
             inst_dict[cache_attr] = value
         except AttributeError:
-            # Object uses __slots__, fall back to getattr/setattr
+            # Object uses __slots__, use slot for caching
             try:
                 return cast(GETTER, getattr(instance, cache_attr))
             except AttributeError:
+                # Cache slot exists but not set, compute and store
                 value = fget(instance)
                 setattr(instance, cache_attr, value)
         return value
@@ -300,12 +304,13 @@ class _GenericProperty[GETTER, SETTER](property):
         """Set the attribute value and invalidate cache if enabled."""
         # Delete the cached value so it can be recomputed on next access.
         if self._cached:
+            cache_attr = self._cache_attr
             try:
-                instance.__dict__.pop(self._cache_attr, None)
+                instance.__dict__.pop(cache_attr, None)
             except AttributeError:
-                # Object uses __slots__, fall back to delattr
-                if hasattr(instance, self._cache_attr):
-                    delattr(instance, self._cache_attr)
+                # Object uses __slots__, reset slot to unset state
+                with contextlib.suppress(AttributeError):
+                    delattr(instance, cache_attr)
 
         if self.fset is None:
             raise AttributeError("can't set attribute")  # i18n-exc: ignore

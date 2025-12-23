@@ -24,6 +24,10 @@ DP004 (error)
     The first component of the path must be defined in __slots__ or
     assigned as an instance attribute in __init__.
 
+DP005 (error)
+    @hm_property(cached=True) requires a cache slot. Classes using __slots__
+    must define "_cached_{property_name}" in their slots for caching to work.
+
 DP100 (info)
     Suggestion for @property that could potentially use DelegatedProperty.
 
@@ -82,6 +86,16 @@ class PropertyOverride:
 
 
 @dataclass
+class CachedPropertyInfo:
+    """Information about a cached @hm_property."""
+
+    class_name: str
+    property_name: str
+    file_path: Path
+    line_no: int
+
+
+@dataclass
 class LintIssue:
     """A linting issue found."""
 
@@ -103,6 +117,7 @@ class LintResult:
     issues: list[LintIssue] = field(default_factory=list)
     delegated_properties: list[DelegatedPropertyInfo] = field(default_factory=list)
     property_overrides: list[PropertyOverride] = field(default_factory=list)
+    cached_properties: list[CachedPropertyInfo] = field(default_factory=list)
 
 
 class DelegatedPropertyVisitor(ast.NodeVisitor):
@@ -113,6 +128,7 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
         self.file_path = file_path
         self.delegated_properties: list[DelegatedPropertyInfo] = []
         self.property_overrides: list[PropertyOverride] = []
+        self.cached_properties: list[CachedPropertyInfo] = []
         self.type_checking_imports: set[str] = set()
         self.regular_imports: set[str] = set()
         self.current_class: str | None = None
@@ -308,6 +324,9 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
             self.generic_visit(node)
             return
 
+        # Property decorator names that support cached=True
+        cached_decorators = {"hm_property", "config_property", "info_property", "state_property"}
+
         # Check for @property decorator
         for decorator in node.decorator_list:
             if isinstance(decorator, ast.Name) and decorator.id == "property":
@@ -321,6 +340,29 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
                     )
                 )
                 break
+
+            # Check for @hm_property(cached=True) and similar decorators
+            if isinstance(decorator, ast.Call):
+                decorator_name = None
+                if isinstance(decorator.func, ast.Name):
+                    decorator_name = decorator.func.id
+                elif isinstance(decorator.func, ast.Attribute):
+                    decorator_name = decorator.func.attr
+
+                if decorator_name in cached_decorators:
+                    # Check if cached=True is set
+                    for keyword in decorator.keywords:
+                        if keyword.arg == "cached" and isinstance(keyword.value, ast.Constant):
+                            if keyword.value.value is True:
+                                self.cached_properties.append(
+                                    CachedPropertyInfo(
+                                        class_name=self.current_class,
+                                        property_name=node.name,
+                                        file_path=self.file_path,
+                                        line_no=node.lineno,
+                                    )
+                                )
+                            break
 
         # Track __init__ method to find self._attr assignments
         if node.name == "__init__":
@@ -540,6 +582,7 @@ def lint_delegated_properties(verbose: bool = False) -> LintResult:
             all_visitors.append(visitor)
             result.delegated_properties.extend(visitor.delegated_properties)
             result.property_overrides.extend(visitor.property_overrides)
+            result.cached_properties.extend(visitor.cached_properties)
 
     # Build inheritance map
     subclass_map = build_inheritance_map(all_visitors)
@@ -641,6 +684,33 @@ def lint_delegated_properties(verbose: bool = False) -> LintResult:
                         ),
                     )
                 )
+
+    # Check 5: @hm_property(cached=True) requires cache slot in __slots__
+    for cp in result.cached_properties:
+        cache_slot_name = f"_cached_{cp.property_name}"
+        # Check if cache slot exists in this class or any parent class's __slots__
+        available_attrs = _get_class_attrs_in_hierarchy(cp.class_name, all_visitors)
+
+        # Only check if the class uses __slots__ (otherwise __dict__ is available)
+        class_has_slots = False
+        for visitor in all_visitors:
+            if visitor.file_path == cp.file_path and cp.class_name in visitor.class_slots:
+                class_has_slots = True
+                break
+
+        if class_has_slots and cache_slot_name not in available_attrs:
+            result.issues.append(
+                LintIssue(
+                    file_path=cp.file_path,
+                    line_no=cp.line_no,
+                    severity="error",
+                    code="DP005",
+                    message=(
+                        f"@hm_property(cached=True) '{cp.property_name}' in {cp.class_name} "
+                        f"requires cache slot '{cache_slot_name}' in __slots__."
+                    ),
+                )
+            )
 
     return result
 
@@ -784,6 +854,7 @@ def main() -> int:
     if args.summary:
         print("\n=== Summary ===")
         print(f"DelegatedProperty definitions: {len(result.delegated_properties)}")
+        print(f"@hm_property(cached=True): {len(result.cached_properties)}")
         print(f"@property definitions: {len(result.property_overrides)}")
         print(f"Errors: {len(errors)}")
         print(f"Warnings: {len(warnings)}")

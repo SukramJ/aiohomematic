@@ -1,7 +1,7 @@
 # Architecture Analysis - aiohomematic
 
 **Date**: 2025-12-24
-**Version**: 2025.12.47
+**Version**: 2025.12.45
 **Python**: 3.13+
 
 ---

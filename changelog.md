@@ -1,4 +1,4 @@
-# Version 2025.12.47 (2025-12-24)
+# Version 2025.12.45 (2025-12-24)
 
 ## What's Changed
 
@@ -8,7 +8,7 @@
 
   - **New `store/persistent/` package**: Base class, device cache, paramset cache, session recorder
   - **New `store/dynamic/` package**: Command cache, device details, central data, ping-pong cache
-  - **New `store/visibility/` package**: Visibility rules, parser, and cache (from previous refactoring)
+  - **New `store/visibility/` package**: Visibility rules, parser, and cache
   - **New `store/types.py`**: Shared type definitions (`CachedCommand`, `PongTracker`, type aliases)
   - **New `store/serialization.py`**: `freeze_params`/`unfreeze_params` utilities for session recording
 
@@ -23,12 +23,6 @@
   - Single `_cleanup_tracker()` method replaces duplicate `_cleanup_pending_pongs()` and `_cleanup_unknown_pongs()`
   - `PongTracker.contains()` method for token membership checks
 
-# Version 2025.12.46 (2025-12-24)
-
-## What's Changed
-
-### Improvements
-
 - **Refactor `ParameterVisibilityCache` for improved clarity and maintainability**: Major restructuring of the visibility module
 
   - Extract static visibility rules to new `visibility_rules.py` module (~300 lines of constants)
@@ -38,12 +32,6 @@
   - Refactor `_get_un_ignore_line_details` from 75+ lines of string splits to regex-based `parse_un_ignore_line` function with `ParsedUnIgnoreLine` result type
   - Add `invalidate_all_caches()` method for complete cache reset
   - Improve code organization with clear section separators and better method grouping
-
-# Version 2025.12.45 (2025-12-23)
-
-## What's Changed
-
-### Improvements
 
 - **Enhance `sort_class_members.py` for property assignments**: Improved handling of property-like class attributes
 

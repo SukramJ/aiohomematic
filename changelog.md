@@ -1,3 +1,19 @@
+# Version 2025.12.46 (2025-12-24)
+
+## What's Changed
+
+### Improvements
+
+- **Refactor `ParameterVisibilityCache` for improved clarity and maintainability**: Major restructuring of the visibility module
+
+  - Extract static visibility rules to new `visibility_rules.py` module (~300 lines of constants)
+  - Add typed cache keys using `NamedTuple` (`IgnoreCacheKey`, `UnIgnoreCacheKey`) for better type safety
+  - Add `UnIgnoreEntry` dataclass for parsed configuration entries
+  - Replace nested `defaultdict` structures with dedicated `ChannelParamsetRules` and `ModelRules` classes
+  - Refactor `_get_un_ignore_line_details` from 75+ lines of string splits to regex-based `parse_un_ignore_line` function with `ParsedUnIgnoreLine` result type
+  - Add `invalidate_all_caches()` method for complete cache reset
+  - Improve code organization with clear section separators and better method grouping
+
 # Version 2025.12.45 (2025-12-23)
 
 ## What's Changed

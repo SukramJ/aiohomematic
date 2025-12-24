@@ -9,10 +9,12 @@ This document describes the high‑level architecture of aiohomematic, focusing 
 - Central (aiohomematic/central): Orchestrates the whole system. Manages client lifecycles, creates devices and data points, runs a lightweight scheduler, exposes the local XML‑RPC callback server for events, and provides a query facade over the runtime model and caches. The central is created via CentralConfig and realized by CentralUnit.
 - Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear). Clients abstract XML‑RPC and JSON‑RPC calls, maintain connection health, and translate high‑level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Concrete types: ClientCCU, ClientJsonCCU, ClientHomegear. A client belongs to one Interface (BidCos‑RF, HmIP, etc.).
 - Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device‑specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
-- Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values.
-  - persistent: DeviceDescriptionCache and ParamsetDescriptionCache store descriptions on disk between runs.
-  - dynamic: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongCache hold in‑memory runtime state and connection health.
-  - visibility: ParameterVisibilityCache applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
+- Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values. Organized into subpackages:
+  - persistent/: DeviceDescriptionCache and ParamsetDescriptionCache store descriptions on disk between runs. SessionRecorder captures RPC sessions for testing.
+  - dynamic/: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongCache hold in‑memory runtime state and connection health.
+  - visibility/: ParameterVisibilityCache applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
+  - types.py: Shared typed dataclasses (CachedCommand, PongTracker) for cache entries.
+  - serialization.py: Session recording utilities for freeze/unfreeze of parameters.
 - Support (aiohomematic/support.py and helpers): Cross‑cutting utilities: URI/header construction for XML‑RPC, input validation, hashing, network helpers, conversion helpers, and small abstractions used across central and client. aiohomematic/async_support.py provides helpers for periodic tasks.
 
 ## Dependency Injection Architecture
@@ -240,6 +242,7 @@ All architectural decisions are documented as formal ADRs in the [adr/](adr/) di
 | [0006](adr/0006-event-system-priorities-and-batching.md)       | Event System Priorities and Batching                  | Accepted |
 | [0007](adr/0007-device-slots-reduction-rejected.md)            | Device Slots Reduction via Composition                | Rejected |
 | [0008](adr/0008-taskgroup-migration-deferred.md)               | TaskGroup Migration                                   | Deferred |
+| [0009](adr/0009-interface-event-consolidation.md)              | Interface Event Consolidation                         | Accepted |
 
 ## Notes
 

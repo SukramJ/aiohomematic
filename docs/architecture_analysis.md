@@ -1,27 +1,27 @@
 # Architecture Analysis - aiohomematic
 
-**Date**: 2025-12-10
-**Version**: 2025.11.18
+**Date**: 2025-12-24
+**Version**: 2025.12.47
 **Python**: 3.13+
 
 ---
 
 ## Executive Summary
 
-**aiohomematic** is a production-grade async Python library for controlling Homematic and HomematicIP devices, featuring a sophisticated three-tier dependency injection architecture with 63 protocol interfaces. The codebase demonstrates advanced architectural patterns including Facade, Factory, Observer, Circuit Breaker, and Request Coalescing, totaling **43,218 lines of code** across **102 Python files**.
+**aiohomematic** is a production-grade async Python library for controlling Homematic and HomematicIP devices, featuring a sophisticated three-tier dependency injection architecture with 104 protocol interfaces. The codebase demonstrates advanced architectural patterns including Facade, Factory, Observer, Circuit Breaker, and Request Coalescing, totaling **49,401 lines of code** across **124 Python files**.
 
 ### Key Characteristics
 
 | Attribute           | Value                 |
 | ------------------- | --------------------- |
-| Total LOC           | 43,218                |
-| Python Files        | 102                   |
-| Protocol Interfaces | 63                    |
+| Total LOC           | 49,401                |
+| Python Files        | 124                   |
+| Protocol Interfaces | 104                   |
 | Type Safety         | Full mypy strict mode |
 | Handler Classes     | 8 specialized         |
-| Coordinator Classes | 6                     |
-| Custom Device Types | 13                    |
-| Event Types         | 13                    |
+| Coordinator Classes | 7                     |
+| Custom Data Points  | 22                    |
+| Event Types         | 14                    |
 
 ---
 
@@ -30,55 +30,55 @@
 ### Architecture Layers
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│           Home Assistant Integration / Consumer              │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────────┐
-│  aiohomematic.central (6,342 LOC | 11 files)                │
-│  - CentralUnit: Main orchestrator (1,996 LOC)               │
-│  - 6 Coordinators: Backend orchestration                    │
-│  - EventBus: Type-safe event system (910 LOC)               │
-│  - RPC Server: XML-RPC callback server                      │
-└──────────────────────┬──────────────────────────────────────┘
-          │
-┌─────────┼─────────────────┬────────────────────┬────────────┐
-│         │                 │                    │            │
-├─────────▼───────┐  ┌──────▼────────┐  ┌───────▼────┐  ┌────▼────────┐
-│ .client         │  │ .model        │  │ .interfaces│  │ .store      │
-│ (7,134 LOC)     │  │ (16,849 LOC)  │  │ (3,725 LOC)│  │ (2,878 LOC) │
-│ 16 files        │  │ 48 files      │  │ 6 files    │  │ 4 files     │
-│                 │  │               │  │            │  │             │
-│ Adapters:       │  │ Entity Types: │  │ 63 Proto:  │  │ Caches:     │
-│ - ClientCCU     │  │ - Generic     │  │ - Central  │  │ - Persistent│
-│ - ClientJson    │  │ - Custom      │  │ - Client   │  │ - Dynamic   │
-│ - Homegear      │  │ - Calculated  │  │ - Model    │  │ - Visibility│
-│                 │  │ - Hub         │  │ - Ops      │  │             │
-│ Resilience:     │  │               │  │            │  │             │
-│ - CircuitBreaker│  │               │  │            │  │             │
-│ - Coalescer     │  │               │  │            │  │             │
-│                 │  │               │  │            │  │             │
-│ Handlers (8):   │  │               │  │            │  │             │
-│ - DeviceOps     │  │               │  │            │  │             │
-│ - Metadata      │  │               │  │            │  │             │
-│ - LinkMgmt      │  │               │  │            │  │             │
-│ - Firmware      │  │               │  │            │  │             │
-│ - Programs      │  │               │  │            │  │             │
-│ - Backup        │  │               │  │            │  │             │
-│ - SysVars       │  │               │  │            │  │             │
-└─────────────────┘  └───────────────┘  └────────────┘  └─────────────┘
++-------------------------------------------------------------+
+|           Home Assistant Integration / Consumer              |
++---------------------------+---------------------------------+
+                            |
++---------------------------v---------------------------------+
+|  aiohomematic.central (9,586 LOC | 16 files)                |
+|  - CentralUnit: Main orchestrator (1,675 LOC)               |
+|  - 7 Coordinators: Backend orchestration                    |
+|  - EventBus: Type-safe event system (942 LOC)               |
+|  - RPC Server: XML-RPC callback server                      |
++---------------------------+---------------------------------+
+            |
++-----------+---------------+------------------+--------------+
+|           |               |                  |              |
++-----------v-----+ +-------v--------+ +-------v----+ +-------v-------+
+| .client         | | .model         | | .interfaces| | .store        |
+| (7,562 LOC)     | | (16,613 LOC)   | | (4,516 LOC)| | (3,549 LOC)   |
+| 16 files        | | 51 files       | | 6 files    | | 17 files      |
+|                 | |                | |            | |               |
+| Adapters:       | | Entity Types:  | | 104 Proto: | | Subpackages:  |
+| - ClientCCU     | | - Generic      | | - Central  | | - persistent/ |
+| - ClientJson    | | - Custom       | | - Client   | | - dynamic/    |
+| - Homegear      | | - Calculated   | | - Model    | | - visibility/ |
+|                 | | - Hub          | | - Ops      | |               |
+| Resilience:     | |                | |            | | Types:        |
+| - CircuitBreaker| |                | |            | | - CachedCmd   |
+| - Coalescer     | |                | |            | | - PongTracker |
+|                 | |                | |            | |               |
+| Handlers (8):   | |                | |            | |               |
+| - DeviceOps     | |                | |            | |               |
+| - Metadata      | |                | |            | |               |
+| - LinkMgmt      | |                | |            | |               |
+| - Firmware      | |                | |            | |               |
+| - Programs      | |                | |            | |               |
+| - Backup        | |                | |            | |               |
+| - SysVars       | |                | |            | |               |
++-----------------+ +----------------+ +------------+ +---------------+
 ```
 
 ### Module Details
 
 | Module         | LOC    | Files | Key Components                                                                              |
 | -------------- | ------ | ----- | ------------------------------------------------------------------------------------------- |
-| **central**    | 6,342  | 11    | CentralUnit (1,996), EventBus (910), DeviceCoordinator (859)                                |
-| **client**     | 7,134  | 16    | ClientCCU (1,650), JsonRPC (1,887), Handlers (2,322), CircuitBreaker (299), Coalescer (239) |
-| **model**      | 16,849 | 48    | Device (1,909), WeekProfile (1,834), DataPoint (1,364), Climate (1,176), Light (1,041)      |
-| **interfaces** | 3,725  | 6     | model.py (1,800), client.py (923), central.py (466)                                         |
-| **store**      | 3,846  | 17    | persistent/ (1,131), dynamic/ (910), visibility/ (1,209), types.py, serialization.py        |
-| **root**       | 6,290  | 17    | const.py (1,594), hmcli.py (955), support.py (718)                                          |
+| **central**    | 9,586  | 16    | CentralUnit (1,675), EventBus (942), Scheduler (905), DeviceCoordinator (878)               |
+| **client**     | 7,562  | 16    | ClientCCU (1,774), JsonRPC (1,960), Handlers (2,374), CircuitBreaker (299), Coalescer (239) |
+| **model**      | 16,613 | 51    | Device (1,719), WeekProfile (1,813), DataPoint (1,381), Climate (1,119), Light (976)        |
+| **interfaces** | 4,516  | 6     | model.py (1,877), client.py (1,183), central.py (28 protocols)                              |
+| **store**      | 3,549  | 17    | persistent/ (1,131), dynamic/ (910), visibility/ (1,209), types.py, serialization.py        |
+| **root**       | 7,575  | 18    | const.py (1,867), hmcli.py (955), support.py (718)                                          |
 
 ---
 
@@ -93,25 +93,26 @@ class DeviceCoordinator:
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        channel_lookup: ChannelLookup,
-        client_provider: ClientProvider,
-        config_provider: ConfigProvider,
+        central_info: CentralInfoProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        client_provider: ClientProviderProtocol,
+        config_provider: ConfigProviderProtocol,
         # ... 17 protocol interfaces total
     ) -> None:
         # Zero references to CentralUnit
 ```
 
-**Coordinators** (6 classes):
+**Coordinators** (7 classes):
 
 | Coordinator         | Protocols | LOC | Responsibility                      |
 | ------------------- | --------- | --- | ----------------------------------- |
-| CacheCoordinator    | 8         | 240 | Device/paramset description caching |
-| ClientCoordinator   | 6         | 403 | Client creation, lifecycle          |
-| DeviceCoordinator   | 17        | 859 | Device creation, registration       |
-| EventCoordinator    | 2         | 320 | Event routing, subscriptions        |
-| HubCoordinator      | 11        | 453 | Hub entity management               |
-| BackgroundScheduler | 7         | 457 | Periodic tasks, health checks       |
+| CacheCoordinator    | 8         | 227 | Device/paramset description caching |
+| ClientCoordinator   | 6         | 453 | Client creation, lifecycle          |
+| DeviceCoordinator   | 17        | 878 | Device creation, registration       |
+| EventCoordinator    | 3         | 462 | Event routing, subscriptions        |
+| HubCoordinator      | 11        | 463 | Hub entity management               |
+| BackgroundScheduler | 7         | 905 | Periodic tasks, health checks       |
+| RecoveryCoordinator | -         | 715 | Connection recovery orchestration   |
 
 ### Tier 2: Coordinator Layer (Protocol-Based DI)
 
@@ -123,10 +124,10 @@ class ClientCoordinator:
         self,
         *,
         client_factory: ClientFactoryProtocol,  # Factory protocol
-        central_info: CentralInfo,
-        config_provider: ConfigProvider,
+        central_info: CentralInfoProtocol,
+        config_provider: ConfigProviderProtocol,
         coordinator_provider: CoordinatorProviderProtocol,
-        system_info_provider: SystemInfoProvider,
+        system_info_provider: SystemInfoProviderProtocol,
     ) -> None:
 ```
 
@@ -139,20 +140,20 @@ class Device:
     def __init__(
         self,
         *,
-        central_info: CentralInfo,
-        event_bus_provider: EventBusProvider,
-        task_scheduler: TaskScheduler,
-        client_provider: ClientProvider,
+        central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
+        task_scheduler: TaskSchedulerProtocol,
+        client_provider: ClientProviderProtocol,
         device_details_provider: DeviceDetailsProviderProtocol,
         device_description_provider: DeviceDescriptionProviderProtocol,
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
-        config_provider: ConfigProvider,
-        file_operations: FileOperations,
-        device_data_refresher: DeviceDataRefresher,
-        data_cache_provider: DataCacheProvider,
-        channel_lookup: ChannelLookup,
-        event_subscription_manager: EventSubscriptionManager,
+        config_provider: ConfigProviderProtocol,
+        file_operations: FileOperationsProtocol,
+        device_data_refresher: DeviceDataRefresherProtocol,
+        data_cache_provider: DataCacheProviderProtocol,
+        channel_lookup: ChannelLookupProtocol,
+        event_subscription_manager: EventSubscriptionManagerProtocol,
         # ... 2 more
     ) -> None:
 ```
@@ -163,39 +164,39 @@ class Device:
 
 ## 3. Protocol Interface Taxonomy
 
-**Total: 63 @runtime_checkable protocols across 6 files**
+**Total: 104 @runtime_checkable protocols across 6 files**
 
 ### Distribution by File
 
 | File            | Protocols | LOC   | Primary Domain                  |
 | --------------- | --------- | ----- | ------------------------------- |
-| model.py        | 18        | 1,800 | DataPoint, Device, Channel, Hub |
-| client.py       | 20        | 923   | Client operations, caching      |
-| central.py      | 19        | 466   | Central system, providers       |
+| model.py        | 33        | 1,877 | DataPoint, Device, Channel, Hub |
+| client.py       | 37        | 1,183 | Client operations, caching      |
+| central.py      | 28        | 466   | Central system, providers       |
 | operations.py   | 5         | 159   | Task scheduling, descriptions   |
 | coordinators.py | 1         | 59    | Coordinator access              |
 
-### Central Protocols (19)
+### Central Protocols (28)
 
-- **Identity**: `CentralInfo`, `CentralUnitStateProvider`, `ConfigProvider`, `SystemInfoProvider`
-- **Events**: `EventBusProvider`, `EventPublisher`, `EventSubscriptionManager`
-- **Data Access**: `DataPointProvider`, `DeviceProvider`, `ChannelLookup`, `DeviceLookupProtocol`
-- **Cache**: `DataCacheProvider`, `DataCacheWriter`, `DeviceDetailsWriter`, `ParamsetDescriptionWriter`
-- **Operations**: `DeviceDataRefresher`, `DeviceManagement`, `FileOperations`, `BackupProvider`
-- **Hub**: `HubDataFetcher`, `HubDataPointManager`
+- **Identity**: `CentralInfoProtocol`, `CentralUnitStateProviderProtocol`, `ConfigProviderProtocol`, `SystemInfoProviderProtocol`
+- **Events**: `EventBusProviderProtocol`, `EventPublisherProtocol`, `EventSubscriptionManagerProtocol`
+- **Data Access**: `DataPointProviderProtocol`, `DeviceProviderProtocol`, `ChannelLookupProtocol`, `DeviceLookupProtocol`
+- **Cache**: `DataCacheProviderProtocol`, `DataCacheWriterProtocol`, `DeviceDetailsWriterProtocol`, `ParamsetDescriptionWriterProtocol`
+- **Operations**: `DeviceDataRefresherProtocol`, `DeviceManagementProtocol`, `FileOperationsProtocol`, `BackupProviderProtocol`
+- **Hub**: `HubDataFetcherProtocol`, `HubDataPointManagerProtocol`
 
-### Client Protocols (20)
+### Client Protocols (37)
 
-- **Core**: `ClientProtocol` (60+ methods), `ClientProvider`, `ClientFactoryProtocol`, `ClientDependencies`
+- **Core**: `ClientProtocol` (60+ methods), `ClientProviderProtocol`, `ClientFactoryProtocol`, `ClientDependenciesProtocol`
 - **Caching**: `CommandCacheProtocol`, `PingPongCacheProtocol`
-- **Events**: `InterfaceEventPublisher`, `LastEventTrackerProtocol`
-- **Support**: `ConnectionStateProvider`, `SessionRecorderProvider`, `JsonRpcClientProvider`
+- **Events**: `InterfaceEventPublisherProtocol`, `LastEventTrackerProtocol`
+- **Support**: `ConnectionStateProviderProtocol`, `SessionRecorderProviderProtocol`, `JsonRpcClientProviderProtocol`
 
-### Model Protocols (18)
+### Model Protocols (33)
 
 - **DataPoint Hierarchy**:
 
-  - `CallbackDataPointProtocol` → `BaseDataPointProtocol` → `BaseParameterDataPointProtocol`
+  - `CallbackDataPointProtocol` -> `BaseDataPointProtocol` -> `BaseParameterDataPointProtocol`
   - `GenericDataPointProtocol`, `GenericEventProtocol`
   - `CustomDataPointProtocol`, `CalculatedDataPointProtocol`
   - `GenericHubDataPointProtocol`, `GenericSysvarDataPointProtocol`, `GenericProgramDataPointProtocol`
@@ -207,7 +208,7 @@ class Device:
 
 ### Operations Protocols (5)
 
-- `TaskScheduler`, `ParameterVisibilityProviderProtocol`
+- `TaskSchedulerProtocol`, `ParameterVisibilityProviderProtocol`
 - `DeviceDetailsProviderProtocol`, `DeviceDescriptionProviderProtocol`, `ParamsetDescriptionProviderProtocol`
 
 ---
@@ -236,8 +237,8 @@ class Device:
 
 ### 4.2 Factory Pattern
 
-- **ClientFactoryProtocol Protocol**: Creates client instances without CentralUnit coupling
-- **DeviceProfileRegistry**: Device model → CustomDataPoint mappings
+- **ClientFactoryProtocol**: Creates client instances without CentralUnit coupling
+- **DeviceProfileRegistry**: Device model -> CustomDataPoint mappings
 - **Entity Creation Factory**: `create_data_points_and_events()`
 
 ### 4.3 Observer Pattern (EventBus)
@@ -263,22 +264,22 @@ class DataPointUpdatedEvent(Event):
 
 ### 4.4 Circuit Breaker Pattern
 
-**New in recent refactoring** - Prevents retry-storms when backend unavailable:
+Prevents retry-storms when backend unavailable:
 
 ```
 State Machine:
     CLOSED (normal operation)
-        │
-        │ failure_threshold failures
-        ▼
+        |
+        | failure_threshold failures
+        v
     OPEN (fast-fail all requests)
-        │
-        │ recovery_timeout elapsed
-        ▼
+        |
+        | recovery_timeout elapsed
+        v
     HALF_OPEN (test one request)
-        │
-        ├── success_threshold successes → CLOSED
-        └── failure → OPEN
+        |
+        +-- success_threshold successes -> CLOSED
+        +-- failure -> OPEN
 ```
 
 **Implementation** (`client/circuit_breaker.py` - 299 LOC):
@@ -290,15 +291,15 @@ State Machine:
 
 ### 4.5 Request Coalescing Pattern
 
-**New in recent refactoring** - Deduplicates identical concurrent requests:
+Deduplicates identical concurrent requests:
 
 ```python
 # Multiple concurrent identical requests:
-Request A (key="X") ──┬──> Execute ──> Result
-                      │               │
-Request B (key="X") ──┤               │
-                      │               │
-Request C (key="X") ──┴───────────────┴──> All receive Result
+Request A (key="X") --+--> Execute --> Result
+                      |               |
+Request B (key="X") --+               |
+                      |               |
+Request C (key="X") --+---------------+--> All receive Result
 ```
 
 **Implementation** (`client/request_coalescer.py` - 239 LOC):
@@ -310,23 +311,23 @@ Request C (key="X") ──┴───────────────┴─
 
 ### 4.6 Handler Pattern
 
-**8 Specialized Handler Classes** (2,322 LOC total):
+**8 Specialized Handler Classes** (2,374 LOC total):
 
 | Handler                 | LOC   | Responsibility                            |
 | ----------------------- | ----- | ----------------------------------------- |
-| DeviceOperationsHandler | 1,032 | Device-specific operations, value get/set |
-| MetadataHandler         | 432   | Device/paramset metadata fetching         |
-| LinkManagementHandler   | 197   | Central link operations                   |
-| FirmwareHandler         | 146   | Firmware updates                          |
-| ProgramHandler          | 142   | Program management                        |
-| BackupHandler           | 138   | Backup operations                         |
-| BaseHandler             | 100   | Common handler functionality              |
+| DeviceOperationsHandler | 1,086 | Device-specific operations, value get/set |
+| MetadataHandler         | 435   | Device/paramset metadata fetching         |
+| LinkManagementHandler   | 198   | Central link operations                   |
+| BackupHandler           | 156   | Backup operations                         |
+| FirmwareHandler         | 143   | Firmware updates                          |
+| ProgramHandler          | 143   | Program management                        |
 | SystemVariableHandler   | 98    | Sysvar operations                         |
+| BaseHandler             | 78    | Common handler functionality              |
 
 ### 4.7 Strategy Pattern (Entity Polymorphism)
 
 - `GenericDataPoint` - Fallback entity type
-- `CustomDpIpThermostat`, `CustomDpIpCover`, etc. - Device-specific
+- `CustomDpIpThermostat`, `CustomDpIpCover`, etc. - Device-specific (22 types)
 - `CalculatedDataPoint` - Derived values
 - `GenericHubDataPoint` - Hub programs/sysvars
 
@@ -340,15 +341,62 @@ Request C (key="X") ──┴───────────────┴─
 | EventCoordinator    | Event routing, subscriptions          |
 | HubCoordinator      | Hub entity management                 |
 | BackgroundScheduler | Periodic tasks, health checks         |
+| RecoveryCoordinator | Connection recovery orchestration     |
 
 ---
 
-## 5. Concurrency Model
+## 5. Store Architecture
+
+The `store` package manages all caching and persistence with a clean subpackage structure:
+
+### Package Structure
+
+```
+store/
++-- __init__.py           # Re-exports public API
++-- types.py              # Shared types (CachedCommand, PongTracker)
++-- serialization.py      # Session recording utilities
++-- persistent/           # Disk-backed caches (1,131 LOC)
+|   +-- base.py           # BasePersistentFile
+|   +-- device.py         # DeviceDescriptionCache
+|   +-- paramset.py       # ParamsetDescriptionCache
+|   +-- session.py        # SessionRecorder
++-- dynamic/              # In-memory caches (910 LOC)
+|   +-- command.py        # CommandCache
+|   +-- data.py           # CentralDataCache
+|   +-- details.py        # DeviceDetailsCache
+|   +-- ping_pong.py      # PingPongCache
++-- visibility/           # Parameter filtering (1,209 LOC)
+    +-- cache.py          # ParameterVisibilityCache
+    +-- rules.py          # Visibility rules
+    +-- parser.py         # Rule parsing
+```
+
+### Typed Cache Entries
+
+```python
+@dataclass(frozen=True, slots=True)
+class CachedCommand:
+    """Immutable cache entry for sent commands."""
+    value: Any
+    sent_at: datetime
+
+@dataclass(slots=True)
+class PongTracker:
+    """Tracks ping/pong tokens with TTL."""
+    tokens: set[str]
+    seen_at: dict[str, float]
+    logged: bool = False
+```
+
+---
+
+## 6. Concurrency Model
 
 ### Async-First Architecture
 
 - **asyncio**: Main event loop for all I/O operations
-- **Looper**: Helper implementing `TaskScheduler` protocol
+- **Looper**: Helper implementing `TaskSchedulerProtocol`
 - **Background Scheduler**: Periodic tasks in separate thread
 
 ### Synchronization Primitives
@@ -373,30 +421,30 @@ self._devices_created_event: Final = asyncio.Event()
 
 ---
 
-## 6. Code Metrics
+## 7. Code Metrics
 
 ### Lines of Code Distribution
 
 ```
-Total: 43,218 LOC across 102 Python files
+Total: 49,401 LOC across 124 Python files
 
 Top Files by LOC:
-1. central/__init__.py        1,996 LOC (CentralUnit)
-2. model/device.py            1,909 LOC (Device)
-3. client/json_rpc.py         1,887 LOC (JsonRpcAioHttpClient)
-4. model/week_profile.py      1,834 LOC (WeekProfile)
-5. interfaces/model.py        1,800 LOC (18 protocols)
-6. client/__init__.py         1,650 LOC (ClientCCU)
-7. const.py                   1,594 LOC (Constants, enums)
-8. model/data_point.py        1,364 LOC (BaseDataPoint)
-9. model/custom/climate.py    1,176 LOC (Climate entities)
-10. store/persistent/         1,131 LOC (Persistent caches)
+1. client/json_rpc.py         1,960 LOC (JsonRpcAioHttpClient)
+2. interfaces/model.py        1,877 LOC (33 protocols)
+3. const.py                   1,867 LOC (Constants, enums)
+4. model/week_profile.py      1,813 LOC (WeekProfile)
+5. client/__init__.py         1,774 LOC (ClientCCU)
+6. model/device.py            1,719 LOC (Device)
+7. central/__init__.py        1,675 LOC (CentralUnit)
+8. model/data_point.py        1,381 LOC (BaseDataPoint)
+9. interfaces/client.py       1,183 LOC (37 protocols)
+10. model/custom/climate.py   1,119 LOC (Climate entities)
 ```
 
 ### Protocol Statistics
 
-- 63 Protocol Interfaces
-- 100% @runtime_checkable
+- 104 Protocol Interfaces
+- 72 @runtime_checkable decorators
 - CentralUnit implements all via structural subtyping
 - No explicit inheritance required
 
@@ -404,108 +452,86 @@ Top Files by LOC:
 
 | Module         | % of Total | LOC    |
 | -------------- | ---------- | ------ |
-| model          | 39.0%      | 16,849 |
-| client         | 16.5%      | 7,134  |
-| central        | 14.7%      | 6,342  |
-| root utilities | 14.6%      | 6,290  |
-| interfaces     | 8.6%       | 3,725  |
-| store          | 6.7%       | 2,878  |
+| model          | 33.6%      | 16,613 |
+| central        | 19.4%      | 9,586  |
+| root utilities | 15.3%      | 7,575  |
+| client         | 15.3%      | 7,562  |
+| interfaces     | 9.1%       | 4,516  |
+| store          | 7.2%       | 3,549  |
 
 ---
 
-## 7. Architecture Strengths
+## 8. Architecture Strengths
 
-### 7.1 Decoupling Excellence
+### 8.1 Decoupling Excellence
 
-- **63 protocol interfaces** eliminate circular dependencies
+- **104 protocol interfaces** eliminate circular dependencies
 - **Three-tier DI** ensures minimal coupling at all levels
 - **Facade pattern** provides single distribution point for protocols
 - **Zero CentralUnit references** in model and coordinator layers
 
-### 7.2 Type Safety
+### 8.2 Type Safety
 
-- **Full mypy strict mode** compliance across all 102 files
+- **Full mypy strict mode** compliance across all 124 files
 - **@runtime_checkable** protocols for dynamic verification
 - **Complete type annotations** on all public APIs
 - **TypeAlias** for complex type documentation
+- **Typed dataclasses** for cache entries
 
-### 7.3 Testability
+### 8.3 Testability
 
 - **Protocol-based DI** enables comprehensive mocking
 - **Pure model layer** (no I/O) simplifies unit testing
 - **Handler pattern** isolates domain-specific operations
 - **Factory protocols** allow test doubles
 
-### 7.4 Resilience
+### 8.4 Resilience
 
 - **Circuit Breaker** prevents retry-storms during outages
 - **Request Coalescing** reduces backend load during discovery
 - **Connection state tracking** per interface
 - **Graceful degradation** when backends unavailable
+- **Recovery Coordinator** for connection recovery orchestration
 
-### 7.5 Extensibility
+### 8.5 Extensibility
 
 - **DeviceProfileRegistry** for device-specific implementations
 - **Composite protocols** with sub-protocols for narrower contracts
 - **Event system** with typed events and priority levels
 - **Handler pattern** for adding domain operations
 
-### 7.6 Caching Strategy
+### 8.6 Caching Strategy
 
 - **Persistent caches**: DeviceDescription, ParamsetDescription (disk)
 - **Dynamic caches**: CentralData, Command, PingPong (memory)
 - **Visibility cache**: Parameter filtering rules
 - **Age-based invalidation** and refresh policies
+- **Typed entries**: CachedCommand, PongTracker dataclasses
 
-### 7.7 Event-Driven Architecture
+### 8.7 Event-Driven Architecture
 
 - **Modern EventBus** with type-safe events
-- **13 event types** for comprehensive state notification
+- **14 event types** for comprehensive state notification
 - **Handler priority levels**: CRITICAL, HIGH, NORMAL, LOW
 - **Batch publishing** for efficient multi-event scenarios
 
 ---
 
-## 8. Architecture Evaluation
+## 9. Architecture Evaluation
 
-### 8.1 Maturity Assessment
+### 9.1 Maturity Assessment
 
 | Aspect        | Rating    | Notes                      |
 | ------------- | --------- | -------------------------- |
-| Decoupling    | Excellent | 63 protocols, 3-tier DI    |
+| Decoupling    | Excellent | 104 protocols, 3-tier DI   |
 | Type Safety   | Excellent | Full mypy strict mode      |
 | Testability   | Excellent | Protocol-based mocking     |
-| Resilience    | Good      | CircuitBreaker, Coalescing |
+| Resilience    | Excellent | CircuitBreaker, Recovery   |
 | Performance   | Good      | Caching, coalescing, async |
 | Extensibility | Excellent | Registry, handlers, events |
 | Documentation | Good      | ADRs, architecture docs    |
 
-### 8.2 Recent Improvements
-
-1. **CircuitBreaker Pattern** (ADR 0001)
-
-   - Prevents retry-storms during backend unavailability
-   - Per-interface state tracking
-   - Integrates with CentralConnectionState
-
-2. **RequestCoalescer Pattern**
-
-   - Deduplicates identical concurrent requests
-   - Reduces backend load during device discovery
-   - Metrics for monitoring effectiveness
-
-3. **Handler Refactoring**
-
-   - 8 specialized handler classes
-   - Clear domain separation
-   - Reduced ClientCCU complexity
-
-4. **Protocol-Based DI** (ADR 0002, 0003)
-   - 63 protocol interfaces
-   - Three-tier architecture
-   - Zero CentralUnit coupling in model/coordinators
-
-### 8.3 Architectural Decisions (ADRs)
+### 9.2 Architectural Decisions (ADRs)
 
 | ADR  | Title                                      | Status   |
 | ---- | ------------------------------------------ | -------- |
@@ -517,18 +543,19 @@ Top Files by LOC:
 | 0006 | Event System Priorities and Batching       | Accepted |
 | 0007 | Device Slots Reduction via Composition     | Rejected |
 | 0008 | TaskGroup Migration                        | Deferred |
+| 0009 | Interface Event Consolidation              | Accepted |
 
 ---
 
-## 9. Pattern Summary
+## 10. Pattern Summary
 
 | Pattern                | Location                        | Benefit                            |
 | ---------------------- | ------------------------------- | ---------------------------------- |
 | **Facade**             | Device, Channel                 | Single protocol distribution point |
 | **Factory**            | ClientFactoryProtocol, Registry | Flexible creation                  |
 | **Observer**           | EventBus                        | Decoupled event handling           |
-| **Strategy**           | Entity types                    | Multiple implementations           |
-| **Coordinator**        | 6 coordinators                  | Clear separation                   |
+| **Strategy**           | 22 custom data point types      | Multiple implementations           |
+| **Coordinator**        | 7 coordinators                  | Clear separation                   |
 | **Circuit Breaker**    | client/circuit_breaker.py       | Resilience                         |
 | **Request Coalescing** | client/request_coalescer.py     | Efficiency                         |
 | **Handler**            | client/handlers/                | Domain separation                  |
@@ -536,7 +563,7 @@ Top Files by LOC:
 
 ---
 
-## 10. Key Entry Points
+## 11. Key Entry Points
 
 ```python
 # Central configuration and orchestration
@@ -556,6 +583,9 @@ from aiohomematic.interfaces import (
     ClientFactoryProtocol,
 )
 
+# Store types
+from aiohomematic.store.types import CachedCommand, PongTracker
+
 # Resilience patterns
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client.request_coalescer import RequestCoalescer
@@ -563,17 +593,18 @@ from aiohomematic.client.request_coalescer import RequestCoalescer
 
 ---
 
-## 11. Conclusion
+## 12. Conclusion
 
 **aiohomematic** demonstrates a mature, production-grade architecture:
 
-- **Advanced 3-tier DI** with 63 protocols achieving complete decoupling
+- **Advanced 3-tier DI** with 104 protocols achieving complete decoupling
 - **Modern Python patterns** (Protocol, dataclasses, async/await)
-- **Full mypy strict mode** across 102 files / 43,218 LOC
-- **Resilience patterns** (CircuitBreaker, RequestCoalescing)
+- **Full mypy strict mode** across 124 files / 49,401 LOC
+- **Resilience patterns** (CircuitBreaker, RequestCoalescing, RecoveryCoordinator)
 - **Multiple extension points** for device types and operations
 - **Async-first** with strategic threading and synchronization
-- **Well-documented decisions** via 8 ADRs
+- **Well-documented decisions** via 9 ADRs
+- **Clean store architecture** with typed dataclasses
 
 The architecture successfully balances:
 

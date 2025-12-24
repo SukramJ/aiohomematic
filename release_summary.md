@@ -53,3 +53,5 @@
 - Declarative field descriptors for custom and calculated data points
 - `DelegatedProperty` descriptor for simple property delegation with caching support
 - Enhanced linter with DP004 path validation for DelegatedProperty definitions
+- Store package restructured into `persistent/` and `dynamic/` subpackages for better maintainability
+- Typed dataclasses (`CachedCommand`, `PongTracker`) replace untyped tuples and dicts

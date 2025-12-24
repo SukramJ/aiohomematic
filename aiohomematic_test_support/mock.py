@@ -56,7 +56,7 @@ from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
 from aiohomematic.client.rpc_proxy import _RpcMethod
 from aiohomematic.const import UTF_8, DataOperationResult, Parameter, ParamsetKey, RPCType
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store.persistent import _cleanup_params_for_session, _freeze_params, _unfreeze_params
+from aiohomematic.store.serialization import cleanup_params_for_session, freeze_params, unfreeze_params
 from aiohomematic_test_support import const
 
 _LOGGER = logging.getLogger(__name__)
@@ -648,7 +648,7 @@ class SessionPlayer:
             except ValueError:
                 continue
             resp = bucket_by_ts[latest_ts]
-            params = _unfreeze_params(frozen_params=frozen_params)
+            params = unfreeze_params(frozen_params=frozen_params)
 
             result.append((params, resp))
         return result
@@ -693,7 +693,7 @@ class SessionPlayer:
             return None
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return None
-        frozen_params = _freeze_params(params=_cleanup_params_for_session(params=params))
+        frozen_params = freeze_params(params=cleanup_params_for_session(params=params))
 
         # For each parameter, choose the response at the latest timestamp.
         if (bucket_by_ts := bucket_by_parameter.get(frozen_params)) is None:

@@ -1,3 +1,28 @@
+# Version 2025.12.47 (2025-12-24)
+
+## What's Changed
+
+### Improvements
+
+- **Restructure store package into organized sub-packages**: Split monolithic cache files into focused modules
+
+  - **New `store/persistent/` package**: Base class, device cache, paramset cache, session recorder
+  - **New `store/dynamic/` package**: Command cache, device details, central data, ping-pong cache
+  - **New `store/visibility/` package**: Visibility rules, parser, and cache (from previous refactoring)
+  - **New `store/types.py`**: Shared type definitions (`CachedCommand`, `PongTracker`, type aliases)
+  - **New `store/serialization.py`**: `freeze_params`/`unfreeze_params` utilities for session recording
+
+- **Add typed cache entries for better type safety**:
+
+  - `CachedCommand` dataclass replaces `tuple[Any, datetime]` in `CommandCache`
+  - `PongTracker` dataclass with `tokens`, `seen_at`, `logged` fields for `PingPongCache`
+  - Type aliases: `InterfaceParamsetMap`, `ChannelParamsetMap`, `ParamsetMap`, `ParameterMap`
+
+- **Reduce code duplication in `PingPongCache`**:
+
+  - Single `_cleanup_tracker()` method replaces duplicate `_cleanup_pending_pongs()` and `_cleanup_unknown_pongs()`
+  - `PongTracker.contains()` method for token membership checks
+
 # Version 2025.12.46 (2025-12-24)
 
 ## What's Changed

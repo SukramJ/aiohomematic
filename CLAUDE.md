@@ -126,11 +126,15 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   │   ├── operations.py           # Cache & visibility protocols
 │   │   └── coordinators.py         # Coordinator protocols
 │   │
-│   ├── store/                       # Persistence and caching (4 files)
-│   │   ├── __init__.py             # Store orchestration
-│   │   ├── persistent.py           # Disk-backed caches
-│   │   ├── dynamic.py              # In-memory caches
-│   │   └── visibility.py           # Parameter filtering rules
+│   ├── store/                       # Persistence and caching (17 files)
+│   │   ├── __init__.py             # Store orchestration and re-exports
+│   │   ├── types.py                # Shared type definitions (CachedCommand, PongTracker)
+│   │   ├── serialization.py        # Session recording utilities
+│   │   ├── persistent/             # Disk-backed caches (5 files)
+│   │   │   └── device.py, paramset.py, session.py, base.py
+│   │   ├── dynamic/                # In-memory caches (5 files)
+│   │   │   └── command.py, data.py, details.py, ping_pong.py
+│   │   └── visibility/             # Parameter filtering rules (3 files)
 │   │
 │   ├── rega_scripts/               # Homematic scripts (6 *.fn files)
 │   ├── translations/               # i18n JSON files

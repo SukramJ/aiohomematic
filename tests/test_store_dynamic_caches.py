@@ -154,22 +154,22 @@ class TestPingPongCache:
         ppc.handle_send_ping(ping_token=ts_old)
         ppc.handle_send_ping(ping_token=ts_new)
         # Make the first pending entry appear old to the monotonic TTL logic
-        ppc._pending_seen_at[ts_old] = time.monotonic() - 5  # test-only direct dict access
+        ppc._pending.seen_at[ts_old] = time.monotonic() - 5  # test-only direct dict access
 
         # Add an unknown pong to populate the set, then inject an old one and mark it old
         ppc.handle_received_pong(pong_token=str(datetime.now() + timedelta(seconds=999)))  # unknown (fresh)
-        ppc._unknown_pongs.add(ts_old)  # test-only direct set access
-        ppc._unknown_seen_at[ts_old] = time.monotonic() - 5  # simulate age for TTL expiry
+        ppc._unknown.tokens.add(ts_old)  # test-only direct set access
+        ppc._unknown.seen_at[ts_old] = time.monotonic() - 5  # simulate age for TTL expiry
 
         # Sanity: counts reflect inserts
-        assert ppc._pending_pong_count >= 1
-        assert ppc._unknown_pong_count >= 1
+        assert len(ppc._pending) >= 1
+        assert len(ppc._unknown) >= 1
 
         # Trigger cleanup and verify old tokens are purged while newer remain
-        ppc._cleanup_pending_pongs()
-        ppc._cleanup_unknown_pongs()
-        assert ts_old not in ppc._pending_pongs
-        assert ts_old not in ppc._unknown_pongs
+        ppc._cleanup_tracker(tracker=ppc._pending, tracker_name="pending")
+        ppc._cleanup_tracker(tracker=ppc._unknown, tracker_name="unknown")
+        assert ts_old not in ppc._pending.tokens
+        assert ts_old not in ppc._unknown.tokens
 
     def test_pingpongcache_clear_resets_state(self) -> None:
         """Verify that clear() empties counts and prevents spurious events immediately after."""
@@ -185,8 +185,8 @@ class TestPingPongCache:
 
         # Clear should reset internal sets and flags
         ppc.clear()
-        assert ppc._pending_pong_count == 0
-        assert ppc._unknown_pong_count == 0
+        assert len(ppc._pending) == 0
+        assert len(ppc._unknown) == 0
 
         # After clear, sending a single ping (count=1) should not emit an event (still low and odd count)
         ppc.handle_send_ping(ping_token=str(datetime.now() + timedelta(seconds=2)))
@@ -259,8 +259,8 @@ class TestPingPongCache:
 
         token = "tok-retry"
         # Simulate unknown pong state without scheduling the built-in 15s task
-        ppc._unknown_pongs.add(token)
-        ppc._unknown_seen_at[token] = time.monotonic()
+        ppc._unknown.tokens.add(token)
+        ppc._unknown.seen_at[token] = time.monotonic()
 
         # Schedule retry with a short delay
         ppc._schedule_unknown_pong_retry(token=token, delay=0.01)
@@ -268,21 +268,21 @@ class TestPingPongCache:
 
         # Before retry fires, a late PING is sent with same token
         ppc.handle_send_ping(ping_token=token)
-        assert token in ppc._pending_pongs
+        assert token in ppc._pending.tokens
 
         # Allow the retry task to run
         await asyncio.sleep(0.05)
         await central.looper.block_till_done(wait_time=1)
 
         # After retry, pending should be removed and token cleared from tracking sets
-        assert token not in ppc._pending_pongs
-        assert token not in ppc._unknown_pongs
+        assert token not in ppc._pending.tokens
+        assert token not in ppc._unknown.tokens
         assert token not in ppc._retry_at
 
         # Event emission is throttled in low state; it is not guaranteed here.
         # Verify that state has been reconciled as expected (no pending/unknown, reschedulable).
-        assert ppc._pending_pong_count == 0
-        assert ppc._unknown_pong_count == 0
+        assert len(ppc._pending) == 0
+        assert len(ppc._unknown) == 0
 
     @pytest.mark.asyncio
     async def test_pingpongcache_retry_skips_without_looper(self) -> None:
@@ -314,14 +314,14 @@ class TestPingPongCache:
 
         # Initially low and zero counts
         assert ppc.allowed_delta == allowed_delta
-        assert ppc._pending_pong_count == 0
-        assert ppc._unknown_pong_count == 0
+        assert len(ppc._pending) == 0
+        assert len(ppc._unknown) == 0
 
         # Add pending pings beyond threshold to trigger high and a warning/event
         with caplog.at_level("WARNING"):
             for i in range(allowed_delta + 1):
                 ppc.handle_send_ping(ping_token=f"t{i}")
-        assert (ppc._pending_pong_count > ppc.allowed_delta) is True
+        assert (len(ppc._pending) > ppc.allowed_delta) is True
 
         # One warning logged for pending pong mismatch (check for i18n key)
         assert any(
@@ -340,10 +340,10 @@ class TestPingPongCache:
         assert last_info[0] == "ifX"
         assert last_info[1] == PingPongMismatchType.PENDING.value
         assert last_info[3] is False  # acceptable
-        assert last_info[2] == ppc._pending_pong_count
+        assert last_info[2] == len(ppc._pending)
 
         # Now resolve one by receiving matching pong — count decreases and another event should publish
-        last_token = next(iter(ppc._pending_pongs))  # access for test only
+        last_token = next(iter(ppc._pending.tokens))  # access for test only
         ppc.handle_received_pong(pong_token=last_token)
 
         # When counts drop to low, an event with mismatch 0 should be published
@@ -357,9 +357,9 @@ class TestPingPongCache:
         # Unknown pong path: send a pong we never pinged
         with caplog.at_level("WARNING"):
             ppc.handle_received_pong(pong_token="u999")
-        assert ppc._unknown_pong_count == 1
+        assert len(ppc._unknown) == 1
         # For a single unknown, may or may not exceed high depending on delta; ensure property access ok
-        _ = ppc._pending_pong_count > ppc.allowed_delta
+        _ = len(ppc._pending) > ppc.allowed_delta
 
     def test_pingpongcache_throttles_low_state_pending_events(self) -> None:
         """Confirm that in low state, PENDING_PONG events are published only on even counts (2, 4, ...)."""
@@ -414,4 +414,4 @@ class TestPingPongCache:
         assert last_info[0] == "ifU"
         assert last_info[1] == PingPongMismatchType.UNKNOWN.value
         assert last_info[3] is False  # acceptable
-        assert last_info[2] == ppc._unknown_pong_count
+        assert last_info[2] == len(ppc._unknown)

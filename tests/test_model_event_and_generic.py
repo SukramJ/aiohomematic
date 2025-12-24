@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """
 Tests for model.event factory and generic._determine_data_point_type logic.
 

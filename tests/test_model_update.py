@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """
 Tests for aiohomematic.model.update.DpUpdate behavior using fakes.
 

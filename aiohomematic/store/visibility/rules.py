@@ -21,6 +21,7 @@ import re
 from typing import Final, TypeAlias
 
 from aiohomematic.const import CLICK_EVENTS, Parameter
+from const import Parameter
 
 # =============================================================================
 # Type Aliases
@@ -232,7 +233,7 @@ def parameter_is_wildcard_ignored(*, parameter: ParameterName) -> bool:
 
 UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[ModelName, frozenset[Parameter]]] = {
     "HmIP-DLD": frozenset({Parameter.ERROR_JAMMED}),
-    "HmIP-SWSD": frozenset({Parameter.SMOKE_DETECTOR_ALARM_STATUS}),
+    "HmIP-SWSD": frozenset({Parameter.DIRT_LEVEL, Parameter.SMOKE_LEVEL, Parameter.SMOKE_DETECTOR_ALARM_STATUS}),
     "HM-OU-LED16": frozenset({Parameter.LED_STATUS}),
     "HM-Sec-Win": frozenset({Parameter.DIRECTION, Parameter.WORKING, Parameter.ERROR, Parameter.STATUS}),
     "HM-Sec-Key": frozenset({Parameter.DIRECTION, Parameter.ERROR}),

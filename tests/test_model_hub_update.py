@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
+# SPDX-License-Identifier: MIT
 """
 Tests for aiohomematic.model.hub.update.HmUpdate progress tracking.
 

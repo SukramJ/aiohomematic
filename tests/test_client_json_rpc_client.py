@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """Integration and unit tests for the JSON-RPC client using the local mock server."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """Tests for link peer functionality on Channel, including change events."""
 
 from __future__ import annotations

@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """
 Simple i18n helper to localize exceptions (first iteration).
 

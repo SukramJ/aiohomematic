@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """Lightweight aiohttp-based JSON-RPC mock used in tests."""
 
 from __future__ import annotations

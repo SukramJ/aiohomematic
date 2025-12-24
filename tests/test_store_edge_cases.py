@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """Edge case tests for store modules."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """Test support for aiohomematic."""
 
 from __future__ import annotations

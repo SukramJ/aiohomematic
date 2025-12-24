@@ -1,5 +1,5 @@
 [![Release][releasebadge]][release]
-[![License][license-shield]](LICENSE.md)
+[![License][license-shield]](LICENSE)
 [![Python][pythonbadge]][release]
 [![GitHub Sponsors][sponsorsbadge]][sponsors]
 
@@ -171,7 +171,7 @@ See [CLAUDE.md](CLAUDE.md) for comprehensive development guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 

@@ -21,7 +21,6 @@ import re
 from typing import Final, TypeAlias
 
 from aiohomematic.const import CLICK_EVENTS, Parameter
-from const import Parameter
 
 # =============================================================================
 # Type Aliases

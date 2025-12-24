@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2025
 """Normalize changelog.md."""
 
-#!/usr/bin/env python3
 from __future__ import annotations
 
 from pathlib import Path

@@ -77,7 +77,7 @@
 | **client**     | 7,134  | 16    | ClientCCU (1,650), JsonRPC (1,887), Handlers (2,322), CircuitBreaker (299), Coalescer (239) |
 | **model**      | 16,849 | 48    | Device (1,909), WeekProfile (1,834), DataPoint (1,364), Climate (1,176), Light (1,041)      |
 | **interfaces** | 3,725  | 6     | model.py (1,800), client.py (923), central.py (466)                                         |
-| **store**      | 2,878  | 4     | persistent.py (1,148), dynamic.py (870), visibility.py (826)                                |
+| **store**      | 3,846  | 17    | persistent/ (1,131), dynamic/ (910), visibility/ (1,209), types.py, serialization.py        |
 | **root**       | 6,290  | 17    | const.py (1,594), hmcli.py (955), support.py (718)                                          |
 
 ---
@@ -390,7 +390,7 @@ Top Files by LOC:
 7. const.py                   1,594 LOC (Constants, enums)
 8. model/data_point.py        1,364 LOC (BaseDataPoint)
 9. model/custom/climate.py    1,176 LOC (Climate entities)
-10. store/persistent.py       1,148 LOC (Persistent caches)
+10. store/persistent/         1,131 LOC (Persistent caches)
 ```
 
 ### Protocol Statistics

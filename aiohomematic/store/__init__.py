@@ -4,9 +4,21 @@
 Store packages for AioHomematic.
 
 This package groups store implementations used throughout the library:
-- persistent: Long-lived on-disk store for device and paramset descriptions.
-- dynamic: Short-lived in-memory store for runtime values and connection health.
+- persistent: Long-lived on-disk caches for device and paramset descriptions.
+- dynamic: Short-lived in-memory caches for runtime values and connection health.
 - visibility: Parameter visibility rules to decide which parameters are relevant.
+
+Package structure
+-----------------
+- persistent/: DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
+- dynamic/: CommandCache, DeviceDetailsCache, CentralDataCache, PingPongCache
+- visibility/: ParameterVisibilityCache
+- types.py: Shared type definitions (CachedCommand, PongTracker, type aliases)
+- serialization.py: Freeze/unfreeze utilities for session recording
+
+Public API
+----------
+All cache classes are re-exported from this module for backward compatibility.
 """
 
 from __future__ import annotations

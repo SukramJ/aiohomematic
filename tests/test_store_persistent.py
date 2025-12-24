@@ -22,12 +22,10 @@ from aiohomematic.store.persistent import (
     DeviceDescriptionCache,
     ParamsetDescriptionCache,
     SessionRecorder,
-    _freeze_params,
-    _get_file_name,
-    _get_file_path,
-    _unfreeze_params,
     cleanup_files,
 )
+from aiohomematic.store.persistent.base import get_file_name, get_file_path
+from aiohomematic.store.serialization import freeze_params, unfreeze_params
 
 
 class _Cfg:
@@ -71,30 +69,6 @@ class _CentralStub:
 class TestHelperFunctions:
     """Test helper functions for freezing/unfreezing params and file path generation."""
 
-    def test_freeze_params_datetime(self) -> None:
-        """Test freezing datetime objects."""
-        dt = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
-        frozen = _freeze_params(dt)
-        assert "__datetime__" in frozen
-        unfrozen = _unfreeze_params(frozen)
-        assert unfrozen == dt
-
-    def test_freeze_params_primitives(self) -> None:
-        """Test freezing primitive types."""
-        assert _freeze_params("string") == "string"
-        assert _freeze_params(123) == "123"
-        assert _freeze_params(True) == "True"
-        assert _freeze_params(None) == "None"
-
-    def test_freeze_params_set(self) -> None:
-        """Test freezing set objects."""
-        s = {1, 2, 3}
-        frozen = _freeze_params(s)
-        assert "__set__" in frozen
-        unfrozen = _unfreeze_params(frozen)
-        # Note: primitives get stringified, so check idempotency instead
-        assert _freeze_params(unfrozen) == frozen
-
     @pytest.mark.parametrize(
         "value",
         [
@@ -110,34 +84,58 @@ class TestHelperFunctions:
     )
     def test_freeze_unfreeze_roundtrip(self, value) -> None:
         """Test that freeze/unfreeze is idempotent for various data types."""
-        frozen = _freeze_params(value)
-        unfrozen = _unfreeze_params(frozen)
+        frozen = freeze_params(value)
+        unfrozen = unfreeze_params(frozen)
         # Idempotency check
-        assert _freeze_params(unfrozen) == frozen
+        assert freeze_params(unfrozen) == frozen
 
-    def test_get_file_name_plain(self) -> None:
+    def testfreeze_params_datetime(self) -> None:
+        """Test freezing datetime objects."""
+        dt = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
+        frozen = freeze_params(dt)
+        assert "__datetime__" in frozen
+        unfrozen = unfreeze_params(frozen)
+        assert unfrozen == dt
+
+    def testfreeze_params_primitives(self) -> None:
+        """Test freezing primitive types."""
+        assert freeze_params("string") == "string"
+        assert freeze_params(123) == "123"
+        assert freeze_params(True) == "True"
+        assert freeze_params(None) == "None"
+
+    def testfreeze_params_set(self) -> None:
+        """Test freezing set objects."""
+        s = {1, 2, 3}
+        frozen = freeze_params(s)
+        assert "__set__" in frozen
+        unfrozen = unfreeze_params(frozen)
+        # Note: primitives get stringified, so check idempotency instead
+        assert freeze_params(unfrozen) == frozen
+
+    def testget_file_name_plain(self) -> None:
         """Test file name generation without timestamp."""
-        fn_plain = _get_file_name(central_name="My Central", file_name="devices")
+        fn_plain = get_file_name(central_name="My Central", file_name="devices")
         assert fn_plain.endswith("devices.json")
         assert "my-central" in fn_plain
 
-    def test_get_file_name_with_timestamp(self) -> None:
+    def testget_file_name_with_timestamp(self) -> None:
         """Test file name generation with timestamp."""
         ts = datetime(2023, 2, 3, 4, 5, 6)
-        fn_ts = _get_file_name(central_name="X", file_name="rec", ts=ts)
+        fn_ts = get_file_name(central_name="X", file_name="rec", ts=ts)
         assert "20230203_040506" in fn_ts
         assert fn_ts.endswith(".json")
 
-    def test_get_file_path(self, tmp_path) -> None:
+    def testget_file_path(self, tmp_path) -> None:
         """Test file path generation."""
         base = str(tmp_path)
-        path_cache = _get_file_path(storage_directory=base, sub_directory=SUB_DIRECTORY_CACHE)
+        path_cache = get_file_path(storage_directory=base, sub_directory=SUB_DIRECTORY_CACHE)
         assert path_cache.endswith(SUB_DIRECTORY_CACHE)
 
-    def test_unfreeze_params_invalid_string(self) -> None:
+    def testunfreeze_params_invalid_string(self) -> None:
         """Test unfreezing invalid string returns original."""
         invalid = "not a valid frozen param"
-        unfrozen = _unfreeze_params(invalid)
+        unfrozen = unfreeze_params(invalid)
         assert unfrozen == invalid
 
 

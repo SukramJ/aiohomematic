@@ -109,7 +109,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Hello World,DDID=1}",
+            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Hello World,DDID=1,DDC=true}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -141,7 +141,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=,DDID=1}",
+            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=,DDID=1,DDC=true}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -198,7 +198,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value=f"{{DDBC=BLACK,DDTC=WHITE,DDI={icon_index},DDA={alignment},DDS=Door Open,DDID=3}},{{R=5,ANS={sound_index}}}",
+            value=f"{{DDBC=BLACK,DDTC=WHITE,DDI={icon_index},DDA={alignment},DDS=Door Open,DDID=3,DDC=true}},{{R=5,IN=1,ANS={sound_index}}}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -230,7 +230,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=LEFT,DDS=Left aligned,DDID=1}",
+            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=LEFT,DDS=Left aligned,DDID=1,DDC=true}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -267,7 +267,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value="{DDBC=BLACK,DDTC=WHITE,DDI=0,DDA=CENTER,DDS=Inverted,DDID=1}",
+            value="{DDBC=BLACK,DDTC=WHITE,DDI=0,DDA=CENTER,DDS=Inverted,DDID=1,DDC=true}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -299,7 +299,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Slot 2,DDID=2}",
+            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Slot 2,DDID=2,DDC=true}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -336,7 +336,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value=f"{{DDBC=WHITE,DDTC=BLACK,DDI={icon_index},DDA=CENTER,DDS=Light On,DDID=1}}",
+            value=f"{{DDBC=WHITE,DDTC=BLACK,DDI={icon_index},DDA=CENTER,DDS=Light On,DDID=1,DDC=true}}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -374,7 +374,7 @@ class TestTextDisplaySendText:
             channel_address="VCU3756007:3",
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
-            value=f"{{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Alert,DDID=1}},{{R=3,ANS={sound_index}}}",
+            value=f"{{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Alert,DDID=1,DDC=true}},{{R=3,IN=1,ANS={sound_index}}}",
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
 
@@ -448,14 +448,14 @@ class TestTextDisplayValidation:
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
-        """Test send_text raises ValidationException for display_id > 3."""
+        """Test send_text raises ValidationException for display_id > 5."""
         central, _, _ = central_client_factory_with_ccu_client
         display: CustomDpTextDisplay = cast(
             CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
         )
 
         with pytest.raises(ValidationException):
-            await display.send_text(text="Test", display_id=4)
+            await display.send_text(text="Test", display_id=6)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -679,7 +679,7 @@ class TestTextDisplayIndexConversion:
                 channel_address="VCU3756007:3",
                 paramset_key=ParamsetKey.VALUES,
                 parameter="COMBINED_PARAMETER",
-                value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Test,DDID=1}",
+                value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Test,DDID=1,DDC=true}",
                 wait_for_callback=WAIT_FOR_CALLBACK,
             )
 
@@ -692,6 +692,6 @@ class TestTextDisplayIndexConversion:
                 channel_address="VCU3756007:3",
                 paramset_key=ParamsetKey.VALUES,
                 parameter="COMBINED_PARAMETER",
-                value=f"{{DDBC=WHITE,DDTC=BLACK,DDI={last_index},DDA=CENTER,DDS=Test,DDID=1}}",
+                value=f"{{DDBC=WHITE,DDTC=BLACK,DDI={last_index},DDA=CENTER,DDS=Test,DDID=1,DDC=true}}",
                 wait_for_callback=WAIT_FOR_CALLBACK,
             )

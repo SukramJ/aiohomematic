@@ -37,6 +37,7 @@ class TextDisplayArgs(TypedDict, total=False):
     display_id: int
     sound: str
     repeat: int
+    interval: int
 
 
 class CustomDpTextDisplay(CustomDataPoint):
@@ -112,9 +113,10 @@ class CustomDpTextDisplay(CustomDataPoint):
                 background_color: Background color (optional, default: WHITE).
                 text_color: Text color (optional, default: BLACK).
                 alignment: Text alignment (optional, default: CENTER).
-                display_id: Display slot 1-3 (optional, default: 1).
+                display_id: Display slot 1-5 (optional, default: 1).
                 sound: Sound name from available_sounds (optional).
                 repeat: Sound repetitions 0-15 (optional, default: 1).
+                interval: Interval between sound tones 1-15 (optional, default: 1).
 
         """
         text = kwargs.get("text", "")
@@ -125,6 +127,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         display_id = kwargs.get("display_id", 1)
         sound = kwargs.get("sound")
         repeat = kwargs.get("repeat", 1)
+        interval = kwargs.get("interval", 1)
 
         # Validate icon if provided
         if icon is not None and self.available_icons and icon not in self.available_icons:
@@ -167,7 +170,7 @@ class CustomDpTextDisplay(CustomDataPoint):
             )
 
         # Validate display_id
-        if not 1 <= display_id <= 3:
+        if not 1 <= display_id <= 5:
             raise ValidationException(
                 i18n.tr(
                     "exception.model.custom.text_display.invalid_display_id",
@@ -196,22 +199,33 @@ class CustomDpTextDisplay(CustomDataPoint):
                 )
             )
 
+        # Validate interval
+        if not 1 <= interval <= 15:
+            raise ValidationException(
+                i18n.tr(
+                    "exception.model.custom.text_display.invalid_interval",
+                    full_name=self.full_name,
+                    value=interval,
+                )
+            )
+
         # Get icon index (0 = NO_ICON if not specified)
         icon_index = 0
         if icon is not None:
             icon_index = self._get_index_from_value_list(value=icon, value_list=self.available_icons) or 0
 
         # Build COMBINED_PARAMETER string
-        # Format: {DDBC=color,DDTC=color,DDI=index,DDA=align,DDS=text,DDID=id},{R=repeat,ANS=sound_index}
+        # Format: {DDBC=color,DDTC=color,DDI=index,DDA=align,DDS=text,DDID=id,DDC=true},{R=repeat,IN=interval,ANS=sound_index}
+        # DDC=true is the "commit" flag that triggers the display update
         display_part = (
             f"{{DDBC={background_color},DDTC={text_color},DDI={icon_index},"
-            f"DDA={alignment},DDS={text},DDID={display_id}}}"
+            f"DDA={alignment},DDS={text},DDID={display_id},DDC=true}}"
         )
 
         # Only add sound part if sound is specified
         if sound is not None:
             sound_index = self._get_index_from_value_list(value=sound, value_list=self.available_sounds) or 0
-            sound_part = f"{{R={repeat},ANS={sound_index}}}"
+            sound_part = f"{{R={repeat},IN={interval},ANS={sound_index}}}"
             combined_value = f"{display_part},{sound_part}"
         else:
             combined_value = display_part

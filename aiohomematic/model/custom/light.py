@@ -30,6 +30,8 @@ from aiohomematic.model.generic import (
 )
 from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, state_property
 
+# Activity states indicating LED is active
+_ACTIVITY_STATES_ACTIVE: Final[frozenset[str]] = frozenset({"UP", "DOWN"})
 _DIMMER_OFF: Final = 0.0
 _EFFECT_OFF: Final = "Off"
 _LEVEL_TO_BRIGHTNESS_MULTIPLIER: Final = 100
@@ -136,6 +138,13 @@ class LightOffArgs(TypedDict, total=False):
 
     on_time: float
     ramp_time: float
+
+
+class SoundPlayerLedOnArgs(LightOnArgs, total=False):
+    """Arguments for CustomDpSoundPlayerLed turn_on method (extends LightOnArgs)."""
+
+    repetitions: str
+    led_on_time: str
 
 
 class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
@@ -414,7 +423,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions
-    _dp_activity_state: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
     _dp_color_temperature_kelvin: Final = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
     _dp_device_operation_mode: Final = DataPointField(field=Field.DEVICE_OPERATION_MODE, dpt=DpSelect)
     _dp_effect: Final = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
@@ -720,6 +729,128 @@ def _convert_color(*, color: tuple[float, float]) -> str:
     return _FixedColor.RED
 
 
+class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
+    """Class for HomematicIP sound player LED data point (HmIP-MP3P channel 6)."""
+
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    # Additional declarative data point field definitions for LED channel
+    # Note: _dp_level and _dp_ramp_time_value are inherited from CustomDpDimmer
+    # Map on_time to DURATION_VALUE/UNIT for TimerUnitMixin compatibility (override parent)
+    _dp_on_time_value = DataPointField(field=Field.DURATION_VALUE, dpt=DpAction)
+    _dp_on_time_unit = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
+    _dp_color: Final = DataPointField(field=Field.COLOR, dpt=DpSelect)
+    _dp_on_time_list: Final = DataPointField(field=Field.ON_TIME_LIST, dpt=DpActionSelect)
+    _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
+    _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+
+    # Expose available options via DelegatedProperty (from VALUE_LISTs)
+    available_colors: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_color.values", kind=Kind.STATE)
+    available_on_times: Final = DelegatedProperty[tuple[str, ...] | None](
+        path="_dp_on_time_list.values", kind=Kind.STATE
+    )
+    available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](
+        path="_dp_repetitions.values", kind=Kind.STATE
+    )
+
+    @state_property
+    def color_name(self) -> str | None:
+        """Return the name of the color."""
+        val = self._dp_color.value
+        return val if isinstance(val, str) else None
+
+    @state_property
+    def hs_color(self) -> tuple[float, float] | None:
+        """Return the hue and saturation color value [float, float]."""
+        if (
+            self._dp_color.value is not None
+            and isinstance(self._dp_color.value, str)
+            and (hs_color := _FIXED_COLOR_SWITCHER.get(self._dp_color.value)) is not None
+        ):
+            return hs_color
+        return _MIN_HUE, _MIN_SATURATION
+
+    @state_property
+    def is_on(self) -> bool:
+        """Return true if LED is currently on."""
+        activity = self._dp_direction.value
+        return activity is not None and activity in _ACTIVITY_STATES_ACTIVE
+
+    @bind_collector
+    async def turn_off(
+        self,
+        *,
+        collector: CallParameterCollector | None = None,
+        **kwargs: Unpack[LightOffArgs],
+    ) -> None:
+        """Turn off the LED."""
+        await self._dp_level.send_value(value=0.0, collector=collector)
+        await self._dp_color.send_value(value=_FixedColor.BLACK, collector=collector)
+        await self._dp_on_time_value.send_value(value=0, collector=collector)
+
+    @bind_collector
+    async def turn_on(
+        self,
+        *,
+        collector: CallParameterCollector | None = None,
+        **kwargs: Unpack[SoundPlayerLedOnArgs],
+    ) -> None:
+        """
+        Turn on the LED with optional color and brightness settings.
+
+        API is comparable to CustomDpIpFixedColorLight.
+
+        Args:
+            collector: Optional call parameter collector.
+            **kwargs: LED parameters from SoundPlayerLedOnArgs (extends LightOnArgs):
+                brightness: Brightness 0-255 (converted to 0.0-1.0 for device).
+                hs_color: Hue/saturation tuple for color selection.
+                on_time: Duration in seconds (auto-converted to value+unit via TimerUnitMixin).
+                ramp_time: Ramp time in seconds (auto-converted to value+unit via TimerUnitMixin).
+                repetitions: From available_repetitions (default: NO_REPETITION).
+                led_on_time: LED on time from available_on_times (default: PERMANENTLY_ON).
+
+        """
+        # Convert brightness from 0-255 to 0.0-1.0
+        brightness_int = kwargs.get("brightness")
+        brightness = self.brightness_to_level(brightness_int) if brightness_int is not None else 1.0
+
+        on_time = kwargs.get("on_time", 10.0)
+        ramp_time = kwargs.get("ramp_time", 0.0)
+        repetitions = kwargs.get("repetitions") or self._get_default_repetitions()
+        led_on_time = kwargs.get("led_on_time") or self._get_default_on_time()
+
+        # Handle color: convert hs_color or default to WHITE (like CustomDpIpFixedColorLight)
+        if (hs_color := kwargs.get("hs_color")) is not None:
+            color = _convert_color(color=hs_color)
+        elif self.color_name in _NO_COLOR:
+            color = _FixedColor.WHITE
+        else:
+            color = self.color_name or _FixedColor.WHITE
+
+        # Send parameters - order matters for batching
+        await self._dp_level.send_value(value=brightness, collector=collector)
+        await self._dp_color.send_value(value=color, collector=collector)
+        await self._dp_on_time_list.send_value(value=led_on_time, collector=collector)
+        await self._dp_repetitions.send_value(value=repetitions, collector=collector)
+        # Use mixin methods for automatic unit conversion
+        await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
+        await self._set_on_time_value(on_time=on_time, collector=collector)
+
+    def _get_default_on_time(self) -> str:
+        """Return default on time from available values."""
+        if self.available_on_times and "PERMANENTLY_ON" in self.available_on_times:
+            return "PERMANENTLY_ON"
+        return self.available_on_times[0] if self.available_on_times else "PERMANENTLY_ON"
+
+    def _get_default_repetitions(self) -> str:
+        """Return default repetitions from available values."""
+        if self.available_repetitions and "NO_REPETITION" in self.available_repetitions:
+            return "NO_REPETITION"
+        return self.available_repetitions[0] if self.available_repetitions else "NO_REPETITION"
+
+
 # =============================================================================
 # DeviceProfileRegistry Registration
 # =============================================================================
@@ -973,4 +1104,13 @@ DeviceProfileRegistry.register_multiple(
             extended=ExtendedDeviceConfig(fixed_channel_fields={16: {Field.COLOR: Parameter.COLOR}}),
         ),
     ),
+)
+
+# HmIP-MP3P LED Control (channel 6)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.LIGHT,
+    models="HmIP-MP3P",
+    data_point_class=CustomDpSoundPlayerLed,
+    profile_type=DeviceProfile.IP_SOUND_PLAYER_LED,
+    channels=(6,),
 )

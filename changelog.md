@@ -1,3 +1,24 @@
+# Version 2025.12.47 (2025-12-25)
+
+## What's Changed
+
+### New Features
+
+- **Add HmIP-MP3P (Combined signal generator) support**: Implement sound player and LED control for combination signaling devices
+  - **Sound Player** (`CustomDpSoundPlayer` in siren.py, channel 2):
+    - Inherits from `BaseCustomDpSiren` for siren integration
+    - `play_sound()` method with volume, soundfile, duration, repetitions, ramp time parameters
+    - `stop_sound()` method to stop playback
+    - `_convert_soundfile_index()` helper for integer-to-soundfile-name conversion (1-189)
+    - Exposes available options via `DelegatedProperty` from ActionSelect VALUE_LISTs
+  - **LED Control** (`CustomDpSoundPlayerLed` in light.py, channel 6):
+    - Inherits from `CustomDpDimmer` for dimmer integration
+    - `set_led()` method with color, brightness, on_time, duration, repetitions parameters
+    - `turn_off()` method to turn off LED
+    - Exposes available colors, on times, repetitions via `DelegatedProperty`
+  - New `DeviceProfile.IP_SOUND_PLAYER` and `DeviceProfile.IP_SOUND_PLAYER_LED` profiles
+  - Category-specific translation keys for validation messages
+
 # Version 2025.12.46 (2025-12-25)
 
 ## What's Changed

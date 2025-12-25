@@ -588,6 +588,42 @@ IP_SIREN_SMOKE_CONFIG: Final = ProfileConfig(
 )
 
 
+# --- Sound Player Profiles ---
+
+IP_SOUND_PLAYER_CONFIG: Final = ProfileConfig(
+    profile_type=DeviceProfile.IP_SOUND_PLAYER,
+    channel_group=ChannelGroupConfig(
+        repeating_fields={
+            Field.DIRECTION: Parameter.ACTIVITY_STATE,
+            Field.DURATION_UNIT: Parameter.DURATION_UNIT,
+            Field.DURATION_VALUE: Parameter.DURATION_VALUE,
+            Field.LEVEL: Parameter.LEVEL,
+            Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
+            Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
+            Field.REPETITIONS: Parameter.REPETITIONS,
+            Field.SOUNDFILE: Parameter.SOUNDFILE,
+        },
+    ),
+)
+
+IP_SOUND_PLAYER_LED_CONFIG: Final = ProfileConfig(
+    profile_type=DeviceProfile.IP_SOUND_PLAYER_LED,
+    channel_group=ChannelGroupConfig(
+        repeating_fields={
+            Field.COLOR: Parameter.COLOR,
+            Field.DIRECTION: Parameter.ACTIVITY_STATE,
+            Field.DURATION_UNIT: Parameter.DURATION_UNIT,
+            Field.DURATION_VALUE: Parameter.DURATION_VALUE,
+            Field.LEVEL: Parameter.LEVEL,
+            Field.ON_TIME_LIST: Parameter.ON_TIME_LIST_1,
+            Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
+            Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
+            Field.REPETITIONS: Parameter.REPETITIONS,
+        },
+    ),
+)
+
+
 # --- Text Display Profiles ---
 
 IP_TEXT_DISPLAY_CONFIG: Final = ProfileConfig(
@@ -826,6 +862,9 @@ PROFILE_CONFIGS: Final[ProfileRegistry] = {
     # Siren
     DeviceProfile.IP_SIREN: IP_SIREN_CONFIG,
     DeviceProfile.IP_SIREN_SMOKE: IP_SIREN_SMOKE_CONFIG,
+    # Sound Player
+    DeviceProfile.IP_SOUND_PLAYER: IP_SOUND_PLAYER_CONFIG,
+    DeviceProfile.IP_SOUND_PLAYER_LED: IP_SOUND_PLAYER_LED_CONFIG,
     # Text Display
     DeviceProfile.IP_TEXT_DISPLAY: IP_TEXT_DISPLAY_CONFIG,
     # Thermostat

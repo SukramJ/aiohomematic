@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.46"
+VERSION: Final = "2025.12.47"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -635,6 +635,8 @@ class DeviceProfile(StrEnum):
     IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED = "IPSimpleFixedColorLightWired"
     IP_SIREN = "IPSiren"
     IP_SIREN_SMOKE = "IPSirenSmoke"
+    IP_SOUND_PLAYER = "IPSoundPlayer"
+    IP_SOUND_PLAYER_LED = "IPSoundPlayerLed"
     IP_SWITCH = "IPSwitch"
     IP_TEXT_DISPLAY = "IPTextDisplay"
     IP_THERMOSTAT = "IPThermostat"
@@ -681,6 +683,7 @@ class Field(Enum):
     ACOUSTIC_ALARM_SELECTION = "acoustic_alarm_selection"
     ACOUSTIC_NOTIFICATION_SELECTION = "acoustic_notification_selection"
     ACTIVE_PROFILE = "active_profile"
+    ACTIVITY_STATE = "activity_state"
     AUTO_MODE = "auto_mode"
     BOOST_MODE = "boost_mode"
     BUTTON_LOCK = "button_lock"
@@ -704,6 +707,7 @@ class Field(Enum):
     DOOR_STATE = "door_state"
     DURATION = "duration"
     DURATION_UNIT = "duration_unit"
+    DURATION_VALUE = "duration_value"
     DUTYCYCLE = "dutycycle"
     DUTY_CYCLE = "duty_cycle"
     EFFECT = "effect"
@@ -731,6 +735,7 @@ class Field(Enum):
     MIN_MAX_VALUE_NOT_RELEVANT_FOR_MANU_MODE = "min_max_value_not_relevant_for_manu_mode"
     ON_TIME_UNIT = "on_time_unit"
     ON_TIME_VALUE = "on_time_value"
+    ON_TIME_LIST = "on_time_list_1"
     OPEN = "open"
     OPERATING_VOLTAGE = "operating_voltage"
     OPERATION_MODE = "channel_operation_mode"
@@ -744,6 +749,7 @@ class Field(Enum):
     RAMP_TIME_TO_OFF_VALUE = "ramp_time_to_off_value"
     RAMP_TIME_UNIT = "ramp_time_unit"
     RAMP_TIME_VALUE = "ramp_time_value"
+    REPETITIONS = "repetitions"
     RSSI_DEVICE = "rssi_device"
     RSSI_PEER = "rssi_peer"
     SABOTAGE = "sabotage"
@@ -753,6 +759,7 @@ class Field(Enum):
     SET_POINT_MODE = "set_point_mode"
     SMOKE_DETECTOR_ALARM_STATUS = "smoke_detector_alarm_status"
     SMOKE_DETECTOR_COMMAND = "smoke_detector_command"
+    SOUNDFILE = "soundfile"
     STATE = "state"
     STOP = "stop"
     SWITCH_MAIN = "switch_main"
@@ -886,6 +893,7 @@ class Parameter(StrEnum):
     MOTION = "MOTION"
     MOTION_DETECTION_ACTIVE = "MOTION_DETECTION_ACTIVE"
     ON_TIME = "ON_TIME"
+    ON_TIME_LIST_1 = "ON_TIME_LIST_1"
     OPEN = "OPEN"
     OPERATING_VOLTAGE = "OPERATING_VOLTAGE"
     OPTICAL_ALARM_ACTIVE = "OPTICAL_ALARM_ACTIVE"
@@ -911,6 +919,7 @@ class Parameter(StrEnum):
     RAMP_TIME_TO_OFF_VALUE = "RAMP_TIME_TO_OFF_VALUE"
     RAMP_TIME_UNIT = "RAMP_TIME_UNIT"
     RAMP_TIME_VALUE = "RAMP_TIME_VALUE"
+    REPETITIONS = "REPETITIONS"
     RESET_MOTION = "RESET_MOTION"
     RSSI_DEVICE = "RSSI_DEVICE"
     RSSI_PEER = "RSSI_PEER"
@@ -927,6 +936,7 @@ class Parameter(StrEnum):
     SMOKE_DETECTOR_ALARM_STATUS = "SMOKE_DETECTOR_ALARM_STATUS"
     SMOKE_DETECTOR_COMMAND = "SMOKE_DETECTOR_COMMAND"
     SMOKE_LEVEL = "SMOKE_LEVEL"
+    SOUNDFILE = "SOUNDFILE"
     STATE = "STATE"
     STATUS = "STATUS"
     STICKY_UN_REACH = "STICKY_UNREACH"

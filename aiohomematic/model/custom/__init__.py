@@ -75,8 +75,10 @@ from aiohomematic.model.custom.light import (
     CustomDpIpDrgDaliLight,
     CustomDpIpFixedColorLight,
     CustomDpIpRGBWLight,
+    CustomDpSoundPlayerLed,
     LightOffArgs,
     LightOnArgs,
+    SoundPlayerLedOnArgs,
 )
 from aiohomematic.model.custom.lock import (
     BaseCustomDpLock,
@@ -98,7 +100,14 @@ from aiohomematic.model.custom.profile import (
     rebase_channel_group,
 )
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
-from aiohomematic.model.custom.siren import BaseCustomDpSiren, CustomDpIpSiren, CustomDpIpSirenSmoke, SirenOnArgs
+from aiohomematic.model.custom.siren import (
+    BaseCustomDpSiren,
+    CustomDpIpSiren,
+    CustomDpIpSirenSmoke,
+    CustomDpSoundPlayer,
+    PlaySoundArgs,
+    SirenOnArgs,
+)
 from aiohomematic.model.custom.switch import CustomDpSwitch
 from aiohomematic.model.custom.text_display import CustomDpTextDisplay, TextDisplayArgs
 from aiohomematic.model.custom.valve import CustomDpIpIrrigationValve
@@ -142,6 +151,11 @@ __all__ = [
     "CustomDpIpSiren",
     "CustomDpIpSirenSmoke",
     "SirenOnArgs",
+    # Sound Player
+    "CustomDpSoundPlayer",
+    "CustomDpSoundPlayerLed",
+    "PlaySoundArgs",
+    "SoundPlayerLedOnArgs",
     # Switch
     "CustomDpSwitch",
     # Text Display

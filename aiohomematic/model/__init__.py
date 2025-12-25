@@ -55,6 +55,7 @@ type selection based on parameter metadata and device profiles.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
 from typing import Final
 
@@ -62,6 +63,7 @@ from aiohomematic.const import (
     CLICK_EVENTS,
     DEVICE_ERROR_EVENTS,
     IMPULSE_EVENTS,
+    Field,
     Flag,
     Operations,
     Parameter,
@@ -79,7 +81,11 @@ __all__ = ["create_data_points_and_events"]
 
 # Some parameters are marked as INTERNAL in the paramset and not considered by default,
 # but some are required and should be added here.
-_ALLOWED_INTERNAL_PARAMETERS: Final[tuple[Parameter, ...]] = (Parameter.DIRECTION,)
+_ALLOWED_INTERNAL_PARAMETERS: Final[Mapping[Field, Parameter]] = {
+    Field.DIRECTION: Parameter.DIRECTION,
+    Field.ON_TIME_LIST: Parameter.ON_TIME_LIST_1,
+    Field.REPETITIONS: Parameter.REPETITIONS,
+}
 _LOGGER: Final = logging.getLogger(__name__)
 
 
@@ -171,7 +177,7 @@ def _should_skip_data_point(*, parameter_data: ParameterData, parameter: str, pa
         (not parameter_data["OPERATIONS"] & Operations.EVENT and not parameter_data["OPERATIONS"] & Operations.WRITE)
         or (
             parameter_data["FLAGS"] & Flag.INTERNAL
-            and parameter not in _ALLOWED_INTERNAL_PARAMETERS
+            and parameter not in _ALLOWED_INTERNAL_PARAMETERS.values()
             and not parameter_is_un_ignored
         )
     )

@@ -121,6 +121,47 @@ _FIXED_COLOR_SWITCHER: Mapping[str, tuple[float, float]] = {
     _FixedColor.PURPLE: (300.0, _MAX_SATURATION),
 }
 
+# ON_TIME_LIST values mapping: (ms_value, enum_string)
+# Used for flash timing in LED sequences
+_ON_TIME_LIST_VALUES: Final[tuple[tuple[int, str], ...]] = (
+    (100, "100MS"),
+    (200, "200MS"),
+    (300, "300MS"),
+    (400, "400MS"),
+    (500, "500MS"),
+    (600, "600MS"),
+    (700, "700MS"),
+    (800, "800MS"),
+    (900, "900MS"),
+    (1000, "1S"),
+    (2000, "2S"),
+    (3000, "3S"),
+    (4000, "4S"),
+    (5000, "5S"),
+)
+_PERMANENTLY_ON: Final = "PERMANENTLY_ON"
+
+
+def _convert_flash_time_to_on_time_list(flash_time_ms: int | None) -> str:
+    """Convert flash time in milliseconds to nearest ON_TIME_LIST value."""
+    if flash_time_ms is None or flash_time_ms <= 0:
+        return _PERMANENTLY_ON
+
+    # If flash_time is larger than 5000ms, use PERMANENTLY_ON
+    if flash_time_ms > 5000:
+        return _PERMANENTLY_ON
+
+    # Find the closest match
+    best_match = _PERMANENTLY_ON
+    best_diff = math.inf
+
+    for ms_value, enum_str in _ON_TIME_LIST_VALUES:
+        if (diff := abs(ms_value - flash_time_ms)) < best_diff:
+            best_diff = diff
+            best_match = enum_str
+
+    return best_match
+
 
 class LightOnArgs(TypedDict, total=False):
     """Matcher for the light turn on arguments."""
@@ -144,7 +185,7 @@ class SoundPlayerLedOnArgs(LightOnArgs, total=False):
     """Arguments for CustomDpSoundPlayerLed turn_on method (extends LightOnArgs)."""
 
     repetitions: str
-    led_on_time: str
+    flash_time: int  # Flash duration in milliseconds (converted to nearest VALUE_LIST entry)
 
 
 class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
@@ -747,9 +788,6 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
 
     # Expose available options via DelegatedProperty (from VALUE_LISTs)
     available_colors: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_color.values", kind=Kind.STATE)
-    available_on_times: Final = DelegatedProperty[tuple[str, ...] | None](
-        path="_dp_on_time_list.values", kind=Kind.STATE
-    )
     available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_repetitions.values", kind=Kind.STATE
     )
@@ -770,12 +808,6 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
         ):
             return hs_color
         return _MIN_HUE, _MIN_SATURATION
-
-    @state_property
-    def is_on(self) -> bool:
-        """Return true if LED is currently on."""
-        activity = self._dp_direction.value
-        return activity is not None and activity in _ACTIVITY_STATES_ACTIVE
 
     @bind_collector
     async def turn_off(
@@ -809,7 +841,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
                 on_time: Duration in seconds (auto-converted to value+unit via TimerUnitMixin).
                 ramp_time: Ramp time in seconds (auto-converted to value+unit via TimerUnitMixin).
                 repetitions: From available_repetitions (default: NO_REPETITION).
-                led_on_time: LED on time from available_on_times (default: PERMANENTLY_ON).
+                flash_time: Flash duration in ms (converted to nearest ON_TIME_LIST value).
 
         """
         # Convert brightness from 0-255 to 0.0-1.0
@@ -819,7 +851,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
         on_time = kwargs.get("on_time", 10.0)
         ramp_time = kwargs.get("ramp_time", 0.0)
         repetitions = kwargs.get("repetitions") or self._get_default_repetitions()
-        led_on_time = kwargs.get("led_on_time") or self._get_default_on_time()
+        flash_time_value = _convert_flash_time_to_on_time_list(kwargs.get("flash_time"))
 
         # Handle color: convert hs_color or default to WHITE (like CustomDpIpFixedColorLight)
         if (hs_color := kwargs.get("hs_color")) is not None:
@@ -832,17 +864,11 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
         # Send parameters - order matters for batching
         await self._dp_level.send_value(value=brightness, collector=collector)
         await self._dp_color.send_value(value=color, collector=collector)
-        await self._dp_on_time_list.send_value(value=led_on_time, collector=collector)
+        await self._dp_on_time_list.send_value(value=flash_time_value, collector=collector)
         await self._dp_repetitions.send_value(value=repetitions, collector=collector)
         # Use mixin methods for automatic unit conversion
         await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
         await self._set_on_time_value(on_time=on_time, collector=collector)
-
-    def _get_default_on_time(self) -> str:
-        """Return default on time from available values."""
-        if self.available_on_times and "PERMANENTLY_ON" in self.available_on_times:
-            return "PERMANENTLY_ON"
-        return self.available_on_times[0] if self.available_on_times else "PERMANENTLY_ON"
 
     def _get_default_repetitions(self) -> str:
         """Return default repetitions from available values."""

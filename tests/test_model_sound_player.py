@@ -10,7 +10,7 @@ import pytest
 
 from aiohomematic.const import DataPointUsage
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model.custom.light import CustomDpSoundPlayerLed
+from aiohomematic.model.custom.light import CustomDpSoundPlayerLed, _convert_flash_time_to_on_time_list
 from aiohomematic.model.custom.siren import CustomDpSoundPlayer
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -161,11 +161,6 @@ class TestSoundPlayer:
         assert "RED" in led_player.available_colors
         assert "BLUE" in led_player.available_colors
 
-        # Test available on times
-        if led_player.available_on_times is not None:
-            assert "100MS" in led_player.available_on_times
-            assert "PERMANENTLY_ON" in led_player.available_on_times
-
         # Test available repetitions
         if led_player.available_repetitions is not None:
             assert "NO_REPETITION" in led_player.available_repetitions
@@ -221,46 +216,13 @@ class TestSoundPlayer:
             assert "NO_REPETITION" in sound_player.available_repetitions
             assert "INFINITE_REPETITIONS" in sound_player.available_repetitions
 
-        # Test available duration units
-        if sound_player.available_duration_units is not None:
-            assert "S" in sound_player.available_duration_units
-            assert "M" in sound_player.available_duration_units
-
-        # Test support property (depends on available_soundfiles)
+        # Test support properties (comparable to other sirens)
         assert sound_player.supports_soundfiles == (sound_player.available_soundfiles is not None)
+        assert sound_player.supports_duration is True  # Inherited from siren base
+        assert sound_player.supports_tones is True  # available_tones maps to available_soundfiles
 
         # Test initial state (is_on inherited from BaseCustomDpSiren)
         assert sound_player.is_on is False
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_sound_player_validation_duration_unit(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """Test duration_unit validation in play_sound."""
-        central, _, _ = central_client_factory_with_homegear_client
-
-        sound_player: CustomDpSoundPlayer = cast(
-            CustomDpSoundPlayer,
-            get_prepared_custom_data_point(central, "VCU1543608", 2),
-        )
-
-        assert sound_player.available_duration_units is not None, "Duration units should be available"
-
-        # Test invalid duration_unit
-        with pytest.raises(ValidationException):
-            await sound_player.play_sound(duration_unit="INVALID_UNIT")
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -352,3 +314,45 @@ class TestSoundPlayer:
 
         with pytest.raises(ValidationException):
             await sound_player.play_sound(volume=1.1)
+
+
+class TestFlashTimeConversion:
+    """Tests for flash_time to ON_TIME_LIST conversion."""
+
+    def test_flash_time_exact_matches(self) -> None:
+        """Test exact ms values map correctly."""
+        assert _convert_flash_time_to_on_time_list(100) == "100MS"
+        assert _convert_flash_time_to_on_time_list(500) == "500MS"
+        assert _convert_flash_time_to_on_time_list(1000) == "1S"
+        assert _convert_flash_time_to_on_time_list(2000) == "2S"
+        assert _convert_flash_time_to_on_time_list(5000) == "5S"
+
+    def test_flash_time_large_values_return_permanently_on(self) -> None:
+        """Test that values > 5000ms return PERMANENTLY_ON."""
+        assert _convert_flash_time_to_on_time_list(5001) == "PERMANENTLY_ON"
+        assert _convert_flash_time_to_on_time_list(10000) == "PERMANENTLY_ON"
+
+    def test_flash_time_nearest_match(self) -> None:
+        """Test that values are rounded to nearest match."""
+        # 150 is closer to 100 than 200
+        assert _convert_flash_time_to_on_time_list(149) == "100MS"
+        # 150 is equidistant, should pick first match (100MS)
+        assert _convert_flash_time_to_on_time_list(150) == "100MS"
+        # 151 is closer to 200
+        assert _convert_flash_time_to_on_time_list(151) == "200MS"
+        # 1500 is equidistant between 1S and 2S
+        assert _convert_flash_time_to_on_time_list(1500) == "1S"
+        # 1501 is closer to 2S
+        assert _convert_flash_time_to_on_time_list(1501) == "2S"
+
+    def test_flash_time_negative_returns_permanently_on(self) -> None:
+        """Test that negative values return PERMANENTLY_ON."""
+        assert _convert_flash_time_to_on_time_list(-100) == "PERMANENTLY_ON"
+
+    def test_flash_time_none_returns_permanently_on(self) -> None:
+        """Test that None returns PERMANENTLY_ON."""
+        assert _convert_flash_time_to_on_time_list(None) == "PERMANENTLY_ON"
+
+    def test_flash_time_zero_returns_permanently_on(self) -> None:
+        """Test that 0 returns PERMANENTLY_ON."""
+        assert _convert_flash_time_to_on_time_list(0) == "PERMANENTLY_ON"

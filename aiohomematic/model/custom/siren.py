@@ -18,6 +18,7 @@ from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
+from aiohomematic.model.custom.mixins import TimerUnitMixin
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor, DpSelect, DpSensor
@@ -45,15 +46,13 @@ class SirenOnArgs(TypedDict, total=False):
 
 
 class PlaySoundArgs(TypedDict, total=False):
-    """Arguments for play_sound method."""
+    """Arguments for play_sound method (comparable to SirenOnArgs)."""
 
-    soundfile: str | int
-    volume: float
-    duration: int
-    duration_unit: str
-    repetitions: str
-    ramp_time: int
-    ramp_time_unit: str
+    soundfile: str | int  # Soundfile from available_soundfiles or index (1-189)
+    volume: float  # Volume level 0.0-1.0 (default: 0.5)
+    on_time: float  # Duration in seconds (auto unit conversion via TimerUnitMixin)
+    ramp_time: float  # Ramp time in seconds (auto unit conversion via TimerUnitMixin)
+    repetitions: str  # From available_repetitions (default: NO_REPETITION)
 
 
 class BaseCustomDpSiren(CustomDataPoint):
@@ -245,17 +244,18 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.ON, collector=collector)
 
 
-class CustomDpSoundPlayer(BaseCustomDpSiren):
+class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
     """Class for HomematicIP sound player data point (HmIP-MP3P channel 2)."""
 
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions for sound channel
+    # Map on_time to DURATION_VALUE/UNIT for TimerUnitMixin compatibility (no Final for overrides)
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpAction)
-    _dp_duration_unit: Final = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
-    _dp_duration_value: Final = DataPointField(field=Field.DURATION_VALUE, dpt=DpAction)
-    _dp_ramp_time_unit: Final = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_value: Final = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpAction)
+    _dp_on_time_value = DataPointField(field=Field.DURATION_VALUE, dpt=DpAction)
+    _dp_on_time_unit = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
+    _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpAction)
+    _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
     _dp_soundfile: Final = DataPointField(field=Field.SOUNDFILE, dpt=DpSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
@@ -268,12 +268,6 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
             raise ValueError(i18n.tr("exception.model.custom.siren.invalid_soundfile_index", index=index))
         return f"SOUNDFILE_{index:03d}"
 
-    available_duration_units: Final = DelegatedProperty[tuple[str, ...] | None](
-        path="_dp_duration_unit.values", kind=Kind.STATE
-    )
-    available_ramp_time_units: Final = DelegatedProperty[tuple[str, ...] | None](
-        path="_dp_ramp_time_unit.values", kind=Kind.STATE
-    )
     available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_repetitions.values", kind=Kind.STATE
     )
@@ -324,25 +318,24 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
         """
         Play a sound file on the device.
 
+        API is comparable to other siren classes, using on_time/ramp_time in seconds
+        with automatic unit conversion via TimerUnitMixin.
+
         Args:
             collector: Optional call parameter collector.
             **kwargs: Sound parameters from PlaySoundArgs:
                 soundfile: Soundfile from available_soundfiles or index (1-189).
                 volume: Volume level 0.0-1.0 (default: 0.5).
-                duration: Playback duration value (default: 10).
-                duration_unit: From available_duration_units (default: S).
+                on_time: Duration in seconds (auto unit conversion, default: 10).
+                ramp_time: Ramp time in seconds (auto unit conversion, default: 0).
                 repetitions: From available_repetitions (default: NO_REPETITION).
-                ramp_time: Ramp time value (default: 0).
-                ramp_time_unit: From available_ramp_time_units (default: S).
 
         """
         soundfile = kwargs.get("soundfile", "INTERNAL_SOUNDFILE")
         volume = kwargs.get("volume", 0.5)
-        duration = kwargs.get("duration", 10)
-        duration_unit = kwargs.get("duration_unit") or self._get_default_duration_unit()
+        on_time = kwargs.get("on_time", 10.0)
+        ramp_time = kwargs.get("ramp_time", 0.0)
         repetitions = kwargs.get("repetitions") or self._get_default_repetitions()
-        ramp_time = kwargs.get("ramp_time", 0)
-        ramp_time_unit = kwargs.get("ramp_time_unit") or self._get_default_duration_unit()
 
         # Convert integer to soundfile name if needed
         if isinstance(soundfile, int):
@@ -368,16 +361,6 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
                 )
             )
 
-        # Validate duration_unit against available options
-        if self.available_duration_units and duration_unit not in self.available_duration_units:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.siren.invalid_duration_unit",
-                    full_name=self.full_name,
-                    value=duration_unit,
-                )
-            )
-
         # Validate repetitions against available options
         if self.available_repetitions and repetitions not in self.available_repetitions:
             raise ValidationException(
@@ -392,10 +375,9 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
         await self._dp_level.send_value(value=volume, collector=collector)
         await self._dp_soundfile.send_value(value=soundfile, collector=collector)
         await self._dp_repetitions.send_value(value=repetitions, collector=collector)
-        await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=ramp_time, collector=collector)
-        await self._dp_duration_unit.send_value(value=duration_unit, collector=collector)
-        await self._dp_duration_value.send_value(value=duration, collector=collector)
+        # Use mixin methods for automatic unit conversion
+        await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
+        await self._set_on_time_value(on_time=on_time, collector=collector)
 
     @bind_collector
     async def stop_sound(
@@ -405,7 +387,7 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
     ) -> None:
         """Stop current sound playback."""
         await self._dp_level.send_value(value=0.0, collector=collector)
-        await self._dp_duration_value.send_value(value=0, collector=collector)
+        await self._dp_on_time_value.send_value(value=0, collector=collector)
 
     @bind_collector
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
@@ -425,16 +407,10 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
         if "acoustic_alarm" in kwargs:
             play_kwargs["soundfile"] = kwargs["acoustic_alarm"]
         if "duration" in kwargs:
-            # Duration in SirenOnArgs is a string, try to parse as int
+            # Duration in SirenOnArgs is a string, try to parse as float (seconds)
             with contextlib.suppress(ValueError, TypeError):
-                play_kwargs["duration"] = int(kwargs["duration"])
+                play_kwargs["on_time"] = float(kwargs["duration"])
         await self.play_sound(collector=collector, **play_kwargs)
-
-    def _get_default_duration_unit(self) -> str:
-        """Return default duration unit from available values."""
-        if self.available_duration_units and "S" in self.available_duration_units:
-            return "S"
-        return self.available_duration_units[0] if self.available_duration_units else "S"
 
     def _get_default_repetitions(self) -> str:
         """Return default repetitions from available values."""

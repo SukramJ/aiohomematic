@@ -137,7 +137,6 @@ HIDDEN_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
 IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
     {
         "ACCESS_AUTHORIZATION",
-        "ACOUSTIC_NOTIFICATION_SELECTION",
         "ADAPTION_DRIVE",
         "AES_KEY",
         "ALARM_COUNT",
@@ -161,13 +160,9 @@ IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
         "DATE_TIME_UNKNOWN",
         "DECISION_VALUE",
         "DEVICE_IN_BOOTLOADER",
-        "DISPLAY_DATA_ALIGNMENT",
-        "DISPLAY_DATA_BACKGROUND_COLOR",
         "DISPLAY_DATA_COMMIT",
-        "DISPLAY_DATA_ICON",
         "DISPLAY_DATA_ID",
         "DISPLAY_DATA_STRING",
-        "DISPLAY_DATA_TEXT_COLOR",
         "DOOR",
         "EXTERNAL_CLOCK",
         "FROST_PROTECTION",

@@ -588,6 +588,25 @@ IP_SIREN_SMOKE_CONFIG: Final = ProfileConfig(
 )
 
 
+# --- Text Display Profiles ---
+
+IP_TEXT_DISPLAY_CONFIG: Final = ProfileConfig(
+    profile_type=DeviceProfile.IP_TEXT_DISPLAY,
+    channel_group=ChannelGroupConfig(
+        repeating_fields={
+            Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
+        },
+        visible_repeating_fields={
+            Field.ACOUSTIC_NOTIFICATION_SELECTION: Parameter.ACOUSTIC_NOTIFICATION_SELECTION,
+            Field.DISPLAY_DATA_ALIGNMENT: Parameter.DISPLAY_DATA_ALIGNMENT,
+            Field.DISPLAY_DATA_BACKGROUND_COLOR: Parameter.DISPLAY_DATA_BACKGROUND_COLOR,
+            Field.DISPLAY_DATA_ICON: Parameter.DISPLAY_DATA_ICON,
+            Field.DISPLAY_DATA_TEXT_COLOR: Parameter.DISPLAY_DATA_TEXT_COLOR,
+        },
+    ),
+)
+
+
 # --- Thermostat Profiles ---
 
 IP_THERMOSTAT_CONFIG: Final = ProfileConfig(
@@ -807,6 +826,8 @@ PROFILE_CONFIGS: Final[ProfileRegistry] = {
     # Siren
     DeviceProfile.IP_SIREN: IP_SIREN_CONFIG,
     DeviceProfile.IP_SIREN_SMOKE: IP_SIREN_SMOKE_CONFIG,
+    # Text Display
+    DeviceProfile.IP_TEXT_DISPLAY: IP_TEXT_DISPLAY_CONFIG,
     # Thermostat
     DeviceProfile.IP_THERMOSTAT: IP_THERMOSTAT_CONFIG,
     DeviceProfile.IP_THERMOSTAT_GROUP: IP_THERMOSTAT_GROUP_CONFIG,

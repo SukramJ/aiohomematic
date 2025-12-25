@@ -100,6 +100,7 @@ from aiohomematic.model.custom.profile import (
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.siren import BaseCustomDpSiren, CustomDpIpSiren, CustomDpIpSirenSmoke, SirenOnArgs
 from aiohomematic.model.custom.switch import CustomDpSwitch
+from aiohomematic.model.custom.text_display import CustomDpTextDisplay, TextDisplayArgs
 from aiohomematic.model.custom.valve import CustomDpIpIrrigationValve
 
 __all__ = [
@@ -143,6 +144,9 @@ __all__ = [
     "SirenOnArgs",
     # Switch
     "CustomDpSwitch",
+    # Text Display
+    "CustomDpTextDisplay",
+    "TextDisplayArgs",
     # Valve
     "CustomDpIpIrrigationValve",
     # Definition

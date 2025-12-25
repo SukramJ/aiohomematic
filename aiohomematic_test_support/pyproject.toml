@@ -11,6 +11,7 @@ dynamic = ["version"]
 description = "Support-only package for AioHomematic (tests/dev). Not part of production builds."
 authors     = [
     {name = "SukramJ", email = "sukramj@icloud.com"},
+    {name = "Daniel Perna", email = "danielperna84@gmail.com"},
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

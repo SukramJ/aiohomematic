@@ -1,3 +1,16 @@
+# Version 2025.12.46 (2025-12-25)
+
+## What's Changed
+
+### New Features
+
+- **Add HmIP-WRCD (Wall-mount Remote Control with Display) support**: Implement `CustomDpTextDisplay` custom data point for devices with LCD displays
+
+  - New `DataPointCategory.TEXT_DISPLAY` and `DeviceProfile.IP_TEXT_DISPLAY`
+  - `send_text()` method to display text with configurable icon, colors, alignment, and optional sound
+  - Expose display parameters as ActionSelects: `DISPLAY_DATA_ICON`, `DISPLAY_DATA_BACKGROUND_COLOR`, `DISPLAY_DATA_TEXT_COLOR`, `DISPLAY_DATA_ALIGNMENT`, `ACOUSTIC_NOTIFICATION_SELECTION`
+  - Uses `COMBINED_PARAMETER` format for efficient multi-parameter updates
+
 # Version 2025.12.45 (2025-12-24)
 
 ## What's Changed

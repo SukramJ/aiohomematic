@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.45"
+VERSION: Final = "2025.12.46"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -532,6 +532,7 @@ class DataPointCategory(StrEnum):
     SIREN = "siren"
     SWITCH = "switch"
     TEXT = "text"
+    TEXT_DISPLAY = "text_display"
     UNDEFINED = "undefined"
     UPDATE = "update"
     VALVE = "valve"
@@ -635,6 +636,7 @@ class DeviceProfile(StrEnum):
     IP_SIREN = "IPSiren"
     IP_SIREN_SMOKE = "IPSirenSmoke"
     IP_SWITCH = "IPSwitch"
+    IP_TEXT_DISPLAY = "IPTextDisplay"
     IP_THERMOSTAT = "IPThermostat"
     IP_THERMOSTAT_GROUP = "IPThermostatGroup"
     RF_BUTTON_LOCK = "RFButtonLock"
@@ -677,6 +679,7 @@ class Field(Enum):
 
     ACOUSTIC_ALARM_ACTIVE = "acoustic_alarm_active"
     ACOUSTIC_ALARM_SELECTION = "acoustic_alarm_selection"
+    ACOUSTIC_NOTIFICATION_SELECTION = "acoustic_notification_selection"
     ACTIVE_PROFILE = "active_profile"
     AUTO_MODE = "auto_mode"
     BOOST_MODE = "boost_mode"
@@ -693,6 +696,10 @@ class Field(Enum):
     CURRENT = "current"
     DEVICE_OPERATION_MODE = "device_operation_mode"
     DIRECTION = "direction"
+    DISPLAY_DATA_ALIGNMENT = "display_data_alignment"
+    DISPLAY_DATA_BACKGROUND_COLOR = "display_data_background_color"
+    DISPLAY_DATA_ICON = "display_data_icon"
+    DISPLAY_DATA_TEXT_COLOR = "display_data_text_color"
     DOOR_COMMAND = "door_command"
     DOOR_STATE = "door_state"
     DURATION = "duration"
@@ -816,6 +823,7 @@ class Parameter(StrEnum):
 
     ACOUSTIC_ALARM_ACTIVE = "ACOUSTIC_ALARM_ACTIVE"
     ACOUSTIC_ALARM_SELECTION = "ACOUSTIC_ALARM_SELECTION"
+    ACOUSTIC_NOTIFICATION_SELECTION = "ACOUSTIC_NOTIFICATION_SELECTION"
     ACTIVE_PROFILE = "ACTIVE_PROFILE"
     ACTIVITY_STATE = "ACTIVITY_STATE"
     ACTUAL_HUMIDITY = "ACTUAL_HUMIDITY"
@@ -837,6 +845,10 @@ class Parameter(StrEnum):
     DEVICE_OPERATION_MODE = "DEVICE_OPERATION_MODE"
     DIRECTION = "DIRECTION"
     DIRT_LEVEL = "DIRT_LEVEL"
+    DISPLAY_DATA_ALIGNMENT = "DISPLAY_DATA_ALIGNMENT"
+    DISPLAY_DATA_BACKGROUND_COLOR = "DISPLAY_DATA_BACKGROUND_COLOR"
+    DISPLAY_DATA_ICON = "DISPLAY_DATA_ICON"
+    DISPLAY_DATA_TEXT_COLOR = "DISPLAY_DATA_TEXT_COLOR"
     DOOR_COMMAND = "DOOR_COMMAND"
     DOOR_STATE = "DOOR_STATE"
     DURATION_UNIT = "DURATION_UNIT"
@@ -1214,6 +1226,7 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.SIREN,
     DataPointCategory.SWITCH,
     DataPointCategory.TEXT,
+    DataPointCategory.TEXT_DISPLAY,
     DataPointCategory.UPDATE,
     DataPointCategory.VALVE,
 )

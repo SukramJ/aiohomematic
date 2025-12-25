@@ -170,15 +170,15 @@ class TestCentralFullSession:
                 target_roles.update(ch._link_target_roles)
                 source_roles.update(ch._link_source_roles)
 
-        assert usage_types[DataPointUsage.CDP_PRIMARY] == 274
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 275
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
-        assert usage_types[DataPointUsage.CDP_VISIBLE] == 149
-        assert usage_types[DataPointUsage.DATA_POINT] == 4041
-        assert usage_types[DataPointUsage.NO_CREATE] == 4310
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 154
+        assert usage_types[DataPointUsage.DATA_POINT] == 4039
+        assert usage_types[DataPointUsage.NO_CREATE] == 4312
 
-        assert len(ce_channels) == 131
+        assert len(ce_channels) == 132
         assert len(data_point_types) == 6
-        assert len(parameters) == 238
+        assert len(parameters) == 243
 
         assert len(central.device_registry.devices) == 395
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

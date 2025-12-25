@@ -34,6 +34,7 @@
 
 ### New Device Support
 
+- **HmIP-WRCD Text Display**: Wall-mount Remote Control with Display - send text, icons, colors, and sounds to the LCD
 - DeviceProfileRegistry for centralized device-to-profile mappings
 - DpActionSelect data point type for write-only selection parameters
 

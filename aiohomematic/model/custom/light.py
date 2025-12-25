@@ -141,6 +141,38 @@ _ON_TIME_LIST_VALUES: Final[tuple[tuple[int, str], ...]] = (
 )
 _PERMANENTLY_ON: Final = "PERMANENTLY_ON"
 
+# Repetitions constants
+_NO_REPETITION: Final = "NO_REPETITION"
+_INFINITE_REPETITIONS: Final = "INFINITE_REPETITIONS"
+_MAX_REPETITIONS: Final = 18
+
+
+def _convert_repetitions(repetitions: int | None) -> str:
+    """
+    Convert repetitions count to REPETITIONS VALUE_LIST value.
+
+    Args:
+        repetitions: Number of repetitions (0=none, 1-18=count, -1=infinite, None=none).
+
+    Returns:
+        VALUE_LIST string (NO_REPETITION, REPETITIONS_001-018, or INFINITE_REPETITIONS).
+
+    Raises:
+        ValueError: If repetitions is outside valid range (-1 to 18).
+
+    """
+    if repetitions is None or repetitions == 0:
+        return _NO_REPETITION
+
+    if repetitions == -1:
+        return _INFINITE_REPETITIONS
+
+    if repetitions < -1 or repetitions > _MAX_REPETITIONS:
+        msg = f"Repetitions must be -1 (infinite), 0 (none), or 1-{_MAX_REPETITIONS}, got {repetitions}"
+        raise ValueError(msg)
+
+    return f"REPETITIONS_{repetitions:03d}"
+
 
 def _convert_flash_time_to_on_time_list(flash_time_ms: int | None) -> str:
     """Convert flash time in milliseconds to nearest ON_TIME_LIST value."""
@@ -184,7 +216,7 @@ class LightOffArgs(TypedDict, total=False):
 class SoundPlayerLedOnArgs(LightOnArgs, total=False):
     """Arguments for CustomDpSoundPlayerLed turn_on method (extends LightOnArgs)."""
 
-    repetitions: str
+    repetitions: int  # 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST entry)
     flash_time: int  # Flash duration in milliseconds (converted to nearest VALUE_LIST entry)
 
 
@@ -788,9 +820,6 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
 
     # Expose available options via DelegatedProperty (from VALUE_LISTs)
     available_colors: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_color.values", kind=Kind.STATE)
-    available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](
-        path="_dp_repetitions.values", kind=Kind.STATE
-    )
 
     @state_property
     def color_name(self) -> str | None:
@@ -840,7 +869,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
                 hs_color: Hue/saturation tuple for color selection.
                 on_time: Duration in seconds (auto-converted to value+unit via TimerUnitMixin).
                 ramp_time: Ramp time in seconds (auto-converted to value+unit via TimerUnitMixin).
-                repetitions: From available_repetitions (default: NO_REPETITION).
+                repetitions: 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST).
                 flash_time: Flash duration in ms (converted to nearest ON_TIME_LIST value).
 
         """
@@ -850,7 +879,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
 
         on_time = kwargs.get("on_time", 10.0)
         ramp_time = kwargs.get("ramp_time", 0.0)
-        repetitions = kwargs.get("repetitions") or self._get_default_repetitions()
+        repetitions_value = _convert_repetitions(kwargs.get("repetitions"))
         flash_time_value = _convert_flash_time_to_on_time_list(kwargs.get("flash_time"))
 
         # Handle color: convert hs_color or default to WHITE (like CustomDpIpFixedColorLight)
@@ -865,16 +894,10 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
         await self._dp_level.send_value(value=brightness, collector=collector)
         await self._dp_color.send_value(value=color, collector=collector)
         await self._dp_on_time_list.send_value(value=flash_time_value, collector=collector)
-        await self._dp_repetitions.send_value(value=repetitions, collector=collector)
+        await self._dp_repetitions.send_value(value=repetitions_value, collector=collector)
         # Use mixin methods for automatic unit conversion
         await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
         await self._set_on_time_value(on_time=on_time, collector=collector)
-
-    def _get_default_repetitions(self) -> str:
-        """Return default repetitions from available values."""
-        if self.available_repetitions and "NO_REPETITION" in self.available_repetitions:
-            return "NO_REPETITION"
-        return self.available_repetitions[0] if self.available_repetitions else "NO_REPETITION"
 
 
 # =============================================================================

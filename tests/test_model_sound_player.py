@@ -11,7 +11,7 @@ import pytest
 from aiohomematic.const import DataPointUsage
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom.light import CustomDpSoundPlayerLed, _convert_flash_time_to_on_time_list
-from aiohomematic.model.custom.siren import CustomDpSoundPlayer
+from aiohomematic.model.custom.siren import CustomDpSoundPlayer, _convert_repetitions
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 # HmIP-MP3P device address (from pydevccu session data)
@@ -161,10 +161,6 @@ class TestSoundPlayer:
         assert "RED" in led_player.available_colors
         assert "BLUE" in led_player.available_colors
 
-        # Test available repetitions
-        if led_player.available_repetitions is not None:
-            assert "NO_REPETITION" in led_player.available_repetitions
-
         # Test support property (hs_color always returns value, so supports_hs_color is True)
         assert led_player.supports_hs_color is True
 
@@ -211,11 +207,6 @@ class TestSoundPlayer:
         assert "INTERNAL_SOUNDFILE" in sound_player.available_soundfiles
         assert "SOUNDFILE_001" in sound_player.available_soundfiles
 
-        # Test available repetitions
-        if sound_player.available_repetitions is not None:
-            assert "NO_REPETITION" in sound_player.available_repetitions
-            assert "INFINITE_REPETITIONS" in sound_player.available_repetitions
-
         # Test support properties (comparable to other sirens)
         assert sound_player.supports_soundfiles == (sound_player.available_soundfiles is not None)
         assert sound_player.supports_duration is True  # Inherited from siren base
@@ -248,11 +239,12 @@ class TestSoundPlayer:
             get_prepared_custom_data_point(central, "VCU1543608", 2),
         )
 
-        assert sound_player.available_repetitions is not None, "Repetitions should be available"
+        # Test invalid repetitions (out of range)
+        with pytest.raises(ValueError):
+            await sound_player.play_sound(repetitions=19)  # Max is 18
 
-        # Test invalid repetitions
-        with pytest.raises(ValidationException):
-            await sound_player.play_sound(repetitions="INVALID_REPETITIONS")
+        with pytest.raises(ValueError):
+            await sound_player.play_sound(repetitions=-2)  # Only -1 is valid for infinite
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -356,3 +348,37 @@ class TestFlashTimeConversion:
     def test_flash_time_zero_returns_permanently_on(self) -> None:
         """Test that 0 returns PERMANENTLY_ON."""
         assert _convert_flash_time_to_on_time_list(0) == "PERMANENTLY_ON"
+
+
+class TestRepetitionsConversion:
+    """Tests for repetitions to VALUE_LIST conversion."""
+
+    def test_repetitions_invalid_raises_value_error(self) -> None:
+        """Test that invalid values raise ValueError."""
+        with pytest.raises(ValueError):
+            _convert_repetitions(19)  # Max is 18
+
+        with pytest.raises(ValueError):
+            _convert_repetitions(-2)  # Only -1 is valid for infinite
+
+        with pytest.raises(ValueError):
+            _convert_repetitions(100)  # Way out of range
+
+    def test_repetitions_minus_one_returns_infinite(self) -> None:
+        """Test that -1 returns INFINITE_REPETITIONS."""
+        assert _convert_repetitions(-1) == "INFINITE_REPETITIONS"
+
+    def test_repetitions_none_returns_no_repetition(self) -> None:
+        """Test that None returns NO_REPETITION."""
+        assert _convert_repetitions(None) == "NO_REPETITION"
+
+    def test_repetitions_valid_range(self) -> None:
+        """Test that 1-18 returns correct REPETITIONS_NNN values."""
+        assert _convert_repetitions(1) == "REPETITIONS_001"
+        assert _convert_repetitions(5) == "REPETITIONS_005"
+        assert _convert_repetitions(10) == "REPETITIONS_010"
+        assert _convert_repetitions(18) == "REPETITIONS_018"
+
+    def test_repetitions_zero_returns_no_repetition(self) -> None:
+        """Test that 0 returns NO_REPETITION."""
+        assert _convert_repetitions(0) == "NO_REPETITION"

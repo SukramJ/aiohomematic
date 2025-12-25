@@ -29,6 +29,38 @@ _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
 # Activity states indicating playback is active
 _ACTIVITY_STATES_ACTIVE: Final[frozenset[str]] = frozenset({"UP", "DOWN"})
 
+# Repetitions constants
+_NO_REPETITION: Final = "NO_REPETITION"
+_INFINITE_REPETITIONS: Final = "INFINITE_REPETITIONS"
+_MAX_REPETITIONS: Final = 18
+
+
+def _convert_repetitions(repetitions: int | None) -> str:
+    """
+    Convert repetitions count to REPETITIONS VALUE_LIST value.
+
+    Args:
+        repetitions: Number of repetitions (0=none, 1-18=count, -1=infinite, None=none).
+
+    Returns:
+        VALUE_LIST string (NO_REPETITION, REPETITIONS_001-018, or INFINITE_REPETITIONS).
+
+    Raises:
+        ValueError: If repetitions is outside valid range (-1 to 18).
+
+    """
+    if repetitions is None or repetitions == 0:
+        return _NO_REPETITION
+
+    if repetitions == -1:
+        return _INFINITE_REPETITIONS
+
+    if repetitions < -1 or repetitions > _MAX_REPETITIONS:
+        msg = f"Repetitions must be -1 (infinite), 0 (none), or 1-{_MAX_REPETITIONS}, got {repetitions}"
+        raise ValueError(msg)
+
+    return f"REPETITIONS_{repetitions:03d}"
+
 
 class _SirenCommand(StrEnum):
     """Enum with siren commands."""
@@ -52,7 +84,7 @@ class PlaySoundArgs(TypedDict, total=False):
     volume: float  # Volume level 0.0-1.0 (default: 0.5)
     on_time: float  # Duration in seconds (auto unit conversion via TimerUnitMixin)
     ramp_time: float  # Ramp time in seconds (auto unit conversion via TimerUnitMixin)
-    repetitions: str  # From available_repetitions (default: NO_REPETITION)
+    repetitions: int  # 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST entry)
 
 
 class BaseCustomDpSiren(CustomDataPoint):
@@ -268,9 +300,6 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
             raise ValueError(i18n.tr("exception.model.custom.siren.invalid_soundfile_index", index=index))
         return f"SOUNDFILE_{index:03d}"
 
-    available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](
-        path="_dp_repetitions.values", kind=Kind.STATE
-    )
     available_soundfiles: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_soundfile.values", kind=Kind.STATE
     )
@@ -328,14 +357,14 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
                 volume: Volume level 0.0-1.0 (default: 0.5).
                 on_time: Duration in seconds (auto unit conversion, default: 10).
                 ramp_time: Ramp time in seconds (auto unit conversion, default: 0).
-                repetitions: From available_repetitions (default: NO_REPETITION).
+                repetitions: 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST).
 
         """
         soundfile = kwargs.get("soundfile", "INTERNAL_SOUNDFILE")
         volume = kwargs.get("volume", 0.5)
         on_time = kwargs.get("on_time", 10.0)
         ramp_time = kwargs.get("ramp_time", 0.0)
-        repetitions = kwargs.get("repetitions") or self._get_default_repetitions()
+        repetitions_value = _convert_repetitions(kwargs.get("repetitions"))
 
         # Convert integer to soundfile name if needed
         if isinstance(soundfile, int):
@@ -361,20 +390,10 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
                 )
             )
 
-        # Validate repetitions against available options
-        if self.available_repetitions and repetitions not in self.available_repetitions:
-            raise ValidationException(
-                i18n.tr(
-                    "exception.model.custom.siren.invalid_repetitions",
-                    full_name=self.full_name,
-                    value=repetitions,
-                )
-            )
-
         # Send parameters - order matters for batching
         await self._dp_level.send_value(value=volume, collector=collector)
         await self._dp_soundfile.send_value(value=soundfile, collector=collector)
-        await self._dp_repetitions.send_value(value=repetitions, collector=collector)
+        await self._dp_repetitions.send_value(value=repetitions_value, collector=collector)
         # Use mixin methods for automatic unit conversion
         await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
         await self._set_on_time_value(on_time=on_time, collector=collector)
@@ -411,12 +430,6 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
             with contextlib.suppress(ValueError, TypeError):
                 play_kwargs["on_time"] = float(kwargs["duration"])
         await self.play_sound(collector=collector, **play_kwargs)
-
-    def _get_default_repetitions(self) -> str:
-        """Return default repetitions from available values."""
-        if self.available_repetitions and "NO_REPETITION" in self.available_repetitions:
-            return "NO_REPETITION"
-        return self.available_repetitions[0] if self.available_repetitions else "NO_REPETITION"
 
 
 # =============================================================================

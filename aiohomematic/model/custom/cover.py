@@ -134,7 +134,7 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
         return self.level_to_position(self._group_level) or self._closed_position
 
     @state_property
-    def is_closed(self) -> bool | None:
+    def is_closed(self) -> bool:
         """Return if the cover is closed."""
         return self._group_level == self._closed_level
 

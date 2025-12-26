@@ -1062,6 +1062,9 @@ class BaseParameterDataPoint[
         """Convert to value to ParameterT."""
         if value is None:
             return None  # type: ignore[return-value]
+        # Handle empty strings from CCU for numeric types (e.g., "" for LEVEL_2 when no slats)
+        if value == "" and self._type in (ParameterType.FLOAT, ParameterType.INTEGER):
+            return None  # type: ignore[return-value]
         try:
             if (
                 self._type == ParameterType.BOOL

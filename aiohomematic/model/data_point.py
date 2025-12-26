@@ -807,10 +807,11 @@ class BaseParameterDataPoint[
 
     @property
     def is_status_valid(self) -> bool:
-        """Return if the status indicates a valid value (NORMAL or no STATUS parameter)."""
+        """Return if the status indicates a valid value (NORMAL, UNKNOWN, or no STATUS parameter)."""
         if self._status_value is None:
             return True
-        return self._status_value == ParameterStatus.NORMAL
+        # UNKNOWN means "not yet known" (e.g., during startup) - treat as valid for is_valid check
+        return self._status_value in (ParameterStatus.NORMAL, ParameterStatus.UNKNOWN)
 
     @property
     def is_unit_fixed(self) -> bool:

@@ -4,19 +4,24 @@
 
 ### Bug Fixes
 
-- **Fix HmIP-WRCD display not updating**: Add missing `DDC=true` commit flag to COMBINED_PARAMETER - display updates now trigger correctly
-- **Fix HmIP-WRCD sound not playing**: Add missing `IN` (interval) parameter to acoustic notification format
+- **Fix HmIP-WRCD display not updating**: Replace poorly documented COMBINED_PARAMETER with individual data point calls for reliable display updates
+- **Fix HmIP-WRCD sound not playing**: Sound parameters (INTERVAL, REPETITIONS) now correctly sent via put_paramset
 - **Fix conversion error for empty numeric values**: Handle empty strings from CCU for FLOAT/INTEGER parameters gracefully (e.g., LEVEL_2 for devices without slats)
 - **Fix `CustomDpCover.is_closed` return type**: Change from `bool | None` to `bool` (method always returns bool)
 
 ### Improvements
 
+- **HmIP-WRCD**: Rewrite `send_text()` to use individual data points instead of COMBINED_PARAMETER
+  - Uses put_paramset with all display parameters for atomic updates
+  - DISPLAY_DATA_COMMIT=True triggers the display update at the end
+  - More reliable and easier to debug
 - **HmIP-WRCD**: Extend `display_id` range from 1-3 to 1-5 (device supports 5 display lines)
 - **HmIP-WRCD**: Add `interval` parameter to `TextDisplayArgs` for controlling sound tone intervals (1-15)
 - **HmIP-WRCD**: Expose `burst_limit_warning` property and log warning in `send_text()` when active
+- **HmIP-WRCD**: Support `repeat=-1` for INFINITE_REPETITIONS
 - **HmIP-MP3P**: Change `repetitions` parameter from string to int for simpler API
-  - `0` = no repetition, `1-18` = repetition count, `-1` = infinite
-  - Automatic conversion to device VALUE_LIST strings
+  - `0` = no repetition, `1-14` = repetition count, `-1` = infinite
+  - Automatic conversion to device VALUE_LIST strings (REPETITIONS_XXX format)
 - **HmIP-MP3P**: Remove `available_repetitions` property (no longer needed with int-based API)
 
 ### Internal
@@ -27,6 +32,8 @@
 - **ProfileConfig**: Rename `repeating_fields` → `fields`, `visible_repeating_fields` → `visible_fields` for clarity
 - **ProfileConfig**: Rename `RebasedChannelGroup` → `RebasedChannelGroupConfig` for consistency
 - **ProfileConfig**: Add comprehensive documentation for relative vs absolute channel numbers
+- **IP_TEXT_DISPLAY**: Add new fields to profile config (DISPLAY_DATA_COMMIT, DISPLAY_DATA_ID, DISPLAY_DATA_STRING, INTERVAL)
+- **Visibility Rules**: Un-ignore DISPLAY_DATA_COMMIT, DISPLAY_DATA_ID, DISPLAY_DATA_STRING, INTERVAL for HmIP-WRCD
 
 # Version 2025.12.47 (2025-12-25)
 

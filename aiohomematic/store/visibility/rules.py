@@ -160,9 +160,6 @@ IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
         "DATE_TIME_UNKNOWN",
         "DECISION_VALUE",
         "DEVICE_IN_BOOTLOADER",
-        "DISPLAY_DATA_COMMIT",
-        "DISPLAY_DATA_ID",
-        "DISPLAY_DATA_STRING",
         "DOOR",
         "EXTERNAL_CLOCK",
         "FROST_PROTECTION",
@@ -172,7 +169,6 @@ IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
         "INCLUSION_UNSUPPORTED_DEVICE",
         "INHIBIT",
         "INSTALL_MODE",
-        "INTERVAL",
         "LEVEL_REAL",
         "OLD_LEVEL",
         "OVERFLOW",
@@ -228,6 +224,10 @@ def parameter_is_wildcard_ignored(*, parameter: ParameterName) -> bool:
 UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[ModelName, frozenset[Parameter]]] = {
     "HmIP-DLD": frozenset({Parameter.ERROR_JAMMED}),
     "HmIP-SWSD": frozenset({Parameter.DIRT_LEVEL, Parameter.SMOKE_LEVEL, Parameter.SMOKE_DETECTOR_ALARM_STATUS}),
+    # Text display parameters for HmIP-WRCD
+    "HmIP-WRCD": frozenset(
+        {Parameter.DISPLAY_DATA_COMMIT, Parameter.DISPLAY_DATA_ID, Parameter.DISPLAY_DATA_STRING, Parameter.INTERVAL}
+    ),
     "HM-OU-LED16": frozenset({Parameter.LED_STATUS}),
     "HM-Sec-Win": frozenset({Parameter.DIRECTION, Parameter.WORKING, Parameter.ERROR, Parameter.STATUS}),
     "HM-Sec-Key": frozenset({Parameter.DIRECTION, Parameter.ERROR}),

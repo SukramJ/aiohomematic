@@ -39,7 +39,6 @@ _DEFAULT_INTERVAL: Final = 1
 # Validation ranges
 _MIN_DISPLAY_ID: Final = 1
 _MAX_DISPLAY_ID: Final = 5
-_MIN_REPEAT: Final = 0
 _MIN_INTERVAL: Final = 1
 _MAX_INTERVAL: Final = 15
 
@@ -66,16 +65,19 @@ class CustomDpTextDisplay(CustomDataPoint):
     _category = DataPointCategory.TEXT_DISPLAY
 
     # Declarative data point field definitions
-    _dp_combined_parameter: Final = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpAction)
     _dp_acoustic_notification_selection: Final = DataPointField(
         field=Field.ACOUSTIC_NOTIFICATION_SELECTION, dpt=DpActionSelect
     )
-    _dp_display_data_icon: Final = DataPointField(field=Field.DISPLAY_DATA_ICON, dpt=DpActionSelect)
+    _dp_display_data_alignment: Final = DataPointField(field=Field.DISPLAY_DATA_ALIGNMENT, dpt=DpActionSelect)
     _dp_display_data_background_color: Final = DataPointField(
         field=Field.DISPLAY_DATA_BACKGROUND_COLOR, dpt=DpActionSelect
     )
+    _dp_display_data_commit: Final = DataPointField(field=Field.DISPLAY_DATA_COMMIT, dpt=DpAction)
+    _dp_display_data_icon: Final = DataPointField(field=Field.DISPLAY_DATA_ICON, dpt=DpActionSelect)
+    _dp_display_data_id: Final = DataPointField(field=Field.DISPLAY_DATA_ID, dpt=DpActionSelect)
+    _dp_display_data_string: Final = DataPointField(field=Field.DISPLAY_DATA_STRING, dpt=DpAction)
     _dp_display_data_text_color: Final = DataPointField(field=Field.DISPLAY_DATA_TEXT_COLOR, dpt=DpActionSelect)
-    _dp_display_data_alignment: Final = DataPointField(field=Field.DISPLAY_DATA_ALIGNMENT, dpt=DpActionSelect)
+    _dp_interval: Final = DataPointField(field=Field.INTERVAL, dpt=DpActionSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
     _dp_burst_limit_warning: Final = DataPointField(field=Field.BURST_LIMIT_WARNING, dpt=DpBinarySensor)
 
@@ -88,6 +90,15 @@ class CustomDpTextDisplay(CustomDataPoint):
         if value in value_list:
             return value_list.index(value)
         return None
+
+    @staticmethod
+    def _get_repetition_string(*, repeat: int) -> str:
+        """Convert repetition int to device string format (REPETITIONS_XXX)."""
+        if repeat == 0:
+            return "NO_REPETITION"
+        if repeat == -1:
+            return "INFINITE_REPETITIONS"
+        return f"REPETITIONS_{repeat:03d}"
 
     _available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_repetitions.values")
     available_alignments: Final = DelegatedProperty[tuple[str, ...] | None](
@@ -220,9 +231,8 @@ class CustomDpTextDisplay(CustomDataPoint):
                 )
             )
 
-        # Validate repeat
-        max_repetition_value = self._get_max_repetition_plus_one()
-        if not _MIN_REPEAT <= repeat <= max_repetition_value:
+        # Validate repeat - convert to string format for validation
+        if (repetition_value := self._get_repetition_string(repeat=repeat)) not in (self._available_repetitions or ()):
             raise ValidationException(
                 i18n.tr(
                     "exception.model.custom.text_display.invalid_repeat",
@@ -241,44 +251,28 @@ class CustomDpTextDisplay(CustomDataPoint):
                 )
             )
 
-        # Get icon index (0 = NO_ICON if not specified)
-        icon_index = 0
+        # Get icon value (use first icon = NO_ICON if not specified)
+        icon_value = self.available_icons[0] if self.available_icons else "NO_ICON"
         if icon is not None:
-            icon_index = self._get_index_from_value_list(value=icon, value_list=self.available_icons) or 0
+            icon_value = icon
 
-        # Build COMBINED_PARAMETER string
-        # Format: {DDBC=color,DDTC=color,DDI=index,DDA=align,DDS=text,DDID=id,DDC=true},{R=repeat,IN=interval,ANS=sound_index}
-        # DDC=true is the "commit" flag that triggers the display update
-        display_part = (
-            f"{{DDBC={background_color},DDTC={text_color},DDI={icon_index},"
-            f"DDA={alignment},DDS={text},DDID={display_id},DDC=true}}"
-        )
+        # Send display parameters using individual data points
+        # The collector batches these into a single put_paramset call
+        await self._dp_display_data_background_color.send_value(value=background_color, collector=collector)
+        await self._dp_display_data_text_color.send_value(value=text_color, collector=collector)
+        await self._dp_display_data_icon.send_value(value=icon_value, collector=collector)
+        await self._dp_display_data_alignment.send_value(value=alignment, collector=collector)
+        await self._dp_display_data_string.send_value(value=text, collector=collector)
+        await self._dp_display_data_id.send_value(value=display_id, collector=collector)
 
-        # Only add sound part if sound is specified
+        # Send sound parameters if sound is specified
         if sound is not None:
-            sound_index = self._get_index_from_value_list(value=sound, value_list=self.available_sounds) or 0
-            sound_part = f"{{R={repeat},IN={interval},ANS={sound_index}}}"
-            combined_value = f"{display_part},{sound_part}"
-        else:
-            combined_value = display_part
+            await self._dp_acoustic_notification_selection.send_value(value=sound, collector=collector)
+            await self._dp_repetitions.send_value(value=repetition_value, collector=collector)
+            await self._dp_interval.send_value(value=interval, collector=collector)
 
-        await self._dp_combined_parameter.send_value(value=combined_value, collector=collector)
-
-    def _get_max_repetition_plus_one(self) -> int:
-        """Return the maximum repetition value plus one for validation."""
-        repetitions = self._available_repetitions or ()
-
-        def parse(r: str) -> int:
-            if r == "NO_REPETITION":
-                return 0
-            if r == "INFINITE_REPETITIONS":
-                return -1
-            return int(r.split("_")[1])
-
-        if not repetitions:
-            return 15  # Default max if no values available
-
-        return max(parse(r) for r in repetitions if r != "INFINITE_REPETITIONS") + 1
+        # DISPLAY_DATA_COMMIT triggers the display update - must be last
+        await self._dp_display_data_commit.send_value(value=True, collector=collector)
 
 
 # =============================================================================

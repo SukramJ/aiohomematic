@@ -178,11 +178,11 @@ class TestCentralFullSession:
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 150
         assert usage_types[DataPointUsage.DATA_POINT] == 3993
-        assert usage_types[DataPointUsage.NO_CREATE] == 4370
+        assert usage_types[DataPointUsage.NO_CREATE] == 4374
 
         assert len(ce_channels) == 133
         assert len(data_point_types) == 6
-        assert len(parameters) == 245
+        assert len(parameters) == 249
 
         assert len(central.device_registry.devices) == 395
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

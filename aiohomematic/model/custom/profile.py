@@ -631,8 +631,6 @@ IP_TEXT_DISPLAY_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         repeating_fields={
             Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
-        },
-        visible_repeating_fields={
             Field.ACOUSTIC_NOTIFICATION_SELECTION: Parameter.ACOUSTIC_NOTIFICATION_SELECTION,
             Field.DISPLAY_DATA_ALIGNMENT: Parameter.DISPLAY_DATA_ALIGNMENT,
             Field.DISPLAY_DATA_BACKGROUND_COLOR: Parameter.DISPLAY_DATA_BACKGROUND_COLOR,

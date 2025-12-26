@@ -6,6 +6,8 @@
 
 - **Fix HmIP-WRCD display not updating**: Add missing `DDC=true` commit flag to COMBINED_PARAMETER - display updates now trigger correctly
 - **Fix HmIP-WRCD sound not playing**: Add missing `IN` (interval) parameter to acoustic notification format
+- **Fix conversion error for empty numeric values**: Handle empty strings from CCU for FLOAT/INTEGER parameters gracefully (e.g., LEVEL_2 for devices without slats)
+- **Fix `CustomDpCover.is_closed` return type**: Change from `bool | None` to `bool` (method always returns bool)
 
 ### Improvements
 

@@ -28,6 +28,21 @@ __all__ = ["CustomDpTextDisplay", "TextDisplayArgs"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 
+# Default values for send_text parameters
+_DEFAULT_BACKGROUND_COLOR: Final = "WHITE"
+_DEFAULT_TEXT_COLOR: Final = "BLACK"
+_DEFAULT_ALIGNMENT: Final = "CENTER"
+_DEFAULT_DISPLAY_ID: Final = 1
+_DEFAULT_REPEAT: Final = 1
+_DEFAULT_INTERVAL: Final = 1
+
+# Validation ranges
+_MIN_DISPLAY_ID: Final = 1
+_MAX_DISPLAY_ID: Final = 5
+_MIN_REPEAT: Final = 0
+_MIN_INTERVAL: Final = 1
+_MAX_INTERVAL: Final = 15
+
 
 class TextDisplayArgs(TypedDict, total=False):
     """Arguments for send_text method."""
@@ -90,7 +105,7 @@ class CustomDpTextDisplay(CustomDataPoint):
     available_text_colors: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_display_data_text_color.values", kind=Kind.STATE
     )
-    burst_limit_warning: Final = DelegatedProperty[bool](path="_dp_burst_limit_warning")
+    burst_limit_warning: Final = DelegatedProperty[bool](path="_dp_burst_limit_warning.value")
 
     @state_property
     def supports_icons(self) -> bool:
@@ -137,13 +152,13 @@ class CustomDpTextDisplay(CustomDataPoint):
 
         text = kwargs.get("text", "")
         icon = kwargs.get("icon")
-        background_color = kwargs.get("background_color", "WHITE")
-        text_color = kwargs.get("text_color", "BLACK")
-        alignment = kwargs.get("alignment", "CENTER")
-        display_id = kwargs.get("display_id", 1)
+        background_color = kwargs.get("background_color", _DEFAULT_BACKGROUND_COLOR)
+        text_color = kwargs.get("text_color", _DEFAULT_TEXT_COLOR)
+        alignment = kwargs.get("alignment", _DEFAULT_ALIGNMENT)
+        display_id = kwargs.get("display_id", _DEFAULT_DISPLAY_ID)
         sound = kwargs.get("sound")
-        repeat = kwargs.get("repeat", 1)
-        interval = kwargs.get("interval", 1)
+        repeat = kwargs.get("repeat", _DEFAULT_REPEAT)
+        interval = kwargs.get("interval", _DEFAULT_INTERVAL)
 
         # Validate icon if provided
         if icon is not None and self.available_icons and icon not in self.available_icons:
@@ -186,7 +201,7 @@ class CustomDpTextDisplay(CustomDataPoint):
             )
 
         # Validate display_id
-        if not 1 <= display_id <= 5:
+        if not _MIN_DISPLAY_ID <= display_id <= _MAX_DISPLAY_ID:
             raise ValidationException(
                 i18n.tr(
                     "exception.model.custom.text_display.invalid_display_id",
@@ -207,7 +222,7 @@ class CustomDpTextDisplay(CustomDataPoint):
 
         # Validate repeat
         max_repetition_value = self._get_max_repetition_plus_one()
-        if not 0 <= repeat <= max_repetition_value:
+        if not _MIN_REPEAT <= repeat <= max_repetition_value:
             raise ValidationException(
                 i18n.tr(
                     "exception.model.custom.text_display.invalid_repeat",
@@ -217,7 +232,7 @@ class CustomDpTextDisplay(CustomDataPoint):
             )
 
         # Validate interval
-        if not 1 <= interval <= 15:
+        if not _MIN_INTERVAL <= interval <= _MAX_INTERVAL:
             raise ValidationException(
                 i18n.tr(
                     "exception.model.custom.text_display.invalid_interval",

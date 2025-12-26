@@ -209,6 +209,7 @@
   "log.client.update_device_firmware.try": "UPDATE_DEVICE_FIRMWARE: Trying firmware update for {device_address}",
   "log.core.signal.shutdown": "Got signal: {sig}. Shutting down central",
   "log.model.custom.definition.validate_failed": "The custom data point definition could not be validated. {path}, {msg}",
+  "log.model.custom.text_display.send_text.burst_limit_warning": "SEND_TEXT: {full_name}: Burst limit warning active - command may be rate-limited",
   "log.model.generic_data_point.send_value.not_writable": "SEND_VALUE: writing to non-writable data_point {full_name} is not possible",
   "log.model.hub.update.progress_completed": "Hub firmware update completed: {old_version} -> {new_version}",
   "log.model.hub.update.progress_poll_error": "Error polling update status (CCU may be rebooting): {error}",

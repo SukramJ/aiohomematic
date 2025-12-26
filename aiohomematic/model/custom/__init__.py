@@ -95,7 +95,7 @@ from aiohomematic.model.custom.profile import (
     ChannelGroupConfig,
     ProfileConfig,
     ProfileRegistry,
-    RebasedChannelGroup,
+    RebasedChannelGroupConfig,
     get_profile_config,
     rebase_channel_group,
 )
@@ -173,7 +173,7 @@ __all__ = [
     "ProfileConfig",
     "ProfileRegistry",
     "PROFILE_CONFIGS",
-    "RebasedChannelGroup",
+    "RebasedChannelGroupConfig",
     "get_profile_config",
     "rebase_channel_group",
     # Registry (new type-safe approach)

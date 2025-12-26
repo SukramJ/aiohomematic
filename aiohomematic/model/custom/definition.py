@@ -24,7 +24,7 @@ from aiohomematic.model.custom.profile import (
     DEFAULT_DATA_POINTS,
     PROFILE_CONFIGS,
     ProfileConfig,
-    RebasedChannelGroup,
+    RebasedChannelGroupConfig,
     get_profile_config,
     rebase_channel_group,
 )
@@ -105,7 +105,7 @@ def _instantiate_custom_data_point(
     channel: ChannelProtocol,
     device_config: DeviceConfig,
     device_profile: DeviceProfile,
-    channel_group: RebasedChannelGroup,
+    channel_group: RebasedChannelGroupConfig,
     custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]],
     group_no: int | None,
 ) -> None:
@@ -271,11 +271,15 @@ def get_required_parameters() -> tuple[Parameter, ...]:
     # Add parameters from profile configurations
     for profile_config in PROFILE_CONFIGS.values():
         group = profile_config.channel_group
-        required_parameters.extend(group.repeating_fields.values())
-        required_parameters.extend(group.visible_repeating_fields.values())
+        required_parameters.extend(group.fields.values())
+        required_parameters.extend(group.visible_fields.values())
         for field_map in group.channel_fields.values():
             required_parameters.extend(field_map.values())
         for field_map in group.visible_channel_fields.values():
+            required_parameters.extend(field_map.values())
+        for field_map in group.fixed_channel_fields.values():
+            required_parameters.extend(field_map.values())
+        for field_map in group.visible_fixed_channel_fields.values():
             required_parameters.extend(field_map.values())
         for params in profile_config.additional_data_points.values():
             required_parameters.extend(params)

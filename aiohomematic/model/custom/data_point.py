@@ -19,7 +19,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
-from aiohomematic.model.custom.profile import RebasedChannelGroup
+from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig
 from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.support import (
@@ -58,7 +58,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         channel: ChannelProtocol,
         unique_id: str,
         device_profile: DeviceProfile,
-        channel_group: RebasedChannelGroup,
+        channel_group: RebasedChannelGroupConfig,
         custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]],
         group_no: int | None,
         device_config: DeviceConfig,
@@ -218,11 +218,11 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         is_visible: bool | None = None,
     ) -> None:
         """Add channel-specific data points to custom data point."""
-        for channel_no, fields in channel_fields.items():
-            for field, parameter in fields.items():
+        for channel_no, ch_fields in channel_fields.items():
+            for field_name, parameter in ch_fields.items():
                 channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
                 if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
-                    self._add_data_point(field=field, data_point=dp, is_visible=is_visible)
+                    self._add_data_point(field=field_name, data_point=dp, is_visible=is_visible)
 
     def _add_data_point(
         self,
@@ -243,6 +243,19 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
         )
         self._data_points[field] = data_point
+
+    def _add_fixed_channel_data_points(
+        self,
+        *,
+        fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]],
+        is_visible: bool | None = None,
+    ) -> None:
+        """Add fixed channel data points (absolute channel numbers) to custom data point."""
+        for channel_no, ch_fields in fixed_channel_fields.items():
+            channel_address = get_channel_address(device_address=self._device.address, channel_no=channel_no)
+            for field_name, parameter in ch_fields.items():
+                if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
+                    self._add_data_point(field=field_name, data_point=dp, is_visible=is_visible)
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data point."""
@@ -284,32 +297,28 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         """Initialize data point collection."""
         cg = self._channel_group
 
-        # Add repeating fields
-        for field_name, parameter in cg.repeating_fields.items():
+        # Add primary channel fields (applied to the primary channel)
+        for field_name, parameter in cg.fields.items():
             if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=False)
 
-        # Add visible repeating fields
-        for field_name, parameter in cg.visible_repeating_fields.items():
+        # Add visible primary channel fields
+        for field_name, parameter in cg.visible_fields.items():
             if dp := self._device.get_generic_data_point(channel_address=self._channel.address, parameter=parameter):
                 self._add_data_point(field=field_name, data_point=dp, is_visible=True)
 
-        # Add extended config fields
+        # Add fixed channel fields (absolute channel numbers from profile config)
+        self._add_fixed_channel_data_points(fixed_channel_fields=cg.fixed_channel_fields)
+        self._add_fixed_channel_data_points(fixed_channel_fields=cg.visible_fixed_channel_fields, is_visible=True)
+
+        # Add fixed channel fields from extended config (legacy support)
         if self._extended:
             if fixed_channels := self._extended.fixed_channel_fields:
-                for channel_no, mapping in fixed_channels.items():
-                    for field_name, parameter in mapping.items():
-                        channel_address = get_channel_address(
-                            device_address=self._device.address, channel_no=channel_no
-                        )
-                        if dp := self._device.get_generic_data_point(
-                            channel_address=channel_address, parameter=parameter
-                        ):
-                            self._add_data_point(field=field_name, data_point=dp)
+                self._add_fixed_channel_data_points(fixed_channel_fields=fixed_channels)
             if additional_dps := self._extended.additional_data_points:
                 self._mark_data_points(custom_data_point_def=additional_dps)
 
-        # Add channel-specific fields
+        # Add channel-specific fields (relative channel numbers, rebased)
         self._add_channel_data_points(channel_fields=cg.channel_fields)
 
         # Add visible channel-specific fields

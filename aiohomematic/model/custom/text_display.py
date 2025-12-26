@@ -11,6 +11,7 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
+import logging
 from typing import Final, TypedDict, Unpack
 
 from aiohomematic import i18n
@@ -20,10 +21,12 @@ from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpActionSelect
+from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 
 __all__ = ["CustomDpTextDisplay", "TextDisplayArgs"]
+
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 class TextDisplayArgs(TypedDict, total=False):
@@ -58,6 +61,8 @@ class CustomDpTextDisplay(CustomDataPoint):
     )
     _dp_display_data_text_color: Final = DataPointField(field=Field.DISPLAY_DATA_TEXT_COLOR, dpt=DpActionSelect)
     _dp_display_data_alignment: Final = DataPointField(field=Field.DISPLAY_DATA_ALIGNMENT, dpt=DpActionSelect)
+    _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
+    _dp_burst_limit_warning: Final = DataPointField(field=Field.BURST_LIMIT_WARNING, dpt=DpBinarySensor)
 
     # Expose available options via DelegatedProperty
     @staticmethod
@@ -69,6 +74,7 @@ class CustomDpTextDisplay(CustomDataPoint):
             return value_list.index(value)
         return None
 
+    _available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_repetitions.values")
     available_alignments: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_display_data_alignment.values", kind=Kind.STATE
     )
@@ -84,6 +90,7 @@ class CustomDpTextDisplay(CustomDataPoint):
     available_text_colors: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_display_data_text_color.values", kind=Kind.STATE
     )
+    burst_limit_warning: Final = DelegatedProperty[bool](path="_dp_burst_limit_warning")
 
     @state_property
     def supports_icons(self) -> bool:
@@ -119,6 +126,15 @@ class CustomDpTextDisplay(CustomDataPoint):
                 interval: Interval between sound tones 1-15 (optional, default: 1).
 
         """
+        # Warn if burst limit is active
+        if self.burst_limit_warning:
+            _LOGGER.warning(
+                i18n.tr(
+                    "log.model.custom.text_display.send_text.burst_limit_warning",
+                    full_name=self.full_name,
+                )
+            )
+
         text = kwargs.get("text", "")
         icon = kwargs.get("icon")
         background_color = kwargs.get("background_color", "WHITE")
@@ -190,7 +206,8 @@ class CustomDpTextDisplay(CustomDataPoint):
             )
 
         # Validate repeat
-        if not 0 <= repeat <= 15:
+        max_repetition_value = self._get_max_repetition_plus_one()
+        if not 0 <= repeat <= max_repetition_value:
             raise ValidationException(
                 i18n.tr(
                     "exception.model.custom.text_display.invalid_repeat",
@@ -231,6 +248,22 @@ class CustomDpTextDisplay(CustomDataPoint):
             combined_value = display_part
 
         await self._dp_combined_parameter.send_value(value=combined_value, collector=collector)
+
+    def _get_max_repetition_plus_one(self) -> int:
+        """Return the maximum repetition value plus one for validation."""
+        repetitions = self._available_repetitions or ()
+
+        def parse(r: str) -> int:
+            if r == "NO_REPETITION":
+                return 0
+            if r == "INFINITE_REPETITIONS":
+                return -1
+            return int(r.split("_")[1])
+
+        if not repetitions:
+            return 15  # Default max if no values available
+
+        return max(parse(r) for r in repetitions if r != "INFINITE_REPETITIONS") + 1
 
 
 # =============================================================================

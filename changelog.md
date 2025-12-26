@@ -1,3 +1,31 @@
+# Version 2025.12.48 (2025-12-26)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix HmIP-WRCD display not updating**: Add missing `DDC=true` commit flag to COMBINED_PARAMETER - display updates now trigger correctly
+- **Fix HmIP-WRCD sound not playing**: Add missing `IN` (interval) parameter to acoustic notification format
+
+### Improvements
+
+- **HmIP-WRCD**: Extend `display_id` range from 1-3 to 1-5 (device supports 5 display lines)
+- **HmIP-WRCD**: Add `interval` parameter to `TextDisplayArgs` for controlling sound tone intervals (1-15)
+- **HmIP-WRCD**: Expose `burst_limit_warning` property and log warning in `send_text()` when active
+- **HmIP-MP3P**: Change `repetitions` parameter from string to int for simpler API
+  - `0` = no repetition, `1-18` = repetition count, `-1` = infinite
+  - Automatic conversion to device VALUE_LIST strings
+- **HmIP-MP3P**: Remove `available_repetitions` property (no longer needed with int-based API)
+
+### Internal
+
+- **ProfileConfig**: Add `fixed_channel_fields` / `visible_fixed_channel_fields` to `ChannelGroupConfig`
+  - Allows defining fields with absolute channel numbers (not rebased relative to group_no)
+  - Useful for device-wide parameters on channel 0
+- **ProfileConfig**: Rename `repeating_fields` → `fields`, `visible_repeating_fields` → `visible_fields` for clarity
+- **ProfileConfig**: Rename `RebasedChannelGroup` → `RebasedChannelGroupConfig` for consistency
+- **ProfileConfig**: Add comprehensive documentation for relative vs absolute channel numbers
+
 # Version 2025.12.47 (2025-12-25)
 
 ## What's Changed

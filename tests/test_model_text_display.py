@@ -9,7 +9,7 @@ from unittest.mock import call
 
 import pytest
 
-from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
+from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpTextDisplay
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
@@ -77,7 +77,7 @@ class TestTextDisplay:
 
 
 class TestTextDisplaySendText:
-    """Tests for send_text method and COMBINED_PARAMETER conversion."""
+    """Tests for send_text method using individual data points."""
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -103,14 +103,21 @@ class TestTextDisplaySendText:
 
         await display.send_text(text="Hello World")
 
-        # Verify the COMBINED_PARAMETER format
-        # Default: WHITE background, BLACK text, no icon (0), CENTER, display_id 1
-        assert mock_client.method_calls[-1] == call.set_value(
+        # Verify put_paramset is called with individual parameters
+        # Default: WHITE background, BLACK text, NO_ICON, CENTER, display_id 1
+        assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Hello World,DDID=1,DDC=true}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "DISPLAY_DATA_BACKGROUND_COLOR": "WHITE",
+                "DISPLAY_DATA_TEXT_COLOR": "BLACK",
+                "DISPLAY_DATA_ICON": "NO_ICON",
+                "DISPLAY_DATA_ALIGNMENT": "CENTER",
+                "DISPLAY_DATA_STRING": "Hello World",
+                "DISPLAY_DATA_ID": 1,
+                "DISPLAY_DATA_COMMIT": True,
+            },
+            wait_for_callback=None,
         )
 
     @pytest.mark.asyncio
@@ -137,12 +144,19 @@ class TestTextDisplaySendText:
 
         await display.send_text(text="")
 
-        assert mock_client.method_calls[-1] == call.set_value(
+        assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=,DDID=1,DDC=true}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "DISPLAY_DATA_BACKGROUND_COLOR": "WHITE",
+                "DISPLAY_DATA_TEXT_COLOR": "BLACK",
+                "DISPLAY_DATA_ICON": "NO_ICON",
+                "DISPLAY_DATA_ALIGNMENT": "CENTER",
+                "DISPLAY_DATA_STRING": "",
+                "DISPLAY_DATA_ID": 1,
+                "DISPLAY_DATA_COMMIT": True,
+            },
+            wait_for_callback=None,
         )
 
     @pytest.mark.asyncio
@@ -172,13 +186,11 @@ class TestTextDisplaySendText:
         assert display.available_sounds is not None
         assert display.available_alignments is not None
 
-        # Use third icon (index 2)
+        # Use third icon
         test_icon = display.available_icons[2]
-        icon_index = 2
 
-        # Use third sound (index 2)
+        # Use third sound
         test_sound = display.available_sounds[2]
-        sound_index = 2
 
         # Find RIGHT alignment or use second available
         alignment = "RIGHT" if "RIGHT" in display.available_alignments else display.available_alignments[1]
@@ -192,14 +204,25 @@ class TestTextDisplaySendText:
             display_id=3,
             sound=test_sound,
             repeat=5,
+            interval=2,
         )
 
-        assert mock_client.method_calls[-1] == call.set_value(
+        assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value=f"{{DDBC=BLACK,DDTC=WHITE,DDI={icon_index},DDA={alignment},DDS=Door Open,DDID=3,DDC=true}},{{R=5,IN=1,ANS={sound_index}}}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "DISPLAY_DATA_BACKGROUND_COLOR": "BLACK",
+                "DISPLAY_DATA_TEXT_COLOR": "WHITE",
+                "DISPLAY_DATA_ICON": test_icon,
+                "DISPLAY_DATA_ALIGNMENT": alignment,
+                "DISPLAY_DATA_STRING": "Door Open",
+                "DISPLAY_DATA_ID": 3,
+                "ACOUSTIC_NOTIFICATION_SELECTION": test_sound,
+                "REPETITIONS": "REPETITIONS_005",
+                "INTERVAL": 2,
+                "DISPLAY_DATA_COMMIT": True,
+            },
+            wait_for_callback=None,
         )
 
     @pytest.mark.asyncio
@@ -214,131 +237,23 @@ class TestTextDisplaySendText:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_send_text_with_alignment(
+    async def test_send_text_no_repetition(
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
-        """Test send_text with different alignments."""
+        """Test send_text with repeat=0 sends NO_REPETITION."""
         central, mock_client, _ = central_client_factory_with_ccu_client
         display: CustomDpTextDisplay = cast(
             CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
         )
 
-        await display.send_text(text="Left aligned", alignment="LEFT")
+        assert display.available_sounds is not None
+        test_sound = display.available_sounds[1]
 
-        assert mock_client.method_calls[-1] == call.set_value(
-            channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=LEFT,DDS=Left aligned,DDID=1,DDC=true}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
-        )
+        await display.send_text(text="Silent", sound=test_sound, repeat=0)
 
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_send_text_with_colors(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test send_text with custom background and text colors."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-        display: CustomDpTextDisplay = cast(
-            CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
-        )
-
-        # Use BLACK background and WHITE text (inverse of defaults)
-        await display.send_text(
-            text="Inverted",
-            background_color="BLACK",
-            text_color="WHITE",
-        )
-
-        assert mock_client.method_calls[-1] == call.set_value(
-            channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value="{DDBC=BLACK,DDTC=WHITE,DDI=0,DDA=CENTER,DDS=Inverted,DDID=1,DDC=true}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_send_text_with_display_id(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test send_text with different display slots."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-        display: CustomDpTextDisplay = cast(
-            CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
-        )
-
-        await display.send_text(text="Slot 2", display_id=2)
-
-        assert mock_client.method_calls[-1] == call.set_value(
-            channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Slot 2,DDID=2,DDC=true}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_send_text_with_icon(
-        self,
-        central_client_factory_with_ccu_client,
-    ) -> None:
-        """Test send_text with icon specified."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
-        display: CustomDpTextDisplay = cast(
-            CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
-        )
-
-        # Use the second icon (first is NO_ICON which has index 0)
-        assert display.available_icons is not None
-        test_icon = display.available_icons[1]  # Second icon
-        icon_index = 1
-
-        await display.send_text(text="Light On", icon=test_icon)
-
-        assert mock_client.method_calls[-1] == call.set_value(
-            channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value=f"{{DDBC=WHITE,DDTC=BLACK,DDI={icon_index},DDA=CENTER,DDS=Light On,DDID=1,DDC=true}}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
-        )
+        values = mock_client.method_calls[-1].kwargs["values"]
+        assert values["REPETITIONS"] == "NO_REPETITION"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -356,26 +271,35 @@ class TestTextDisplaySendText:
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
-        """Test send_text with sound adds sound part to COMBINED_PARAMETER."""
+        """Test send_text with sound includes sound parameters."""
         central, mock_client, _ = central_client_factory_with_ccu_client
         display: CustomDpTextDisplay = cast(
             CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
         )
 
-        # Use second available sound (first is DISABLE_ACOUSTIC_SIGNAL)
+        # Use second available sound
         assert display.available_sounds is not None
         test_sound = display.available_sounds[1]
-        sound_index = 1
 
         await display.send_text(text="Alert", sound=test_sound, repeat=3)
 
-        # With sound, the format includes the sound part
-        assert mock_client.method_calls[-1] == call.set_value(
+        # With sound, the values include sound parameters
+        assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU3756007:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="COMBINED_PARAMETER",
-            value=f"{{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Alert,DDID=1,DDC=true}},{{R=3,IN=1,ANS={sound_index}}}",
-            wait_for_callback=WAIT_FOR_CALLBACK,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "DISPLAY_DATA_BACKGROUND_COLOR": "WHITE",
+                "DISPLAY_DATA_TEXT_COLOR": "BLACK",
+                "DISPLAY_DATA_ICON": "NO_ICON",
+                "DISPLAY_DATA_ALIGNMENT": "CENTER",
+                "DISPLAY_DATA_STRING": "Alert",
+                "DISPLAY_DATA_ID": 1,
+                "ACOUSTIC_NOTIFICATION_SELECTION": test_sound,
+                "REPETITIONS": "REPETITIONS_003",
+                "INTERVAL": 1,
+                "DISPLAY_DATA_COMMIT": True,
+            },
+            wait_for_callback=None,
         )
 
 
@@ -548,14 +472,15 @@ class TestTextDisplayValidation:
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
-        """Test send_text raises ValidationException for repeat < 0."""
+        """Test send_text raises ValidationException for repeat < -1."""
         central, _, _ = central_client_factory_with_ccu_client
         display: CustomDpTextDisplay = cast(
             CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
         )
 
+        # repeat=-1 is valid (INFINITE_REPETITIONS), but -2 is not
         with pytest.raises(ValidationException):
-            await display.send_text(text="Test", repeat=-1)
+            await display.send_text(text="Test", repeat=-2)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -608,8 +533,8 @@ class TestTextDisplayValidation:
             await display.send_text(text="Test", text_color="INVALID_COLOR")
 
 
-class TestTextDisplayIndexConversion:
-    """Tests for icon and sound index conversion."""
+class TestTextDisplayHelpers:
+    """Tests for helper methods."""
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -660,38 +585,19 @@ class TestTextDisplayIndexConversion:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_icon_index_conversion(
+    async def test_get_repetition_string(
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
-        """Test that icons are correctly converted to indices."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        """Test _get_repetition_string helper method."""
+        central, _, _ = central_client_factory_with_ccu_client
         display: CustomDpTextDisplay = cast(
             CustomDpTextDisplay, get_prepared_custom_data_point(central, "VCU3756007", 3)
         )
 
-        # First icon should have index 0
-        if display.available_icons:
-            first_icon = display.available_icons[0]
-            await display.send_text(text="Test", icon=first_icon)
-
-            assert mock_client.method_calls[-1] == call.set_value(
-                channel_address="VCU3756007:3",
-                paramset_key=ParamsetKey.VALUES,
-                parameter="COMBINED_PARAMETER",
-                value="{DDBC=WHITE,DDTC=BLACK,DDI=0,DDA=CENTER,DDS=Test,DDID=1,DDC=true}",
-                wait_for_callback=WAIT_FOR_CALLBACK,
-            )
-
-            # Last icon should have correct index
-            last_icon = display.available_icons[-1]
-            last_index = len(display.available_icons) - 1
-            await display.send_text(text="Test", icon=last_icon)
-
-            assert mock_client.method_calls[-1] == call.set_value(
-                channel_address="VCU3756007:3",
-                paramset_key=ParamsetKey.VALUES,
-                parameter="COMBINED_PARAMETER",
-                value=f"{{DDBC=WHITE,DDTC=BLACK,DDI={last_index},DDA=CENTER,DDS=Test,DDID=1,DDC=true}}",
-                wait_for_callback=WAIT_FOR_CALLBACK,
-            )
+        # Test conversion of int to string (format: REPETITIONS_XXX with leading zeros)
+        assert display._get_repetition_string(repeat=0) == "NO_REPETITION"
+        assert display._get_repetition_string(repeat=1) == "REPETITIONS_001"
+        assert display._get_repetition_string(repeat=5) == "REPETITIONS_005"
+        assert display._get_repetition_string(repeat=14) == "REPETITIONS_014"
+        assert display._get_repetition_string(repeat=-1) == "INFINITE_REPETITIONS"

@@ -687,11 +687,14 @@ IP_TEXT_DISPLAY_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         fields={
             Field.ACOUSTIC_NOTIFICATION_SELECTION: Parameter.ACOUSTIC_NOTIFICATION_SELECTION,
-            Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
             Field.DISPLAY_DATA_ALIGNMENT: Parameter.DISPLAY_DATA_ALIGNMENT,
             Field.DISPLAY_DATA_BACKGROUND_COLOR: Parameter.DISPLAY_DATA_BACKGROUND_COLOR,
+            Field.DISPLAY_DATA_COMMIT: Parameter.DISPLAY_DATA_COMMIT,
             Field.DISPLAY_DATA_ICON: Parameter.DISPLAY_DATA_ICON,
+            Field.DISPLAY_DATA_ID: Parameter.DISPLAY_DATA_ID,
+            Field.DISPLAY_DATA_STRING: Parameter.DISPLAY_DATA_STRING,
             Field.DISPLAY_DATA_TEXT_COLOR: Parameter.DISPLAY_DATA_TEXT_COLOR,
+            Field.INTERVAL: Parameter.INTERVAL,
             Field.REPETITIONS: Parameter.REPETITIONS,
         },
         visible_fixed_channel_fields={

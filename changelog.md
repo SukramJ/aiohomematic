@@ -8,6 +8,9 @@
 - **Fix HmIP-WRCD sound not playing**: Sound parameters (INTERVAL, REPETITIONS) now correctly sent via put_paramset
 - **Fix conversion error for empty numeric values**: Handle empty strings from CCU for FLOAT/INTEGER parameters gracefully (e.g., LEVEL_2 for devices without slats)
 - **Fix `CustomDpCover.is_closed` return type**: Change from `bool | None` to `bool` (method always returns bool)
+- **Fix cover/dimmer `is_valid` returning False after restart**: Treat `UNKNOWN` status as valid for `is_valid` check (GitHub Issue #2630)
+  - When CCU sends `*_STATUS = UNKNOWN` during startup, entities now correctly report valid state
+  - Previously, `is_valid` returned False, causing Home Assistant to use stale cached values
 
 ### Improvements
 

@@ -41,7 +41,7 @@ from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import StateChangeArgs
-from aiohomematic.model.custom.profile import RebasedChannelGroup
+from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
@@ -164,7 +164,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         channel: ChannelProtocol,
         unique_id: str,
         device_profile: DeviceProfile,
-        channel_group: RebasedChannelGroup,
+        channel_group: RebasedChannelGroupConfig,
         custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]],
         group_no: int | None,
         device_config: DeviceConfig,

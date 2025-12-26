@@ -17,7 +17,7 @@ Example usage:
     MY_PROFILE = ProfileConfig(
         profile_type=ProfileType.HMIP_THERMOSTAT,
         channel_group=ChannelGroupConfig(
-            repeating_fields={Field.SETPOINT: Parameter.SET_POINT_TEMPERATURE},
+            fields={Field.SETPOINT: Parameter.SET_POINT_TEMPERATURE},
         ),
     )
 """
@@ -36,7 +36,7 @@ __all__ = [
     "ProfileConfig",
     "ProfileRegistry",
     "PROFILE_CONFIGS",
-    "RebasedChannelGroup",
+    "RebasedChannelGroupConfig",
     "get_profile_config",
     "rebase_channel_group",
 ]
@@ -49,22 +49,64 @@ class ChannelGroupConfig:
 
     A channel group defines the structure of channels for a device type,
     including which fields are available on each channel.
+
+    Channel Number Convention
+    -------------------------
+    This configuration uses two types of channel numbers:
+
+    **Relative channel numbers** (used in most fields):
+    - `primary_channel`, `secondary_channels`, `state_channel_offset`
+    - `channel_fields`, `visible_channel_fields`
+
+    These are **offsets from a base channel** (group_no). The base channel is
+    determined at device registration time via DeviceProfileRegistry.register(channels=(...)).
+
+    For example, with a configuration of:
+        primary_channel=1, secondary_channels=(2, 3)
+
+    And registration with channels=(4,):
+        - group_no becomes 4
+        - Actual primary_channel = 4 + 1 = 5
+        - Actual secondary_channels = (4 + 2, 4 + 3) = (6, 7)
+
+    The conversion from relative to absolute channel numbers is performed by
+    rebase_channel_group(), which produces a RebasedChannelGroupConfig.
+
+    **Absolute channel numbers** (fixed, not rebased):
+    - `fixed_channel_fields`, `visible_fixed_channel_fields`
+
+    These are used for fields that must always reference specific device channels,
+    regardless of which channel group is being created. Common use case: channel 0
+    parameters that apply to the entire device.
+
+    Special Values
+    --------------
+    - primary_channel=0: The primary channel is the base channel itself (group_no)
+    - primary_channel=None: No primary channel defined
+    - ChannelOffset enum values can be used for semantic offsets in channel_fields
     """
 
-    # Channel structure
+    # Channel structure (relative to group_no base channel)
     primary_channel: int | None = 0
     secondary_channels: tuple[int, ...] = ()
     state_channel_offset: int | None = None
     allow_undefined_generic_data_points: bool = False
 
-    # Field mappings (applied to each channel in group)
-    repeating_fields: Mapping[Field, Parameter] = field(default_factory=dict)
-    visible_repeating_fields: Mapping[Field, Parameter] = field(default_factory=dict)
+    # Field mappings applied to the primary channel (not channel-specific)
+    fields: Mapping[Field, Parameter] = field(default_factory=dict)
+    visible_fields: Mapping[Field, Parameter] = field(default_factory=dict)
 
-    # Channel-specific field mappings {channel_no: {field: parameter}}
-    # Use ChannelOffset enum values (e.g., ChannelOffset.STATE) for semantic offsets
+    # Channel-specific field mappings with RELATIVE channel offsets
+    # {channel_offset: {field: parameter}} - channel numbers are offsets from group_no
+    # Use ChannelOffset enum values (e.g., ChannelOffset.STATE) for semantic offsets.
     channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = field(default_factory=dict)
     visible_channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = field(default_factory=dict)
+
+    # Channel-specific field mappings with ABSOLUTE (fixed) channel numbers
+    # {channel_no: {field: parameter}} - channel numbers are NOT rebased
+    # Use for fields that must always reference specific device channels (e.g., channel 0).
+    fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = field(default_factory=dict)
+    visible_fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -78,13 +120,18 @@ class ProfileConfig:
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
-class RebasedChannelGroup:
+class RebasedChannelGroupConfig:
     """
     Channel group configuration with rebased channel numbers.
 
-    This dataclass contains channel configuration with all channel numbers
+    This dataclass contains channel configuration with all relative channel numbers
     adjusted by the group offset. Used by CustomDataPoint to access field
     mappings without dictionary-based lookups.
+
+    All channel numbers in this config are **absolute** (actual device channels):
+    - `primary_channel`, `secondary_channels`, `state_channel` - rebased from offsets
+    - `channel_fields`, `visible_channel_fields` - rebased from offsets
+    - `fixed_channel_fields`, `visible_fixed_channel_fields` - already absolute (unchanged)
     """
 
     # Rebased channel structure (actual channel numbers after applying group_no)
@@ -93,32 +140,38 @@ class RebasedChannelGroup:
     state_channel: int | None
     allow_undefined_generic_data_points: bool
 
-    # Field mappings for the current channel (repeating fields)
-    repeating_fields: Mapping[Field, Parameter]
-    visible_repeating_fields: Mapping[Field, Parameter]
+    # Field mappings applied to the primary channel
+    fields: Mapping[Field, Parameter]
+    visible_fields: Mapping[Field, Parameter]
 
     # Channel-specific field mappings (rebased to actual channel numbers)
     channel_fields: Mapping[int | None, Mapping[Field, Parameter]]
     visible_channel_fields: Mapping[int | None, Mapping[Field, Parameter]]
+
+    # Fixed channel field mappings (absolute channel numbers, not rebased)
+    fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]]
+    visible_fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]]
 
 
 def rebase_channel_group(
     *,
     profile_config: ProfileConfig,
     group_no: int | None,
-) -> RebasedChannelGroup:
+) -> RebasedChannelGroupConfig:
     """
     Create a rebased channel group from a ProfileConfig.
 
-    Applies the group offset to all channel numbers in the configuration,
-    producing a RebasedChannelGroup with actual channel numbers.
+    Applies the group offset to relative channel numbers in the configuration,
+    producing a RebasedChannelGroupConfig with actual channel numbers.
+
+    Fixed channel fields are passed through unchanged (they use absolute channel numbers).
 
     Args:
         profile_config: The profile configuration to rebase.
         group_no: The group offset to apply (None means no offset).
 
     Returns:
-        RebasedChannelGroup with rebased channel numbers.
+        RebasedChannelGroupConfig with rebased channel numbers.
 
     """
     cg = profile_config.channel_group
@@ -137,31 +190,34 @@ def rebase_channel_group(
     if cg.state_channel_offset is not None:
         state = cg.state_channel_offset + offset if offset else cg.state_channel_offset
 
-    # Rebase channel_fields
+    # Rebase channel_fields (relative -> absolute)
     channel_fields: dict[int | None, Mapping[Field, Parameter]] = {}
-    for ch_no, fields in cg.channel_fields.items():
+    for ch_no, ch_fields in cg.channel_fields.items():
         if ch_no is None:
-            channel_fields[None] = fields
+            channel_fields[None] = ch_fields
         else:
-            channel_fields[ch_no + offset] = fields
+            channel_fields[ch_no + offset] = ch_fields
 
-    # Rebase visible_channel_fields
+    # Rebase visible_channel_fields (relative -> absolute)
     visible_channel_fields: dict[int | None, Mapping[Field, Parameter]] = {}
-    for ch_no, fields in cg.visible_channel_fields.items():
+    for ch_no, ch_fields in cg.visible_channel_fields.items():
         if ch_no is None:
-            visible_channel_fields[None] = fields
+            visible_channel_fields[None] = ch_fields
         else:
-            visible_channel_fields[ch_no + offset] = fields
+            visible_channel_fields[ch_no + offset] = ch_fields
 
-    return RebasedChannelGroup(
+    # Fixed channel fields are NOT rebased (already absolute)
+    return RebasedChannelGroupConfig(
         primary_channel=primary,
         secondary_channels=secondary,
         state_channel=state,
         allow_undefined_generic_data_points=cg.allow_undefined_generic_data_points,
-        repeating_fields=cg.repeating_fields,
-        visible_repeating_fields=cg.visible_repeating_fields,
+        fields=cg.fields,
+        visible_fields=cg.visible_fields,
         channel_fields=channel_fields,
         visible_channel_fields=visible_channel_fields,
+        fixed_channel_fields=cg.fixed_channel_fields,
+        visible_fixed_channel_fields=cg.visible_fixed_channel_fields,
     )
 
 
@@ -182,7 +238,7 @@ IP_BUTTON_LOCK_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_BUTTON_LOCK,
     channel_group=ChannelGroupConfig(
         allow_undefined_generic_data_points=True,
-        repeating_fields={
+        fields={
             Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
         },
     ),
@@ -193,7 +249,7 @@ RF_BUTTON_LOCK_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         primary_channel=None,
         allow_undefined_generic_data_points=True,
-        repeating_fields={
+        fields={
             Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
         },
     ),
@@ -207,7 +263,7 @@ IP_COVER_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2),
         state_channel_offset=ChannelOffset.STATE,
-        repeating_fields={
+        fields={
             Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
             Field.LEVEL: Parameter.LEVEL,
             Field.LEVEL_2: Parameter.LEVEL_2,
@@ -231,7 +287,7 @@ IP_COVER_CONFIG: Final = ProfileConfig(
 RF_COVER_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_COVER,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.DIRECTION: Parameter.DIRECTION,
             Field.LEVEL: Parameter.LEVEL,
             Field.LEVEL_2: Parameter.LEVEL_SLATS,
@@ -258,11 +314,11 @@ IP_HDM_CONFIG: Final = ProfileConfig(
 IP_GARAGE_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_GARAGE,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.DOOR_COMMAND: Parameter.DOOR_COMMAND,
             Field.SECTION: Parameter.SECTION,
         },
-        visible_repeating_fields={
+        visible_fields={
             Field.DOOR_STATE: Parameter.DOOR_STATE,
         },
     ),
@@ -279,7 +335,7 @@ IP_DIMMER_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2),
         state_channel_offset=ChannelOffset.STATE,
-        repeating_fields={
+        fields={
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -295,7 +351,7 @@ IP_DIMMER_CONFIG: Final = ProfileConfig(
 RF_DIMMER_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -306,7 +362,7 @@ RF_DIMMER_CONFIG: Final = ProfileConfig(
 RF_DIMMER_COLOR_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER_COLOR,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -321,7 +377,7 @@ RF_DIMMER_COLOR_CONFIG: Final = ProfileConfig(
 RF_DIMMER_COLOR_FIXED_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER_COLOR_FIXED,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -332,7 +388,7 @@ RF_DIMMER_COLOR_FIXED_CONFIG: Final = ProfileConfig(
 RF_DIMMER_COLOR_TEMP_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER_COLOR_TEMP,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -347,7 +403,7 @@ RF_DIMMER_WITH_VIRT_CHANNEL_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER_WITH_VIRT_CHANNEL,
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2),
-        repeating_fields={
+        fields={
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -360,7 +416,7 @@ IP_FIXED_COLOR_LIGHT_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2),
         state_channel_offset=ChannelOffset.STATE,
-        repeating_fields={
+        fields={
             Field.COLOR: Parameter.COLOR,
             Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
             Field.LEVEL: Parameter.LEVEL,
@@ -381,7 +437,7 @@ IP_FIXED_COLOR_LIGHT_CONFIG: Final = ProfileConfig(
 IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.COLOR: Parameter.COLOR,
             Field.COLOR_BEHAVIOUR: Parameter.COLOR_BEHAVIOUR,
             Field.LEVEL: Parameter.LEVEL,
@@ -396,7 +452,7 @@ IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED_CONFIG: Final = ProfileConfig(
 IP_SIMPLE_FIXED_COLOR_LIGHT_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.COLOR: Parameter.COLOR,
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
@@ -411,7 +467,7 @@ IP_RGBW_LIGHT_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_RGBW_LIGHT,
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2, 3),
-        repeating_fields={
+        fields={
             Field.COLOR_TEMPERATURE: Parameter.COLOR_TEMPERATURE,
             Field.DIRECTION: Parameter.ACTIVITY_STATE,
             Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
@@ -436,7 +492,7 @@ IP_RGBW_LIGHT_CONFIG: Final = ProfileConfig(
 IP_DRG_DALI_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_DRG_DALI,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.COLOR_TEMPERATURE: Parameter.COLOR_TEMPERATURE,
             Field.ON_TIME_VALUE: Parameter.DURATION_VALUE,
             Field.ON_TIME_UNIT: Parameter.DURATION_UNIT,
@@ -460,7 +516,7 @@ IP_SWITCH_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2),
         state_channel_offset=ChannelOffset.STATE,
-        repeating_fields={
+        fields={
             Field.STATE: Parameter.STATE,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
         },
@@ -486,7 +542,7 @@ IP_SWITCH_CONFIG: Final = ProfileConfig(
 RF_SWITCH_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_SWITCH,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.STATE: Parameter.STATE,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
         },
@@ -506,7 +562,7 @@ IP_IRRIGATION_VALVE_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_IRRIGATION_VALVE,
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2),
-        repeating_fields={
+        fields={
             Field.STATE: Parameter.STATE,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
         },
@@ -531,7 +587,7 @@ IP_IRRIGATION_VALVE_CONFIG: Final = ProfileConfig(
 IP_LOCK_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_LOCK,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.DIRECTION: Parameter.ACTIVITY_STATE,
             Field.LOCK_STATE: Parameter.LOCK_STATE,
             Field.LOCK_TARGET_LEVEL: Parameter.LOCK_TARGET_LEVEL,
@@ -547,7 +603,7 @@ IP_LOCK_CONFIG: Final = ProfileConfig(
 RF_LOCK_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_LOCK,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.DIRECTION: Parameter.DIRECTION,
             Field.OPEN: Parameter.OPEN,
             Field.STATE: Parameter.STATE,
@@ -562,13 +618,13 @@ RF_LOCK_CONFIG: Final = ProfileConfig(
 IP_SIREN_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_SIREN,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.ACOUSTIC_ALARM_ACTIVE: Parameter.ACOUSTIC_ALARM_ACTIVE,
             Field.OPTICAL_ALARM_ACTIVE: Parameter.OPTICAL_ALARM_ACTIVE,
             Field.DURATION: Parameter.DURATION_VALUE,
             Field.DURATION_UNIT: Parameter.DURATION_UNIT,
         },
-        visible_repeating_fields={
+        visible_fields={
             Field.ACOUSTIC_ALARM_SELECTION: Parameter.ACOUSTIC_ALARM_SELECTION,
             Field.OPTICAL_ALARM_SELECTION: Parameter.OPTICAL_ALARM_SELECTION,
         },
@@ -578,10 +634,10 @@ IP_SIREN_CONFIG: Final = ProfileConfig(
 IP_SIREN_SMOKE_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_SIREN_SMOKE,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.SMOKE_DETECTOR_COMMAND: Parameter.SMOKE_DETECTOR_COMMAND,
         },
-        visible_repeating_fields={
+        visible_fields={
             Field.SMOKE_DETECTOR_ALARM_STATUS: Parameter.SMOKE_DETECTOR_ALARM_STATUS,
         },
     ),
@@ -593,7 +649,7 @@ IP_SIREN_SMOKE_CONFIG: Final = ProfileConfig(
 IP_SOUND_PLAYER_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_SOUND_PLAYER,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.DIRECTION: Parameter.ACTIVITY_STATE,
             Field.DURATION_UNIT: Parameter.DURATION_UNIT,
             Field.DURATION_VALUE: Parameter.DURATION_VALUE,
@@ -609,7 +665,7 @@ IP_SOUND_PLAYER_CONFIG: Final = ProfileConfig(
 IP_SOUND_PLAYER_LED_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_SOUND_PLAYER_LED,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.COLOR: Parameter.COLOR,
             Field.DIRECTION: Parameter.ACTIVITY_STATE,
             Field.DURATION_UNIT: Parameter.DURATION_UNIT,
@@ -629,13 +685,17 @@ IP_SOUND_PLAYER_LED_CONFIG: Final = ProfileConfig(
 IP_TEXT_DISPLAY_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_TEXT_DISPLAY,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
-            Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
+        fields={
             Field.ACOUSTIC_NOTIFICATION_SELECTION: Parameter.ACOUSTIC_NOTIFICATION_SELECTION,
+            Field.COMBINED_PARAMETER: Parameter.COMBINED_PARAMETER,
             Field.DISPLAY_DATA_ALIGNMENT: Parameter.DISPLAY_DATA_ALIGNMENT,
             Field.DISPLAY_DATA_BACKGROUND_COLOR: Parameter.DISPLAY_DATA_BACKGROUND_COLOR,
             Field.DISPLAY_DATA_ICON: Parameter.DISPLAY_DATA_ICON,
             Field.DISPLAY_DATA_TEXT_COLOR: Parameter.DISPLAY_DATA_TEXT_COLOR,
+            Field.REPETITIONS: Parameter.REPETITIONS,
+        },
+        visible_fixed_channel_fields={
+            0: {Field.BURST_LIMIT_WARNING: Parameter.BURST_LIMIT_WARNING},
         },
     ),
 )
@@ -646,7 +706,7 @@ IP_TEXT_DISPLAY_CONFIG: Final = ProfileConfig(
 IP_THERMOSTAT_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_THERMOSTAT,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.ACTIVE_PROFILE: Parameter.ACTIVE_PROFILE,
             Field.BOOST_MODE: Parameter.BOOST_MODE,
             Field.CONTROL_MODE: Parameter.CONTROL_MODE,
@@ -659,7 +719,7 @@ IP_THERMOSTAT_CONFIG: Final = ProfileConfig(
             Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
             Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
         },
-        visible_repeating_fields={
+        visible_fields={
             Field.HEATING_COOLING: Parameter.HEATING_COOLING,
             Field.HUMIDITY: Parameter.HUMIDITY,
             Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
@@ -687,7 +747,7 @@ IP_THERMOSTAT_CONFIG: Final = ProfileConfig(
 IP_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.IP_THERMOSTAT_GROUP,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.ACTIVE_PROFILE: Parameter.ACTIVE_PROFILE,
             Field.BOOST_MODE: Parameter.BOOST_MODE,
             Field.CONTROL_MODE: Parameter.CONTROL_MODE,
@@ -701,7 +761,7 @@ IP_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
             Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
             Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
         },
-        visible_repeating_fields={
+        visible_fields={
             Field.HEATING_COOLING: Parameter.HEATING_COOLING,
             Field.HUMIDITY: Parameter.HUMIDITY,
             Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
@@ -721,7 +781,7 @@ IP_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
 RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_THERMOSTAT,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.AUTO_MODE: Parameter.AUTO_MODE,
             Field.BOOST_MODE: Parameter.BOOST_MODE,
             Field.COMFORT_MODE: Parameter.COMFORT_MODE,
@@ -739,7 +799,7 @@ RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
                 Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
             },
         },
-        visible_repeating_fields={
+        visible_fields={
             Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
             Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
         },
@@ -754,7 +814,7 @@ RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
 RF_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_THERMOSTAT_GROUP,
     channel_group=ChannelGroupConfig(
-        repeating_fields={
+        fields={
             Field.AUTO_MODE: Parameter.AUTO_MODE,
             Field.BOOST_MODE: Parameter.BOOST_MODE,
             Field.COMFORT_MODE: Parameter.COMFORT_MODE,
@@ -772,7 +832,7 @@ RF_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
                 Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
             },
         },
-        visible_repeating_fields={
+        visible_fields={
             Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
             Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
         },
@@ -788,7 +848,7 @@ RF_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
 SIMPLE_RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.SIMPLE_RF_THERMOSTAT,
     channel_group=ChannelGroupConfig(
-        visible_repeating_fields={
+        visible_fields={
             Field.HUMIDITY: Parameter.HUMIDITY,
             Field.TEMPERATURE: Parameter.TEMPERATURE,
         },

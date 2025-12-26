@@ -58,6 +58,7 @@ class CustomDpTextDisplay(CustomDataPoint):
     )
     _dp_display_data_text_color: Final = DataPointField(field=Field.DISPLAY_DATA_TEXT_COLOR, dpt=DpActionSelect)
     _dp_display_data_alignment: Final = DataPointField(field=Field.DISPLAY_DATA_ALIGNMENT, dpt=DpActionSelect)
+    _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
 
     # Expose available options via DelegatedProperty
     @staticmethod
@@ -69,6 +70,7 @@ class CustomDpTextDisplay(CustomDataPoint):
             return value_list.index(value)
         return None
 
+    _available_repetitions: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_repetitions.values")
     available_alignments: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_display_data_alignment.values", kind=Kind.STATE
     )
@@ -190,7 +192,8 @@ class CustomDpTextDisplay(CustomDataPoint):
             )
 
         # Validate repeat
-        if not 0 <= repeat <= 15:
+        max_repetition_value = self._get_max_repetition_plus_one()
+        if not 0 <= repeat <= max_repetition_value:
             raise ValidationException(
                 i18n.tr(
                     "exception.model.custom.text_display.invalid_repeat",
@@ -231,6 +234,22 @@ class CustomDpTextDisplay(CustomDataPoint):
             combined_value = display_part
 
         await self._dp_combined_parameter.send_value(value=combined_value, collector=collector)
+
+    def _get_max_repetition_plus_one(self) -> int:
+        """Return the maximum repetition value plus one for validation."""
+        repetitions = self._available_repetitions or ()
+
+        def parse(r: str) -> int:
+            if r == "NO_REPETITION":
+                return 0
+            if r == "INFINITE_REPETITIONS":
+                return -1
+            return int(r.split("_")[1])
+
+        if not repetitions:
+            return 15  # Default max if no values available
+
+        return max(parse(r) for r in repetitions if r != "INFINITE_REPETITIONS") + 1
 
 
 # =============================================================================

@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.47"
+VERSION: Final = "2025.12.48"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -686,6 +686,7 @@ class Field(Enum):
     ACTIVITY_STATE = "activity_state"
     AUTO_MODE = "auto_mode"
     BOOST_MODE = "boost_mode"
+    BURST_LIMIT_WARNING = "burst_limit_warning"
     BUTTON_LOCK = "button_lock"
     CHANNEL_COLOR = "channel_color"
     COLOR = "color"
@@ -838,6 +839,10 @@ class Parameter(StrEnum):
     AUTO_MODE = "AUTO_MODE"
     BATTERY_STATE = "BATTERY_STATE"
     BOOST_MODE = "BOOST_MODE"
+    BURST_LIMIT_WARNING = "BURST_LIMIT_WARNING"
+    BUTTON_LOCK = "BUTTON_LOCK"
+    CHANNEL_COLOR = "CHANNEL_COLOR"
+    CHANNEL_LOCK = "CHANNEL_LOCK"
     CHANNEL_OPERATION_MODE = "CHANNEL_OPERATION_MODE"
     COLOR = "COLOR"
     COLOR_BEHAVIOUR = "COLOR_BEHAVIOUR"

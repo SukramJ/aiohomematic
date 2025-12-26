@@ -209,6 +209,7 @@
   "log.client.update_device_firmware.try": "UPDATE_DEVICE_FIRMWARE: Firmware-Update für {device_address} wird versucht",
   "log.core.signal.shutdown": "Signal empfangen: {sig}. Zentrale wird heruntergefahren",
   "log.model.custom.definition.validate_failed": "Die benutzerdefinierte Datenpunktdefinition konnte nicht validiert werden. {path}, {msg}",
+  "log.model.custom.text_display.send_text.burst_limit_warning": "SEND_TEXT: {full_name}: Burst-Limit-Warnung aktiv - Befehl könnte gedrosselt werden",
   "log.model.generic_data_point.send_value.not_writable": "SEND_VALUE: Schreiben auf nicht beschreibbaren Datenpunkt {full_name} ist nicht möglich",
   "log.model.hub.update.progress_completed": "Hub Firmware-Update abgeschlossen: {old_version} -> {new_version}",
   "log.model.hub.update.progress_poll_error": "Fehler beim Abfragen des Update-Status (CCU wird möglicherweise neu gestartet): {error}",

@@ -88,8 +88,8 @@ CircuitBreaker notifies CentralConnectionState on relevant state transitions:
 ## References
 
 - [Circuit Breaker Pattern (Martin Fowler)](https://martinfowler.com/bliki/CircuitBreaker.html)
-- `aiohomematic/central/__init__.py:1764` - CentralConnectionState implementation
-- `docs/architecture_improvements.md` - Section 4.1 and 6
+- `aiohomematic/central/__init__.py` - CentralConnectionState implementation
+- `aiohomematic/client/circuit_breaker.py` - CircuitBreaker implementation
 
 ---
 

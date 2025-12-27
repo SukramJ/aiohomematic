@@ -53,6 +53,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 import logging
+import math
 from typing import Any, Final, TypeVar, cast
 
 from aiohomematic.property_decorators import DelegatedProperty
@@ -60,6 +61,44 @@ from aiohomematic.property_decorators import DelegatedProperty
 _LOGGER: Final = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+@dataclass(slots=True)
+class LatencyStats:
+    """Statistics for request latency tracking."""
+
+    count: int = 0
+    """Number of latency samples."""
+
+    total_ms: float = 0.0
+    """Total latency in milliseconds."""
+
+    min_ms: float = math.inf
+    """Minimum latency in milliseconds."""
+
+    max_ms: float = 0.0
+    """Maximum latency in milliseconds."""
+
+    @property
+    def avg_ms(self) -> float:
+        """Return average latency in milliseconds."""
+        if self.count == 0:
+            return 0.0
+        return self.total_ms / self.count
+
+    def record(self, *, duration_ms: float) -> None:
+        """Record a latency sample."""
+        self.count += 1
+        self.total_ms += duration_ms
+        self.min_ms = min(self.min_ms, duration_ms)
+        self.max_ms = max(self.max_ms, duration_ms)
+
+    def reset(self) -> None:
+        """Reset latency statistics."""
+        self.count = 0
+        self.total_ms = 0.0
+        self.min_ms = math.inf
+        self.max_ms = 0.0
 
 
 @dataclass(slots=True)
@@ -116,7 +155,9 @@ class RequestCoalescer:
         self._name: Final = name
         self._pending: dict[str, _PendingRequest] = {}
         self._metrics: CoalescerMetrics = CoalescerMetrics()
+        self._latency_stats: LatencyStats = LatencyStats()
 
+    latency_stats: Final = DelegatedProperty[LatencyStats](path="_latency_stats")
     metrics: Final = DelegatedProperty[CoalescerMetrics](path="_metrics")
 
     @property
@@ -193,7 +234,10 @@ class RequestCoalescer:
 
         try:
             self._metrics.executed_requests += 1
+            start_time = datetime.now()
             result = await executor()
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            self._latency_stats.record(duration_ms=duration_ms)
             future.set_result(result)
         except Exception as exc:
             self._metrics.failed_requests += 1

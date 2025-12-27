@@ -101,6 +101,11 @@ class DeviceHandler(
         self._device_description_coalescer: Final = RequestCoalescer(name=f"device_desc:{interface_id}")
         self._paramset_description_coalescer: Final = RequestCoalescer(name=f"paramset:{interface_id}")
 
+    @property
+    def paramset_description_coalescer(self) -> RequestCoalescer:
+        """Return the paramset description coalescer for metrics access."""
+        return self._paramset_description_coalescer
+
     @inspector(re_raise=False, measure_performance=True)
     async def fetch_all_device_data(self) -> None:
         """

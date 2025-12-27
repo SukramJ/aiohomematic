@@ -28,7 +28,7 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 - **Status**: Production/Stable (Development Status 5)
 - **Type Safety**: Fully typed with mypy strict mode
 - **License**: MIT
-- **Current Version**: 2025.11.16 (defined in `aiohomematic/const.py`)
+- **Current Version**: 2025.12.49 (defined in `aiohomematic/const.py`)
 
 ### Core Dependencies
 
@@ -379,6 +379,34 @@ for device_address in device_addresses:
 # ⚠️ ACCEPTABLE only in simple comprehensions
 devices = [d for d in all_devices if d.is_ready]
 ```
+
+#### Pylint Assignment Expressions (R6103)
+
+**MANDATORY**: Use walrus operator (`:=`) when pylint suggests `consider-using-assignment-expr`.
+
+```python
+# ❌ WRONG - pylint R6103 violation
+total = self.hits + self.misses
+if total == 0:
+    return 100.0
+return (self.hits / total) * 100
+
+# ✅ CORRECT - use assignment expression
+if (total := self.hits + self.misses) == 0:
+    return 100.0
+return (self.hits / total) * 100
+
+# ❌ WRONG - pylint R6103 violation
+stats_by_method = get_service_stats(central_name=self._central_name)
+if not stats_by_method:
+    return ServiceMetrics()
+
+# ✅ CORRECT - use assignment expression
+if not (stats_by_method := get_service_stats(central_name=self._central_name)):
+    return ServiceMetrics()
+```
+
+This pattern reduces code duplication and makes the code more Pythonic.
 
 ### Formatting (ruff format)
 
@@ -2016,5 +2044,5 @@ Before finalizing any implementation plan, verify:
 
 ---
 
-**Last Updated**: 2025-12-21
-**Version**: 2025.12.42
+**Last Updated**: 2025-12-27
+**Version**: 2025.12.49

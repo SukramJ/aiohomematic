@@ -70,7 +70,7 @@ from aiohomematic.client.handlers import (
     SystemVariableHandler,
 )
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
-from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
+from aiohomematic.client.request_coalescer import LatencyStats, RequestCoalescer, make_coalesce_key
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.client.state_machine import ClientStateMachine, InvalidStateTransitionError
 from aiohomematic.const import (
@@ -257,6 +257,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         return self._json_rpc_client.circuit_breaker.state == CircuitState.CLOSED
 
     @property
+    def circuit_breaker(self) -> CircuitBreaker:
+        """Return the primary circuit breaker for metrics access."""
+        return self._proxy.circuit_breaker
+
+    @property
     def is_initialized(self) -> bool:
         """Return if interface is initialized."""
         return self._state_machine.state in (
@@ -264,6 +269,13 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             ClientState.DISCONNECTED,
             ClientState.RECONNECTING,
         )
+
+    @property
+    def latency_tracker(self) -> LatencyStats | None:
+        """Return the latency tracker for metrics access."""
+        if hasattr(self, "_device_ops_handler"):
+            return self._device_ops_handler.paramset_description_coalescer.latency_stats
+        return None
 
     @property
     def model(self) -> str:
@@ -279,6 +291,13 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def modified_at(self, value: datetime) -> None:
         """Write the last update datetime value."""
         self._modified_at = value
+
+    @property
+    def request_coalescer(self) -> RequestCoalescer | None:
+        """Return the request coalescer for metrics access."""
+        if hasattr(self, "_device_ops_handler"):
+            return self._device_ops_handler.paramset_description_coalescer
+        return None
 
     @property
     def supports_backup(self) -> bool:

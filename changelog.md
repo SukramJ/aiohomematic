@@ -1,3 +1,75 @@
+# Version 2025.12.49 (2025-12-27)
+
+## What's Changed
+
+### New Features
+
+- **Add MetricsAggregator for unified observability**: New centralized metrics system providing a single access point for all runtime statistics
+  - Access via `CentralUnit.metrics` property (DelegatedProperty pattern)
+  - `snapshot()` method returns immutable `MetricsSnapshot` with all metrics at a point in time
+  - 7 metric categories: RPC, Events, Cache, Health, Recovery, Model, Services
+
+### Metrics Categories
+
+- **RPC Metrics** (`RpcMetrics`):
+
+  - `success_rate`, `failure_rate`, `coalesce_rate`, `rejection_rate` (percentages)
+  - `avg_latency_ms`, `max_latency_ms` from RequestCoalescer
+  - Aggregated from all clients' circuit breakers and coalescers
+
+- **Event Metrics** (`EventMetrics`):
+
+  - `events_published`, `handlers_executed`, `handler_errors`
+  - `avg_handler_duration_ms`, `max_handler_duration_ms`
+  - Handler duration tracking via `time.perf_counter()` for high precision
+
+- **Cache Metrics** (`CacheMetrics`):
+
+  - `overall_hit_rate` across all caches
+  - `total_entries` count
+  - Per-cache `CacheStats`: device_descriptions, paramset_descriptions, data_cache, command_cache, ping_pong_cache, visibility_cache
+
+- **Health Metrics** (`HealthMetrics`):
+
+  - `clients_total`, `clients_healthy`, `clients_unhealthy`
+  - `availability_rate` percentage
+  - `overall_health_score` from CentralHealthTracker
+
+- **Recovery Metrics** (`RecoveryMetrics`):
+
+  - `attempts_total`, `successes`, `failures`
+  - `success_rate` percentage
+  - Placeholder for future RecoveryCoordinator integration
+
+- **Model Metrics** (`ModelMetrics`):
+
+  - `devices_count`, `channels_count`, `data_points_count`
+  - `hub_programs_count`, `hub_sysvars_count`
+
+- **Service Metrics** (`ServiceMetrics`):
+  - `total_calls`, `total_errors`, `avg_duration_ms`, `max_duration_ms`
+  - `by_method`: Per-method breakdown with `ServiceStats`
+  - Multi-Central isolation via global registry keyed by `(central_name, method_name)`
+  - Integrated with `@inspector(measure_performance=True)` decorator
+
+### Internal
+
+- **EventBus**: Add `HandlerStats` dataclass and `get_handler_stats()` method for handler execution tracking
+- **EventBus**: Track handler duration, execution count, and error count in `_safe_call_handler()`
+- **RequestCoalescer**: Add `LatencyStats` dataclass with `record()` and `reset()` methods
+- **RequestCoalescer**: Track latency (min, max, avg, count, total) during request execution
+- **CentralDataCache**: Add `CacheStats` tracking (hits, misses, size) via `stats` property
+- **DeviceHandler**: Expose `paramset_description_coalescer` property for metrics access
+- **@inspector decorator**: Record service call metrics when `measure_performance=True`
+  - Extracts `central_name` from `context_obj._central_info.name`
+  - Records duration and error status to global registry
+  - Thread-safe via `threading.Lock`
+- **Documentation**: Update architecture review with metrics implementation status
+
+### Tests
+
+- Add `tests/test_metrics.py` with 38 tests covering all metric dataclasses, service stats, and integration
+
 # Version 2025.12.48 (2025-12-26)
 
 ## What's Changed

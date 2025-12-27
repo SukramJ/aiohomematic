@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.50"
+VERSION: Final = "2025.12.51"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -115,6 +115,9 @@ class ScheduleTimerConfig(NamedTuple):
 
     master_poll_after_send_intervals: tuple[int, ...] = (5,)
     """Interval for polling HM master after sending commands (default: 5s)."""
+
+    metrics_refresh_interval: int = 60
+    """Interval for refreshing metrics hub sensors (default: 60s)."""
 
     periodic_refresh_interval: int = 15
     """Interval for periodic data refresh (default: 15s)."""

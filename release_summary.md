@@ -1,10 +1,14 @@
-# Version 2025.11.07 -
+# Version 2025.11.07 - 2025.12.51
 
 ## What's Changed
 
 ### Observability & Metrics
 
 - **Unified Metrics**: New `CentralUnit.metrics` property providing centralized access to all runtime statistics
+- **Hub Metrics Sensors**: Three new HA-visible sensors for real-time system monitoring:
+  - System Health (0-100%)
+  - Connection Latency (ms)
+  - Last Event Age (seconds since last CCU event)
 - **RPC Monitoring**: Track success/failure rates, latency, and request coalescing effectiveness
 - **Event Tracking**: Monitor handler execution times, error rates, and event throughput
 - **Cache Statistics**: View hit rates and sizes across all caches

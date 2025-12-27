@@ -10,7 +10,7 @@ from typing import Final
 
 from slugify import slugify
 
-from aiohomematic.const import HUB_ADDRESS, DataPointCategory, HubValueType, InboxDeviceData
+from aiohomematic.const import HUB_ADDRESS, INBOX_SENSOR_NAME, DataPointCategory, HubValueType, InboxDeviceData
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
     ConfigProviderProtocol,
@@ -29,8 +29,6 @@ from aiohomematic.property_decorators import DelegatedProperty, Kind, config_pro
 from aiohomematic.support import PayloadMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-_INBOX_NAME: Final = "Inbox"
 
 
 class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
@@ -62,10 +60,10 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
-            parameter=slugify(_INBOX_NAME),
+            parameter=slugify(INBOX_SENSOR_NAME),
         )
         self._name_data: Final = get_hub_data_point_name_data(
-            channel=None, legacy_name=_INBOX_NAME, central_name=central_info.name
+            channel=None, legacy_name=INBOX_SENSOR_NAME, central_name=central_info.name
         )
         super().__init__(
             unique_id=unique_id,
@@ -130,7 +128,7 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
 
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
-        return HubPathData(name=slugify(_INBOX_NAME))
+        return HubPathData(name=slugify(INBOX_SENSOR_NAME))
 
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""

@@ -269,6 +269,12 @@ SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
 VIRTDEV_SET_PATH_ROOT: Final = "virtdev/set"
 VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
 
+# Metric sensor names
+METRICS_SENSOR_SYSTEM_HEALTH_NAME: Final = "System Health"
+METRICS_SENSOR_CONNECTION_LATENCY_NAME: Final = "Connection Latency"
+METRICS_SENSOR_LAST_EVENT_AGE_NAME: Final = "Last Event Age"
+INBOX_SENSOR_NAME: Final = "Inbox"
+
 
 class Backend(StrEnum):
     """Enum with supported aiohomematic backends."""

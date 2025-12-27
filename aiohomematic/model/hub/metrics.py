@@ -22,7 +22,14 @@ from typing import TYPE_CHECKING, Final
 
 from slugify import slugify
 
-from aiohomematic.const import HUB_ADDRESS, DataPointCategory, HubValueType
+from aiohomematic.const import (
+    HUB_ADDRESS,
+    METRICS_SENSOR_CONNECTION_LATENCY_NAME,
+    METRICS_SENSOR_LAST_EVENT_AGE_NAME,
+    METRICS_SENSOR_SYSTEM_HEALTH_NAME,
+    DataPointCategory,
+    HubValueType,
+)
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
     ConfigProviderProtocol,
@@ -44,11 +51,6 @@ if TYPE_CHECKING:
     from aiohomematic.central.metrics import MetricsAggregator
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-# Sensor names
-_SYSTEM_HEALTH_NAME: Final = "System Health"
-_CONNECTION_LATENCY_NAME: Final = "Connection Latency"
-_LAST_EVENT_AGE_NAME: Final = "Last Event Age"
 
 
 class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
@@ -176,7 +178,7 @@ class HmSystemHealthSensor(_BaseMetricsSensor):
     ) -> None:
         """Initialize the system health sensor."""
         super().__init__(
-            sensor_name=_SYSTEM_HEALTH_NAME,
+            sensor_name=METRICS_SENSOR_SYSTEM_HEALTH_NAME,
             metrics_aggregator=metrics_aggregator,
             config_provider=config_provider,
             central_info=central_info,
@@ -225,7 +227,7 @@ class HmConnectionLatencySensor(_BaseMetricsSensor):
     ) -> None:
         """Initialize the connection latency sensor."""
         super().__init__(
-            sensor_name=_CONNECTION_LATENCY_NAME,
+            sensor_name=METRICS_SENSOR_CONNECTION_LATENCY_NAME,
             metrics_aggregator=metrics_aggregator,
             config_provider=config_provider,
             central_info=central_info,
@@ -275,7 +277,7 @@ class HmLastEventAgeSensor(_BaseMetricsSensor):
     ) -> None:
         """Initialize the last event age sensor."""
         super().__init__(
-            sensor_name=_LAST_EVENT_AGE_NAME,
+            sensor_name=METRICS_SENSOR_LAST_EVENT_AGE_NAME,
             metrics_aggregator=metrics_aggregator,
             config_provider=config_provider,
             central_info=central_info,

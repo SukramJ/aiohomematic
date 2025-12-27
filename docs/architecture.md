@@ -225,8 +225,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 
 - [Data flow](data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
 - [Sequence diagrams](sequence_diagrams.md) (connect, discovery, propagation, state machines, health tracking, recovery)
-- [Implementation plan](implementation_plan.md) roadmap for architecture improvements
-- [Architecture improvements](architecture_improvements.md) proposed enhancements and their evaluation
+- [Architecture review](architecture_review_2025_12.md) comprehensive architecture evaluation and recommendations
 
 ## Architectural Decision Records (ADRs)
 
@@ -243,6 +242,7 @@ All architectural decisions are documented as formal ADRs in the [adr/](adr/) di
 | [0007](adr/0007-device-slots-reduction-rejected.md)            | Device Slots Reduction via Composition                | Rejected |
 | [0008](adr/0008-taskgroup-migration-deferred.md)               | TaskGroup Migration                                   | Deferred |
 | [0009](adr/0009-interface-event-consolidation.md)              | Interface Event Consolidation                         | Accepted |
+| [0010](adr/0010-protocol-combination-analysis.md)              | Protocol Combination Analysis                         | Accepted |
 
 ## Notes
 

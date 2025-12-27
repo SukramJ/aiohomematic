@@ -92,8 +92,7 @@ class AsyncXmlRpcServer:
 ## References
 
 - `aiohomematic/central/rpc_server.py` - Current implementation
-- `docs/architecture.md` - "Async XML-RPC Server: Rejected" section
-- `docs/architecture_improvements.md` - Section 2.1
+- `docs/architecture.md` - Architecture overview
 
 ---
 

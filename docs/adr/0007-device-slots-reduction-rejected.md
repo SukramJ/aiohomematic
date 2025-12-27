@@ -142,6 +142,6 @@ Maintain the flat `__slots__` structure with clear comments for logical grouping
 
 ## Related
 
-- Section 1.2 in `docs/architecture_improvements.md` (marked as Won't Implement)
-- ADR 0002: Protocol-Based Dependency Injection
+- [ADR-0002: Protocol-Based Dependency Injection](0002-protocol-based-dependency-injection.md)
+- [ADR-0003: Explicit over Composite Protocol Injection](0003-explicit-over-composite-protocol-injection.md)
 - DeviceProtocol sub-protocol split (implemented in 2025.12.18)

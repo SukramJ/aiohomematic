@@ -54,6 +54,7 @@ import orjson
 
 from aiohomematic.central import CentralUnit
 from aiohomematic.client import BaseRpcProxy
+from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
 from aiohomematic.client.rpc_proxy import _RpcMethod
 from aiohomematic.const import UTF_8, DataOperationResult, Parameter, ParamsetKey, RPCType
@@ -274,10 +275,17 @@ def get_xml_rpc_proxy(  # noqa: C901
             self._player = player
             self._supported_methods: tuple[str, ...] = ()
             self._central: CentralUnit | None = None
+            # Real CircuitBreaker to provide actual metrics for tests
+            self._circuit_breaker = CircuitBreaker(interface_id="mock-interface")
 
         def __getattr__(self, name: str) -> Any:
             # Start of method chain
             return _Method(name, self._invoke)
+
+        @property
+        def circuit_breaker(self) -> CircuitBreaker:
+            """Return the circuit breaker for metrics access."""
+            return self._circuit_breaker
 
         @property
         def supported_methods(self) -> tuple[str, ...]:

@@ -137,7 +137,7 @@ class DeviceHandler(
             issue = IntegrationIssue(
                 severity="error",
                 issue_id=f"fetch_data_failed_{self._interface_id}",
-                translation_key="issue.fetch_data_failed",
+                translation_key="fetch_data_failed",
                 translation_placeholders=(("interface_id", self._interface_id),),
             )
             self._client_deps.event_bus.publish_sync(

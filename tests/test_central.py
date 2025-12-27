@@ -771,7 +771,7 @@ class TestCentralCallbacksAndServices:
         issue = IntegrationIssue(
             severity="error",
             issue_id="fetch_data_failed_SOME_ID",
-            translation_key="issue.fetch_data_failed",
+            translation_key="fetch_data_failed",
             translation_placeholders=(("interface_id", "SOME_ID"),),
         )
         central.event_bus.publish_sync(

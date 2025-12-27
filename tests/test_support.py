@@ -818,7 +818,7 @@ class TestLogging:
         caplog.clear()
         with caplog.at_level(logging.DEBUG):
             log_boundary_error(
-                logger,
+                logger=logger,
                 boundary="client",
                 action="connect",
                 err=AioHomematicException("oops"),
@@ -839,7 +839,7 @@ class TestLogging:
         caplog.clear()
         with caplog.at_level(logging.DEBUG):
             log_boundary_error(
-                logger,
+                logger=logger,
                 boundary="client",
                 action="connect",
                 err=ValueError("bad"),

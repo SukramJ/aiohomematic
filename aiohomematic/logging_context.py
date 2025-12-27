@@ -12,7 +12,7 @@ Key features:
 - get_contextual_logger: Factory function for contextual loggers
 
 Example:
-    _LOGGER = get_contextual_logger(__name__)
+    _LOGGER = get_contextual_logger(name=__name__)
     _LOGGER.info("Processing device")  # → "[abc12345:set_value] Processing device"
 
 Public API of this module is defined by __all__.
@@ -104,7 +104,7 @@ class RequestContextFilter(logging.Filter):
         return True
 
 
-def get_contextual_logger(name: str) -> ContextualLoggerAdapter:
+def get_contextual_logger(*, name: str) -> ContextualLoggerAdapter:
     """
     Get a logger that includes request context in messages.
 
@@ -119,7 +119,7 @@ def get_contextual_logger(name: str) -> ContextualLoggerAdapter:
         ContextualLoggerAdapter that prefixes messages with request context.
 
     Example:
-        _LOGGER = get_contextual_logger(__name__)
+        _LOGGER = get_contextual_logger(name=__name__)
         _LOGGER.info("Processing device")  # → "[abc12345:set_value] Processing device"
 
     """

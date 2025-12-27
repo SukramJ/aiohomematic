@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.49"
+VERSION: Final = "2025.12.50"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1397,7 +1397,7 @@ RECEIVER_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
 )
 
 
-def check_ignore_parameter_on_initial_load(parameter: str) -> bool:
+def check_ignore_parameter_on_initial_load(*, parameter: str) -> bool:
     """Check if a parameter matches common wildcard patterns."""
     return (
         bool(_IGNORE_ON_INITIAL_LOAD_PARAMETERS_START_RE.match(parameter))
@@ -1412,7 +1412,7 @@ _IGNORE_ON_INITIAL_LOAD_MODEL: Final = ("HmIP-SWD",)
 _IGNORE_ON_INITIAL_LOAD_MODEL_LOWER: Final = tuple(model.lower() for model in _IGNORE_ON_INITIAL_LOAD_MODEL)
 
 
-def check_ignore_model_on_initial_load(model: str) -> bool:
+def check_ignore_model_on_initial_load(*, model: str) -> bool:
     """Check if a model matches common wildcard patterns."""
     return (
         bool(_IGNORE_ON_INITIAL_LOAD_MODEL_START_RE.match(model))
@@ -1616,7 +1616,7 @@ _INTERFACE_DEFAULT_PORTS: Final[dict[str, tuple[int, int]]] = {
 }
 
 
-def get_interface_default_port(interface: Interface | str, *, tls: bool) -> int | None:
+def get_interface_default_port(*, interface: Interface | str, tls: bool) -> int | None:
     """
     Get the default port for an interface based on TLS setting.
 
@@ -1657,7 +1657,7 @@ def get_json_rpc_default_port(*, tls: bool) -> int:
     return DEFAULT_JSON_RPC_TLS_PORT if tls else DEFAULT_JSON_RPC_PORT
 
 
-def is_interface_default_port(interface: Interface | str, port: int) -> bool:
+def is_interface_default_port(*, interface: Interface | str, port: int) -> bool:
     """
     Check if a port is a default port (TLS or non-TLS) for the given interface.
 

@@ -25,7 +25,7 @@ _PARAMETER: Final = "parameter"
 _VALUE: Final = "value"
 
 
-def callback_backend_system(system_event: SystemEventType) -> Callable[[CallableAny], CallableAny]:
+def callback_backend_system(system_event: SystemEventType) -> Callable[[CallableAny], CallableAny]:  # kwonly: disable
     """Check if backend_system_callback is set and call it AFTER original function."""
 
     def decorator_backend_system_callback[**P, R](
@@ -67,7 +67,7 @@ def callback_backend_system(system_event: SystemEventType) -> Callable[[Callable
             except Exception as exc:
                 _LOGGER.warning(
                     i18n.tr(
-                        "exception.central.decorators.backend_system_handler.identify_central_failed",
+                        key="exception.central.decorators.backend_system_handler.identify_central_failed",
                         reason=extract_exc_args(exc=exc),
                     )
                 )
@@ -91,7 +91,7 @@ def callback_backend_system(system_event: SystemEventType) -> Callable[[Callable
                 )
                 raise AioHomematicException(
                     i18n.tr(
-                        "exception.central.decorators.backend_system_handler.args_exception",
+                        key="exception.central.decorators.backend_system_handler.args_exception",
                         reason=extract_exc_args(exc=exc),
                     )
                 ) from exc
@@ -103,7 +103,7 @@ def callback_backend_system(system_event: SystemEventType) -> Callable[[Callable
     return decorator_backend_system_callback
 
 
-def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]]:
+def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]]:  # kwonly: disable
     """Check if event_callback is set and call it AFTER original function."""
 
     def _exec_event_callback(*args: Any, **kwargs: Any) -> None:
@@ -133,7 +133,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
             )
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.central.decorators.event_handler.args_exception",
+                    key="exception.central.decorators.event_handler.args_exception",
                     reason=extract_exc_args(exc=exc),
                 )
             ) from exc

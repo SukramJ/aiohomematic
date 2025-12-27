@@ -113,7 +113,7 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
             if status_data.status == BackupStatus.COMPLETED:
                 _LOGGER.info(
                     i18n.tr(
-                        "log.client.create_backup_and_download.completed",
+                        key="log.client.create_backup_and_download.completed",
                         filename=status_data.filename,
                         size=status_data.size,
                     )
@@ -123,23 +123,23 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
                 return BackupData(filename=self._generate_filename(), content=content)
 
             if status_data.status == BackupStatus.FAILED:
-                _LOGGER.warning(i18n.tr("log.client.create_backup_and_download.failed"))
+                _LOGGER.warning(i18n.tr(key="log.client.create_backup_and_download.failed"))
                 return None
 
             if status_data.status == BackupStatus.IDLE:
-                _LOGGER.warning(i18n.tr("log.client.create_backup_and_download.idle"))
+                _LOGGER.warning(i18n.tr(key="log.client.create_backup_and_download.idle"))
                 return None
 
             _LOGGER.info(
                 i18n.tr(
-                    "log.client.create_backup_and_download.running",
+                    key="log.client.create_backup_and_download.running",
                     elapsed=elapsed,
                 )
             )
 
         _LOGGER.warning(
             i18n.tr(
-                "log.client.create_backup_and_download.timeout",
+                key="log.client.create_backup_and_download.timeout",
                 max_wait_time=max_wait_time,
             )
         )

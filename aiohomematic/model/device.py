@@ -603,7 +603,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         except Exception as exc:
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.model.device.export_device_definition.failed",
+                    key="exception.model.device.export_device_definition.failed",
                     reason=extract_exc_args(exc=exc),
                 )
             ) from exc

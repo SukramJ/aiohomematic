@@ -228,13 +228,13 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         try:
             method = args[0]
             if self._supported_methods and method not in self._supported_methods:
-                raise UnsupportedException(i18n.tr("exception.client.xmlrpc.method_unsupported", method=method))
+                raise UnsupportedException(i18n.tr(key="exception.client.xmlrpc.method_unsupported", method=method))
 
             # Check circuit breaker state (allow recovery commands through)
             if method not in _CIRCUIT_BREAKER_BYPASS_METHODS and not self._circuit_breaker.is_available:
                 self._circuit_breaker.record_rejection()
                 raise CircuitBreakerOpenException(
-                    i18n.tr("exception.client.xmlrpc.circuit_open", interface_id=self._interface_id)
+                    i18n.tr(key="exception.client.xmlrpc.circuit_open", interface_id=self._interface_id)
                 )
 
             if method in _CIRCUIT_BREAKER_BYPASS_METHODS or not self._connection_state.has_issue(
@@ -257,7 +257,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 self._circuit_breaker.record_success()
                 return result
             raise NoConnectionException(
-                i18n.tr("exception.client.xmlrpc.no_connection", interface_id=self._interface_id)
+                i18n.tr(key="exception.client.xmlrpc.no_connection", interface_id=self._interface_id)
             )
         except BaseHomematicException as bhe:
             self._record_session(method=args[0], params=args[1:], exc=bhe)
@@ -289,7 +289,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             )
             self._circuit_breaker.record_failure()
             raise NoConnectionException(
-                i18n.tr("exception.client.xmlrpc.ssl_error", interface_id=self._interface_id, reason=message)
+                i18n.tr(key="exception.client.xmlrpc.ssl_error", interface_id=self._interface_id, reason=message)
             ) from sslerr
         except OSError as oserr:  # pragma: no cover - Network/socket errno differences are platform/environment specific; simulating reliably in CI would be flaky
             # Log ERROR only on first occurrence, DEBUG for subsequent failures
@@ -311,7 +311,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             self._circuit_breaker.record_failure()
             raise NoConnectionException(
                 i18n.tr(
-                    "exception.client.xmlrpc.os_error",
+                    key="exception.client.xmlrpc.os_error",
                     interface_id=self._interface_id,
                     reason=extract_exc_args(exc=oserr),
                 )
@@ -327,7 +327,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                     raise AuthFailure(perr) from perr
                 raise NoConnectionException(
                     i18n.tr(
-                        "exception.client.xmlrpc.no_connection_with_reason",
+                        key="exception.client.xmlrpc.no_connection_with_reason",
                         context=str(self.log_context),
                         reason=perr.errmsg,
                     )
@@ -352,7 +352,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             self._circuit_breaker.record_failure()
             raise NoConnectionException(
                 i18n.tr(
-                    "exception.client.xmlrpc.http_connection_state_error",
+                    key="exception.client.xmlrpc.http_connection_state_error",
                     interface_id=self._interface_id,
                     reason=extract_exc_args(exc=icserr),
                 )

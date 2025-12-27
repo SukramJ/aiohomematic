@@ -179,7 +179,7 @@ class Looper(TaskSchedulerProtocol):
         return set()
 
 
-def _log_task_exception(task: asyncio.Task[Any]) -> None:
+def _log_task_exception(task: asyncio.Task[Any]) -> None:  # kwonly: disable
     """Log unhandled exceptions in background tasks."""
     if task.cancelled():
         return
@@ -196,7 +196,7 @@ def cancelling(*, task: asyncio.Future[Any]) -> bool:
     return bool((cancelling_ := getattr(task, "cancelling", None)) and cancelling_())
 
 
-def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:  # kwonly: disable
     """
     Annotation to mark method that must be run within the event loop.
 

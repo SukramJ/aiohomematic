@@ -18,36 +18,36 @@ class TestIsRetryableException:
 
     def test_connection_error_is_retryable(self) -> None:
         """Test that ConnectionError and subclasses are retryable."""
-        assert is_retryable_exception(ConnectionError()) is True
-        assert is_retryable_exception(ConnectionRefusedError()) is True
-        assert is_retryable_exception(ConnectionResetError()) is True
+        assert is_retryable_exception(exc=ConnectionError()) is True
+        assert is_retryable_exception(exc=ConnectionRefusedError()) is True
+        assert is_retryable_exception(exc=ConnectionResetError()) is True
 
     def test_no_connection_exception_is_retryable(self) -> None:
         """Test that NoConnectionException is retryable."""
-        assert is_retryable_exception(NoConnectionException("test")) is True
+        assert is_retryable_exception(exc=NoConnectionException("test")) is True
 
     def test_non_transient_os_error_not_retryable(self) -> None:
         """Test that non-transient OS errors are not retryable."""
         # ENOENT (No such file or directory) is not a transient network error
-        assert is_retryable_exception(OSError(errno.ENOENT, "Not found")) is False
+        assert is_retryable_exception(exc=OSError(errno.ENOENT, "Not found")) is False
 
     def test_permanent_exceptions_not_retryable(self) -> None:
         """Test that permanent exceptions are not retryable."""
-        assert is_retryable_exception(AuthFailure("test")) is False
-        assert is_retryable_exception(UnsupportedException("test")) is False
-        assert is_retryable_exception(ValidationException("test")) is False
+        assert is_retryable_exception(exc=AuthFailure("test")) is False
+        assert is_retryable_exception(exc=UnsupportedException("test")) is False
+        assert is_retryable_exception(exc=ValidationException("test")) is False
 
     def test_timeout_error_is_retryable(self) -> None:
         """Test that TimeoutError is retryable."""
-        assert is_retryable_exception(TimeoutError()) is True
-        assert is_retryable_exception(TimeoutError()) is True
+        assert is_retryable_exception(exc=TimeoutError()) is True
+        assert is_retryable_exception(exc=TimeoutError()) is True
 
     def test_transient_os_error_is_retryable(self) -> None:
         """Test that transient OS errors are retryable."""
-        assert is_retryable_exception(OSError(errno.ECONNREFUSED, "Connection refused")) is True
-        assert is_retryable_exception(OSError(errno.ETIMEDOUT, "Timed out")) is True
-        assert is_retryable_exception(OSError(errno.ENETUNREACH, "Network unreachable")) is True
-        assert is_retryable_exception(OSError(errno.EHOSTUNREACH, "Host unreachable")) is True
+        assert is_retryable_exception(exc=OSError(errno.ECONNREFUSED, "Connection refused")) is True
+        assert is_retryable_exception(exc=OSError(errno.ETIMEDOUT, "Timed out")) is True
+        assert is_retryable_exception(exc=OSError(errno.ENETUNREACH, "Network unreachable")) is True
+        assert is_retryable_exception(exc=OSError(errno.EHOSTUNREACH, "Host unreachable")) is True
 
 
 class TestRetryStrategy:

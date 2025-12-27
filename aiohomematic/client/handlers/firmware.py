@@ -116,7 +116,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
         if device := self._client_deps.device_coordinator.get_device(address=device_address):
             _LOGGER.info(
                 i18n.tr(
-                    "log.client.update_device_firmware.try",
+                    key="log.client.update_device_firmware.try",
                     device_address=device_address,
                 )
             )
@@ -129,7 +129,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
                 result = bool(update_result) if isinstance(update_result, bool) else bool(update_result[0])
                 _LOGGER.info(
                     i18n.tr(
-                        "log.client.update_device_firmware.result",
+                        key="log.client.update_device_firmware.result",
                         device_address=device_address,
                         result=("success" if result else "failed"),
                     )
@@ -137,7 +137,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
             except BaseHomematicException as bhexc:
                 raise ClientException(
                     i18n.tr(
-                        "exception.client.update_device_firmware.failed",
+                        key="exception.client.update_device_firmware.failed",
                         reason=extract_exc_args(exc=bhexc),
                     )
                 ) from bhexc

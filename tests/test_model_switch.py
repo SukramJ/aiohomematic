@@ -557,7 +557,7 @@ class TestScheduleConversion:
         empty_schedule = create_empty_schedule_group()
 
         # Verify it's detected as inactive
-        assert is_schedule_active(empty_schedule) is False
+        assert is_schedule_active(group_data=empty_schedule) is False
 
     @pytest.mark.asyncio
     async def test_switch_schedule_multiple_groups(self) -> None:

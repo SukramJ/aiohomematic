@@ -416,16 +416,16 @@ class _GenericProperty[GETTER, SETTER](property):
 
 
 @overload
-def hm_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
+def hm_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...  # kwonly: disable
 
 
 @overload
-def hm_property(
+def hm_property(  # kwonly: disable
     *, kind: Kind = ..., cached: bool = ..., log_context: bool = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
-def hm_property[PR](
+def hm_property[PR](  # kwonly: disable
     func: Callable[[Any], PR] | None = None,
     *,
     kind: Kind = Kind.SIMPLE,
@@ -461,16 +461,16 @@ def hm_property[PR](
 
 
 @overload
-def config_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
+def config_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...  # kwonly: disable
 
 
 @overload
-def config_property(
+def config_property(  # kwonly: disable
     *, cached: bool = ..., log_context: bool = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
-def config_property[PR](
+def config_property[PR](  # kwonly: disable
     func: Callable[[Any], PR] | None = None,
     *,
     cached: bool = False,
@@ -504,16 +504,16 @@ def config_property[PR](
 
 
 @overload
-def info_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
+def info_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...  # kwonly: disable
 
 
 @overload
-def info_property(
+def info_property(  # kwonly: disable
     *, cached: bool = ..., log_context: bool = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
-def info_property[PR](
+def info_property[PR](  # kwonly: disable
     func: Callable[[Any], PR] | None = None,
     *,
     cached: bool = False,
@@ -547,16 +547,16 @@ def info_property[PR](
 
 
 @overload
-def state_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...
+def state_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: ...  # kwonly: disable
 
 
 @overload
-def state_property(
+def state_property(  # kwonly: disable
     *, cached: bool = ..., log_context: bool = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
-def state_property[PR](
+def state_property[PR](  # kwonly: disable
     func: Callable[[Any], PR] | None = None,
     *,
     cached: bool = False,
@@ -595,7 +595,7 @@ def state_property[PR](
 _PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[Kind, tuple[str, ...]]] = WeakKeyDictionary()
 
 
-def get_hm_property_by_kind(data_object: Any, kind: Kind, context: bool = False) -> Mapping[str, Any]:
+def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = False) -> Mapping[str, Any]:
     """
     Collect properties from an object that are defined using a specific decorator.
 
@@ -653,7 +653,7 @@ def get_hm_property_by_kind(data_object: Any, kind: Kind, context: bool = False)
 
 
 @singledispatch
-def _get_text_value(value: Any) -> Any:
+def _get_text_value(value: Any) -> Any:  # kwonly: disable
     """
     Normalize values for payload/logging purposes.
 
@@ -681,24 +681,24 @@ def _get_text_value(value: Any) -> Any:
 @_get_text_value.register(list)
 @_get_text_value.register(tuple)
 @_get_text_value.register(set)
-def _get_text_value_sequence(value: list[Any] | tuple[Any, ...] | set[Any]) -> tuple[Any, ...]:
+def _get_text_value_sequence(value: list[Any] | tuple[Any, ...] | set[Any]) -> tuple[Any, ...]:  # kwonly: disable
     """Convert sequence types to tuple with normalized items."""
     return tuple(_get_text_value(v) for v in value)
 
 
 @_get_text_value.register(Enum)
-def _get_text_value_enum(value: Enum) -> str:
+def _get_text_value_enum(value: Enum) -> str:  # kwonly: disable
     """Convert Enum to string representation."""
     return str(value)
 
 
 @_get_text_value.register(datetime)
-def _get_text_value_datetime(value: datetime) -> float:
+def _get_text_value_datetime(value: datetime) -> float:  # kwonly: disable
     """Convert datetime to unix timestamp."""
     return datetime.timestamp(value)
 
 
-def get_hm_property_by_log_context(data_object: Any) -> Mapping[str, Any]:
+def get_hm_property_by_log_context(*, data_object: Any) -> Mapping[str, Any]:
     """
     Return combined log context attributes across all property categories.
 

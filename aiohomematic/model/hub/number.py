@@ -32,7 +32,7 @@ class SysvarDpNumber(GenericSysvarDataPoint):
             else:
                 _LOGGER.error(
                     i18n.tr(
-                        "exception.model.hub.number.invalid_value",
+                        key="exception.model.hub.number.invalid_value",
                         value=value,
                         min=self.min,
                         max=self.max,

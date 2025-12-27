@@ -168,7 +168,7 @@ class ClientCoordinator(ClientProviderProtocol):
         if interface_id is None and interface is None:
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.central.get_client.no_parameter",
+                    key="exception.central.get_client.no_parameter",
                     name=self._central_info.name,
                 )
             )
@@ -178,7 +178,7 @@ class ClientCoordinator(ClientProviderProtocol):
             if not self.has_client(interface_id=interface_id):
                 raise AioHomematicException(
                     i18n.tr(
-                        "exception.central.get_client.interface_missing",
+                        key="exception.central.get_client.interface_missing",
                         interface_id=interface_id,
                         name=self._central_info.name,
                     )
@@ -192,7 +192,7 @@ class ClientCoordinator(ClientProviderProtocol):
 
         raise AioHomematicException(
             i18n.tr(
-                "exception.central.get_client.interface_type_missing",
+                key="exception.central.get_client.interface_type_missing",
                 interface=interface,
                 name=self._central_info.name,
             )
@@ -235,7 +235,7 @@ class ClientCoordinator(ClientProviderProtocol):
         if await self.start_clients():
             _LOGGER.info(
                 i18n.tr(
-                    "log.central.restart_clients.restarted",
+                    key="log.central.restart_clients.restarted",
                     name=self._central_info.name,
                 )
             )
@@ -331,11 +331,11 @@ class ClientCoordinator(ClientProviderProtocol):
                 return True
         except BaseHomematicException as bhexc:  # pragma: no cover
             # Track failure reason for propagation to central state machine
-            self._last_failure_reason = exception_to_failure_reason(bhexc)
+            self._last_failure_reason = exception_to_failure_reason(exc=bhexc)
             self._last_failure_interface_id = interface_config.interface_id
             _LOGGER.error(
                 i18n.tr(
-                    "log.central.create_client.no_connection",
+                    key="log.central.create_client.no_connection",
                     interface_id=interface_config.interface_id,
                     reason=extract_exc_args(exc=bhexc),
                 )
@@ -354,7 +354,7 @@ class ClientCoordinator(ClientProviderProtocol):
         if len(self._clients) > 0:
             _LOGGER.error(
                 i18n.tr(
-                    "log.central.create_clients.already_created",
+                    key="log.central.create_clients.already_created",
                     name=self._central_info.name,
                 )
             )
@@ -363,7 +363,7 @@ class ClientCoordinator(ClientProviderProtocol):
         if len(self._config_provider.config.enabled_interface_configs) == 0:
             _LOGGER.error(
                 i18n.tr(
-                    "log.central.create_clients.no_interfaces",
+                    key="log.central.create_clients.no_interfaces",
                     name=self._central_info.name,
                 )
             )
@@ -383,7 +383,7 @@ class ClientCoordinator(ClientProviderProtocol):
                 ):
                     _LOGGER.error(
                         i18n.tr(
-                            "log.central.create_clients.interface_not_available",
+                            key="log.central.create_clients.interface_not_available",
                             interface=interface_config.interface,
                             name=self._central_info.name,
                         )
@@ -395,7 +395,7 @@ class ClientCoordinator(ClientProviderProtocol):
         if not self.all_clients_active:
             _LOGGER.warning(
                 i18n.tr(
-                    "log.central.create_clients.created_count_failed",
+                    key="log.central.create_clients.created_count_failed",
                     created=len(self._clients),
                     total=len(self._config_provider.config.enabled_interface_configs),
                 )
@@ -405,7 +405,7 @@ class ClientCoordinator(ClientProviderProtocol):
         if self.primary_client is None:
             _LOGGER.warning(
                 i18n.tr(
-                    "log.central.create_clients.no_primary_identified",
+                    key="log.central.create_clients.no_primary_identified",
                     name=self._central_info.name,
                 )
             )

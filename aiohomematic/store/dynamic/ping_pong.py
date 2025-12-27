@@ -180,7 +180,7 @@ class PingPongCache:
                 if self._pending.logged is False:
                     _LOGGER.warning(
                         i18n.tr(
-                            "log.store.dynamic.pending_pong_mismatch",
+                            key="log.store.dynamic.pending_pong_mismatch",
                             interface_id=self._interface_id,
                         )
                     )
@@ -202,7 +202,7 @@ class PingPongCache:
                 if self._unknown.logged is False:
                     _LOGGER.warning(
                         i18n.tr(
-                            "log.store.dynamic.unknown_pong_mismatch",
+                            key="log.store.dynamic.unknown_pong_mismatch",
                             interface_id=self._interface_id,
                         )
                     )

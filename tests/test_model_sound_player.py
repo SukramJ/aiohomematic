@@ -313,41 +313,41 @@ class TestFlashTimeConversion:
 
     def test_flash_time_exact_matches(self) -> None:
         """Test exact ms values map correctly."""
-        assert _convert_flash_time_to_on_time_list(100) == "100MS"
-        assert _convert_flash_time_to_on_time_list(500) == "500MS"
-        assert _convert_flash_time_to_on_time_list(1000) == "1S"
-        assert _convert_flash_time_to_on_time_list(2000) == "2S"
-        assert _convert_flash_time_to_on_time_list(5000) == "5S"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=100) == "100MS"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=500) == "500MS"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=1000) == "1S"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=2000) == "2S"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=5000) == "5S"
 
     def test_flash_time_large_values_return_permanently_on(self) -> None:
         """Test that values > 5000ms return PERMANENTLY_ON."""
-        assert _convert_flash_time_to_on_time_list(5001) == "PERMANENTLY_ON"
-        assert _convert_flash_time_to_on_time_list(10000) == "PERMANENTLY_ON"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=5001) == "PERMANENTLY_ON"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=10000) == "PERMANENTLY_ON"
 
     def test_flash_time_nearest_match(self) -> None:
         """Test that values are rounded to nearest match."""
         # 150 is closer to 100 than 200
-        assert _convert_flash_time_to_on_time_list(149) == "100MS"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=149) == "100MS"
         # 150 is equidistant, should pick first match (100MS)
-        assert _convert_flash_time_to_on_time_list(150) == "100MS"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=150) == "100MS"
         # 151 is closer to 200
-        assert _convert_flash_time_to_on_time_list(151) == "200MS"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=151) == "200MS"
         # 1500 is equidistant between 1S and 2S
-        assert _convert_flash_time_to_on_time_list(1500) == "1S"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=1500) == "1S"
         # 1501 is closer to 2S
-        assert _convert_flash_time_to_on_time_list(1501) == "2S"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=1501) == "2S"
 
     def test_flash_time_negative_returns_permanently_on(self) -> None:
         """Test that negative values return PERMANENTLY_ON."""
-        assert _convert_flash_time_to_on_time_list(-100) == "PERMANENTLY_ON"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=-100) == "PERMANENTLY_ON"
 
     def test_flash_time_none_returns_permanently_on(self) -> None:
         """Test that None returns PERMANENTLY_ON."""
-        assert _convert_flash_time_to_on_time_list(None) == "PERMANENTLY_ON"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=None) == "PERMANENTLY_ON"
 
     def test_flash_time_zero_returns_permanently_on(self) -> None:
         """Test that 0 returns PERMANENTLY_ON."""
-        assert _convert_flash_time_to_on_time_list(0) == "PERMANENTLY_ON"
+        assert _convert_flash_time_to_on_time_list(flash_time_ms=0) == "PERMANENTLY_ON"
 
 
 class TestRepetitionsConversion:
@@ -356,29 +356,29 @@ class TestRepetitionsConversion:
     def test_repetitions_invalid_raises_value_error(self) -> None:
         """Test that invalid values raise ValueError."""
         with pytest.raises(ValueError):
-            _convert_repetitions(19)  # Max is 18
+            _convert_repetitions(repetitions=19)  # Max is 18
 
         with pytest.raises(ValueError):
-            _convert_repetitions(-2)  # Only -1 is valid for infinite
+            _convert_repetitions(repetitions=-2)  # Only -1 is valid for infinite
 
         with pytest.raises(ValueError):
-            _convert_repetitions(100)  # Way out of range
+            _convert_repetitions(repetitions=100)  # Way out of range
 
     def test_repetitions_minus_one_returns_infinite(self) -> None:
         """Test that -1 returns INFINITE_REPETITIONS."""
-        assert _convert_repetitions(-1) == "INFINITE_REPETITIONS"
+        assert _convert_repetitions(repetitions=-1) == "INFINITE_REPETITIONS"
 
     def test_repetitions_none_returns_no_repetition(self) -> None:
         """Test that None returns NO_REPETITION."""
-        assert _convert_repetitions(None) == "NO_REPETITION"
+        assert _convert_repetitions(repetitions=None) == "NO_REPETITION"
 
     def test_repetitions_valid_range(self) -> None:
         """Test that 1-18 returns correct REPETITIONS_NNN values."""
-        assert _convert_repetitions(1) == "REPETITIONS_001"
-        assert _convert_repetitions(5) == "REPETITIONS_005"
-        assert _convert_repetitions(10) == "REPETITIONS_010"
-        assert _convert_repetitions(18) == "REPETITIONS_018"
+        assert _convert_repetitions(repetitions=1) == "REPETITIONS_001"
+        assert _convert_repetitions(repetitions=5) == "REPETITIONS_005"
+        assert _convert_repetitions(repetitions=10) == "REPETITIONS_010"
+        assert _convert_repetitions(repetitions=18) == "REPETITIONS_018"
 
     def test_repetitions_zero_returns_no_repetition(self) -> None:
         """Test that 0 returns NO_REPETITION."""
-        assert _convert_repetitions(0) == "NO_REPETITION"
+        assert _convert_repetitions(repetitions=0) == "NO_REPETITION"

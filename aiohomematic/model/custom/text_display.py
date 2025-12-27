@@ -156,7 +156,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if self.burst_limit_warning:
             _LOGGER.warning(
                 i18n.tr(
-                    "log.model.custom.text_display.send_text.burst_limit_warning",
+                    key="log.model.custom.text_display.send_text.burst_limit_warning",
                     full_name=self.full_name,
                 )
             )
@@ -175,7 +175,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if icon is not None and self.available_icons and icon not in self.available_icons:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_icon",
+                    key="exception.model.custom.text_display.invalid_icon",
                     full_name=self.full_name,
                     value=icon,
                 )
@@ -185,7 +185,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if self.available_background_colors and background_color not in self.available_background_colors:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_background_color",
+                    key="exception.model.custom.text_display.invalid_background_color",
                     full_name=self.full_name,
                     value=background_color,
                 )
@@ -195,7 +195,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if self.available_text_colors and text_color not in self.available_text_colors:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_text_color",
+                    key="exception.model.custom.text_display.invalid_text_color",
                     full_name=self.full_name,
                     value=text_color,
                 )
@@ -205,7 +205,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if self.available_alignments and alignment not in self.available_alignments:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_alignment",
+                    key="exception.model.custom.text_display.invalid_alignment",
                     full_name=self.full_name,
                     value=alignment,
                 )
@@ -215,7 +215,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if not _MIN_DISPLAY_ID <= display_id <= _MAX_DISPLAY_ID:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_display_id",
+                    key="exception.model.custom.text_display.invalid_display_id",
                     full_name=self.full_name,
                     value=display_id,
                 )
@@ -225,7 +225,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if sound is not None and self.available_sounds and sound not in self.available_sounds:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_sound",
+                    key="exception.model.custom.text_display.invalid_sound",
                     full_name=self.full_name,
                     value=sound,
                 )
@@ -235,7 +235,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if (repetition_value := self._get_repetition_string(repeat=repeat)) not in (self._available_repetitions or ()):
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_repeat",
+                    key="exception.model.custom.text_display.invalid_repeat",
                     full_name=self.full_name,
                     value=repeat,
                 )
@@ -245,7 +245,7 @@ class CustomDpTextDisplay(CustomDataPoint):
         if not _MIN_INTERVAL <= interval <= _MAX_INTERVAL:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.text_display.invalid_interval",
+                    key="exception.model.custom.text_display.invalid_interval",
                     full_name=self.full_name,
                     value=interval,
                 )

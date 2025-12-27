@@ -220,7 +220,7 @@ class request_context:  # noqa: N801
             _request_context.reset(self._token)
 
 
-def set_request_context(ctx: RequestContext) -> Token[RequestContext | None]:
+def set_request_context(*, ctx: RequestContext) -> Token[RequestContext | None]:
     """
     Manually set the request context.
 
@@ -237,7 +237,7 @@ def set_request_context(ctx: RequestContext) -> Token[RequestContext | None]:
     return _request_context.set(ctx)
 
 
-def reset_request_context(token: Token[RequestContext | None]) -> None:
+def reset_request_context(*, token: Token[RequestContext | None]) -> None:
     """
     Reset the request context using a token from set_request_context().
 

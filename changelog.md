@@ -1,3 +1,15 @@
+# Version 2025.12.50 (2025-12-27)
+
+## What's Changed
+
+### Code Quality
+
+- **Enforce keyword-only parameters for module-level functions**: Extended `lint_kwonly.py` to enforce keyword-only parameters consistently across the codebase
+  - Class methods: `*` must come after `self`/`cls`
+  - Module-level functions: `*` must come before the first argument
+  - Fixed 109+ function signatures to comply with the new rules
+  - Added `# kwonly: disable` annotations for callbacks, decorators, and voluptuous validators where positional args are required
+
 # Version 2025.12.49 (2025-12-27)
 
 ## What's Changed

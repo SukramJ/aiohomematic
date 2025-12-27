@@ -186,11 +186,11 @@ class TestContextFunctions:
     def test_set_reset_request_context(self) -> None:
         """Test manual set/reset functions."""
         ctx = RequestContext(operation="manual")
-        token = set_request_context(ctx)
+        token = set_request_context(ctx=ctx)
 
         assert get_request_context() is ctx
 
-        reset_request_context(token)
+        reset_request_context(token=token)
         assert get_request_context() is None
 
 
@@ -204,20 +204,20 @@ class TestContextualLoggerAdapter:
 
     def test_context_without_operation(self) -> None:
         """Test prefix format without operation."""
-        adapter = get_contextual_logger(__name__)
+        adapter = get_contextual_logger(name=__name__)
 
         ctx = RequestContext(operation="")
-        token = set_request_context(ctx)
+        token = set_request_context(ctx=ctx)
         try:
             msg, _ = adapter.process("Test", {})
             assert f"[{ctx.request_id}]" in msg
             assert ":" not in msg.split("]")[0]  # No colon in prefix
         finally:
-            reset_request_context(token)
+            reset_request_context(token=token)
 
     def test_no_context_no_prefix(self) -> None:
         """Test message unchanged when no context."""
-        adapter = get_contextual_logger(__name__)
+        adapter = get_contextual_logger(name=__name__)
         msg, kwargs = adapter.process("Test message", {})
 
         assert msg == "Test message"
@@ -225,7 +225,7 @@ class TestContextualLoggerAdapter:
 
     def test_with_context_adds_prefix(self) -> None:
         """Test message gets prefix when context set."""
-        adapter = get_contextual_logger(__name__)
+        adapter = get_contextual_logger(name=__name__)
 
         with request_context(operation="test_op") as ctx:
             msg, kwargs = adapter.process("Test message", {})
@@ -289,12 +289,12 @@ class TestGetContextualLogger:
 
     def test_logger_name(self) -> None:
         """Test underlying logger has correct name."""
-        logger = get_contextual_logger("my.module")
+        logger = get_contextual_logger(name="my.module")
         assert logger.logger.name == "my.module"
 
     def test_returns_adapter(self) -> None:
         """Test returns ContextualLoggerAdapter."""
-        logger = get_contextual_logger(__name__)
+        logger = get_contextual_logger(name=__name__)
         assert isinstance(logger, ContextualLoggerAdapter)
 
 
@@ -451,11 +451,11 @@ class TestSpanFunctions:
     def test_set_reset_current_span(self) -> None:
         """Test manual set/reset functions."""
         s = Span(name="manual", trace_id="t", span_id="s", parent_span_id=None)
-        token = set_current_span(s)
+        token = set_current_span(s=s)
 
         assert get_current_span() is s
 
-        reset_current_span(token)
+        reset_current_span(token=token)
         assert get_current_span() is None
 
 

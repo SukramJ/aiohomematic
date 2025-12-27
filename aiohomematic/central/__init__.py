@@ -68,6 +68,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
 from datetime import datetime
+from functools import partial
 import logging
 from typing import Any, Final
 
@@ -440,7 +441,9 @@ class CentralUnit(
         """
         if not (client := self._client_coordinator.primary_client):
             _LOGGER.warning(
-                i18n.tr("log.central.accept_device_in_inbox.no_client", device_address=device_address, name=self.name)
+                i18n.tr(
+                    key="log.central.accept_device_in_inbox.no_client", device_address=device_address, name=self.name
+                )
             )
             return False
 
@@ -763,7 +766,7 @@ class CentralUnit(
         """
         if (device := self._device_coordinator.get_device(address=device_address)) is None:
             _LOGGER.warning(
-                i18n.tr("log.central.rename_device.not_found", device_address=device_address, name=self.name)
+                i18n.tr(key="log.central.rename_device.not_found", device_address=device_address, name=self.name)
             )
             return False
 
@@ -876,7 +879,7 @@ class CentralUnit(
                 )
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.central.start.failed",
+                    key="exception.central.start.failed",
                     name=self.name,
                     reason=extract_exc_args(exc=oserr),
                 )
@@ -1017,7 +1020,7 @@ class CentralUnit(
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
         if len(self._config.enabled_interface_configs) == 0:
-            raise NoClientsException(i18n.tr("exception.central.validate_config.no_clients"))
+            raise NoClientsException(i18n.tr(key="exception.central.validate_config.no_clients"))
 
         system_information = SystemInformation()
         for interface_config in self._config.enabled_interface_configs:
@@ -1026,7 +1029,7 @@ class CentralUnit(
             except BaseHomematicException as bhexc:
                 _LOGGER.error(
                     i18n.tr(
-                        "log.central.validate_config_and_get_system_information.client_failed",
+                        key="log.central.validate_config_and_get_system_information.client_failed",
                         interface=str(interface_config.interface),
                         reason=extract_exc_args(exc=bhexc),
                     )
@@ -1041,7 +1044,8 @@ class CentralUnit(
         while ip_addr is None:
             try:
                 ip_addr = await self.looper.async_add_executor_job(
-                    get_ip_addr, self._config.host, port, name="get_ip_addr"
+                    partial(get_ip_addr, host=self._config.host, port=port),
+                    name="get_ip_addr",
                 )
             except AioHomematicException:
                 ip_addr = LOCAL_HOST
@@ -1278,7 +1282,7 @@ class CentralConfig:
         """
         interface_configs: set[hmcl.InterfaceConfig] = set()
 
-        if enable_hmip and (port := get_interface_default_port(Interface.HMIP_RF, tls=tls)):
+        if enable_hmip and (port := get_interface_default_port(interface=Interface.HMIP_RF, tls=tls)):
             interface_configs.add(
                 hmcl.InterfaceConfig(
                     central_name=name,
@@ -1287,7 +1291,7 @@ class CentralConfig:
                 )
             )
 
-        if enable_bidcos_rf and (port := get_interface_default_port(Interface.BIDCOS_RF, tls=tls)):
+        if enable_bidcos_rf and (port := get_interface_default_port(interface=Interface.BIDCOS_RF, tls=tls)):
             interface_configs.add(
                 hmcl.InterfaceConfig(
                     central_name=name,
@@ -1296,7 +1300,7 @@ class CentralConfig:
                 )
             )
 
-        if enable_bidcos_wired and (port := get_interface_default_port(Interface.BIDCOS_WIRED, tls=tls)):
+        if enable_bidcos_wired and (port := get_interface_default_port(interface=Interface.BIDCOS_WIRED, tls=tls)):
             interface_configs.add(
                 hmcl.InterfaceConfig(
                     central_name=name,
@@ -1305,7 +1309,9 @@ class CentralConfig:
                 )
             )
 
-        if enable_virtual_devices and (port := get_interface_default_port(Interface.VIRTUAL_DEVICES, tls=tls)):
+        if enable_virtual_devices and (
+            port := get_interface_default_port(interface=Interface.VIRTUAL_DEVICES, tls=tls)
+        ):
             interface_configs.add(
                 hmcl.InterfaceConfig(
                     central_name=name,
@@ -1368,7 +1374,7 @@ class CentralConfig:
             central = config.create_central()
 
         """
-        interface_port = port or get_interface_default_port(Interface.BIDCOS_RF, tls=tls) or 2001
+        interface_port = port or get_interface_default_port(interface=Interface.BIDCOS_RF, tls=tls) or 2001
 
         interface_configs: set[hmcl.InterfaceConfig] = {
             hmcl.InterfaceConfig(
@@ -1435,7 +1441,7 @@ class CentralConfig:
         ):
             failures = ", ".join(config_failures)
             # Localized exception message
-            msg = i18n.tr("exception.config.invalid", failures=failures)
+            msg = i18n.tr(key="exception.config.invalid", failures=failures)
             raise AioHomematicConfigException(msg)
 
     def create_central(self) -> CentralUnit:
@@ -1446,7 +1452,7 @@ class CentralConfig:
         except BaseHomematicException as bhexc:  # pragma: no cover
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.create_central.failed",
+                    key="exception.create_central.failed",
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
@@ -1629,30 +1635,30 @@ def check_config(
     """Check config. Throws BaseHomematicException on failure."""
     config_failures: list[str] = []
     if central_name and IDENTIFIER_SEPARATOR in central_name:
-        config_failures.append(i18n.tr("exception.config.check.instance_name.separator", sep=IDENTIFIER_SEPARATOR))
+        config_failures.append(i18n.tr(key="exception.config.check.instance_name.separator", sep=IDENTIFIER_SEPARATOR))
 
     if not (is_host(host=host) or is_ipv4_address(address=host)):
-        config_failures.append(i18n.tr("exception.config.check.host.invalid"))
+        config_failures.append(i18n.tr(key="exception.config.check.host.invalid"))
     if not username:
-        config_failures.append(i18n.tr("exception.config.check.username.empty"))
+        config_failures.append(i18n.tr(key="exception.config.check.username.empty"))
     if not password:
-        config_failures.append(i18n.tr("exception.config.check.password.required"))
+        config_failures.append(i18n.tr(key="exception.config.check.password.required"))
     if not check_password(password=password):
-        config_failures.append(i18n.tr("exception.config.check.password.invalid"))
+        config_failures.append(i18n.tr(key="exception.config.check.password.invalid"))
     try:
         check_or_create_directory(directory=storage_directory)
     except BaseHomematicException as bhexc:
         config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_host(host=callback_host) or is_ipv4_address(address=callback_host)):
-        config_failures.append(i18n.tr("exception.config.check.callback_host.invalid"))
+        config_failures.append(i18n.tr(key="exception.config.check.callback_host.invalid"))
     if callback_port_xml_rpc and not is_port(port=callback_port_xml_rpc):
-        config_failures.append(i18n.tr("exception.config.check.callback_port_xml_rpc.invalid"))
+        config_failures.append(i18n.tr(key="exception.config.check.callback_port_xml_rpc.invalid"))
     if json_port and not is_port(port=json_port):
-        config_failures.append(i18n.tr("exception.config.check.json_port.invalid"))
+        config_failures.append(i18n.tr(key="exception.config.check.json_port.invalid"))
     if interface_configs and not _has_primary_client(interface_configs=interface_configs):
         config_failures.append(
             i18n.tr(
-                "exception.config.check.primary_interface.missing",
+                key="exception.config.check.primary_interface.missing",
                 interfaces=", ".join(PRIMARY_CLIENT_CANDIDATE_INTERFACES),
             )
         )

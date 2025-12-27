@@ -158,7 +158,7 @@ class DataPointTypeResolver:
         if parameter in CLICK_EVENTS:
             return None
 
-        if is_binary_sensor(parameter_data):
+        if is_binary_sensor(parameter_data=parameter_data):
             parameter_data["TYPE"] = ParameterType.BOOL
             return DpBinarySensor
 
@@ -300,7 +300,7 @@ def _safe_create_data_point(
     except Exception as exc:
         raise AioHomematicException(
             i18n.tr(
-                "exception.model.generic.create_data_point.failed",
+                key="exception.model.generic.create_data_point.failed",
                 reason=hms.extract_exc_args(exc=exc),
             )
         ) from exc

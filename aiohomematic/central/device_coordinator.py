@@ -330,7 +330,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         if not self._coordinator_provider.client_coordinator.has_clients:
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.central.create_devices.no_clients",
+                    key="exception.central.create_devices.no_clients",
                     name=self._central_info.name,
                 )
             )

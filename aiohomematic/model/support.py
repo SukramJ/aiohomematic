@@ -162,7 +162,7 @@ class HubNameData:
         return HubNameData(name="")
 
 
-def check_length_and_log(name: str | None, value: Any) -> Any:
+def check_length_and_log(*, name: str | None, value: Any) -> Any:
     """Check the length of a data point and log if too long."""
     if isinstance(value, str) and len(value) > 255:
         _LOGGER.debug(
@@ -173,7 +173,7 @@ def check_length_and_log(name: str | None, value: Any) -> Any:
     return value
 
 
-def get_device_name(device_details_provider: Any, device_address: str, model: str) -> str:
+def get_device_name(*, device_details_provider: Any, device_address: str, model: str) -> str:
     """Return the cached name for a device, or an auto-generated."""
     if name := device_details_provider.get_name(address=device_address):
         return name  # type: ignore[no-any-return]
@@ -183,15 +183,15 @@ def get_device_name(device_details_provider: Any, device_address: str, model: st
         model,
         device_address,
     )
-    return _get_generic_name(address=device_address, model=model)
+    return _get_generic_name(address=device_address, model=model)  # Already using keyword args
 
 
-def _get_generic_name(address: str, model: str) -> str:
+def _get_generic_name(*, address: str, model: str) -> str:
     """Return auto-generated device/channel name."""
     return f"{model}_{address}"
 
 
-def get_channel_name_data(channel: ChannelProtocol) -> ChannelNameData:
+def get_channel_name_data(*, channel: ChannelProtocol) -> ChannelNameData:
     """Get name for data_point."""
     if channel_base_name := _get_base_name_from_channel_or_device(channel=channel):
         return ChannelNameData(
@@ -303,6 +303,7 @@ class HubPathData(PathData):
 
 
 def get_data_point_name_data(
+    *,
     channel: ChannelProtocol,
     parameter: str,
 ) -> DataPointNameData:
@@ -340,6 +341,7 @@ def get_data_point_name_data(
 
 
 def get_hub_data_point_name_data(
+    *,
     channel: ChannelProtocol | None,
     legacy_name: str,
     central_name: str,
@@ -374,6 +376,7 @@ def get_hub_data_point_name_data(
 
 
 def get_event_name(
+    *,
     channel: ChannelProtocol,
     parameter: str,
 ) -> DataPointNameData:
@@ -405,6 +408,7 @@ def get_event_name(
 
 
 def get_custom_data_point_name(
+    *,
     channel: ChannelProtocol,
     is_only_primary_channel: bool,
     ignore_multiple_channels_for_name: bool,
@@ -439,6 +443,7 @@ def get_custom_data_point_name(
 
 
 def generate_unique_id(
+    *,
     config_provider: ConfigProviderProtocol,
     address: str,
     parameter: str | None = None,
@@ -466,6 +471,7 @@ def generate_unique_id(
 
 
 def generate_channel_unique_id(
+    *,
     config_provider: ConfigProviderProtocol,
     address: str,
 ) -> str:
@@ -476,7 +482,7 @@ def generate_channel_unique_id(
     return unique_id.lower()
 
 
-def _get_base_name_from_channel_or_device(channel: ChannelProtocol) -> str | None:
+def _get_base_name_from_channel_or_device(*, channel: ChannelProtocol) -> str | None:
     """Get the name from channel if it's not default, otherwise from device."""
     default_channel_name = f"{channel.device.model} {channel.address}"
     # Access device details provider through channel's device
@@ -486,7 +492,7 @@ def _get_base_name_from_channel_or_device(channel: ChannelProtocol) -> str | Non
     return name
 
 
-def _check_channel_name_with_channel_no(name: str) -> bool:
+def _check_channel_name_with_channel_no(*, name: str) -> bool:
     """Check if name contains channel and this is an int."""
     if name.count(ADDRESS_SEPARATOR) == 1:
         channel_part = name.split(ADDRESS_SEPARATOR)[1]
@@ -498,7 +504,7 @@ def _check_channel_name_with_channel_no(name: str) -> bool:
     return False
 
 
-def convert_value(value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
+def convert_value(*, value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
     """
     Convert a value to target_type with safe memoization.
 
@@ -510,18 +516,18 @@ def convert_value(value: Any, target_type: ParameterType, value_list: tuple[str,
     norm_value_list: tuple[str, ...] | None = tuple(value_list) if isinstance(value_list, list) else value_list
     try:
         # This will be cached if all arguments are hashable
-        return _convert_value_cached(value, target_type, norm_value_list)
+        return _convert_value_cached(value=value, target_type=target_type, value_list=norm_value_list)
     except TypeError:
         # Fallback non-cached path if any argument is unhashable
-        return _convert_value_noncached(value, target_type, norm_value_list)
+        return _convert_value_noncached(value=value, target_type=target_type, value_list=norm_value_list)
 
 
 @lru_cache(maxsize=2048)
-def _convert_value_cached(value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
-    return _convert_value_noncached(value, target_type, value_list)
+def _convert_value_cached(*, value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
+    return _convert_value_noncached(value=value, target_type=target_type, value_list=value_list)
 
 
-def _convert_value_noncached(value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
+def _convert_value_noncached(*, value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
     if value is None:
         return None
     if target_type == ParameterType.BOOL:
@@ -540,7 +546,7 @@ def _convert_value_noncached(value: Any, target_type: ParameterType, value_list:
     return value
 
 
-def is_binary_sensor(parameter_data: ParameterData) -> bool:
+def is_binary_sensor(*, parameter_data: ParameterData) -> bool:
     """Check, if the sensor is a binary_sensor."""
     if parameter_data["TYPE"] == ParameterType.BOOL:
         return True
@@ -549,7 +555,7 @@ def is_binary_sensor(parameter_data: ParameterData) -> bool:
     return False
 
 
-def _get_binary_sensor_value(value: int, value_list: tuple[str, ...]) -> bool:
+def _get_binary_sensor_value(*, value: int, value_list: tuple[str, ...]) -> bool:
     """Return, the value of a binary_sensor."""
     try:
         str_value = value_list[value]
@@ -561,6 +567,7 @@ def _get_binary_sensor_value(value: int, value_list: tuple[str, ...]) -> bool:
 
 
 def check_channel_is_the_only_primary_channel(
+    *,
     current_channel_no: int | None,
     primary_channel: int | None,
     device_has_multiple_channels: bool,
@@ -569,7 +576,7 @@ def check_channel_is_the_only_primary_channel(
     return bool(primary_channel == current_channel_no and device_has_multiple_channels is False)
 
 
-def get_value_from_value_list(value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None) -> str | None:
+def get_value_from_value_list(*, value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None) -> str | None:
     """Check if value is in value list."""
     if value is not None and isinstance(value, int) and value_list is not None and value < len(value_list):
         return value_list[int(value)]
@@ -577,7 +584,7 @@ def get_value_from_value_list(value: SYSVAR_TYPE, value_list: tuple[str, ...] | 
 
 
 def get_index_of_value_from_value_list(
-    value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None
+    *, value: SYSVAR_TYPE, value_list: tuple[str, ...] | list[str] | None
 ) -> int | None:
     """Check if value is in value list."""
     if value is not None and isinstance(value, str | StrEnum) and value_list is not None and value in value_list:

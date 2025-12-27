@@ -55,7 +55,7 @@ class DpActionSelect(GenericDataPoint[int | str | None, int | str]):
             return str(value)
         raise ValidationException(
             i18n.tr(
-                "exception.model.action_select.value_not_in_value_list",
+                key="exception.model.action_select.value_not_in_value_list",
                 name=self.name,
                 unique_id=self.unique_id,
             )

@@ -86,34 +86,34 @@ class TestHelperFunctions:
     )
     def test_freeze_unfreeze_roundtrip(self, value) -> None:
         """Test that freeze/unfreeze is idempotent for various data types."""
-        frozen = freeze_params(value)
-        unfrozen = unfreeze_params(frozen)
+        frozen = freeze_params(params=value)
+        unfrozen = unfreeze_params(frozen_params=frozen)
         # Idempotency check
-        assert freeze_params(unfrozen) == frozen
+        assert freeze_params(params=unfrozen) == frozen
 
     def testfreeze_params_datetime(self) -> None:
         """Test freezing datetime objects."""
         dt = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
-        frozen = freeze_params(dt)
+        frozen = freeze_params(params=dt)
         assert "__datetime__" in frozen
-        unfrozen = unfreeze_params(frozen)
+        unfrozen = unfreeze_params(frozen_params=frozen)
         assert unfrozen == dt
 
     def testfreeze_params_primitives(self) -> None:
         """Test freezing primitive types."""
-        assert freeze_params("string") == "string"
-        assert freeze_params(123) == "123"
-        assert freeze_params(True) == "True"
-        assert freeze_params(None) == "None"
+        assert freeze_params(params="string") == "string"
+        assert freeze_params(params=123) == "123"
+        assert freeze_params(params=True) == "True"
+        assert freeze_params(params=None) == "None"
 
     def testfreeze_params_set(self) -> None:
         """Test freezing set objects."""
         s = {1, 2, 3}
-        frozen = freeze_params(s)
+        frozen = freeze_params(params=s)
         assert "__set__" in frozen
-        unfrozen = unfreeze_params(frozen)
+        unfrozen = unfreeze_params(frozen_params=frozen)
         # Note: primitives get stringified, so check idempotency instead
-        assert freeze_params(unfrozen) == frozen
+        assert freeze_params(params=unfrozen) == frozen
 
     def testget_file_name_plain(self) -> None:
         """Test file name generation without timestamp."""
@@ -137,7 +137,7 @@ class TestHelperFunctions:
     def testunfreeze_params_invalid_string(self) -> None:
         """Test unfreezing invalid string returns original."""
         invalid = "not a valid frozen param"
-        unfrozen = unfreeze_params(invalid)
+        unfrozen = unfreeze_params(frozen_params=invalid)
         assert unfrozen == invalid
 
 

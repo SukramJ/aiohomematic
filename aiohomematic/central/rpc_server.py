@@ -63,7 +63,7 @@ class RPCFunctions:
             )
         _LOGGER.error(
             i18n.tr(
-                "log.central.rpc_server.error",
+                key="log.central.rpc_server.error",
                 interface_id=interface_id,
                 error_code=int(error_code),
                 msg=str(msg),

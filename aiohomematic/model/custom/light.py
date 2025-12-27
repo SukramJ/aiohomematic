@@ -147,7 +147,7 @@ _INFINITE_REPETITIONS: Final = "INFINITE_REPETITIONS"
 _MAX_REPETITIONS: Final = 18
 
 
-def _convert_repetitions(repetitions: int | None) -> str:
+def _convert_repetitions(*, repetitions: int | None) -> str:
     """
     Convert repetitions count to REPETITIONS VALUE_LIST value.
 
@@ -174,7 +174,7 @@ def _convert_repetitions(repetitions: int | None) -> str:
     return f"REPETITIONS_{repetitions:03d}"
 
 
-def _convert_flash_time_to_on_time_list(flash_time_ms: int | None) -> str:
+def _convert_flash_time_to_on_time_list(*, flash_time_ms: int | None) -> str:
     """Convert flash time in milliseconds to nearest ON_TIME_LIST value."""
     if flash_time_ms is None or flash_time_ms <= 0:
         return _PERMANENTLY_ON
@@ -879,8 +879,8 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
 
         on_time = kwargs.get("on_time", 10.0)
         ramp_time = kwargs.get("ramp_time", 0.0)
-        repetitions_value = _convert_repetitions(kwargs.get("repetitions"))
-        flash_time_value = _convert_flash_time_to_on_time_list(kwargs.get("flash_time"))
+        repetitions_value = _convert_repetitions(repetitions=kwargs.get("repetitions"))
+        flash_time_value = _convert_flash_time_to_on_time_list(flash_time_ms=kwargs.get("flash_time"))
 
         # Handle color: convert hs_color or default to WHITE (like CustomDpIpFixedColorLight)
         if (hs_color := kwargs.get("hs_color")) is not None:

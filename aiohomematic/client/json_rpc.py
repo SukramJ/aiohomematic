@@ -380,7 +380,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.accept_device_in_inbox.failed",
+                    key="log.client.json_rpc.accept_device_in_inbox.failed",
                     device_address=device_address,
                     reason=extract_exc_args(exc=jderr),
                 )
@@ -403,7 +403,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.create_backup_start.failed",
+                    key="log.client.json_rpc.create_backup_start.failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -432,7 +432,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.create_backup_status.failed",
+                    key="log.client.json_rpc.create_backup_status.failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -465,13 +465,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         """
         if not self._client_session:
-            _LOGGER.error(i18n.tr("exception.client.json_post.no_session"))
+            _LOGGER.error(i18n.tr(key="exception.client.json_post.no_session"))
             return None
 
         # Get session ID for authentication
         await self._login_or_renew()
         if not self._session_id:
-            _LOGGER.error(i18n.tr("log.client.json_rpc.download_backup.no_session"))
+            _LOGGER.error(i18n.tr(key="log.client.json_rpc.download_backup.no_session"))
             return None
 
         # Build download URL - CCU creates and serves backup via cp_security.cgi
@@ -491,14 +491,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     return content
                 _LOGGER.error(
                     i18n.tr(
-                        "log.client.json_rpc.download_backup.failed",
+                        key="log.client.json_rpc.download_backup.failed",
                         status=response.status,
                     )
                 )
         except ClientError as cerr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.download_backup.error",
+                    key="log.client.json_rpc.download_backup.error",
                     reason=extract_exc_args(exc=cerr),
                 )
             )
@@ -517,7 +517,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         """
         if not self._client_session:
-            _LOGGER.error(i18n.tr("exception.client.json_post.no_session"))
+            _LOGGER.error(i18n.tr(key="exception.client.json_post.no_session"))
             return False
 
         # CCU downloads firmware via /config/cp_maintenance.cgi with POST
@@ -528,7 +528,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             # Get session ID for authentication
             await self._login_or_renew()
             if not self._session_id:
-                _LOGGER.error(i18n.tr("log.client.json_rpc.download_firmware.no_session"))
+                _LOGGER.error(i18n.tr(key="log.client.json_rpc.download_firmware.no_session"))
                 return False
 
             # CCU expects firmware URL to be passed to maintenance CGI
@@ -549,14 +549,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     return True
                 _LOGGER.error(
                     i18n.tr(
-                        "log.client.json_rpc.download_firmware.failed",
+                        key="log.client.json_rpc.download_firmware.failed",
                         status=response.status,
                     )
                 )
         except ClientError as cerr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.download_firmware.error",
+                    key="log.client.json_rpc.download_firmware.error",
                     reason=extract_exc_args(exc=cerr),
                 )
             )
@@ -647,7 +647,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except (ContentTypeError, JSONDecodeError) as cerr:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.get_all_device_data.failed",
+                    key="exception.client.get_all_device_data.failed",
                     interface=interface,
                 )
             ) from cerr
@@ -795,7 +795,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 except (ValueError, TypeError) as vterr:
                     _LOGGER.error(
                         i18n.tr(
-                            "log.client.json_rpc.get_all_system_variables.parse_failed",
+                            key="log.client.json_rpc.get_all_system_variables.parse_failed",
                             exc_type=vterr.__class__.__name__,
                             reason=extract_exc_args(exc=vterr),
                             legacy_name=legacy_name,
@@ -856,7 +856,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.get_inbox_devices.decode_failed",
+                    key="log.client.json_rpc.get_inbox_devices.decode_failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -977,7 +977,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.get_service_messages.decode_failed",
+                    key="log.client.json_rpc.get_service_messages.decode_failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -1002,7 +1002,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.get_backend_info.failed",
+                    key="log.client.json_rpc.get_backend_info.failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -1033,7 +1033,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.get_system_update_info.decode_failed",
+                    key="log.client.json_rpc.get_system_update_info.decode_failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -1282,7 +1282,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 params[_JsonKey.VALUE] = clean_text
                 _LOGGER.error(
                     i18n.tr(
-                        "log.client.json_rpc.set_system_variable.value_contains_html",
+                        key="log.client.json_rpc.set_system_variable.value_contains_html",
                         value=value,
                     )
                 )
@@ -1352,14 +1352,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 if success:
                     _LOGGER.info(
                         i18n.tr(
-                            "log.client.json_rpc.trigger_firmware_update.success",
+                            key="log.client.json_rpc.trigger_firmware_update.success",
                             message=message,
                         )
                     )
                 else:
                     _LOGGER.warning(
                         i18n.tr(
-                            "log.client.json_rpc.trigger_firmware_update.not_triggered",
+                            key="log.client.json_rpc.trigger_firmware_update.not_triggered",
                             message=message,
                         )
                     )
@@ -1367,7 +1367,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.trigger_firmware_update.failed",
+                    key="log.client.json_rpc.trigger_firmware_update.failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -1389,7 +1389,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     async def _do_login(self) -> str | None:
         """Login to the backend and return session with rate limiting."""
         if not self._has_credentials:
-            _LOGGER.error(i18n.tr("log.client.json_rpc.do_login.no_credentials"))
+            _LOGGER.error(i18n.tr(key="log.client.json_rpc.do_login.no_credentials"))
             return None
 
         # Apply rate limiting if we've had recent failed attempts
@@ -1401,7 +1401,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             wait_time = self._current_backoff - elapsed
             _LOGGER.warning(
                 i18n.tr(
-                    "log.client.json_rpc.do_login.rate_limited",
+                    key="log.client.json_rpc.do_login.rate_limited",
                     attempts=self._failed_login_attempts,
                     wait_time=wait_time,
                 )
@@ -1440,7 +1440,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             if self._failed_login_attempts >= LOGIN_MAX_FAILED_ATTEMPTS:
                 _LOGGER.error(
                     i18n.tr(
-                        "log.client.json_rpc.do_login.max_attempts_reached",
+                        key="log.client.json_rpc.do_login.max_attempts_reached",
                         max_attempts=LOGIN_MAX_FAILED_ATTEMPTS,
                     )
                 )
@@ -1478,16 +1478,16 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     ) -> dict[str, Any] | Any:
         """Reusable JSON-RPC POST function."""
         if not self._client_session:
-            raise ClientException(i18n.tr("exception.client.json_post.no_session"))
+            raise ClientException(i18n.tr(key="exception.client.json_post.no_session"))
         if not self._has_credentials:
-            raise ClientException(i18n.tr("exception.client.json_post.no_credentials"))
+            raise ClientException(i18n.tr(key="exception.client.json_post.no_credentials"))
         if self._supported_methods and method not in self._supported_methods:
-            raise UnsupportedException(i18n.tr("exception.client.json_post.method_unsupported", method=method))
+            raise UnsupportedException(i18n.tr(key="exception.client.json_post.method_unsupported", method=method))
 
         # Check circuit breaker state (allow session management methods through)
         if method not in _CIRCUIT_BREAKER_BYPASS_METHODS and not self._circuit_breaker.is_available:
             self._circuit_breaker.record_rejection()
-            raise CircuitBreakerOpenException(i18n.tr("exception.client.json_rpc.circuit_open", url=self._url))
+            raise CircuitBreakerOpenException(i18n.tr(key="exception.client.json_rpc.circuit_open", url=self._url))
 
         params = _get_params(session_id=session_id, extra_params=extra_params, use_default_params=use_default_params)
 
@@ -1510,7 +1510,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             # Limit all JSON-RPC requests to prevent CCU session overload
             async with self._http_session_semaphore:
                 if (response := await asyncio.shield(post_call())) is None:
-                    raise ClientException(i18n.tr("exception.client.json_post.no_response"))
+                    raise ClientException(i18n.tr(key="exception.client.json_post.no_response"))
 
             if response.status == 200:
                 json_response = await asyncio.shield(self._get_json_reponse(response=response))
@@ -1538,7 +1538,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 self._circuit_breaker.record_success()
                 return json_response
 
-            message = i18n.tr("exception.client.json_post.http_status", status=response.status)
+            message = i18n.tr(key="exception.client.json_post.http_status", status=response.status)
             json_response = await asyncio.shield(self._get_json_reponse(response=response))
             if error := json_response[_JsonKey.ERROR]:
                 ctx = RpcContext(protocol="json-rpc", method=str(method), host=self._url)
@@ -1583,7 +1583,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 log_context=self.log_context,
             )
             raise ClientException(
-                i18n.tr("exception.client.json_post.connector_certificate_error", reason=message)
+                i18n.tr(key="exception.client.json_post.connector_certificate_error", reason=message)
             ) from cccerr
         except ClientConnectorError as cceerr:
             self.clear_session()
@@ -1599,7 +1599,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 level=level,
                 log_context=self.log_context,
             )
-            raise ClientException(i18n.tr("exception.client.json_post.connector_error", reason=message)) from cceerr
+            raise ClientException(i18n.tr(key="exception.client.json_post.connector_error", reason=message)) from cceerr
         except (ClientError, OSError) as err:
             self.clear_session()
             self._circuit_breaker.record_failure()
@@ -1702,7 +1702,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.get_program_descriptions.decode_failed",
+                    key="log.client.json_rpc.get_program_descriptions.decode_failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -1757,7 +1757,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         try:
             await self._login_or_renew()
             if not (session_id := self._session_id):
-                raise ClientException(i18n.tr("exception.client.json_post.login_failed"))
+                raise ClientException(i18n.tr(key="exception.client.json_post.login_failed"))
 
             response = await self._do_post(
                 session_id=session_id,
@@ -1787,7 +1787,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
-                    "log.client.json_rpc.get_system_variable_descriptions.decode_failed",
+                    key="log.client.json_rpc.get_system_variable_descriptions.decode_failed",
                     reason=extract_exc_args(exc=jderr),
                 )
             )
@@ -1831,7 +1831,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             session_id = await self._do_login()
 
         if not session_id:
-            raise ClientException(i18n.tr("exception.client.json_post.login_failed"))
+            raise ClientException(i18n.tr(key="exception.client.json_post.login_failed"))
 
         if self._supported_methods is None:
             await self._check_supported_methods()
@@ -1863,7 +1863,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Reusable JSON-RPC POST_SCRIPT function."""
         # Load and validate script first to avoid any network when script is missing
         if (script := await self._get_script(script_name=script_name)) is None:
-            raise ClientException(i18n.tr("exception.client.script.missing", script=script_name))
+            raise ClientException(i18n.tr(key="exception.client.script.missing", script=script_name))
 
         # Prepare session only after we know we have a script to run
         if keep_session:
@@ -1873,7 +1873,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             session_id = await self._do_login()
 
         if not session_id:
-            raise ClientException(i18n.tr("exception.client.json_post.login_failed"))
+            raise ClientException(i18n.tr(key="exception.client.json_post.login_failed"))
 
         if self._supported_methods is None:
             await self._check_supported_methods()

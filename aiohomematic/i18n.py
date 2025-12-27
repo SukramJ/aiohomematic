@@ -107,7 +107,7 @@ def _get_catalog(*, locale: str) -> dict[str, str]:
         return merged
 
 
-def set_locale(locale: str | None = None) -> None:
+def set_locale(*, locale: str | None = None) -> None:
     """
     Set the current locale used for translations.
 
@@ -132,7 +132,7 @@ def get_locale() -> str:
     return _CURRENT_LOCALE
 
 
-def tr(key: str, /, **kwargs: Any) -> str:
+def tr(*, key: str, **kwargs: Any) -> str:
     """
     Translate the given key using the active locale with Python str.format kwargs.
 

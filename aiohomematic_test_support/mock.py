@@ -386,7 +386,7 @@ def get_xml_rpc_proxy(  # noqa: C901
     return cast(BaseRpcProxy, _AioXmlRpcProxyFromSession())
 
 
-def _get_instance_attributes(instance: Any) -> set[str]:
+def _get_instance_attributes(instance: Any) -> set[str]:  # kwonly: disable
     """
     Get all instance attribute names, supporting both __dict__ and __slots__.
 

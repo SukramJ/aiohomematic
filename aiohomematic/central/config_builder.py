@@ -387,7 +387,7 @@ class CentralConfigBuilder:
         # Build interface configs with resolved ports
         interface_configs: set[InterfaceConfig] = set()
         for interface, port, remote_path in self._interfaces:
-            if resolved_port := port or get_interface_default_port(interface, tls=self._tls):
+            if resolved_port := port or get_interface_default_port(interface=interface, tls=self._tls):
                 config_kwargs: dict[str, Any] = {
                     "central_name": self._name,
                     "interface": interface,

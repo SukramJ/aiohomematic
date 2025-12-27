@@ -303,7 +303,7 @@ class CircuitBreaker:
             # Problem detected (CLOSED→OPEN) or testing recovery (OPEN→HALF_OPEN)
             _LOGGER.info(
                 i18n.tr(
-                    "log.client.circuit_breaker.state_transition",
+                    key="log.client.circuit_breaker.state_transition",
                     old_state=old_state,
                     new_state=new_state,
                     interface_id=self._interface_id,

@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 # pylint: disable=protected-access
 
 
-def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:
+def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:  # kwonly: disable
     """Load json file from disk into dict."""
     package_path = str(importlib.resources.files(anchor))
     with open(
@@ -31,7 +31,7 @@ def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:
         return orjson.loads(fptr.read())
 
 
-def get_prepared_custom_data_point(
+def get_prepared_custom_data_point(  # kwonly: disable
     central: CentralUnit, address: str, channel_no: int
 ) -> CustomDataPointProtocol | None:
     """Return the hm custom_data_point."""
@@ -42,7 +42,7 @@ def get_prepared_custom_data_point(
     return None
 
 
-def load_device_description(file_name: str) -> Any:
+def load_device_description(file_name: str) -> Any:  # kwonly: disable
     """Load device description."""
     dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
     assert dev_desc

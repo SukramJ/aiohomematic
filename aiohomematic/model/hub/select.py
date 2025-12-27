@@ -45,7 +45,7 @@ class SysvarDpSelect(GenericSysvarDataPoint):
         else:
             _LOGGER.error(
                 i18n.tr(
-                    "exception.model.select.value_not_in_value_list",
+                    key="exception.model.select.value_not_in_value_list",
                     name=self.name,
                     unique_id=self.unique_id,
                 )

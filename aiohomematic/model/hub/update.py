@@ -187,7 +187,7 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
                         if update_info and update_info.current_firmware != self._version_before_update:
                             _LOGGER.info(
                                 i18n.tr(
-                                    "log.model.hub.update.progress_completed",
+                                    key="log.model.hub.update.progress_completed",
                                     old_version=self._version_before_update,
                                     new_version=update_info.current_firmware,
                                 )
@@ -204,14 +204,14 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
                         # CCU may be offline during reboot - continue polling
                         _LOGGER.debug(
                             i18n.tr(
-                                "log.model.hub.update.progress_poll_error",
+                                key="log.model.hub.update.progress_poll_error",
                                 error=str(err),
                             )
                         )
             else:
                 _LOGGER.warning(
                     i18n.tr(
-                        "log.model.hub.update.progress_timeout",
+                        key="log.model.hub.update.progress_timeout",
                         timeout=self._config_provider.config.schedule_timer_config.system_update_progress_timeout,
                     )
                 )

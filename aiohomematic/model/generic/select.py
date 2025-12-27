@@ -49,7 +49,7 @@ class DpSelect(GenericDataPoint[int | str, int | float | str]):
             return str(value)
         raise ValidationException(
             i18n.tr(
-                "exception.model.select.value_not_in_value_list",
+                key="exception.model.select.value_not_in_value_list",
                 name=self.name,
                 unique_id=self.unique_id,
             )

@@ -475,7 +475,7 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC, WeekProfileProtocol[SCHE
         if (sca := self.schedule_channel_address) is None:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     address=self._device.name,
                 )
             )
@@ -621,7 +621,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     address=self._device.name,
                 )
             )
@@ -674,7 +674,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         except ClientException as cex:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             ) from cex
@@ -682,7 +682,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         if not (schedule := self._convert_schedule_entries(values=raw_data)):
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -736,7 +736,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                         if SCHEDULER_PROFILE_PATTERN.match(raw_profile_name) is None:
                             raise ValidationException(
                                 i18n.tr(
-                                    "exception.model.week_profile.validate.profile_name_invalid",
+                                    key="exception.model.week_profile.validate.profile_name_invalid",
                                     profile_name=raw_profile_name,
                                 )
                             )
@@ -795,7 +795,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             # Convert ENDTIME from minutes to time string if needed
             final_value: str | float = slot_value
             if _slot_type == "endtime" and isinstance(slot_value, int):
-                final_value = _convert_minutes_to_time_str(slot_value)
+                final_value = _convert_minutes_to_time_str(minutes=slot_value)
 
             schedule_data[_profile][_weekday][_slot_no][_slot_type] = final_value
 
@@ -830,7 +830,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -840,19 +840,19 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             same_device = True
 
         if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
-            raise ValidationException(i18n.tr("exception.model.week_profile.copy_schedule.same_device_invalid"))
+            raise ValidationException(i18n.tr(key="exception.model.week_profile.copy_schedule.same_device_invalid"))
 
         if (source_profile_data := await self.get_profile(profile=source_profile)) is None:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.source_profile.not_loaded",
+                    key="exception.model.week_profile.source_profile.not_loaded",
                     source_profile=source_profile,
                 )
             )
         if not target_climate_data_point.device.supports_week_profile:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     address=self._device.name,
                 )
             )
@@ -871,12 +871,12 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
     async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
         """Copy schedule to target device."""
         if self._data_point.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
-            raise ValidationException(i18n.tr("exception.model.week_profile.copy_schedule.profile_count_mismatch"))
+            raise ValidationException(i18n.tr(key="exception.model.week_profile.copy_schedule.profile_count_mismatch"))
         raw_schedule = await self._get_raw_schedule()
         if not target_climate_data_point.device.supports_week_profile:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     address=self._device.name,
                 )
             )
@@ -896,7 +896,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -910,7 +910,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -924,7 +924,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -938,7 +938,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -954,7 +954,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -972,7 +972,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self.supports_schedule:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             )
@@ -1108,7 +1108,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         except ClientException as cex:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.schedule.unsupported",
+                    key="exception.model.week_profile.schedule.unsupported",
                     name=self._device.name,
                 )
             ) from cex
@@ -1188,7 +1188,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self._min_temp <= base_temperature <= self._max_temp:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.validate.base_temperature_out_of_range",
+                    key="exception.model.week_profile.validate.base_temperature_out_of_range",
                     base_temperature=base_temperature,
                     min=self._min_temp,
                     max=self._max_temp,
@@ -1200,11 +1200,11 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         # Validate required fields before sorting
         for slot in _weekday_data:
             if (starttime := slot.get("starttime")) is None:
-                raise ValidationException(i18n.tr("exception.model.week_profile.validate.starttime_missing"))
+                raise ValidationException(i18n.tr(key="exception.model.week_profile.validate.starttime_missing"))
             if (endtime := slot.get("endtime")) is None:
-                raise ValidationException(i18n.tr("exception.model.week_profile.validate.endtime_missing"))
+                raise ValidationException(i18n.tr(key="exception.model.week_profile.validate.endtime_missing"))
             if (temperature := slot.get("temperature")) is None:
-                raise ValidationException(i18n.tr("exception.model.week_profile.validate.temperature_missing"))
+                raise ValidationException(i18n.tr(key="exception.model.week_profile.validate.temperature_missing"))
 
         sorted_periods = sorted(_weekday_data, key=lambda p: _convert_time_str_to_minutes(time_str=p["starttime"]))
         previous_endtime = CLIMATE_MIN_SCHEDULER_TIME
@@ -1219,7 +1219,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             ):
                 raise ValidationException(
                     i18n.tr(
-                        "exception.model.week_profile.validate.start_before_end",
+                        key="exception.model.week_profile.validate.start_before_end",
                         start=starttime,
                         end=endtime,
                     )
@@ -1230,7 +1230,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             ):
                 raise ValidationException(
                     i18n.tr(
-                        "exception.model.week_profile.validate.overlap",
+                        key="exception.model.week_profile.validate.overlap",
                         start=starttime,
                         end=endtime,
                     )
@@ -1239,7 +1239,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             if not self._min_temp <= float(temperature) <= self._max_temp:
                 raise ValidationException(
                     i18n.tr(
-                        "exception.model.week_profile.validate.temperature_out_of_range_for_times",
+                        key="exception.model.week_profile.validate.temperature_out_of_range_for_times",
                         temperature=temperature,
                         min=self._min_temp,
                         max=self._max_temp,
@@ -1282,7 +1282,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if not self._min_temp <= float(base_temperature) <= self._max_temp:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.validate.base_temperature_out_of_range",
+                    key="exception.model.week_profile.validate.base_temperature_out_of_range",
                     base_temperature=base_temperature,
                     min=self._min_temp,
                     max=self._max_temp,
@@ -1309,7 +1309,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             ):
                 raise ValidationException(
                     i18n.tr(
-                        "exception.model.week_profile.validate.time_out_of_bounds_profile_slot",
+                        key="exception.model.week_profile.validate.time_out_of_bounds_profile_slot",
                         time=endtime_str,
                         min_time=CLIMATE_MIN_SCHEDULER_TIME,
                         max_time=CLIMATE_MAX_SCHEDULER_TIME,
@@ -1382,14 +1382,14 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             if len(weekday_data) > 13:
                 raise ValidationException(
                     i18n.tr(
-                        "exception.model.week_profile.validate.too_many_slots",
+                        key="exception.model.week_profile.validate.too_many_slots",
                         profile=profile,
                         weekday=weekday,
                     )
                 )
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.week_profile.validate.too_few_slots",
+                    key="exception.model.week_profile.validate.too_few_slots",
                     profile=profile,
                     weekday=weekday,
                 )
@@ -1398,7 +1398,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             if no not in weekday_data:
                 raise ValidationException(
                     i18n.tr(
-                        "exception.model.week_profile.validate.slot_missing",
+                        key="exception.model.week_profile.validate.slot_missing",
                         no=no,
                         profile=profile,
                         weekday=weekday,
@@ -1409,7 +1409,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                 if slot_type not in slot:
                     raise ValidationException(
                         i18n.tr(
-                            "exception.model.week_profile.validate.slot_type_missing",
+                            key="exception.model.week_profile.validate.slot_type_missing",
                             slot_type=slot_type,
                             profile=profile,
                             weekday=weekday,
@@ -1422,7 +1422,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             if not self._min_temp <= temperature <= self._max_temp:
                 raise ValidationException(
                     i18n.tr(
-                        "exception.model.week_profile.validate.temperature_out_of_range_for_profile_slot",
+                        key="exception.model.week_profile.validate.temperature_out_of_range_for_profile_slot",
                         temperature=temperature,
                         min=self._min_temp,
                         max=self._max_temp,
@@ -1438,7 +1438,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                 if endtime not in CLIMATE_SCHEDULE_TIME_RANGE:
                     raise ValidationException(
                         i18n.tr(
-                            "exception.model.week_profile.validate.time_out_of_bounds_profile_slot",
+                            key="exception.model.week_profile.validate.time_out_of_bounds_profile_slot",
                             time=endtime_str,
                             min_time=_convert_minutes_to_time_str(minutes=CLIMATE_SCHEDULE_TIME_RANGE.start),
                             max_time=_convert_minutes_to_time_str(minutes=CLIMATE_SCHEDULE_TIME_RANGE.stop - 1),
@@ -1450,7 +1450,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                 if endtime < previous_endtime:
                     raise ValidationException(
                         i18n.tr(
-                            "exception.model.week_profile.validate.sequence_rising",
+                            key="exception.model.week_profile.validate.sequence_rising",
                             time=endtime_str,
                             previous=_convert_minutes_to_time_str(minutes=previous_endtime),
                             profile=profile,
@@ -1558,7 +1558,7 @@ def _list_to_bitwise(*, items: list[IntEnum]) -> int:
     return result
 
 
-def is_schedule_active(group_data: DEFAULT_SCHEDULE_GROUP) -> bool:
+def is_schedule_active(*, group_data: DEFAULT_SCHEDULE_GROUP) -> bool:
     """
     Check if a schedule group will actually execute (not deactivated).
 
@@ -1584,7 +1584,7 @@ def is_schedule_active(group_data: DEFAULT_SCHEDULE_GROUP) -> bool:
     return bool(weekday and target_channels)
 
 
-def create_empty_schedule_group(category: DataPointCategory | None = None) -> DEFAULT_SCHEDULE_GROUP:
+def create_empty_schedule_group(*, category: DataPointCategory | None = None) -> DEFAULT_SCHEDULE_GROUP:
     """
     Create an empty (deactivated) schedule group and tailor optional fields depending on the provided `category`.
 
@@ -1711,7 +1711,7 @@ def identify_base_temperature(*, weekday_data: ClimateWeekdaySchedule) -> float:
     return max(temperature_minutes, key=lambda temp: temperature_minutes[temp])
 
 
-def _convert_minutes_to_time_str(minutes: Any) -> str:
+def _convert_minutes_to_time_str(*, minutes: Any) -> str:
     """Convert minutes to a time string."""
     if not isinstance(minutes, int):
         return CLIMATE_MAX_SCHEDULER_TIME
@@ -1719,7 +1719,7 @@ def _convert_minutes_to_time_str(minutes: Any) -> str:
     if SCHEDULER_TIME_PATTERN.match(time_str) is None:
         raise ValidationException(
             i18n.tr(
-                "exception.model.week_profile.validate.time_invalid_format",
+                key="exception.model.week_profile.validate.time_invalid_format",
                 time=time_str,
                 min=CLIMATE_MIN_SCHEDULER_TIME,
                 max=CLIMATE_MAX_SCHEDULER_TIME,
@@ -1733,7 +1733,7 @@ def _convert_time_str_to_minutes(*, time_str: str) -> int:
     if SCHEDULER_TIME_PATTERN.match(time_str) is None:
         raise ValidationException(
             i18n.tr(
-                "exception.model.week_profile.validate.time_invalid_format",
+                key="exception.model.week_profile.validate.time_invalid_format",
                 time=time_str,
                 min=CLIMATE_MIN_SCHEDULER_TIME,
                 max=CLIMATE_MAX_SCHEDULER_TIME,
@@ -1745,7 +1745,7 @@ def _convert_time_str_to_minutes(*, time_str: str) -> int:
     except Exception as exc:
         raise ValidationException(
             i18n.tr(
-                "exception.model.week_profile.validate.time_convert_failed",
+                key="exception.model.week_profile.validate.time_convert_failed",
                 time=time_str,
             )
         ) from exc

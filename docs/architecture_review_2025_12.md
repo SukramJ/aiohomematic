@@ -1,7 +1,7 @@
 # Architecture Review - aiohomematic
 
 **Date**: 2025-12-27
-**Version**: 2025.12.45
+**Version**: 2025.12.49
 **Reviewer**: Claude Code (Opus 4.5)
 
 ---
@@ -17,10 +17,11 @@
 | **Testability**   | ⭐⭐⭐⭐⭐ | Protocol-based mocking, pure model layer                           |
 | **Resilience**    | ⭐⭐⭐⭐⭐ | CircuitBreaker, RequestCoalescing, RecoveryCoordinator             |
 | **Extensibility** | ⭐⭐⭐⭐⭐ | DeviceProfileRegistry, handler pattern, EventBus                   |
+| **Observability** | ⭐⭐⭐⭐⭐ | MetricsAggregator with 7 categories, service call tracking         |
 | **Documentation** | ⭐⭐⭐⭐   | 9 ADRs, comprehensive docs/, CLAUDE.md                             |
 | **Performance**   | ⭐⭐⭐⭐   | Caching, async-first, request coalescing                           |
 
-**Overall Rating: 9.5/10** - Production-grade architecture with best practices.
+**Overall Rating: 9.6/10** - Production-grade architecture with best practices and comprehensive observability.
 
 ---
 
@@ -199,6 +200,34 @@ class MyMetric(CalculatedDataPoint[float | None]):
 - LinkManagementHandler (198 LOC)
 - BackupHandler, FirmwareHandler, ProgramHandler, SystemVariableHandler
 
+### 7. Comprehensive Observability (NEW)
+
+The MetricsAggregator provides unified access to all runtime statistics:
+
+```python
+snapshot = central.metrics.snapshot()
+```
+
+**7 Metric Categories**:
+
+| Category | Access              | Key Metrics                          |
+| -------- | ------------------- | ------------------------------------ |
+| RPC      | `snapshot.rpc`      | success_rate, latency, coalescing    |
+| Events   | `snapshot.events`   | handler duration, error rate         |
+| Cache    | `snapshot.cache`    | hit rates, sizes per cache           |
+| Health   | `snapshot.health`   | client availability, health score    |
+| Recovery | `snapshot.recovery` | attempts, success rate               |
+| Model    | `snapshot.model`    | device/channel/datapoint counts      |
+| Services | `snapshot.services` | per-method call stats via @inspector |
+
+**Key Design Decisions**:
+
+- Immutable snapshots via frozen dataclasses
+- Thread-safe global registry for service stats
+- Multi-Central isolation keyed by `(central_name, method_name)`
+- Zero-overhead when `measure_performance=False`
+- 38 tests covering all metric types
+
 ---
 
 ## Improvement Potential
@@ -252,42 +281,50 @@ async with asyncio.TaskGroup() as tg:
 
 **Effort**: Low | **Impact**: Medium | **Risk**: Low
 
-### 3. Metrics/Observability Extension
+### 3. Metrics/Observability Extension ✅ FULLY IMPLEMENTED
 
-**Situation**: Metrics exist but are scattered across components (CircuitBreaker, RequestCoalescer, EventBus, Health).
+**Situation**: Metrics existed but were scattered across components (CircuitBreaker, RequestCoalescer, EventBus, Health).
 
-**Analysis Performed** (2025-12-27): See [Metrics Analysis](metrics_analysis.md) for full details.
+**Implementation Completed** (2025-12-27): All phases implemented including service call metrics.
 
-**Existing Metrics** (already implemented):
+**New Components Added**:
 
-- CircuitBreakerMetrics: requests, failures, state transitions
-- CoalescerMetrics: coalesced requests, coalesce rate
-- EventBus: event counts, subscription counts
-- ConnectionHealth: health scores, reconnect counters
+- `aiohomematic/central/metrics.py`: MetricsAggregator and metric dataclasses
+- `CentralUnit.metrics`: DelegatedProperty providing access to MetricsAggregator
+- `EventBus.get_handler_stats()`: Handler execution statistics (duration, errors)
+- `CentralDataCache.stats`: Cache hit/miss statistics
+- `RequestCoalescer.latency_stats`: RPC latency tracking
+- `@inspector` integration: Service call metrics with multi-Central isolation
 
-**Proposed Metrics Categories** (7 categories, 50+ metrics):
+**Implemented Metrics Categories** (7 categories):
 
-| Category          | Key Metrics                          | Priority |
-| ----------------- | ------------------------------------ | -------- |
-| RPC Communication | success rate, latency, coalesce rate | High     |
-| EventBus          | throughput, handler duration, errors | High     |
-| Connection Health | overall score, client states         | High     |
-| Cache Statistics  | hit rates, sizes, evictions          | Medium   |
-| Recovery          | attempts, success rate, duration     | Medium   |
-| Model Statistics  | device/channel/datapoint counts      | Low      |
-| System Resources  | active tasks, memory estimates       | Low      |
+| Category          | Key Metrics                             | Status         |
+| ----------------- | --------------------------------------- | -------------- |
+| RPC Communication | success rate, latency, coalesce rate    | ✅ Implemented |
+| EventBus          | throughput, handler duration, errors    | ✅ Implemented |
+| Connection Health | overall score, client states            | ✅ Implemented |
+| Cache Statistics  | hit rates, sizes                        | ✅ Implemented |
+| Recovery          | attempts, success rate                  | ✅ Implemented |
+| Model Statistics  | device/channel/datapoint counts         | ✅ Implemented |
+| Service Calls     | per-method call count, duration, errors | ✅ Implemented |
 
-**Benefits**:
+**Usage Example**:
 
-1. Unified access point for all system metrics
-2. Home Assistant diagnostic sensors integration
-3. Debugging and troubleshooting support
-4. Proactive monitoring and alerting
-5. Performance optimization data
+```python
+# Access via CentralUnit
+snapshot = central.metrics.snapshot()
 
-**Recommendation**: Implement in phases - Phase 1 (aggregate existing) provides immediate value with low effort.
+print(f"RPC Success Rate: {snapshot.rpc.success_rate}%")
+print(f"Cache Hit Rate: {snapshot.cache.overall_hit_rate}%")
+print(f"Handler Errors: {snapshot.events.handler_errors}")
 
-**Effort**: Low (Phase 1) to Medium (Full) | **Impact**: High | **Risk**: Low
+# Service call metrics
+print(f"Total Service Calls: {snapshot.services.total_calls}")
+for method, stats in snapshot.services.by_method.items():
+    print(f"  {method}: {stats.call_count} calls, avg {stats.avg_duration_ms:.1f}ms")
+```
+
+**Status**: Fully complete - all 7 metric categories implemented with 38 tests.
 
 ### 4. Store Package Further Consolidation
 
@@ -426,15 +463,19 @@ _None_ - Architecture is in excellent condition.
 
 ### Medium Priority (Next Major Release)
 
-1. ~~**Review protocol granularity**~~ ✅ Analyzed 2025-12-27 - No changes recommended (see ADR-0010)
-2. **Add MetricsProviderProtocol** - Central observability interface
+_All medium priority items completed_ ✅
 
 ### Low Priority (When Convenient)
 
-1. ~~**Consolidate architecture_improvements.md** with ADRs~~ ✅ Completed 2025-12-27
-2. **Use TaskGroup** for new parallel features
-3. **Unify cache interface** across store package
-4. **Add ADR template** with "Superseded by" and "Review date" fields
+1. **Use TaskGroup** for new parallel features
+2. **Unify cache interface** across store package
+3. **Add ADR template** with "Superseded by" and "Review date" fields
+
+### Completed (2025-12-27)
+
+1. ✅ **Review protocol granularity** - Analyzed, no changes recommended (see ADR-0010)
+2. ✅ **Add MetricsProviderProtocol** - MetricsAggregator with 7 categories fully implemented
+3. ✅ **Consolidate architecture_improvements.md** - Dead links removed, ADR references updated
 
 ### Not Recommended
 

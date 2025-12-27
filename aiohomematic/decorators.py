@@ -16,6 +16,7 @@ from time import monotonic
 from typing import Any, Final, cast, overload
 from weakref import WeakKeyDictionary
 
+from aiohomematic.central.metrics import record_service_call
 from aiohomematic.const import ServiceScope
 from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 from aiohomematic.exceptions import BaseHomematicException
@@ -133,9 +134,9 @@ def inspector[**P, R](  # noqa: C901
         @wraps(func)
         def wrap_sync_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap sync functions with minimized per-call overhead."""
-            # Fast-path: avoid logger check and time call unless explicitly enabled
-            start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
-            start = monotonic() if start_needed else None
+            # Start timing if measure_performance is enabled (for metrics and/or logging)
+            start = monotonic() if measure_performance else None
+            had_error = False
 
             # Check if already in a service call context
             in_service = is_in_service()
@@ -148,6 +149,7 @@ def inspector[**P, R](  # noqa: C901
             try:
                 return_value: R = func(*args, **kwargs)
             except BaseHomematicException as bhexc:
+                had_error = True
                 if token is not None:
                     reset_request_context(token)
                 return handle_exception(
@@ -158,6 +160,7 @@ def inspector[**P, R](  # noqa: C901
                     context_obj=context_obj,
                 )
             except Exception as exc:
+                had_error = True
                 if token is not None:
                     reset_request_context(token)
                 return handle_exception(
@@ -173,13 +176,25 @@ def inspector[**P, R](  # noqa: C901
                 return return_value
             finally:
                 if start is not None:
-                    _log_performance_message(func, start, *args, **kwargs)
+                    duration_ms = (monotonic() - start) * 1000
+                    # Record service call metrics if central_name is available
+                    if (central_info := getattr(context_obj, "_central_info", None)) is not None:
+                        record_service_call(
+                            central_name=central_info.name,
+                            method_name=func.__name__,
+                            duration_ms=duration_ms,
+                            had_error=had_error,
+                        )
+                    # Log performance if debug logging is enabled
+                    if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG):
+                        _log_performance_message(func, start, *args, **kwargs)
 
         @wraps(func)
         async def wrap_async_function(*args: P.args, **kwargs: P.kwargs) -> R:
             """Wrap async functions with minimized per-call overhead."""
-            start_needed = measure_performance and _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG)
-            start = monotonic() if start_needed else None
+            # Start timing if measure_performance is enabled (for metrics and/or logging)
+            start = monotonic() if measure_performance else None
+            had_error = False
 
             # Check if already in a service call context
             in_service = is_in_service()
@@ -192,6 +207,7 @@ def inspector[**P, R](  # noqa: C901
             try:
                 return_value = await func(*args, **kwargs)  # type: ignore[misc]
             except BaseHomematicException as bhexc:
+                had_error = True
                 if token is not None:
                     reset_request_context(token)
                 return handle_exception(
@@ -202,6 +218,7 @@ def inspector[**P, R](  # noqa: C901
                     context_obj=context_obj,
                 )
             except Exception as exc:
+                had_error = True
                 if token is not None:
                     reset_request_context(token)
                 return handle_exception(
@@ -217,7 +234,18 @@ def inspector[**P, R](  # noqa: C901
                 return cast(R, return_value)
             finally:
                 if start is not None:
-                    _log_performance_message(func, start, *args, **kwargs)
+                    duration_ms = (monotonic() - start) * 1000
+                    # Record service call metrics if central_name is available
+                    if (central_info := getattr(context_obj, "_central_info", None)) is not None:
+                        record_service_call(
+                            central_name=central_info.name,
+                            method_name=func.__name__,
+                            duration_ms=duration_ms,
+                            had_error=had_error,
+                        )
+                    # Log performance if debug logging is enabled
+                    if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG):
+                        _log_performance_message(func, start, *args, **kwargs)
 
         # Check if the function is a coroutine or not and select the appropriate wrapper
         is_external = scope == ServiceScope.EXTERNAL

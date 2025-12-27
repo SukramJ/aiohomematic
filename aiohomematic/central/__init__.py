@@ -90,6 +90,16 @@ from aiohomematic.central.health import (  # noqa: F401 - ConnectionHealth used 
 )
 from aiohomematic.central.hub_coordinator import HubCoordinator
 from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.metrics import (  # noqa: F401 - Metric types used for re-export
+    CacheMetrics,
+    EventMetrics,
+    HealthMetrics,
+    MetricsAggregator,
+    MetricsSnapshot,
+    ModelMetrics,
+    RecoveryMetrics,
+    RpcMetrics,
+)
 from aiohomematic.central.recovery import (  # noqa: F401 - RecoveryResult used for re-export
     RecoveryCoordinator,
     RecoveryResult,
@@ -316,6 +326,18 @@ class CentralUnit(
             client_provider=self._client_coordinator,
         )
 
+        # Metrics aggregator for observability
+        self._metrics_aggregator: Final = MetricsAggregator(
+            central_name=self.name,
+            client_provider=self._client_coordinator,
+            device_provider=self._device_registry,
+            event_bus=self._event_bus,
+            health_tracker=self._health_tracker,
+            data_cache=self._cache_coordinator.data_cache,
+            hub_data_point_manager=self._hub_coordinator,
+            recovery_coordinator=self._recovery_coordinator,
+        )
+
         # Subscribe to system status events to update central state machine
         self.event_bus.subscribe(
             event_type=SystemStatusEvent,
@@ -351,6 +373,7 @@ class CentralUnit(
     listen_ip_addr: Final = DelegatedProperty[str](path="_listen_ip_addr")
     listen_port_xml_rpc: Final = DelegatedProperty[int](path="_listen_port_xml_rpc")
     looper: Final = DelegatedProperty[Looper](path="_looper")
+    metrics: Final = DelegatedProperty[MetricsAggregator](path="_metrics_aggregator")
     name: Final = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
     recovery_coordinator: Final = DelegatedProperty[RecoveryCoordinator](path="_recovery_coordinator")
     state: Final = DelegatedProperty[CentralState](path="_central_state_machine.state")

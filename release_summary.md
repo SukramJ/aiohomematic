@@ -2,6 +2,15 @@
 
 ## What's Changed
 
+### Observability & Metrics
+
+- **Unified Metrics**: New `CentralUnit.metrics` property providing centralized access to all runtime statistics
+- **RPC Monitoring**: Track success/failure rates, latency, and request coalescing effectiveness
+- **Event Tracking**: Monitor handler execution times, error rates, and event throughput
+- **Cache Statistics**: View hit rates and sizes across all caches
+- **Health Overview**: Client availability rates and overall system health scores
+- **Service Call Metrics**: Track per-method call counts, durations, and error rates via `@inspector` decorator
+
 ### Connection Reliability
 
 - **Improved Reconnection**: New state machine architecture for faster, more reliable recovery after CCU restarts
@@ -27,6 +36,8 @@
 
 ### Bug Fixes
 
+- **Cover/Dimmer Restart**: Fixed `is_valid` returning False after CCU restart when status is UNKNOWN
+- **Empty Numeric Values**: Fixed conversion error when CCU sends empty strings for FLOAT/INTEGER parameters
 - **RGBW/LSC Auto-Off**: Fixed lights turning off unexpectedly when using transition times
 - **Reconnect Availability**: Entities no longer remain unavailable after CCU reconnect
 - **STATUS Parameters**: Fixed handling of integer values from backend for status updates

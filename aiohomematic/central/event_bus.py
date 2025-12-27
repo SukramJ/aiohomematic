@@ -29,6 +29,7 @@ Public API
 - EventBus: Main event bus class for subscription and publishing
 - EventBatch: Context manager for batch event publishing
 - EventPriority: Enum for handler priority levels
+- HandlerStats: Statistics for event handler execution tracking
 - Event: Base class for all events
 - Various event types: DataPointUpdatedEvent, DeviceUpdatedEvent, etc.
 
@@ -96,6 +97,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
 import logging
+import time
 import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
@@ -164,6 +166,37 @@ class _PrioritizedHandler:
     handler: EventHandler
     priority: EventPriority
     order: int  # Insertion order for stable sorting within same priority
+
+
+@dataclass(slots=True)
+class HandlerStats:
+    """Statistics for event handler execution tracking."""
+
+    total_executions: int = 0
+    """Total number of handler executions."""
+
+    total_errors: int = 0
+    """Total number of handler errors."""
+
+    total_duration_ms: float = 0.0
+    """Total handler execution time in milliseconds."""
+
+    max_duration_ms: float = 0.0
+    """Maximum handler execution time in milliseconds."""
+
+    @property
+    def avg_duration_ms(self) -> float:
+        """Return average handler duration in milliseconds."""
+        if self.total_executions == 0:
+            return 0.0
+        return self.total_duration_ms / self.total_executions
+
+    def reset(self) -> None:
+        """Reset handler statistics."""
+        self.total_executions = 0
+        self.total_errors = 0
+        self.total_duration_ms = 0.0
+        self.max_duration_ms = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -406,10 +439,13 @@ class EventBus:
         self._task_scheduler = task_scheduler
         # Track pending tasks to prevent garbage collection (used only when no task_scheduler)
         self._pending_tasks: set[asyncio.Task[None]] = set()
+        # Handler execution statistics for metrics
+        self._handler_stats = HandlerStats()
 
     def clear_event_stats(self) -> None:
         """Clear event statistics counters to free memory."""
         self._event_count.clear()
+        self._handler_stats.reset()
         _LOGGER.debug("CLEAR_EVENT_STATS: Cleared all event statistics")
 
     def clear_subscriptions(self, *, event_type: type[Event] | None = None) -> None:
@@ -468,6 +504,10 @@ class EventBus:
 
         """
         return {event_type.__name__: count for event_type, count in self._event_count.items()}
+
+    def get_handler_stats(self) -> HandlerStats:
+        """Return handler execution statistics for metrics."""
+        return self._handler_stats
 
     def get_subscription_count(self, *, event_type: type[Event]) -> int:
         """
@@ -799,12 +839,18 @@ class EventBus:
             Exceptions are caught and logged but not re-raised. This ensures one
             buggy handler doesn't prevent other handlers from receiving events.
 
+        Duration tracking:
+            Handler execution time is measured and recorded in _handler_stats
+            for metrics aggregation.
+
         Args:
         ----
             handler: The callback to invoke (sync or async)
             event: The event to pass to the handler
 
         """
+        start_time = time.perf_counter()
+        had_error = False
         try:
             # Invoke handler with keyword-only event parameter
             result = handler(event=event)
@@ -812,12 +858,21 @@ class EventBus:
             if asyncio.iscoroutine(result):
                 await result
         except Exception:
+            had_error = True
             # Log but don't re-raise - isolate handler errors
             _LOGGER.exception(  # i18n-log: ignore
                 "_SAFE_CALL_HANDLER: Error in event handler %s for event %s",
                 handler.__name__ if hasattr(handler, "__name__") else handler,
                 type(event).__name__,
             )
+        finally:
+            # Record handler statistics
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            self._handler_stats.total_executions += 1
+            self._handler_stats.total_duration_ms += duration_ms
+            self._handler_stats.max_duration_ms = max(self._handler_stats.max_duration_ms, duration_ms)
+            if had_error:
+                self._handler_stats.total_errors += 1
 
 
 class EventBatch:

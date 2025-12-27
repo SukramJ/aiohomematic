@@ -151,7 +151,7 @@ class PingPongCache:
             issue = IntegrationIssue(
                 severity="warning" if acceptable else "error",
                 issue_id=f"ping_pong_mismatch_{self._interface_id}",
-                translation_key="issue.ping_pong_mismatch",
+                translation_key="ping_pong_mismatch",
                 translation_placeholders=(
                     ("interface_id", self._interface_id),
                     ("mismatch_type", mismatch_type.value),

@@ -181,6 +181,7 @@ from aiohomematic.interfaces.central import (
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
     HubFetchOperationsProtocol,
+    MetricsProviderProtocol,
     SystemInfoProviderProtocol,
 )
 from aiohomematic.interfaces.client import (
@@ -285,6 +286,8 @@ __all__ = [
     "ConnectionHealthProtocol",
     "HealthProviderProtocol",
     "HealthTrackerProtocol",
+    # Metrics
+    "MetricsProviderProtocol",
     # Event System
     "EventBusProviderProtocol",
     "EventPublisherProtocol",

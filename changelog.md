@@ -1,3 +1,23 @@
+# Version 2025.12.51 (2025-12-27)
+
+## What's Changed
+
+### New Features
+
+- **Add metrics hub sensors for Home Assistant**: Three new hub sensors exposing key system metrics
+  - **System Health** (`HmSystemHealthSensor`): Overall system health score (0-100%)
+  - **Connection Latency** (`HmConnectionLatencySensor`): Average RPC connection latency in ms
+  - **Last Event Age** (`HmLastEventAgeSensor`): Seconds since last backend event
+  - Sensors are accessible via `hub.metrics_dps` (returns `MetricsDpType`)
+  - Automatically initialized during `init_hub()` and published via `HUB_REFRESHED` event
+  - Scheduled refresh every 60 seconds (configurable via `ScheduleTimerConfig.metrics_refresh_interval`)
+
+### API Changes
+
+- Added `MetricsProviderProtocol` interface for accessing the `MetricsAggregator`
+- `HubCoordinator` now requires `metrics_provider` parameter
+- New `Hub` methods: `create_metrics_dps()`, `fetch_metrics_data()`, `init_metrics()`, `publish_metrics_refreshed()`
+
 # Version 2025.12.50 (2025-12-27)
 
 ## What's Changed

@@ -229,6 +229,10 @@ class BackgroundScheduler:
                 task=self._fetch_device_firmware_update_data_in_update,
                 run_interval=self._config_provider.config.schedule_timer_config.device_firmware_updating_check_interval,
             ),
+            SchedulerJob(
+                task=self._refresh_metrics_data,
+                run_interval=self._config_provider.config.schedule_timer_config.metrics_refresh_interval,
+            ),
         ]
 
     has_connection_issue: Final = DelegatedProperty[bool](
@@ -800,6 +804,14 @@ class BackgroundScheduler:
 
         _LOGGER.debug("REFRESH_INBOX_DATA: For %s", self._central_info.name)
         await self._hub_data_fetcher.fetch_inbox_data(scheduled=True)
+
+    async def _refresh_metrics_data(self) -> None:
+        """Refresh metrics hub sensors."""
+        if not self._central_info.available or not self.devices_created:
+            return
+
+        _LOGGER.debug("REFRESH_METRICS_DATA: For %s", self._central_info.name)
+        self._hub_data_fetcher.fetch_metrics_data(scheduled=True)
 
     async def _refresh_program_data(self) -> None:
         """Refresh system programs data."""

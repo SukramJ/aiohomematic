@@ -299,6 +299,7 @@ class CentralUnit(
             config_provider=self,
             event_bus_provider=self,
             event_publisher=self._event_coordinator,
+            metrics_provider=self,
             parameter_visibility_provider=self._cache_coordinator.parameter_visibility,
             paramset_description_provider=self._cache_coordinator.paramset_descriptions,
             primary_client_provider=self._client_coordinator,

@@ -164,7 +164,7 @@ class TestBackgroundSchedulerBasics:
         assert scheduler.is_active is False
         assert scheduler.devices_created is False
         assert scheduler._scheduler_task is None
-        assert len(scheduler._scheduler_jobs) == 9  # Should have 9 jobs
+        assert len(scheduler._scheduler_jobs) == 10  # Should have 10 jobs
 
     @pytest.mark.asyncio
     async def test_background_scheduler_start(self) -> None:

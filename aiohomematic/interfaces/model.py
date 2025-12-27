@@ -1812,6 +1812,10 @@ class HubProtocol(Protocol):
         """Fetch inbox data for the hub."""
 
     @abstractmethod
+    def fetch_metrics_data(self, *, scheduled: bool) -> None:
+        """Refresh metrics hub sensors with current values."""
+
+    @abstractmethod
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
 

@@ -102,6 +102,7 @@ from aiohomematic.interfaces.central import (
     EventPublisherProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
+    MetricsProviderProtocol,
 )
 from aiohomematic.interfaces.client import ClientProviderProtocol, PrimaryClientProviderProtocol
 from aiohomematic.interfaces.model import GenericHubDataPointProtocol, HubProtocol
@@ -115,6 +116,7 @@ from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
 from aiohomematic.model.hub.inbox import HmInboxSensor
 from aiohomematic.model.hub.install_mode import InstallModeDpButton, InstallModeDpSensor, InstallModeDpType
+from aiohomematic.model.hub.metrics import HmConnectionLatencySensor, HmLastEventAgeSensor, HmSystemHealthSensor
 from aiohomematic.model.hub.number import SysvarDpNumber
 from aiohomematic.model.hub.select import SysvarDpSelect
 from aiohomematic.model.hub.sensor import SysvarDpSensor
@@ -127,12 +129,16 @@ __all__ = [
     "GenericHubDataPoint",
     "GenericProgramDataPoint",
     "GenericSysvarDataPoint",
+    "HmConnectionLatencySensor",
     "HmInboxSensor",
+    "HmLastEventAgeSensor",
+    "HmSystemHealthSensor",
     "HmUpdate",
     "Hub",
     "InstallModeDpButton",
     "InstallModeDpSensor",
     "InstallModeDpType",
+    "MetricsDpType",
     "ProgramDpButton",
     "ProgramDpSwitch",
     "ProgramDpType",
@@ -160,6 +166,14 @@ class ProgramDpType(NamedTuple):
     switch: ProgramDpSwitch
 
 
+class MetricsDpType(NamedTuple):
+    """Container for metrics hub sensors."""
+
+    system_health: HmSystemHealthSensor
+    connection_latency: HmConnectionLatencySensor
+    last_event_age: HmLastEventAgeSensor
+
+
 class Hub(HubProtocol):
     """The Homematic hub."""
 
@@ -174,6 +188,8 @@ class Hub(HubProtocol):
         "_hub_data_point_manager",
         "_inbox_dp",
         "_install_mode_dps",
+        "_metrics_dps",
+        "_metrics_provider",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_primary_client_provider",
@@ -200,6 +216,7 @@ class Hub(HubProtocol):
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         channel_lookup: ChannelLookupProtocol,
         hub_data_fetcher: HubDataFetcherProtocol,
+        metrics_provider: MetricsProviderProtocol,
     ) -> None:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
@@ -218,12 +235,15 @@ class Hub(HubProtocol):
         self._parameter_visibility_provider: Final = parameter_visibility_provider
         self._channel_lookup: Final = channel_lookup
         self._hub_data_fetcher: Final = hub_data_fetcher
+        self._metrics_provider: Final = metrics_provider
         self._update_dp: HmUpdate | None = None
         self._inbox_dp: HmInboxSensor | None = None
         self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
+        self._metrics_dps: MetricsDpType | None = None
 
     inbox_dp: Final = DelegatedProperty[HmInboxSensor | None](path="_inbox_dp")
     install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_install_mode_dps")
+    metrics_dps: Final = DelegatedProperty[MetricsDpType | None](path="_metrics_dps")
     update_dp: Final = DelegatedProperty[HmUpdate | None](path="_update_dp")
 
     def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
@@ -244,6 +264,55 @@ class Hub(HubProtocol):
                 )
 
         return self._install_mode_dps
+
+    def create_metrics_dps(self) -> MetricsDpType | None:
+        """
+        Create metrics hub sensors.
+
+        Returns MetricsDpType containing all three metrics sensors.
+        """
+        if self._metrics_dps is not None:
+            return self._metrics_dps
+
+        self._metrics_dps = MetricsDpType(
+            system_health=HmSystemHealthSensor(
+                metrics_aggregator=self._metrics_provider.metrics,
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+            ),
+            connection_latency=HmConnectionLatencySensor(
+                metrics_aggregator=self._metrics_provider.metrics,
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+            ),
+            last_event_age=HmLastEventAgeSensor(
+                metrics_aggregator=self._metrics_provider.metrics,
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+            ),
+        )
+
+        _LOGGER.debug(
+            "CREATE_METRICS_DPS: Created metrics hub sensors for %s",
+            self._central_info.name,
+        )
+
+        return self._metrics_dps
 
     @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
@@ -283,6 +352,25 @@ class Hub(HubProtocol):
                     "FETCH_INSTALL_MODE_DATA: No client available for interface %s",
                     interface,
                 )
+
+    def fetch_metrics_data(self, *, scheduled: bool) -> None:
+        """
+        Refresh metrics hub sensors with current values.
+
+        This is a synchronous method as metrics are read directly from the
+        MetricsAggregator without backend calls.
+        """
+        if self._metrics_dps is None:
+            return
+        _LOGGER.debug(
+            "FETCH_METRICS_DATA: %s refreshing of metrics for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        write_at = datetime.now()
+        self._metrics_dps.system_health.refresh(write_at=write_at)
+        self._metrics_dps.connection_latency.refresh(write_at=write_at)
+        self._metrics_dps.last_event_age.refresh(write_at=write_at)
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -342,6 +430,24 @@ class Hub(HubProtocol):
 
         return install_mode_dps
 
+    def init_metrics(self) -> MetricsDpType | None:
+        """
+        Initialize metrics hub sensors.
+
+        Creates sensors, fetches initial values, and publishes refresh event.
+        Returns MetricsDpType or None if creation failed.
+        """
+        if not (metrics_dps := self.create_metrics_dps()):
+            return None
+
+        # Fetch initial values
+        self.fetch_metrics_data(scheduled=False)
+
+        # Publish refresh event to notify consumers
+        self.publish_metrics_refreshed()
+
+        return metrics_dps
+
     def publish_install_mode_refreshed(self) -> None:
         """Publish HUB_REFRESHED event for install mode data points."""
         if not self._install_mode_dps:
@@ -351,6 +457,20 @@ class Hub(HubProtocol):
             data_points.append(install_mode_dp.button)
             data_points.append(install_mode_dp.sensor)
 
+        self._event_publisher.publish_system_event(
+            system_event=SystemEventType.HUB_REFRESHED,
+            new_data_points=_get_new_hub_data_points(data_points=data_points),
+        )
+
+    def publish_metrics_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for metrics hub sensors."""
+        if self._metrics_dps is None:
+            return
+        data_points: list[GenericHubDataPointProtocol] = [
+            self._metrics_dps.system_health,
+            self._metrics_dps.connection_latency,
+            self._metrics_dps.last_event_age,
+        ]
         self._event_publisher.publish_system_event(
             system_event=SystemEventType.HUB_REFRESHED,
             new_data_points=_get_new_hub_data_points(data_points=data_points),

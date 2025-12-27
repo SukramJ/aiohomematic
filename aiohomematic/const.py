@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.50"
+VERSION: Final = "2025.12.51"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -115,6 +115,9 @@ class ScheduleTimerConfig(NamedTuple):
 
     master_poll_after_send_intervals: tuple[int, ...] = (5,)
     """Interval for polling HM master after sending commands (default: 5s)."""
+
+    metrics_refresh_interval: int = 60
+    """Interval for refreshing metrics hub sensors (default: 60s)."""
 
     periodic_refresh_interval: int = 15
     """Interval for periodic data refresh (default: 15s)."""
@@ -265,6 +268,12 @@ SYSVAR_SET_PATH_ROOT: Final = "sysvar/set"
 SYSVAR_STATE_PATH_ROOT: Final = "sysvar/status"
 VIRTDEV_SET_PATH_ROOT: Final = "virtdev/set"
 VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
+
+# Metric sensor names
+METRICS_SENSOR_SYSTEM_HEALTH_NAME: Final = "System Health"
+METRICS_SENSOR_CONNECTION_LATENCY_NAME: Final = "Connection Latency"
+METRICS_SENSOR_LAST_EVENT_AGE_NAME: Final = "Last Event Age"
+INBOX_SENSOR_NAME: Final = "Inbox"
 
 
 class Backend(StrEnum):

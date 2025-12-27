@@ -31,6 +31,7 @@ from aiohomematic.interfaces.central import (
     EventPublisherProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
+    MetricsProviderProtocol,
 )
 from aiohomematic.interfaces.client import ClientProviderProtocol, PrimaryClientProviderProtocol
 from aiohomematic.interfaces.model import GenericProgramDataPointProtocol, GenericSysvarDataPointProtocol
@@ -39,7 +40,7 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
-from aiohomematic.model.hub import Hub, InstallModeDpType, ProgramDpType
+from aiohomematic.model.hub import Hub, InstallModeDpType, MetricsDpType, ProgramDpType
 from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         config_provider: ConfigProviderProtocol,
         event_bus_provider: EventBusProviderProtocol,
         event_publisher: EventPublisherProtocol,
+        metrics_provider: MetricsProviderProtocol,
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
         primary_client_provider: PrimaryClientProviderProtocol,
@@ -83,6 +85,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             config_provider: Provider for configuration access
             event_bus_provider: Provider for event bus access
             event_publisher: Provider for event emission
+            metrics_provider: Provider for metrics aggregator access
             parameter_visibility_provider: Provider for parameter visibility rules
             paramset_description_provider: Provider for paramset descriptions
             primary_client_provider: Provider for primary client access
@@ -109,6 +112,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             event_publisher=event_publisher,
             hub_data_fetcher=self,
             hub_data_point_manager=self,
+            metrics_provider=metrics_provider,
             parameter_visibility_provider=parameter_visibility_provider,
             paramset_description_provider=paramset_description_provider,
             primary_client_provider=primary_client_provider,
@@ -116,6 +120,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         )
 
     install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_hub.install_mode_dps")
+    metrics_dps: Final = DelegatedProperty[MetricsDpType | None](path="_hub.metrics_dps")
 
     @property
     def data_point_paths(self) -> tuple[str, ...]:
@@ -229,6 +234,17 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
 
         """
         await self._hub.fetch_install_mode_data(scheduled=scheduled)
+
+    def fetch_metrics_data(self, *, scheduled: bool) -> None:
+        """
+        Refresh metrics hub sensors with current values.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        self._hub.fetch_metrics_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -362,11 +378,12 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         return None
 
     async def init_hub(self) -> None:
-        """Initialize the hub by fetching program, sysvar, and install mode data."""
+        """Initialize the hub by fetching program, sysvar, install mode, and metrics data."""
         _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central_info.name)
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
         await self._hub.init_install_mode()
+        self._hub.init_metrics()
 
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """

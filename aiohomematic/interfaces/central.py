@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator, SystemEventArgs
+    from aiohomematic.central.metrics import MetricsAggregator
     from aiohomematic.interfaces.model import (
         CallbackDataPointProtocol,
         ChannelProtocol,
@@ -341,6 +342,10 @@ class HubFetchOperationsProtocol(Protocol):
     @abstractmethod
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
         """Fetch inbox data from the backend."""
+
+    @abstractmethod
+    def fetch_metrics_data(self, *, scheduled: bool) -> None:
+        """Refresh metrics hub sensors with current values."""
 
     @abstractmethod
     async def fetch_program_data(self, *, scheduled: bool) -> None:
@@ -755,6 +760,20 @@ class HealthProviderProtocol(Protocol):
     @abstractmethod
     def health_tracker(self) -> HealthTrackerProtocol:
         """Return the health tracker."""
+
+
+@runtime_checkable
+class MetricsProviderProtocol(Protocol):
+    """
+    Protocol for accessing the metrics aggregator.
+
+    Implemented by CentralUnit.
+    """
+
+    @property
+    @abstractmethod
+    def metrics(self) -> MetricsAggregator:
+        """Return the metrics aggregator."""
 
 
 # =============================================================================

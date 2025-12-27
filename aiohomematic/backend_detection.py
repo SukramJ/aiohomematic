@@ -105,7 +105,7 @@ async def detect_backend(
 
     _LOGGER.info(
         i18n.tr(
-            "log.backend_detection.detect_backend.starting",
+            key="log.backend_detection.detect_backend.starting",
             host=config.host,
             total_timeout=config.total_timeout,
         )
@@ -117,7 +117,7 @@ async def detect_backend(
     except TimeoutError:
         _LOGGER.warning(
             i18n.tr(
-                "log.backend_detection.detect_backend.total_timeout",
+                key="log.backend_detection.detect_backend.total_timeout",
                 host=config.host,
                 total_timeout=config.total_timeout,
             )
@@ -146,7 +146,7 @@ async def _do_detect_backend(
     for interface, port, tls in ports_to_probe:
         _LOGGER.info(
             i18n.tr(
-                "log.backend_detection.detect_backend.probing",
+                key="log.backend_detection.detect_backend.probing",
                 host=config.host,
                 port=port,
                 tls=tls,
@@ -167,11 +167,11 @@ async def _do_detect_backend(
         if version is None:
             continue
 
-        _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.found_version", version=version, port=port))
+        _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.found_version", version=version, port=port))
 
         # Determine backend type from version string
         backend = _determine_backend(version=version)
-        _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.backend_type", backend=backend))
+        _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.backend_type", backend=backend))
 
         if backend in (Backend.HOMEGEAR, Backend.PYDEVCCU):
             # Homegear/PyDevCCU only supports BidCos-RF
@@ -196,10 +196,10 @@ async def _do_detect_backend(
         )
 
         if interfaces:
-            _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.found_interfaces", interfaces=interfaces))
+            _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.found_interfaces", interfaces=interfaces))
         else:
             # Fallback: use the interface we connected to
-            _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.json_rpc_fallback"))
+            _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.json_rpc_fallback"))
             interfaces = (interface,)
 
         return BackendDetectionResult(
@@ -213,7 +213,7 @@ async def _do_detect_backend(
             https_redirect_enabled=https_redirect_enabled,
         )
 
-    _LOGGER.info(i18n.tr("log.backend_detection.detect_backend.no_backend_found", host=config.host))
+    _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.no_backend_found", host=config.host))
     return None
 
 
@@ -282,7 +282,7 @@ async def _probe_xml_rpc_port(
         # Connection failed on this port - log and try next port
         _LOGGER.info(
             i18n.tr(
-                "log.backend_detection.xml_rpc.probe_failed",
+                key="log.backend_detection.xml_rpc.probe_failed",
                 host=host,
                 port=port,
                 exc_type=type(exc).__name__,
@@ -291,12 +291,12 @@ async def _probe_xml_rpc_port(
         )
         return None
     except TimeoutError:
-        _LOGGER.info(i18n.tr("log.backend_detection.xml_rpc.probe_timeout", host=host, port=port))
+        _LOGGER.info(i18n.tr(key="log.backend_detection.xml_rpc.probe_timeout", host=host, port=port))
         return None
     except BaseHomematicException as exc:
         _LOGGER.info(
             i18n.tr(
-                "log.backend_detection.xml_rpc.probe_failed",
+                key="log.backend_detection.xml_rpc.probe_failed",
                 host=host,
                 port=port,
                 exc_type=type(exc).__name__,
@@ -307,7 +307,7 @@ async def _probe_xml_rpc_port(
     except Exception as exc:  # noqa: BLE001
         _LOGGER.info(
             i18n.tr(
-                "log.backend_detection.xml_rpc.probe_error",
+                key="log.backend_detection.xml_rpc.probe_error",
                 host=host,
                 port=port,
                 exc_type=type(exc).__name__,
@@ -381,7 +381,7 @@ async def _query_json_rpc_interfaces(
     scheme = "https" if tls else "http"
     device_url = f"{scheme}://{host}:{port}"
 
-    _LOGGER.info(i18n.tr("log.backend_detection.json_rpc.querying", url=device_url))
+    _LOGGER.info(i18n.tr(key="log.backend_detection.json_rpc.querying", url=device_url))
 
     json_rpc_client: AioJsonRpcAioHttpClient | None = None
     try:
@@ -403,22 +403,22 @@ async def _query_json_rpc_interfaces(
             try:
                 interfaces.append(Interface(iface_name))
             except ValueError:
-                _LOGGER.info(i18n.tr("log.backend_detection.json_rpc.unknown_interface", interface=iface_name))
+                _LOGGER.info(i18n.tr(key="log.backend_detection.json_rpc.unknown_interface", interface=iface_name))
 
         return (tuple(interfaces), system_info.auth_enabled, system_info.https_redirect_enabled)  # noqa: TRY300
 
     except AuthFailure:
         # Re-raise authentication failures so they can be handled by the caller
-        _LOGGER.warning(i18n.tr("log.backend_detection.json_rpc.auth_failed", url=device_url))
+        _LOGGER.warning(i18n.tr(key="log.backend_detection.json_rpc.auth_failed", url=device_url))
         raise
     except NoConnectionException:
         # Connection failed on this port - log and try next port
-        _LOGGER.info(i18n.tr("log.backend_detection.json_rpc.connection_failed", url=device_url))
+        _LOGGER.info(i18n.tr(key="log.backend_detection.json_rpc.connection_failed", url=device_url))
         return None
     except Exception as exc:  # noqa: BLE001
         _LOGGER.info(
             i18n.tr(
-                "log.backend_detection.json_rpc.query_failed",
+                key="log.backend_detection.json_rpc.query_failed",
                 url=device_url,
                 exc_type=type(exc).__name__,
                 reason=exc,

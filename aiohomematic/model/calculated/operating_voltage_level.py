@@ -272,7 +272,7 @@ _IGNORE_OPERATING_VOLTAGE_LEVEL_MODELS: Final[tuple[str, ...]] = tuple(
 )
 
 
-def _get_battery_data(model: str) -> _BatteryData | None:
+def _get_battery_data(*, model: str) -> _BatteryData | None:
     """Return the battery data by model."""
     model_l = model.lower()
     for battery_data in _OPERATING_VOLTAGE_LEVEL_MODELS.values():

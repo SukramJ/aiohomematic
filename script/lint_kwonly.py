@@ -2,20 +2,21 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2025
 """
-Keyword-only method linter (mypy-style).
+Keyword-only parameter linter (mypy-style).
 
-- Enforces that class methods accept only keyword-only parameters beyond the
-  implicit first parameter (self/cls). Concretely, for a function defined inside
-  a class, there must be no additional positional parameters (args.args) beyond
-  the first implicit arg; additional parameters must be declared after `*` or as
-  keyword-only.
-- No runtime overhead: standalone AST-based checker, no decorators required.
-- Disable options:
+Enforces keyword-only parameters for all functions:
+- Class methods: `*` must come after the first parameter (self/cls)
+- Module-level functions: `*` must come before the first argument
+
+No runtime overhead: standalone AST-based checker, no decorators required.
+
+Disable options:
   * Class-wise: add a class attribute `__kwonly_check__ = False` or a trailing
     comment `# kwonly: disable` on the class definition line.
-  * Method-wise: add a trailing comment `# kwonly: disable` on the def line, or
-    assign `__kwonly_check__ = False` as a first-level statement in the method
-    body.
+  * Function/Method-wise: add a trailing comment `# kwonly: disable` on the def
+    line, or assign `__kwonly_check__ = False` as a first-level statement in the
+    function body.
+  * Module-wise: add `__kwonly_check__ = False` at module level.
 
 Exit status is non-zero if any violations are found. Output is in a grep-friendly
 format: "path:lineno:col: message".
@@ -49,7 +50,7 @@ class Violation:
 
 
 class KwOnlyChecker(ast.NodeVisitor):
-    """AST visitor that collects keyword-only method signature violations."""
+    """AST visitor that collects keyword-only parameter violations."""
 
     def __init__(self, *, path: str, lines: list[str]) -> None:
         """Initialize the checker with the file path and the file's source lines."""
@@ -57,9 +58,10 @@ class KwOnlyChecker(ast.NodeVisitor):
         self.lines = lines
         self.violations: list[Violation] = []
         self._class_disable_stack: list[bool] = []
+        self._module_disabled: bool = False
 
     # Utility helpers
-    def _line_has_disable_comment(self, lineno: int) -> bool:
+    def _line_has_disable_comment(self, *, lineno: int) -> bool:
         """Return True if the source line contains the inline disable marker."""
         # AST lineno is 1-based
         if not (1 <= lineno <= len(self.lines)):
@@ -92,13 +94,23 @@ class KwOnlyChecker(ast.NodeVisitor):
             return func.args.args[0].arg
         return None
 
-    def _check_method_signature(self, func: ast.FunctionDef | ast.AsyncFunctionDef, class_disabled: bool) -> None:
+    def _is_function_disabled(self, *, func: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """Return True if checking is disabled for this function."""
+        # Disable via comment on def line
+        if self._line_has_disable_comment(lineno=func.lineno):
+            return True
+        # Disable via in-body flag assignment
+        return self._has_disable_flag_in_body(func.body)
+
+    def _check_class_method_signature(
+        self, *, func: ast.FunctionDef | ast.AsyncFunctionDef, class_disabled: bool
+    ) -> None:
         """Check a class method and record a violation if it is not keyword-only."""
-        # Quick method-level disable via comment on def line
-        if self._line_has_disable_comment(func.lineno):
+        # If module-level disable is set, skip
+        if self._module_disabled:
             return
-        # Or via in-body flag assignment
-        if self._has_disable_flag_in_body(func.body):
+
+        if self._is_function_disabled(func=func):
             return
 
         # Ignore property setters: decorated with @<prop>.setter
@@ -106,13 +118,11 @@ class KwOnlyChecker(ast.NodeVisitor):
             if isinstance(dec, ast.Attribute) and dec.attr == "setter":
                 return
 
-        args = func.args
-        # If class-level disable is set, skip unless method explicitly wants to enable (not required now)
+        # If class-level disable is set, skip
         if class_disabled:
             return
 
-        # Determine whether function is a method: within a class scope.
-        # We rely on traversal context: only called from visit_FunctionDef within a ClassDef.
+        args = func.args
         # Enforce: beyond the first arg (self/cls), there must be no positional parameters.
         extra_positional = args.args[1:] if len(args.args) > 1 else []
         has_vararg = args.vararg is not None
@@ -126,16 +136,45 @@ class KwOnlyChecker(ast.NodeVisitor):
 
         # If there are any explicit positional parameters beyond the first, report.
         if extra_positional or posonly_beyond_first:
-            # Suggestion text
             suggestion = "add '*' after the first parameter to make the rest keyword-only"
             msg = f"method '{func.name}' must be keyword-only beyond first parameter; {suggestion}"
             self.violations.append(Violation(self.path, func.lineno, func.col_offset + 1, msg))
 
-    # Node visitor implementations
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:  # noqa: N802 (ast uses CamelCase)
+    def _check_module_function_signature(self, *, func: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Check a module-level function and record a violation if it is not keyword-only."""
+        if self._module_disabled:
+            return
+
+        if self._is_function_disabled(func=func):
+            return
+
+        args = func.args
+        # For module-level functions, ALL positional parameters are violations
+        # (the * must come before the first argument)
+        has_positional = bool(args.args) or bool(args.posonlyargs)
+        has_vararg = args.vararg is not None
+
+        # If *args is present in the signature, do not report a violation per policy.
+        if has_vararg:
+            return
+
+        # If there are any positional parameters, report.
+        if has_positional:
+            suggestion = "add '*' before the first parameter to make all parameters keyword-only"
+            msg = f"function '{func.name}' must be keyword-only; {suggestion}"
+            self.violations.append(Violation(self.path, func.lineno, func.col_offset + 1, msg))
+
+    # Node visitor implementations (visitor interface requires positional args)
+    def visit_Module(self, node: ast.Module) -> None:  # noqa: N802 kwonly: disable
+        """Visit a module, check for module-level disable, and process children."""
+        # Check for module-level __kwonly_check__ = False
+        self._module_disabled = self._has_disable_flag_in_body(node.body)
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:  # noqa: N802 kwonly: disable
         """Visit a class, determine disable state, and check its methods."""
         # Determine if class-level disable applies
-        class_disabled = self._line_has_disable_comment(node.lineno)
+        class_disabled = self._line_has_disable_comment(lineno=node.lineno)
         if not class_disabled:
             # Look for __kwonly_check__ = False at class body level
             class_disabled = self._has_disable_flag_in_body(node.body)
@@ -144,24 +183,23 @@ class KwOnlyChecker(ast.NodeVisitor):
         try:
             for stmt in node.body:
                 if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    self._check_method_signature(stmt, class_disabled)
+                    self._check_class_method_signature(func=stmt, class_disabled=class_disabled)
                 else:
                     self.visit(stmt)
         finally:
             self._class_disable_stack.pop()
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Ignore module-level functions; method checks happen in visit_ClassDef."""
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802 kwonly: disable
+        """Check module-level functions for keyword-only parameters."""
         # Only top-level functions reach here (class methods handled in visit_ClassDef)
-        # No check for module-level functions.
-        return
+        self._check_module_function_signature(func=node)
 
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        """Ignore module-level async functions; class methods are handled elsewhere."""
-        return
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802 kwonly: disable
+        """Check module-level async functions for keyword-only parameters."""
+        self._check_module_function_signature(func=node)
 
 
-def iter_python_files(paths: Iterable[str]) -> Iterable[str]:
+def iter_python_files(*, paths: Iterable[str]) -> Iterable[str]:
     """Yield Python file paths discovered under given files/directories."""
     for p in paths:
         if os.path.isdir(p):
@@ -173,7 +211,7 @@ def iter_python_files(paths: Iterable[str]) -> Iterable[str]:
             yield p
 
 
-def check_file(path: str) -> list[Violation]:
+def check_file(*, path: str) -> list[Violation]:
     """Parse and check a Python file, returning any violations found."""
     try:
         with open(path, encoding="utf-8") as f:
@@ -191,16 +229,16 @@ def check_file(path: str) -> list[Violation]:
     return checker.violations
 
 
-def main(argv: list[str]) -> int:
+def main(*, argv: list[str]) -> int:
     """Run the linter CLI and return a non-zero exit code on violations."""
-    parser = argparse.ArgumentParser(description="Linter to enforce keyword-only methods in classes.")
+    parser = argparse.ArgumentParser(description="Linter to enforce keyword-only parameters.")
     parser.add_argument("paths", nargs="+", help="Files or directories to check.")
     args = parser.parse_args(argv)
 
     all_violations: list[Violation] = []
-    for file in iter_python_files(args.paths):
+    for file in iter_python_files(paths=args.paths):
         # Check all provided files; pre-commit 'files' filter controls scope.
-        all_violations.extend(check_file(file))
+        all_violations.extend(check_file(path=file))
 
     if all_violations:
         # Print each unique violation only once (deduplicate by path/line/col/message)
@@ -216,4 +254,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    raise SystemExit(main(argv=sys.argv[1:]))

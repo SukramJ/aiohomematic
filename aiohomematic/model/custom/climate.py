@@ -471,7 +471,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         if do_validate and not (self.min_temp <= temperature <= self.max_temp):
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.climate.set_temperature.invalid",
+                    key="exception.model.custom.climate.set_temperature.invalid",
                     temperature=temperature,
                     min=self.min_temp,
                     max=self.max_temp,

@@ -106,12 +106,12 @@ class TestInspectorDecorator:
 
         # Simulate already being in a service call by setting request context
         ctx = RequestContext(operation="service:outer")
-        token = set_request_context(ctx)
+        token = set_request_context(ctx=ctx)
         try:
             with pytest.raises(RuntimeError):
                 Service().inner(DummyContext("D2"))
         finally:
-            reset_request_context(token)
+            reset_request_context(token=token)
 
         assert not logged
 
@@ -135,11 +135,11 @@ class TestInspectorDecorator:
 
         # Simulate a nested service call by pre-setting request context
         ctx = RequestContext(operation="service:outer")
-        token = set_request_context(ctx)
+        token = set_request_context(ctx=ctx)
         try:
             Service().inner(DummyContext("D"))
         finally:
-            reset_request_context(token)
+            reset_request_context(token=token)
 
         # No logging expected because it was a sub-service call
         assert not logged
@@ -222,7 +222,7 @@ class TestServiceCalls:
         c = Container()
 
         # First discovery
-        mapping1 = get_service_calls(c)
+        mapping1 = get_service_calls(obj=c)
         assert set(mapping1.keys()) == {"first"}
 
         # Now mutate the class to add another service and ensure the cached result is returned
@@ -231,12 +231,12 @@ class TestServiceCalls:
 
         Container.third = inspector(new)  # type: ignore[attr-defined]
 
-        mapping2 = get_service_calls(c)
+        mapping2 = get_service_calls(obj=c)
         assert set(mapping2.keys()) == {"first"}  # still cached names, 'third' ignored due to cache
 
         # Clear cache and ensure new method is discovered
         dec_mod._SERVICE_CALLS_CACHE.clear()  # type: ignore[attr-defined]
-        mapping3 = get_service_calls(c)
+        mapping3 = get_service_calls(obj=c)
         assert set(mapping3.keys()) == {"first", "third"}
 
 

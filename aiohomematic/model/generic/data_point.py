@@ -116,7 +116,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         if not self.is_writable:
             _LOGGER.error(
                 i18n.tr(
-                    "log.model.generic_data_point.send_value.not_writable",
+                    key="log.model.generic_data_point.send_value.not_writable",
                     full_name=self.full_name,
                 )
             )

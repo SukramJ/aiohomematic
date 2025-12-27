@@ -39,7 +39,7 @@ class BaseDpNumber[NumberParameterT: int | float | None](GenericDataPoint[Number
             return cast(NumberParameterT, type_converter(self._special[value]))
         raise ValidationException(
             i18n.tr(
-                "exception.model.number.invalid_value",
+                key="exception.model.number.invalid_value",
                 value=value,
                 min=self._min,
                 max=self._max,

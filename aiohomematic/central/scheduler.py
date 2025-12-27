@@ -288,7 +288,7 @@ class BackgroundScheduler:
             if not self._client_coordinator.all_clients_active:
                 _LOGGER.error(
                     i18n.tr(
-                        "log.central.scheduler.check_connection.no_clients",
+                        key="log.central.scheduler.check_connection.no_clients",
                         name=self._central_info.name,
                     )
                 )
@@ -314,7 +314,7 @@ class BackgroundScheduler:
                     self._rpc_check_passed_at = None
                     _LOGGER.info(
                         i18n.tr(
-                            "log.central.scheduler.check_connection.connection_loss_detected",
+                            key="log.central.scheduler.check_connection.connection_loss_detected",
                             name=self._central_info.name,
                         )
                     )
@@ -322,14 +322,14 @@ class BackgroundScheduler:
         except NoConnectionException as nex:
             _LOGGER.error(
                 i18n.tr(
-                    "log.central.scheduler.check_connection.no_connection",
+                    key="log.central.scheduler.check_connection.no_connection",
                     reason=extract_exc_args(exc=nex),
                 )
             )
         except Exception as exc:
             _LOGGER.error(
                 i18n.tr(
-                    "log.central.scheduler.check_connection.failed",
+                    key="log.central.scheduler.check_connection.failed",
                     exc_type=type(exc).__name__,
                     reason=extract_exc_args(exc=exc),
                 )
@@ -473,7 +473,7 @@ class BackgroundScheduler:
             if tcp_check_elapsed >= timeout_config.reconnect_tcp_check_timeout:
                 _LOGGER.warning(
                     i18n.tr(
-                        "log.central.scheduler.check_connection.tcp_check_timeout",
+                        key="log.central.scheduler.check_connection.tcp_check_timeout",
                         name=self._central_info.name,
                         timeout=timeout_config.reconnect_tcp_check_timeout,
                     )
@@ -489,7 +489,7 @@ class BackgroundScheduler:
                 self._tcp_port_available = True
                 _LOGGER.info(
                     i18n.tr(
-                        "log.central.scheduler.check_connection.tcp_port_available",
+                        key="log.central.scheduler.check_connection.tcp_port_available",
                         name=self._central_info.name,
                         host=host,
                         port=port,
@@ -512,7 +512,7 @@ class BackgroundScheduler:
                 self._rpc_check_passed_at = datetime.now()
                 _LOGGER.info(
                     i18n.tr(
-                        "log.central.scheduler.check_connection.rpc_check_passed",
+                        key="log.central.scheduler.check_connection.rpc_check_passed",
                         name=self._central_info.name,
                     )
                 )
@@ -539,7 +539,7 @@ class BackgroundScheduler:
             # RPC became unavailable during warmup - reset to stage 2
             _LOGGER.warning(
                 i18n.tr(
-                    "log.central.scheduler.check_connection.rpc_unstable",
+                    key="log.central.scheduler.check_connection.rpc_unstable",
                     name=self._central_info.name,
                 )
             )
@@ -548,7 +548,7 @@ class BackgroundScheduler:
 
         _LOGGER.info(
             i18n.tr(
-                "log.central.scheduler.check_connection.rpc_stable",
+                key="log.central.scheduler.check_connection.rpc_stable",
                 name=self._central_info.name,
             )
         )
@@ -556,7 +556,7 @@ class BackgroundScheduler:
         # Stage 5: Full reconnection (init + proxy recreate)
         _LOGGER.info(
             i18n.tr(
-                "log.central.scheduler.check_connection.attempting_reconnect",
+                key="log.central.scheduler.check_connection.attempting_reconnect",
                 name=self._central_info.name,
             )
         )
@@ -574,7 +574,7 @@ class BackgroundScheduler:
             self._rpc_check_passed_at = None
             _LOGGER.info(
                 i18n.tr(
-                    "log.central.scheduler.check_connection.reconnect_success",
+                    key="log.central.scheduler.check_connection.reconnect_success",
                     name=self._central_info.name,
                     interfaces=", ".join(str(i) for i in available_interfaces),
                 )
@@ -588,7 +588,7 @@ class BackgroundScheduler:
             self._rpc_check_passed_at = None
             _LOGGER.warning(
                 i18n.tr(
-                    "log.central.scheduler.check_connection.reconnect_failed",
+                    key="log.central.scheduler.check_connection.reconnect_failed",
                     name=self._central_info.name,
                 )
             )

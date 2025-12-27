@@ -637,7 +637,12 @@ class _InteractiveShell(cmd.Cmd):
         readline.parse_and_bind("tab: complete")
 
 
-def _format_output(data: Any, as_json: bool, context: dict[str, Any] | None = None) -> str:
+def _format_output(
+    *,
+    data: Any,
+    as_json: bool,
+    context: dict[str, Any] | None = None,
+) -> str:
     """Format output as JSON or plain text."""
     if as_json:
         output = {"value": data}
@@ -647,7 +652,12 @@ def _format_output(data: Any, as_json: bool, context: dict[str, Any] | None = No
     return str(data)
 
 
-def _print_table(headers: list[str], *, rows: list[list[str]], as_json: bool) -> None:
+def _print_table(
+    *,
+    headers: list[str],
+    rows: list[list[str]],
+    as_json: bool,
+) -> None:
     """Print data as table or JSON."""
     if as_json:
         data = [dict(zip(headers, row, strict=False)) for row in rows]
@@ -670,7 +680,11 @@ def _print_table(headers: list[str], *, rows: list[list[str]], as_json: bool) ->
         print("  ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(row)))
 
 
-def _cmd_list_devices(connection: _HmCliConnection, args: argparse.Namespace) -> int:
+def _cmd_list_devices(
+    *,
+    connection: _HmCliConnection,
+    args: argparse.Namespace,
+) -> int:
     """Handle list-devices command."""
     try:
         devices = connection.list_devices()
@@ -681,14 +695,18 @@ def _cmd_list_devices(connection: _HmCliConnection, args: argparse.Namespace) ->
             [d.get("ADDRESS", ""), d.get("TYPE", ""), d.get("FIRMWARE", ""), str(d.get("FLAGS", ""))]
             for d in sorted(parent_devices, key=lambda x: x.get("ADDRESS", ""))
         ]
-        _print_table(headers, rows=rows, as_json=args.json)
+        _print_table(headers=headers, rows=rows, as_json=args.json)
     except Exception as ex:
         print(f"Error: {ex}", file=sys.stderr)
         return 1
     return 0
 
 
-def _cmd_list_channels(connection: _HmCliConnection, args: argparse.Namespace) -> int:
+def _cmd_list_channels(
+    *,
+    connection: _HmCliConnection,
+    args: argparse.Namespace,
+) -> int:
     """Handle list-channels command."""
     try:
         devices = connection.list_devices()
@@ -702,14 +720,18 @@ def _cmd_list_channels(connection: _HmCliConnection, args: argparse.Namespace) -
             [d.get("ADDRESS", ""), d.get("TYPE", ""), str(d.get("FLAGS", "")), str(d.get("DIRECTION", ""))]
             for d in sorted(channels, key=lambda x: x.get("ADDRESS", ""))
         ]
-        _print_table(headers, rows=rows, as_json=args.json)
+        _print_table(headers=headers, rows=rows, as_json=args.json)
     except Exception as ex:
         print(f"Error: {ex}", file=sys.stderr)
         return 1
     return 0
 
 
-def _cmd_list_parameters(connection: _HmCliConnection, args: argparse.Namespace) -> int:
+def _cmd_list_parameters(
+    *,
+    connection: _HmCliConnection,
+    args: argparse.Namespace,
+) -> int:
     """Handle list-parameters command."""
     try:
         params = connection.get_paramset_description(address=args.channel_address, paramset_key=args.paramset_key)
@@ -736,14 +758,18 @@ def _cmd_list_parameters(connection: _HmCliConnection, args: argparse.Namespace)
                     str(info.get("DEFAULT", "")),
                 ]
             )
-        _print_table(headers, rows=rows, as_json=args.json)
+        _print_table(headers=headers, rows=rows, as_json=args.json)
     except Exception as ex:
         print(f"Error: {ex}", file=sys.stderr)
         return 1
     return 0
 
 
-def _cmd_device_info(connection: _HmCliConnection, args: argparse.Namespace) -> int:
+def _cmd_device_info(
+    *,
+    connection: _HmCliConnection,
+    args: argparse.Namespace,
+) -> int:
     """Handle device-info command."""
     try:
         if (info := connection.get_device_info(address=args.device_address)) is None:
@@ -761,7 +787,11 @@ def _cmd_device_info(connection: _HmCliConnection, args: argparse.Namespace) -> 
     return 0
 
 
-def _cmd_get(connection: _HmCliConnection, args: argparse.Namespace) -> int:
+def _cmd_get(
+    *,
+    connection: _HmCliConnection,
+    args: argparse.Namespace,
+) -> int:
     """Handle get command."""
     try:
         if args.paramset_key == ParamsetKey.VALUES:
@@ -773,14 +803,22 @@ def _cmd_get(connection: _HmCliConnection, args: argparse.Namespace) -> int:
                 return 1
             result = paramset[args.parameter]
 
-        print(_format_output(result, args.json, {"address": args.address, "parameter": args.parameter}))
+        print(
+            _format_output(
+                data=result, as_json=args.json, context={"address": args.address, "parameter": args.parameter}
+            )
+        )
     except Exception as ex:
         print(f"Error: {ex}", file=sys.stderr)
         return 1
     return 0
 
 
-def _cmd_set(connection: _HmCliConnection, args: argparse.Namespace) -> int:
+def _cmd_set(
+    *,
+    connection: _HmCliConnection,
+    args: argparse.Namespace,
+) -> int:
     """Handle set command."""
     try:
         value: Any = args.value
@@ -803,7 +841,11 @@ def _cmd_set(connection: _HmCliConnection, args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_interactive(connection: _HmCliConnection, args: argparse.Namespace) -> int:
+def _cmd_interactive(
+    *,
+    connection: _HmCliConnection,
+    args: argparse.Namespace,
+) -> int:
     """Handle interactive command."""
     shell = _InteractiveShell(connection=connection, json_output=args.json)
     try:
@@ -945,7 +987,7 @@ Examples:
     }
 
     if handler := handlers.get(args.command):
-        sys.exit(handler(connection, args))
+        sys.exit(handler(connection=connection, args=args))
 
     parser.print_help()
     sys.exit(1)

@@ -937,6 +937,6 @@ PROFILE_CONFIGS: Final[ProfileRegistry] = {
 }
 
 
-def get_profile_config(profile_type: DeviceProfile) -> ProfileConfig:
+def get_profile_config(*, profile_type: DeviceProfile) -> ProfileConfig:
     """Return the profile configuration for a given profile type."""
     return PROFILE_CONFIGS[profile_type]

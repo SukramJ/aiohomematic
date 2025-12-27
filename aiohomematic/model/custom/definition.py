@@ -53,7 +53,7 @@ def create_custom_data_point(
 
     """
     device_profile = device_config.profile_type
-    profile_config = get_profile_config(device_profile)
+    profile_config = get_profile_config(profile_type=device_profile)
 
     # Set up channel groups on the device
     _add_channel_groups_to_device(
@@ -128,7 +128,7 @@ def _instantiate_custom_data_point(
     except Exception as exc:
         raise AioHomematicException(
             i18n.tr(
-                "exception.model.custom.definition.create_custom_data_point.failed",
+                key="exception.model.custom.definition.create_custom_data_point.failed",
                 reason=extract_exc_args(exc=exc),
             )
         ) from exc
@@ -257,7 +257,7 @@ def get_default_data_points() -> Mapping[int | tuple[int, ...], tuple[Parameter,
 
 def get_include_default_data_points(*, device_profile: DeviceProfile) -> bool:
     """Return if default data points should be included for this profile."""
-    return get_profile_config(device_profile).include_default_data_points
+    return get_profile_config(profile_type=device_profile).include_default_data_points
 
 
 def get_required_parameters() -> tuple[Parameter, ...]:

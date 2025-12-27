@@ -35,7 +35,7 @@ _INFINITE_REPETITIONS: Final = "INFINITE_REPETITIONS"
 _MAX_REPETITIONS: Final = 18
 
 
-def _convert_repetitions(repetitions: int | None) -> str:
+def _convert_repetitions(*, repetitions: int | None) -> str:
     """
     Convert repetitions count to REPETITIONS VALUE_LIST value.
 
@@ -197,7 +197,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         if self.available_tones and acoustic_alarm and acoustic_alarm not in self.available_tones:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.siren.invalid_tone",
+                    key="exception.model.custom.siren.invalid_tone",
                     full_name=self.full_name,
                     value=acoustic_alarm,
                 )
@@ -211,7 +211,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         if self.available_lights and optical_alarm and optical_alarm not in self.available_lights:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.siren.invalid_light",
+                    key="exception.model.custom.siren.invalid_light",
                     full_name=self.full_name,
                     value=optical_alarm,
                 )
@@ -297,7 +297,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
     def _convert_soundfile_index(index: int) -> str:
         """Convert integer index to soundfile name."""
         if index < 1 or index > 189:
-            raise ValueError(i18n.tr("exception.model.custom.siren.invalid_soundfile_index", index=index))
+            raise ValueError(i18n.tr(key="exception.model.custom.siren.invalid_soundfile_index", index=index))
         return f"SOUNDFILE_{index:03d}"
 
     available_soundfiles: Final = DelegatedProperty[tuple[str, ...] | None](
@@ -364,7 +364,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         volume = kwargs.get("volume", 0.5)
         on_time = kwargs.get("on_time", 10.0)
         ramp_time = kwargs.get("ramp_time", 0.0)
-        repetitions_value = _convert_repetitions(kwargs.get("repetitions"))
+        repetitions_value = _convert_repetitions(repetitions=kwargs.get("repetitions"))
 
         # Convert integer to soundfile name if needed
         if isinstance(soundfile, int):
@@ -374,7 +374,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         if not 0.0 <= volume <= 1.0:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.siren.invalid_volume",
+                    key="exception.model.custom.siren.invalid_volume",
                     full_name=self.full_name,
                     value=volume,
                 )
@@ -384,7 +384,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         if self.available_soundfiles and soundfile not in self.available_soundfiles:
             raise ValidationException(
                 i18n.tr(
-                    "exception.model.custom.siren.invalid_soundfile",
+                    key="exception.model.custom.siren.invalid_soundfile",
                     full_name=self.full_name,
                     value=soundfile,
                 )

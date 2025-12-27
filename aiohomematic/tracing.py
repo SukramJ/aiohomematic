@@ -197,7 +197,7 @@ class span:  # noqa: N801
             _current_span.reset(self._token)
 
 
-def set_current_span(s: Span) -> Token[Span | None]:
+def set_current_span(*, s: Span) -> Token[Span | None]:
     """
     Manually set the current span.
 
@@ -214,7 +214,7 @@ def set_current_span(s: Span) -> Token[Span | None]:
     return _current_span.set(s)
 
 
-def reset_current_span(token: Token[Span | None]) -> None:
+def reset_current_span(*, token: Token[Span | None]) -> None:
     """
     Reset the current span using a token from set_current_span().
 

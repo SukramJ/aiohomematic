@@ -34,7 +34,7 @@ def cleanup_params_for_session(*, params: Any) -> Any:
     return params
 
 
-def freeze_params(params: Any) -> str:
+def freeze_params(*, params: Any) -> str:
     """
     Recursively freeze any structure so it can be used as a dictionary key.
 
@@ -72,14 +72,14 @@ def freeze_params(params: Any) -> str:
             res = ("__datetime__", params.isoformat())
         case dict():
             # Sort by key for deterministic output regardless of insertion order
-            res = {k: freeze_params(v) for k, v in sorted(params.items())}
+            res = {k: freeze_params(params=v) for k, v in sorted(params.items())}
         case list() | tuple():
             # Convert to tuple (hashable) while preserving element order
-            res = tuple(freeze_params(x) for x in params)
+            res = tuple(freeze_params(params=x) for x in params)
         case set() | frozenset():
             # Sets are unordered, so sort by repr for determinism.
             # Tag with "__set__" so unfreeze_params can reconstruct.
-            frozen_elems = tuple(sorted((freeze_params(x) for x in params), key=repr))
+            frozen_elems = tuple(sorted((freeze_params(params=x) for x in params), key=repr))
             res = ("__set__", frozen_elems)
         case _:
             # Primitives (str, int, bool, None) pass through unchanged
@@ -88,7 +88,7 @@ def freeze_params(params: Any) -> str:
     return str(res)
 
 
-def unfreeze_params(frozen_params: str) -> Any:
+def unfreeze_params(*, frozen_params: str) -> Any:
     """
     Reverse the freeze_params transformation.
 

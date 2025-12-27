@@ -43,7 +43,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @singledispatch
-def to_homematic_value(value: Any) -> Any:
+def to_homematic_value(value: Any) -> Any:  # kwonly: disable
     """
     Convert Python values to Homematic-compatible values.
 
@@ -88,43 +88,43 @@ def to_homematic_value(value: Any) -> Any:
 
 
 @to_homematic_value.register(bool)
-def _to_hm_bool(value: bool) -> int:
+def _to_hm_bool(value: bool) -> int:  # kwonly: disable
     """Convert boolean to Homematic integer (1/0)."""
     return 1 if value else 0
 
 
 @to_homematic_value.register(float)
-def _to_hm_float(value: float) -> float:
+def _to_hm_float(value: float) -> float:  # kwonly: disable
     """Convert float to Homematic float (6 decimal places max)."""
     return round(value, 6)
 
 
 @to_homematic_value.register(datetime)
-def _to_hm_datetime(value: datetime) -> str:
+def _to_hm_datetime(value: datetime) -> str:  # kwonly: disable
     """Convert datetime to ISO format string."""
     return value.isoformat()
 
 
 @to_homematic_value.register(timedelta)
-def _to_hm_timedelta(value: timedelta) -> float:
+def _to_hm_timedelta(value: timedelta) -> float:  # kwonly: disable
     """Convert timedelta to total seconds."""
     return value.total_seconds()
 
 
 @to_homematic_value.register(Enum)
-def _to_hm_enum(value: Enum) -> Any:
+def _to_hm_enum(value: Enum) -> Any:  # kwonly: disable
     """Convert Enum to its value."""
     return value.value
 
 
 @to_homematic_value.register(list)
-def _to_hm_list(value: list[Any]) -> list[Any]:
+def _to_hm_list(value: list[Any]) -> list[Any]:  # kwonly: disable
     """Convert list elements recursively."""
     return [to_homematic_value(item) for item in value]
 
 
 @to_homematic_value.register(dict)
-def _to_hm_dict(value: dict[str, Any]) -> dict[str, Any]:
+def _to_hm_dict(value: dict[str, Any]) -> dict[str, Any]:  # kwonly: disable
     """Convert dict values recursively."""
     return {k: to_homematic_value(v) for k, v in value.items()}
 
@@ -135,7 +135,7 @@ def _to_hm_dict(value: dict[str, Any]) -> dict[str, Any]:
 
 
 @singledispatch
-def from_homematic_value(value: Any, *, target_type: type | None = None) -> Any:
+def from_homematic_value(value: Any, *, target_type: type | None = None) -> Any:  # kwonly: disable
     """
     Convert Homematic values to Python types.
 
@@ -167,7 +167,7 @@ def from_homematic_value(value: Any, *, target_type: type | None = None) -> Any:
 
 
 @from_homematic_value.register(int)
-def _from_hm_int(value: int, *, target_type: type | None = None) -> int | bool:
+def _from_hm_int(value: int, *, target_type: type | None = None) -> int | bool:  # kwonly: disable
     """Convert Homematic integer, optionally to bool."""
     if target_type is bool:
         return bool(value)
@@ -175,7 +175,7 @@ def _from_hm_int(value: int, *, target_type: type | None = None) -> int | bool:
 
 
 @from_homematic_value.register(str)
-def _from_hm_str(value: str, *, target_type: type | None = None) -> str | datetime:
+def _from_hm_str(value: str, *, target_type: type | None = None) -> str | datetime:  # kwonly: disable
     """Convert Homematic string, optionally to datetime."""
     if target_type is datetime:
         return datetime.fromisoformat(value)

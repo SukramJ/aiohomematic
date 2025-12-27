@@ -367,7 +367,7 @@ class DeviceHandler(
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.get_paramset.failed",
+                    key="exception.client.get_paramset.failed",
                     address=address,
                     paramset_key=paramset_key,
                     reason=extract_exc_args(exc=bhexc),
@@ -447,7 +447,7 @@ class DeviceHandler(
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.get_value.failed",
+                    key="exception.client.get_value.failed",
                     channel_address=channel_address,
                     parameter=parameter,
                     paramset_key=paramset_key,
@@ -514,7 +514,7 @@ class DeviceHandler(
                         values=values,
                     )
                 else:
-                    raise ClientException(i18n.tr("exception.client.paramset_key.invalid"))
+                    raise ClientException(i18n.tr(key="exception.client.paramset_key.invalid"))
 
             _LOGGER.debug("PUT_PARAMSET: %s, %s, %s", channel_address, paramset_key_or_link_address, checked_values)
             if rx_mode and (device := self._client_deps.device_coordinator.get_device(address=channel_address)):
@@ -526,7 +526,7 @@ class DeviceHandler(
                         rx_mode=rx_mode,
                     )
                 else:
-                    raise ClientException(i18n.tr("exception.client.rx_mode.unsupported", rx_mode=rx_mode))
+                    raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
             else:
                 await self._exec_put_paramset(
                     channel_address=channel_address,
@@ -579,7 +579,7 @@ class DeviceHandler(
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.put_paramset.failed",
+                    key="exception.client.put_paramset.failed",
                     channel_address=channel_address,
                     paramset_key=paramset_key_or_link_address,
                     values=values,
@@ -628,7 +628,7 @@ class DeviceHandler(
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.report_value_usage.failed",
+                    key="exception.client.report_value_usage.failed",
                     address=address,
                     value_id=value_id,
                     ref_counter=ref_counter,
@@ -742,7 +742,7 @@ class DeviceHandler(
                         rx_mode=rx_mode,
                     )
                 else:
-                    raise ClientException(i18n.tr("exception.client.rx_mode.unsupported", rx_mode=rx_mode))
+                    raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
             else:
                 await self._exec_set_value(channel_address=channel_address, parameter=parameter, value=value)
             # store the send value in the last_value_send_cache
@@ -764,7 +764,7 @@ class DeviceHandler(
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.set_value.failed",
+                    key="exception.client.set_value.failed",
                     channel_address=channel_address,
                     parameter=parameter,
                     value=value,
@@ -882,7 +882,7 @@ class DeviceHandler(
             if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
                 raise ClientException(
                     i18n.tr(
-                        "exception.client.parameter.operation_unsupported",
+                        key="exception.client.parameter.operation_unsupported",
                         parameter=parameter,
                         operation=operation.value,
                     )
@@ -898,7 +898,7 @@ class DeviceHandler(
                 if pd_min is not None and converted_value < pd_min:
                     raise ValidationException(
                         i18n.tr(
-                            "exception.client.parameter.value_below_min",
+                            key="exception.client.parameter.value_below_min",
                             parameter=parameter,
                             value=converted_value,
                             min_value=pd_min,
@@ -907,7 +907,7 @@ class DeviceHandler(
                 if pd_max is not None and converted_value > pd_max:
                     raise ValidationException(
                         i18n.tr(
-                            "exception.client.parameter.value_above_max",
+                            key="exception.client.parameter.value_above_max",
                             parameter=parameter,
                             value=converted_value,
                             max_value=pd_max,
@@ -917,7 +917,7 @@ class DeviceHandler(
             return converted_value
         raise ClientException(
             i18n.tr(
-                "exception.client.parameter.not_found",
+                key="exception.client.parameter.not_found",
                 parameter=parameter,
                 interface_id=self._interface_id,
                 channel_address=channel_address,

@@ -40,42 +40,42 @@ class TestExceptionToFailureReason:
     def test_asyncio_timeout_maps_to_timeout(self) -> None:
         """Test that asyncio.TimeoutError maps to FailureReason.TIMEOUT."""
         exc = TimeoutError("Async operation timed out")
-        assert exception_to_failure_reason(exc) == FailureReason.TIMEOUT
+        assert exception_to_failure_reason(exc=exc) == FailureReason.TIMEOUT
 
     def test_auth_failure_maps_to_auth(self) -> None:
         """Test that AuthFailure maps to FailureReason.AUTH."""
         exc = AuthFailure("Invalid credentials")
-        assert exception_to_failure_reason(exc) == FailureReason.AUTH
+        assert exception_to_failure_reason(exc=exc) == FailureReason.AUTH
 
     def test_circuit_breaker_maps_to_circuit_breaker(self) -> None:
         """Test that CircuitBreakerOpenException maps to FailureReason.CIRCUIT_BREAKER."""
         exc = CircuitBreakerOpenException("Circuit is open")
-        assert exception_to_failure_reason(exc) == FailureReason.CIRCUIT_BREAKER
+        assert exception_to_failure_reason(exc=exc) == FailureReason.CIRCUIT_BREAKER
 
     def test_client_exception_maps_to_unknown(self) -> None:
         """Test that ClientException maps to FailureReason.UNKNOWN."""
         exc = ClientException("Client error")
-        assert exception_to_failure_reason(exc) == FailureReason.UNKNOWN
+        assert exception_to_failure_reason(exc=exc) == FailureReason.UNKNOWN
 
     def test_generic_exception_maps_to_unknown(self) -> None:
         """Test that generic exceptions map to FailureReason.UNKNOWN."""
         exc = ValueError("Some error")
-        assert exception_to_failure_reason(exc) == FailureReason.UNKNOWN
+        assert exception_to_failure_reason(exc=exc) == FailureReason.UNKNOWN
 
     def test_internal_backend_maps_to_internal(self) -> None:
         """Test that InternalBackendException maps to FailureReason.INTERNAL."""
         exc = InternalBackendException("Server error")
-        assert exception_to_failure_reason(exc) == FailureReason.INTERNAL
+        assert exception_to_failure_reason(exc=exc) == FailureReason.INTERNAL
 
     def test_no_connection_maps_to_network(self) -> None:
         """Test that NoConnectionException maps to FailureReason.NETWORK."""
         exc = NoConnectionException("Host unreachable")
-        assert exception_to_failure_reason(exc) == FailureReason.NETWORK
+        assert exception_to_failure_reason(exc=exc) == FailureReason.NETWORK
 
     def test_timeout_error_maps_to_timeout(self) -> None:
         """Test that TimeoutError maps to FailureReason.TIMEOUT."""
         exc = TimeoutError("Operation timed out")
-        assert exception_to_failure_reason(exc) == FailureReason.TIMEOUT
+        assert exception_to_failure_reason(exc=exc) == FailureReason.TIMEOUT
 
 
 class TestClientStateMachineFailureReason:

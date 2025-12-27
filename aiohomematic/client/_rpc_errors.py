@@ -44,7 +44,7 @@ _SENSITIVE_PATTERNS: Final[tuple[tuple[str, str], ...]] = (
 )
 
 
-def sanitize_error_message(message: str) -> str:
+def sanitize_error_message(*, message: str) -> str:
     """
     Sanitize error message by removing potentially sensitive information.
 
@@ -142,7 +142,7 @@ def map_xmlrpc_fault(*, code: int, fault_string: str, ctx: RpcContext) -> Except
     return ClientException(fault_msg)
 
 
-def exception_to_failure_reason(exc: BaseException) -> FailureReason:
+def exception_to_failure_reason(*, exc: BaseException) -> FailureReason:
     """
     Map an exception to a FailureReason enum value.
 
@@ -160,7 +160,7 @@ def exception_to_failure_reason(exc: BaseException) -> FailureReason:
         try:
             await client.login()
         except BaseException as exc:
-            reason = exception_to_failure_reason(exc)
+            reason = exception_to_failure_reason(exc=exc)
             state_machine.transition_to(
                 target=ClientState.FAILED,
                 reason=str(exc),

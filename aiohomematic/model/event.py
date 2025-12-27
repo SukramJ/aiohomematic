@@ -163,7 +163,9 @@ class ImpulseEvent(GenericEvent):
 
 
 @inspector(scope=ServiceScope.INTERNAL)
-def create_event_and_append_to_channel(channel: ChannelProtocol, parameter: str, parameter_data: ParameterData) -> None:
+def create_event_and_append_to_channel(
+    *, channel: ChannelProtocol, parameter: str, parameter_data: ParameterData
+) -> None:
     """Create action event data_point."""
     _LOGGER.debug(
         "CREATE_EVENT_AND_APPEND_TO_DEVICE: Creating event for %s, %s, %s",
@@ -179,7 +181,7 @@ def create_event_and_append_to_channel(channel: ChannelProtocol, parameter: str,
         channel.add_data_point(data_point=event)
 
 
-def _determine_event_type(parameter: str, parameter_data: ParameterData) -> type[GenericEvent] | None:
+def _determine_event_type(*, parameter: str, parameter_data: ParameterData) -> type[GenericEvent] | None:
     event_t: type[GenericEvent] | None = None
     if parameter_data["OPERATIONS"] & Operations.EVENT:
         if parameter in CLICK_EVENTS:
@@ -192,6 +194,7 @@ def _determine_event_type(parameter: str, parameter_data: ParameterData) -> type
 
 
 def _safe_create_event(
+    *,
     event_t: type[GenericEvent],
     channel: ChannelProtocol,
     parameter: str,
@@ -207,7 +210,7 @@ def _safe_create_event(
     except Exception as exc:
         raise AioHomematicException(
             i18n.tr(
-                "exception.model.event.create_event.failed",
+                key="exception.model.event.create_event.failed",
                 reason=hms.extract_exc_args(exc=exc),
             )
         ) from exc

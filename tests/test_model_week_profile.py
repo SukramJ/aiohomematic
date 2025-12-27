@@ -252,15 +252,15 @@ class TestHelperFunctions:
 
     def test_convert_minutes_to_time_str_invalid_type(self):
         """Test that non-int input returns max time."""
-        assert _convert_minutes_to_time_str("invalid") == "24:00"
-        assert _convert_minutes_to_time_str(None) == "24:00"
+        assert _convert_minutes_to_time_str(minutes="invalid") == "24:00"
+        assert _convert_minutes_to_time_str(minutes=None) == "24:00"
 
     def test_convert_minutes_to_time_str_valid(self):
         """Test minutes to time string conversion."""
-        assert _convert_minutes_to_time_str(0) == "00:00"
-        assert _convert_minutes_to_time_str(360) == "06:00"
-        assert _convert_minutes_to_time_str(750) == "12:30"
-        assert _convert_minutes_to_time_str(1440) == "24:00"
+        assert _convert_minutes_to_time_str(minutes=0) == "00:00"
+        assert _convert_minutes_to_time_str(minutes=360) == "06:00"
+        assert _convert_minutes_to_time_str(minutes=750) == "12:30"
+        assert _convert_minutes_to_time_str(minutes=1440) == "24:00"
 
     def test_convert_time_str_to_minutes_invalid_format(self):
         """Test that invalid time format raises exception."""
@@ -412,7 +412,7 @@ class TestHelperFunctions:
             ScheduleField.WEEKDAY: [],
             ScheduleField.TARGET_CHANNELS: [],
         }
-        assert is_schedule_active(group_data) is False
+        assert is_schedule_active(group_data=group_data) is False
 
     def test_is_schedule_active_missing_channels(self):
         """Test is_schedule_active with missing channels."""
@@ -420,7 +420,7 @@ class TestHelperFunctions:
             ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
             ScheduleField.TARGET_CHANNELS: [],
         }
-        assert is_schedule_active(group_data) is False
+        assert is_schedule_active(group_data=group_data) is False
 
     def test_is_schedule_active_missing_weekday(self):
         """Test is_schedule_active with missing weekday."""
@@ -428,7 +428,7 @@ class TestHelperFunctions:
             ScheduleField.WEEKDAY: [],
             ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
         }
-        assert is_schedule_active(group_data) is False
+        assert is_schedule_active(group_data=group_data) is False
 
     def test_is_schedule_active_with_all_fields(self):
         """Test is_schedule_active with complete data."""
@@ -436,7 +436,7 @@ class TestHelperFunctions:
             ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
             ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
         }
-        assert is_schedule_active(group_data) is True
+        assert is_schedule_active(group_data=group_data) is True
 
     def test_list_to_bitwise_all_days(self):
         """Test list to bitwise with all weekdays."""
@@ -1038,15 +1038,15 @@ class TestDefaultWeekProfile:
     async def test_default_week_profile_empty_schedule_group(self, central_client_factory_with_homegear_client):
         """Test empty_schedule_group for different categories."""
         # Test that different categories return appropriate empty schedule groups
-        switch_empty = create_empty_schedule_group(DataPointCategory.SWITCH)
+        switch_empty = create_empty_schedule_group(category=DataPointCategory.SWITCH)
         assert ScheduleField.LEVEL in switch_empty
         assert ScheduleField.DURATION_BASE in switch_empty
 
-        light_empty = create_empty_schedule_group(DataPointCategory.LIGHT)
+        light_empty = create_empty_schedule_group(category=DataPointCategory.LIGHT)
         assert ScheduleField.LEVEL in light_empty
         assert ScheduleField.RAMP_TIME_BASE in light_empty
 
-        cover_empty = create_empty_schedule_group(DataPointCategory.COVER)
+        cover_empty = create_empty_schedule_group(category=DataPointCategory.COVER)
         assert ScheduleField.LEVEL in cover_empty
         assert ScheduleField.LEVEL_2 in cover_empty
 

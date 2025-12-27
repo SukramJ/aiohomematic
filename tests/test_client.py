@@ -985,7 +985,7 @@ class TestClientHelpers:
         assert client_isclose(value1="a", value2="b") is False
 
         # get_client returns None for unknown interface_id, without mutating registry
-        assert get_client_by_id("non-existent-interface-id") is None
+        assert get_client_by_id(interface_id="non-existent-interface-id") is None
 
 
 class TestClientProductGroup:
@@ -1374,8 +1374,8 @@ class TestClientRegistry:
 
         monkeypatch.setattr(hmcu, "CENTRAL_INSTANCES", {"c": fake_central})
 
-        assert get_client_by_id("iid") is dummy_client
-        assert get_client_by_id("unknown") is None
+        assert get_client_by_id(interface_id="iid") is dummy_client
+        assert get_client_by_id(interface_id="unknown") is None
 
 
 class TestClientInstallMode:

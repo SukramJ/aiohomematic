@@ -666,7 +666,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             self._state_machine.transition_to(
                 target=ClientState.FAILED,
                 reason=str(exc),
-                failure_reason=exception_to_failure_reason(exc),
+                failure_reason=exception_to_failure_reason(exc=exc),
             )
             raise
 
@@ -738,7 +738,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             self._state_machine.transition_to(
                 target=ClientState.FAILED,
                 reason="proxy init failed",
-                failure_reason=exception_to_failure_reason(bhexc),
+                failure_reason=exception_to_failure_reason(exc=bhexc),
             )
             # Mark devices as unavailable when proxy init fails
             # This ensures data points show unavailable during CCU restart/recovery
@@ -775,7 +775,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                     self._is_callback_alive = False
                 _LOGGER.error(
                     i18n.tr(
-                        "log.client.is_callback_alive.no_events",
+                        key="log.client.is_callback_alive.no_events",
                         interface_id=self.interface_id,
                         seconds=int(seconds_since_last_event),
                     )
@@ -870,7 +870,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 self._connection_error_count = 0  # Reset error count on success
                 _LOGGER.info(
                     i18n.tr(
-                        "log.client.reconnect.reconnected",
+                        key="log.client.reconnect.reconnected",
                         interface_id=self.interface_id,
                     )
                 )
@@ -1255,7 +1255,7 @@ class ClientJsonCCU(ClientCCU):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.json_ccu.get_paramset.failed",
+                    key="exception.client.json_ccu.get_paramset.failed",
                     address=address,
                     paramset_key=paramset_key,
                     reason=extract_exc_args(exc=bhexc),
@@ -1299,7 +1299,7 @@ class ClientJsonCCU(ClientCCU):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.json_ccu.get_value.failed",
+                    key="exception.client.json_ccu.get_value.failed",
                     channel_address=channel_address,
                     parameter=parameter,
                     paramset_key=paramset_key,
@@ -1352,7 +1352,7 @@ class ClientJsonCCU(ClientCCU):
         ) is None:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.json_ccu.set_value.unknown_type",
+                    key="exception.client.json_ccu.set_value.unknown_type",
                     channel_address=channel_address,
                     paramset_key=ParamsetKey.VALUES,
                     parameter=parameter,
@@ -1653,14 +1653,14 @@ class ClientConfig:
                 if await client.check_connection_availability(handle_ping_pong=False):
                     return client
             raise NoConnectionException(
-                i18n.tr("exception.client.client_config.no_connection", interface_id=self.interface_id)
+                i18n.tr(key="exception.client.client_config.no_connection", interface_id=self.interface_id)
             )
         except BaseHomematicException:
             raise
         except Exception as exc:
             raise NoConnectionException(
                 i18n.tr(
-                    "exception.client.client_config.unable_to_connect",
+                    key="exception.client.client_config.unable_to_connect",
                     reason=extract_exc_args(exc=exc),
                 )
             ) from exc
@@ -1727,7 +1727,7 @@ class ClientConfig:
         except Exception as exc:
             raise NoConnectionException(
                 i18n.tr(
-                    "exception.client.client_config.unable_to_connect",
+                    key="exception.client.client_config.unable_to_connect",
                     reason=extract_exc_args(exc=exc),
                 )
             ) from exc
@@ -1766,13 +1766,14 @@ class InterfaceConfig:
         if not self.port and self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.interface_config.port_required",
+                    key="exception.client.interface_config.port_required",
                     interface=self.interface,
                 )
             )
 
 
 async def create_client(
+    *,
     client_deps: ClientDependenciesProtocol,
     interface_config: InterfaceConfig,
     health_record_callback: HealthRecordCallbackProtocol | None = None,
@@ -1785,7 +1786,7 @@ async def create_client(
     ).create_client()
 
 
-def get_client(interface_id: str) -> ClientProtocol | None:
+def get_client(*, interface_id: str) -> ClientProtocol | None:
     """Return client by interface_id."""
     for central in hmcu.CENTRAL_INSTANCES.values():
         if central.client_coordinator.has_client(interface_id=interface_id):

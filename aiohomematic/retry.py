@@ -92,7 +92,7 @@ _PERMANENT_EXCEPTION_TYPES: Final[tuple[type[BaseException], ...]] = (
 )
 
 
-def is_retryable_exception(exc: BaseException) -> bool:
+def is_retryable_exception(*, exc: BaseException) -> bool:
     """
     Determine if an exception is retryable.
 
@@ -131,7 +131,9 @@ def is_retryable_exception(exc: BaseException) -> bool:
     # (except permanent ones already handled above)
     # Check if the original cause was transient
     return (
-        isinstance(exc, BaseHomematicException) and exc.__cause__ is not None and is_retryable_exception(exc.__cause__)
+        isinstance(exc, BaseHomematicException)
+        and exc.__cause__ is not None
+        and is_retryable_exception(exc=exc.__cause__)
     )
 
 
@@ -211,7 +213,7 @@ class RetryStrategy:
             except BaseException as exc:
                 last_exception = exc
 
-                if not is_retryable_exception(exc):
+                if not is_retryable_exception(exc=exc):
                     _LOGGER.debug(
                         "Retry: %s failed with non-retryable exception: %s",
                         operation_name,
@@ -267,7 +269,7 @@ class RetryStrategy:
         """
         if self._current_attempt >= self._max_attempts:
             return False
-        return is_retryable_exception(exc)
+        return is_retryable_exception(exc=exc)
 
     async def wait_before_retry(self) -> None:
         """Wait for the appropriate backoff period before retrying."""
@@ -281,13 +283,13 @@ class RetryStrategy:
 
 
 @overload
-def with_retry(  # noqa: UP047
+def with_retry(  # noqa: UP047  # kwonly: disable
     func: Callable[..., Awaitable[T]],
 ) -> Callable[..., Awaitable[T]]: ...
 
 
 @overload
-def with_retry(
+def with_retry(  # kwonly: disable
     func: None = None,
     *,
     max_attempts: int = ...,
@@ -297,7 +299,7 @@ def with_retry(
 ) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]: ...
 
 
-def with_retry(  # noqa: UP047
+def with_retry(  # noqa: UP047  # kwonly: disable
     func: Callable[..., Awaitable[T]] | None = None,
     *,
     max_attempts: int = RETRY_MAX_ATTEMPTS,

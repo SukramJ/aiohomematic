@@ -129,7 +129,7 @@ def check_or_create_directory(*, directory: str) -> bool:
         except OSError as oserr:
             raise AioHomematicException(
                 i18n.tr(
-                    "exception.support.check_or_create_directory.failed",
+                    key="exception.support.check_or_create_directory.failed",
                     directory=directory,
                     reason=oserr.strerror,
                 )
@@ -169,7 +169,7 @@ def to_bool(*, value: Any) -> bool:
         return value
 
     if not isinstance(value, str):
-        raise TypeError(i18n.tr("exception.support.boolean.invalid_type"))
+        raise TypeError(i18n.tr(key="exception.support.boolean.invalid_type"))
 
     return value.lower() in ["y", "yes", "t", "true", "on", "1"]
 
@@ -181,7 +181,7 @@ def check_password(*, password: str | None) -> bool:
     if CCU_PASSWORD_PATTERN.fullmatch(password) is None:
         _LOGGER.error(
             i18n.tr(
-                "log.support.check_password.invalid_chars",
+                key="log.support.check_password.invalid_chars",
                 pattern=CCU_PASSWORD_PATTERN.pattern,
             )
         )
@@ -189,7 +189,7 @@ def check_password(*, password: str | None) -> bool:
     return True
 
 
-def regular_to_default_dict_hook(origin: dict[str, Any], /) -> defaultdict[Any, Any]:
+def regular_to_default_dict_hook(origin: dict[str, Any], /) -> defaultdict[Any, Any]:  # kwonly: disable
     """Use defaultdict in json.loads object_hook."""
 
     def new_dict() -> defaultdict[Any, Any]:
@@ -289,14 +289,14 @@ def find_free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def get_ip_addr(host: str, port: int, /) -> str | None:
+def get_ip_addr(*, host: str, port: int) -> str | None:
     """Get local_ip from socket."""
     try:
         socket.gethostbyname(host)
     except Exception as exc:
         raise AioHomematicException(
             i18n.tr(
-                "exception.support.get_local_ip.resolve_failed",
+                key="exception.support.get_local_ip.resolve_failed",
                 host=host,
                 port=port,
                 reason=extract_exc_args(exc=exc),
@@ -332,13 +332,13 @@ def validate_host(*, host: str | None) -> None:
 
     """
     if not host or not host.strip():
-        raise ValidationException(i18n.tr("exception.support.host_empty"))
+        raise ValidationException(i18n.tr(key="exception.support.host_empty"))
 
     host_clean = host.strip()
 
     # Check for valid hostname or IP
     if not (HOSTNAME_PATTERN.match(host_clean) or IPV4_PATTERN.match(host_clean) or IPV6_PATTERN.match(host_clean)):
-        raise ValidationException(i18n.tr("exception.support.host_invalid", host=host))
+        raise ValidationException(i18n.tr(key="exception.support.host_invalid", host=host))
 
 
 def is_ipv4_address(*, address: str | None) -> bool:
@@ -586,7 +586,7 @@ def create_random_device_addresses(*, addresses: list[str]) -> dict[str, str]:
     return {adr: f"VCU{int(random.randint(1000000, 9999999))}" for adr in addresses}
 
 
-def shrink_json_file(file_name: str) -> None:
+def shrink_json_file(*, file_name: str) -> None:
     """Shrink a json file."""
     with open(file_name, "rb") as f:
         data = orjson.loads(f.read())
@@ -621,8 +621,8 @@ def _safe_log_context(*, context: Mapping[str, Any] | None) -> dict[str, Any]:
 
 
 def log_boundary_error(
-    logger: logging.Logger,
     *,
+    logger: logging.Logger,
     boundary: str,
     action: str,
     err: Exception,

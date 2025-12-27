@@ -445,7 +445,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             if self._custom_id is not None and self._custom_id != custom_id:
                 raise AioHomematicException(
                     i18n.tr(
-                        "exception.model.data_point.subscribe_handler.already_registered",
+                        key="exception.model.data_point.subscribe_handler.already_registered",
                         full_name=self.full_name,
                         custom_id=self._custom_id,
                     )
@@ -1234,7 +1234,7 @@ class CallParameterCollector:
 
 
 @overload
-def bind_collector[CallableBC: CallableAny](
+def bind_collector[CallableBC: CallableAny](  # kwonly: disable
     func: CallableBC,
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
@@ -1245,7 +1245,7 @@ def bind_collector[CallableBC: CallableAny](
 
 
 @overload
-def bind_collector[CallableBC: CallableAny](
+def bind_collector[CallableBC: CallableAny](  # kwonly: disable
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
     enabled: bool = True,
@@ -1254,7 +1254,7 @@ def bind_collector[CallableBC: CallableAny](
 ) -> Callable[[CallableBC], CallableBC]: ...
 
 
-def bind_collector[CallableBC: CallableAny](
+def bind_collector[CallableBC: CallableAny](  # kwonly: disable
     func: CallableBC | None = None,
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
@@ -1318,13 +1318,13 @@ def bind_collector[CallableBC: CallableAny](
             token: Token[RequestContext | None] | None = None
             if not is_in_service():
                 ctx = RequestContext(operation=f"service:{func.__name__}")
-                token = set_request_context(ctx)
+                token = set_request_context(ctx=ctx)
             try:
                 # Short-circuit if collector binding is disabled
                 if not enabled:
                     return_value = await func(*args, **kwargs)
                     if token:
-                        reset_request_context(token)
+                        reset_request_context(token=token)
                     return return_value
 
                 # Detect if a collector was already provided by the caller.
@@ -1341,7 +1341,7 @@ def bind_collector[CallableBC: CallableAny](
                     # Collector provided by caller - they handle send_data()
                     return_value = await func(*args, **kwargs)
                     if token:
-                        reset_request_context(token)
+                        reset_request_context(token=token)
                     return return_value
 
                 # No collector provided - create one automatically.
@@ -1353,7 +1353,7 @@ def bind_collector[CallableBC: CallableAny](
                 await collector.send_data(wait_for_callback=wait_for_callback)
             except BaseHomematicException as bhexc:
                 if token:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 if not is_in_service() and log_level > logging.NOTSET:
                     context_obj = args[0]
                     logger = logging.getLogger(context_obj.__module__)
@@ -1371,7 +1371,7 @@ def bind_collector[CallableBC: CallableAny](
                 raise
             else:
                 if token:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 return return_value
 
         if scope == ServiceScope.EXTERNAL:

@@ -28,50 +28,70 @@ positive_int: vol.All = vol.All(vol.Coerce(int), vol.Range(min=0))
 wait_for: vol.All = vol.All(vol.Coerce(int), vol.Range(min=1, max=MAX_WAIT_FOR_CALLBACK))
 
 
-def channel_address(value: str, /) -> str:
+def channel_address(*, value: str) -> str:
     """Validate channel_address."""
     if is_channel_address(address=value):
         return value
-    raise vol.Invalid(i18n.tr("exception.validator.channel_address.invalid"))
+    raise vol.Invalid(i18n.tr(key="exception.validator.channel_address.invalid"))
 
 
-def device_address(value: str, /) -> str:
+def device_address(*, value: str) -> str:
     """Validate channel_address."""
     if is_device_address(address=value):
         return value
-    raise vol.Invalid(i18n.tr("exception.validator.device_address.invalid"))
+    raise vol.Invalid(i18n.tr(key="exception.validator.device_address.invalid"))
 
 
-def hostname(value: str, /) -> str:
+def hostname(*, value: str) -> str:
     """Validate hostname."""
     if is_host(host=value):
         return value
-    raise vol.Invalid(i18n.tr("exception.validator.hostname.invalid"))
+    raise vol.Invalid(i18n.tr(key="exception.validator.hostname.invalid"))
 
 
-def ipv4_address(value: str, /) -> str:
+def ipv4_address(*, value: str) -> str:
     """Validate ipv4_address."""
     if is_ipv4_address(address=value):
         return value
-    raise vol.Invalid(i18n.tr("exception.validator.ipv4_address.invalid"))
+    raise vol.Invalid(i18n.tr(key="exception.validator.ipv4_address.invalid"))
 
 
-def password(value: str, /) -> str:
+def password(*, value: str) -> str:
     """Validate password."""
     if check_password(password=value):
         return value
-    raise vol.Invalid(i18n.tr("exception.validator.password.invalid"))
+    raise vol.Invalid(i18n.tr(key="exception.validator.password.invalid"))
 
 
-def paramset_key(value: str, /) -> str:
+def paramset_key(*, value: str) -> str:
     """Validate paramset_key."""
     if is_paramset_key(paramset_key=value):
         return value
-    raise vol.Invalid(i18n.tr("exception.validator.paramset_key.invalid"))
+    raise vol.Invalid(i18n.tr(key="exception.validator.paramset_key.invalid"))
 
 
-address = vol.All(vol.Coerce(str), vol.Any(device_address, channel_address))
-host = vol.All(vol.Coerce(str), vol.Any(hostname, ipv4_address))
+def _channel_address_wrapper(value: str) -> str:  # kwonly: disable
+    """Wrap channel_address for voluptuous callback."""
+    return channel_address(value=value)
+
+
+def _device_address_wrapper(value: str) -> str:  # kwonly: disable
+    """Wrap device_address for voluptuous callback."""
+    return device_address(value=value)
+
+
+def _hostname_wrapper(value: str) -> str:  # kwonly: disable
+    """Wrap hostname for voluptuous callback."""
+    return hostname(value=value)
+
+
+def _ipv4_address_wrapper(value: str) -> str:  # kwonly: disable
+    """Wrap ipv4_address for voluptuous callback."""
+    return ipv4_address(value=value)
+
+
+address = vol.All(vol.Coerce(str), vol.Any(_device_address_wrapper, _channel_address_wrapper))
+host = vol.All(vol.Coerce(str), vol.Any(_hostname_wrapper, _ipv4_address_wrapper))
 
 
 def validate_startup() -> None:
@@ -84,17 +104,13 @@ def validate_startup() -> None:
     categories_in_lists = set(BLOCKED_CATEGORIES) | set(CATEGORIES) | set(HUB_CATEGORIES)
     all_categories = set(DataPointCategory)
     if DataPointCategory.UNDEFINED in categories_in_lists:
-        raise vol.Invalid(
-            i18n.tr(
-                "exception.validator.undefined_in_lists",
-            )
-        )
+        raise vol.Invalid(i18n.tr(key="exception.validator.undefined_in_lists"))
 
     if missing := all_categories - {DataPointCategory.UNDEFINED} - categories_in_lists:
         missing_str = ", ".join(sorted(c.value for c in missing))
         raise vol.Invalid(
             i18n.tr(
-                "exception.validator.categories.not_exhaustive",
+                key="exception.validator.categories.not_exhaustive",
                 missing=missing_str,
             )
         )

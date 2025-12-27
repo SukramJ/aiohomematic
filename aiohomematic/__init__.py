@@ -88,9 +88,9 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 # pylint: disable=unused-argument
 # noinspection PyUnusedLocal
-def signal_handler(sig, frame):  # type: ignore[no-untyped-def]
+def signal_handler(sig, frame):  # type: ignore[no-untyped-def]  # kwonly: disable
     """Handle signal to shut down central."""
-    _LOGGER.info(i18n.tr("log.core.signal.shutdown", sig=str(sig)))
+    _LOGGER.info(i18n.tr(key="log.core.signal.shutdown", sig=str(sig)))
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     for central in hmcu.CENTRAL_INSTANCES.values():
         asyncio.run_coroutine_threadsafe(central.stop(), asyncio.get_running_loop())
@@ -101,7 +101,7 @@ try:
     _ahm_validator.validate_startup()
 except Exception as _exc:  # pragma: no cover
     # Fail-fast with a clear message if validation fails during import
-    raise RuntimeError(i18n.tr("exception.startup.validation_failed", reason=_exc)) from _exc
+    raise RuntimeError(i18n.tr(key="exception.startup.validation_failed", reason=_exc)) from _exc
 
 if threading.current_thread() is threading.main_thread() and sys.stdout.isatty():
     signal.signal(signal.SIGINT, signal_handler)

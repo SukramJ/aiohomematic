@@ -100,7 +100,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.add_link.failed",
+                    key="exception.client.add_link.failed",
                     sender=sender_address,
                     receiver=receiver_address,
                     name=name,
@@ -133,7 +133,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.get_link_peers.failed",
+                    key="exception.client.get_link_peers.failed",
                     address=address,
                     reason=extract_exc_args(exc=bhexc),
                 )
@@ -164,7 +164,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.get_links.failed",
+                    key="exception.client.get_links.failed",
                     address=address,
                     reason=extract_exc_args(exc=bhexc),
                 )
@@ -192,7 +192,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.remove_link.failed",
+                    key="exception.client.remove_link.failed",
                     sender=sender_address,
                     receiver=receiver_address,
                     reason=extract_exc_args(exc=bhexc),

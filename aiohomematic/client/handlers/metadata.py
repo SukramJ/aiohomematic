@@ -213,7 +213,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.get_install_mode.failed",
+                    key="exception.client.get_install_mode.failed",
                     interface_id=self._interface_id,
                     reason=extract_exc_args(exc=bhexc),
                 )
@@ -248,7 +248,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.get_metadata.failed",
+                    key="exception.client.get_metadata.failed",
                     address=address,
                     data_id=data_id,
                     reason=extract_exc_args(exc=bhexc),
@@ -394,7 +394,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.set_install_mode.failed",
+                    key="exception.client.set_install_mode.failed",
                     interface_id=self._interface_id,
                     reason=extract_exc_args(exc=bhexc),
                 )
@@ -428,7 +428,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
-                    "exception.client.set_metadata.failed",
+                    key="exception.client.set_metadata.failed",
                     address=address,
                     data_id=data_id,
                     value=value,

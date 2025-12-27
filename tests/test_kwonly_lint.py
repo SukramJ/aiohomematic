@@ -18,7 +18,7 @@ class TestKwonlyLint:
         p = tmp_path / "sample.py"
         p.write_text(code, encoding="utf-8")
 
-        violations = kwlint.check_file(str(p))
+        violations = kwlint.check_file(path=str(p))
         assert violations, "Expected at least one violation to be reported"
         msgs = "\n".join(str(v) for v in violations)
         assert "method '__init__'" in msgs
@@ -29,5 +29,5 @@ class TestKwonlyLint:
         p = tmp_path / "sample_varargs.py"
         p.write_text(code, encoding="utf-8")
 
-        violations = kwlint.check_file(str(p))
+        violations = kwlint.check_file(path=str(p))
         assert not violations, f"Did not expect violations, got: {[str(v) for v in violations]}"

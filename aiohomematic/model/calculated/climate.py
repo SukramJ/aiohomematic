@@ -116,7 +116,7 @@ class DewPoint(BaseClimateSensor[float | None]):
     @staticmethod
     def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
-        return _is_relevant_for_model_temperature_and_humidity(channel=channel)
+        return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
     @state_property
     def value(self) -> float | None:
@@ -144,7 +144,7 @@ class DewPointSpread(BaseClimateSensor[float | None]):
     @staticmethod
     def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
-        return _is_relevant_for_model_temperature_and_humidity(channel=channel)
+        return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
     @state_property
     def value(self) -> float | None:
@@ -172,7 +172,7 @@ class Enthalpy(BaseClimateSensor[float | None]):
     @staticmethod
     def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
-        return _is_relevant_for_model_temperature_and_humidity(channel=channel)
+        return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
     @state_property
     def value(self) -> float | None:
@@ -230,7 +230,7 @@ class VaporConcentration(BaseClimateSensor[float | None]):
     @staticmethod
     def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:
         """Return if this calculated data point is relevant for the model."""
-        return _is_relevant_for_model_temperature_and_humidity(channel=channel)
+        return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
     @state_property
     def value(self) -> float | None:
@@ -244,7 +244,7 @@ class VaporConcentration(BaseClimateSensor[float | None]):
 
 
 def _is_relevant_for_model_temperature_and_humidity(
-    channel: ChannelProtocol, relevant_models: tuple[str, ...] | None = None
+    *, channel: ChannelProtocol, relevant_models: tuple[str, ...] | None = None
 ) -> bool:
     """Return if this calculated data point is relevant for the model with temperature and humidity."""
     return (

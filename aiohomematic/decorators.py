@@ -31,7 +31,7 @@ _SERVICE_CALLS_CACHE: WeakKeyDictionary[type, tuple[str, ...]] = WeakKeyDictiona
 
 
 @overload
-def inspector[**P, R](
+def inspector[**P, R](  # kwonly: disable
     func: Callable[P, R],
     /,
     *,
@@ -44,7 +44,7 @@ def inspector[**P, R](
 
 
 @overload
-def inspector[**P, R](
+def inspector[**P, R](  # kwonly: disable
     func: None = ...,
     /,
     *,
@@ -56,7 +56,7 @@ def inspector[**P, R](
 ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
-def inspector[**P, R](  # noqa: C901
+def inspector[**P, R](  # noqa: C901, kwonly: disable
     func: Callable[P, R] | None = None,
     /,
     *,
@@ -144,14 +144,14 @@ def inspector[**P, R](  # noqa: C901
             if not in_service:
                 # Create new request context for this service call
                 ctx = RequestContext(operation=f"service:{func.__name__}")
-                token = set_request_context(ctx)
+                token = set_request_context(ctx=ctx)
             context_obj = args[0] if args else None
             try:
                 return_value: R = func(*args, **kwargs)
             except BaseHomematicException as bhexc:
                 had_error = True
                 if token is not None:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 return handle_exception(
                     exc=bhexc,
                     func=func,
@@ -162,7 +162,7 @@ def inspector[**P, R](  # noqa: C901
             except Exception as exc:
                 had_error = True
                 if token is not None:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 return handle_exception(
                     exc=exc,
                     func=func,
@@ -172,7 +172,7 @@ def inspector[**P, R](  # noqa: C901
                 )
             else:
                 if token is not None:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 return return_value
             finally:
                 if start is not None:
@@ -202,14 +202,14 @@ def inspector[**P, R](  # noqa: C901
             if not in_service:
                 # Create new request context for this service call
                 ctx = RequestContext(operation=f"service:{func.__name__}")
-                token = set_request_context(ctx)
+                token = set_request_context(ctx=ctx)
             context_obj = args[0] if args else None
             try:
                 return_value = await func(*args, **kwargs)  # type: ignore[misc]
             except BaseHomematicException as bhexc:
                 had_error = True
                 if token is not None:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 return handle_exception(
                     exc=bhexc,
                     func=func,
@@ -220,7 +220,7 @@ def inspector[**P, R](  # noqa: C901
             except Exception as exc:
                 had_error = True
                 if token is not None:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 return handle_exception(
                     exc=exc,
                     func=func,
@@ -230,7 +230,7 @@ def inspector[**P, R](  # noqa: C901
                 )
             else:
                 if token is not None:
-                    reset_request_context(token)
+                    reset_request_context(token=token)
                 return cast(R, return_value)
             finally:
                 if start is not None:
@@ -282,7 +282,7 @@ def _log_performance_message[**P](func: Callable[P, Any], start: float, *args: P
     _LOGGER_PERFORMANCE.info(message)
 
 
-def get_service_calls(obj: object) -> ServiceMethodMap:
+def get_service_calls(*, obj: object) -> ServiceMethodMap:
     """
     Get all methods decorated with the service decorator (lib_service attribute).
 
@@ -313,7 +313,7 @@ def get_service_calls(obj: object) -> ServiceMethodMap:
     return {name: getattr(obj, name) for name in names}
 
 
-def measure_execution_time[CallableT: CallableAny](func: CallableT) -> CallableT:
+def measure_execution_time[CallableT: CallableAny](func: CallableT) -> CallableT:  # kwonly: disable
     """Decorate function to measure the function execution time."""
 
     @wraps(func)

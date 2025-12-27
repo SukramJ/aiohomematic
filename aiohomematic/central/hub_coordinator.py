@@ -456,7 +456,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         else:
             _LOGGER.error(
                 i18n.tr(
-                    "log.central.set_system_variable.not_found",
+                    key="log.central.set_system_variable.not_found",
                     legacy_name=legacy_name,
                     name=self._central_info.name,
                 )

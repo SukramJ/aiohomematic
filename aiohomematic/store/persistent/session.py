@@ -97,7 +97,7 @@ class SessionRecorder(BasePersistentFile):
         """Initialize the cache."""
         self._active = active
         if ttl_seconds < 0:
-            raise ValueError(i18n.tr("exception.store.session_recorder.ttl_positive"))
+            raise ValueError(i18n.tr(key="exception.store.session_recorder.ttl_positive"))
         self._ttl: Final = float(ttl_seconds)
         self._is_recording: bool = False
         self._refresh_on_get: Final = refresh_on_get
@@ -132,7 +132,7 @@ class SessionRecorder(BasePersistentFile):
     ) -> bool:
         """Activate the session recorder. Disable after on_time(seconds)."""
         if self._is_recording:
-            _LOGGER.info(i18n.tr("log.store.session_recorder.activate.already_running"))
+            _LOGGER.info(i18n.tr(key="log.store.session_recorder.activate.already_running"))
             return False
         self._store.clear()
         self._active = True
@@ -198,7 +198,7 @@ class SessionRecorder(BasePersistentFile):
     ) -> bool:
         """Deactivate the session recorder. Optionally after a delay(seconds)."""
         if self._is_recording:
-            _LOGGER.info(i18n.tr("log.store.session_recorder.deactivate.already_running"))
+            _LOGGER.info(i18n.tr(key="log.store.session_recorder.deactivate.already_running"))
             return False
         if delay > 0:
             self._task_scheduler.create_task(
@@ -226,7 +226,7 @@ class SessionRecorder(BasePersistentFile):
             return False
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return False
-        if (frozen_param := freeze_params(cleanup_params_for_session(params=params))) not in bucket_by_parameter:
+        if (frozen_param := freeze_params(params=cleanup_params_for_session(params=params))) not in bucket_by_parameter:
             return False
         # Perform deletion
         bucket_by_parameter.pop(frozen_param, None)
@@ -271,7 +271,7 @@ class SessionRecorder(BasePersistentFile):
             return default
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return default
-        frozen_param = freeze_params(cleanup_params_for_session(params=params))
+        frozen_param = freeze_params(params=cleanup_params_for_session(params=params))
         if not (bucket_by_ts := bucket_by_parameter.get(frozen_param)):
             return default
 
@@ -354,7 +354,7 @@ class SessionRecorder(BasePersistentFile):
             return None
         if not (bucket_by_parameter := bucket_by_method.get(method)):
             return None
-        frozen_param = freeze_params(cleanup_params_for_session(params=params))
+        frozen_param = freeze_params(params=cleanup_params_for_session(params=params))
         if (bucket_by_ts := bucket_by_parameter.get(frozen_param)) is None or not bucket_by_ts:
             return None
         # After purge, remaining entries are alive; return the latest timestamp.
@@ -376,7 +376,7 @@ class SessionRecorder(BasePersistentFile):
     ) -> Self:
         """Insert or update an entry."""
         self._purge_expired_at(rpc_type=rpc_type, method=method)
-        frozen_param = freeze_params(params)
+        frozen_param = freeze_params(params=params)
         # Normalize timestamp to int epoch seconds
         if isinstance(ts, datetime):
             ts_int = int(ts.timestamp())

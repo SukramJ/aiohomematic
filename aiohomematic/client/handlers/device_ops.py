@@ -140,7 +140,7 @@ class DeviceHandler(
                 translation_key="fetch_data_failed",
                 translation_placeholders=(("interface_id", self._interface_id),),
             )
-            self._client_deps.event_bus.publish_sync(
+            await self._client_deps.event_bus.publish(
                 event=SystemStatusEvent(
                     timestamp=datetime.now(),
                     issues=(issue,),

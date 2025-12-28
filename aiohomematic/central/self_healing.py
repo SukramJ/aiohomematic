@@ -277,7 +277,7 @@ class SelfHealingCoordinator:
                     event_bus=self._event_bus,
                     key=MetricKeys.self_healing_refresh_failure(interface_id=interface_id),
                 )
-                self._event_bus.publish_sync(
+                await self._event_bus.publish(
                     event=SelfHealingDataRefreshEvent(
                         timestamp=datetime.now(),
                         interface_id=interface_id,
@@ -301,7 +301,7 @@ class SelfHealingCoordinator:
             )
 
             # Emit success event
-            self._event_bus.publish_sync(
+            await self._event_bus.publish(
                 event=SelfHealingDataRefreshEvent(
                     timestamp=datetime.now(),
                     interface_id=interface_id,
@@ -321,7 +321,7 @@ class SelfHealingCoordinator:
                 key=MetricKeys.self_healing_refresh_failure(interface_id=interface_id),
             )
             # Emit failure event
-            self._event_bus.publish_sync(
+            await self._event_bus.publish(
                 event=SelfHealingDataRefreshEvent(
                     timestamp=datetime.now(),
                     interface_id=interface_id,

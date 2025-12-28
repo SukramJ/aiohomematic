@@ -216,7 +216,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             if program_dp := self._program_data_points.get(pid):
                 program_name = program_dp.button.name
 
-            self._event_bus_provider.event_bus.publish_sync(
+            await self._event_bus_provider.event_bus.publish(
                 event=ProgramExecutedEvent(
                     timestamp=datetime.now(),
                     program_id=pid,

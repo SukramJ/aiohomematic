@@ -172,9 +172,18 @@ class MetricsAggregator:
 
     @property
     def events(self) -> EventMetrics:
-        """Return EventBus metrics."""
+        """Return EventBus metrics including operational event counts."""
         event_stats = self._event_bus.get_event_stats()
         handler_stats = self._event_bus.get_handler_stats()
+
+        # Extract operational event counts from event_stats
+        circuit_breaker_trips = event_stats.get("CircuitBreakerTrippedEvent", 0)
+        client_state_changes = event_stats.get("ClientStateChangedEvent", 0)
+        central_state_changes = event_stats.get("CentralStateChangedEvent", 0)
+        data_refreshes_triggered = event_stats.get("DataRefreshTriggeredEvent", 0)
+        data_refreshes_completed = event_stats.get("DataRefreshCompletedEvent", 0)
+        programs_executed = event_stats.get("ProgramExecutedEvent", 0)
+        requests_coalesced = event_stats.get("RequestCoalescedEvent", 0)
 
         return EventMetrics(
             total_published=sum(event_stats.values()),
@@ -184,6 +193,12 @@ class MetricsAggregator:
             avg_handler_duration_ms=handler_stats.avg_duration_ms,
             max_handler_duration_ms=handler_stats.max_duration_ms,
             events_by_type=event_stats,
+            circuit_breaker_trips=circuit_breaker_trips,
+            state_changes=client_state_changes + central_state_changes,
+            data_refreshes_triggered=data_refreshes_triggered,
+            data_refreshes_completed=data_refreshes_completed,
+            programs_executed=programs_executed,
+            requests_coalesced=requests_coalesced,
         )
 
     @property

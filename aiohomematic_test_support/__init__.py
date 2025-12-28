@@ -18,6 +18,7 @@ Key Components
   playback support for deterministic testing.
 - **helper**: Test helper utilities for common testing operations.
 - **const**: Test-specific constants and configuration values.
+- **event_capture**: Event capture and assertion utilities for behavior testing.
 
 Usage Example
 -------------
@@ -34,6 +35,19 @@ Using the factory to create a test central with session playback:
     await central.start()
     device = central.device_coordinator.get_device_by_address("VCU0000001")
     await central.stop()
+
+Using EventCapture for behavior-focused testing:
+
+    from aiohomematic_test_support.event_capture import EventCapture
+    from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent
+
+    capture = EventCapture()
+    capture.subscribe_to(central.event_bus, CircuitBreakerTrippedEvent)
+
+    # ... trigger failures ...
+
+    capture.assert_event_emitted(CircuitBreakerTrippedEvent, failure_count=5)
+    capture.cleanup()
 
 The session player replays pre-recorded backend responses, enabling fast and
 reproducible tests without backend dependencies.

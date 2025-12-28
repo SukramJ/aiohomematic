@@ -219,6 +219,33 @@ class TestEventMetrics:
         metrics = EventMetrics()
         assert metrics.error_rate == 0.0
 
+    def test_operational_counters_defaults(self) -> None:
+        """Test that operational event counters have correct defaults."""
+        metrics = EventMetrics()
+        assert metrics.circuit_breaker_trips == 0
+        assert metrics.state_changes == 0
+        assert metrics.data_refreshes_triggered == 0
+        assert metrics.data_refreshes_completed == 0
+        assert metrics.programs_executed == 0
+        assert metrics.requests_coalesced == 0
+
+    def test_operational_counters_values(self) -> None:
+        """Test that operational event counters can be set."""
+        metrics = EventMetrics(
+            circuit_breaker_trips=5,
+            state_changes=10,
+            data_refreshes_triggered=3,
+            data_refreshes_completed=2,
+            programs_executed=7,
+            requests_coalesced=15,
+        )
+        assert metrics.circuit_breaker_trips == 5
+        assert metrics.state_changes == 10
+        assert metrics.data_refreshes_triggered == 3
+        assert metrics.data_refreshes_completed == 2
+        assert metrics.programs_executed == 7
+        assert metrics.requests_coalesced == 15
+
 
 class TestMetricsSnapshot:
     """Tests for MetricsSnapshot dataclass."""

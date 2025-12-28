@@ -132,6 +132,25 @@ class EventMetrics:
     events_by_type: Mapping[str, int] = field(default_factory=dict)
     """Event counts per type."""
 
+    # Operational event counters
+    circuit_breaker_trips: int = 0
+    """Number of CircuitBreakerTrippedEvent events."""
+
+    state_changes: int = 0
+    """Number of ClientStateChangedEvent + CentralStateChangedEvent events."""
+
+    data_refreshes_triggered: int = 0
+    """Number of DataRefreshTriggeredEvent events."""
+
+    data_refreshes_completed: int = 0
+    """Number of DataRefreshCompletedEvent events."""
+
+    programs_executed: int = 0
+    """Number of ProgramExecutedEvent events."""
+
+    requests_coalesced: int = 0
+    """Number of RequestCoalescedEvent events."""
+
     @property
     def error_rate(self) -> float:
         """Return handler error rate as percentage."""

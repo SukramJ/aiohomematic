@@ -4,6 +4,14 @@
 
 ### New Features
 
+- **Event-Driven System Events**: New events for connection, cache, and circuit breaker monitoring
+
+  - **Connection Stage Events**: `ConnectionStageEvent` tracks reconnection progress through 5 stages (LOST → TCP_AVAILABLE → RPC_AVAILABLE → WARMUP → ESTABLISHED)
+  - **Connection Health Events**: `ConnectionHealthEvent` reports interface health status changes
+  - **Cache Invalidation Events**: `CacheInvalidatedEvent` with `CacheType` and `CacheInvalidationReason` enums
+  - **Circuit Breaker Events**: `CircuitBreakerStateChangedEvent` and `CircuitBreakerTrippedEvent` for state transitions
+  - **New Enums in `const.py`**: `ConnectionStage`, `CacheType`, `CacheInvalidationReason`
+
 - **Complete Event-Driven Metrics Architecture**: Full migration to event-based metrics collection
   - **New `aiohomematic/metrics/` Module**: Independent metrics module (moved from `central/`)
     - `keys.py`: Type-safe metric keys with `MetricKey` dataclass and `MetricKeys` factory

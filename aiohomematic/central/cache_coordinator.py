@@ -15,10 +15,12 @@ The CacheCoordinator provides:
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 from typing import Final
 
-from aiohomematic.const import DataOperationResult, Interface
+from aiohomematic.central.event_bus import CacheInvalidatedEvent
+from aiohomematic.const import CacheInvalidationReason, CacheType, DataOperationResult, Interface
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
     ConfigProviderProtocol,
@@ -54,6 +56,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         "_data_cache",
         "_device_descriptions_cache",
         "_device_details_cache",
+        "_event_bus_provider",
         "_parameter_visibility_cache",
         "_paramset_descriptions_cache",
         "_session_recorder",
@@ -89,6 +92,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
 
         """
         self._central_info: Final = central_info
+        self._event_bus_provider: Final = event_bus_provider
 
         # Initialize all caches with protocol interfaces
         self._data_cache: Final = CentralDataCache(
@@ -133,21 +137,57 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
     paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionCache](path="_paramset_descriptions_cache")
     recorder: Final = DelegatedProperty[SessionRecorder](path="_session_recorder")
 
-    async def clear_all(self) -> None:
-        """Clear all caches and remove stored files."""
+    async def clear_all(
+        self,
+        *,
+        reason: CacheInvalidationReason = CacheInvalidationReason.MANUAL,
+    ) -> None:
+        """
+        Clear all caches and remove stored files.
+
+        Args:
+        ----
+            reason: Reason for cache invalidation
+
+        """
         _LOGGER.debug("CLEAR_ALL: Clearing all caches for %s", self._central_info.name)
+
         await self._device_descriptions_cache.clear()
         await self._paramset_descriptions_cache.clear()
         await self._session_recorder.clear()
+        data_cache_size = self._data_cache.size
         self._device_details_cache.clear()
         self._data_cache.clear()
+
+        # Emit single consolidated cache invalidation event
+        await self._event_bus_provider.event_bus.publish(
+            event=CacheInvalidatedEvent(
+                timestamp=datetime.now(),
+                cache_type=CacheType.DATA,  # Representative of full clear
+                reason=reason,
+                scope=None,  # Full cache clear
+                entries_affected=data_cache_size,
+            )
+        )
 
     def clear_on_stop(self) -> None:
         """Clear in-memory caches on shutdown to free memory."""
         _LOGGER.debug("CLEAR_ON_STOP: Clearing in-memory caches for %s", self._central_info.name)
+        data_cache_size = self._data_cache.size
         self._device_details_cache.clear()
         self._data_cache.clear()
         self._parameter_visibility_cache.clear_memoization_caches()
+
+        # Emit cache invalidation event (sync publish)
+        self._event_bus_provider.event_bus.publish_sync(
+            event=CacheInvalidatedEvent(
+                timestamp=datetime.now(),
+                cache_type=CacheType.DATA,
+                reason=CacheInvalidationReason.SHUTDOWN,
+                scope=None,
+                entries_affected=data_cache_size,
+            )
+        )
 
     async def load_all(self) -> bool:
         """

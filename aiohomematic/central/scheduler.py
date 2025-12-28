@@ -25,6 +25,7 @@ from typing import Final
 
 from aiohomematic import i18n
 from aiohomematic.central.client_coordinator import ClientCoordinator
+from aiohomematic.central.event_bus import ConnectionStageEvent
 from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import (
@@ -32,6 +33,7 @@ from aiohomematic.const import (
     SCHEDULER_NOT_STARTED_SLEEP,
     Backend,
     CentralState,
+    ConnectionStage,
     DeviceFirmwareState,
     Interface,
 )
@@ -180,6 +182,9 @@ class BackgroundScheduler:
         self._tcp_port_available: bool = False
         # Track when first RPC check (listMethods) passed - start of warmup phase
         self._rpc_check_passed_at: datetime | None = None
+        # Track current connection stage and timing for event emission
+        self._current_stage: ConnectionStage = ConnectionStage.ESTABLISHED
+        self._stage_entered_at: datetime = datetime.now()
 
         # Subscribe to DeviceLifecycleEvent for CREATED events
         def _event_handler(*, event: DeviceLifecycleEvent) -> None:
@@ -316,6 +321,8 @@ class BackgroundScheduler:
                     self._connection_lost_at = datetime.now()
                     self._tcp_port_available = False
                     self._rpc_check_passed_at = None
+                    # Emit connection lost event
+                    await self._emit_stage_event(new_stage=ConnectionStage.LOST)
                     _LOGGER.info(
                         i18n.tr(
                             key="log.central.scheduler.check_connection.connection_loss_detected",
@@ -377,6 +384,43 @@ class BackgroundScheduler:
             return False
         else:
             return True
+
+    async def _emit_stage_event(self, *, new_stage: ConnectionStage) -> None:
+        """
+        Emit a connection stage event.
+
+        Args:
+        ----
+            new_stage: The new connection stage to emit
+
+        """
+        if new_stage == self._current_stage:
+            return
+
+        # Calculate duration in previous stage
+        duration_ms = (datetime.now() - self._stage_entered_at).total_seconds() * 1000
+
+        # Get interface_id from first client (representative for this central)
+        interface_id = (
+            self._client_coordinator.clients[0].interface_id
+            if self._client_coordinator.clients
+            else self._central_info.name
+        )
+
+        # Emit the event
+        await self._event_bus_provider.event_bus.publish(
+            event=ConnectionStageEvent(
+                timestamp=datetime.now(),
+                interface_id=interface_id,
+                stage=new_stage,
+                previous_stage=self._current_stage,
+                duration_in_previous_stage_ms=duration_ms,
+            )
+        )
+
+        # Update tracking
+        self._current_stage = new_stage
+        self._stage_entered_at = datetime.now()
 
     async def _fetch_device_firmware_update_data(self) -> None:
         """Periodically fetch device firmware update data from backend."""
@@ -491,6 +535,7 @@ class BackgroundScheduler:
             port = self._get_first_client_port()
             if port and await self._check_tcp_port_available(host=host, port=port):
                 self._tcp_port_available = True
+                await self._emit_stage_event(new_stage=ConnectionStage.TCP_AVAILABLE)
                 _LOGGER.info(
                     i18n.tr(
                         key="log.central.scheduler.check_connection.tcp_port_available",
@@ -514,6 +559,7 @@ class BackgroundScheduler:
         if self._rpc_check_passed_at is None:
             if await self._check_rpc_available():
                 self._rpc_check_passed_at = datetime.now()
+                await self._emit_stage_event(new_stage=ConnectionStage.RPC_AVAILABLE)
                 _LOGGER.info(
                     i18n.tr(
                         key="log.central.scheduler.check_connection.rpc_check_passed",
@@ -530,6 +576,9 @@ class BackgroundScheduler:
         # Stage 3: Warmup delay (allow CCU services to stabilize)
         warmup_elapsed = (datetime.now() - self._rpc_check_passed_at).total_seconds()
         if warmup_elapsed < timeout_config.reconnect_warmup_delay:
+            # Emit warmup event only once (when we first enter warmup)
+            if self._current_stage != ConnectionStage.WARMUP:
+                await self._emit_stage_event(new_stage=ConnectionStage.WARMUP)
             remaining = timeout_config.reconnect_warmup_delay - warmup_elapsed
             _LOGGER.debug(
                 "CHECK_CONNECTION: Warmup for %s - %.1fs remaining",
@@ -576,6 +625,7 @@ class BackgroundScheduler:
             self._connection_lost_at = None
             self._tcp_port_available = False
             self._rpc_check_passed_at = None
+            await self._emit_stage_event(new_stage=ConnectionStage.ESTABLISHED)
             _LOGGER.info(
                 i18n.tr(
                     key="log.central.scheduler.check_connection.reconnect_success",

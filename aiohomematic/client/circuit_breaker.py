@@ -311,6 +311,49 @@ class CircuitBreaker:
 
         emit_counter(event_bus=self._event_bus, key=key)
 
+    def _emit_state_change_event(
+        self,
+        *,
+        old_state: CircuitState,
+        new_state: CircuitState,
+    ) -> None:
+        """Emit a circuit breaker state change event."""
+        if self._event_bus is None:
+            return
+
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import CircuitBreakerStateChangedEvent  # noqa: PLC0415
+
+        self._event_bus.publish_sync(
+            event=CircuitBreakerStateChangedEvent(
+                timestamp=datetime.now(),
+                interface_id=self._interface_id,
+                old_state=old_state,
+                new_state=new_state,
+                failure_count=self._failure_count,
+                success_count=self._success_count,
+                last_failure_time=self._last_failure_time,
+            )
+        )
+
+    def _emit_tripped_event(self) -> None:
+        """Emit a circuit breaker tripped event."""
+        if self._event_bus is None:
+            return
+
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent  # noqa: PLC0415
+
+        self._event_bus.publish_sync(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id=self._interface_id,
+                failure_count=self._failure_count,
+                last_failure_reason=None,  # Could be enhanced in future
+                cooldown_seconds=self._config.recovery_timeout,
+            )
+        )
+
     def _transition_to(self, *, new_state: CircuitState) -> None:
         """
         Handle state transition with logging and CentralConnectionState notification.
@@ -350,6 +393,13 @@ class CircuitBreaker:
                     success_count=self._success_count,
                 )
             )
+
+        # Emit state change event
+        self._emit_state_change_event(old_state=old_state, new_state=new_state)
+
+        # Emit tripped event when circuit opens
+        if new_state == CircuitState.OPEN:
+            self._emit_tripped_event()
 
         # Reset counters based on new state
         if new_state == CircuitState.CLOSED:

@@ -112,7 +112,15 @@ import time
 import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
-from aiohomematic.const import DataPointKey, ParamsetKey
+from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.const import (
+    CacheInvalidationReason,
+    CacheType,
+    ConnectionStage,
+    DataPointKey,
+    FailureReason,
+    ParamsetKey,
+)
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -430,6 +438,137 @@ class DeviceRemovedEvent(Event):
     def key(self) -> Any:
         """Key identifier for this event."""
         return self.unique_id
+
+
+# =============================================================================
+# Connection Health Events (Phase 1)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionStageEvent(Event):
+    """
+    Connection reconnection stage progression.
+
+    Key is interface_id.
+
+    Emitted during staged reconnection when connection is lost and recovered.
+    Tracks progression through TCP check, RPC check, warmup, and establishment.
+    """
+
+    interface_id: str
+    stage: ConnectionStage
+    previous_stage: ConnectionStage
+    duration_in_previous_stage_ms: float
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+    @property
+    def stage_name(self) -> str:
+        """Return human-readable stage name."""
+        return self.stage.display_name
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionHealthEvent(Event):
+    """
+    Connection health status update.
+
+    Key is interface_id.
+
+    Emitted when connection health status changes for an interface.
+    """
+
+    interface_id: str
+    is_healthy: bool
+    failure_reason: FailureReason | None
+    consecutive_failures: int
+    last_successful_contact: datetime | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+# =============================================================================
+# Cache Events (Phase 2)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class CacheInvalidatedEvent(Event):
+    """
+    Cache invalidation notification.
+
+    Key is scope (device_address, interface_id, or None for full cache).
+
+    Emitted when cache entries are invalidated or cleared.
+    """
+
+    cache_type: CacheType
+    reason: CacheInvalidationReason
+    scope: str | None
+    entries_affected: int
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.scope
+
+
+# =============================================================================
+# Circuit Breaker Events (Phase 3)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class CircuitBreakerStateChangedEvent(Event):
+    """
+    Circuit breaker state transition.
+
+    Key is interface_id.
+
+    Emitted when a circuit breaker transitions between states
+    (CLOSED, OPEN, HALF_OPEN).
+    """
+
+    interface_id: str
+    old_state: CircuitState
+    new_state: CircuitState
+    failure_count: int
+    success_count: int
+    last_failure_time: datetime | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class CircuitBreakerTrippedEvent(Event):
+    """
+    Circuit breaker tripped (opened due to failures).
+
+    Key is interface_id.
+
+    Emitted when a circuit breaker transitions to OPEN state,
+    indicating repeated failures.
+    """
+
+    interface_id: str
+    failure_count: int
+    last_failure_reason: str | None
+    cooldown_seconds: float
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
 
 
 class EventBus:

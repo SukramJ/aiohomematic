@@ -24,6 +24,17 @@ Instead of multiple callback dictionaries with different signatures, we use:
 3. Async-first design with sync compatibility
 4. Clear separation of concerns
 
+Metrics Architecture Note
+-------------------------
+Most components in aiohomematic emit metrics via EventBus (event-driven pattern).
+However, HandlerStats is an intentional exception that uses inline tracking.
+
+This is because EventBus is **meta-infrastructure**: it cannot use itself to
+observe its own handler execution without causing infinite recursion. This is
+analogous to how logging frameworks cannot log their own internal errors.
+
+Access handler stats directly via ``event_bus.get_handler_stats()``.
+
 Public API
 ----------
 - EventBus: Main event bus class for subscription and publishing
@@ -170,7 +181,32 @@ class _PrioritizedHandler:
 
 @dataclass(slots=True)
 class HandlerStats:
-    """Statistics for event handler execution tracking."""
+    """
+    Statistics for event handler execution tracking.
+
+    Architectural Note
+    ------------------
+    HandlerStats uses **inline tracking** rather than event-driven metrics.
+    This is an intentional design decision to avoid infinite recursion:
+
+    If we emitted metric events for handler execution, the MetricsObserver
+    handler would itself trigger a metric event, creating an endless loop::
+
+        EventBus executes handler
+            → emit LatencyMetricEvent
+                → EventBus executes MetricsObserver handler
+                    → emit LatencyMetricEvent
+                        → ... infinite recursion
+
+    This is a fundamental constraint of meta-observability: the EventBus
+    cannot use itself for self-observation. Similar constraints exist in:
+
+    - Logging frameworks (cannot log their own internal errors)
+    - Garbage collectors (cannot garbage-collect themselves)
+    - Debuggers (cannot debug themselves)
+
+    Access handler stats directly via ``event_bus.get_handler_stats()``.
+    """
 
     total_executions: int = 0
     """Total number of handler executions."""

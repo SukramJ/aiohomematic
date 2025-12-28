@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Protocol, Unpack, runtime_checkable
 from aiohomematic.const import (
     BackupData,
     CentralState,
+    ClientState,
     DeviceFirmwareState,
     DeviceTriggerEventType,
     EventData,
@@ -26,6 +27,7 @@ from aiohomematic.const import (
     SystemEventType,
     SystemInformation,
 )
+from aiohomematic.metrics._protocols import DeviceProviderForMetricsProtocol, HubDataPointManagerForMetricsProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig
@@ -33,15 +35,13 @@ if TYPE_CHECKING:
     from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator, SystemEventArgs
-    from aiohomematic.central.metrics import MetricsAggregator
     from aiohomematic.interfaces.model import (
         CallbackDataPointProtocol,
         ChannelProtocol,
-        DeviceProtocol,
         GenericDataPointProtocolAny,
-        GenericProgramDataPointProtocol,
         GenericSysvarDataPointProtocol,
     )
+    from aiohomematic.metrics import MetricsObserver
     from aiohomematic.model.hub import ProgramDpType
 
 
@@ -234,17 +234,13 @@ class DataPointProviderProtocol(Protocol):
 
 
 @runtime_checkable
-class DeviceProviderProtocol(Protocol):
+class DeviceProviderProtocol(DeviceProviderForMetricsProtocol, Protocol):
     """
     Protocol for accessing devices.
 
+    Extends DeviceProviderForMetricsProtocol with additional properties.
     Implemented by CentralUnit.
     """
-
-    @property
-    @abstractmethod
-    def devices(self) -> tuple[DeviceProtocol, ...]:
-        """Get all devices."""
 
     @property
     @abstractmethod
@@ -379,22 +375,13 @@ class HubDataFetcherProtocol(HubFetchOperationsProtocol, Protocol):
 
 
 @runtime_checkable
-class HubDataPointManagerProtocol(Protocol):
+class HubDataPointManagerProtocol(HubDataPointManagerForMetricsProtocol, Protocol):
     """
     Protocol for managing hub-level data points (programs/sysvars).
 
+    Extends HubDataPointManagerForMetricsProtocol with management methods.
     Implemented by CentralUnit.
     """
-
-    @property
-    @abstractmethod
-    def program_data_points(self) -> tuple[GenericProgramDataPointProtocol, ...]:
-        """Get all program data points."""
-
-    @property
-    @abstractmethod
-    def sysvar_data_points(self) -> tuple[GenericSysvarDataPointProtocol, ...]:
-        """Get all system variable data points."""
 
     @abstractmethod
     def add_program_data_point(self, *, program_dp: ProgramDpType) -> None:
@@ -601,9 +588,6 @@ class ConnectionHealthProtocol(Protocol):
     Implemented by ConnectionHealth.
     """
 
-    from aiohomematic.client.circuit_breaker import CircuitState  # noqa: PLC0415
-    from aiohomematic.const import ClientState  # noqa: PLC0415
-
     @property
     @abstractmethod
     def client_state(self) -> ClientState:
@@ -765,15 +749,15 @@ class HealthProviderProtocol(Protocol):
 @runtime_checkable
 class MetricsProviderProtocol(Protocol):
     """
-    Protocol for accessing the metrics aggregator.
+    Protocol for accessing the metrics observer.
 
     Implemented by CentralUnit.
     """
 
     @property
     @abstractmethod
-    def metrics(self) -> MetricsAggregator:
-        """Return the metrics aggregator."""
+    def metrics(self) -> MetricsObserver:
+        """Return the metrics observer."""
 
 
 # =============================================================================

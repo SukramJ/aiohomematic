@@ -48,6 +48,7 @@ import logging
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
+from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.const import CentralState, FailureReason
 from aiohomematic.interfaces.central import CentralStateMachineProtocol
 from aiohomematic.property_decorators import DelegatedProperty
@@ -361,9 +362,6 @@ class CentralStateMachine(CentralStateMachineProtocol):
             reason: Reason for the transition
 
         """
-        # Import here to avoid circular dependency
-        from aiohomematic.central.integration_events import SystemStatusEvent  # noqa: PLC0415
-
         if self._event_bus is not None:
             # Include failure info when transitioning to FAILED state
             failure_reason = self._failure_reason if new_state == CentralState.FAILED else None

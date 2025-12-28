@@ -10,52 +10,22 @@ parameter values from interfaces for quick lookup and periodic refresh.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from datetime import datetime
 import logging
 from typing import Any, Final
 
 from aiohomematic.const import INIT_DATETIME, MAX_CACHE_AGE, NO_CACHE_ENTRY, CallSource, Interface, ParamsetKey
-from aiohomematic.interfaces.central import CentralInfoProtocol, DataPointProviderProtocol, DeviceProviderProtocol
+from aiohomematic.interfaces.central import (
+    CentralInfoProtocol,
+    DataPointProviderProtocol,
+    DeviceProviderProtocol,
+    EventBusProviderProtocol,
+)
 from aiohomematic.interfaces.client import ClientProviderProtocol, DataCacheWriterProtocol
+from aiohomematic.metrics import MetricKeys, emit_counter
 from aiohomematic.support import changed_within_seconds
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-
-@dataclass(slots=True)
-class CacheStats:
-    """Statistics for cache performance monitoring."""
-
-    hits: int = 0
-    """Number of successful cache lookups."""
-
-    misses: int = 0
-    """Number of cache misses."""
-
-    @property
-    def size(self) -> int:
-        """Return current cache size (set externally)."""
-        return self._size
-
-    @size.setter
-    def size(self, value: int) -> None:
-        """Set current cache size."""
-        self._size = value
-
-    _size: int = 0
-
-    @property
-    def hit_rate(self) -> float:
-        """Return hit rate as percentage."""
-        if (total := self.hits + self.misses) == 0:
-            return 100.0
-        return (self.hits / total) * 100
-
-    def reset(self) -> None:
-        """Reset statistics counters."""
-        self.hits = 0
-        self.misses = 0
 
 
 class CentralDataCache(DataCacheWriterProtocol):
@@ -66,8 +36,8 @@ class CentralDataCache(DataCacheWriterProtocol):
         "_client_provider",
         "_data_point_provider",
         "_device_provider",
+        "_event_bus_provider",
         "_refreshed_at",
-        "_stats",
         "_value_cache",
     )
 
@@ -78,24 +48,22 @@ class CentralDataCache(DataCacheWriterProtocol):
         client_provider: ClientProviderProtocol,
         data_point_provider: DataPointProviderProtocol,
         central_info: CentralInfoProtocol,
+        event_bus_provider: EventBusProviderProtocol,
     ) -> None:
         """Initialize the central data cache."""
         self._device_provider: Final = device_provider
         self._client_provider: Final = client_provider
         self._data_point_provider: Final = data_point_provider
         self._central_info: Final = central_info
+        self._event_bus_provider: Final = event_bus_provider
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
-        self._stats: Final = CacheStats()
 
     @property
-    def stats(self) -> CacheStats:
-        """Return cache statistics."""
-        # Update size before returning
-        total_size = sum(len(cache) for cache in self._value_cache.values())
-        self._stats.size = total_size
-        return self._stats
+    def size(self) -> int:
+        """Return total number of entries in cache."""
+        return sum(len(cache) for cache in self._value_cache.values())
 
     def add_data(self, *, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""
@@ -122,11 +90,23 @@ class CentralDataCache(DataCacheWriterProtocol):
         if not self._is_empty(interface=interface) and (iface_cache := self._value_cache.get(interface)) is not None:
             result = iface_cache.get(f"{interface}.{channel_address}.{parameter}", NO_CACHE_ENTRY)
             if result != NO_CACHE_ENTRY:
-                self._stats.hits += 1
+                emit_counter(
+                    event_bus=self._event_bus_provider.event_bus,
+                    key=MetricKeys.cache_hit(),
+                    delta=1,
+                )
             else:
-                self._stats.misses += 1
+                emit_counter(
+                    event_bus=self._event_bus_provider.event_bus,
+                    key=MetricKeys.cache_miss(),
+                    delta=1,
+                )
             return result
-        self._stats.misses += 1
+        emit_counter(
+            event_bus=self._event_bus_provider.event_bus,
+            key=MetricKeys.cache_miss(),
+            delta=1,
+        )
         return NO_CACHE_ENTRY
 
     async def load(self, *, direct_call: bool = False, interface: Interface | None = None) -> None:

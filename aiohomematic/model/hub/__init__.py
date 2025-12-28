@@ -276,7 +276,7 @@ class Hub(HubProtocol):
 
         self._metrics_dps = MetricsDpType(
             system_health=HmSystemHealthSensor(
-                metrics_aggregator=self._metrics_provider.metrics,
+                metrics_observer=self._metrics_provider.metrics,
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
@@ -286,7 +286,7 @@ class Hub(HubProtocol):
                 parameter_visibility_provider=self._parameter_visibility_provider,
             ),
             connection_latency=HmConnectionLatencySensor(
-                metrics_aggregator=self._metrics_provider.metrics,
+                metrics_observer=self._metrics_provider.metrics,
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
@@ -296,7 +296,7 @@ class Hub(HubProtocol):
                 parameter_visibility_provider=self._parameter_visibility_provider,
             ),
             last_event_age=HmLastEventAgeSensor(
-                metrics_aggregator=self._metrics_provider.metrics,
+                metrics_observer=self._metrics_provider.metrics,
                 config_provider=self._config_provider,
                 central_info=self._central_info,
                 event_bus_provider=self._event_bus_provider,
@@ -358,7 +358,7 @@ class Hub(HubProtocol):
         Refresh metrics hub sensors with current values.
 
         This is a synchronous method as metrics are read directly from the
-        MetricsAggregator without backend calls.
+        MetricsObserver without backend calls.
         """
         if self._metrics_dps is None:
             return

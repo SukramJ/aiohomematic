@@ -58,6 +58,7 @@ from aiohomematic.const import (
     SystemInformation,
 )
 from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+from aiohomematic.metrics._protocols import ClientProviderForMetricsProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig, CentralConnectionState
@@ -709,17 +710,13 @@ class ClientProtocol(
 
 
 @runtime_checkable
-class ClientProviderProtocol(Protocol):
+class ClientProviderProtocol(ClientProviderForMetricsProtocol, Protocol):
     """
     Protocol for accessing client instances.
 
+    Extends ClientProviderForMetricsProtocol with additional properties and methods.
     Implemented by CentralUnit.
     """
-
-    @property
-    @abstractmethod
-    def clients(self) -> tuple[ClientProtocol, ...]:
-        """Get all clients."""
 
     @property
     @abstractmethod

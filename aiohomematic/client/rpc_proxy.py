@@ -31,7 +31,7 @@ import errno
 import http.client
 import logging
 from ssl import SSLContext, SSLError
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 import xmlrpc.client
 
 from aiohomematic import central as hmcu, i18n
@@ -52,6 +52,9 @@ from aiohomematic.retry import with_retry
 from aiohomematic.store import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 from aiohomematic.type_aliases import CallableAny
+
+if TYPE_CHECKING:
+    from aiohomematic.central.event_bus import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -107,6 +110,7 @@ class BaseRpcProxy(ABC):
         session_recorder: SessionRecorder | None = None,
         circuit_breaker_config: CircuitBreakerConfig | None = None,
         health_record_callback: HealthRecordCallbackProtocol | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         self._interface_id: Final = interface_id
@@ -132,6 +136,7 @@ class BaseRpcProxy(ABC):
             connection_state=connection_state,
             issuer=self,
             health_record_callback=health_record_callback,
+            event_bus=event_bus,
         )
 
     def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
@@ -193,6 +198,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
         health_record_callback: HealthRecordCallbackProtocol | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         super().__init__(
@@ -204,6 +210,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             verify_tls=verify_tls,
             session_recorder=session_recorder,
             health_record_callback=health_record_callback,
+            event_bus=event_bus,
         )
 
         xmlrpc.client.ServerProxy.__init__(

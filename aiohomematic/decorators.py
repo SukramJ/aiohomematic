@@ -16,10 +16,10 @@ from time import monotonic
 from typing import Any, Final, cast, overload
 from weakref import WeakKeyDictionary
 
-from aiohomematic.central.metrics import record_service_call
 from aiohomematic.const import ServiceScope
 from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 from aiohomematic.exceptions import BaseHomematicException
+from aiohomematic.metrics import MetricKeys, emit_counter, emit_latency
 from aiohomematic.support import LogContextMixin, log_boundary_error
 from aiohomematic.type_aliases import CallableAny, ServiceMethodMap
 
@@ -177,14 +177,13 @@ def inspector[**P, R](  # noqa: C901, kwonly: disable
             finally:
                 if start is not None:
                     duration_ms = (monotonic() - start) * 1000
-                    # Record service call metrics if central_name is available
-                    if (central_info := getattr(context_obj, "_central_info", None)) is not None:
-                        record_service_call(
-                            central_name=central_info.name,
-                            method_name=func.__name__,
-                            duration_ms=duration_ms,
-                            had_error=had_error,
-                        )
+                    # Emit service call metrics if event_bus is available
+                    _emit_service_metrics(
+                        context_obj=context_obj,
+                        method_name=func.__name__,
+                        duration_ms=duration_ms,
+                        had_error=had_error,
+                    )
                     # Log performance if debug logging is enabled
                     if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG):
                         _log_performance_message(func, start, *args, **kwargs)
@@ -235,14 +234,13 @@ def inspector[**P, R](  # noqa: C901, kwonly: disable
             finally:
                 if start is not None:
                     duration_ms = (monotonic() - start) * 1000
-                    # Record service call metrics if central_name is available
-                    if (central_info := getattr(context_obj, "_central_info", None)) is not None:
-                        record_service_call(
-                            central_name=central_info.name,
-                            method_name=func.__name__,
-                            duration_ms=duration_ms,
-                            had_error=had_error,
-                        )
+                    # Emit service call metrics if event_bus is available
+                    _emit_service_metrics(
+                        context_obj=context_obj,
+                        method_name=func.__name__,
+                        duration_ms=duration_ms,
+                        had_error=had_error,
+                    )
                     # Log performance if debug logging is enabled
                     if _LOGGER_PERFORMANCE.isEnabledFor(level=logging.DEBUG):
                         _log_performance_message(func, start, *args, **kwargs)
@@ -263,6 +261,45 @@ def inspector[**P, R](  # noqa: C901, kwonly: disable
 
     # If used with parameters: @inspector(...)
     return create_wrapped_decorator
+
+
+def _emit_service_metrics(
+    *,
+    context_obj: Any,
+    method_name: str,
+    duration_ms: float,
+    had_error: bool,
+) -> None:
+    """
+    Emit service call metrics via EventBus if available.
+
+    Args:
+        context_obj: The object the method was called on (first arg)
+        method_name: Name of the service method
+        duration_ms: Execution duration in milliseconds
+        had_error: Whether the call raised an exception
+
+    """
+    # Get event_bus from context object if available
+    if (event_bus_provider := getattr(context_obj, "_event_bus_provider", None)) is None:
+        return
+
+    if (event_bus := getattr(event_bus_provider, "event_bus", None)) is None:
+        return
+
+    # Emit latency for all calls
+    emit_latency(
+        event_bus=event_bus,
+        key=MetricKeys.service_call(method=method_name),
+        duration_ms=duration_ms,
+    )
+
+    # Emit error counter if there was an error
+    if had_error:
+        emit_counter(
+            event_bus=event_bus,
+            key=MetricKeys.service_error(method=method_name),
+        )
 
 
 def _log_performance_message[**P](func: Callable[P, Any], start: float, *args: P.args, **kwargs: P.kwargs) -> None:

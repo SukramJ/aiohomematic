@@ -269,6 +269,11 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.metrics._protocols import (
+    ClientProviderForMetricsProtocol,
+    DeviceProviderForMetricsProtocol,
+    HubDataPointManagerForMetricsProtocol,
+)
 
 __all__ = [
     # Central Composite Protocol
@@ -324,6 +329,7 @@ __all__ = [
     # Client Management - Utilities
     "ClientDependenciesProtocol",
     "ClientFactoryProtocol",
+    "ClientProviderForMetricsProtocol",
     "ClientProviderProtocol",
     "ConnectionStateProviderProtocol",
     "JsonRpcClientProviderProtocol",
@@ -332,6 +338,7 @@ __all__ = [
     "ChannelLookupProtocol",
     "DataPointProviderProtocol",
     "DeviceLookupProtocol",
+    "DeviceProviderForMetricsProtocol",
     "DeviceProviderProtocol",
     # Device Operations
     "DeviceDataRefresherProtocol",
@@ -339,6 +346,7 @@ __all__ = [
     "NewDeviceHandlerProtocol",
     # Hub Operations
     "HubDataFetcherProtocol",
+    "HubDataPointManagerForMetricsProtocol",
     "HubDataPointManagerProtocol",
     "HubFetchOperationsProtocol",
     # Task Scheduling

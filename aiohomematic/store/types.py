@@ -16,7 +16,7 @@ Type Aliases
 Cache Entry Types
 -----------------
 - CachedCommand: Command cache entry with value and timestamp
-- PongEntry: Ping/pong tracking entry with token and seen time
+- PongTracker: Ping/pong tracking entry with token and seen time
 """
 
 from __future__ import annotations

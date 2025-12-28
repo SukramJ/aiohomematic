@@ -42,8 +42,11 @@ import logging
 import os
 from pathlib import Path
 from ssl import SSLContext
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import unquote
+
+if TYPE_CHECKING:
+    from aiohomematic.central.event_bus import EventBus
 
 from aiohttp import (
     ClientConnectorCertificateError,
@@ -242,6 +245,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         session_recorder: SessionRecorder | None = None,
         circuit_breaker_config: CircuitBreakerConfig | None = None,
         health_record_callback: HealthRecordCallbackProtocol | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         """Session setup."""
         self._client_session: Final = (
@@ -277,6 +281,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             connection_state=connection_state,
             issuer=self,
             health_record_callback=health_record_callback,
+            event_bus=event_bus,
         )
 
     @staticmethod

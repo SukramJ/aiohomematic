@@ -9,17 +9,17 @@ from datetime import datetime
 import pytest
 
 from aiohomematic.central.event_bus import EventBus, HandlerStats
-from aiohomematic.central.metrics import (
+from aiohomematic.metrics import (
     CacheMetrics,
     CacheStats,
     EventMetrics,
     HealthMetrics,
+    LatencyStats,
     MetricsSnapshot,
     ModelMetrics,
     RecoveryMetrics,
     RpcMetrics,
 )
-from aiohomematic.client.request_coalescer import LatencyStats, RequestCoalescer
 
 
 class TestLatencyStats:
@@ -298,34 +298,12 @@ class TestEventBusHandlerStats:
         assert stats.total_duration_ms > 0
 
 
-class TestRequestCoalescerLatency:
-    """Tests for RequestCoalescer latency tracking."""
-
-    @pytest.mark.asyncio
-    async def test_latency_tracking(self) -> None:
-        """Test that latency is tracked during request execution."""
-        import asyncio
-
-        coalescer = RequestCoalescer(name="test")
-
-        async def slow_executor() -> str:
-            await asyncio.sleep(0.001)  # 1ms delay to ensure measurable latency
-            return "result"
-
-        result = await coalescer.execute(key="test_key", executor=slow_executor)
-
-        assert result == "result"
-        assert coalescer.latency_stats.count == 1
-        # Latency should be at least 1ms (we slept for 1ms)
-        assert coalescer.latency_stats.total_ms >= 0.5  # Allow for timing variance
-
-
 class TestServiceStats:
     """Tests for ServiceStats dataclass."""
 
     def test_initial_state(self) -> None:
         """Test initial state of ServiceStats."""
-        from aiohomematic.central.metrics import ServiceStats
+        from aiohomematic.metrics import ServiceStats
 
         stats = ServiceStats()
         assert stats.call_count == 0
@@ -337,7 +315,7 @@ class TestServiceStats:
 
     def test_record_multiple_calls(self) -> None:
         """Test recording multiple service calls."""
-        from aiohomematic.central.metrics import ServiceStats
+        from aiohomematic.metrics import ServiceStats
 
         stats = ServiceStats()
         stats.record(duration_ms=50.0, had_error=False)
@@ -353,7 +331,7 @@ class TestServiceStats:
 
     def test_record_single_call(self) -> None:
         """Test recording a single service call."""
-        from aiohomematic.central.metrics import ServiceStats
+        from aiohomematic.metrics import ServiceStats
 
         stats = ServiceStats()
         stats.record(duration_ms=50.0, had_error=False)
@@ -367,7 +345,7 @@ class TestServiceStats:
 
     def test_reset(self) -> None:
         """Test resetting service statistics."""
-        from aiohomematic.central.metrics import ServiceStats
+        from aiohomematic.metrics import ServiceStats
 
         stats = ServiceStats()
         stats.record(duration_ms=100.0, had_error=True)
@@ -384,7 +362,7 @@ class TestServiceMetrics:
 
     def test_default_values(self) -> None:
         """Test default values of ServiceMetrics."""
-        from aiohomematic.central.metrics import ServiceMetrics
+        from aiohomematic.metrics import ServiceMetrics
 
         metrics = ServiceMetrics()
         assert metrics.total_calls == 0
@@ -396,7 +374,7 @@ class TestServiceMetrics:
 
     def test_error_rate_calculation(self) -> None:
         """Test error rate calculation."""
-        from aiohomematic.central.metrics import ServiceMetrics
+        from aiohomematic.metrics import ServiceMetrics
 
         metrics = ServiceMetrics(total_calls=100, total_errors=25)
         assert metrics.error_rate == 25.0
@@ -407,7 +385,7 @@ class TestServiceStatsRegistry:
 
     def test_clear_all_service_stats(self) -> None:
         """Test clearing all service stats."""
-        from aiohomematic.central.metrics import clear_service_stats, get_service_stats, record_service_call
+        from aiohomematic.metrics import clear_service_stats, get_service_stats, record_service_call
 
         # Record for multiple centrals
         record_service_call(
@@ -435,7 +413,7 @@ class TestServiceStatsRegistry:
 
     def test_clear_service_stats_specific_central(self) -> None:
         """Test clearing stats for a specific central."""
-        from aiohomematic.central.metrics import clear_service_stats, get_service_stats, record_service_call
+        from aiohomematic.metrics import clear_service_stats, get_service_stats, record_service_call
 
         # Clear all first
         clear_service_stats()
@@ -469,7 +447,7 @@ class TestServiceStatsRegistry:
 
     def test_multi_central_isolation(self) -> None:
         """Test that stats are isolated per central."""
-        from aiohomematic.central.metrics import clear_service_stats, get_service_stats, record_service_call
+        from aiohomematic.metrics import clear_service_stats, get_service_stats, record_service_call
 
         # Clear any existing stats
         clear_service_stats()
@@ -504,7 +482,7 @@ class TestServiceStatsRegistry:
 
     def test_record_and_get_service_stats(self) -> None:
         """Test recording and retrieving service stats."""
-        from aiohomematic.central.metrics import clear_service_stats, get_service_stats, record_service_call
+        from aiohomematic.metrics import clear_service_stats, get_service_stats, record_service_call
 
         # Clear any existing stats
         clear_service_stats(central_name="test_central")

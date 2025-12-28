@@ -24,6 +24,7 @@ from aiohomematic.interfaces.central import (
     ConfigProviderProtocol,
     DataPointProviderProtocol,
     DeviceProviderProtocol,
+    EventBusProviderProtocol,
 )
 from aiohomematic.interfaces.client import (
     ClientProviderProtocol,
@@ -66,6 +67,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         config_provider: ConfigProviderProtocol,
         data_point_provider: DataPointProviderProtocol,
         device_provider: DeviceProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
         primary_client_provider: PrimaryClientProviderProtocol,
         session_recorder_active: bool,
         task_scheduler: TaskSchedulerProtocol,
@@ -79,6 +81,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             device_provider: Provider for device access
             client_provider: Provider for client access
             data_point_provider: Provider for data point access
+            event_bus_provider: Provider for event bus access
             primary_client_provider: Provider for primary client access
             config_provider: Provider for configuration access
             task_scheduler: Provider for task scheduling
@@ -93,6 +96,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             client_provider=client_provider,
             data_point_provider=data_point_provider,
             central_info=central_info,
+            event_bus_provider=event_bus_provider,
         )
         self._device_details_cache: Final = DeviceDetailsCache(
             central_info=central_info,

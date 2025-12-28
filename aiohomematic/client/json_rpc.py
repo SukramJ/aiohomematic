@@ -235,6 +235,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         password: str,
         device_url: str,
         connection_state: hmcu.CentralConnectionState,
+        interface_id: str | None = None,
         client_session: ClientSession | None = None,
         tls: bool = False,
         verify_tls: bool = False,
@@ -269,9 +270,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._current_backoff: float = LOGIN_INITIAL_BACKOFF_SECONDS
 
         # Circuit breaker for preventing retry-storms during backend outages
+        # Use interface_id for health tracking; fall back to URL for logging only
         self._circuit_breaker: Final = CircuitBreaker(
             config=circuit_breaker_config,
-            interface_id=self._url,
+            interface_id=interface_id or self._url,
             connection_state=connection_state,
             issuer=self,
             health_record_callback=health_record_callback,

@@ -642,12 +642,19 @@ class MetricsAggregator:
         clients_degraded = len(health.degraded_clients)
         clients_failed = len(health.failed_clients)
 
+        # Get the most recent event time across all clients
+        last_event_time = INIT_DATETIME
+        for client_health in health.client_health.values():
+            if client_health.last_event_received is not None and client_health.last_event_received > last_event_time:
+                last_event_time = client_health.last_event_received
+
         return HealthMetrics(
             overall_score=health.overall_health_score,
             clients_total=clients_healthy + clients_degraded + clients_failed,
             clients_healthy=clients_healthy,
             clients_degraded=clients_degraded,
             clients_failed=clients_failed,
+            last_event_time=last_event_time,
         )
 
     @property

@@ -134,6 +134,7 @@ class _FakeCentral:
         self.event_coordinator = _FakeEventCoordinator()
         self.event_bus = MagicMock()
         self.event_bus.subscribe = MagicMock(return_value=lambda: None)
+        self.event_bus.publish = AsyncMock()
         self._primary_client: _FakeClient | None = None
         self._clients: tuple[_FakeClient, ...] = ()
         # Add protocol interfaces required by HubCoordinator

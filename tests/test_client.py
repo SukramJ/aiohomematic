@@ -853,19 +853,19 @@ class TestClientClasses:
 
         central.json_rpc_client.get_all_device_data = raise_client_exc  # type: ignore[assignment]
 
-        # Capture SystemStatusEvent with fetch_data_failed issue by patching publish_sync
+        # Capture SystemStatusEvent with fetch_data_failed issue by patching publish
         received_events: list[SystemStatusEvent] = []
-        original_publish_sync = central.event_bus.publish_sync
+        original_publish = central.event_bus.publish
 
-        def _capturing_publish_sync(*, event: Any) -> None:
+        async def _capturing_publish(*, event: Any) -> None:
             if isinstance(event, SystemStatusEvent) and event.issues:
                 for issue in event.issues:
                     if issue.issue_id.startswith("fetch_data_failed_"):
                         received_events.append(event)
                         break
-            original_publish_sync(event=event)
+            await original_publish(event=event)
 
-        central._event_bus.publish_sync = _capturing_publish_sync  # type: ignore[method-assign]
+        central._event_bus.publish = _capturing_publish  # type: ignore[method-assign]
 
         # Should not raise due to inspector(re_raise=False)
         await client_ccu.fetch_all_device_data()

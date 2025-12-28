@@ -34,6 +34,7 @@
     - `CircuitBreaker`: Emits counters via `MetricKeys.circuit_success/failure/rejection()`
     - `@inspector`: Emits latency/errors via `MetricKeys.service_call/error()` (no more global registry)
     - `HealthTracker`: Emits HealthMetricEvent via `MetricKeys.client_health()`
+    - `SelfHealingCoordinator`: Emits counters via `MetricKeys.self_healing_trip/recovery/refresh_success/refresh_failure()`
   - **MetricsAggregator Integration**: Now queries MetricsObserver for latency and cache metrics
     - Latency: Aggregates from `ping_pong.rtt.*` pattern
     - Cache: Gets hit/miss counters from observer

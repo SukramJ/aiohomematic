@@ -112,6 +112,17 @@
 - **`DeviceRemovedEvent` signature changed**: Now includes `device_address`, `interface_id`, `channel_addresses` with defaults for backward compatibility
 - **`CacheCoordinator` now subscribes to `DeviceRemovedEvent`**: Call `cache_coordinator.stop()` to unsubscribe on shutdown
 
+### Test Improvements
+
+- **Migrate tests to use public API instead of internal state**: Tests now use public properties and event-based verification
+  - **Circuit Breaker**: Using `event_capture` fixture with `CircuitBreakerStateChangedEvent` and `CircuitBreakerTrippedEvent`
+  - **Request Coalescer**: Using `event_capture` fixture with `RequestCoalescedEvent` for coalescing verification
+  - **Central Caches**: Using `event_capture` fixture with `CacheInvalidatedEvent` for cache clear verification
+  - **Client Coordinator**: Using `has_clients`, `clients_started`, `primary_client` properties
+  - **Event Coordinator**: Using `event_bus` property and `get_last_event_seen_for_interface()` method
+  - **Background Scheduler**: Using `is_active`, `devices_created` properties
+  - **Cover Models**: Removed redundant `_group_level` checks where `current_position` verifies the same behavior
+
 # Version 2025.12.52 (2025-12-27)
 
 ## What's Changed

@@ -44,15 +44,16 @@ class TestSelfHealingCoordinator:
     """Tests for SelfHealingCoordinator."""
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_recovery_emits_event_and_schedules_refresh(self) -> None:
+    async def test_circuit_breaker_recovery_emits_event_and_schedules_refresh(
+        self, event_capture: EventCapture
+    ) -> None:
         """Test that circuit breaker recovery emits event and schedules data refresh."""
         event_bus = EventBus()
         refresher = MockDeviceDataRefresher()
         scheduler = MockTaskScheduler()
 
         # Capture emitted events
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
+        event_capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
 
         coordinator = SelfHealingCoordinator(
             event_bus=event_bus,
@@ -78,7 +79,7 @@ class TestSelfHealingCoordinator:
 
         await asyncio.sleep(0.05)
 
-        capture.assert_event_emitted(
+        event_capture.assert_event_emitted(
             event_type=SelfHealingTriggeredEvent,
             action="recovery_initiated",
             interface_id="test-BidCos-RF",
@@ -88,19 +89,17 @@ class TestSelfHealingCoordinator:
         assert len(scheduler.created_tasks) == 1
         assert "self_healing_refresh" in scheduler.created_tasks[0][0]
 
-        capture.cleanup()
         coordinator.stop()
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_tripped_emits_event(self) -> None:
+    async def test_circuit_breaker_tripped_emits_event(self, event_capture: EventCapture) -> None:
         """Test that circuit breaker trip events emit SelfHealingTriggeredEvent."""
         event_bus = EventBus()
         refresher = MockDeviceDataRefresher()
         scheduler = MockTaskScheduler()
 
         # Capture emitted events
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
+        event_capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
 
         coordinator = SelfHealingCoordinator(
             event_bus=event_bus,
@@ -124,25 +123,23 @@ class TestSelfHealingCoordinator:
 
         await asyncio.sleep(0.05)
 
-        capture.assert_event_emitted(
+        event_capture.assert_event_emitted(
             event_type=SelfHealingTriggeredEvent,
             action="trip_logged",
             interface_id="test-rf",
         )
 
-        capture.cleanup()
         coordinator.stop()
 
     @pytest.mark.asyncio
-    async def test_multiple_trips_emit_multiple_events(self) -> None:
+    async def test_multiple_trips_emit_multiple_events(self, event_capture: EventCapture) -> None:
         """Test that multiple trip events emit multiple events."""
         event_bus = EventBus()
         refresher = MockDeviceDataRefresher()
         scheduler = MockTaskScheduler()
 
         # Capture emitted events
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
+        event_capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
 
         coordinator = SelfHealingCoordinator(
             event_bus=event_bus,
@@ -168,23 +165,23 @@ class TestSelfHealingCoordinator:
         await asyncio.sleep(0.05)
 
         trip_events = [
-            e for e in capture.get_events_of_type(event_type=SelfHealingTriggeredEvent) if e.action == "trip_logged"
+            e
+            for e in event_capture.get_events_of_type(event_type=SelfHealingTriggeredEvent)
+            if e.action == "trip_logged"
         ]
         assert len(trip_events) == 3
 
-        capture.cleanup()
         coordinator.stop()
 
     @pytest.mark.asyncio
-    async def test_non_recovery_state_change_does_not_emit_event(self) -> None:
+    async def test_non_recovery_state_change_does_not_emit_event(self, event_capture: EventCapture) -> None:
         """Test that non-recovery state changes don't emit recovery events."""
         event_bus = EventBus()
         refresher = MockDeviceDataRefresher()
         scheduler = MockTaskScheduler()
 
         # Capture emitted events
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
+        event_capture.subscribe_to(event_bus, SelfHealingTriggeredEvent)
 
         coordinator = SelfHealingCoordinator(
             event_bus=event_bus,
@@ -226,13 +223,12 @@ class TestSelfHealingCoordinator:
         # No recovery events should be emitted
         recovery_events = [
             e
-            for e in capture.get_events_of_type(event_type=SelfHealingTriggeredEvent)
+            for e in event_capture.get_events_of_type(event_type=SelfHealingTriggeredEvent)
             if e.action == "recovery_initiated"
         ]
         assert len(recovery_events) == 0
         assert len(scheduler.created_tasks) == 0
 
-        capture.cleanup()
         coordinator.stop()
 
     def test_stop_unsubscribes(self) -> None:

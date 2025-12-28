@@ -9,6 +9,13 @@
   - Type-safe `MetricKey` dataclass with `MetricKeys` factory for all known metrics
   - `emit_latency()`, `emit_counter()`, `emit_gauge()`, `emit_health()` functions for easy metric emission
   - Dedicated `aiohomematic/metrics/` module with clean separation of concerns
+- **Comprehensive System Events**: New events for complete system observability
+  - Connection state changes with reason tracking
+  - Cache invalidation and refresh events
+  - Circuit breaker state transitions and trip notifications
+  - Scheduler task execution and data refresh events
+  - Request coalescing events for performance monitoring
+- **Self-Healing Recovery**: Automatic data refresh after circuit breaker recovery
 - **Migrated Components**: All core components use emit-only pattern
   - `PingPongCache`: Emits RTT latency per interface
   - `CentralDataCache`: Emits cache hit/miss counters

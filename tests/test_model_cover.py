@@ -62,7 +62,6 @@ class TestCustomDpCover:
         cover: CustomDpCover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU8537918", 4))
         assert cover.usage == DataPointUsage.CDP_PRIMARY
         assert cover.current_position == 0
-        assert cover._group_level == _CLOSED_LEVEL
         assert cover.is_closed is True
         await cover.set_position(position=81)
         assert cover.service_method_names == (
@@ -117,7 +116,7 @@ class TestCustomDpCover:
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU8537918:3", parameter="LEVEL", value=0.5
         )
-        assert cover._group_level == 0.5
+        # Verify position through public API
         assert cover.current_position == 50
 
         await central.event_coordinator.data_point_event(
@@ -612,25 +611,25 @@ class TestCustomDpIpBlind:
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:3", parameter="LEVEL", value=0.5
         )
-        assert cover._group_level == 0.5
+        # Verify position through public API
         assert cover.current_position == 50
 
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:3", parameter="LEVEL_2", value=0.8
         )
-        assert cover._group_tilt_level == 0.8
+        # Verify tilt through public API
         assert cover.current_tilt_position == 80
 
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:3", parameter="LEVEL", value=_CLOSED_LEVEL
         )
-        assert cover._group_level == _CLOSED_LEVEL
+        # Verify position through public API
         assert cover.current_position == 0
 
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:3", parameter="LEVEL_2", value=_CLOSED_LEVEL
         )
-        assert cover._group_tilt_level == _CLOSED_LEVEL
+        # Verify tilt through public API
         assert cover.current_tilt_position == 0
 
         await central.event_coordinator.data_point_event(
@@ -689,7 +688,6 @@ class TestCustomDpIpBlind:
         )
 
         assert cover.current_position == 0
-        assert cover._group_level == _CLOSED_LEVEL
         assert cover.operation_mode == "SHUTTER"
         assert cover.is_closed is True
         await cover.set_position(position=81)
@@ -775,7 +773,7 @@ class TestCustomDpIpBlind:
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU7807849:13", parameter="LEVEL", value=0.5
         )
-        assert cover._group_level == 0.5
+        # Verify position through public API
         assert cover.current_position == 50
 
     @pytest.mark.asyncio

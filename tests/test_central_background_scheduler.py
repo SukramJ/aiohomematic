@@ -160,11 +160,9 @@ class TestBackgroundSchedulerBasics:
             state_provider=central,
         )
 
-        assert scheduler._central_info == central
+        # Verify initialization using public API
         assert scheduler.is_active is False
         assert scheduler.devices_created is False
-        assert scheduler._scheduler_task is None
-        assert len(scheduler._scheduler_jobs) == 10  # Should have 10 jobs
 
     @pytest.mark.asyncio
     async def test_background_scheduler_start(self) -> None:
@@ -192,15 +190,15 @@ class TestBackgroundSchedulerBasics:
             json_rpc_client_provider=central,
             state_provider=central,
         )
+        # Before start: scheduler should not be active
         assert scheduler.is_active is False
-        assert scheduler._scheduler_task is None
 
         # Mock the scheduler loop to prevent actual execution
         with patch.object(scheduler, "_run_scheduler_loop", return_value=AsyncMock()):
             await scheduler.start()
 
+        # After start: scheduler should be active
         assert scheduler.is_active is True
-        assert scheduler._scheduler_task is not None
 
     @pytest.mark.asyncio
     async def test_background_scheduler_start_when_already_running(self, caplog: pytest.LogCaptureFixture) -> None:

@@ -5,14 +5,12 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 import pytest
 
+from aiohomematic.central.event_bus import EventBus, RequestCoalescedEvent
 from aiohomematic.client.request_coalescer import CoalescerMetrics, RequestCoalescer
-
-if TYPE_CHECKING:
-    pass
+from aiohomematic_test_support.event_capture import EventCapture
 
 
 class TestCoalescerMetrics:
@@ -86,9 +84,16 @@ class TestRequestCoalescer:
             await task
 
     @pytest.mark.asyncio
-    async def test_coalesced_requests(self) -> None:
-        """Test multiple concurrent requests are coalesced."""
-        coalescer = RequestCoalescer(name="test")
+    async def test_coalesced_requests(self, event_capture: EventCapture) -> None:
+        """Test multiple concurrent requests are coalesced, verified via events."""
+        event_bus = EventBus()
+        event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
+
+        coalescer = RequestCoalescer(
+            name="test",
+            event_bus=event_bus,
+            interface_id="test-rf",
+        )
         execution_count = 0
         execution_started = asyncio.Event()
 
@@ -116,10 +121,24 @@ class TestRequestCoalescer:
         assert coalescer.metrics.executed_requests == 1
         assert coalescer.metrics.coalesced_requests == 1
 
+        # Verify coalescing via event
+        event_capture.assert_event_emitted(
+            event_type=RequestCoalescedEvent,
+            request_key="same-key",
+            interface_id="test-rf",
+        )
+
     @pytest.mark.asyncio
-    async def test_different_keys_not_coalesced(self) -> None:
-        """Test requests with different keys are not coalesced."""
-        coalescer = RequestCoalescer(name="test")
+    async def test_different_keys_not_coalesced(self, event_capture: EventCapture) -> None:
+        """Test requests with different keys are not coalesced - no event emitted."""
+        event_bus = EventBus()
+        event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
+
+        coalescer = RequestCoalescer(
+            name="test",
+            event_bus=event_bus,
+            interface_id="test-rf",
+        )
         execution_count = 0
 
         async def executor():
@@ -134,6 +153,9 @@ class TestRequestCoalescer:
         assert result2 == "result-2"
         assert execution_count == 2
         assert coalescer.metrics.coalesced_requests == 0
+
+        # Verify no coalescing event was emitted (different keys = no coalescing)
+        event_capture.assert_no_event(event_type=RequestCoalescedEvent)
 
     @pytest.mark.asyncio
     async def test_exception_propagated_to_all_waiters(self) -> None:
@@ -177,9 +199,16 @@ class TestRequestCoalescer:
         assert coalescer.pending_count == 0
 
     @pytest.mark.asyncio
-    async def test_many_waiters(self) -> None:
-        """Test many concurrent waiters for same key."""
-        coalescer = RequestCoalescer(name="test")
+    async def test_many_waiters(self, event_capture: EventCapture) -> None:
+        """Test many concurrent waiters for same key, verified via events."""
+        event_bus = EventBus()
+        event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
+
+        coalescer = RequestCoalescer(
+            name="test",
+            event_bus=event_bus,
+            interface_id="test-rf",
+        )
         execution_count = 0
         execution_started = asyncio.Event()
 
@@ -203,6 +232,12 @@ class TestRequestCoalescer:
         assert coalescer.metrics.total_requests == 10
         assert coalescer.metrics.executed_requests == 1
         assert coalescer.metrics.coalesced_requests == 9
+
+        # Verify coalescing events were emitted (one per additional waiter)
+        # The last event should show the final coalesced_count of 10
+        events = event_capture.get_events_of_type(event_type=RequestCoalescedEvent)
+        assert len(events) == 9  # 9 coalesced requests = 9 events
+        assert events[-1].coalesced_count == 10  # Final count includes all waiters
 
     @pytest.mark.asyncio
     async def test_metrics_property(self) -> None:
@@ -229,9 +264,8 @@ class TestRequestCoalescer:
         with pytest.raises(RuntimeError):
             await coalescer.execute(key="fail-key", executor=failing_executor)
 
-        # Pending should be empty even after failure
+        # Pending should be empty even after failure (use public property)
         assert coalescer.pending_count == 0
-        assert "fail-key" not in coalescer._pending
 
     @pytest.mark.asyncio
     async def test_pending_cleanup_on_success(self) -> None:
@@ -243,9 +277,8 @@ class TestRequestCoalescer:
 
         await coalescer.execute(key="cleanup-key", executor=executor)
 
-        # Pending should be empty
+        # Pending should be empty (use public property)
         assert coalescer.pending_count == 0
-        assert "cleanup-key" not in coalescer._pending
 
     @pytest.mark.asyncio
     async def test_sequential_requests_same_key(self) -> None:
@@ -284,9 +317,16 @@ class TestRequestCoalescer:
         assert coalescer.pending_count == 0
 
     @pytest.mark.asyncio
-    async def test_waiter_count_tracking(self) -> None:
-        """Test waiter count is tracked correctly."""
-        coalescer = RequestCoalescer(name="test")
+    async def test_waiter_count_tracking(self, event_capture: EventCapture) -> None:
+        """Test waiter count is tracked correctly via events."""
+        event_bus = EventBus()
+        event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
+
+        coalescer = RequestCoalescer(
+            name="test",
+            event_bus=event_bus,
+            interface_id="test-rf",
+        )
         execution_started = asyncio.Event()
 
         async def slow_executor():
@@ -300,15 +340,18 @@ class TestRequestCoalescer:
         # Wait for execution to start
         await execution_started.wait()
 
-        # Check waiter count after first request
-        pending = coalescer._pending.get("track-key")
-        assert pending is not None
-        assert pending.waiter_count == 1
+        # First request starts execution, pending_count should be 1
+        assert coalescer.pending_count == 1
 
-        # Add more waiters
+        # Add more waiters - this will emit coalesce events
         task2 = asyncio.create_task(coalescer.execute(key="track-key", executor=slow_executor))
-        await asyncio.sleep(0.01)  # Give time for task2 to register
+        await asyncio.sleep(0.02)  # Give time for task2 to register and event to publish
 
-        assert pending.waiter_count == 2
+        # Verify coalescing via event
+        event_capture.assert_event_emitted(
+            event_type=RequestCoalescedEvent,
+            request_key="track-key",
+            coalesced_count=2,  # 2 waiters total
+        )
 
         await asyncio.gather(task1, task2)

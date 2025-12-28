@@ -202,10 +202,10 @@ class TestClientCoordinatorBasics:
             system_info_provider=central,
         )  # type: ignore[arg-type]
 
-        assert coordinator._client_factory == central
-        assert len(coordinator._clients) == 0
-        assert coordinator._clients_started is False
-        assert coordinator._primary_client is None
+        # Verify initialization using public API
+        assert coordinator.has_clients is False
+        assert coordinator.clients_started is False
+        assert coordinator.primary_client is None
 
     def test_clients_property(self) -> None:
         """Clients property should return tuple of all clients."""
@@ -487,7 +487,7 @@ class TestClientCoordinatorLifecycle:
             result = await coordinator.start_clients()
 
             assert result is False
-            assert coordinator._clients_started is False
+            assert coordinator.clients_started is False
 
     @pytest.mark.asyncio
     async def test_start_clients_success(self) -> None:
@@ -514,7 +514,7 @@ class TestClientCoordinatorLifecycle:
             result = await coordinator.start_clients()
 
             assert result is True
-            assert coordinator._clients_started is True
+            assert coordinator.clients_started is True
             mock_init.assert_called_once()
             central.cache_coordinator.load_all.assert_called_once()
             central.hub_coordinator.init_hub.assert_called_once()
@@ -554,9 +554,9 @@ class TestClientCoordinatorLifecycle:
         client1.deinitialize_proxy.assert_called_once()
         client2.deinitialize_proxy.assert_called_once()
 
-        # Clients should be cleared
-        assert len(coordinator._clients) == 0
-        assert coordinator._clients_started is False
+        # Clients should be cleared (use public API)
+        assert not coordinator.has_clients
+        assert coordinator.clients_started is False
 
 
 class TestClientCoordinatorPrimaryClient:
@@ -671,4 +671,4 @@ class TestClientCoordinatorIntegration:
             # Stop clients
             await coordinator.stop_clients()
             assert coordinator.clients_started is False
-            assert len(coordinator._clients) == 0
+            assert not coordinator.has_clients

@@ -47,11 +47,10 @@ class TestCircuitBreakerEventVerification:
     """
 
     @pytest.mark.asyncio
-    async def test_circuit_breaker_recovery_emits_state_change(self) -> None:
+    async def test_circuit_breaker_recovery_emits_state_change(self, event_capture: EventCapture) -> None:
         """Test circuit breaker emits state change events during recovery cycle."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
+        event_capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
 
         config = CircuitBreakerConfig(
             failure_threshold=2,
@@ -79,7 +78,7 @@ class TestCircuitBreakerEventVerification:
         await asyncio.sleep(0.02)
 
         # Verify full state transition sequence through events
-        events = capture.get_events_of_type(event_type=CircuitBreakerStateChangedEvent)
+        events = event_capture.get_events_of_type(event_type=CircuitBreakerStateChangedEvent)
         assert len(events) == 3
 
         # CLOSED -> OPEN
@@ -94,14 +93,11 @@ class TestCircuitBreakerEventVerification:
         assert events[2].old_state == CircuitState.HALF_OPEN
         assert events[2].new_state == CircuitState.CLOSED
 
-        capture.cleanup()
-
     @pytest.mark.asyncio
-    async def test_circuit_breaker_trips_emits_event(self) -> None:
+    async def test_circuit_breaker_trips_emits_event(self, event_capture: EventCapture) -> None:
         """Test circuit breaker emits CircuitBreakerTrippedEvent when tripping."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(
+        event_capture.subscribe_to(
             event_bus,
             CircuitBreakerTrippedEvent,
             CircuitBreakerStateChangedEvent,
@@ -122,28 +118,25 @@ class TestCircuitBreakerEventVerification:
         await asyncio.sleep(0.02)
 
         # Assert behavior through events (not internal state)
-        capture.assert_event_emitted(
+        event_capture.assert_event_emitted(
             event_type=CircuitBreakerTrippedEvent,
             interface_id="test-rf",
             failure_count=5,
         )
 
         # Verify state change event was also emitted
-        capture.assert_event_emitted(
+        event_capture.assert_event_emitted(
             event_type=CircuitBreakerStateChangedEvent,
             interface_id="test-rf",
             old_state=CircuitState.CLOSED,
             new_state=CircuitState.OPEN,
         )
 
-        capture.cleanup()
-
     @pytest.mark.asyncio
-    async def test_half_open_failure_reopens_circuit_via_events(self) -> None:
+    async def test_half_open_failure_reopens_circuit_via_events(self, event_capture: EventCapture) -> None:
         """Test half-open failure reopens circuit, verified via events."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
+        event_capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=1, recovery_timeout=0.1)
         breaker = CircuitBreaker(
@@ -165,14 +158,12 @@ class TestCircuitBreakerEventVerification:
         await asyncio.sleep(0.02)
 
         # Verify via events: should have CLOSED->OPEN, OPEN->HALF_OPEN, HALF_OPEN->OPEN
-        events = capture.get_events_of_type(event_type=CircuitBreakerStateChangedEvent)
+        events = event_capture.get_events_of_type(event_type=CircuitBreakerStateChangedEvent)
         assert len(events) == 3
 
         # Last transition should be back to OPEN
         assert events[2].old_state == CircuitState.HALF_OPEN
         assert events[2].new_state == CircuitState.OPEN
-
-        capture.cleanup()
 
 
 # =============================================================================
@@ -189,11 +180,10 @@ class TestIntegrationEventPatterns:
     """
 
     @pytest.mark.asyncio
-    async def test_data_refresh_events_integration(self) -> None:
+    async def test_data_refresh_events_integration(self, event_capture: EventCapture) -> None:
         """Test data refresh events are properly emitted."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(
+        event_capture.subscribe_to(
             event_bus,
             DataRefreshTriggeredEvent,
             DataRefreshCompletedEvent,
@@ -226,19 +216,17 @@ class TestIntegrationEventPatterns:
         )
 
         # Verify refresh triggered
-        triggered_events = capture.get_events_of_type(event_type=DataRefreshTriggeredEvent)
+        triggered_events = event_capture.get_events_of_type(event_type=DataRefreshTriggeredEvent)
         assert len(triggered_events) == 1
         assert triggered_events[0].refresh_type == "client_data"
         assert triggered_events[0].scheduled is True
 
         # Verify refresh completed successfully
-        completed_events = capture.get_events_of_type(event_type=DataRefreshCompletedEvent)
+        completed_events = event_capture.get_events_of_type(event_type=DataRefreshCompletedEvent)
         assert len(completed_events) == 1
         assert completed_events[0].success is True
         assert completed_events[0].duration_ms > 0
         assert completed_events[0].items_refreshed == 100
-
-        capture.cleanup()
 
     @pytest.mark.asyncio
     async def test_event_sequence_verification(self) -> None:
@@ -279,11 +267,10 @@ class TestIntegrationEventPatterns:
         sequence.verify(strict=False)
 
     @pytest.mark.asyncio
-    async def test_no_events_assertion(self) -> None:
+    async def test_no_events_assertion(self, event_capture: EventCapture) -> None:
         """Test asserting no events of a type were emitted."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
+        event_capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=5)
         breaker = CircuitBreaker(
@@ -299,9 +286,7 @@ class TestIntegrationEventPatterns:
         await asyncio.sleep(0.02)
 
         # Verify no trip event was emitted (circuit didn't trip)
-        capture.assert_no_event(event_type=CircuitBreakerTrippedEvent)
-
-        capture.cleanup()
+        event_capture.assert_no_event(event_type=CircuitBreakerTrippedEvent)
 
 
 # =============================================================================
@@ -317,11 +302,10 @@ class TestPerformanceEventPatterns:
     """
 
     @pytest.mark.asyncio
-    async def test_coalescing_effectiveness(self) -> None:
+    async def test_coalescing_effectiveness(self, event_capture: EventCapture) -> None:
         """Test that request coalescing is working via events."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, RequestCoalescedEvent)
+        event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
             name="test",
@@ -351,7 +335,7 @@ class TestPerformanceEventPatterns:
         await asyncio.sleep(0.02)
 
         # Verify coalescing occurred via events
-        coalesce_events = capture.get_events_of_type(event_type=RequestCoalescedEvent)
+        coalesce_events = event_capture.get_events_of_type(event_type=RequestCoalescedEvent)
         total_coalesced = sum(e.coalesced_count for e in coalesce_events)
 
         # At least 9 of 10 requests should be coalesced
@@ -360,14 +344,11 @@ class TestPerformanceEventPatterns:
         # Verify only one execution occurred
         assert execution_count == 1
 
-        capture.cleanup()
-
     @pytest.mark.asyncio
-    async def test_coalescing_reports_correct_interface(self) -> None:
+    async def test_coalescing_reports_correct_interface(self, event_capture: EventCapture) -> None:
         """Test coalescing events include correct interface_id."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, RequestCoalescedEvent)
+        event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
             name="test",
@@ -392,20 +373,17 @@ class TestPerformanceEventPatterns:
 
         # Verify event contains correct interface_id
         # coalesced_count is 2 because both tasks share the result
-        capture.assert_event_emitted(
+        event_capture.assert_event_emitted(
             event_type=RequestCoalescedEvent,
             interface_id="ccu-BidCos-RF",
             coalesced_count=2,
         )
 
-        capture.cleanup()
-
     @pytest.mark.asyncio
-    async def test_coalescing_with_different_keys(self) -> None:
+    async def test_coalescing_with_different_keys(self, event_capture: EventCapture) -> None:
         """Test that different keys are not coalesced, verified via events."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, RequestCoalescedEvent)
+        event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
             name="test",
@@ -424,20 +402,17 @@ class TestPerformanceEventPatterns:
         await asyncio.sleep(0.02)
 
         # No coalesce events should be emitted for different keys
-        capture.assert_no_event(event_type=RequestCoalescedEvent)
-
-        capture.cleanup()
+        event_capture.assert_no_event(event_type=RequestCoalescedEvent)
 
 
 class TestEventCaptureUtilities:
     """Tests for EventCapture utility methods."""
 
     @pytest.mark.asyncio
-    async def test_assert_event_emitted_with_count(self) -> None:
+    async def test_assert_event_emitted_with_count(self, event_capture: EventCapture) -> None:
         """Test asserting exact number of events."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
+        event_capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=1)
         breaker = CircuitBreaker(
@@ -452,13 +427,11 @@ class TestEventCaptureUtilities:
         await asyncio.sleep(0.02)
 
         # Assert exactly 1 event
-        capture.assert_event_emitted(event_type=CircuitBreakerTrippedEvent, count=1)
+        event_capture.assert_event_emitted(event_type=CircuitBreakerTrippedEvent, count=1)
 
         # Assert wrong count fails
         with pytest.raises(AssertionError, match="Expected 2"):
-            capture.assert_event_emitted(event_type=CircuitBreakerTrippedEvent, count=2)
-
-        capture.cleanup()
+            event_capture.assert_event_emitted(event_type=CircuitBreakerTrippedEvent, count=2)
 
     def test_clear_events(self) -> None:
         """Test clear method removes captured events."""
@@ -481,11 +454,10 @@ class TestEventCaptureUtilities:
         assert len(capture.captured_events) == 0
 
     @pytest.mark.asyncio
-    async def test_event_count(self) -> None:
+    async def test_event_count(self, event_capture: EventCapture) -> None:
         """Test get_event_count method."""
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
+        event_capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=1, success_threshold=1)
         breaker = CircuitBreaker(
@@ -502,6 +474,4 @@ class TestEventCaptureUtilities:
 
         await asyncio.sleep(0.02)
 
-        assert capture.get_event_count(event_type=CircuitBreakerStateChangedEvent) == 3
-
-        capture.cleanup()
+        assert event_capture.get_event_count(event_type=CircuitBreakerStateChangedEvent) == 3

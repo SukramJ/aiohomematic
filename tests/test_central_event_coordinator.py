@@ -147,10 +147,11 @@ class TestEventCoordinatorBasics:
 
         event_bus = coordinator.event_bus
         assert event_bus is not None
-        assert event_bus == coordinator._event_bus
+        # Verify property returns same instance (use public API)
+        assert event_bus is coordinator.event_bus
 
     def test_event_coordinator_initialization(self) -> None:
-        """EventCoordinator should initialize with central instance."""
+        """EventCoordinator should initialize correctly."""
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
@@ -159,9 +160,10 @@ class TestEventCoordinatorBasics:
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
-        assert coordinator._client_provider == central
-        assert coordinator._event_bus is not None
-        assert len(coordinator._last_event_seen_for_interface) == 0
+        # Verify initialization using public API
+        assert coordinator.event_bus is not None
+        # No events seen yet for any interface
+        assert coordinator.get_last_event_seen_for_interface(interface_id="any") is None
 
 
 class TestEventCoordinatorDataPointSubscription:
@@ -211,8 +213,8 @@ class TestEventCoordinatorDataPointEvent:
         )
 
         # Method returns early when client doesn't exist:
-        # - last_event_seen_for_interface should not be set
-        assert len(coordinator._last_event_seen_for_interface) == 0
+        # - last_event_seen_for_interface should not be set (use public API)
+        assert coordinator.get_last_event_seen_for_interface(interface_id="NonExistent") is None
 
         # Note: The @callback_event decorator on data_point_event creates a task
         # after the method returns (for re-publishing to external callbacks).
@@ -259,8 +261,8 @@ class TestEventCoordinatorDataPointEvent:
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
 
-        # Mock EventBus publish to verify it's called
-        coordinator._event_bus.publish = AsyncMock()
+        # Mock EventBus publish to verify it's called (use public property)
+        coordinator.event_bus.publish = AsyncMock()
 
         await coordinator.data_point_event(
             interface_id="BidCos-RF",
@@ -269,8 +271,8 @@ class TestEventCoordinatorDataPointEvent:
             value=True,
         )
 
-        # Should have called EventBus publish
-        coordinator._event_bus.publish.assert_called_once()
+        # Should have called EventBus publish (use public property)
+        coordinator.event_bus.publish.assert_called_once()
 
 
 class TestEventCoordinatorEmitMethods:

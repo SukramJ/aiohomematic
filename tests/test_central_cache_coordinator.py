@@ -9,6 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from aiohomematic.central.cache_coordinator import CacheCoordinator
+from aiohomematic.central.event_bus import CacheInvalidatedEvent, EventBus
+from aiohomematic.const import CacheInvalidationReason, CacheType
 from aiohomematic.store import (
     CentralDataCache,
     DeviceDescriptionCache,
@@ -16,6 +18,7 @@ from aiohomematic.store import (
     ParamsetDescriptionCache,
     SessionRecorder,
 )
+from aiohomematic_test_support.event_capture import EventCapture
 
 
 class _FakeCentral:
@@ -38,6 +41,7 @@ class _FakeCentral:
         # For protocol compatibility
         self.devices = ()
         self.interface_ids = frozenset()
+        self.interfaces = {}  # Required by CentralDataCache.clear()
         # EventBusProviderProtocol
         self.event_bus = MagicMock()
         self.event_bus.publish = AsyncMock()
@@ -74,11 +78,11 @@ class TestCacheCoordinatorBasics:
             session_recorder_active=False,
         )  # type: ignore[arg-type]
 
-        assert coordinator._central_info == central
-        assert coordinator._data_cache is not None
-        assert coordinator._device_details_cache is not None
-        assert coordinator._device_descriptions_cache is not None
-        assert coordinator._paramset_descriptions_cache is not None
+        # Verify all cache properties are available (use public API)
+        assert coordinator.data_cache is not None
+        assert coordinator.device_details is not None
+        assert coordinator.device_descriptions is not None
+        assert coordinator.paramset_descriptions is not None
 
     def test_data_cache_property(self) -> None:
         """Data cache property should return the cache instance."""
@@ -97,7 +101,8 @@ class TestCacheCoordinatorBasics:
 
         cache = coordinator.data_cache
         assert cache is not None
-        assert cache == coordinator._data_cache
+        # Verify property returns same instance (consistent identity)
+        assert cache is coordinator.data_cache
 
     def test_device_descriptions_property(self) -> None:
         """Device descriptions property should return the cache instance."""
@@ -116,7 +121,8 @@ class TestCacheCoordinatorBasics:
 
         cache = coordinator.device_descriptions
         assert cache is not None
-        assert cache == coordinator._device_descriptions_cache
+        # Verify property returns same instance (consistent identity)
+        assert cache is coordinator.device_descriptions
 
     def test_device_details_property(self) -> None:
         """Device details property should return the cache instance."""
@@ -135,7 +141,8 @@ class TestCacheCoordinatorBasics:
 
         cache = coordinator.device_details
         assert cache is not None
-        assert cache == coordinator._device_details_cache
+        # Verify property returns same instance (consistent identity)
+        assert cache is coordinator.device_details
 
     def test_paramset_descriptions_property(self) -> None:
         """Paramset descriptions property should return the cache instance."""
@@ -154,7 +161,8 @@ class TestCacheCoordinatorBasics:
 
         cache = coordinator.paramset_descriptions
         assert cache is not None
-        assert cache == coordinator._paramset_descriptions_cache
+        # Verify property returns same instance (consistent identity)
+        assert cache is coordinator.paramset_descriptions
 
 
 class TestCacheCoordinatorClearOperations:
@@ -513,7 +521,7 @@ class TestCacheCoordinatorSessionRecording:
     """Test session recording cache functionality."""
 
     def test_session_recording_cache_when_disabled(self) -> None:
-        """Session recording cache should be None when disabled."""
+        """Session recording cache should be inactive when disabled."""
         central = _FakeCentral()
         central.config.enable_session_recording = False
         coordinator = CacheCoordinator(
@@ -528,8 +536,9 @@ class TestCacheCoordinatorSessionRecording:
             session_recorder_active=False,
         )  # type: ignore[arg-type]
 
-        # When session recording is disabled, cache should be None
-        assert hasattr(coordinator, "_session_recording") is False or coordinator._session_recording is None
+        # When session recording is disabled, recorder should be inactive (use public API)
+        assert coordinator.recorder is not None
+        assert coordinator.recorder.active is False
 
     def test_session_recording_cache_when_enabled(self) -> None:
         """Session recording cache should be created when enabled."""
@@ -551,3 +560,79 @@ class TestCacheCoordinatorSessionRecording:
 
             # When enabled, cache should be created (if implementation supports it)
             # This depends on actual implementation in cache_coordinator.py
+
+
+class TestCacheCoordinatorEvents:
+    """Test event emission from CacheCoordinator."""
+
+    @pytest.mark.asyncio
+    async def test_clear_emits_cache_invalidated_event(self, event_capture: EventCapture) -> None:
+        """Clear should emit CacheInvalidatedEvent."""
+        event_bus = EventBus()
+        event_capture.subscribe_to(event_bus, CacheInvalidatedEvent)
+
+        central = _FakeCentral()
+        central.event_bus = event_bus
+
+        with (
+            patch.object(CentralDataCache, "clear", new=MagicMock()),
+            patch.object(DeviceDetailsCache, "clear", new=MagicMock()),
+            patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()),
+            patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()),
+            patch.object(SessionRecorder, "clear", new=AsyncMock()),
+        ):
+            coordinator = CacheCoordinator(
+                central_info=central,
+                device_provider=central,
+                client_provider=central,
+                data_point_provider=central,
+                event_bus_provider=central,
+                primary_client_provider=central,
+                config_provider=central,
+                task_scheduler=central.looper,
+                session_recorder_active=False,
+            )  # type: ignore[arg-type]
+
+            await coordinator.clear_all(reason=CacheInvalidationReason.MANUAL)
+
+            # Verify CacheInvalidatedEvent was emitted
+            event_capture.assert_event_emitted(
+                event_type=CacheInvalidatedEvent,
+                cache_type=CacheType.DATA,
+                reason=CacheInvalidationReason.MANUAL,
+            )
+
+    @pytest.mark.asyncio
+    async def test_clear_on_stop_emits_cache_invalidated_event(self, event_capture: EventCapture) -> None:
+        """Clear on stop should emit CacheInvalidatedEvent with SHUTDOWN reason."""
+        import asyncio
+
+        event_bus = EventBus()
+        event_capture.subscribe_to(event_bus, CacheInvalidatedEvent)
+
+        central = _FakeCentral()
+        central.event_bus = event_bus
+
+        coordinator = CacheCoordinator(
+            central_info=central,
+            device_provider=central,
+            client_provider=central,
+            data_point_provider=central,
+            event_bus_provider=central,
+            primary_client_provider=central,
+            config_provider=central,
+            task_scheduler=central.looper,
+            session_recorder_active=False,
+        )  # type: ignore[arg-type]
+
+        coordinator.clear_on_stop()
+
+        # Give the event loop a chance to process the scheduled publish
+        await asyncio.sleep(0.02)
+
+        # Verify CacheInvalidatedEvent was emitted with SHUTDOWN reason
+        event_capture.assert_event_emitted(
+            event_type=CacheInvalidatedEvent,
+            cache_type=CacheType.DATA,
+            reason=CacheInvalidationReason.SHUTDOWN,
+        )

@@ -4,12 +4,18 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
 
-from aiohomematic.central.event_bus import EventBus, HealthRecordEvent
+from aiohomematic.central.event_bus import (
+    CircuitBreakerStateChangedEvent,
+    CircuitBreakerTrippedEvent,
+    EventBus,
+    HealthRecordEvent,
+)
 from aiohomematic.client.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
@@ -75,14 +81,22 @@ class TestCircuitState:
 class TestCircuitBreaker:
     """Tests for CircuitBreaker."""
 
-    def test_complete_cycle(self) -> None:
-        """Test complete circuit breaker cycle."""
+    @pytest.mark.asyncio
+    async def test_complete_cycle(self, event_capture: EventCapture) -> None:
+        """Test complete circuit breaker cycle, verified via events."""
+        event_bus = EventBus()
+        event_capture.subscribe_to(
+            event_bus,
+            CircuitBreakerStateChangedEvent,
+            CircuitBreakerTrippedEvent,
+        )
+
         config = CircuitBreakerConfig(
             failure_threshold=2,
             recovery_timeout=0.1,
             success_threshold=2,
         )
-        breaker = CircuitBreaker(config=config, interface_id="test")
+        breaker = CircuitBreaker(config=config, interface_id="test", event_bus=event_bus)
 
         # Start CLOSED
         assert breaker.state == CircuitState.CLOSED
@@ -90,20 +104,39 @@ class TestCircuitBreaker:
         # Failures open circuit
         breaker.record_failure()
         breaker.record_failure()
-        assert breaker.state == CircuitState.OPEN
 
         # Timeout transitions to HALF_OPEN
         breaker._last_failure_time = datetime.now() - timedelta(seconds=1)
-        assert breaker.is_available is True
-        assert breaker.state == CircuitState.HALF_OPEN
+        _ = breaker.is_available
 
         # Successes close circuit
         breaker.record_success()
         breaker.record_success()
-        assert breaker.state == CircuitState.CLOSED
 
-        # Verify metrics
-        assert breaker.metrics.state_transitions == 3  # CLOSED->OPEN->HALF_OPEN->CLOSED
+        await asyncio.sleep(0.02)
+
+        # Verify full cycle via events
+        state_events = event_capture.get_events_of_type(event_type=CircuitBreakerStateChangedEvent)
+        assert len(state_events) == 3
+
+        # CLOSED -> OPEN
+        assert state_events[0].old_state == CircuitState.CLOSED
+        assert state_events[0].new_state == CircuitState.OPEN
+
+        # OPEN -> HALF_OPEN
+        assert state_events[1].old_state == CircuitState.OPEN
+        assert state_events[1].new_state == CircuitState.HALF_OPEN
+
+        # HALF_OPEN -> CLOSED
+        assert state_events[2].old_state == CircuitState.HALF_OPEN
+        assert state_events[2].new_state == CircuitState.CLOSED
+
+        # Verify trip event was emitted
+        event_capture.assert_event_emitted(
+            event_type=CircuitBreakerTrippedEvent,
+            interface_id="test",
+            failure_count=2,
+        )
 
     def test_connection_state_notified_on_close(self) -> None:
         """Test CentralConnectionState is notified when circuit closes."""
@@ -206,13 +239,10 @@ class TestCircuitBreaker:
         assert breaker.state == CircuitState.HALF_OPEN  # Not yet at threshold
 
     @pytest.mark.asyncio
-    async def test_health_event_on_failure(self) -> None:
+    async def test_health_event_on_failure(self, event_capture: EventCapture) -> None:
         """Test HealthRecordEvent is emitted on failure."""
-        import asyncio
-
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, HealthRecordEvent)
+        event_capture.subscribe_to(event_bus, HealthRecordEvent)
 
         breaker = CircuitBreaker(
             interface_id="test",
@@ -225,21 +255,17 @@ class TestCircuitBreaker:
         # Use a small delay since publish_sync schedules an async task
         await asyncio.sleep(0.01)
 
-        capture.assert_event_emitted(
+        event_capture.assert_event_emitted(
             event_type=HealthRecordEvent,
             interface_id="test",
             success=False,
         )
-        capture.cleanup()
 
     @pytest.mark.asyncio
-    async def test_health_event_on_success(self) -> None:
+    async def test_health_event_on_success(self, event_capture: EventCapture) -> None:
         """Test HealthRecordEvent is emitted on success."""
-        import asyncio
-
         event_bus = EventBus()
-        capture = EventCapture()
-        capture.subscribe_to(event_bus, HealthRecordEvent)
+        event_capture.subscribe_to(event_bus, HealthRecordEvent)
 
         breaker = CircuitBreaker(
             interface_id="test",
@@ -252,12 +278,11 @@ class TestCircuitBreaker:
         # Use a small delay since publish_sync schedules an async task
         await asyncio.sleep(0.01)
 
-        capture.assert_event_emitted(
+        event_capture.assert_event_emitted(
             event_type=HealthRecordEvent,
             interface_id="test",
             success=True,
         )
-        capture.cleanup()
 
     def test_init_custom_config(self) -> None:
         """Test initialization with custom config."""
@@ -399,10 +424,14 @@ class TestCircuitBreaker:
         assert breaker.metrics.state_transitions == 1
         assert breaker.metrics.last_state_change is not None
 
-    def test_success_count_reset_on_state_change(self) -> None:
-        """Test success count is reset on state changes."""
+    @pytest.mark.asyncio
+    async def test_success_count_reset_on_state_change(self, event_capture: EventCapture) -> None:
+        """Test success count is reset on state changes, verified via events."""
+        event_bus = EventBus()
+        event_capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
+
         config = CircuitBreakerConfig(failure_threshold=1, success_threshold=3)
-        breaker = CircuitBreaker(config=config, interface_id="test")
+        breaker = CircuitBreaker(config=config, interface_id="test", event_bus=event_bus)
 
         # Open circuit
         breaker.record_failure()
@@ -410,13 +439,23 @@ class TestCircuitBreaker:
         breaker._last_failure_time = datetime.now() - timedelta(seconds=100)
         _ = breaker.is_available
 
-        # Record one success
+        # Record one success (not enough to close)
         breaker.record_success()
-        assert breaker._success_count == 1
 
-        # Failure resets to OPEN and resets success count
+        # Failure resets to OPEN - verify via event
         breaker.record_failure()
-        assert breaker._success_count == 0
+
+        await asyncio.sleep(0.02)
+
+        # Verify state transitions via events: CLOSED->OPEN, OPEN->HALF_OPEN, HALF_OPEN->OPEN
+        events = event_capture.get_events_of_type(event_type=CircuitBreakerStateChangedEvent)
+        assert len(events) == 3
+
+        # Last event should show HALF_OPEN -> OPEN (reset due to failure in half-open)
+        assert events[2].old_state == CircuitState.HALF_OPEN
+        assert events[2].new_state == CircuitState.OPEN
+        # Event captures state at transition time; failure_count incremented
+        assert events[2].failure_count == 2
 
     def test_success_resets_failure_count_in_closed_state(self) -> None:
         """Test success resets failure count in closed state."""

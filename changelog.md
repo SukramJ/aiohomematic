@@ -67,10 +67,26 @@
   - Tracks invocation counts for verification
 
 - **Event-Driven Cache Invalidation**: Decoupled device removal from cache management
+
   - `DeviceRemovedEvent` now includes `device_address`, `interface_id`, and `channel_addresses` for device-level removal
   - `CacheCoordinator` subscribes to `DeviceRemovedEvent` and invalidates caches automatically
   - `DeviceCoordinator.remove_device()` no longer calls `CacheCoordinator.remove_device_from_caches()` directly
   - Improved architecture: device lifecycle and cache management are now decoupled via EventBus
+
+- **Event-Driven Test Verification Patterns**: New test infrastructure demonstrating event-based testing
+  - Located in `tests/test_event_driven_verification.py`
+  - **Section 3.1**: Circuit breaker tests using events instead of internal state inspection
+    - `test_circuit_breaker_trips_emits_event`: Verify trip via `CircuitBreakerTrippedEvent`
+    - `test_circuit_breaker_recovery_emits_state_change`: Verify full recovery cycle via state change events
+    - `test_half_open_failure_reopens_circuit_via_events`: Verify re-trip behavior via events
+  - **Section 3.2**: Integration test patterns using events
+    - `test_event_sequence_verification`: Verify event ordering with `EventSequenceAssertion`
+    - `test_data_refresh_events_integration`: Verify refresh cycle via `DataRefreshTriggeredEvent`/`DataRefreshCompletedEvent`
+    - `test_no_events_assertion`: Verify no events emitted using `assert_no_event()`
+  - **Section 3.3**: Performance and timing tests using events
+    - `test_coalescing_effectiveness`: Verify request coalescing via `RequestCoalescedEvent`
+    - `test_coalescing_with_different_keys`: Verify no coalescing for different keys
+    - `test_coalescing_reports_correct_interface`: Verify correct `interface_id` in events
 
 ### Breaking Changes
 

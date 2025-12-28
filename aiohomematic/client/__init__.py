@@ -273,9 +273,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     @property
     def latency_tracker(self) -> LatencyStats | None:
         """Return the latency tracker for metrics access."""
-        if hasattr(self, "_device_ops_handler"):
-            return self._device_ops_handler.paramset_description_coalescer.latency_stats
-        return None
+        # Use ping/pong round-trip latency as it's measured regularly
+        return self._ping_pong_cache.latency_stats
 
     @property
     def model(self) -> str:

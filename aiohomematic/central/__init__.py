@@ -394,8 +394,15 @@ class CentralUnit(
     def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
         """Return the json rpc client."""
         if not self._json_rpc_client:
+            # Use primary client's interface_id for health tracking
+            primary_interface_id = (
+                self._client_coordinator.primary_client.interface_id
+                if self._client_coordinator.primary_client
+                else None
+            )
             self._json_rpc_client = self._config.create_json_rpc_client(
                 central=self,
+                interface_id=primary_interface_id,
                 health_record_callback=self._client_coordinator.on_health_record,
             )
         return self._json_rpc_client
@@ -1470,6 +1477,7 @@ class CentralConfig:
         self,
         *,
         central: CentralUnit,
+        interface_id: str | None = None,
         health_record_callback: hmcl.HealthRecordCallbackProtocol | None = None,
     ) -> AioJsonRpcAioHttpClient:
         """Create a json rpc client."""
@@ -1478,6 +1486,7 @@ class CentralConfig:
             password=self.password,
             device_url=central.url,
             connection_state=central.connection_state,
+            interface_id=interface_id,
             client_session=self.client_session,
             tls=self.tls,
             verify_tls=self.verify_tls,

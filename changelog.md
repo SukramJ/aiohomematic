@@ -1,3 +1,14 @@
+# Version 2025.12.52 (2025-12-27)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix health score not reaching 100%**: JSON-RPC client was using URL instead of interface_id for health tracking, causing `last_successful_request` to never be recorded. Now uses primary client's interface_id for proper health attribution.
+- **Fix `HealthMetrics.last_event_time` always showing epoch**: The `last_event_time` field was never populated in `MetricsAggregator.health`. Now correctly aggregates the most recent event time across all clients.
+- **Fix connection latency always showing 0.0 ms**: `latency_tracker` only tracked paramset description requests which rarely executed. Now uses ping/pong round-trip time for accurate latency measurement via `PingPongCache.latency_stats`.
+- **Fix test mock returning `_Method` instead of `CircuitBreakerMetrics`**: Added proper `circuit_breaker` property to `_AioXmlRpcProxyFromSession` mock to return real `CircuitBreaker` instance.
+
 # Version 2025.12.51 (2025-12-27)
 
 ## What's Changed

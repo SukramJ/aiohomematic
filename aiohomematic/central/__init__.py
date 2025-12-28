@@ -252,6 +252,7 @@ class CentralUnit(
             central_info=self,
             config_provider=self,
             coordinator_provider=self,
+            event_bus_provider=self,
             health_tracker=self._health_tracker,
             system_info_provider=self,
         )
@@ -411,7 +412,6 @@ class CentralUnit(
             self._json_rpc_client = self._config.create_json_rpc_client(
                 central=self,
                 interface_id=primary_interface_id,
-                health_record_callback=self._client_coordinator.on_health_record,
             )
         return self._json_rpc_client
 
@@ -482,7 +482,6 @@ class CentralUnit(
         self,
         *,
         interface_config: hmcl.InterfaceConfig,
-        health_record_callback: hmcl.HealthRecordCallbackProtocol | None = None,
     ) -> ClientProtocol:
         """
         Create a client for the given interface configuration.
@@ -493,7 +492,6 @@ class CentralUnit(
         Args:
         ----
             interface_config: Configuration for the interface
-            health_record_callback: Optional callback for health tracking
 
         Returns:
         -------
@@ -503,7 +501,6 @@ class CentralUnit(
         return await hmcl.create_client(
             client_deps=self,
             interface_config=interface_config,
-            health_record_callback=health_record_callback,
         )
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
@@ -1487,7 +1484,6 @@ class CentralConfig:
         *,
         central: CentralUnit,
         interface_id: str | None = None,
-        health_record_callback: hmcl.HealthRecordCallbackProtocol | None = None,
     ) -> AioJsonRpcAioHttpClient:
         """Create a json rpc client."""
         return AioJsonRpcAioHttpClient(
@@ -1500,7 +1496,6 @@ class CentralConfig:
             tls=self.tls,
             verify_tls=self.verify_tls,
             session_recorder=central.cache_coordinator.recorder,
-            health_record_callback=health_record_callback,
             event_bus=central.event_bus,
         )
 

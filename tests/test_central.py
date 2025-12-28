@@ -784,9 +784,14 @@ class TestCentralCallbacksAndServices:
         await asyncio.sleep(0.1)
         # Verify that the ha_event_mock received a SystemStatusEvent with an issue
         assert factory.ha_event_mock.called
-        call_args = factory.ha_event_mock.call_args_list[-1]
-        event = call_args[0][0]  # First positional argument
-        assert isinstance(event, SystemStatusEvent)
+        # Find SystemStatusEvent calls with issues (filter out state change events)
+        issue_events = [
+            call[0][0]
+            for call in factory.ha_event_mock.call_args_list
+            if isinstance(call[0][0], SystemStatusEvent) and call[0][0].issues
+        ]
+        assert len(issue_events) >= 1
+        event = issue_events[-1]
         assert len(event.issues) == 1
         assert event.issues[0].issue_id == "fetch_data_failed_SOME_ID"
 
@@ -939,9 +944,14 @@ class TestCentralPingPong:
         await asyncio.sleep(0.1)
         # Verify the ha_event_mock received a SystemStatusEvent with an IntegrationIssue
         assert factory.ha_event_mock.called
-        call_args = factory.ha_event_mock.call_args_list[-1]
-        event = call_args[0][0]  # First positional argument
-        assert isinstance(event, SystemStatusEvent)
+        # Find SystemStatusEvent calls with issues (filter out state change events)
+        issue_events = [
+            call[0][0]
+            for call in factory.ha_event_mock.call_args_list
+            if isinstance(call[0][0], SystemStatusEvent) and call[0][0].issues
+        ]
+        assert len(issue_events) >= 1
+        event = issue_events[-1]
         assert len(event.issues) == 1
         issue = event.issues[0]
         assert "ping_pong_mismatch" in issue.issue_id

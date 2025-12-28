@@ -224,9 +224,6 @@ After migration period:
 
 ### Home Assistant Integration (External)
 
-1. **Migrate Home Assistant integration** to modern events
-   - See [Migration Guide](../migrations/event_system_migration_2025_12.md)
-
 ## Summary Table
 
 | Legacy Event   | Action      | Replacement                 | Status  |
@@ -263,5 +260,4 @@ After migration period:
 
 - [Event Reference](../event_reference.md)
 - [EventBus Architecture](../event_bus.md)
-- [Migration Guide](../migrations/event_system_migration_2025_12.md)
 - [ADR-0006: Event System Priorities](0006-event-system-priorities-and-batching.md)

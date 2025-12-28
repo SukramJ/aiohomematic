@@ -60,7 +60,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 import logging
-from typing import TYPE_CHECKING, Any, Final, Protocol
+from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.property_decorators import DelegatedProperty
@@ -68,13 +68,6 @@ from aiohomematic.property_decorators import DelegatedProperty
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
     from aiohomematic.central.event_bus import EventBus
-
-
-class HealthRecordCallbackProtocol(Protocol):
-    """Protocol for health recording callbacks."""
-
-    def __call__(self, *, interface_id: str, success: bool) -> None:
-        """Record health status for an interface."""
 
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -154,7 +147,6 @@ class CircuitBreaker:
         interface_id: str,
         connection_state: CentralConnectionState | None = None,
         issuer: Any = None,
-        health_record_callback: HealthRecordCallbackProtocol | None = None,
         event_bus: EventBus | None = None,
     ) -> None:
         """
@@ -166,15 +158,13 @@ class CircuitBreaker:
             interface_id: Interface identifier for logging and CentralConnectionState
             connection_state: Optional CentralConnectionState for integration
             issuer: Optional issuer object for CentralConnectionState
-            health_record_callback: Optional callback for health tracking (interface_id, success)
-            event_bus: Optional EventBus for emitting metric events
+            event_bus: Optional EventBus for emitting events (metrics and health records)
 
         """
         self._config: Final = config or CircuitBreakerConfig()
         self._interface_id: Final = interface_id
         self._connection_state = connection_state
         self._issuer = issuer
-        self._health_record_callback = health_record_callback
         self._event_bus = event_bus
 
         self._state: CircuitState = CircuitState.CLOSED
@@ -235,9 +225,8 @@ class CircuitBreaker:
         # Emit metric event
         self._emit_counter(metric="failure")
 
-        # Notify health tracker
-        if self._health_record_callback:
-            self._health_record_callback(interface_id=self._interface_id, success=False)
+        # Emit health record event
+        self._emit_health_record(success=False)
 
     def record_rejection(self) -> None:
         """Record a rejected request (circuit is open)."""
@@ -267,9 +256,8 @@ class CircuitBreaker:
         # Emit metric event
         self._emit_counter(metric="success")
 
-        # Notify health tracker
-        if self._health_record_callback:
-            self._health_record_callback(interface_id=self._interface_id, success=True)
+        # Emit health record event
+        self._emit_health_record(success=True)
 
     def reset(self) -> None:
         """Reset the circuit breaker to initial state."""
@@ -311,6 +299,72 @@ class CircuitBreaker:
 
         emit_counter(event_bus=self._event_bus, key=key)
 
+    def _emit_health_record(self, *, success: bool) -> None:
+        """
+        Emit a health record event.
+
+        Args:
+        ----
+            success: Whether the request succeeded
+
+        """
+        if self._event_bus is None:
+            return
+
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import HealthRecordEvent  # noqa: PLC0415
+
+        self._event_bus.publish_sync(
+            event=HealthRecordEvent(
+                timestamp=datetime.now(),
+                interface_id=self._interface_id,
+                success=success,
+            )
+        )
+
+    def _emit_state_change_event(
+        self,
+        *,
+        old_state: CircuitState,
+        new_state: CircuitState,
+    ) -> None:
+        """Emit a circuit breaker state change event."""
+        if self._event_bus is None:
+            return
+
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import CircuitBreakerStateChangedEvent  # noqa: PLC0415
+
+        self._event_bus.publish_sync(
+            event=CircuitBreakerStateChangedEvent(
+                timestamp=datetime.now(),
+                interface_id=self._interface_id,
+                old_state=old_state,
+                new_state=new_state,
+                failure_count=self._failure_count,
+                success_count=self._success_count,
+                last_failure_time=self._last_failure_time,
+            )
+        )
+
+    def _emit_tripped_event(self) -> None:
+        """Emit a circuit breaker tripped event."""
+        if self._event_bus is None:
+            return
+
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent  # noqa: PLC0415
+
+        self._event_bus.publish_sync(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id=self._interface_id,
+                failure_count=self._failure_count,
+                last_failure_reason=None,  # Could be enhanced in future
+                cooldown_seconds=self._config.recovery_timeout,
+            )
+        )
+
     def _transition_to(self, *, new_state: CircuitState) -> None:
         """
         Handle state transition with logging and CentralConnectionState notification.
@@ -350,6 +404,13 @@ class CircuitBreaker:
                     success_count=self._success_count,
                 )
             )
+
+        # Emit state change event
+        self._emit_state_change_event(old_state=old_state, new_state=new_state)
+
+        # Emit tripped event when circuit opens
+        if new_state == CircuitState.OPEN:
+            self._emit_tripped_event()
 
         # Reset counters based on new state
         if new_state == CircuitState.CLOSED:

@@ -621,6 +621,8 @@ class TestBackgroundSchedulerJobExecution:
         central.name = "test-ccu"
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
+        central.event_bus.publish = AsyncMock()
+        central.event_bus.publish_sync = MagicMock()
         central.config = MagicMock()
         central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
@@ -663,6 +665,8 @@ class TestBackgroundSchedulerJobExecution:
         central.name = "test-ccu"
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
+        central.event_bus.publish = AsyncMock()
+        central.event_bus.publish_sync = MagicMock()
         central.config = MagicMock()
         central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
@@ -700,6 +704,8 @@ class TestBackgroundSchedulerJobExecution:
         central.name = "test-ccu"
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
+        central.event_bus.publish = AsyncMock()
+        central.event_bus.publish_sync = MagicMock()
         central.config = MagicMock()
         central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True
@@ -1335,6 +1341,8 @@ class TestSchedulerErrorRecovery:
         central.name = "test-ccu"
         central.event_bus = MagicMock()
         central.event_bus.subscribe = MagicMock(return_value=lambda: None)
+        central.event_bus.publish = AsyncMock()
+        central.event_bus.publish_sync = MagicMock()
         central.config = MagicMock()
         central.config.schedule_timer_config = _create_schedule_timer_config()
         central.config.enable_device_firmware_check = True

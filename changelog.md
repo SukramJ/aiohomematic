@@ -4,7 +4,21 @@
 
 ### New Features
 
+- **Event-Driven System Events**: New events for comprehensive system observability
+
+  - **Connection Stage Events**: `ConnectionStageEvent` tracks reconnection progress through 5 stages (LOST → TCP_AVAILABLE → RPC_AVAILABLE → WARMUP → ESTABLISHED)
+  - **Connection Health Events**: `ConnectionHealthEvent` reports interface health status changes
+  - **Cache Invalidation Events**: `CacheInvalidatedEvent` with `CacheType` and `CacheInvalidationReason` enums
+  - **Circuit Breaker Events**: `CircuitBreakerStateChangedEvent` and `CircuitBreakerTrippedEvent` for state transitions
+  - **State Machine Events**: `ClientStateChangedEvent` and `CentralStateChangedEvent` for state transitions
+  - **Data Refresh Events**: `DataRefreshTriggeredEvent` and `DataRefreshCompletedEvent` for scheduler refresh operations
+  - **Program Events**: `ProgramExecutedEvent` when programs are executed
+  - **Request Coalescer Events**: `RequestCoalescedEvent` when requests are coalesced
+  - **Health Record Events**: `HealthRecordEvent` emitted by CircuitBreaker for success/failure tracking
+  - **New Enums in `const.py`**: `ConnectionStage`, `CacheType`, `CacheInvalidationReason`
+
 - **Complete Event-Driven Metrics Architecture**: Full migration to event-based metrics collection
+
   - **New `aiohomematic/metrics/` Module**: Independent metrics module (moved from `central/`)
     - `keys.py`: Type-safe metric keys with `MetricKey` dataclass and `MetricKeys` factory
     - `events.py`: MetricEvent hierarchy (LatencyMetricEvent, CounterMetricEvent, GaugeMetricEvent, HealthMetricEvent)
@@ -13,16 +27,66 @@
     - `stats.py`: Consolidated stats classes (CacheStats, LatencyStats, ServiceStats)
   - **Type-Safe Metric Keys**: New `MetricKey` dataclass with `MetricKeys` factory for all known metrics
     - Pattern: `{component}.{metric}.{identifier}` (e.g., `ping_pong.rtt.hmip_rf`)
-    - Factory methods: `MetricKeys.ping_pong_rtt()`, `cache_hit()`, `cache_miss()`, `client_health()`, etc.
+    - Factory methods: `MetricKeys.ping_pong_rtt()`, `cache_hit()`, `cache_miss()`, `client_health()`, `self_healing_*()`, etc.
   - **Component Migration to Emit-Only Pattern**:
     - `PingPongCache`: Removed local `_latency_stats`, now emits via `MetricKeys.ping_pong_rtt()`
     - `CentralDataCache`: Removed local `_stats`, now emits via `MetricKeys.cache_hit/miss()`
     - `CircuitBreaker`: Emits counters via `MetricKeys.circuit_success/failure/rejection()`
     - `@inspector`: Emits latency/errors via `MetricKeys.service_call/error()` (no more global registry)
     - `HealthTracker`: Emits HealthMetricEvent via `MetricKeys.client_health()`
+    - `SelfHealingCoordinator`: Emits counters via `MetricKeys.self_healing_trip/recovery/refresh_success/refresh_failure()`
   - **MetricsAggregator Integration**: Now queries MetricsObserver for latency and cache metrics
     - Latency: Aggregates from `ping_pong.rtt.*` pattern
     - Cache: Gets hit/miss counters from observer
+  - **EventMetrics.health_records**: New counter tracking `HealthRecordEvent` emissions from CircuitBreaker
+
+- **SelfHealingCoordinator**: New coordinator for automatic recovery based on circuit breaker events
+
+  - Located in `aiohomematic/central/self_healing.py`
+  - Subscribes to `CircuitBreakerTrippedEvent` and `CircuitBreakerStateChangedEvent`
+  - Triggers data refresh when circuit breaker recovers (HALF_OPEN → CLOSED)
+  - Emits `SelfHealingTriggeredEvent` and `SelfHealingDataRefreshEvent` for observability
+  - **New Metric Emissions**: Emits counter metrics via `emit_counter()`:
+    - `MetricKeys.self_healing_trip()`: When circuit breaker trips
+    - `MetricKeys.self_healing_recovery()`: When circuit breaker recovers
+    - `MetricKeys.self_healing_refresh_success()`: When data refresh succeeds
+    - `MetricKeys.self_healing_refresh_failure()`: When data refresh fails
+
+- **Self-Healing Events**: New events in `aiohomematic/metrics/events.py`
+
+  - `SelfHealingTriggeredEvent`: Emitted when self-healing reacts to circuit breaker events (actions: "trip_logged", "recovery_initiated")
+  - `SelfHealingDataRefreshEvent`: Emitted after data refresh completes with success/failure status
+  - `SELF_HEALING_EVENT_TYPES` tuple for subscription convenience
+
+- **EventDrivenMockServer**: New test infrastructure for event-driven test orchestration
+
+  - Located in `aiohomematic_test_support/event_mock.py`
+  - Provides fluent API for configuring responses to events: `mock_server.when(event_type=SomeEvent).then_call(handler=...)`
+  - Supports filtering with `.matching(filter_fn=...)` and one-shot responses with `.once()`
+  - Supports chained event publishing with `.then_publish(event_factory=...)`
+  - Tracks invocation counts for verification
+
+- **Event-Driven Cache Invalidation**: Decoupled device removal from cache management
+
+  - `DeviceRemovedEvent` now includes `device_address`, `interface_id`, and `channel_addresses` for device-level removal
+  - `CacheCoordinator` subscribes to `DeviceRemovedEvent` and invalidates caches automatically
+  - `DeviceCoordinator.remove_device()` no longer calls `CacheCoordinator.remove_device_from_caches()` directly
+  - Improved architecture: device lifecycle and cache management are now decoupled via EventBus
+
+- **Event-Driven Test Verification Patterns**: New test infrastructure demonstrating event-based testing
+  - Located in `tests/test_event_driven_verification.py`
+  - **Section 3.1**: Circuit breaker tests using events instead of internal state inspection
+    - `test_circuit_breaker_trips_emits_event`: Verify trip via `CircuitBreakerTrippedEvent`
+    - `test_circuit_breaker_recovery_emits_state_change`: Verify full recovery cycle via state change events
+    - `test_half_open_failure_reopens_circuit_via_events`: Verify re-trip behavior via events
+  - **Section 3.2**: Integration test patterns using events
+    - `test_event_sequence_verification`: Verify event ordering with `EventSequenceAssertion`
+    - `test_data_refresh_events_integration`: Verify refresh cycle via `DataRefreshTriggeredEvent`/`DataRefreshCompletedEvent`
+    - `test_no_events_assertion`: Verify no events emitted using `assert_no_event()`
+  - **Section 3.3**: Performance and timing tests using events
+    - `test_coalescing_effectiveness`: Verify request coalescing via `RequestCoalescedEvent`
+    - `test_coalescing_with_different_keys`: Verify no coalescing for different keys
+    - `test_coalescing_reports_correct_interface`: Verify correct `interface_id` in events
 
 ### Breaking Changes
 
@@ -36,6 +100,17 @@
 - **Removed `CentralDataCache.stats`**: Use MetricsObserver counters instead (new `.size` property for entry count)
 - **`CircuitBreaker` now accepts optional `event_bus`**: New optional parameter for metric event emission
 - **Service registry deprecated**: `record_service_call`, `get_service_stats`, `clear_service_stats` are deprecated; use MetricsObserver instead
+- **`ClientStateMachine` now accepts optional `event_bus`**: New optional parameter for `ClientStateChangedEvent` emission
+- **`RequestCoalescer` now accepts optional `event_bus` and `interface_id`**: New optional parameters for `RequestCoalescedEvent` emission
+- **`ClientCoordinator` now requires `event_bus_provider`**: New mandatory parameter for subscribing to `HealthRecordEvent`
+- **Removed `HealthRecordCallbackProtocol`**: The callback-based health recording pattern is replaced by EventBus
+- **Removed `health_record_callback` parameter**: Removed from `ClientConfig`, `ClientFactoryProtocol.create_client_instance()`, `BaseRpcProxy`, `AioXmlRpcProxy`, and `AioJsonRpcAioHttpClient`
+- **`CircuitBreaker` emits `HealthRecordEvent`**: Now publishes health status via EventBus instead of invoking a callback
+- **Removed `CentralStateMachine.on_state_change` callback**: Use EventBus subscription to `CentralStateChangedEvent` instead
+- **Removed `ClientStateMachine.on_state_change` callback**: Use EventBus subscription to `ClientStateChangedEvent` instead
+- **Removed `StateChangeCallbackProtocol`**: The callback protocol is no longer needed; use EventBus subscriptions
+- **`DeviceRemovedEvent` signature changed**: Now includes `device_address`, `interface_id`, `channel_addresses` with defaults for backward compatibility
+- **`CacheCoordinator` now subscribes to `DeviceRemovedEvent`**: Call `cache_coordinator.stop()` to unsubscribe on shutdown
 
 # Version 2025.12.52 (2025-12-27)
 

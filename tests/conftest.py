@@ -6,7 +6,11 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Generator
 import logging
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
+
+if TYPE_CHECKING:
+    from aiohomematic_test_support.event_capture import EventCapture
 
 from aiohttp import ClientSession
 import pydevccu
@@ -207,3 +211,18 @@ async def mock_json_rpc_server() -> AsyncGenerator[tuple[MockJsonRpc, str]]:
         yield srv, base_url
     finally:
         await srv.stop()
+
+
+# Event capture fixtures
+
+
+@pytest.fixture
+def event_capture() -> Generator[EventCapture]:
+    """Provide an EventCapture instance with automatic cleanup."""
+    from aiohomematic_test_support.event_capture import EventCapture  # noqa: PLC0415
+
+    capture = EventCapture()
+    try:
+        yield capture
+    finally:
+        capture.cleanup()

@@ -16,11 +16,12 @@ The HubCoordinator provides:
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 import logging
 from typing import Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.event_bus import SysvarUpdatedEvent
+from aiohomematic.central.event_bus import ProgramExecutedEvent, SysvarUpdatedEvent
 from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.central import (
@@ -208,7 +209,23 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
 
         """
         if client := self._primary_client_provider.primary_client:
-            return await client.execute_program(pid=pid)
+            success = await client.execute_program(pid=pid)
+
+            # Emit program executed event
+            program_name = pid  # Default to pid if name not found
+            if program_dp := self._program_data_points.get(pid):
+                program_name = program_dp.button.name
+
+            await self._event_bus_provider.event_bus.publish(
+                event=ProgramExecutedEvent(
+                    timestamp=datetime.now(),
+                    program_id=pid,
+                    program_name=program_name,
+                    triggered_by="api",
+                    success=success,
+                )
+            )
+            return success
         return False
 
     @inspector(re_raise=False)

@@ -112,7 +112,15 @@ import time
 import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
-from aiohomematic.const import DataPointKey, ParamsetKey
+from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.const import (
+    CacheInvalidationReason,
+    CacheType,
+    ConnectionStage,
+    DataPointKey,
+    FailureReason,
+    ParamsetKey,
+)
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -419,17 +427,338 @@ class DataPointUpdatedCallbackEvent(Event):
 @dataclass(frozen=True, slots=True)
 class DeviceRemovedEvent(Event):
     """
-    Device or data point has been removed.
+    Device or data point has been removed from the system.
 
-    Key is unique_id.
+    Key is device_address (for device removal) or unique_id (for data point removal).
+
+    When used for device removal (device_address is set):
+    - Enables decoupled cache invalidation via EventBus subscription
+    - Caches subscribe and react independently instead of direct calls
+
+    When used for data point removal (only unique_id is set):
+    - Signals that a data point entity should be cleaned up
     """
 
     unique_id: str
+    """Unique identifier of the device or data point."""
+
+    device_address: str | None = None
+    """Address of the removed device (None for data point removal)."""
+
+    interface_id: str | None = None
+    """Interface ID the device belonged to (None for data point removal)."""
+
+    channel_addresses: tuple[str, ...] = ()
+    """Addresses of all channels that were part of this device."""
 
     @property
     def key(self) -> Any:
         """Key identifier for this event."""
-        return self.unique_id
+        return self.device_address if self.device_address else self.unique_id
+
+
+# =============================================================================
+# Connection Health Events (Phase 1)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionStageEvent(Event):
+    """
+    Connection reconnection stage progression.
+
+    Key is interface_id.
+
+    Emitted during staged reconnection when connection is lost and recovered.
+    Tracks progression through TCP check, RPC check, warmup, and establishment.
+    """
+
+    interface_id: str
+    stage: ConnectionStage
+    previous_stage: ConnectionStage
+    duration_in_previous_stage_ms: float
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+    @property
+    def stage_name(self) -> str:
+        """Return human-readable stage name."""
+        return self.stage.display_name
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionHealthEvent(Event):
+    """
+    Connection health status update.
+
+    Key is interface_id.
+
+    Emitted when connection health status changes for an interface.
+    """
+
+    interface_id: str
+    is_healthy: bool
+    failure_reason: FailureReason | None
+    consecutive_failures: int
+    last_successful_contact: datetime | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+# =============================================================================
+# Cache Events (Phase 2)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class CacheInvalidatedEvent(Event):
+    """
+    Cache invalidation notification.
+
+    Key is scope (device_address, interface_id, or None for full cache).
+
+    Emitted when cache entries are invalidated or cleared.
+    """
+
+    cache_type: CacheType
+    reason: CacheInvalidationReason
+    scope: str | None
+    entries_affected: int
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.scope
+
+
+# =============================================================================
+# Circuit Breaker Events (Phase 3)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class CircuitBreakerStateChangedEvent(Event):
+    """
+    Circuit breaker state transition.
+
+    Key is interface_id.
+
+    Emitted when a circuit breaker transitions between states
+    (CLOSED, OPEN, HALF_OPEN).
+    """
+
+    interface_id: str
+    old_state: CircuitState
+    new_state: CircuitState
+    failure_count: int
+    success_count: int
+    last_failure_time: datetime | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class CircuitBreakerTrippedEvent(Event):
+    """
+    Circuit breaker tripped (opened due to failures).
+
+    Key is interface_id.
+
+    Emitted when a circuit breaker transitions to OPEN state,
+    indicating repeated failures.
+    """
+
+    interface_id: str
+    failure_count: int
+    last_failure_reason: str | None
+    cooldown_seconds: float
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+# =============================================================================
+# State Machine Events (Phase 4)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class ClientStateChangedEvent(Event):
+    """
+    Client state machine transition.
+
+    Key is interface_id.
+
+    Emitted when a client transitions between states
+    (INIT, CONNECTED, DISCONNECTED, etc.).
+    """
+
+    interface_id: str
+    old_state: str  # ClientState value
+    new_state: str  # ClientState value
+    trigger: str | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class CentralStateChangedEvent(Event):
+    """
+    Central unit state machine transition.
+
+    Key is central_name.
+
+    Emitted when the central unit transitions between states
+    (STARTING, RUNNING, DEGRADED, etc.).
+    """
+
+    central_name: str
+    old_state: str  # CentralState value
+    new_state: str  # CentralState value
+    trigger: str | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.central_name
+
+
+# =============================================================================
+# Data Refresh Events (Phase 5)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class DataRefreshTriggeredEvent(Event):
+    """
+    Data refresh operation triggered.
+
+    Key is interface_id (or None for hub-level refreshes).
+
+    Emitted when a data refresh operation starts.
+    """
+
+    refresh_type: str  # "client_data", "program", "sysvar", "inbox", "firmware"
+    interface_id: str | None
+    scheduled: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class DataRefreshCompletedEvent(Event):
+    """
+    Data refresh operation completed.
+
+    Key is interface_id (or None for hub-level refreshes).
+
+    Emitted when a data refresh operation completes (success or failure).
+    """
+
+    refresh_type: str
+    interface_id: str | None
+    success: bool
+    duration_ms: float
+    items_refreshed: int
+    error_message: str | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+# =============================================================================
+# Program/Sysvar Events (Phase 6)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class ProgramExecutedEvent(Event):
+    """
+    Backend program was executed.
+
+    Key is program_id.
+
+    Emitted when a Homematic program is executed.
+    """
+
+    program_id: str
+    program_name: str
+    triggered_by: str  # "user", "scheduler", "automation"
+    success: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.program_id
+
+
+# =============================================================================
+# Request Coalescer Events (Phase 7)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class RequestCoalescedEvent(Event):
+    """
+    Multiple requests were coalesced into one.
+
+    Key is interface_id.
+
+    Emitted when duplicate requests are merged to reduce backend load.
+    """
+
+    request_key: str
+    coalesced_count: int
+    interface_id: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+# =============================================================================
+# Health Record Events (Phase 8)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class HealthRecordEvent(Event):
+    """
+    Health status recorded for an interface.
+
+    Key is interface_id.
+
+    Emitted by CircuitBreaker when a request succeeds or fails,
+    enabling health tracking without direct callback coupling.
+    """
+
+    interface_id: str
+    success: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
 
 
 class EventBus:

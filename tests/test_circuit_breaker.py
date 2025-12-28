@@ -5,20 +5,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
+from aiohomematic.central.event_bus import EventBus, HealthRecordEvent
 from aiohomematic.client.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerMetrics,
     CircuitState,
 )
-
-if TYPE_CHECKING:
-    pass
+from aiohomematic_test_support.event_capture import EventCapture
 
 
 class TestCircuitBreakerConfig:
@@ -207,27 +205,59 @@ class TestCircuitBreaker:
         breaker.record_success()
         assert breaker.state == CircuitState.HALF_OPEN  # Not yet at threshold
 
-    def test_health_callback_on_failure(self) -> None:
-        """Test health callback is called on failure."""
-        callback = MagicMock()
+    @pytest.mark.asyncio
+    async def test_health_event_on_failure(self) -> None:
+        """Test HealthRecordEvent is emitted on failure."""
+        import asyncio
+
+        event_bus = EventBus()
+        capture = EventCapture()
+        capture.subscribe_to(event_bus, HealthRecordEvent)
+
         breaker = CircuitBreaker(
             interface_id="test",
-            health_record_callback=callback,
+            event_bus=event_bus,
         )
 
         breaker.record_failure()
-        callback.assert_called_once_with(interface_id="test", success=False)
 
-    def test_health_callback_on_success(self) -> None:
-        """Test health callback is called on success."""
-        callback = MagicMock()
+        # Give the event loop a chance to process the scheduled publish
+        # Use a small delay since publish_sync schedules an async task
+        await asyncio.sleep(0.01)
+
+        capture.assert_event_emitted(
+            event_type=HealthRecordEvent,
+            interface_id="test",
+            success=False,
+        )
+        capture.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_health_event_on_success(self) -> None:
+        """Test HealthRecordEvent is emitted on success."""
+        import asyncio
+
+        event_bus = EventBus()
+        capture = EventCapture()
+        capture.subscribe_to(event_bus, HealthRecordEvent)
+
         breaker = CircuitBreaker(
             interface_id="test",
-            health_record_callback=callback,
+            event_bus=event_bus,
         )
 
         breaker.record_success()
-        callback.assert_called_once_with(interface_id="test", success=True)
+
+        # Give the event loop a chance to process the scheduled publish
+        # Use a small delay since publish_sync schedules an async task
+        await asyncio.sleep(0.01)
+
+        capture.assert_event_emitted(
+            event_type=HealthRecordEvent,
+            interface_id="test",
+            success=True,
+        )
+        capture.cleanup()
 
     def test_init_custom_config(self) -> None:
         """Test initialization with custom config."""

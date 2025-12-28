@@ -68,7 +68,6 @@ if TYPE_CHECKING:
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
-    from aiohomematic.client.circuit_breaker import HealthRecordCallbackProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
     from aiohomematic.store import SessionRecorder
 
@@ -750,14 +749,12 @@ class ClientFactoryProtocol(Protocol):
         self,
         *,
         interface_config: InterfaceConfig,
-        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> ClientProtocol:
         """
         Create a client for the given interface configuration.
 
         Args:
             interface_config: Configuration for the interface.
-            health_record_callback: Optional callback for health tracking.
 
         Returns:
             Client instance for the interface.

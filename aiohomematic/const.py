@@ -388,6 +388,50 @@ class ChannelOffset(IntEnum):
     """Configuration channel offset (e.g., for WGTC thermostat)."""
 
 
+class CacheInvalidationReason(StrEnum):
+    """Reason for cache invalidation."""
+
+    DEVICE_ADDED = "device_added"
+    """Cache invalidated due to device being added."""
+
+    DEVICE_REMOVED = "device_removed"
+    """Cache invalidated due to device being removed."""
+
+    DEVICE_UPDATED = "device_updated"
+    """Cache invalidated due to device being updated."""
+
+    REFRESH = "refresh"
+    """Cache invalidated due to scheduled refresh."""
+
+    MANUAL = "manual"
+    """Cache invalidated manually."""
+
+    STARTUP = "startup"
+    """Cache invalidated during startup."""
+
+    SHUTDOWN = "shutdown"
+    """Cache invalidated during shutdown."""
+
+
+class CacheType(StrEnum):
+    """Cache type identifiers."""
+
+    DEVICE_DESCRIPTION = "device_description"
+    """Device description cache."""
+
+    PARAMSET_DESCRIPTION = "paramset_description"
+    """Paramset description cache."""
+
+    DATA = "data"
+    """Data cache."""
+
+    DETAILS = "details"
+    """Device details cache."""
+
+    VISIBILITY = "visibility"
+    """Parameter visibility cache."""
+
+
 class CentralState(StrEnum):
     """
     Central State Machine states for overall system health orchestration.
@@ -495,6 +539,46 @@ class FailureReason(StrEnum):
 
     UNKNOWN = "unknown"
     """Unknown or unclassified error."""
+
+
+class ConnectionStage(IntEnum):
+    """
+    Reconnection stage progression.
+
+    Stages during reconnection after connection loss:
+    - LOST: Connection was lost, initiating reconnection
+    - TCP_AVAILABLE: TCP port is responding
+    - RPC_AVAILABLE: RPC service is responding (listMethods)
+    - WARMUP: Waiting for services to stabilize
+    - ESTABLISHED: Connection fully established
+    """
+
+    LOST = 0
+    """Connection lost, initiating reconnection."""
+
+    TCP_AVAILABLE = 1
+    """TCP port is responding."""
+
+    RPC_AVAILABLE = 2
+    """RPC service is responding (listMethods passed)."""
+
+    WARMUP = 3
+    """Warmup period - waiting for services to stabilize."""
+
+    ESTABLISHED = 4
+    """Connection fully re-established."""
+
+    @property
+    def display_name(self) -> str:
+        """Return human-readable stage name."""
+        names: dict[int, str] = {
+            0: "Connection Lost",
+            1: "TCP Port Available",
+            2: "RPC Responding",
+            3: "Warmup Period",
+            4: "Connection Established",
+        }
+        return names.get(self.value, "Unknown")
 
 
 class CommandRxMode(StrEnum):

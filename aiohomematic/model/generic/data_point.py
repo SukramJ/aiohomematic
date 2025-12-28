@@ -82,7 +82,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             Parameter.STICKY_UN_REACH,
         ):
             self._device.publish_device_updated_event()
-            self._event_bus_provider.event_bus.publish_sync(
+            await self._event_bus_provider.event_bus.publish(
                 event=DeviceLifecycleEvent(
                     timestamp=datetime.now(),
                     event_type=DeviceLifecycleEventType.AVAILABILITY_CHANGED,

@@ -15,10 +15,14 @@ The CacheCoordinator provides:
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from datetime import datetime
 import logging
 from typing import Final
 
-from aiohomematic.const import DataOperationResult, Interface
+from aiohomematic.central.event_bus import CacheInvalidatedEvent, DeviceRemovedEvent
+from aiohomematic.const import CacheInvalidationReason, CacheType, DataOperationResult, Interface
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
     ConfigProviderProtocol,
@@ -46,6 +50,30 @@ from aiohomematic.store import (
 _LOGGER: Final = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True, slots=True)
+class _DeviceRemovalAdapter:
+    """
+    Adapter to satisfy DeviceRemovalInfoProtocol from event data.
+
+    This lightweight adapter allows cache removal methods to work with
+    data extracted from DeviceRemovedEvent without requiring a full Device object.
+    """
+
+    address: str
+    """Device address."""
+
+    interface_id: str
+    """Interface ID."""
+
+    channel_addresses: tuple[str, ...]
+    """Channel addresses."""
+
+    @property
+    def channels(self) -> Mapping[str, None]:
+        """Return channel addresses as a mapping (keys only used)."""
+        return dict.fromkeys(self.channel_addresses)
+
+
 class CacheCoordinator(SessionRecorderProviderProtocol):
     """Coordinator for all cache operations in the central unit."""
 
@@ -54,9 +82,11 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         "_data_cache",
         "_device_descriptions_cache",
         "_device_details_cache",
+        "_event_bus_provider",
         "_parameter_visibility_cache",
         "_paramset_descriptions_cache",
         "_session_recorder",
+        "_unsubscribers",
     )
 
     def __init__(
@@ -89,6 +119,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
 
         """
         self._central_info: Final = central_info
+        self._event_bus_provider: Final = event_bus_provider
 
         # Initialize all caches with protocol interfaces
         self._data_cache: Final = CentralDataCache(
@@ -126,6 +157,16 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             active=session_recorder_active,
         )
 
+        # Subscribe to device removal events for decoupled cache invalidation
+        self._unsubscribers: list[Callable[[], None]] = []
+        self._unsubscribers.append(
+            event_bus_provider.event_bus.subscribe(
+                event_type=DeviceRemovedEvent,
+                event_key=None,
+                handler=self._on_device_removed,
+            )
+        )
+
     data_cache: Final = DelegatedProperty[CentralDataCache](path="_data_cache")
     device_descriptions: Final = DelegatedProperty[DeviceDescriptionCache](path="_device_descriptions_cache")
     device_details: Final = DelegatedProperty[DeviceDetailsCache](path="_device_details_cache")
@@ -133,21 +174,57 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
     paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionCache](path="_paramset_descriptions_cache")
     recorder: Final = DelegatedProperty[SessionRecorder](path="_session_recorder")
 
-    async def clear_all(self) -> None:
-        """Clear all caches and remove stored files."""
+    async def clear_all(
+        self,
+        *,
+        reason: CacheInvalidationReason = CacheInvalidationReason.MANUAL,
+    ) -> None:
+        """
+        Clear all caches and remove stored files.
+
+        Args:
+        ----
+            reason: Reason for cache invalidation
+
+        """
         _LOGGER.debug("CLEAR_ALL: Clearing all caches for %s", self._central_info.name)
+
         await self._device_descriptions_cache.clear()
         await self._paramset_descriptions_cache.clear()
         await self._session_recorder.clear()
+        data_cache_size = self._data_cache.size
         self._device_details_cache.clear()
         self._data_cache.clear()
+
+        # Emit single consolidated cache invalidation event
+        await self._event_bus_provider.event_bus.publish(
+            event=CacheInvalidatedEvent(
+                timestamp=datetime.now(),
+                cache_type=CacheType.DATA,  # Representative of full clear
+                reason=reason,
+                scope=None,  # Full cache clear
+                entries_affected=data_cache_size,
+            )
+        )
 
     def clear_on_stop(self) -> None:
         """Clear in-memory caches on shutdown to free memory."""
         _LOGGER.debug("CLEAR_ON_STOP: Clearing in-memory caches for %s", self._central_info.name)
+        data_cache_size = self._data_cache.size
         self._device_details_cache.clear()
         self._data_cache.clear()
         self._parameter_visibility_cache.clear_memoization_caches()
+
+        # Emit cache invalidation event (sync publish)
+        self._event_bus_provider.event_bus.publish_sync(
+            event=CacheInvalidatedEvent(
+                timestamp=datetime.now(),
+                cache_type=CacheType.DATA,
+                reason=CacheInvalidationReason.SHUTDOWN,
+                scope=None,
+                entries_affected=data_cache_size,
+            )
+        )
 
     async def load_all(self) -> bool:
         """
@@ -190,6 +267,9 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         """
         Remove a device from all relevant caches.
 
+        Note: This method is deprecated for direct calls. Prefer publishing
+        DeviceRemovedEvent which triggers automatic cache invalidation.
+
         Args:
         ----
             device: Device to remove from caches
@@ -229,3 +309,42 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             await self._device_descriptions_cache.save()
         if save_paramset_descriptions:
             await self._paramset_descriptions_cache.save()
+
+    def stop(self) -> None:
+        """Stop the coordinator and unsubscribe from events."""
+        for unsub in self._unsubscribers:
+            unsub()
+        self._unsubscribers.clear()
+
+    def _on_device_removed(self, *, event: DeviceRemovedEvent) -> None:
+        """
+        Handle DeviceRemovedEvent for decoupled cache invalidation.
+
+        This handler is triggered when a device is removed, allowing caches
+        to react independently without direct coupling to the device coordinator.
+
+        Only processes device-level removal events (where device_address is set).
+        Data point removal events (only unique_id set) are ignored.
+
+        Args:
+        ----
+            event: The device removed event
+
+        """
+        # Only process device-level removal events
+        if event.device_address is None or event.interface_id is None:
+            return
+
+        _LOGGER.debug(
+            "CACHE_COORDINATOR: Received DeviceRemovedEvent for %s, invalidating caches",
+            event.device_address,
+        )
+        # Create adapter for cache removal methods
+        removal_info = _DeviceRemovalAdapter(
+            address=event.device_address,
+            interface_id=event.interface_id,
+            channel_addresses=event.channel_addresses,
+        )
+        self._device_descriptions_cache.remove_device(device=removal_info)  # type: ignore[arg-type]
+        self._paramset_descriptions_cache.remove_device(device=removal_info)  # type: ignore[arg-type]
+        self._device_details_cache.remove_device(device=removal_info)  # type: ignore[arg-type]

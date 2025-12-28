@@ -88,8 +88,6 @@ unsubscribe_device = central.event_bus.subscribe(
 unsubscribe_device()
 ```
 
-> **Migration Note:** The old `register_state_change_callback()` API has been removed in version 2025.12.23. Use the EventBus-based API shown above. See [Migration Guide](migrations/central_state_machine_2025_12.md) for details.
-
 ### Reconnection Handling
 
 The library automatically handles reconnection. To manually trigger:

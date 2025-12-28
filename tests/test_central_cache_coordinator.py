@@ -40,6 +40,7 @@ class _FakeCentral:
         self.interface_ids = frozenset()
         # EventBusProviderProtocol
         self.event_bus = MagicMock()
+        self.event_bus.publish = AsyncMock()
         self.event_bus.publish_sync = MagicMock()
 
     def get_client(self, *, interface_id: str) -> MagicMock | None:

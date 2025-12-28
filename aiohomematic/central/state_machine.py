@@ -42,7 +42,7 @@ overall system state:
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from datetime import datetime
 import logging
 from types import MappingProxyType
@@ -134,8 +134,7 @@ class CentralStateMachine(CentralStateMachineProtocol):
     individual client states. It provides:
     - Unified system state (RUNNING, DEGRADED, RECOVERING, FAILED)
     - Validated state transitions
-    - Event emission for monitoring
-    - Callback support for state changes
+    - Event emission for monitoring via EventBus
 
     Thread Safety
     -------------
@@ -143,11 +142,19 @@ class CentralStateMachine(CentralStateMachineProtocol):
     event loop/thread.
 
     Example:
-        def on_state_change(old_state: CentralState, new_state: CentralState, reason: str) -> None:
-            print(f"Central state: {old_state} -> {new_state} ({reason})")
+        from aiohomematic.central.event_bus import CentralStateChangedEvent, EventBus
 
-        sm = CentralStateMachine(central_name="ccu-main")
-        sm.on_state_change = on_state_change
+        def on_state_changed(*, event: CentralStateChangedEvent) -> None:
+            print(f"Central state: {event.old_state} -> {event.new_state}")
+
+        event_bus = EventBus()
+        sm = CentralStateMachine(central_name="ccu-main", event_bus=event_bus)
+
+        # Subscribe to state changes via EventBus
+        event_bus.subscribe(
+            event_type=CentralStateChangedEvent,
+            handler=on_state_changed,
+        )
 
         sm.transition_to(target=CentralState.INITIALIZING, reason="start() called")
         sm.transition_to(target=CentralState.RUNNING, reason="all clients connected")
@@ -164,7 +171,6 @@ class CentralStateMachine(CentralStateMachineProtocol):
         "_last_state_change",
         "_state",
         "_state_history",
-        "on_state_change",
     )
 
     def __init__(
@@ -190,7 +196,6 @@ class CentralStateMachine(CentralStateMachineProtocol):
         self._degraded_interfaces: Mapping[str, FailureReason] = MappingProxyType({})
         self._last_state_change: datetime = datetime.now()
         self._state_history: list[tuple[datetime, CentralState, CentralState, str]] = []
-        self.on_state_change: Callable[[CentralState, CentralState, str], None] | None = None
 
     degraded_interfaces: Final = DelegatedProperty[Mapping[str, FailureReason]](path="_degraded_interfaces")
     failure_interface_id: Final = DelegatedProperty[str | None](path="_failure_interface_id")
@@ -338,16 +343,6 @@ class CentralStateMachine(CentralStateMachineProtocol):
                 extra_info,
             )
 
-        # Call the callback
-        if self.on_state_change is not None:
-            try:
-                self.on_state_change(old_state, target, reason)
-            except Exception:
-                _LOGGER.exception(  # i18n-log: ignore
-                    "CENTRAL_STATE: Error in state change callback for %s",
-                    self._central_name,
-                )
-
         # Publish event to event bus
         if self._event_bus is not None:
             self._publish_state_change_event(old_state=old_state, new_state=target, reason=reason)
@@ -362,20 +357,37 @@ class CentralStateMachine(CentralStateMachineProtocol):
             reason: Reason for the transition
 
         """
-        if self._event_bus is not None:
-            # Include failure info when transitioning to FAILED state
-            failure_reason = self._failure_reason if new_state == CentralState.FAILED else None
-            failure_interface_id = self._failure_interface_id if new_state == CentralState.FAILED else None
+        if self._event_bus is None:
+            return
 
-            # Include degraded interfaces when transitioning to DEGRADED state
-            degraded_interfaces = self._degraded_interfaces if new_state == CentralState.DEGRADED else None
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import CentralStateChangedEvent  # noqa: PLC0415
 
-            self._event_bus.publish_sync(
-                event=SystemStatusEvent(
-                    timestamp=self._last_state_change,
-                    central_state=new_state,
-                    failure_reason=failure_reason,
-                    failure_interface_id=failure_interface_id,
-                    degraded_interfaces=degraded_interfaces,
-                )
+        # Include failure info when transitioning to FAILED state
+        failure_reason = self._failure_reason if new_state == CentralState.FAILED else None
+        failure_interface_id = self._failure_interface_id if new_state == CentralState.FAILED else None
+
+        # Include degraded interfaces when transitioning to DEGRADED state
+        degraded_interfaces = self._degraded_interfaces if new_state == CentralState.DEGRADED else None
+
+        # Emit SystemStatusEvent for integration compatibility
+        self._event_bus.publish_sync(
+            event=SystemStatusEvent(
+                timestamp=self._last_state_change,
+                central_state=new_state,
+                failure_reason=failure_reason,
+                failure_interface_id=failure_interface_id,
+                degraded_interfaces=degraded_interfaces,
             )
+        )
+
+        # Emit CentralStateChangedEvent for observability
+        self._event_bus.publish_sync(
+            event=CentralStateChangedEvent(
+                timestamp=self._last_state_change,
+                central_name=self._central_name,
+                old_state=old_state.value,
+                new_state=new_state.value,
+                trigger=reason or None,
+            )
+        )

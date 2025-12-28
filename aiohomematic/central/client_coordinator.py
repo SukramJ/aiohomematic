@@ -17,7 +17,7 @@ The ClientCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
@@ -26,6 +26,7 @@ from aiohomematic.exceptions import AioHomematicException, BaseHomematicExceptio
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
     ConfigProviderProtocol,
+    EventBusProviderProtocol,
     HealthTrackerProtocol,
     SystemInfoProviderProtocol,
 )
@@ -33,6 +34,9 @@ from aiohomematic.interfaces.client import ClientFactoryProtocol, ClientProtocol
 from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
+
+if TYPE_CHECKING:
+    from aiohomematic.central.event_bus import HealthRecordEvent
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -47,11 +51,13 @@ class ClientCoordinator(ClientProviderProtocol):
         "_clients_started",
         "_config_provider",
         "_coordinator_provider",
+        "_event_bus_provider",
         "_health_tracker",
         "_last_failure_interface_id",
         "_last_failure_reason",
         "_primary_client",
         "_system_info_provider",
+        "_unsubscribe_health_record",
     )
 
     def __init__(
@@ -61,6 +67,7 @@ class ClientCoordinator(ClientProviderProtocol):
         central_info: CentralInfoProtocol,
         config_provider: ConfigProviderProtocol,
         coordinator_provider: CoordinatorProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
         health_tracker: HealthTrackerProtocol,
         system_info_provider: SystemInfoProviderProtocol,
     ) -> None:
@@ -73,6 +80,7 @@ class ClientCoordinator(ClientProviderProtocol):
             central_info: Provider for central system information
             config_provider: Provider for configuration access
             coordinator_provider: Provider for accessing other coordinators
+            event_bus_provider: Provider for EventBus access
             health_tracker: Health tracker for client health monitoring
             system_info_provider: Provider for system information
 
@@ -81,6 +89,7 @@ class ClientCoordinator(ClientProviderProtocol):
         self._central_info: Final = central_info
         self._config_provider: Final = config_provider
         self._coordinator_provider: Final = coordinator_provider
+        self._event_bus_provider: Final = event_bus_provider
         self._health_tracker: Final = health_tracker
         self._system_info_provider: Final = system_info_provider
 
@@ -92,6 +101,16 @@ class ClientCoordinator(ClientProviderProtocol):
         # Track last failure for propagation to central state machine
         self._last_failure_reason: FailureReason = FailureReason.NONE
         self._last_failure_interface_id: str | None = None
+
+        # Subscribe to health record events from circuit breakers
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import HealthRecordEvent  # noqa: PLC0415
+
+        self._unsubscribe_health_record = self._event_bus_provider.event_bus.subscribe(
+            event_type=HealthRecordEvent,
+            event_key=None,
+            handler=self._on_health_record_event,
+        )
 
     clients_started: Final = DelegatedProperty[bool](path="_clients_started")
     last_failure_interface_id: Final = DelegatedProperty[str | None](path="_last_failure_interface_id")
@@ -213,21 +232,6 @@ class ClientCoordinator(ClientProviderProtocol):
         """
         return interface_id in self._clients
 
-    def on_health_record(self, *, interface_id: str, success: bool) -> None:
-        """
-        Handle health recording callback from circuit breakers.
-
-        Args:
-        ----
-            interface_id: Interface identifier
-            success: True if request succeeded, False if failed
-
-        """
-        if success:
-            self._health_tracker.record_successful_request(interface_id=interface_id)
-        else:
-            self._health_tracker.record_failed_request(interface_id=interface_id)
-
     async def restart_clients(self) -> None:
         """Restart all clients."""
         _LOGGER.debug("RESTART_CLIENTS: Restarting clients for %s", self._central_info.name)
@@ -310,7 +314,6 @@ class ClientCoordinator(ClientProviderProtocol):
         try:
             if client := await self._client_factory.create_client_instance(
                 interface_config=interface_config,
-                health_record_callback=self.on_health_record,
             ):
                 _LOGGER.debug(
                     "CREATE_CLIENT: Adding client %s to %s",
@@ -451,3 +454,17 @@ class ClientCoordinator(ClientProviderProtocol):
                 _LOGGER.debug(
                     "INIT_CLIENTS: client %s initialized for %s", client.interface_id, self._central_info.name
                 )
+
+    def _on_health_record_event(self, *, event: HealthRecordEvent) -> None:
+        """
+        Handle health record events from circuit breakers.
+
+        Args:
+        ----
+            event: Health record event with interface_id and success status
+
+        """
+        if event.success:
+            self._health_tracker.record_successful_request(interface_id=event.interface_id)
+        else:
+            self._health_tracker.record_failed_request(interface_id=event.interface_id)

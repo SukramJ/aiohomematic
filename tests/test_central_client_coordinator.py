@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from aiohomematic.central.client_coordinator import ClientCoordinator
+from aiohomematic.central.event_bus import EventBus
 from aiohomematic.const import Interface, ProxyInitState
 
 
@@ -92,6 +93,12 @@ class _FakeCentral:
         self.system_information = MagicMock()
         self.system_information.available_interfaces = frozenset([Interface.BIDCOS_RF, Interface.HMIP_RF])
         self.health_tracker = _FakeHealthTracker()
+        self._event_bus = EventBus()
+
+    @property
+    def event_bus(self) -> EventBus:
+        """Return the event bus."""
+        return self._event_bus
 
     async def create_client_instance(self, *, interface_config: _FakeInterfaceConfig) -> _FakeClient:
         """Create a client instance (implements ClientFactoryProtocol protocol)."""
@@ -112,6 +119,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -130,6 +138,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -146,6 +155,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -166,6 +176,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -186,6 +197,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -203,6 +215,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -227,6 +240,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -244,6 +258,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -263,6 +278,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -286,6 +302,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -309,6 +326,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -329,6 +347,7 @@ class TestClientCoordinatorBasics:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -361,6 +380,7 @@ class TestClientCoordinatorGetClient:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -376,6 +396,7 @@ class TestClientCoordinatorGetClient:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -394,6 +415,7 @@ class TestClientCoordinatorGetClient:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -408,6 +430,7 @@ class TestClientCoordinatorGetClient:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -436,6 +459,7 @@ class TestClientCoordinatorLifecycle:
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,
+                event_bus_provider=central,
                 health_tracker=central.health_tracker,
                 system_info_provider=central,
             )  # type: ignore[arg-type]
@@ -456,6 +480,7 @@ class TestClientCoordinatorLifecycle:
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,
+                event_bus_provider=central,
                 health_tracker=central.health_tracker,
                 system_info_provider=central,
             )  # type: ignore[arg-type]
@@ -482,6 +507,7 @@ class TestClientCoordinatorLifecycle:
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,
+                event_bus_provider=central,
                 health_tracker=central.health_tracker,
                 system_info_provider=central,
             )  # type: ignore[arg-type]
@@ -502,6 +528,7 @@ class TestClientCoordinatorLifecycle:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -543,6 +570,7 @@ class TestClientCoordinatorPrimaryClient:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -559,6 +587,7 @@ class TestClientCoordinatorPrimaryClient:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -583,6 +612,7 @@ class TestClientCoordinatorPrimaryClient:
             config_provider=central,
             central_info=central,
             coordinator_provider=central,
+            event_bus_provider=central,
             health_tracker=central.health_tracker,
             system_info_provider=central,
         )  # type: ignore[arg-type]
@@ -622,6 +652,7 @@ class TestClientCoordinatorIntegration:
                 config_provider=central,
                 central_info=central,
                 coordinator_provider=central,
+                event_bus_provider=central,
                 health_tracker=central.health_tracker,
                 system_info_provider=central,
             )  # type: ignore[arg-type]

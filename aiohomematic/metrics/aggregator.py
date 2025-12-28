@@ -184,6 +184,7 @@ class MetricsAggregator:
         data_refreshes_completed = event_stats.get("DataRefreshCompletedEvent", 0)
         programs_executed = event_stats.get("ProgramExecutedEvent", 0)
         requests_coalesced = event_stats.get("RequestCoalescedEvent", 0)
+        health_records = event_stats.get("HealthRecordEvent", 0)
 
         return EventMetrics(
             total_published=sum(event_stats.values()),
@@ -199,6 +200,7 @@ class MetricsAggregator:
             data_refreshes_completed=data_refreshes_completed,
             programs_executed=programs_executed,
             requests_coalesced=requests_coalesced,
+            health_records=health_records,
         )
 
     @property

@@ -151,6 +151,9 @@ class EventMetrics:
     requests_coalesced: int = 0
     """Number of RequestCoalescedEvent events."""
 
+    health_records: int = 0
+    """Number of HealthRecordEvent events."""
+
     @property
     def error_rate(self) -> float:
         """Return handler error rate as percentage."""

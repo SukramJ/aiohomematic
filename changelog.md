@@ -14,6 +14,7 @@
   - **Data Refresh Events**: `DataRefreshTriggeredEvent` and `DataRefreshCompletedEvent` for scheduler refresh operations
   - **Program Events**: `ProgramExecutedEvent` when programs are executed
   - **Request Coalescer Events**: `RequestCoalescedEvent` when requests are coalesced
+  - **Health Record Events**: `HealthRecordEvent` emitted by CircuitBreaker for success/failure tracking
   - **New Enums in `const.py`**: `ConnectionStage`, `CacheType`, `CacheInvalidationReason`
 
 - **Complete Event-Driven Metrics Architecture**: Full migration to event-based metrics collection
@@ -35,6 +36,7 @@
   - **MetricsAggregator Integration**: Now queries MetricsObserver for latency and cache metrics
     - Latency: Aggregates from `ping_pong.rtt.*` pattern
     - Cache: Gets hit/miss counters from observer
+  - **EventMetrics.health_records**: New counter tracking `HealthRecordEvent` emissions from CircuitBreaker
 
 ### Breaking Changes
 
@@ -50,6 +52,10 @@
 - **Service registry deprecated**: `record_service_call`, `get_service_stats`, `clear_service_stats` are deprecated; use MetricsObserver instead
 - **`ClientStateMachine` now accepts optional `event_bus`**: New optional parameter for `ClientStateChangedEvent` emission
 - **`RequestCoalescer` now accepts optional `event_bus` and `interface_id`**: New optional parameters for `RequestCoalescedEvent` emission
+- **`ClientCoordinator` now requires `event_bus_provider`**: New mandatory parameter for subscribing to `HealthRecordEvent`
+- **Removed `HealthRecordCallbackProtocol`**: The callback-based health recording pattern is replaced by EventBus
+- **Removed `health_record_callback` parameter**: Removed from `ClientConfig`, `ClientFactoryProtocol.create_client_instance()`, `BaseRpcProxy`, `AioXmlRpcProxy`, and `AioJsonRpcAioHttpClient`
+- **`CircuitBreaker` emits `HealthRecordEvent`**: Now publishes health status via EventBus instead of invoking a callback
 
 # Version 2025.12.52 (2025-12-27)
 

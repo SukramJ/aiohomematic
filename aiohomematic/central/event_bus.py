@@ -719,6 +719,31 @@ class RequestCoalescedEvent(Event):
         return self.interface_id
 
 
+# =============================================================================
+# Health Record Events (Phase 8)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class HealthRecordEvent(Event):
+    """
+    Health status recorded for an interface.
+
+    Key is interface_id.
+
+    Emitted by CircuitBreaker when a request succeeds or fails,
+    enabling health tracking without direct callback coupling.
+    """
+
+    interface_id: str
+    success: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
 class EventBus:
     """
     Async-first, type-safe event bus for decoupled communication.

@@ -54,12 +54,7 @@ from typing import Any, Final, cast
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
-from aiohomematic.client.circuit_breaker import (
-    CircuitBreaker,
-    CircuitBreakerConfig,
-    CircuitState,
-    HealthRecordCallbackProtocol,
-)
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
 from aiohomematic.client.handlers import (
     BackupHandler,
     DeviceHandler,
@@ -127,7 +122,6 @@ __all__ = [
     "ClientConfig",
     "ClientState",
     "ClientStateMachine",
-    "HealthRecordCallbackProtocol",
     "InterfaceConfig",
     "InvalidStateTransitionError",
     "RequestCoalescer",
@@ -645,13 +639,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 self._proxy = await self._config.create_rpc_proxy(
                     interface=self.interface,
                     auth_enabled=self.system_information.auth_enabled,
-                    health_record_callback=self._config.health_record_callback,
                 )
                 self._proxy_read = await self._config.create_rpc_proxy(
                     interface=self.interface,
                     auth_enabled=self.system_information.auth_enabled,
                     max_workers=self._config.max_read_workers,
-                    health_record_callback=self._config.health_record_callback,
                 )
                 self._init_handlers()
             self._state_machine.transition_to(target=ClientState.INITIALIZED)
@@ -1590,11 +1582,9 @@ class ClientConfig:
         *,
         client_deps: ClientDependenciesProtocol,
         interface_config: InterfaceConfig,
-        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> None:
         """Initialize the config."""
         self.client_deps: Final[ClientDependenciesProtocol] = client_deps
-        self.health_record_callback: Final = health_record_callback
         self.version: str = "0"
         self.system_information = SystemInformation()
         self.interface_config: Final = interface_config
@@ -1664,13 +1654,11 @@ class ClientConfig:
         interface: Interface,
         auth_enabled: bool | None = None,
         max_workers: int = DEFAULT_MAX_WORKERS,
-        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> BaseRpcProxy:
         """Return a RPC proxy for the backend communication."""
         return await self._create_xml_rpc_proxy(
             auth_enabled=auth_enabled,
             max_workers=max_workers,
-            health_record_callback=health_record_callback,
         )
 
     async def _create_simple_rpc_proxy(self, *, interface: Interface) -> BaseRpcProxy:
@@ -1682,7 +1670,6 @@ class ClientConfig:
         *,
         auth_enabled: bool | None = None,
         max_workers: int = DEFAULT_MAX_WORKERS,
-        health_record_callback: HealthRecordCallbackProtocol | None = None,
     ) -> AioXmlRpcProxy:
         """Return a XmlRPC proxy for the backend communication."""
         config = self.client_deps.config
@@ -1703,7 +1690,6 @@ class ClientConfig:
             tls=config.tls,
             verify_tls=config.verify_tls,
             session_recorder=self.client_deps.cache_coordinator.recorder,
-            health_record_callback=health_record_callback,
             event_bus=self.client_deps.event_bus,
         )
         await xml_proxy.do_init()
@@ -1770,13 +1756,11 @@ async def create_client(
     *,
     client_deps: ClientDependenciesProtocol,
     interface_config: InterfaceConfig,
-    health_record_callback: HealthRecordCallbackProtocol | None = None,
 ) -> ClientProtocol:
     """Return a new client for with a given interface_config."""
     return await ClientConfig(
         client_deps=client_deps,
         interface_config=interface_config,
-        health_record_callback=health_record_callback,
     ).create_client()
 
 

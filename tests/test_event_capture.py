@@ -435,3 +435,219 @@ class TestEventSequenceAssertion:
 
         # Should not raise - expected events appear in order
         sequence.verify(strict=False)
+
+
+class TestEventDrivenMockServer:
+    """Tests for EventDrivenMockServer."""
+
+    @pytest.mark.asyncio
+    async def test_basic_handler(self) -> None:
+        """Test basic event handling."""
+        from aiohomematic_test_support.event_mock import EventDrivenMockServer
+
+        event_bus = EventBus()
+        mock_server = EventDrivenMockServer(_event_bus=event_bus)
+
+        results: list[CircuitBreakerTrippedEvent] = []
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=lambda event: results.append(event))
+
+        event = CircuitBreakerTrippedEvent(
+            timestamp=datetime.now(),
+            interface_id="test",
+            failure_count=5,
+            last_failure_reason=None,
+            cooldown_seconds=30.0,
+        )
+        await event_bus.publish(event=event)
+
+        assert len(results) == 1
+        assert results[0] == event
+        mock_server.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_cleanup(self) -> None:
+        """Test cleanup unsubscribes and clears state."""
+        from aiohomematic_test_support.event_mock import EventDrivenMockServer
+
+        event_bus = EventBus()
+        mock_server = EventDrivenMockServer(_event_bus=event_bus)
+
+        results: list[CircuitBreakerTrippedEvent] = []
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=lambda event: results.append(event))
+
+        await event_bus.publish(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id="test",
+                failure_count=1,
+                last_failure_reason=None,
+                cooldown_seconds=30.0,
+            )
+        )
+        assert len(results) == 1
+
+        mock_server.cleanup()
+
+        # After cleanup, new events should NOT be captured
+        await event_bus.publish(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id="test",
+                failure_count=2,
+                last_failure_reason=None,
+                cooldown_seconds=30.0,
+            )
+        )
+        assert len(results) == 1  # Still only 1
+
+    @pytest.mark.asyncio
+    async def test_invocation_count(self) -> None:
+        """Test invocation counting."""
+        from aiohomematic_test_support.event_mock import EventDrivenMockServer
+
+        event_bus = EventBus()
+        mock_server = EventDrivenMockServer(_event_bus=event_bus)
+
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=lambda e: None)
+
+        assert mock_server.get_invocation_count(event_type=CircuitBreakerTrippedEvent) == 0
+
+        for i in range(3):
+            await event_bus.publish(
+                event=CircuitBreakerTrippedEvent(
+                    timestamp=datetime.now(),
+                    interface_id="test",
+                    failure_count=i,
+                    last_failure_reason=None,
+                    cooldown_seconds=30.0,
+                )
+            )
+
+        assert mock_server.get_invocation_count(event_type=CircuitBreakerTrippedEvent) == 3
+        mock_server.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_matching_filter(self) -> None:
+        """Test filtering events by attributes."""
+        from aiohomematic_test_support.event_mock import EventDrivenMockServer
+
+        event_bus = EventBus()
+        mock_server = EventDrivenMockServer(_event_bus=event_bus)
+
+        results: list[CircuitBreakerTrippedEvent] = []
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).matching(
+            filter_fn=lambda e: e.interface_id == "rf"
+        ).then_call(handler=lambda event: results.append(event))
+
+        # Should match
+        await event_bus.publish(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id="rf",
+                failure_count=5,
+                last_failure_reason=None,
+                cooldown_seconds=30.0,
+            )
+        )
+
+        # Should not match
+        await event_bus.publish(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id="hmip",
+                failure_count=5,
+                last_failure_reason=None,
+                cooldown_seconds=30.0,
+            )
+        )
+
+        assert len(results) == 1
+        assert results[0].interface_id == "rf"
+        mock_server.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_one_shot(self) -> None:
+        """Test one-shot handler is removed after first invocation."""
+        from aiohomematic_test_support.event_mock import EventDrivenMockServer
+
+        event_bus = EventBus()
+        mock_server = EventDrivenMockServer(_event_bus=event_bus)
+
+        results: list[CircuitBreakerTrippedEvent] = []
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).once().then_call(
+            handler=lambda event: results.append(event)
+        )
+
+        # First event should be handled
+        await event_bus.publish(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id="test",
+                failure_count=1,
+                last_failure_reason=None,
+                cooldown_seconds=30.0,
+            )
+        )
+
+        # Second event should NOT be handled (one-shot removed)
+        await event_bus.publish(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id="test",
+                failure_count=2,
+                last_failure_reason=None,
+                cooldown_seconds=30.0,
+            )
+        )
+
+        assert len(results) == 1
+        assert results[0].failure_count == 1
+        mock_server.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_then_publish(self) -> None:
+        """Test publishing another event in response."""
+        from aiohomematic_test_support.event_mock import EventDrivenMockServer
+
+        event_bus = EventBus()
+        mock_server = EventDrivenMockServer(_event_bus=event_bus)
+
+        # When a trip happens, publish a state change
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_publish(
+            event_factory=lambda e: CircuitBreakerStateChangedEvent(
+                timestamp=datetime.now(),
+                interface_id=e.interface_id,
+                old_state=CircuitState.CLOSED,
+                new_state=CircuitState.OPEN,
+                failure_count=e.failure_count,
+                success_count=0,
+                last_failure_time=datetime.now(),
+            )
+        )
+
+        # Capture the published event
+        capture = EventCapture()
+        capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
+
+        await event_bus.publish(
+            event=CircuitBreakerTrippedEvent(
+                timestamp=datetime.now(),
+                interface_id="test",
+                failure_count=5,
+                last_failure_reason=None,
+                cooldown_seconds=30.0,
+            )
+        )
+
+        # Allow async publish to complete
+        import asyncio
+
+        await asyncio.sleep(0.1)
+
+        capture.assert_event_emitted(
+            event_type=CircuitBreakerStateChangedEvent,
+            interface_id="test",
+        )
+
+        capture.cleanup()
+        mock_server.cleanup()

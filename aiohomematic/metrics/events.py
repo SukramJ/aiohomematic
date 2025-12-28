@@ -119,6 +119,52 @@ class HealthMetricEvent(MetricEvent):
     """Optional reason for the health state (especially for unhealthy)."""
 
 
+# =============================================================================
+# Self-Healing Events
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class SelfHealingTriggeredEvent(Event):
+    """
+    Emitted when self-healing coordinator reacts to a circuit breaker event.
+
+    Key is interface_id.
+
+    This event allows external observers (like MetricsAggregator) to track
+    self-healing activity without the coordinator maintaining internal stats.
+    """
+
+    interface_id: str
+    action: str  # "trip_logged", "recovery_initiated", "data_refresh_scheduled"
+    details: str | None
+
+    @property
+    def key(self) -> str:
+        """Return interface_id as key."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class SelfHealingDataRefreshEvent(Event):
+    """
+    Emitted after self-healing data refresh completes.
+
+    Key is interface_id.
+
+    Allows subscribers to track data refresh success/failure.
+    """
+
+    interface_id: str
+    success: bool
+    error_message: str | None
+
+    @property
+    def key(self) -> str:
+        """Return interface_id as key."""
+        return self.interface_id
+
+
 # Type alias for any metric event
 AnyMetricEvent = LatencyMetricEvent | CounterMetricEvent | GaugeMetricEvent | HealthMetricEvent
 
@@ -128,4 +174,10 @@ METRIC_EVENT_TYPES: Final = (
     CounterMetricEvent,
     GaugeMetricEvent,
     HealthMetricEvent,
+)
+
+# Self-healing event types for subscription
+SELF_HEALING_EVENT_TYPES: Final = (
+    SelfHealingTriggeredEvent,
+    SelfHealingDataRefreshEvent,
 )

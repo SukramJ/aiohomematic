@@ -192,6 +192,42 @@ class MetricKeys:
         return MetricKey("ping_pong", "rtt", interface_id)
 
     @staticmethod
+    def self_healing_recovery(*, interface_id: str) -> MetricKey:
+        """
+        Self-healing recovery counter.
+
+        Incremented when recovery is initiated after circuit breaker closes.
+        """
+        return MetricKey("self_healing", "recovery", interface_id)
+
+    @staticmethod
+    def self_healing_refresh_failure(*, interface_id: str) -> MetricKey:
+        """
+        Self-healing data refresh failure counter.
+
+        Incremented when data refresh fails after recovery.
+        """
+        return MetricKey("self_healing", "refresh_failure", interface_id)
+
+    @staticmethod
+    def self_healing_refresh_success(*, interface_id: str) -> MetricKey:
+        """
+        Self-healing data refresh success counter.
+
+        Incremented when data refresh succeeds after recovery.
+        """
+        return MetricKey("self_healing", "refresh_success", interface_id)
+
+    @staticmethod
+    def self_healing_trip(*, interface_id: str) -> MetricKey:
+        """
+        Self-healing trip counter.
+
+        Incremented when a circuit breaker trip is logged.
+        """
+        return MetricKey("self_healing", "trip", interface_id)
+
+    @staticmethod
     def service_call(*, method: str) -> MetricKey:
         """
         Service method call latency.

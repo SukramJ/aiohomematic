@@ -19,11 +19,13 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import Mapping
+from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
+from aiohomematic.central.event_bus import DeviceRemovedEvent
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
@@ -610,6 +612,8 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         """
         Remove device from central collections.
 
+        Emits DeviceRemovedEvent to trigger decoupled cache invalidation.
+
         Args:
         ----
             device: Device to remove
@@ -622,9 +626,26 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             )
             return
 
+        # Capture data before removal for event emission
+        device_address = device.address
+        interface_id = device.interface_id
+        channel_addresses = tuple(device.channels.keys())
+        identifier = device.identifier
+
         device.remove()
-        self._coordinator_provider.cache_coordinator.remove_device_from_caches(device=device)
-        await self.device_registry.remove_device(device_address=device.address)
+
+        # Emit event for decoupled cache invalidation
+        await self._event_bus_provider.event_bus.publish(
+            event=DeviceRemovedEvent(
+                timestamp=datetime.now(),
+                unique_id=identifier,
+                device_address=device_address,
+                interface_id=interface_id,
+                channel_addresses=channel_addresses,
+            )
+        )
+
+        await self.device_registry.remove_device(device_address=device_address)
 
     @inspector(measure_performance=True)
     async def _add_new_devices(

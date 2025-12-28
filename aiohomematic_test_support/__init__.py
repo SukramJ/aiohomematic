@@ -19,6 +19,7 @@ Key Components
 - **helper**: Test helper utilities for common testing operations.
 - **const**: Test-specific constants and configuration values.
 - **event_capture**: Event capture and assertion utilities for behavior testing.
+- **event_mock**: Event-driven mock server for test triggers.
 
 Usage Example
 -------------
@@ -48,6 +49,20 @@ Using EventCapture for behavior-focused testing:
 
     capture.assert_event_emitted(CircuitBreakerTrippedEvent, failure_count=5)
     capture.cleanup()
+
+Using EventDrivenMockServer for event-triggered test behavior:
+
+    from aiohomematic_test_support.event_mock import EventDrivenMockServer
+    from aiohomematic.central.event_bus import DataRefreshTriggeredEvent
+
+    mock_server = EventDrivenMockServer(event_bus=central.event_bus)
+    mock_server.when(DataRefreshTriggeredEvent).then_call(
+        lambda event: inject_mock_data()
+    )
+
+    # ... trigger refresh ...
+
+    mock_server.cleanup()
 
 The session player replays pre-recorded backend responses, enabling fast and
 reproducible tests without backend dependencies.

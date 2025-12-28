@@ -29,11 +29,14 @@ class _FakeDevice:
         address: str,
         channels: dict[str, _FakeChannel] | None = None,
         is_updatable: bool = False,
+        interface_id: str = "test-interface",
     ) -> None:
         """Initialize a fake device."""
         self.address = address
         self.channels = channels or {}
         self.is_updatable = is_updatable
+        self.interface_id = interface_id
+        self.identifier = f"{interface_id}_{address}"
         self.client = MagicMock()
 
     async def create_central_links(self) -> None:
@@ -273,6 +276,7 @@ class _FakeCentral:
         self.device_descriptions = MagicMock()
         self.device_details = MagicMock()
         self.event_bus = MagicMock()
+        self.event_bus.publish = AsyncMock()
         self.parameter_visibility = MagicMock()
         self.paramset_descriptions = MagicMock()
         self.looper = MagicMock()
@@ -715,8 +719,11 @@ class TestDeviceCoordinatorRemoveOperations:
         assert central.device_registry.has_device(address="VCU0000001") is False
         # Remove method should have been called
         device.remove.assert_called_once()
-        # Caches should have been updated
-        central.cache_coordinator.remove_device_from_caches.assert_called_once()
+        # DeviceRemovedEvent should have been published for decoupled cache invalidation
+        central.event_bus.publish.assert_called_once()
+        event = central.event_bus.publish.call_args.kwargs["event"]
+        assert event.device_address == "VCU0000001"
+        assert event.interface_id == "test-interface"
 
 
 class TestDeviceCoordinatorDeviceCreation:

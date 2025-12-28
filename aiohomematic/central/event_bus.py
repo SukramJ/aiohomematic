@@ -427,17 +427,34 @@ class DataPointUpdatedCallbackEvent(Event):
 @dataclass(frozen=True, slots=True)
 class DeviceRemovedEvent(Event):
     """
-    Device or data point has been removed.
+    Device or data point has been removed from the system.
 
-    Key is unique_id.
+    Key is device_address (for device removal) or unique_id (for data point removal).
+
+    When used for device removal (device_address is set):
+    - Enables decoupled cache invalidation via EventBus subscription
+    - Caches subscribe and react independently instead of direct calls
+
+    When used for data point removal (only unique_id is set):
+    - Signals that a data point entity should be cleaned up
     """
 
     unique_id: str
+    """Unique identifier of the device or data point."""
+
+    device_address: str | None = None
+    """Address of the removed device (None for data point removal)."""
+
+    interface_id: str | None = None
+    """Interface ID the device belonged to (None for data point removal)."""
+
+    channel_addresses: tuple[str, ...] = ()
+    """Addresses of all channels that were part of this device."""
 
     @property
     def key(self) -> Any:
         """Key identifier for this event."""
-        return self.unique_id
+        return self.device_address if self.device_address else self.unique_id
 
 
 # =============================================================================

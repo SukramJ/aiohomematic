@@ -571,6 +571,154 @@ class CircuitBreakerTrippedEvent(Event):
         return self.interface_id
 
 
+# =============================================================================
+# State Machine Events (Phase 4)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class ClientStateChangedEvent(Event):
+    """
+    Client state machine transition.
+
+    Key is interface_id.
+
+    Emitted when a client transitions between states
+    (INIT, CONNECTED, DISCONNECTED, etc.).
+    """
+
+    interface_id: str
+    old_state: str  # ClientState value
+    new_state: str  # ClientState value
+    trigger: str | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class CentralStateChangedEvent(Event):
+    """
+    Central unit state machine transition.
+
+    Key is central_name.
+
+    Emitted when the central unit transitions between states
+    (STARTING, RUNNING, DEGRADED, etc.).
+    """
+
+    central_name: str
+    old_state: str  # CentralState value
+    new_state: str  # CentralState value
+    trigger: str | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.central_name
+
+
+# =============================================================================
+# Data Refresh Events (Phase 5)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class DataRefreshTriggeredEvent(Event):
+    """
+    Data refresh operation triggered.
+
+    Key is interface_id (or None for hub-level refreshes).
+
+    Emitted when a data refresh operation starts.
+    """
+
+    refresh_type: str  # "client_data", "program", "sysvar", "inbox", "firmware"
+    interface_id: str | None
+    scheduled: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class DataRefreshCompletedEvent(Event):
+    """
+    Data refresh operation completed.
+
+    Key is interface_id (or None for hub-level refreshes).
+
+    Emitted when a data refresh operation completes (success or failure).
+    """
+
+    refresh_type: str
+    interface_id: str | None
+    success: bool
+    duration_ms: float
+    items_refreshed: int
+    error_message: str | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+# =============================================================================
+# Program/Sysvar Events (Phase 6)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class ProgramExecutedEvent(Event):
+    """
+    Backend program was executed.
+
+    Key is program_id.
+
+    Emitted when a Homematic program is executed.
+    """
+
+    program_id: str
+    program_name: str
+    triggered_by: str  # "user", "scheduler", "automation"
+    success: bool
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.program_id
+
+
+# =============================================================================
+# Request Coalescer Events (Phase 7)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class RequestCoalescedEvent(Event):
+    """
+    Multiple requests were coalesced into one.
+
+    Key is interface_id.
+
+    Emitted when duplicate requests are merged to reduce backend load.
+    """
+
+    request_key: str
+    coalesced_count: int
+    interface_id: str
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
 class EventBus:
     """
     Async-first, type-safe event bus for decoupled communication.

@@ -14,11 +14,15 @@ The state machine ensures:
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
-from typing import Final, Protocol
+from typing import TYPE_CHECKING, Final, Protocol
 
 from aiohomematic.const import ClientState, FailureReason
 from aiohomematic.property_decorators import DelegatedProperty
+
+if TYPE_CHECKING:
+    from aiohomematic.central.event_bus import EventBus
 
 
 class StateChangeCallbackProtocol(Protocol):
@@ -132,6 +136,7 @@ class ClientStateMachine:
     """
 
     __slots__ = (
+        "_event_bus",
         "_failure_message",
         "_failure_reason",
         "_interface_id",
@@ -139,16 +144,23 @@ class ClientStateMachine:
         "on_state_change",
     )
 
-    def __init__(self, *, interface_id: str) -> None:
+    def __init__(
+        self,
+        *,
+        interface_id: str,
+        event_bus: EventBus | None = None,
+    ) -> None:
         """
         Initialize the state machine.
 
         Args:
         ----
             interface_id: Interface identifier for logging
+            event_bus: Optional EventBus for state change events
 
         """
         self._interface_id: Final = interface_id
+        self._event_bus = event_bus
         self._state: ClientState = ClientState.CREATED
         self._failure_reason: FailureReason = FailureReason.NONE
         self._failure_message: str = ""
@@ -284,3 +296,34 @@ class ClientStateMachine:
                     "CLIENT_STATE: Error in state change callback for %s",
                     self._interface_id,
                 )
+
+        # Emit state change event
+        self._emit_state_change_event(
+            old_state=old_state,
+            new_state=target,
+            trigger=reason or None,
+        )
+
+    def _emit_state_change_event(
+        self,
+        *,
+        old_state: ClientState,
+        new_state: ClientState,
+        trigger: str | None,
+    ) -> None:
+        """Emit a client state change event."""
+        if self._event_bus is None:
+            return
+
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import ClientStateChangedEvent  # noqa: PLC0415
+
+        self._event_bus.publish_sync(
+            event=ClientStateChangedEvent(
+                timestamp=datetime.now(),
+                interface_id=self._interface_id,
+                old_state=old_state.value,
+                new_state=new_state.value,
+                trigger=trigger,
+            )
+        )

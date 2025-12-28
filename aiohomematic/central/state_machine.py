@@ -362,20 +362,37 @@ class CentralStateMachine(CentralStateMachineProtocol):
             reason: Reason for the transition
 
         """
-        if self._event_bus is not None:
-            # Include failure info when transitioning to FAILED state
-            failure_reason = self._failure_reason if new_state == CentralState.FAILED else None
-            failure_interface_id = self._failure_interface_id if new_state == CentralState.FAILED else None
+        if self._event_bus is None:
+            return
 
-            # Include degraded interfaces when transitioning to DEGRADED state
-            degraded_interfaces = self._degraded_interfaces if new_state == CentralState.DEGRADED else None
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import CentralStateChangedEvent  # noqa: PLC0415
 
-            self._event_bus.publish_sync(
-                event=SystemStatusEvent(
-                    timestamp=self._last_state_change,
-                    central_state=new_state,
-                    failure_reason=failure_reason,
-                    failure_interface_id=failure_interface_id,
-                    degraded_interfaces=degraded_interfaces,
-                )
+        # Include failure info when transitioning to FAILED state
+        failure_reason = self._failure_reason if new_state == CentralState.FAILED else None
+        failure_interface_id = self._failure_interface_id if new_state == CentralState.FAILED else None
+
+        # Include degraded interfaces when transitioning to DEGRADED state
+        degraded_interfaces = self._degraded_interfaces if new_state == CentralState.DEGRADED else None
+
+        # Emit SystemStatusEvent for integration compatibility
+        self._event_bus.publish_sync(
+            event=SystemStatusEvent(
+                timestamp=self._last_state_change,
+                central_state=new_state,
+                failure_reason=failure_reason,
+                failure_interface_id=failure_interface_id,
+                degraded_interfaces=degraded_interfaces,
             )
+        )
+
+        # Emit CentralStateChangedEvent for observability
+        self._event_bus.publish_sync(
+            event=CentralStateChangedEvent(
+                timestamp=self._last_state_change,
+                central_name=self._central_name,
+                old_state=old_state.value,
+                new_state=new_state.value,
+                trigger=reason or None,
+            )
+        )

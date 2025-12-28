@@ -255,9 +255,10 @@ class TestCentralStateMachineEventPublishing:
         )
 
         # Check that publish_sync was called with correct event
-        assert mock_event_bus.publish_sync.called
-        call_args = mock_event_bus.publish_sync.call_args
-        event = call_args.kwargs["event"]
+        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The FAILED SystemStatusEvent is at index 2.
+        assert mock_event_bus.publish_sync.call_count == 4
+        event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
         assert isinstance(event, SystemStatusEvent)
         assert event.central_state == CentralState.FAILED
@@ -272,9 +273,10 @@ class TestCentralStateMachineEventPublishing:
         sm.transition_to(target=CentralState.INITIALIZING)
         sm.transition_to(target=CentralState.RUNNING)
 
-        # Check the last call to publish_sync
-        call_args = mock_event_bus.publish_sync.call_args
-        event = call_args.kwargs["event"]
+        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The RUNNING SystemStatusEvent is at index 2.
+        assert mock_event_bus.publish_sync.call_count == 4
+        event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
         assert isinstance(event, SystemStatusEvent)
         assert event.central_state == CentralState.RUNNING
@@ -389,9 +391,10 @@ class TestCentralStateMachineDegradedEventPublishing:
         )
 
         # Check that publish_sync was called with correct event
-        assert mock_event_bus.publish_sync.called
-        call_args = mock_event_bus.publish_sync.call_args
-        event = call_args.kwargs["event"]
+        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The DEGRADED SystemStatusEvent is at index 2.
+        assert mock_event_bus.publish_sync.call_count == 4
+        event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
         assert isinstance(event, SystemStatusEvent)
         assert event.central_state == CentralState.DEGRADED
@@ -407,9 +410,10 @@ class TestCentralStateMachineDegradedEventPublishing:
         sm.transition_to(target=CentralState.INITIALIZING)
         sm.transition_to(target=CentralState.RUNNING)
 
-        # Check the last call to publish_sync
-        call_args = mock_event_bus.publish_sync.call_args
-        event = call_args.kwargs["event"]
+        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The RUNNING SystemStatusEvent is at index 2.
+        assert mock_event_bus.publish_sync.call_count == 4
+        event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
         assert isinstance(event, SystemStatusEvent)
         assert event.central_state == CentralState.RUNNING

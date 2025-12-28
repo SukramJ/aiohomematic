@@ -53,9 +53,12 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 import logging
-from typing import Any, Final, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
 from aiohomematic.property_decorators import DelegatedProperty
+
+if TYPE_CHECKING:
+    from aiohomematic.central.event_bus import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -104,16 +107,26 @@ class RequestCoalescer:
     This significantly reduces backend load during bulk operations.
     """
 
-    def __init__(self, *, name: str = "coalescer") -> None:
+    def __init__(
+        self,
+        *,
+        name: str = "coalescer",
+        event_bus: EventBus | None = None,
+        interface_id: str | None = None,
+    ) -> None:
         """
         Initialize the request coalescer.
 
         Args:
         ----
             name: Name for logging identification
+            event_bus: Optional event bus for emitting coalesce events
+            interface_id: Optional interface ID for event context
 
         """
         self._name: Final = name
+        self._event_bus = event_bus
+        self._interface_id = interface_id or name
         self._pending: dict[str, _PendingRequest] = {}
         self._metrics: CoalescerMetrics = CoalescerMetrics()
 
@@ -178,6 +191,8 @@ class RequestCoalescer:
                 key,
                 pending.waiter_count,
             )
+            # Emit coalesce event
+            self._emit_coalesce_event(key=key, coalesced_count=pending.waiter_count)
             return cast(T, await pending.future)
 
         # Create a new pending request
@@ -204,6 +219,31 @@ class RequestCoalescer:
         finally:
             # Clean up the pending entry
             del self._pending[key]
+
+    def _emit_coalesce_event(self, *, key: str, coalesced_count: int) -> None:
+        """
+        Emit a request coalesced event.
+
+        Args:
+        ----
+            key: The request key that was coalesced
+            coalesced_count: Total number of waiters for this key
+
+        """
+        if self._event_bus is None:
+            return
+
+        # Import here to avoid circular dependency
+        from aiohomematic.central.event_bus import RequestCoalescedEvent  # noqa: PLC0415
+
+        self._event_bus.publish_sync(
+            event=RequestCoalescedEvent(
+                timestamp=datetime.now(),
+                request_key=key,
+                coalesced_count=coalesced_count,
+                interface_id=self._interface_id,
+            )
+        )
 
 
 def make_coalesce_key(*, method: str, args: tuple[Any, ...]) -> str:

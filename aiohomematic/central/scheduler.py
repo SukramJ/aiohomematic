@@ -25,7 +25,7 @@ from typing import Final
 
 from aiohomematic import i18n
 from aiohomematic.central.client_coordinator import ClientCoordinator
-from aiohomematic.central.event_bus import ConnectionStageEvent
+from aiohomematic.central.event_bus import ConnectionStageEvent, DataRefreshCompletedEvent, DataRefreshTriggeredEvent
 from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import (
@@ -384,6 +384,67 @@ class BackgroundScheduler:
             return False
         else:
             return True
+
+    async def _emit_refresh_completed(
+        self,
+        *,
+        refresh_type: str,
+        interface_id: str | None,
+        success: bool,
+        duration_ms: float,
+        items_refreshed: int = 0,
+        error_message: str | None = None,
+    ) -> None:
+        """
+        Emit a data refresh completed event.
+
+        Args:
+        ----
+            refresh_type: Type of refresh (e.g., "client_data", "program")
+            interface_id: Interface ID or None for hub-level refreshes
+            success: True if refresh completed successfully
+            duration_ms: Duration of the refresh operation in milliseconds
+            items_refreshed: Number of items refreshed
+            error_message: Error message if success is False
+
+        """
+        await self._event_bus_provider.event_bus.publish(
+            event=DataRefreshCompletedEvent(
+                timestamp=datetime.now(),
+                refresh_type=refresh_type,
+                interface_id=interface_id,
+                success=success,
+                duration_ms=duration_ms,
+                items_refreshed=items_refreshed,
+                error_message=error_message,
+            )
+        )
+
+    def _emit_refresh_triggered(
+        self,
+        *,
+        refresh_type: str,
+        interface_id: str | None,
+        scheduled: bool,
+    ) -> None:
+        """
+        Emit a data refresh triggered event.
+
+        Args:
+        ----
+            refresh_type: Type of refresh (e.g., "client_data", "program")
+            interface_id: Interface ID or None for hub-level refreshes
+            scheduled: True if this is a scheduled refresh
+
+        """
+        self._event_bus_provider.event_bus.publish_sync(
+            event=DataRefreshTriggeredEvent(
+                timestamp=datetime.now(),
+                refresh_type=refresh_type,
+                interface_id=interface_id,
+                scheduled=scheduled,
+            )
+        )
 
     async def _emit_stage_event(self, *, new_stage: ConnectionStage) -> None:
         """
@@ -844,8 +905,32 @@ class BackgroundScheduler:
         if (poll_clients := self._client_coordinator.poll_clients) is not None and len(poll_clients) > 0:
             _LOGGER.debug("REFRESH_CLIENT_DATA: Loading data for %s", self._central_info.name)
             for client in poll_clients:
-                await self._device_data_refresher.load_and_refresh_data_point_data(interface=client.interface)
-                self._event_coordinator.set_last_event_seen_for_interface(interface_id=client.interface_id)
+                start_time = datetime.now()
+                self._emit_refresh_triggered(
+                    refresh_type="client_data",
+                    interface_id=client.interface_id,
+                    scheduled=True,
+                )
+                try:
+                    await self._device_data_refresher.load_and_refresh_data_point_data(interface=client.interface)
+                    self._event_coordinator.set_last_event_seen_for_interface(interface_id=client.interface_id)
+                    duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+                    await self._emit_refresh_completed(
+                        refresh_type="client_data",
+                        interface_id=client.interface_id,
+                        success=True,
+                        duration_ms=duration_ms,
+                    )
+                except Exception as exc:
+                    duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+                    await self._emit_refresh_completed(
+                        refresh_type="client_data",
+                        interface_id=client.interface_id,
+                        success=False,
+                        duration_ms=duration_ms,
+                        error_message=str(exc),
+                    )
+                    raise
 
     async def _refresh_inbox_data(self) -> None:
         """Refresh inbox data."""
@@ -853,7 +938,31 @@ class BackgroundScheduler:
             return
 
         _LOGGER.debug("REFRESH_INBOX_DATA: For %s", self._central_info.name)
-        await self._hub_data_fetcher.fetch_inbox_data(scheduled=True)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type="inbox",
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            await self._hub_data_fetcher.fetch_inbox_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="inbox",
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="inbox",
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
 
     async def _refresh_metrics_data(self) -> None:
         """Refresh metrics hub sensors."""
@@ -861,7 +970,31 @@ class BackgroundScheduler:
             return
 
         _LOGGER.debug("REFRESH_METRICS_DATA: For %s", self._central_info.name)
-        self._hub_data_fetcher.fetch_metrics_data(scheduled=True)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type="metrics",
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            self._hub_data_fetcher.fetch_metrics_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="metrics",
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="metrics",
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
 
     async def _refresh_program_data(self) -> None:
         """Refresh system programs data."""
@@ -873,7 +1006,31 @@ class BackgroundScheduler:
             return
 
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central_info.name)
-        await self._hub_data_fetcher.fetch_program_data(scheduled=True)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type="program",
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            await self._hub_data_fetcher.fetch_program_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="program",
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="program",
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
 
     async def _refresh_system_update_data(self) -> None:
         """Refresh system update data."""
@@ -881,7 +1038,31 @@ class BackgroundScheduler:
             return
 
         _LOGGER.debug("REFRESH_SYSTEM_UPDATE_DATA: For %s", self._central_info.name)
-        await self._hub_data_fetcher.fetch_system_update_data(scheduled=True)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type="system_update",
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            await self._hub_data_fetcher.fetch_system_update_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="system_update",
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="system_update",
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
 
     async def _refresh_sysvar_data(self) -> None:
         """Refresh system variables data."""
@@ -893,7 +1074,31 @@ class BackgroundScheduler:
             return
 
         _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central_info.name)
-        await self._hub_data_fetcher.fetch_sysvar_data(scheduled=True)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type="sysvar",
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            await self._hub_data_fetcher.fetch_sysvar_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="sysvar",
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type="sysvar",
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
 
     async def _run_scheduler_loop(self) -> None:
         """Execute the main scheduler loop that runs jobs based on their schedule."""

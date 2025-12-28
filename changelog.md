@@ -4,12 +4,16 @@
 
 ### New Features
 
-- **Event-Driven System Events**: New events for connection, cache, and circuit breaker monitoring
+- **Event-Driven System Events**: New events for comprehensive system observability
 
   - **Connection Stage Events**: `ConnectionStageEvent` tracks reconnection progress through 5 stages (LOST → TCP_AVAILABLE → RPC_AVAILABLE → WARMUP → ESTABLISHED)
   - **Connection Health Events**: `ConnectionHealthEvent` reports interface health status changes
   - **Cache Invalidation Events**: `CacheInvalidatedEvent` with `CacheType` and `CacheInvalidationReason` enums
   - **Circuit Breaker Events**: `CircuitBreakerStateChangedEvent` and `CircuitBreakerTrippedEvent` for state transitions
+  - **State Machine Events**: `ClientStateChangedEvent` and `CentralStateChangedEvent` for state transitions
+  - **Data Refresh Events**: `DataRefreshTriggeredEvent` and `DataRefreshCompletedEvent` for scheduler refresh operations
+  - **Program Events**: `ProgramExecutedEvent` when programs are executed
+  - **Request Coalescer Events**: `RequestCoalescedEvent` when requests are coalesced
   - **New Enums in `const.py`**: `ConnectionStage`, `CacheType`, `CacheInvalidationReason`
 
 - **Complete Event-Driven Metrics Architecture**: Full migration to event-based metrics collection
@@ -44,6 +48,8 @@
 - **Removed `CentralDataCache.stats`**: Use MetricsObserver counters instead (new `.size` property for entry count)
 - **`CircuitBreaker` now accepts optional `event_bus`**: New optional parameter for metric event emission
 - **Service registry deprecated**: `record_service_call`, `get_service_stats`, `clear_service_stats` are deprecated; use MetricsObserver instead
+- **`ClientStateMachine` now accepts optional `event_bus`**: New optional parameter for `ClientStateChangedEvent` emission
+- **`RequestCoalescer` now accepts optional `event_bus` and `interface_id`**: New optional parameters for `RequestCoalescedEvent` emission
 
 # Version 2025.12.52 (2025-12-27)
 

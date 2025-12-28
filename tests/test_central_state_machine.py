@@ -53,11 +53,21 @@ class TestCentralStateMachine:
 
         sm.transition_to(target=CentralState.INITIALIZING, reason="test")
 
-        event_bus.publish_sync.assert_called_once()
-        call_args = event_bus.publish_sync.call_args
-        event = call_args.kwargs["event"]
-        assert isinstance(event, SystemStatusEvent)
-        assert event.central_state == CentralState.INITIALIZING
+        # Two events are published: SystemStatusEvent and CentralStateChangedEvent
+        assert event_bus.publish_sync.call_count == 2
+
+        # First call is SystemStatusEvent
+        first_event = event_bus.publish_sync.call_args_list[0].kwargs["event"]
+        assert isinstance(first_event, SystemStatusEvent)
+        assert first_event.central_state == CentralState.INITIALIZING
+
+        # Second call is CentralStateChangedEvent
+        from aiohomematic.central.event_bus import CentralStateChangedEvent
+
+        second_event = event_bus.publish_sync.call_args_list[1].kwargs["event"]
+        assert isinstance(second_event, CentralStateChangedEvent)
+        assert second_event.old_state == "starting"
+        assert second_event.new_state == "initializing"
 
     def test_initial_state(self) -> None:
         """Test that the initial state is STARTING."""

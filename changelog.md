@@ -56,6 +56,9 @@
 - **Removed `HealthRecordCallbackProtocol`**: The callback-based health recording pattern is replaced by EventBus
 - **Removed `health_record_callback` parameter**: Removed from `ClientConfig`, `ClientFactoryProtocol.create_client_instance()`, `BaseRpcProxy`, `AioXmlRpcProxy`, and `AioJsonRpcAioHttpClient`
 - **`CircuitBreaker` emits `HealthRecordEvent`**: Now publishes health status via EventBus instead of invoking a callback
+- **Removed `CentralStateMachine.on_state_change` callback**: Use EventBus subscription to `CentralStateChangedEvent` instead
+- **Removed `ClientStateMachine.on_state_change` callback**: Use EventBus subscription to `ClientStateChangedEvent` instead
+- **Removed `StateChangeCallbackProtocol`**: The callback protocol is no longer needed; use EventBus subscriptions
 
 # Version 2025.12.52 (2025-12-27)
 

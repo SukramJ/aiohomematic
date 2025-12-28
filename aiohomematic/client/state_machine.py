@@ -16,21 +16,13 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Final, Protocol
+from typing import TYPE_CHECKING, Final
 
 from aiohomematic.const import ClientState, FailureReason
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central.event_bus import EventBus
-
-
-class StateChangeCallbackProtocol(Protocol):
-    """Protocol for state change callbacks."""
-
-    def __call__(self, *, old_state: ClientState, new_state: ClientState) -> None:
-        """Handle state change."""
-
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -113,7 +105,7 @@ class ClientStateMachine:
     State machine for client connection lifecycle.
 
     This class manages the connection state of a client with validated
-    transitions and optional callbacks on state changes.
+    transitions and event emission via EventBus.
 
     Thread Safety
     -------------
@@ -122,11 +114,20 @@ class ClientStateMachine:
 
     Example:
     -------
-        def on_state_change(*, old_state: ClientState, new_state: ClientState) -> None:
-            print(f"State changed: {old_state} -> {new_state}")
+        from aiohomematic.central.event_bus import ClientStateChangedEvent, EventBus
 
-        sm = ClientStateMachine(interface_id="BidCos-RF")
-        sm.on_state_change = on_state_change
+        def on_state_changed(*, event: ClientStateChangedEvent) -> None:
+            print(f"State changed: {event.old_state} -> {event.new_state}")
+
+        event_bus = EventBus()
+        sm = ClientStateMachine(interface_id="BidCos-RF", event_bus=event_bus)
+
+        # Subscribe to state changes via EventBus
+        event_bus.subscribe(
+            event_type=ClientStateChangedEvent,
+            event_key="BidCos-RF",
+            handler=on_state_changed,
+        )
 
         sm.transition_to(target=ClientState.INITIALIZING)
         sm.transition_to(target=ClientState.INITIALIZED)
@@ -141,7 +142,6 @@ class ClientStateMachine:
         "_failure_reason",
         "_interface_id",
         "_state",
-        "on_state_change",
     )
 
     def __init__(
@@ -164,7 +164,6 @@ class ClientStateMachine:
         self._state: ClientState = ClientState.CREATED
         self._failure_reason: FailureReason = FailureReason.NONE
         self._failure_message: str = ""
-        self.on_state_change: StateChangeCallbackProtocol | None = None
 
     failure_message: Final = DelegatedProperty[str](path="_failure_message")
     failure_reason: Final = DelegatedProperty[FailureReason](path="_failure_reason")
@@ -287,15 +286,6 @@ class ClientStateMachine:
                 target.value,
                 f" ({reason})" if reason else "",
             )
-
-        if self.on_state_change is not None:
-            try:
-                self.on_state_change(old_state=old_state, new_state=target)
-            except Exception:
-                _LOGGER.exception(  # i18n-log: ignore
-                    "CLIENT_STATE: Error in state change callback for %s",
-                    self._interface_id,
-                )
 
         # Emit state change event
         self._emit_state_change_event(

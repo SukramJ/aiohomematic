@@ -31,6 +31,7 @@ aiohomematic uses a type-safe, async-first EventBus for decoupled event handling
 | `CacheInvalidatedEvent`           | Cache           | `scope`           | Cache entries cleared          |
 | `CircuitBreakerStateChangedEvent` | Circuit Breaker | `interface_id`    | State transition               |
 | `CircuitBreakerTrippedEvent`      | Circuit Breaker | `interface_id`    | Breaker tripped                |
+| `HealthRecordEvent`               | Health          | `interface_id`    | Health status recorded         |
 | `ClientStateChangedEvent`         | State Machine   | `interface_id`    | Client state change            |
 | `CentralStateChangedEvent`        | State Machine   | `central_name`    | Central state change           |
 | `DataRefreshTriggeredEvent`       | Data Refresh    | `interface_id`    | Refresh started                |
@@ -364,6 +365,40 @@ from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent
 | `cooldown_seconds`    | `float`       | Seconds until recovery attempt      |
 
 **Key:** `interface_id`
+
+---
+
+## Health Events
+
+### HealthRecordEvent
+
+Emitted by CircuitBreaker when a request succeeds or fails, enabling decoupled health tracking.
+
+```python
+from aiohomematic.central.event_bus import HealthRecordEvent
+```
+
+| Field          | Type       | Description                        |
+| -------------- | ---------- | ---------------------------------- |
+| `timestamp`    | `datetime` | When the event was created         |
+| `interface_id` | `str`      | Interface identifier               |
+| `success`      | `bool`     | Whether the request was successful |
+
+**Key:** `interface_id`
+
+This event is used by `ClientCoordinator` to track health metrics for each interface. It replaces the previous callback-based health recording pattern.
+
+```python
+async def handler(*, event: HealthRecordEvent) -> None:
+    status = "success" if event.success else "failure"
+    print(f"{event.interface_id}: {status}")
+
+unsubscribe = central.event_bus.subscribe(
+    event_type=HealthRecordEvent,
+    event_key=None,
+    handler=handler,
+)
+```
 
 ---
 

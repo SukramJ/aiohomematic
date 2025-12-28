@@ -52,6 +52,7 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import central as hmcu, i18n
+from aiohomematic.central.event_bus import ClientStateChangedEvent
 from aiohomematic.central.integration_events import SystemStatusEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
@@ -178,6 +179,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         "_state_machine",
         "_sysvar_handler",
         "_system_information",
+        "_unsubscribe_state_change",
     )
 
     def __init__(self, *, client_config: ClientConfig) -> None:
@@ -185,9 +187,16 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._config: Final = client_config
         self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
         self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
-        self._state_machine: Final = ClientStateMachine(interface_id=client_config.interface_id)
-        # Wire up state machine callback to emit events
-        self._state_machine.on_state_change = self._on_client_state_change
+        self._state_machine: Final = ClientStateMachine(
+            interface_id=client_config.interface_id,
+            event_bus=client_config.client_deps.event_bus,
+        )
+        # Subscribe to state changes to emit SystemStatusEvent for integration compatibility
+        self._unsubscribe_state_change = client_config.client_deps.event_bus.subscribe(
+            event_type=ClientStateChangedEvent,
+            event_key=client_config.interface_id,
+            handler=self._on_client_state_changed_event,
+        )
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
         self._reconnect_attempts: int = 0
@@ -957,6 +966,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     async def stop(self) -> None:
         """Stop depending services."""
+        # Unsubscribe from state change events before stopping
+        self._unsubscribe_state_change()
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")
         if self.supports_rpc_callback:
             await self._proxy.stop()
@@ -1076,12 +1087,12 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 self.interface_id,
             )
 
-    def _on_client_state_change(self, *, old_state: ClientState, new_state: ClientState) -> None:
-        """Handle client state machine transitions by emitting events."""
+    def _on_client_state_changed_event(self, *, event: ClientStateChangedEvent) -> None:
+        """Handle client state machine transitions by emitting SystemStatusEvent for integration compatibility."""
         self._config.client_deps.event_bus.publish_sync(
             event=SystemStatusEvent(
                 timestamp=datetime.now(),
-                client_state=(self.interface_id, old_state, new_state),
+                client_state=(event.interface_id, ClientState(event.old_state), ClientState(event.new_state)),
             )
         )
 

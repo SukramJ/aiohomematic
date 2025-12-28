@@ -293,7 +293,7 @@ async with asyncio.TaskGroup() as tg:
 - `CentralUnit.metrics`: DelegatedProperty providing access to MetricsAggregator
 - `EventBus.get_handler_stats()`: Handler execution statistics (duration, errors)
 - `CentralDataCache.stats`: Cache hit/miss statistics
-- `RequestCoalescer.latency_stats`: RPC latency tracking
+- `PingPongCache.latency_stats`: Ping/pong round-trip latency tracking
 - `@inspector` integration: Service call metrics with multi-Central isolation
 
 **Implemented Metrics Categories** (7 categories):

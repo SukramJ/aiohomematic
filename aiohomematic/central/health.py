@@ -52,11 +52,13 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.client.circuit_breaker import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
 from aiohomematic.interfaces.central import CentralHealthProtocol, ConnectionHealthProtocol, HealthTrackerProtocol
+from aiohomematic.metrics import MetricKeys, emit_health
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from typing import Any
 
+    from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.state_machine import CentralStateMachine
 
 # Threshold for considering events as "recent" (5 minutes)
@@ -475,6 +477,7 @@ class HealthTracker(HealthTrackerProtocol):
     __slots__ = (
         "_central_health",
         "_central_name",
+        "_event_bus",
         "_state_machine",
     )
 
@@ -483,6 +486,7 @@ class HealthTracker(HealthTrackerProtocol):
         *,
         central_name: str,
         state_machine: CentralStateMachine | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         """
         Initialize the health tracker.
@@ -490,10 +494,12 @@ class HealthTracker(HealthTrackerProtocol):
         Args:
             central_name: Name of the central unit
             state_machine: Optional reference to the central state machine
+            event_bus: Optional event bus for emitting health metric events
 
         """
         self._central_name: Final = central_name
         self._state_machine = state_machine
+        self._event_bus = event_bus
         self._central_health: Final = CentralHealth()
 
     health: Final = DelegatedProperty[CentralHealth](path="_central_health")
@@ -639,6 +645,37 @@ class HealthTracker(HealthTrackerProtocol):
             if new_state == ClientState.CONNECTED:
                 health.reset_reconnect_counter()
 
+            # Emit health metric event for event-driven metrics
+            self._emit_health_event(interface_id=interface_id, health=health)
+
         # Update central state in health
         if self._state_machine is not None:
             self._central_health.update_central_state(state=self._state_machine.state)
+
+    def _emit_health_event(self, *, interface_id: str, health: ConnectionHealth) -> None:
+        """
+        Emit a health metric event for a client.
+
+        Args:
+            interface_id: The interface ID
+            health: The connection health state
+
+        """
+        if self._event_bus is None:
+            return
+
+        # Determine health status and reason
+        is_healthy = health.is_available
+        reason: str | None = None
+        if not is_healthy:
+            if health.is_failed:
+                reason = f"Client state: {health.client_state.name}"
+            elif health.is_degraded:
+                reason = "Degraded"
+
+        emit_health(
+            event_bus=self._event_bus,
+            key=MetricKeys.client_health(interface_id=interface_id),
+            healthy=is_healthy,
+            reason=reason,
+        )

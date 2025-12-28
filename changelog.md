@@ -1,3 +1,42 @@
+# Version 2025.12.53 (2025-12-28)
+
+## What's Changed
+
+### New Features
+
+- **Complete Event-Driven Metrics Architecture**: Full migration to event-based metrics collection
+  - **New `aiohomematic/metrics/` Module**: Independent metrics module (moved from `central/`)
+    - `keys.py`: Type-safe metric keys with `MetricKey` dataclass and `MetricKeys` factory
+    - `events.py`: MetricEvent hierarchy (LatencyMetricEvent, CounterMetricEvent, GaugeMetricEvent, HealthMetricEvent)
+    - `observer.py`: MetricsObserver for event-driven aggregation with query API
+    - `emitter.py`: Emission utilities (emit_latency, emit_counter, emit_gauge, emit_health)
+    - `stats.py`: Consolidated stats classes (CacheStats, LatencyStats, ServiceStats)
+  - **Type-Safe Metric Keys**: New `MetricKey` dataclass with `MetricKeys` factory for all known metrics
+    - Pattern: `{component}.{metric}.{identifier}` (e.g., `ping_pong.rtt.hmip_rf`)
+    - Factory methods: `MetricKeys.ping_pong_rtt()`, `cache_hit()`, `cache_miss()`, `client_health()`, etc.
+  - **Component Migration to Emit-Only Pattern**:
+    - `PingPongCache`: Removed local `_latency_stats`, now emits via `MetricKeys.ping_pong_rtt()`
+    - `CentralDataCache`: Removed local `_stats`, now emits via `MetricKeys.cache_hit/miss()`
+    - `CircuitBreaker`: Emits counters via `MetricKeys.circuit_success/failure/rejection()`
+    - `@inspector`: Emits latency/errors via `MetricKeys.service_call/error()` (no more global registry)
+    - `HealthTracker`: Emits HealthMetricEvent via `MetricKeys.client_health()`
+  - **MetricsAggregator Integration**: Now queries MetricsObserver for latency and cache metrics
+    - Latency: Aggregates from `ping_pong.rtt.*` pattern
+    - Cache: Gets hit/miss counters from observer
+
+### Breaking Changes
+
+- **`CentralUnit.metrics` now returns `MetricsObserver`** (event-driven) instead of `MetricsAggregator` (polling-based)
+  - Use `central.metrics_aggregator` for polling-based detailed diagnostics
+- **Hub sensors parameter changed**: Use `metrics_observer=` instead of `metrics_aggregator=`
+- **Import paths changed**: `from aiohomematic.metrics import MetricsObserver, emit_latency, MetricKeys`
+- **`CentralDataCache` requires `event_bus_provider`**: New mandatory parameter for event emission
+- **`CacheCoordinator` requires `event_bus_provider`**: New mandatory parameter passed to CentralDataCache
+- **Removed `PingPongCache.latency_stats`**: Use MetricsObserver instead
+- **Removed `CentralDataCache.stats`**: Use MetricsObserver counters instead (new `.size` property for entry count)
+- **`CircuitBreaker` now accepts optional `event_bus`**: New optional parameter for metric event emission
+- **Service registry deprecated**: `record_service_call`, `get_service_stats`, `clear_service_stats` are deprecated; use MetricsObserver instead
+
 # Version 2025.12.52 (2025-12-27)
 
 ## What's Changed

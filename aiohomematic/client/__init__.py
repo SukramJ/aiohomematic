@@ -70,7 +70,7 @@ from aiohomematic.client.handlers import (
     SystemVariableHandler,
 )
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
-from aiohomematic.client.request_coalescer import LatencyStats, RequestCoalescer, make_coalesce_key
+from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
 from aiohomematic.client.state_machine import ClientStateMachine, InvalidStateTransitionError
 from aiohomematic.const import (
@@ -269,12 +269,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             ClientState.DISCONNECTED,
             ClientState.RECONNECTING,
         )
-
-    @property
-    def latency_tracker(self) -> LatencyStats | None:
-        """Return the latency tracker for metrics access."""
-        # Use ping/pong round-trip latency as it's measured regularly
-        return self._ping_pong_cache.latency_stats
 
     @property
     def model(self) -> str:
@@ -1710,6 +1704,7 @@ class ClientConfig:
             verify_tls=config.verify_tls,
             session_recorder=self.client_deps.cache_coordinator.recorder,
             health_record_callback=health_record_callback,
+            event_bus=self.client_deps.event_bus,
         )
         await xml_proxy.do_init()
         return xml_proxy

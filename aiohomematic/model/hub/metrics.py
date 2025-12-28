@@ -48,7 +48,7 @@ from aiohomematic.property_decorators import DelegatedProperty, Kind, config_pro
 from aiohomematic.support import PayloadMixin
 
 if TYPE_CHECKING:
-    from aiohomematic.central.metrics import MetricsAggregator
+    from aiohomematic.metrics import MetricsObserver
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
     """Base class for metrics hub sensors."""
 
     __slots__ = (
-        "_metrics_aggregator",
+        "_metrics_observer",
         "_name_data",
         "_previous_value",
         "_sensor_name",
@@ -71,7 +71,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         self,
         *,
         sensor_name: str,
-        metrics_aggregator: MetricsAggregator,
+        metrics_observer: MetricsObserver,
         config_provider: ConfigProviderProtocol,
         central_info: CentralInfoProtocol,
         event_bus_provider: EventBusProviderProtocol,
@@ -83,7 +83,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         """Initialize the metrics sensor."""
         PayloadMixin.__init__(self)
         self._sensor_name: Final = sensor_name
-        self._metrics_aggregator: Final = metrics_aggregator
+        self._metrics_observer: Final = metrics_observer
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
@@ -131,7 +131,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         return None
 
     def refresh(self, *, write_at: datetime) -> None:
-        """Refresh the sensor value from metrics aggregator."""
+        """Refresh the sensor value from metrics observer."""
         current_value = self._get_current_value()
         if self._previous_value != current_value:
             self._previous_value = current_value
@@ -167,7 +167,7 @@ class HmSystemHealthSensor(_BaseMetricsSensor):
     def __init__(
         self,
         *,
-        metrics_aggregator: MetricsAggregator,
+        metrics_observer: MetricsObserver,
         config_provider: ConfigProviderProtocol,
         central_info: CentralInfoProtocol,
         event_bus_provider: EventBusProviderProtocol,
@@ -179,7 +179,7 @@ class HmSystemHealthSensor(_BaseMetricsSensor):
         """Initialize the system health sensor."""
         super().__init__(
             sensor_name=METRICS_SENSOR_SYSTEM_HEALTH_NAME,
-            metrics_aggregator=metrics_aggregator,
+            metrics_observer=metrics_observer,
             config_provider=config_provider,
             central_info=central_info,
             event_bus_provider=event_bus_provider,
@@ -201,7 +201,7 @@ class HmSystemHealthSensor(_BaseMetricsSensor):
 
     def _get_current_value(self) -> float:
         """Return the current health score as percentage."""
-        return round(self._metrics_aggregator.health.overall_score * 100, 1)
+        return round(self._metrics_observer.get_overall_health_score() * 100, 1)
 
 
 class HmConnectionLatencySensor(_BaseMetricsSensor):
@@ -216,7 +216,7 @@ class HmConnectionLatencySensor(_BaseMetricsSensor):
     def __init__(
         self,
         *,
-        metrics_aggregator: MetricsAggregator,
+        metrics_observer: MetricsObserver,
         config_provider: ConfigProviderProtocol,
         central_info: CentralInfoProtocol,
         event_bus_provider: EventBusProviderProtocol,
@@ -228,7 +228,7 @@ class HmConnectionLatencySensor(_BaseMetricsSensor):
         """Initialize the connection latency sensor."""
         super().__init__(
             sensor_name=METRICS_SENSOR_CONNECTION_LATENCY_NAME,
-            metrics_aggregator=metrics_aggregator,
+            metrics_observer=metrics_observer,
             config_provider=config_provider,
             central_info=central_info,
             event_bus_provider=event_bus_provider,
@@ -249,8 +249,9 @@ class HmConnectionLatencySensor(_BaseMetricsSensor):
         return self._get_current_value()
 
     def _get_current_value(self) -> float:
-        """Return the current average latency."""
-        return round(self._metrics_aggregator.rpc.avg_latency_ms, 1)
+        """Return the current average latency from ping/pong metrics."""
+        latency = self._metrics_observer.get_aggregated_latency(pattern="ping_pong")
+        return round(latency.avg_ms, 1)
 
 
 class HmLastEventAgeSensor(_BaseMetricsSensor):
@@ -266,7 +267,7 @@ class HmLastEventAgeSensor(_BaseMetricsSensor):
     def __init__(
         self,
         *,
-        metrics_aggregator: MetricsAggregator,
+        metrics_observer: MetricsObserver,
         config_provider: ConfigProviderProtocol,
         central_info: CentralInfoProtocol,
         event_bus_provider: EventBusProviderProtocol,
@@ -278,7 +279,7 @@ class HmLastEventAgeSensor(_BaseMetricsSensor):
         """Initialize the last event age sensor."""
         super().__init__(
             sensor_name=METRICS_SENSOR_LAST_EVENT_AGE_NAME,
-            metrics_aggregator=metrics_aggregator,
+            metrics_observer=metrics_observer,
             config_provider=config_provider,
             central_info=central_info,
             event_bus_provider=event_bus_provider,
@@ -300,4 +301,4 @@ class HmLastEventAgeSensor(_BaseMetricsSensor):
 
     def _get_current_value(self) -> float:
         """Return the current last event age in seconds."""
-        return round(self._metrics_aggregator.health.last_event_age_seconds, 1)
+        return round(self._metrics_observer.get_last_event_age_seconds(), 1)

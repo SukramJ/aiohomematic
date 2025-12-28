@@ -28,66 +28,66 @@ positive_int: vol.All = vol.All(vol.Coerce(int), vol.Range(min=0))
 wait_for: vol.All = vol.All(vol.Coerce(int), vol.Range(min=1, max=MAX_WAIT_FOR_CALLBACK))
 
 
-def channel_address(value: str) -> str:  # kwonly: disable
+def channel_address(value: str, /) -> str:
     """Validate channel_address."""
     if is_channel_address(address=value):
         return value
     raise vol.Invalid(i18n.tr(key="exception.validator.channel_address.invalid"))
 
 
-def device_address(value: str) -> str:  # kwonly: disable
+def device_address(value: str, /) -> str:
     """Validate channel_address."""
     if is_device_address(address=value):
         return value
     raise vol.Invalid(i18n.tr(key="exception.validator.device_address.invalid"))
 
 
-def hostname(value: str) -> str:  # kwonly: disable
+def hostname(value: str, /) -> str:
     """Validate hostname."""
     if is_host(host=value):
         return value
     raise vol.Invalid(i18n.tr(key="exception.validator.hostname.invalid"))
 
 
-def ipv4_address(value: str) -> str:  # kwonly: disable
+def ipv4_address(value: str, /) -> str:
     """Validate ipv4_address."""
     if is_ipv4_address(address=value):
         return value
     raise vol.Invalid(i18n.tr(key="exception.validator.ipv4_address.invalid"))
 
 
-def password(value: str) -> str:  # kwonly: disable
+def password(value: str, /) -> str:
     """Validate password."""
     if check_password(password=value):
         return value
     raise vol.Invalid(i18n.tr(key="exception.validator.password.invalid"))
 
 
-def paramset_key(value: str) -> str:  # kwonly: disable
+def paramset_key(value: str, /) -> str:
     """Validate paramset_key."""
     if is_paramset_key(paramset_key=value):
         return value
     raise vol.Invalid(i18n.tr(key="exception.validator.paramset_key.invalid"))
 
 
-def _channel_address_wrapper(value: str) -> str:  # kwonly: disable
+def _channel_address_wrapper(value: str, /) -> str:
     """Wrap channel_address for voluptuous callback."""
-    return channel_address(value=value)
+    return channel_address(value)
 
 
-def _device_address_wrapper(value: str) -> str:  # kwonly: disable
+def _device_address_wrapper(value: str, /) -> str:
     """Wrap device_address for voluptuous callback."""
-    return device_address(value=value)
+    return device_address(value)
 
 
-def _hostname_wrapper(value: str) -> str:  # kwonly: disable
+def _hostname_wrapper(value: str, /) -> str:
     """Wrap hostname for voluptuous callback."""
-    return hostname(value=value)
+    return hostname(value)
 
 
-def _ipv4_address_wrapper(value: str) -> str:  # kwonly: disable
+def _ipv4_address_wrapper(value: str, /) -> str:
     """Wrap ipv4_address for voluptuous callback."""
-    return ipv4_address(value=value)
+    return ipv4_address(value)
 
 
 address = vol.All(vol.Coerce(str), vol.Any(_device_address_wrapper, _channel_address_wrapper))

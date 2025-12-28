@@ -60,16 +60,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Protocol
 
 from aiohomematic import i18n
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
-
-# Protocol for health recording callback (uses keyword-only args per project convention)
-from typing import Protocol
+    from aiohomematic.central.event_bus import EventBus
 
 
 class HealthRecordCallbackProtocol(Protocol):
@@ -157,6 +155,7 @@ class CircuitBreaker:
         connection_state: CentralConnectionState | None = None,
         issuer: Any = None,
         health_record_callback: HealthRecordCallbackProtocol | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         """
         Initialize the circuit breaker.
@@ -168,6 +167,7 @@ class CircuitBreaker:
             connection_state: Optional CentralConnectionState for integration
             issuer: Optional issuer object for CentralConnectionState
             health_record_callback: Optional callback for health tracking (interface_id, success)
+            event_bus: Optional EventBus for emitting metric events
 
         """
         self._config: Final = config or CircuitBreakerConfig()
@@ -175,6 +175,7 @@ class CircuitBreaker:
         self._connection_state = connection_state
         self._issuer = issuer
         self._health_record_callback = health_record_callback
+        self._event_bus = event_bus
 
         self._state: CircuitState = CircuitState.CLOSED
         self._failure_count: int = 0
@@ -231,6 +232,9 @@ class CircuitBreaker:
             # Any failure in HALF_OPEN goes back to OPEN
             self._transition_to(new_state=CircuitState.OPEN)
 
+        # Emit metric event
+        self._emit_counter(metric="failure")
+
         # Notify health tracker
         if self._health_record_callback:
             self._health_record_callback(interface_id=self._interface_id, success=False)
@@ -239,6 +243,9 @@ class CircuitBreaker:
         """Record a rejected request (circuit is open)."""
         self._metrics.total_requests += 1
         self._metrics.rejected_requests += 1
+
+        # Emit metric event
+        self._emit_counter(metric="rejection")
 
     def record_success(self) -> None:
         """
@@ -257,6 +264,9 @@ class CircuitBreaker:
             if self._success_count >= self._config.success_threshold:
                 self._transition_to(new_state=CircuitState.CLOSED)
 
+        # Emit metric event
+        self._emit_counter(metric="success")
+
         # Notify health tracker
         if self._health_record_callback:
             self._health_record_callback(interface_id=self._interface_id, success=True)
@@ -271,6 +281,35 @@ class CircuitBreaker:
             "CIRCUIT_BREAKER: Reset to CLOSED for %s",
             self._interface_id,
         )
+
+    def _emit_counter(self, *, metric: str) -> None:
+        """
+        Emit a counter metric event.
+
+        Uses lazy import to avoid circular dependency:
+        circuit_breaker → metrics → aggregator → circuit_breaker.
+
+        Args:
+        ----
+            metric: The metric type ("success", "failure", "rejection")
+
+        """
+        if self._event_bus is None:
+            return
+
+        # Lazy import to avoid circular dependency with metrics module
+        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
+
+        if metric == "success":
+            key = MetricKeys.circuit_success(interface_id=self._interface_id)
+        elif metric == "failure":
+            key = MetricKeys.circuit_failure(interface_id=self._interface_id)
+        elif metric == "rejection":
+            key = MetricKeys.circuit_rejection(interface_id=self._interface_id)
+        else:
+            return
+
+        emit_counter(event_bus=self._event_bus, key=key)
 
     def _transition_to(self, *, new_state: CircuitState) -> None:
         """

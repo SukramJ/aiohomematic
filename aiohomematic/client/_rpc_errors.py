@@ -20,15 +20,20 @@ Key types and functions
 
 from __future__ import annotations
 
+from asyncio import TimeoutError as AsyncTimeoutError
 from collections.abc import Mapping
 from dataclasses import dataclass
 import re
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
-from aiohomematic.exceptions import AuthFailure, ClientException, InternalBackendException, NoConnectionException
-
-if TYPE_CHECKING:
-    from aiohomematic.const import FailureReason
+from aiohomematic.const import FailureReason
+from aiohomematic.exceptions import (
+    AuthFailure,
+    CircuitBreakerOpenException,
+    ClientException,
+    InternalBackendException,
+    NoConnectionException,
+)
 
 # Patterns that may contain sensitive information
 _SENSITIVE_PATTERNS: Final[tuple[tuple[str, str], ...]] = (
@@ -169,12 +174,6 @@ def exception_to_failure_reason(*, exc: BaseException) -> FailureReason:
         ```
 
     """
-    # Import here to avoid circular dependency
-    from asyncio import TimeoutError as AsyncTimeoutError  # noqa: PLC0415
-
-    from aiohomematic.const import FailureReason  # noqa: PLC0415
-    from aiohomematic.exceptions import CircuitBreakerOpenException  # noqa: PLC0415
-
     if isinstance(exc, AuthFailure):
         return FailureReason.AUTH
     if isinstance(exc, NoConnectionException):

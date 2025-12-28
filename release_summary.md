@@ -4,16 +4,23 @@
 
 ### Observability & Metrics
 
-- **Unified Metrics**: New `CentralUnit.metrics` property providing centralized access to all runtime statistics
-- **Hub Metrics Sensors**: Three new HA-visible sensors for real-time system monitoring:
+- **Complete Event-Driven Metrics**: All components now emit metric events to EventBus instead of maintaining local state
+  - `MetricsObserver` aggregates latency, counter, gauge, and health metrics in real-time
+  - Type-safe `MetricKey` dataclass with `MetricKeys` factory for all known metrics
+  - `emit_latency()`, `emit_counter()`, `emit_gauge()`, `emit_health()` functions for easy metric emission
+  - Dedicated `aiohomematic/metrics/` module with clean separation of concerns
+- **Migrated Components**: All core components use emit-only pattern
+  - `PingPongCache`: Emits RTT latency per interface
+  - `CentralDataCache`: Emits cache hit/miss counters
+  - `CircuitBreaker`: Emits success/failure/rejection counters
+  - `@inspector`: Emits service call latency and error counts (global registry deprecated)
+  - `HealthTracker`: Emits client health events
+- **Hub Metrics Sensors**: Three HA-visible sensors for real-time system monitoring:
   - System Health (0-100%)
   - Connection Latency (ms)
   - Last Event Age (seconds since last CCU event)
 - **RPC Monitoring**: Track success/failure rates, latency, and request coalescing effectiveness
-- **Event Tracking**: Monitor handler execution times, error rates, and event throughput
 - **Cache Statistics**: View hit rates and sizes across all caches
-- **Health Overview**: Client availability rates and overall system health scores
-- **Service Call Metrics**: Track per-method call counts, durations, and error rates via `@inspector` decorator
 
 ### Connection Reliability
 

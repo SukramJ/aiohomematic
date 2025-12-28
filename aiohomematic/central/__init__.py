@@ -91,16 +91,6 @@ from aiohomematic.central.health import (  # noqa: F401 - ConnectionHealth used 
 )
 from aiohomematic.central.hub_coordinator import HubCoordinator
 from aiohomematic.central.integration_events import SystemStatusEvent
-from aiohomematic.central.metrics import (  # noqa: F401 - Metric types used for re-export
-    CacheMetrics,
-    EventMetrics,
-    HealthMetrics,
-    MetricsAggregator,
-    MetricsSnapshot,
-    ModelMetrics,
-    RecoveryMetrics,
-    RpcMetrics,
-)
 from aiohomematic.central.recovery import (  # noqa: F401 - RecoveryResult used for re-export
     RecoveryCoordinator,
     RecoveryResult,
@@ -173,6 +163,17 @@ from aiohomematic.interfaces.model import (
     GenericDataPointProtocolAny,
     GenericEventProtocolAny,
 )
+from aiohomematic.metrics import (  # noqa: F401 - Metric types used for re-export
+    CacheMetrics,
+    EventMetrics,
+    HealthMetrics,
+    MetricsAggregator,
+    MetricsObserver,
+    MetricsSnapshot,
+    ModelMetrics,
+    RecoveryMetrics,
+    RpcMetrics,
+)
 from aiohomematic.model.hub import InstallModeDpType
 from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property
 from aiohomematic.support import (
@@ -242,6 +243,7 @@ class CentralUnit(
         self._health_tracker: Final = HealthTracker(
             central_name=self._config.name,
             state_machine=self._central_state_machine,
+            event_bus=self._event_bus,
         )
 
         # Initialize coordinators
@@ -259,6 +261,7 @@ class CentralUnit(
             config_provider=self,
             data_point_provider=self,
             device_provider=self,
+            event_bus_provider=self,
             primary_client_provider=self._client_coordinator,
             session_recorder_active=self.config.session_recorder_start,
             task_scheduler=self.looper,
@@ -328,7 +331,10 @@ class CentralUnit(
             client_provider=self._client_coordinator,
         )
 
-        # Metrics aggregator for observability
+        # Metrics observer for event-driven metrics (single source of truth)
+        self._metrics_observer: Final = MetricsObserver(event_bus=self._event_bus)
+
+        # Metrics aggregator for detailed observability (queries observer + components)
         self._metrics_aggregator: Final = MetricsAggregator(
             central_name=self.name,
             client_provider=self._client_coordinator,
@@ -336,6 +342,7 @@ class CentralUnit(
             event_bus=self._event_bus,
             health_tracker=self._health_tracker,
             data_cache=self._cache_coordinator.data_cache,
+            observer=self._metrics_observer,
             hub_data_point_manager=self._hub_coordinator,
             recovery_coordinator=self._recovery_coordinator,
         )
@@ -375,7 +382,8 @@ class CentralUnit(
     listen_ip_addr: Final = DelegatedProperty[str](path="_listen_ip_addr")
     listen_port_xml_rpc: Final = DelegatedProperty[int](path="_listen_port_xml_rpc")
     looper: Final = DelegatedProperty[Looper](path="_looper")
-    metrics: Final = DelegatedProperty[MetricsAggregator](path="_metrics_aggregator")
+    metrics: Final = DelegatedProperty[MetricsObserver](path="_metrics_observer")
+    metrics_aggregator: Final = DelegatedProperty[MetricsAggregator](path="_metrics_aggregator")
     name: Final = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
     recovery_coordinator: Final = DelegatedProperty[RecoveryCoordinator](path="_recovery_coordinator")
     state: Final = DelegatedProperty[CentralState](path="_central_state_machine.state")
@@ -967,6 +975,7 @@ class CentralUnit(
 
         await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
         await self._stop_scheduler()
+        self._metrics_observer.stop()
         await self._client_coordinator.stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()
@@ -1492,6 +1501,7 @@ class CentralConfig:
             verify_tls=self.verify_tls,
             session_recorder=central.cache_coordinator.recorder,
             health_record_callback=health_record_callback,
+            event_bus=central.event_bus,
         )
 
 

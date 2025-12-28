@@ -10,6 +10,10 @@ Enforces keyword-only parameters for all functions:
 
 No runtime overhead: standalone AST-based checker, no decorators required.
 
+Exceptions (no violation reported):
+  * Functions using *args (vararg)
+  * Functions using positional-only parameters (/ in signature)
+
 Disable options:
   * Class-wise: add a class attribute `__kwonly_check__ = False` or a trailing
     comment `# kwonly: disable` on the class definition line.
@@ -126,16 +130,19 @@ class KwOnlyChecker(ast.NodeVisitor):
         # Enforce: beyond the first arg (self/cls), there must be no positional parameters.
         extra_positional = args.args[1:] if len(args.args) > 1 else []
         has_vararg = args.vararg is not None
-        # Allow pos-only args if they are only the implicit first parameter and appear in posonlyargs
-        # Generally class methods shouldn't use posonlyargs; treat any posonly beyond first as violation.
-        posonly_beyond_first = args.posonlyargs[1:] if len(args.posonlyargs) > 1 else []
+        has_posonly = bool(args.posonlyargs)
 
         # If *args is present in the signature, do not report a violation per policy.
         if has_vararg:
             return
 
+        # If positional-only parameters are used (/ in signature), this is a deliberate
+        # design choice and should not be flagged as a violation.
+        if has_posonly:
+            return
+
         # If there are any explicit positional parameters beyond the first, report.
-        if extra_positional or posonly_beyond_first:
+        if extra_positional:
             suggestion = "add '*' after the first parameter to make the rest keyword-only"
             msg = f"method '{func.name}' must be keyword-only beyond first parameter; {suggestion}"
             self.violations.append(Violation(self.path, func.lineno, func.col_offset + 1, msg))
@@ -151,11 +158,17 @@ class KwOnlyChecker(ast.NodeVisitor):
         args = func.args
         # For module-level functions, ALL positional parameters are violations
         # (the * must come before the first argument)
-        has_positional = bool(args.args) or bool(args.posonlyargs)
+        has_positional = bool(args.args)
         has_vararg = args.vararg is not None
+        has_posonly = bool(args.posonlyargs)
 
         # If *args is present in the signature, do not report a violation per policy.
         if has_vararg:
+            return
+
+        # If positional-only parameters are used (/ in signature), this is a deliberate
+        # design choice and should not be flagged as a violation.
+        if has_posonly:
             return
 
         # If there are any positional parameters, report.

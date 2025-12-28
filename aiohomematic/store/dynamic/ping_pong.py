@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusEvent
-from aiohomematic.client.request_coalescer import LatencyStats
 from aiohomematic.const import (
     PING_PONG_CACHE_MAX_SIZE,
     PING_PONG_MISMATCH_COUNT,
@@ -25,6 +24,7 @@ from aiohomematic.const import (
     PingPongMismatchType,
 )
 from aiohomematic.interfaces.central import CentralInfoProtocol, EventBusProviderProtocol
+from aiohomematic.metrics import MetricKeys, emit_latency
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.types import PongTracker
 
@@ -43,7 +43,6 @@ class PingPongCache:
         "_connection_state",
         "_event_bus_provider",
         "_interface_id",
-        "_latency_stats",
         "_pending",
         "_retry_at",
         "_ttl",
@@ -71,10 +70,8 @@ class PingPongCache:
         self._pending: Final = PongTracker(tokens=set(), seen_at={})
         self._unknown: Final = PongTracker(tokens=set(), seen_at={})
         self._retry_at: Final[set[str]] = set()
-        self._latency_stats: LatencyStats = LatencyStats()
 
     allowed_delta: Final = DelegatedProperty[int](path="_allowed_delta")
-    latency_stats: Final = DelegatedProperty[LatencyStats](path="_latency_stats")
 
     @property
     def has_connection_issue(self) -> bool:
@@ -96,10 +93,14 @@ class PingPongCache:
     def handle_received_pong(self, *, pong_token: str) -> None:
         """Handle received pong token."""
         if self._pending.contains(token=pong_token):
-            # Calculate round-trip latency before removing
+            # Calculate round-trip latency and emit metric event
             if (send_time := self._pending.seen_at.get(pong_token)) is not None:
                 rtt_ms = (time.monotonic() - send_time) * 1000
-                self._latency_stats.record(duration_ms=rtt_ms)
+                emit_latency(
+                    event_bus=self._event_bus_provider.event_bus,
+                    key=MetricKeys.ping_pong_rtt(interface_id=self._interface_id),
+                    duration_ms=rtt_ms,
+                )
             self._pending.remove(token=pong_token)
             self._cleanup_tracker(tracker=self._pending, tracker_name="pending")
             count = len(self._pending)

@@ -2,7 +2,7 @@
 
 ## What's Changed
 
-### Connection Recovery (2025.12.54)
+### Connection Recovery
 
 - **Unified Recovery Architecture**: New event-driven connection recovery coordinator
   - Staged recovery process: TCP check → RPC check → Warmup → Stability check → Reconnect

@@ -35,7 +35,7 @@
   - **New Recovery Events**:
     - `ConnectionLostEvent`: Emitted when connection is lost
     - `RecoveryStageChangedEvent`: Tracks recovery stage transitions
-    - `RecoveryAttemptEvent`: Records each recovery attempt
+    - `RecoveryAttemptedEvent`: Records each recovery attempt
     - `RecoveryCompletedEvent`: Emitted on successful recovery
     - `RecoveryFailedEvent`: Emitted when max retries reached
     - `HeartbeatTimerFiredEvent`: Triggers heartbeat retries in FAILED state
@@ -59,6 +59,19 @@
   - Now stores only meaningful (non-default) values instead of the immediate previous value
   - Enables "restore last brightness" feature for dimmers - stores last non-zero level
   - Hub data points (sysvar, metrics, inbox) use separate caching for refresh/modify detection
+- **Event Naming Improvements**: Renamed events for better clarity and self-documentation
+  - `BackendParameterEvent` → `RpcParameterReceivedEvent` (raw parameter from RPC callback)
+  - `DataPointUpdatedEvent` → `DataPointValueReceivedEvent` (data point value received from backend)
+  - `DataPointStatusUpdatedEvent` → `DataPointStatusReceivedEvent` (status parameter received from backend)
+  - `DataPointUpdatedCallbackEvent` → `DataPointStateChangedEvent` (callback for state changes)
+  - `SysvarUpdatedEvent` → `SysvarStateChangedEvent` (system variable state changed)
+  - `DeviceUpdatedEvent` → `DeviceStateChangedEvent` (device state changed)
+  - `FirmwareUpdatedEvent` → `FirmwareStateChangedEvent` (firmware state changed)
+  - `ConnectionStageEvent` → `ConnectionStageChangedEvent` (connection stage changed)
+  - `ConnectionHealthEvent` → `ConnectionHealthChangedEvent` (connection health changed)
+  - `HealthRecordEvent` → `HealthRecordedEvent` (health status recorded)
+  - `RecoveryAttemptEvent` → `RecoveryAttemptedEvent` (recovery attempt completed)
+  - `SystemStatusEvent` → `SystemStatusChangedEvent` (system status changed)
 
 ---
 
@@ -70,15 +83,15 @@
 
 - **Event-Driven System Events**: New events for comprehensive system observability
 
-  - **Connection Stage Events**: `ConnectionStageEvent` tracks reconnection progress through 5 stages (LOST → TCP_AVAILABLE → RPC_AVAILABLE → WARMUP → ESTABLISHED)
-  - **Connection Health Events**: `ConnectionHealthEvent` reports interface health status changes
+  - **Connection Stage Events**: `ConnectionStageChangedEvent` tracks reconnection progress through 5 stages (LOST → TCP_AVAILABLE → RPC_AVAILABLE → WARMUP → ESTABLISHED)
+  - **Connection Health Events**: `ConnectionHealthChangedEvent` reports interface health status changes
   - **Cache Invalidation Events**: `CacheInvalidatedEvent` with `CacheType` and `CacheInvalidationReason` enums
   - **Circuit Breaker Events**: `CircuitBreakerStateChangedEvent` and `CircuitBreakerTrippedEvent` for state transitions
   - **State Machine Events**: `ClientStateChangedEvent` and `CentralStateChangedEvent` for state transitions
   - **Data Refresh Events**: `DataRefreshTriggeredEvent` and `DataRefreshCompletedEvent` for scheduler refresh operations
   - **Program Events**: `ProgramExecutedEvent` when programs are executed
   - **Request Coalescer Events**: `RequestCoalescedEvent` when requests are coalesced
-  - **Health Record Events**: `HealthRecordEvent` emitted by CircuitBreaker for success/failure tracking
+  - **Health Record Events**: `HealthRecordedEvent` emitted by CircuitBreaker for success/failure tracking
   - **New Enums in `const.py`**: `ConnectionStage`, `CacheType`, `CacheInvalidationReason`
 
 - **Complete Event-Driven Metrics Architecture**: Full migration to event-based metrics collection
@@ -102,7 +115,7 @@
   - **MetricsAggregator Integration**: Now queries MetricsObserver for latency and cache metrics
     - Latency: Aggregates from `ping_pong.rtt.*` pattern
     - Cache: Gets hit/miss counters from observer
-  - **EventMetrics.health_records**: New counter tracking `HealthRecordEvent` emissions from CircuitBreaker
+  - **EventMetrics.health_records**: New counter tracking `HealthRecordedEvent` emissions from CircuitBreaker
 
 - **SelfHealingCoordinator**: New coordinator for automatic recovery based on circuit breaker events
 
@@ -166,10 +179,10 @@
 - **Service registry removed**: `record_service_call`, `get_service_stats`, `clear_service_stats` (deprecated in 2025.12.53) removed; use MetricsObserver instead
 - **`ClientStateMachine` now accepts optional `event_bus`**: New optional parameter for `ClientStateChangedEvent` emission
 - **`RequestCoalescer` now accepts optional `event_bus` and `interface_id`**: New optional parameters for `RequestCoalescedEvent` emission
-- **`ClientCoordinator` now requires `event_bus_provider`**: New mandatory parameter for subscribing to `HealthRecordEvent`
+- **`ClientCoordinator` now requires `event_bus_provider`**: New mandatory parameter for subscribing to `HealthRecordedEvent`
 - **Removed `HealthRecordCallbackProtocol`**: The callback-based health recording pattern is replaced by EventBus
 - **Removed `health_record_callback` parameter**: Removed from `ClientConfig`, `ClientFactoryProtocol.create_client_instance()`, `BaseRpcProxy`, `AioXmlRpcProxy`, and `AioJsonRpcAioHttpClient`
-- **`CircuitBreaker` emits `HealthRecordEvent`**: Now publishes health status via EventBus instead of invoking a callback
+- **`CircuitBreaker` emits `HealthRecordedEvent`**: Now publishes health status via EventBus instead of invoking a callback
 - **Removed `CentralStateMachine.on_state_change` callback**: Use EventBus subscription to `CentralStateChangedEvent` instead
 - **Removed `ClientStateMachine.on_state_change` callback**: Use EventBus subscription to `ClientStateChangedEvent` instead
 - **Removed `StateChangeCallbackProtocol`**: The callback protocol is no longer needed; use EventBus subscriptions
@@ -578,7 +591,7 @@
   - `update_status` now accepts both `int` (backend index) and `str` (enum value)
   - Integer indices are converted to strings using the cached VALUE_LIST from the status parameter's paramset description
   - This ensures correct mapping regardless of `ParameterStatus` enum order
-  - `DataPointStatusUpdatedEvent.status_value` type is `int | str`
+  - `DataPointStatusReceivedEvent.status_value` type is `int | str`
 
 # Version 2025.12.40 (2025-12-20)
 
@@ -589,7 +602,7 @@
 - **Change `ParameterStatus` from `IntEnum` to `StrEnum`**: Align enum with actual HmIP parameter values
   - All `*_STATUS` ENUM parameters (LEVEL_STATUS, ACTUAL_TEMPERATURE_STATUS, etc.) use string-based VALUE_LISTs
   - Values: `NORMAL`, `UNKNOWN`, `OVERFLOW`, `UNDERFLOW`, `ERROR`, `INVALID`, `UNUSED`
-  - `DataPointStatusUpdatedEvent.status_value` type changed to `str`
+  - `DataPointStatusReceivedEvent.status_value` type changed to `str`
 
 # Version 2025.12.38 (2025-12-20)
 
@@ -626,7 +639,7 @@
 
 - **Add `degraded_interfaces` tracking for DEGRADED state**: Show which interfaces are degraded and why
   - New `degraded_interfaces` property on `CentralStateMachine`: `Mapping[str, FailureReason]`
-  - New `degraded_interfaces` field on `SystemStatusEvent` for integration consumption
+  - New `degraded_interfaces` field on `SystemStatusChangedEvent` for integration consumption
   - Updated `transition_to()` method with `degraded_interfaces` parameter
   - Log output now shows interface-specific failure reasons: `[interfaces: HmIP-RF=network, BidCos-RF=auth]`
   - **Integration benefit**: Home Assistant can now show detailed status per interface in DEGRADED state
@@ -661,7 +674,7 @@
   - New `FailureReason` enum with values: `NONE`, `AUTH`, `NETWORK`, `INTERNAL`, `TIMEOUT`, `CIRCUIT_BREAKER`, `UNKNOWN`
   - Extended `ClientStateMachine` with `failure_reason`, `failure_message` properties
   - Extended `CentralStateMachine` with `failure_reason`, `failure_message`, `failure_interface_id` properties
-  - Extended `SystemStatusEvent` with `failure_reason` and `failure_interface_id` fields
+  - Extended `SystemStatusChangedEvent` with `failure_reason` and `failure_interface_id` fields
   - New helper function `exception_to_failure_reason()` for mapping exceptions to failure reasons
   - **Integration benefit**: Home Assistant can now show specific error messages (e.g., "Check your credentials" for auth failures vs "Check network connection" for network errors)
   - See `docs/migrations/failure_reason_migration_2025_12.md` for migration guide
@@ -783,7 +796,7 @@
 
 - Add STATUS parameter support for data points:
   - New `ParameterStatus` enum with values: `NORMAL`, `UNKNOWN`, `OVERFLOW`, `UNDERFLOW`, `ERROR`, `INVALID`, `UNUSED`
-  - New `DataPointStatusUpdatedEvent` for STATUS parameter events
+  - New `DataPointStatusReceivedEvent` for STATUS parameter events
   - `BaseParameterDataPoint` now automatically detects paired `*_STATUS` parameters (e.g., `LEVEL_STATUS` for `LEVEL`)
   - New properties on data points: `status`, `status_dpk`, `status_parameter`, `has_status_parameter`
   - New `is_refreshed` property: Returns if data point has received a value
@@ -856,18 +869,18 @@
 
 - Replace 9 legacy events with 4 focused integration events:
   - Remove `SystemEventTypeData` - replaced by `DeviceLifecycleEvent` and `DataPointsCreatedEvent`
-  - Remove `CallbackStateChangedEvent` - replaced by `SystemStatusEvent.callback_state`
-  - Remove `CentralStateChangedEvent` - replaced by `SystemStatusEvent.central_state`
-  - Remove `ClientStateChangedEvent` - replaced by `SystemStatusEvent.client_state`
-  - Remove `ConnectionStateChangedEvent` - replaced by `SystemStatusEvent.connection_state`
+  - Remove `CallbackStateChangedEvent` - replaced by `SystemStatusChangedEvent.callback_state`
+  - Remove `CentralStateChangedEvent` - replaced by `SystemStatusChangedEvent.central_state`
+  - Remove `ClientStateChangedEvent` - replaced by `SystemStatusChangedEvent.client_state`
+  - Remove `ConnectionStateChangedEvent` - replaced by `SystemStatusChangedEvent.connection_state`
   - Remove `DeviceAvailabilityChangedEvent` - replaced by `DeviceLifecycleEvent.availability_changes`
-  - Remove `FetchDataFailedEvent` - replaced by `SystemStatusEvent.issues`
+  - Remove `FetchDataFailedEvent` - replaced by `SystemStatusChangedEvent.issues`
   - Remove `HomematicEvent` - replaced by `DeviceTriggerEvent`
-  - Remove `PingPongMismatchEvent` - replaced by `SystemStatusEvent.issues`
+  - Remove `PingPongMismatchEvent` - replaced by `SystemStatusChangedEvent.issues`
 
 ### New Features
 
-- Add `SystemStatusEvent` - aggregated event for all infrastructure and lifecycle state changes
+- Add `SystemStatusChangedEvent` - aggregated event for all infrastructure and lifecycle state changes
   - `central_state: CentralState | None` - central unit state changes
   - `connection_state: tuple[str, bool] | None` - connection state (interface_id, connected)
   - `client_state: tuple[str, ClientState, ClientState] | None` - client state (interface_id, old, new)

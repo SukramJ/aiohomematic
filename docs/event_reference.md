@@ -15,44 +15,44 @@ aiohomematic uses a type-safe, async-first EventBus for decoupled event handling
 
 ## Quick Reference
 
-| Event Type                        | Category        | Key               | Description                    |
-| --------------------------------- | --------------- | ----------------- | ------------------------------ |
-| `DataPointUpdatedEvent`           | Data Point      | `DataPointKey`    | Value updated from backend     |
-| `DataPointStatusUpdatedEvent`     | Data Point      | `DataPointKey`    | Status parameter updated       |
-| `DataPointUpdatedCallbackEvent`   | Data Point      | `unique_id`       | External callback notification |
-| `BackendParameterEvent`           | Backend         | `DataPointKey`    | Raw parameter from RPC         |
-| `SysvarUpdatedEvent`              | System Variable | `state_path`      | Sysvar value changed           |
-| `DeviceUpdatedEvent`              | Device          | `device_address`  | Device state updated           |
-| `DeviceRemovedEvent`              | Device          | `unique_id`       | Device/data point removed      |
-| `FirmwareUpdatedEvent`            | Device          | `device_address`  | Firmware info updated          |
-| `LinkPeerChangedEvent`            | Device          | `channel_address` | Link peers changed             |
-| `ConnectionStageEvent`            | Connection      | `interface_id`    | Reconnection stage             |
-| `ConnectionHealthEvent`           | Connection      | `interface_id`    | Health status change           |
-| `CacheInvalidatedEvent`           | Cache           | `scope`           | Cache entries cleared          |
-| `CircuitBreakerStateChangedEvent` | Circuit Breaker | `interface_id`    | State transition               |
-| `CircuitBreakerTrippedEvent`      | Circuit Breaker | `interface_id`    | Breaker tripped                |
-| `HealthRecordEvent`               | Health          | `interface_id`    | Health status recorded         |
-| `ClientStateChangedEvent`         | State Machine   | `interface_id`    | Client state change            |
-| `CentralStateChangedEvent`        | State Machine   | `central_name`    | Central state change           |
-| `DataRefreshTriggeredEvent`       | Data Refresh    | `interface_id`    | Refresh started                |
-| `DataRefreshCompletedEvent`       | Data Refresh    | `interface_id`    | Refresh completed              |
-| `ProgramExecutedEvent`            | Hub             | `program_id`      | Program executed               |
-| `RequestCoalescedEvent`           | Optimization    | `interface_id`    | Requests merged                |
-| `SystemStatusEvent`               | Integration     | `None`            | System status (HA)             |
-| `DeviceLifecycleEvent`            | Integration     | `None`            | Device lifecycle (HA)          |
-| `DataPointsCreatedEvent`          | Integration     | `None`            | Data points created (HA)       |
-| `DeviceTriggerEvent`              | Integration     | `None`            | Device trigger (HA)            |
+| Event Type                        | Category        | Key               | Description                         |
+| --------------------------------- | --------------- | ----------------- | ----------------------------------- |
+| `DataPointValueReceivedEvent`     | Data Point      | `DataPointKey`    | Value updated from backend          |
+| `DataPointStatusReceivedEvent`    | Data Point      | `DataPointKey`    | Status parameter updated            |
+| `DataPointStateChangedEvent`      | Data Point      | `unique_id`       | External callback notification      |
+| `RpcParameterReceivedEvent`       | Backend         | `DataPointKey`    | Re-published raw parameter from RPC |
+| `SysvarStateChangedEvent`         | System Variable | `state_path`      | Sysvar value changed                |
+| `DeviceStateChangedEvent`         | Device          | `device_address`  | Device state updated                |
+| `DeviceRemovedEvent`              | Device          | `unique_id`       | Device/data point removed           |
+| `FirmwareStateChangedEvent`       | Device          | `device_address`  | Firmware info updated               |
+| `LinkPeerChangedEvent`            | Device          | `channel_address` | Link peers changed                  |
+| `ConnectionStageChangedEvent`     | Connection      | `interface_id`    | Reconnection stage                  |
+| `ConnectionHealthChangedEvent`    | Connection      | `interface_id`    | Health status change                |
+| `CacheInvalidatedEvent`           | Cache           | `scope`           | Cache entries cleared               |
+| `CircuitBreakerStateChangedEvent` | Circuit Breaker | `interface_id`    | State transition                    |
+| `CircuitBreakerTrippedEvent`      | Circuit Breaker | `interface_id`    | Breaker tripped                     |
+| `HealthRecordedEvent`             | Health          | `interface_id`    | Health status recorded              |
+| `ClientStateChangedEvent`         | State Machine   | `interface_id`    | Client state change                 |
+| `CentralStateChangedEvent`        | State Machine   | `central_name`    | Central state change                |
+| `DataRefreshTriggeredEvent`       | Data Refresh    | `interface_id`    | Refresh started                     |
+| `DataRefreshCompletedEvent`       | Data Refresh    | `interface_id`    | Refresh completed                   |
+| `ProgramExecutedEvent`            | Hub             | `program_id`      | Program executed                    |
+| `RequestCoalescedEvent`           | Optimization    | `interface_id`    | Requests merged                     |
+| `SystemStatusChangedEvent`        | Integration     | `None`            | System status (HA)                  |
+| `DeviceLifecycleEvent`            | Integration     | `None`            | Device lifecycle (HA)               |
+| `DataPointsCreatedEvent`          | Integration     | `None`            | Data points created (HA)            |
+| `DeviceTriggerEvent`              | Integration     | `None`            | Device trigger (HA)                 |
 
 ---
 
 ## Data Point Events
 
-### DataPointUpdatedEvent
+### DataPointValueReceivedEvent
 
 Fired when a data point value is updated from the backend.
 
 ```python
-from aiohomematic.central.event_bus import DataPointUpdatedEvent
+from aiohomematic.central.event_bus import DataPointValueReceivedEvent
 ```
 
 | Field         | Type           | Description                              |
@@ -65,22 +65,22 @@ from aiohomematic.central.event_bus import DataPointUpdatedEvent
 **Key:** `DataPointKey`
 
 ```python
-async def handler(*, event: DataPointUpdatedEvent) -> None:
+async def handler(*, event: DataPointValueReceivedEvent) -> None:
     print(f"DataPoint {event.dpk.parameter} = {event.value}")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=None,  # All data points, or specific DataPointKey
     handler=handler,
 )
 ```
 
-### DataPointStatusUpdatedEvent
+### DataPointStatusReceivedEvent
 
 Fired when a STATUS parameter value is updated (e.g., LEVEL_STATUS).
 
 ```python
-from aiohomematic.central.event_bus import DataPointStatusUpdatedEvent
+from aiohomematic.central.event_bus import DataPointStatusReceivedEvent
 ```
 
 | Field          | Type           | Description                            |
@@ -92,12 +92,12 @@ from aiohomematic.central.event_bus import DataPointStatusUpdatedEvent
 
 **Key:** `DataPointKey` (of the main parameter)
 
-### DataPointUpdatedCallbackEvent
+### DataPointStateChangedEvent
 
 Callback event for external integrations (e.g., Home Assistant entities).
 
 ```python
-from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent
+from aiohomematic.central.event_bus import DataPointStateChangedEvent
 ```
 
 | Field       | Type       | Description                          |
@@ -112,12 +112,12 @@ from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent
 
 ## Backend Events
 
-### BackendParameterEvent
+### RpcParameterReceivedEvent
 
 Raw parameter update event from the backend (re-published from RPC callbacks).
 
 ```python
-from aiohomematic.central.event_bus import BackendParameterEvent
+from aiohomematic.central.event_bus import RpcParameterReceivedEvent
 ```
 
 | Field             | Type       | Description                              |
@@ -134,12 +134,12 @@ from aiohomematic.central.event_bus import BackendParameterEvent
 
 ## System Variable Events
 
-### SysvarUpdatedEvent
+### SysvarStateChangedEvent
 
 System variable value was updated.
 
 ```python
-from aiohomematic.central.event_bus import SysvarUpdatedEvent
+from aiohomematic.central.event_bus import SysvarStateChangedEvent
 ```
 
 | Field         | Type       | Description                            |
@@ -155,12 +155,12 @@ from aiohomematic.central.event_bus import SysvarUpdatedEvent
 
 ## Device Events
 
-### DeviceUpdatedEvent
+### DeviceStateChangedEvent
 
 Device state has been updated.
 
 ```python
-from aiohomematic.central.event_bus import DeviceUpdatedEvent
+from aiohomematic.central.event_bus import DeviceStateChangedEvent
 ```
 
 | Field            | Type       | Description                |
@@ -185,12 +185,12 @@ from aiohomematic.central.event_bus import DeviceRemovedEvent
 
 **Key:** `unique_id`
 
-### FirmwareUpdatedEvent
+### FirmwareStateChangedEvent
 
 Device firmware information has been updated.
 
 ```python
-from aiohomematic.central.event_bus import FirmwareUpdatedEvent
+from aiohomematic.central.event_bus import FirmwareStateChangedEvent
 ```
 
 | Field            | Type       | Description                |
@@ -219,12 +219,12 @@ from aiohomematic.central.event_bus import LinkPeerChangedEvent
 
 ## Connection Events
 
-### ConnectionStageEvent
+### ConnectionStageChangedEvent
 
 Connection reconnection stage progression during recovery.
 
 ```python
-from aiohomematic.central.event_bus import ConnectionStageEvent
+from aiohomematic.central.event_bus import ConnectionStageChangedEvent
 from aiohomematic.const import ConnectionStage
 ```
 
@@ -247,22 +247,22 @@ from aiohomematic.const import ConnectionStage
 - `ESTABLISHED` - Fully connected
 
 ```python
-async def handler(*, event: ConnectionStageEvent) -> None:
+async def handler(*, event: ConnectionStageChangedEvent) -> None:
     print(f"{event.interface_id}: {event.previous_stage} -> {event.stage}")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=ConnectionStageEvent,
+    event_type=ConnectionStageChangedEvent,
     event_key=None,
     handler=handler,
 )
 ```
 
-### ConnectionHealthEvent
+### ConnectionHealthChangedEvent
 
 Connection health status update.
 
 ```python
-from aiohomematic.central.event_bus import ConnectionHealthEvent
+from aiohomematic.central.event_bus import ConnectionHealthChangedEvent
 ```
 
 | Field                     | Type                    | Description                    |
@@ -370,12 +370,12 @@ from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent
 
 ## Health Events
 
-### HealthRecordEvent
+### HealthRecordedEvent
 
 Emitted by CircuitBreaker when a request succeeds or fails, enabling decoupled health tracking.
 
 ```python
-from aiohomematic.central.event_bus import HealthRecordEvent
+from aiohomematic.central.event_bus import HealthRecordedEvent
 ```
 
 | Field          | Type       | Description                        |
@@ -389,12 +389,12 @@ from aiohomematic.central.event_bus import HealthRecordEvent
 This event is used by `ClientCoordinator` to track health metrics for each interface. It replaces the previous callback-based health recording pattern.
 
 ```python
-async def handler(*, event: HealthRecordEvent) -> None:
+async def handler(*, event: HealthRecordedEvent) -> None:
     status = "success" if event.success else "failure"
     print(f"{event.interface_id}: {status}")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=HealthRecordEvent,
+    event_type=HealthRecordedEvent,
     event_key=None,
     handler=handler,
 )
@@ -575,12 +575,12 @@ from aiohomematic.central.event_bus import RequestCoalescedEvent
 
 These events are defined in `aiohomematic/central/integration_events.py` and are designed for Home Assistant and other consumers.
 
-### SystemStatusEvent
+### SystemStatusChangedEvent
 
 Aggregated system status changes for integration consumers.
 
 ```python
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.const import CentralState, FailureReason
 ```
 
@@ -599,7 +599,7 @@ from aiohomematic.const import CentralState, FailureReason
 **Key:** `None` (global event)
 
 ```python
-async def handler(*, event: SystemStatusEvent) -> None:
+async def handler(*, event: SystemStatusChangedEvent) -> None:
     if event.central_state == CentralState.FAILED:
         if event.failure_reason == FailureReason.AUTH:
             print("Authentication failed!")
@@ -608,7 +608,7 @@ async def handler(*, event: SystemStatusEvent) -> None:
             print(f"Interface {iface_id} degraded: {reason}")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=SystemStatusEvent,
+    event_type=SystemStatusChangedEvent,
     event_key=None,
     handler=handler,
 )
@@ -765,18 +765,18 @@ unsubscribe = channel.subscribe_to_link_peer_changed(
 ### Direct Subscription
 
 ```python
-from aiohomematic.central.event_bus import EventBus, DataPointUpdatedEvent
+from aiohomematic.central.event_bus import EventBus, DataPointValueReceivedEvent
 
 # Subscribe to all events of a type
 unsubscribe = event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=None,
     handler=my_handler,
 )
 
 # Subscribe to events with a specific key
 unsubscribe = event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=my_data_point_key,
     handler=my_handler,
 )
@@ -792,7 +792,7 @@ from aiohomematic.central.event_bus import EventPriority
 
 # High priority handler (runs before normal handlers)
 unsubscribe = event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=None,
     handler=my_critical_handler,
     priority=EventPriority.HIGH,
@@ -849,7 +849,7 @@ See [Testing with Events](testing_with_events.md) for complete testing guide.
 
 ```python
 # Good - type-safe, IDE autocomplete works
-async def handler(*, event: DataPointUpdatedEvent) -> None:
+async def handler(*, event: DataPointValueReceivedEvent) -> None:
     print(event.dpk, event.value)
 
 # Bad - loses type information
@@ -861,11 +861,11 @@ async def handler(*, event: Event) -> None:
 
 ```python
 # Good - quick handler, offloads heavy work
-async def handler(*, event: DataPointUpdatedEvent) -> None:
+async def handler(*, event: DataPointValueReceivedEvent) -> None:
     asyncio.create_task(process_update(event))
 
 # Avoid - blocks other handlers
-async def handler(*, event: DataPointUpdatedEvent) -> None:
+async def handler(*, event: DataPointValueReceivedEvent) -> None:
     await slow_database_operation(event)  # Blocks for seconds
 ```
 
@@ -875,7 +875,7 @@ async def handler(*, event: DataPointUpdatedEvent) -> None:
 class MyIntegration:
     def __init__(self, event_bus: EventBus) -> None:
         self._unsubscribe = event_bus.subscribe(
-            event_type=DataPointUpdatedEvent,
+            event_type=DataPointValueReceivedEvent,
             event_key=None,
             handler=self._handler,
         )
@@ -889,7 +889,7 @@ class MyIntegration:
 The EventBus isolates handler errors - one failing handler won't affect others:
 
 ```python
-async def handler(*, event: DataPointUpdatedEvent) -> None:
+async def handler(*, event: DataPointValueReceivedEvent) -> None:
     try:
         await process(event)
     except ExpectedError:

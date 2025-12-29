@@ -15,7 +15,7 @@ events into consumer-friendly structures. These events are designed for:
 Event Hierarchy
 ---------------
 Integration Events (this module):
-    - SystemStatusEvent: Infrastructure + lifecycle changes
+    - SystemStatusChangedEvent: Infrastructure + lifecycle changes
     - DeviceLifecycleEvent: Device creation, removal, availability
     - DataPointsCreatedEvent: data point discovery
     - DeviceTriggerEvent: Device triggers (button press, etc.)
@@ -33,7 +33,7 @@ Design Philosophy
 Example Usage
 -------------
     from aiohomematic.central.integration_events import (
-        SystemStatusEvent,
+        SystemStatusChangedEvent,
         DeviceLifecycleEvent,
         DataPointsCreatedEvent,
         DeviceTriggerEvent,
@@ -41,7 +41,7 @@ Example Usage
 
     # Subscribe to system status changes
     central.event_bus.subscribe(
-        event_type=SystemStatusEvent,
+        event_type=SystemStatusChangedEvent,
         event_key=None,
         handler=on_system_status,
     )
@@ -74,7 +74,7 @@ __all__ = [
     "DeviceLifecycleEventType",
     "DeviceTriggerEvent",
     "IntegrationIssue",
-    "SystemStatusEvent",
+    "SystemStatusChangedEvent",
 ]
 
 
@@ -101,7 +101,7 @@ class IntegrationIssue:
 
 
 @dataclass(frozen=True, slots=True)
-class SystemStatusEvent(Event):
+class SystemStatusChangedEvent(Event):
     """
     System infrastructure and lifecycle status event.
 
@@ -113,7 +113,7 @@ class SystemStatusEvent(Event):
 
     Example:
         ```python
-        async def on_system_status(*, event: SystemStatusEvent) -> None:
+        async def on_system_status(*, event: SystemStatusChangedEvent) -> None:
             if event.central_state == CentralState.FAILED:
                 if event.failure_reason == FailureReason.AUTH:
                     async_create_issue(..., translation_key="auth_failed")
@@ -129,7 +129,7 @@ class SystemStatusEvent(Event):
                 async_create_issue(...)
 
         central.event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=on_system_status,
         )

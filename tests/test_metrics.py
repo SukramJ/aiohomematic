@@ -280,20 +280,20 @@ class TestEventBusHandlerStats:
     @pytest.mark.asyncio
     async def test_handler_error_tracking(self) -> None:
         """Test that handler errors are tracked."""
-        from aiohomematic.central.event_bus import DeviceUpdatedEvent
+        from aiohomematic.central.event_bus import DeviceStateChangedEvent
 
         bus = EventBus()
 
-        async def failing_handler(*, event: DeviceUpdatedEvent) -> None:
+        async def failing_handler(*, event: DeviceStateChangedEvent) -> None:
             raise ValueError("Test error")
 
         bus.subscribe(
-            event_type=DeviceUpdatedEvent,
+            event_type=DeviceStateChangedEvent,
             event_key=None,
             handler=failing_handler,
         )
 
-        event = DeviceUpdatedEvent(timestamp=datetime.now(), device_address="VCU001")
+        event = DeviceStateChangedEvent(timestamp=datetime.now(), device_address="VCU001")
         await bus.publish(event=event)
 
         stats = bus.get_handler_stats()
@@ -303,20 +303,20 @@ class TestEventBusHandlerStats:
     @pytest.mark.asyncio
     async def test_handler_stats_tracking(self) -> None:
         """Test that handler stats are tracked during event publishing."""
-        from aiohomematic.central.event_bus import DeviceUpdatedEvent
+        from aiohomematic.central.event_bus import DeviceStateChangedEvent
 
         bus = EventBus()
 
-        async def dummy_handler(*, event: DeviceUpdatedEvent) -> None:
+        async def dummy_handler(*, event: DeviceStateChangedEvent) -> None:
             pass
 
         bus.subscribe(
-            event_type=DeviceUpdatedEvent,
+            event_type=DeviceStateChangedEvent,
             event_key=None,
             handler=dummy_handler,
         )
 
-        event = DeviceUpdatedEvent(timestamp=datetime.now(), device_address="VCU001")
+        event = DeviceStateChangedEvent(timestamp=datetime.now(), device_address="VCU001")
         await bus.publish(event=event)
 
         stats = bus.get_handler_stats()

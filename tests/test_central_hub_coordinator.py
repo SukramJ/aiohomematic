@@ -522,11 +522,11 @@ class TestHubCoordinatorSysvarOperations:
         assert coordinator._sysvar_data_points["123"] == sysvar_dp
 
         # Should have subscribed via EventBus (using the new pattern)
-        from aiohomematic.central.event_bus import SysvarUpdatedEvent
+        from aiohomematic.central.event_bus import SysvarStateChangedEvent
 
         central.event_bus.subscribe.assert_called_once()
         call_args = central.event_bus.subscribe.call_args
-        assert call_args.kwargs["event_type"] == SysvarUpdatedEvent
+        assert call_args.kwargs["event_type"] == SysvarStateChangedEvent
 
     @pytest.mark.asyncio
     async def test_fetch_sysvar_data(self) -> None:

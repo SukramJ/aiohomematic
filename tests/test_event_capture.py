@@ -11,7 +11,7 @@ import pytest
 from aiohomematic.central.event_bus import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
-    ConnectionStageEvent,
+    ConnectionStageChangedEvent,
     DataRefreshCompletedEvent,
     EventBus,
 )
@@ -306,7 +306,7 @@ class TestEventSequenceAssertion:
     def test_empty_sequence_non_strict(self) -> None:
         """Test empty expected sequence with non-strict mode."""
         sequence = EventSequenceAssertion(expected_sequence=[])
-        sequence.captured_types = [ConnectionStageEvent, CircuitBreakerStateChangedEvent]
+        sequence.captured_types = [ConnectionStageChangedEvent, CircuitBreakerStateChangedEvent]
 
         # Empty expected sequence should pass in non-strict mode
         sequence.verify(strict=False)
@@ -322,7 +322,7 @@ class TestEventSequenceAssertion:
     def test_reset(self) -> None:
         """Test resetting captured types."""
         sequence = EventSequenceAssertion(expected_sequence=[])
-        sequence.captured_types = [ConnectionStageEvent]
+        sequence.captured_types = [ConnectionStageChangedEvent]
         sequence.reset()
         assert len(sequence.captured_types) == 0
 
@@ -330,11 +330,11 @@ class TestEventSequenceAssertion:
         """Test strict sequence fails with missing event."""
         sequence = EventSequenceAssertion(
             expected_sequence=[
-                ConnectionStageEvent,
+                ConnectionStageChangedEvent,
                 CircuitBreakerStateChangedEvent,
             ]
         )
-        sequence.captured_types = [ConnectionStageEvent]
+        sequence.captured_types = [ConnectionStageChangedEvent]
 
         with pytest.raises(AssertionError, match="Expected 2 events, got 1"):
             sequence.verify(strict=True)
@@ -343,14 +343,14 @@ class TestEventSequenceAssertion:
         """Test strict sequence fails with wrong order."""
         sequence = EventSequenceAssertion(
             expected_sequence=[
-                ConnectionStageEvent,
+                ConnectionStageChangedEvent,
                 CircuitBreakerStateChangedEvent,
             ]
         )
         # Simulate capturing in wrong order
         sequence.captured_types = [
             CircuitBreakerStateChangedEvent,
-            ConnectionStageEvent,
+            ConnectionStageChangedEvent,
         ]
 
         with pytest.raises(AssertionError, match="Event 0: expected"):
@@ -362,12 +362,12 @@ class TestEventSequenceAssertion:
         event_bus = EventBus()
         sequence = EventSequenceAssertion(
             expected_sequence=[
-                ConnectionStageEvent,
+                ConnectionStageChangedEvent,
                 CircuitBreakerStateChangedEvent,
             ]
         )
         event_bus.subscribe(
-            event_type=ConnectionStageEvent,
+            event_type=ConnectionStageChangedEvent,
             event_key=None,
             handler=sequence.on_event,
         )
@@ -378,7 +378,7 @@ class TestEventSequenceAssertion:
         )
 
         await event_bus.publish(
-            event=ConnectionStageEvent(
+            event=ConnectionStageChangedEvent(
                 timestamp=datetime.now(),
                 interface_id="rf",
                 stage=ConnectionStage.TCP_AVAILABLE,
@@ -405,12 +405,12 @@ class TestEventSequenceAssertion:
         """Test non-strict subsequence fails when event missing."""
         sequence = EventSequenceAssertion(
             expected_sequence=[
-                ConnectionStageEvent,
+                ConnectionStageChangedEvent,
                 CircuitBreakerStateChangedEvent,
             ]
         )
         sequence.captured_types = [
-            ConnectionStageEvent,
+            ConnectionStageChangedEvent,
             DataRefreshCompletedEvent,
         ]
 
@@ -421,13 +421,13 @@ class TestEventSequenceAssertion:
         """Test non-strict subsequence verification passes."""
         sequence = EventSequenceAssertion(
             expected_sequence=[
-                ConnectionStageEvent,
+                ConnectionStageChangedEvent,
                 CircuitBreakerStateChangedEvent,
             ]
         )
         # Extra events interspersed
         sequence.captured_types = [
-            ConnectionStageEvent,
+            ConnectionStageChangedEvent,
             DataRefreshCompletedEvent,
             CircuitBreakerStateChangedEvent,
             DataRefreshCompletedEvent,

@@ -71,8 +71,8 @@ class EventBatch:
 ```python
 # Context manager for automatic flush
 async with EventBatch(bus=event_bus) as batch:
-    batch.add(event=DeviceUpdatedEvent(...))
-    batch.add(event=DeviceUpdatedEvent(...))
+    batch.add(event=DeviceStateChangedEvent(...))
+    batch.add(event=DeviceStateChangedEvent(...))
     # Events published when context exits
 
 # Or manual usage

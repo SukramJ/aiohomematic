@@ -152,7 +152,7 @@ class EventMetrics:
     """Number of RequestCoalescedEvent events."""
 
     health_records: int = 0
-    """Number of HealthRecordEvent events."""
+    """Number of HealthRecordedEvent events."""
 
     @property
     def error_rate(self) -> float:

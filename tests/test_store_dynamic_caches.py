@@ -21,14 +21,14 @@ import pytest
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central.event_bus import EventBus
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.const import ParamsetKey, PingPongMismatchType
 from aiohomematic.store import CommandCache, PingPongCache
 
 
-def get_ping_pong_info(event: SystemStatusEvent) -> tuple[str | None, str | None, int | None, bool]:
+def get_ping_pong_info(event: SystemStatusChangedEvent) -> tuple[str | None, str | None, int | None, bool]:
     """
-    Extract ping pong mismatch info from SystemStatusEvent.
+    Extract ping pong mismatch info from SystemStatusChangedEvent.
 
     Returns (interface_id, mismatch_type, mismatch_count, acceptable).
     """
@@ -52,11 +52,11 @@ class _CapturingEventBus(EventBus):
 
     def __init__(self) -> None:
         super().__init__()
-        self.captured_events: list[SystemStatusEvent] = []
+        self.captured_events: list[SystemStatusChangedEvent] = []
 
     def publish_sync(self, *, event: Any) -> None:
-        """Capture SystemStatusEvents before publishing."""
-        if isinstance(event, SystemStatusEvent):
+        """Capture SystemStatusChangedEvents before publishing."""
+        if isinstance(event, SystemStatusChangedEvent):
             self.captured_events.append(event)
         super().publish_sync(event=event)
 
@@ -78,7 +78,7 @@ class CentralStub:
         return self._event_bus
 
     @property
-    def events(self) -> list[SystemStatusEvent]:
+    def events(self) -> list[SystemStatusChangedEvent]:
         """Return captured events."""
         return self._event_bus.captured_events
 

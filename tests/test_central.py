@@ -14,7 +14,7 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.central import CentralConfig, _SchedulerJob, check_config as central_check_config
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
@@ -765,7 +765,7 @@ class TestCentralCallbacksAndServices:
         import asyncio
         from datetime import datetime
 
-        from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusEvent
+        from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusChangedEvent
 
         central, _, factory = central_client_factory_with_homegear_client
         issue = IntegrationIssue(
@@ -775,20 +775,20 @@ class TestCentralCallbacksAndServices:
             translation_placeholders=(("interface_id", "SOME_ID"),),
         )
         central.event_bus.publish_sync(
-            event=SystemStatusEvent(
+            event=SystemStatusChangedEvent(
                 timestamp=datetime.now(),
                 issues=(issue,),
             )
         )
         # Wait for async event bus publish to complete
         await asyncio.sleep(0.1)
-        # Verify that the ha_event_mock received a SystemStatusEvent with an issue
+        # Verify that the ha_event_mock received a SystemStatusChangedEvent with an issue
         assert factory.ha_event_mock.called
-        # Find SystemStatusEvent calls with issues (filter out state change events)
+        # Find SystemStatusChangedEvent calls with issues (filter out state change events)
         issue_events = [
             call[0][0]
             for call in factory.ha_event_mock.call_args_list
-            if isinstance(call[0][0], SystemStatusEvent) and call[0][0].issues
+            if isinstance(call[0][0], SystemStatusChangedEvent) and call[0][0].issues
         ]
         assert len(issue_events) >= 1
         event = issue_events[-1]
@@ -942,13 +942,13 @@ class TestCentralPingPong:
         assert len(client.ping_pong_cache._pending) == max_count
         # Wait for async event bus publish to complete
         await asyncio.sleep(0.1)
-        # Verify the ha_event_mock received a SystemStatusEvent with an IntegrationIssue
+        # Verify the ha_event_mock received a SystemStatusChangedEvent with an IntegrationIssue
         assert factory.ha_event_mock.called
-        # Find SystemStatusEvent calls with issues (filter out state change events)
+        # Find SystemStatusChangedEvent calls with issues (filter out state change events)
         issue_events = [
             call[0][0]
             for call in factory.ha_event_mock.call_args_list
-            if isinstance(call[0][0], SystemStatusEvent) and call[0][0].issues
+            if isinstance(call[0][0], SystemStatusChangedEvent) and call[0][0].issues
         ]
         assert len(issue_events) >= 1
         event = issue_events[-1]

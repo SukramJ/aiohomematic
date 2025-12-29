@@ -57,7 +57,7 @@ class MetricEvent(Event):
     Full metric key identifying this metric.
 
     Pattern: {component}.{metric}.{identifier}
-    Examples: "ping_pong.rtt.hmip_rf", "cache.data.hit", "handler.execution.DataPointUpdatedEvent"
+    Examples: "ping_pong.rtt.hmip_rf", "cache.data.hit", "handler.execution.DataPointValueReceivedEvent"
     """
 
     @property

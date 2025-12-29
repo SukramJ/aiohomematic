@@ -21,7 +21,7 @@ import logging
 from typing import Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.event_bus import ProgramExecutedEvent, SysvarUpdatedEvent
+from aiohomematic.central.event_bus import ProgramExecutedEvent, SysvarStateChangedEvent
 from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.central import (
@@ -178,13 +178,13 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             self._state_path_to_name[sysvar_data_point.state_path] = sysvar_data_point.vid
 
             # Add event subscription for this sysvar via EventBus with filtering
-            async def event_handler(*, event: SysvarUpdatedEvent) -> None:
+            async def event_handler(*, event: SysvarStateChangedEvent) -> None:
                 """Filter and handle sysvar events."""
                 if event.state_path == sysvar_data_point.state_path:
                     await sysvar_data_point.event(value=event.value, received_at=event.received_at)
 
             self._event_bus_provider.event_bus.subscribe(
-                event_type=SysvarUpdatedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
+                event_type=SysvarStateChangedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
             )
 
     def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:

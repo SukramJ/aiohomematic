@@ -170,7 +170,7 @@ sequenceDiagram
   else Normal parameter event
     EC->>EC: create DataPointKey(dpk)
 
-    EC->>EB: publish(DataPointUpdatedEvent)
+    EC->>EB: publish(DataPointValueReceivedEvent)
 
     Note over EB: Dual-key handler lookup
     EB->>EB: lookup handlers by event.key (dpk)
@@ -197,7 +197,7 @@ sequenceDiagram
 ### Notes
 
 - RPCFunctions schedules async tasks via looper to avoid blocking the XML-RPC callback thread.
-- EventCoordinator creates typed events (DataPointUpdatedEvent) with DataPointKey for filtering.
+- EventCoordinator creates typed events (DataPointValueReceivedEvent) with DataPointKey for filtering.
 - EventBus uses dual-key lookup: specific key (dpk) first, then wildcard (None) fallback.
 - Handlers run concurrently via asyncio.gather with error isolation (one failure doesn't affect others).
 - Both async and sync handlers are supported transparently.
@@ -349,12 +349,12 @@ VALID_CENTRAL_TRANSITIONS = {
 
 ### Event emission
 
-State changes are published to external integrations via the `SystemStatusEvent`:
+State changes are published to external integrations via the `SystemStatusChangedEvent`:
 
 ```python
-from aiohomematic.central.integration_events import SystemStatusEvent, SystemStatusEventType
+from aiohomematic.central.integration_events import SystemStatusChangedEvent, SystemStatusChangedEventType
 
-# SystemStatusEvent is emitted for integration consumers (e.g., Home Assistant)
+# SystemStatusChangedEvent is emitted for integration consumers (e.g., Home Assistant)
 # with status_type indicating the nature of the change
 ```
 
@@ -379,16 +379,16 @@ sequenceDiagram
   participant Pub as Publisher
 
   Note over Sub,EB: Subscription phase
-  Sub->>EB: subscribe(DataPointUpdatedEvent, dpk, handler1)
+  Sub->>EB: subscribe(DataPointValueReceivedEvent, dpk, handler1)
   EB->>EB: _subscriptions[event_type][event_key].append(handler)
   EB-->>Sub: unsubscribe_callback
 
-  Sub->>EB: subscribe(DataPointUpdatedEvent, None, handler2)
+  Sub->>EB: subscribe(DataPointValueReceivedEvent, None, handler2)
   Note over EB: None key = wildcard subscriber
   EB-->>Sub: unsubscribe_callback
 
   Note over Pub,EB: Publishing phase
-  Pub->>EB: publish(DataPointUpdatedEvent(dpk, value))
+  Pub->>EB: publish(DataPointValueReceivedEvent(dpk, value))
 
   EB->>EB: lookup handlers by event.key
   alt specific key found
@@ -419,20 +419,20 @@ sequenceDiagram
 
 ### Event types
 
-| Event                         | Key             | Description                         |
-| ----------------------------- | --------------- | ----------------------------------- |
-| DataPointUpdatedEvent         | DataPointKey    | Backend data point value update     |
-| BackendParameterEvent         | DataPointKey    | Raw parameter event from RPC        |
-| DataPointStatusUpdatedEvent   | DataPointKey    | Data point availability status      |
-| SysvarUpdatedEvent            | state_path      | System variable update              |
-| DeviceUpdatedEvent            | device_address  | Device state update                 |
-| FirmwareUpdatedEvent          | device_address  | Firmware info update                |
-| LinkPeerChangedEvent          | channel_address | Channel link changes                |
-| DataPointUpdatedCallbackEvent | unique_id       | External integration notification   |
-| DeviceRemovedEvent            | unique_id       | Device/data point removal           |
-| SystemStatusEvent             | None            | System status changes (integration) |
-| DeviceLifecycleEvent          | None            | Device lifecycle (created, removed) |
-| DeviceTriggerEvent            | None            | Device triggers (KEYPRESS, etc.)    |
+| Event                        | Key             | Description                         |
+| ---------------------------- | --------------- | ----------------------------------- |
+| DataPointValueReceivedEvent  | DataPointKey    | Backend data point value update     |
+| RpcParameterReceivedEvent    | DataPointKey    | Raw parameter event from RPC        |
+| DataPointStatusReceivedEvent | DataPointKey    | Data point availability status      |
+| SysvarStateChangedEvent      | state_path      | System variable update              |
+| DeviceStateChangedEvent      | device_address  | Device state update                 |
+| FirmwareStateChangedEvent    | device_address  | Firmware info update                |
+| LinkPeerChangedEvent         | channel_address | Channel link changes                |
+| DataPointStateChangedEvent   | unique_id       | External integration notification   |
+| DeviceRemovedEvent           | unique_id       | Device/data point removal           |
+| SystemStatusChangedEvent     | None            | System status changes (integration) |
+| DeviceLifecycleEvent         | None            | Device lifecycle (created, removed) |
+| DeviceTriggerEvent           | None            | Device triggers (KEYPRESS, etc.)    |
 
 ### Notes
 
@@ -597,7 +597,7 @@ sequenceDiagram
 
         CX->>SM: transition_to(CONNECTED)
         CX->>CS: remove_issue(interface_id)
-        CS->>EB: publish(SystemStatusEvent)
+        CS->>EB: publish(SystemStatusChangedEvent)
 
         CX-->>Sched: reconnected
 
@@ -1197,7 +1197,7 @@ flowchart TB
     HT -->|health status| CSM
     HT -->|failed_clients| RC
     RC -->|transition_to| CSM
-    CSM -->|SystemStatusEvent| EB
+    CSM -->|SystemStatusChangedEvent| EB
 
     EB -->|state updates| HT
     HT -->|update health| HT
@@ -1213,7 +1213,7 @@ flowchart TB
 3. **Health update**: HealthTracker updates ConnectionHealth for the interface
 4. **Central state evaluation**: CentralHealth determines if state change is needed
 5. **Central transition**: CentralStateMachine transitions (e.g., RUNNING → DEGRADED)
-6. **Central event**: SystemStatusEvent emitted for external consumers (e.g., Home Assistant)
+6. **Central event**: SystemStatusChangedEvent emitted for external consumers (e.g., Home Assistant)
 
 ### Key decision points
 

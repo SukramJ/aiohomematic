@@ -42,7 +42,7 @@ Public API
 - EventPriority: Enum for handler priority levels
 - HandlerStats: Statistics for event handler execution tracking
 - Event: Base class for all events
-- Various event types: DataPointUpdatedEvent, DeviceUpdatedEvent, etc.
+- Various event types: DataPointValueReceivedEvent, DeviceStateChangedEvent, etc.
 
 Example Usage
 -------------
@@ -50,32 +50,32 @@ Example Usage
         EventBus,
         EventBatch,
         EventPriority,
-        DataPointUpdatedEvent,
+        DataPointValueReceivedEvent,
     )
     from aiohomematic.const import DataPointKey, ParamsetKey
 
     bus = EventBus()
 
     # Subscribe with default priority (note: event is keyword-only)
-    async def on_data_point_updated(*, event: DataPointUpdatedEvent) -> None:
+    async def on_data_point_updated(*, event: DataPointValueReceivedEvent) -> None:
         print(f"DataPoint {event.dpk} updated to {event.value}")
 
     unsubscribe = bus.subscribe(
-        event_type=DataPointUpdatedEvent,
+        event_type=DataPointValueReceivedEvent,
         event_key=None,
         handler=on_data_point_updated,
     )
 
     # Subscribe with high priority (called before normal handlers)
     unsubscribe_high = bus.subscribe(
-        event_type=DataPointUpdatedEvent,
+        event_type=DataPointValueReceivedEvent,
         event_key=None,
         handler=on_data_point_updated,
         priority=EventPriority.HIGH,
     )
 
     # Publish single event
-    await bus.publish(event=DataPointUpdatedEvent(
+    await bus.publish(event=DataPointValueReceivedEvent(
         timestamp=datetime.now(),
         dpk=DataPointKey(
             interface_id="BidCos-RF",
@@ -89,8 +89,8 @@ Example Usage
 
     # Batch publish multiple events (more efficient)
     async with EventBatch(bus=bus) as batch:
-        batch.add(event=DeviceUpdatedEvent(timestamp=now, device_address="VCU001"))
-        batch.add(event=DeviceUpdatedEvent(timestamp=now, device_address="VCU002"))
+        batch.add(event=DeviceStateChangedEvent(timestamp=now, device_address="VCU001"))
+        batch.add(event=DeviceStateChangedEvent(timestamp=now, device_address="VCU002"))
         # Events are published when context exits
 
     # Unsubscribe when done
@@ -263,7 +263,7 @@ class Event(ABC):
 
 
 @dataclass(frozen=True, slots=True)
-class DataPointUpdatedEvent(Event):
+class DataPointValueReceivedEvent(Event):
     """
     Fired when a data point value is updated from the backend.
 
@@ -287,7 +287,7 @@ class DataPointUpdatedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class DataPointStatusUpdatedEvent(Event):
+class DataPointStatusReceivedEvent(Event):
     """
     Fired when a STATUS parameter value is updated from the backend.
 
@@ -309,7 +309,7 @@ class DataPointStatusUpdatedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class BackendParameterEvent(Event):
+class RpcParameterReceivedEvent(Event):
     """
     Raw parameter update event from backend (re-published from RPC callbacks).
 
@@ -338,9 +338,9 @@ class BackendParameterEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class SysvarUpdatedEvent(Event):
+class SysvarStateChangedEvent(Event):
     """
-    System variable value updated.
+    System variable state has changed.
 
     Key is the state path.
     """
@@ -356,9 +356,9 @@ class SysvarUpdatedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class DeviceUpdatedEvent(Event):
+class DeviceStateChangedEvent(Event):
     """
-    Device state has been updated.
+    Device state has changed.
 
     Key is device_address.
     """
@@ -372,9 +372,9 @@ class DeviceUpdatedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class FirmwareUpdatedEvent(Event):
+class FirmwareStateChangedEvent(Event):
     """
-    Device firmware information has been updated.
+    Device firmware state has changed.
 
     Key is device_address.
     """
@@ -404,7 +404,7 @@ class LinkPeerChangedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class DataPointUpdatedCallbackEvent(Event):
+class DataPointStateChangedEvent(Event):
     """
     Data point value updated callback event.
 
@@ -412,7 +412,7 @@ class DataPointUpdatedCallbackEvent(Event):
 
     This event is fired when a data point's value changes and external
     consumers (like Home Assistant data points) need to be notified.
-    Unlike DataPointUpdatedEvent which handles internal backend updates,
+    Unlike DataPointValueReceivedEvent which handles internal backend updates,
     this event is for external integration points.
     """
 
@@ -464,7 +464,7 @@ class DeviceRemovedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class ConnectionStageEvent(Event):
+class ConnectionStageChangedEvent(Event):
     """
     Connection reconnection stage progression.
 
@@ -491,7 +491,7 @@ class ConnectionStageEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class ConnectionHealthEvent(Event):
+class ConnectionHealthChangedEvent(Event):
     """
     Connection health status update.
 
@@ -743,7 +743,7 @@ class RequestCoalescedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class HealthRecordEvent(Event):
+class HealthRecordedEvent(Event):
     """
     Health status recorded for an interface.
 
@@ -812,7 +812,7 @@ class RecoveryStageChangedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
-class RecoveryAttemptEvent(Event):
+class RecoveryAttemptedEvent(Event):
     """
     Recovery attempt completed.
 
@@ -1082,7 +1082,7 @@ class EventBus:
 
         Handler lookup strategy (dual-key fallback):
             1. First try: Look up handlers by specific event.key
-               (e.g., unique_id for DataPointUpdatedEvent)
+               (e.g., unique_id for DataPointValueReceivedEvent)
             2. Fallback: Look up handlers subscribed with key=None
                (wildcard subscribers that receive all events of this type)
 
@@ -1116,7 +1116,7 @@ class EventBus:
             )
         ):
             if self._enable_event_logging:
-                if isinstance(event, BackendParameterEvent):
+                if isinstance(event, RpcParameterReceivedEvent):
                     _LOGGER.debug(
                         "PUBLISH: No subscribers for %s: %s [%s]",
                         event_type.__name__,
@@ -1172,9 +1172,9 @@ class EventBus:
         Example:
         -------
             events = [
-                DeviceUpdatedEvent(timestamp=now, device_address="VCU001"),
-                DeviceUpdatedEvent(timestamp=now, device_address="VCU002"),
-                DeviceUpdatedEvent(timestamp=now, device_address="VCU003"),
+                DeviceStateChangedEvent(timestamp=now, device_address="VCU001"),
+                DeviceStateChangedEvent(timestamp=now, device_address="VCU002"),
+                DeviceStateChangedEvent(timestamp=now, device_address="VCU003"),
             ]
             await bus.publish_batch(events=events)
 
@@ -1292,15 +1292,15 @@ class EventBus:
 
         Example:
         -------
-            async def on_update(*, event: DataPointUpdatedEvent) -> None:
+            async def on_update(*, event: DataPointValueReceivedEvent) -> None:
                 print(f"Updated: {event.dpk}")
 
             # Subscribe with default priority
-            unsubscribe = bus.subscribe(event_type=DataPointUpdatedEvent, handler=on_update)
+            unsubscribe = bus.subscribe(event_type=DataPointValueReceivedEvent, handler=on_update)
 
             # Subscribe with high priority
             unsubscribe = bus.subscribe(
-                event_type=DataPointUpdatedEvent,
+                event_type=DataPointValueReceivedEvent,
                 handler=on_update,
                 priority=EventPriority.HIGH,
             )
@@ -1410,8 +1410,8 @@ class EventBatch:
     Example Usage
     -------------
         async with EventBatch(bus=event_bus) as batch:
-            batch.add(DeviceUpdatedEvent(timestamp=now, device_address="VCU001"))
-            batch.add(DeviceUpdatedEvent(timestamp=now, device_address="VCU002"))
+            batch.add(DeviceStateChangedEvent(timestamp=now, device_address="VCU001"))
+            batch.add(DeviceStateChangedEvent(timestamp=now, device_address="VCU002"))
             # Events are published when the context exits
 
         # Or with manual flush:

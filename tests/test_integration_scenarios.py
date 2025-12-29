@@ -17,7 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from aiohomematic.central.event_bus import DataPointUpdatedEvent
+from aiohomematic.central.event_bus import DataPointValueReceivedEvent
 from aiohomematic.const import DataPointKey, ParamsetKey
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
@@ -156,8 +156,8 @@ class TestEventSubscriptionWorkflow:
         from aiohomematic.central.event_bus import EventBus
 
         bus = EventBus()
-        device1_events: list[DataPointUpdatedEvent] = []
-        device2_events: list[DataPointUpdatedEvent] = []
+        device1_events: list[DataPointValueReceivedEvent] = []
+        device2_events: list[DataPointValueReceivedEvent] = []
 
         dpk1 = DataPointKey(
             interface_id="BidCos-RF",
@@ -172,17 +172,17 @@ class TestEventSubscriptionWorkflow:
             parameter="STATE",
         )
 
-        def handler1(event: DataPointUpdatedEvent) -> None:
+        def handler1(event: DataPointValueReceivedEvent) -> None:
             device1_events.append(event)
 
-        def handler2(event: DataPointUpdatedEvent) -> None:
+        def handler2(event: DataPointValueReceivedEvent) -> None:
             device2_events.append(event)
 
-        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk1, handler=handler1)
-        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk2, handler=handler2)
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk1, handler=handler1)
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk2, handler=handler2)
 
         # Publish event for device 1
-        event1 = DataPointUpdatedEvent(
+        event1 = DataPointValueReceivedEvent(
             timestamp=datetime.now(),
             dpk=dpk1,
             value=True,
@@ -191,7 +191,7 @@ class TestEventSubscriptionWorkflow:
         await bus.publish(event=event1)
 
         # Publish event for device 2
-        event2 = DataPointUpdatedEvent(
+        event2 = DataPointValueReceivedEvent(
             timestamp=datetime.now(),
             dpk=dpk2,
             value=False,
@@ -211,7 +211,7 @@ class TestEventSubscriptionWorkflow:
         from aiohomematic.central.event_bus import EventBus
 
         bus = EventBus()
-        received_events: list[DataPointUpdatedEvent] = []
+        received_events: list[DataPointValueReceivedEvent] = []
 
         # Create data point key
         dpk = DataPointKey(
@@ -222,20 +222,20 @@ class TestEventSubscriptionWorkflow:
         )
 
         # Subscribe
-        def handler(event: DataPointUpdatedEvent) -> None:
+        def handler(event: DataPointValueReceivedEvent) -> None:
             received_events.append(event)
 
         unsubscribe = bus.subscribe(
-            event_type=DataPointUpdatedEvent,
+            event_type=DataPointValueReceivedEvent,
             event_key=dpk,
             handler=handler,
         )
 
         # Verify subscription is active
-        assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 1
+        assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 1
 
         # Publish event
-        event = DataPointUpdatedEvent(
+        event = DataPointValueReceivedEvent(
             timestamp=datetime.now(),
             dpk=dpk,
             value=True,
@@ -249,7 +249,7 @@ class TestEventSubscriptionWorkflow:
 
         # Unsubscribe
         unsubscribe()
-        assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 0
+        assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
 
         # Publish again - should not be received
         await bus.publish(event=event)
@@ -261,10 +261,10 @@ class TestConnectionStateWorkflow:
 
     @pytest.mark.asyncio
     async def test_connection_state_event_on_issue(self) -> None:
-        """Test that SystemStatusEvent with connection_state is published on issues."""
+        """Test that SystemStatusChangedEvent with connection_state is published on issues."""
         from aiohomematic.central import CentralConnectionState
         from aiohomematic.central.event_bus import EventBus
-        from aiohomematic.central.integration_events import SystemStatusEvent
+        from aiohomematic.central.integration_events import SystemStatusChangedEvent
         from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 
         # Create event bus and mock provider
@@ -276,15 +276,15 @@ class TestConnectionStateWorkflow:
                 return event_bus
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
-        received_events: list[SystemStatusEvent] = []
+        received_events: list[SystemStatusChangedEvent] = []
 
-        def on_state_change(event: SystemStatusEvent) -> None:
+        def on_state_change(event: SystemStatusChangedEvent) -> None:
             if event.connection_state:  # Filter for connection state events
                 received_events.append(event)
 
         # Subscribe to events
         unsubscribe = event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,  # Subscribe to all events
             handler=on_state_change,
         )
@@ -363,10 +363,10 @@ class TestConcurrentOperations:
         from aiohomematic.central.event_bus import EventBus
 
         bus = EventBus()
-        received_events: list[DataPointUpdatedEvent] = []
+        received_events: list[DataPointValueReceivedEvent] = []
         lock = asyncio.Lock()
 
-        async def handler(event: DataPointUpdatedEvent) -> None:
+        async def handler(event: DataPointValueReceivedEvent) -> None:
             async with lock:
                 received_events.append(event)
 
@@ -376,11 +376,11 @@ class TestConcurrentOperations:
             paramset_key=ParamsetKey.VALUES,
             parameter="STATE",
         )
-        bus.subscribe(event_type=DataPointUpdatedEvent, event_key=dpk, handler=handler)
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk, handler=handler)
 
         # Publish many events concurrently
         events = [
-            DataPointUpdatedEvent(
+            DataPointValueReceivedEvent(
                 timestamp=datetime.now(),
                 dpk=dpk,
                 value=i,
@@ -411,13 +411,13 @@ class TestConcurrentOperations:
 
         unsubscribe_funcs: list[Any] = []
 
-        def handler(event: DataPointUpdatedEvent) -> None:
+        def handler(event: DataPointValueReceivedEvent) -> None:
             pass
 
         async def subscribe_task() -> None:
             for _ in range(50):
                 unsub = bus.subscribe(
-                    event_type=DataPointUpdatedEvent,
+                    event_type=DataPointValueReceivedEvent,
                     event_key=dpk,
                     handler=handler,
                 )
@@ -446,7 +446,7 @@ class TestConcurrentOperations:
             unsub()
 
         # Final state should be consistent
-        assert bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 0
+        assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
 
 
 class TestRetryIntegration:

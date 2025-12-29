@@ -36,7 +36,7 @@ from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import HealthRecordEvent
+    from aiohomematic.central.event_bus import HealthRecordedEvent
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -104,10 +104,10 @@ class ClientCoordinator(ClientProviderProtocol):
 
         # Subscribe to health record events from circuit breakers
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import HealthRecordEvent  # noqa: PLC0415
+        from aiohomematic.central.event_bus import HealthRecordedEvent  # noqa: PLC0415
 
         self._unsubscribe_health_record = self._event_bus_provider.event_bus.subscribe(
-            event_type=HealthRecordEvent,
+            event_type=HealthRecordedEvent,
             event_key=None,
             handler=self._on_health_record_event,
         )
@@ -455,7 +455,7 @@ class ClientCoordinator(ClientProviderProtocol):
                     "INIT_CLIENTS: client %s initialized for %s", client.interface_id, self._central_info.name
                 )
 
-    def _on_health_record_event(self, *, event: HealthRecordEvent) -> None:
+    def _on_health_record_event(self, *, event: HealthRecordedEvent) -> None:
         """
         Handle health record events from circuit breakers.
 

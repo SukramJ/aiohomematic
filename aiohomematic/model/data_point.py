@@ -952,6 +952,10 @@ class BaseParameterDataPoint[
         if self.is_readable and self._paramset_key == ParamsetKey.MASTER:
             await self.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
+    def set_last_active_value(self, *, value: ParameterT | None) -> None:
+        """Set the last active value."""
+        self._last_active_value = value
+
     def update_parameter_data(self) -> None:
         """Update parameter data."""
         if parameter_data := self._paramset_description_provider.get_parameter_data(

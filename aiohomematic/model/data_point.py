@@ -953,7 +953,7 @@ class BaseParameterDataPoint[
             await self.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
     def set_last_non_default_value(self, *, value: ParameterT | None) -> None:
-        """Set the last active value."""
+        """Set the last non default value."""
         self._last_non_default_value = value
 
     def update_parameter_data(self) -> None:

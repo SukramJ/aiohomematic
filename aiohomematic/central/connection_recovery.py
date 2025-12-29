@@ -769,6 +769,11 @@ class ConnectionRecoveryCoordinator:
         # Transition central to RECOVERING
         self._transition_to_recovering()
 
+        # Clear JSON-RPC session to force re-authentication
+        # This prevents auth errors from stale sessions during recovery
+        if client := self._client_provider.get_client(interface_id=interface_id):
+            client.clear_json_rpc_session()
+
         try:
             async with self._recovery_semaphore:
                 success = await self._execute_recovery_stages(interface_id=interface_id)

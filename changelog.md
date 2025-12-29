@@ -55,7 +55,7 @@
   - `aiohomematic/central/recovery.py`
   - `aiohomematic/metrics/service.py`
 - **Removed deprecated exports from `aiohomematic.metrics`**: `record_service_call`, `get_service_stats`, `clear_service_stats`
-- **BaseParameterDataPoint**: Renamed `previous_value` to `last_active_value` with changed semantics
+- **BaseParameterDataPoint**: Renamed `previous_value` to `last_non_default_value` with changed semantics
   - Now stores only meaningful (non-default) values instead of the immediate previous value
   - Enables "restore last brightness" feature for dimmers - stores last non-zero level
   - Hub data points (sysvar, metrics, inbox) use separate caching for refresh/modify detection

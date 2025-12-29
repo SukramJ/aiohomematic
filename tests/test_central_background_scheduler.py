@@ -156,7 +156,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -187,7 +186,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         # Before start: scheduler should not be active
@@ -224,7 +222,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -262,7 +259,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -301,7 +297,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         assert scheduler.is_active is False
@@ -334,7 +329,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -372,7 +366,6 @@ class TestBackgroundSchedulerEventHandling:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         assert scheduler.devices_created is False
@@ -414,7 +407,6 @@ class TestBackgroundSchedulerEventHandling:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         assert scheduler.devices_created is False
@@ -461,7 +453,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -495,7 +486,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -531,7 +521,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -563,7 +552,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -600,7 +588,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -647,7 +634,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -686,7 +672,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central.hub_coordinator,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         scheduler._devices_created_event.set()
@@ -725,7 +710,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central.hub_coordinator,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         scheduler._devices_created_event.set()
@@ -810,7 +794,6 @@ class TestSchedulerLoopExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -849,7 +832,6 @@ class TestSchedulerLoopExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -882,7 +864,6 @@ class TestSchedulerLoopExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 
@@ -928,7 +909,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         central.load_and_refresh_data_point_data = AsyncMock()
@@ -964,7 +944,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         central.load_and_refresh_data_point_data = AsyncMock()
@@ -999,7 +978,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         central.load_and_refresh_data_point_data = AsyncMock()
@@ -1035,7 +1013,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         assert scheduler.devices_created is False
@@ -1072,7 +1049,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         central.hub_coordinator.fetch_program_data = AsyncMock()
@@ -1108,7 +1084,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         assert scheduler.devices_created is False
@@ -1145,7 +1120,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         central.hub_coordinator.fetch_sysvar_data = AsyncMock()
@@ -1185,7 +1159,6 @@ class TestSchedulerFirmwareChecks:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         scheduler._devices_created_event.set()
@@ -1220,7 +1193,6 @@ class TestSchedulerFirmwareChecks:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         scheduler._devices_created_event.set()
@@ -1255,7 +1227,6 @@ class TestSchedulerFirmwareChecks:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
         scheduler._devices_created_event.set()
@@ -1372,7 +1343,6 @@ class TestSchedulerErrorRecovery:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            json_rpc_client_provider=central,
             state_provider=central,
         )
 

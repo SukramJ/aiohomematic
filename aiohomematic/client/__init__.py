@@ -424,6 +424,14 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self.modified_at = INIT_DATETIME
         return False
 
+    def clear_json_rpc_session(self) -> None:
+        """Clear the JSON-RPC session to force re-authentication on next request."""
+        self._json_rpc_client.clear_session()
+        _LOGGER.debug(
+            "CLEAR_JSON_RPC_SESSION: Session cleared for %s",
+            self.interface_id,
+        )
+
     async def create_backup_and_download(
         self,
         *,

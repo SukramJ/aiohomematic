@@ -337,6 +337,8 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         # Handle device lifecycle events
         if system_event == SystemEventType.DEVICES_CREATED:
             self._emit_devices_created_events(timestamp=timestamp, **kwargs)
+        elif system_event == SystemEventType.DEVICES_DELAYED:
+            self._emit_devices_delayed_event(timestamp=timestamp, **kwargs)
         elif system_event == SystemEventType.DELETE_DEVICES:
             self._emit_device_removed_event(timestamp=timestamp, **kwargs)
         elif system_event == SystemEventType.HUB_REFRESHED:
@@ -439,6 +441,29 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         self._task_scheduler.create_task(
             target=partial(_publish_events),
             name="event-bus-devices-created",
+        )
+
+    def _emit_devices_delayed_event(self, *, timestamp: datetime, **kwargs: Unpack[SystemEventArgs]) -> None:
+        """Emit DeviceLifecycleEvent for DEVICES_DELAYED."""
+        if not (new_addresses := kwargs.get("new_addresses", ())):
+            return
+
+        interface_id = kwargs.get("interface_id")
+
+        async def _publish_event() -> None:
+            """Publish devices delayed event."""
+            await self._event_bus.publish(
+                event=DeviceLifecycleEvent(
+                    timestamp=timestamp,
+                    event_type=DeviceLifecycleEventType.DELAYED,
+                    device_addresses=new_addresses,
+                    interface_id=interface_id,
+                )
+            )
+
+        self._task_scheduler.create_task(
+            target=partial(_publish_event),
+            name="event-bus-devices-delayed",
         )
 
     def _emit_hub_refreshed_event(self, *, timestamp: datetime, **kwargs: Unpack[HubRefreshedEventArgs]) -> None:

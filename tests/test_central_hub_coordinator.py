@@ -84,6 +84,9 @@ class _FakeHub:
     def __init__(self) -> None:
         """Initialize fake hub."""
 
+    async def fetch_inbox_data(self, *, scheduled: bool) -> None:
+        """Fetch inbox data."""
+
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data."""
 
@@ -835,7 +838,7 @@ class TestHubCoordinatorInitHub:
 
     @pytest.mark.asyncio
     async def test_init_hub(self) -> None:
-        """Init hub should fetch program and sysvar data."""
+        """Init hub should fetch program, sysvar, and inbox data."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
             central_info=central,
@@ -854,11 +857,13 @@ class TestHubCoordinatorInitHub:
         coordinator._hub = _FakeHub()
         coordinator._hub.fetch_program_data = AsyncMock()  # type: ignore[method-assign]
         coordinator._hub.fetch_sysvar_data = AsyncMock()  # type: ignore[method-assign]
+        coordinator._hub.fetch_inbox_data = AsyncMock()  # type: ignore[method-assign]
 
         await coordinator.init_hub()
 
         coordinator._hub.fetch_program_data.assert_called_once_with(scheduled=True)
         coordinator._hub.fetch_sysvar_data.assert_called_once_with(scheduled=True)
+        coordinator._hub.fetch_inbox_data.assert_called_once_with(scheduled=False)
 
 
 class TestHubCoordinatorIntegration:

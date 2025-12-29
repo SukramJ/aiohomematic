@@ -57,9 +57,9 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
     """Base class for metrics hub sensors."""
 
     __slots__ = (
+        "_cached_value",
         "_metrics_observer",
         "_name_data",
-        "_previous_value",
         "_sensor_name",
         "_state_uncertain",
     )
@@ -102,7 +102,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
             parameter_visibility_provider=parameter_visibility_provider,
         )
         self._state_uncertain: bool = True
-        self._previous_value: float = 0.0
+        self._cached_value: float = 0.0
 
     available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
@@ -133,8 +133,8 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
     def refresh(self, *, write_at: datetime) -> None:
         """Refresh the sensor value from metrics observer."""
         current_value = self._get_current_value()
-        if self._previous_value != current_value:
-            self._previous_value = current_value
+        if self._cached_value != current_value:
+            self._cached_value = current_value
             self._set_modified_at(modified_at=write_at)
         else:
             self._set_refreshed_at(refreshed_at=write_at)

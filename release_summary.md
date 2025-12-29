@@ -2,6 +2,17 @@
 
 ## What's Changed
 
+### Connection Recovery
+
+- **Unified Recovery Architecture**: New event-driven connection recovery coordinator
+  - Staged recovery process: TCP check → RPC check → Warmup → Stability check → Reconnect
+  - Automatic retry with exponential backoff (max 8 attempts)
+  - Parallel recovery support for multi-interface setups
+- **Fixed Authentication Errors**: JSON-RPC sessions are now cleared when recovery starts
+  - Prevents "access denied" errors after CCU restarts
+- **Device Inbox at Startup**: Inbox sensor now available immediately after integration start
+- **Repair Issues Restored**: Delayed device creation again triggers repair issues in HA
+
 ### Observability & Metrics
 
 - **Complete Event-Driven Metrics**: All components now emit metric events to EventBus instead of maintaining local state

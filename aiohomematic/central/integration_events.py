@@ -188,6 +188,7 @@ class DeviceLifecycleEventType(StrEnum):
     """Type of device lifecycle event."""
 
     CREATED = "created"
+    DELAYED = "delayed"
     UPDATED = "updated"
     REMOVED = "removed"
     AVAILABILITY_CHANGED = "availability_changed"
@@ -198,11 +199,11 @@ class DeviceLifecycleEvent(Event):
     """
     Device lifecycle and availability event.
 
-    Aggregates: SystemEventTypeData (DEVICES_CREATED, DEVICE_REMOVED),
+    Aggregates: SystemEventTypeData (DEVICES_CREATED, DEVICES_DELAYED, DEVICE_REMOVED),
     DeviceAvailabilityChangedEvent.
 
     **HA Registration Points**:
-    - `control_unit.py`: Device registry updates, virtual remotes
+    - `control_unit.py`: Device registry updates, virtual remotes, repair issues
     - `generic_entity.py`: Data point availability updates (optional)
 
     Example:
@@ -212,6 +213,14 @@ class DeviceLifecycleEvent(Event):
                 # Add to device registry
                 for device_address in event.device_addresses:
                     device_registry.async_get_or_create(...)
+
+            elif event.event_type == DeviceLifecycleEventType.DELAYED:
+                # Create repair issue for delayed device
+                for address in event.device_addresses:
+                    async_create_issue(
+                        issue_id=f"devices_delayed|{event.interface_id}|{address}",
+                        ...
+                    )
 
             elif event.event_type == DeviceLifecycleEventType.AVAILABILITY_CHANGED:
                 # Update data point availability
@@ -230,7 +239,7 @@ class DeviceLifecycleEvent(Event):
     event_type: DeviceLifecycleEventType
     """Type of device lifecycle event."""
 
-    # For CREATED/UPDATED/REMOVED
+    # For CREATED/UPDATED/REMOVED/DELAYED
     device_addresses: tuple[str, ...] = ()
     """Affected device addresses."""
 
@@ -241,6 +250,10 @@ class DeviceLifecycleEvent(Event):
     # For CREATED - includes virtual remotes flag
     includes_virtual_remotes: bool = False
     """Whether virtual remotes are included in this creation event."""
+
+    # For DELAYED - interface where devices were delayed
+    interface_id: str | None = None
+    """Interface ID for delayed device creation (used for repair issues)."""
 
     @property
     def key(self) -> Any:

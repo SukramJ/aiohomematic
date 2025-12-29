@@ -1,3 +1,67 @@
+# Version 2025.12.54 (2025-12-29)
+
+## What's Changed
+
+### Bug Fixes
+
+- **ConnectionRecoveryCoordinator**: Fixed JSON-RPC authentication failures during connection recovery
+
+  - Added `clear_json_rpc_session()` method to `Client` class
+  - Session is now cleared at recovery start to force re-authentication
+  - Prevents "access denied" errors when CCU restarts and invalidates existing sessions
+
+- **HubCoordinator**: Fixed inbox data not being fetched during initialization
+
+  - `init_hub()` now calls `fetch_inbox_data(scheduled=False)` alongside program/sysvar data
+  - This ensures the inbox sensor is created at startup and HA receives the `HUB_REFRESHED` event
+  - Previously, inbox data was only fetched by the scheduler after `sys_scan_interval`
+
+- **EventCoordinator**: Fixed `DEVICES_DELAYED` event not being forwarded to integrations
+  - Added `DeviceLifecycleEventType.DELAYED` to the enum
+  - Added `interface_id` field to `DeviceLifecycleEvent` for repair issue context
+  - Added handler in `publish_system_event()` to emit `DeviceLifecycleEvent` with `DELAYED` type
+  - This restores the repair issue flow for delayed device creation (broken since event migration in 2025.12.27)
+
+### New Features
+
+- **Unified Connection Recovery Coordinator**: New event-driven coordinator handling all connection recovery
+
+  - Located in `aiohomematic/central/connection_recovery.py`
+  - Replaces `SelfHealingCoordinator`, `RecoveryCoordinator`, and `BackgroundScheduler` recovery logic
+  - **Event-Driven Architecture**: Subscribes to `ConnectionLostEvent` and `CircuitBreakerTrippedEvent`
+  - **Staged Recovery Process**: TCP check → RPC check → Warmup → Stability check → Reconnect → Data load
+  - **Retry Management**: Exponential backoff with max 8 attempts, heartbeat retry in FAILED state
+  - **Parallel Recovery**: Throttled parallel recovery with semaphore (max 2 concurrent)
+  - **New Recovery Events**:
+    - `ConnectionLostEvent`: Emitted when connection is lost
+    - `RecoveryStageChangedEvent`: Tracks recovery stage transitions
+    - `RecoveryAttemptEvent`: Records each recovery attempt
+    - `RecoveryCompletedEvent`: Emitted on successful recovery
+    - `RecoveryFailedEvent`: Emitted when max retries reached
+    - `HeartbeatTimerFiredEvent`: Triggers heartbeat retries in FAILED state
+  - **New Enum**: `RecoveryStage` with 12 stages (IDLE, DETECTING, COOLDOWN, TCP_CHECKING, etc.)
+
+### Internal Changes
+
+- **CentralUnit**: Removed old `RecoveryCoordinator`, added new `ConnectionRecoveryCoordinator`
+- **MetricsAggregator**: Removed unused `recovery_coordinator` parameter
+- **BackgroundScheduler**: Refactored to detection-only architecture
+  - `_check_connection` now only detects connection issues and emits `ConnectionLostEvent`
+  - Removed `_handle_staged_reconnection`, `_load_data_with_retry`, and related recovery methods (~350 LOC)
+  - Removed `json_rpc_client_provider` parameter (no longer needed)
+  - All recovery logic now handled by `ConnectionRecoveryCoordinator`
+- **Removed deprecated files**:
+  - `aiohomematic/central/self_healing.py`
+  - `aiohomematic/central/recovery.py`
+  - `aiohomematic/metrics/service.py`
+- **Removed deprecated exports from `aiohomematic.metrics`**: `record_service_call`, `get_service_stats`, `clear_service_stats`
+- **BaseParameterDataPoint**: Renamed `previous_value` to `last_non_default_value` with changed semantics
+  - Now stores only meaningful (non-default) values instead of the immediate previous value
+  - Enables "restore last brightness" feature for dimmers - stores last non-zero level
+  - Hub data points (sysvar, metrics, inbox) use separate caching for refresh/modify detection
+
+---
+
 # Version 2025.12.53 (2025-12-28)
 
 ## What's Changed
@@ -99,7 +163,7 @@
 - **Removed `PingPongCache.latency_stats`**: Use MetricsObserver instead
 - **Removed `CentralDataCache.stats`**: Use MetricsObserver counters instead (new `.size` property for entry count)
 - **`CircuitBreaker` now accepts optional `event_bus`**: New optional parameter for metric event emission
-- **Service registry deprecated**: `record_service_call`, `get_service_stats`, `clear_service_stats` are deprecated; use MetricsObserver instead
+- **Service registry removed**: `record_service_call`, `get_service_stats`, `clear_service_stats` (deprecated in 2025.12.53) removed; use MetricsObserver instead
 - **`ClientStateMachine` now accepts optional `event_bus`**: New optional parameter for `ClientStateChangedEvent` emission
 - **`RequestCoalescer` now accepts optional `event_bus` and `interface_id`**: New optional parameters for `RequestCoalescedEvent` emission
 - **`ClientCoordinator` now requires `event_bus_provider`**: New mandatory parameter for subscribing to `HealthRecordEvent`

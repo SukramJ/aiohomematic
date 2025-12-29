@@ -120,6 +120,7 @@ from aiohomematic.const import (
     DataPointKey,
     FailureReason,
     ParamsetKey,
+    RecoveryStage,
 )
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
@@ -759,6 +760,157 @@ class HealthRecordEvent(Event):
     def key(self) -> Any:
         """Key identifier for this event."""
         return self.interface_id
+
+
+# =============================================================================
+# Connection Recovery Events (Phase 9)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionLostEvent(Event):
+    """
+    Connection loss detected for an interface.
+
+    Key is interface_id.
+
+    Emitted when the BackgroundScheduler detects a connection loss,
+    triggering the ConnectionRecoveryCoordinator to start recovery.
+    """
+
+    interface_id: str
+    reason: str
+    detected_at: datetime
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class RecoveryStageChangedEvent(Event):
+    """
+    Recovery stage transition.
+
+    Key is interface_id.
+
+    Emitted when the ConnectionRecoveryCoordinator transitions between
+    recovery stages. Enables fine-grained observability of the recovery process.
+    """
+
+    interface_id: str
+    old_stage: RecoveryStage
+    new_stage: RecoveryStage
+    duration_in_old_stage_ms: float
+    attempt_number: int
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class RecoveryAttemptEvent(Event):
+    """
+    Recovery attempt completed.
+
+    Key is interface_id.
+
+    Emitted after each recovery attempt, regardless of success or failure.
+    """
+
+    interface_id: str
+    attempt_number: int
+    max_attempts: int
+    stage_reached: RecoveryStage
+    success: bool
+    error_message: str | None
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
+
+
+@dataclass(frozen=True, slots=True)
+class RecoveryCompletedEvent(Event):
+    """
+    Recovery completed successfully.
+
+    Key is interface_id (or central_name for batch recovery).
+
+    Emitted when recovery succeeds for an interface or all interfaces.
+    """
+
+    interface_id: str | None
+    """Interface ID (None for batch recovery of multiple interfaces)."""
+
+    central_name: str
+    """Name of the central unit."""
+
+    total_attempts: int
+    total_duration_ms: float
+    stages_completed: tuple[RecoveryStage, ...]
+    interfaces_recovered: tuple[str, ...] | None = None
+    """List of recovered interfaces (for batch recovery)."""
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id or self.central_name
+
+
+@dataclass(frozen=True, slots=True)
+class RecoveryFailedEvent(Event):
+    """
+    Recovery failed after max retries.
+
+    Key is interface_id (or central_name for batch recovery).
+
+    Emitted when recovery fails for an interface or all interfaces,
+    indicating transition to FAILED state with heartbeat retry.
+    """
+
+    interface_id: str | None
+    """Interface ID (None for batch failure of multiple interfaces)."""
+
+    central_name: str
+    """Name of the central unit."""
+
+    total_attempts: int
+    total_duration_ms: float
+    last_stage_reached: RecoveryStage
+    failure_reason: FailureReason
+    requires_manual_intervention: bool
+    failed_interfaces: tuple[str, ...] | None = None
+    """List of failed interfaces (for batch recovery)."""
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id or self.central_name
+
+
+@dataclass(frozen=True, slots=True)
+class HeartbeatTimerFiredEvent(Event):
+    """
+    Heartbeat timer fired in FAILED state.
+
+    Key is central_name.
+
+    Emitted by the heartbeat timer when the system is in FAILED state,
+    triggering a retry attempt for failed interfaces.
+    """
+
+    central_name: str
+    interface_ids: tuple[str, ...]
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.central_name
 
 
 class EventBus:

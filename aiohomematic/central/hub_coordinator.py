@@ -395,10 +395,11 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         return None
 
     async def init_hub(self) -> None:
-        """Initialize the hub by fetching program, sysvar, install mode, and metrics data."""
+        """Initialize the hub by fetching program, sysvar, inbox, install mode, and metrics data."""
         _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central_info.name)
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
+        await self._hub.fetch_inbox_data(scheduled=False)
         await self._hub.init_install_mode()
         self._hub.init_metrics()
 

@@ -203,7 +203,7 @@ class Device:
 
 - [ADR-0002: Protocol-Based Dependency Injection](0002-protocol-based-dependency-injection.md)
 - [ADR-0003: Explicit over Composite Protocol Injection](0003-explicit-over-composite-protocol-injection.md)
-- [Architecture Review 2025-12](../architecture_review_2025_12.md)
+- [Architecture Overview](../architecture.md)
 
 ---
 

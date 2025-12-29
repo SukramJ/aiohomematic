@@ -177,6 +177,9 @@ class ClientConnectionProtocol(Protocol):
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
 
+    def clear_json_rpc_session(self) -> None:
+        """Clear the JSON-RPC session to force re-authentication on next request."""
+
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
 

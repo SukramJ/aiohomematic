@@ -567,7 +567,7 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
-    def last_active_value(self) -> ParameterT | None:
+    def last_non_default_value(self) -> ParameterT | None:
         """Return the last meaningful (non-default) value of the data point."""
 
     @property

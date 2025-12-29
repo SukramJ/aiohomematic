@@ -270,10 +270,10 @@ VIRTDEV_SET_PATH_ROOT: Final = "virtdev/set"
 VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
 
 # Metric sensor names
-METRICS_SENSOR_SYSTEM_HEALTH_NAME: Final = "System Health"
-METRICS_SENSOR_CONNECTION_LATENCY_NAME: Final = "Connection Latency"
-METRICS_SENSOR_LAST_EVENT_AGE_NAME: Final = "Last Event Age"
-INBOX_SENSOR_NAME: Final = "Inbox"
+METRICS_SENSOR_SYSTEM_HEALTH_NAME: Final = "system_health"
+METRICS_SENSOR_CONNECTION_LATENCY_NAME: Final = "connection_latency"
+METRICS_SENSOR_LAST_EVENT_AGE_NAME: Final = "last_event_age"
+INBOX_SENSOR_NAME: Final = "inbox"
 
 
 class Backend(StrEnum):

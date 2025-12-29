@@ -2,6 +2,20 @@
 
 ## What's Changed
 
+### Bug Fixes
+
+- **HubCoordinator**: Fixed inbox data not being fetched during initialization
+
+  - `init_hub()` now calls `fetch_inbox_data(scheduled=False)` alongside program/sysvar data
+  - This ensures the inbox sensor is created at startup and HA receives the `HUB_REFRESHED` event
+  - Previously, inbox data was only fetched by the scheduler after `sys_scan_interval`
+
+- **EventCoordinator**: Fixed `DEVICES_DELAYED` event not being forwarded to integrations
+  - Added `DeviceLifecycleEventType.DELAYED` to the enum
+  - Added `interface_id` field to `DeviceLifecycleEvent` for repair issue context
+  - Added handler in `publish_system_event()` to emit `DeviceLifecycleEvent` with `DELAYED` type
+  - This restores the repair issue flow for delayed device creation (broken since event migration in 2025.12.27)
+
 ### New Features
 
 - **Unified Connection Recovery Coordinator**: New event-driven coordinator handling all connection recovery

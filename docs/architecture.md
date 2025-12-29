@@ -225,7 +225,8 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 
 - [Data flow](data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
 - [Sequence diagrams](sequence_diagrams.md) (connect, discovery, propagation, state machines, health tracking, recovery)
-- [Architecture review](architecture_review_2025_12.md) comprehensive architecture evaluation and recommendations
+- [Event reference](event_reference.md) complete event type documentation
+- [Event-driven metrics](event_driven_metrics.md) metrics and observability architecture
 
 ## Architectural Decision Records (ADRs)
 

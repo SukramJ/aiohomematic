@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.central.state_machine import CentralStateMachine
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.state_machine import ClientStateMachine
@@ -208,14 +208,14 @@ class TestCentralStateMachineFailureReason:
         assert sm.failure_interface_id is None
 
 
-class TestSystemStatusEventFailureReason:
-    """Tests for SystemStatusEvent failure reason fields."""
+class TestSystemStatusChangedEventFailureReason:
+    """Tests for SystemStatusChangedEvent failure reason fields."""
 
     def test_event_with_failure_reason(self) -> None:
-        """Test creating SystemStatusEvent with failure reason."""
+        """Test creating SystemStatusChangedEvent with failure reason."""
         from datetime import datetime
 
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             central_state=CentralState.FAILED,
             failure_reason=FailureReason.AUTH,
@@ -226,10 +226,10 @@ class TestSystemStatusEventFailureReason:
         assert event.failure_interface_id == "HmIP-RF"
 
     def test_event_without_failure_reason(self) -> None:
-        """Test creating SystemStatusEvent without failure reason."""
+        """Test creating SystemStatusChangedEvent without failure reason."""
         from datetime import datetime
 
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             central_state=CentralState.RUNNING,
         )
@@ -255,12 +255,12 @@ class TestCentralStateMachineEventPublishing:
         )
 
         # Check that publish_sync was called with correct event
-        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
-        # So for 2 transitions, we have 4 calls total. The FAILED SystemStatusEvent is at index 2.
+        # Each transition emits 2 events: SystemStatusChangedEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The FAILED SystemStatusChangedEvent is at index 2.
         assert mock_event_bus.publish_sync.call_count == 4
         event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
-        assert isinstance(event, SystemStatusEvent)
+        assert isinstance(event, SystemStatusChangedEvent)
         assert event.central_state == CentralState.FAILED
         assert event.failure_reason == FailureReason.AUTH
         assert event.failure_interface_id == "HmIP-RF"
@@ -273,12 +273,12 @@ class TestCentralStateMachineEventPublishing:
         sm.transition_to(target=CentralState.INITIALIZING)
         sm.transition_to(target=CentralState.RUNNING)
 
-        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
-        # So for 2 transitions, we have 4 calls total. The RUNNING SystemStatusEvent is at index 2.
+        # Each transition emits 2 events: SystemStatusChangedEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The RUNNING SystemStatusChangedEvent is at index 2.
         assert mock_event_bus.publish_sync.call_count == 4
         event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
-        assert isinstance(event, SystemStatusEvent)
+        assert isinstance(event, SystemStatusChangedEvent)
         assert event.central_state == CentralState.RUNNING
         assert event.failure_reason is None
         assert event.failure_interface_id is None
@@ -344,15 +344,15 @@ class TestCentralStateMachineDegradedInterfaces:
         assert len(sm.degraded_interfaces) == 0
 
 
-class TestSystemStatusEventDegradedInterfaces:
-    """Tests for SystemStatusEvent degraded_interfaces field."""
+class TestSystemStatusChangedEventDegradedInterfaces:
+    """Tests for SystemStatusChangedEvent degraded_interfaces field."""
 
     def test_event_with_degraded_interfaces(self) -> None:
-        """Test creating SystemStatusEvent with degraded interfaces."""
+        """Test creating SystemStatusChangedEvent with degraded interfaces."""
         from datetime import datetime
 
         degraded = {"HmIP-RF": FailureReason.NETWORK, "BidCos-RF": FailureReason.AUTH}
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             central_state=CentralState.DEGRADED,
             degraded_interfaces=degraded,
@@ -364,10 +364,10 @@ class TestSystemStatusEventDegradedInterfaces:
         assert event.degraded_interfaces["BidCos-RF"] == FailureReason.AUTH
 
     def test_event_without_degraded_interfaces(self) -> None:
-        """Test creating SystemStatusEvent without degraded interfaces."""
+        """Test creating SystemStatusChangedEvent without degraded interfaces."""
         from datetime import datetime
 
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             central_state=CentralState.RUNNING,
         )
@@ -391,12 +391,12 @@ class TestCentralStateMachineDegradedEventPublishing:
         )
 
         # Check that publish_sync was called with correct event
-        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
-        # So for 2 transitions, we have 4 calls total. The DEGRADED SystemStatusEvent is at index 2.
+        # Each transition emits 2 events: SystemStatusChangedEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The DEGRADED SystemStatusChangedEvent is at index 2.
         assert mock_event_bus.publish_sync.call_count == 4
         event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
-        assert isinstance(event, SystemStatusEvent)
+        assert isinstance(event, SystemStatusChangedEvent)
         assert event.central_state == CentralState.DEGRADED
         assert event.degraded_interfaces is not None
         assert len(event.degraded_interfaces) == 1
@@ -410,11 +410,11 @@ class TestCentralStateMachineDegradedEventPublishing:
         sm.transition_to(target=CentralState.INITIALIZING)
         sm.transition_to(target=CentralState.RUNNING)
 
-        # Each transition emits 2 events: SystemStatusEvent, then CentralStateChangedEvent
-        # So for 2 transitions, we have 4 calls total. The RUNNING SystemStatusEvent is at index 2.
+        # Each transition emits 2 events: SystemStatusChangedEvent, then CentralStateChangedEvent
+        # So for 2 transitions, we have 4 calls total. The RUNNING SystemStatusChangedEvent is at index 2.
         assert mock_event_bus.publish_sync.call_count == 4
         event = mock_event_bus.publish_sync.call_args_list[2].kwargs["event"]
 
-        assert isinstance(event, SystemStatusEvent)
+        assert isinstance(event, SystemStatusChangedEvent)
         assert event.central_state == CentralState.RUNNING
         assert event.degraded_interfaces is None

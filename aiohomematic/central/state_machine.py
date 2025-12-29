@@ -48,7 +48,7 @@ import logging
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.const import CentralState, FailureReason
 from aiohomematic.interfaces.central import CentralStateMachineProtocol
 from aiohomematic.property_decorators import DelegatedProperty
@@ -370,9 +370,9 @@ class CentralStateMachine(CentralStateMachineProtocol):
         # Include degraded interfaces when transitioning to DEGRADED state
         degraded_interfaces = self._degraded_interfaces if new_state == CentralState.DEGRADED else None
 
-        # Emit SystemStatusEvent for integration compatibility
+        # Emit SystemStatusChangedEvent for integration compatibility
         self._event_bus.publish_sync(
-            event=SystemStatusEvent(
+            event=SystemStatusChangedEvent(
                 timestamp=self._last_state_change,
                 central_state=new_state,
                 failure_reason=failure_reason,

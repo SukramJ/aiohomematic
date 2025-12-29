@@ -68,7 +68,7 @@ capture.subscribe_to(
     event_bus,
     CircuitBreakerTrippedEvent,
     CircuitBreakerStateChangedEvent,
-    ConnectionStageEvent,
+    ConnectionStageChangedEvent,
 )
 ```
 
@@ -99,7 +99,7 @@ For verifying event ordering:
 from aiohomematic_test_support.event_capture import EventSequenceAssertion
 
 sequence = EventSequenceAssertion(expected_sequence=[
-    ConnectionStageEvent,
+    ConnectionStageChangedEvent,
     ClientStateChangedEvent,
     CentralStateChangedEvent,
 ])
@@ -132,13 +132,13 @@ After:
 ```python
 async def test_connection_unhealthy():
     capture = EventCapture()
-    capture.subscribe_to(event_bus, ConnectionHealthEvent)
+    capture.subscribe_to(event_bus, ConnectionHealthChangedEvent)
 
     # Trigger health events
     for _ in range(5):
         await client.ping()  # Fails
 
-    events = capture.get_events_of_type(event_type=ConnectionHealthEvent)
+    events = capture.get_events_of_type(event_type=ConnectionHealthChangedEvent)
     unhealthy = [e for e in events if e.consecutive_pongs == 0]
     assert len(unhealthy) > 0
 ```

@@ -70,16 +70,16 @@ if central.connection_state.has_any_issue:
     print(f"Connection issues: {central.connection_state.issue_count}")
 
 # Subscribe to device state changes
-from aiohomematic.central.event_bus import DeviceUpdatedEvent
+from aiohomematic.central.event_bus import DeviceStateChangedEvent
 
 
-async def on_device_updated(*, event: DeviceUpdatedEvent) -> None:
+async def on_device_updated(*, event: DeviceStateChangedEvent) -> None:
     """Handle device state changes."""
     print(f"Device updated: {event.device_address}")
 
 
 unsubscribe_device = central.event_bus.subscribe(
-    event_type=DeviceUpdatedEvent,
+    event_type=DeviceStateChangedEvent,
     event_key=None,
     handler=on_device_updated,
 )
@@ -290,8 +290,8 @@ unsubscribe()
 ```python
 from aiohomematic.central.event_bus import (
     DataPointUpdatedEvent,
-    DeviceUpdatedEvent,
-    FirmwareUpdatedEvent,
+    DeviceStateChangedEvent,
+    FirmwareStateChangedEvent,
 )
 
 # Data point updates
@@ -306,11 +306,11 @@ central.event_bus.subscribe(
 )
 
 # Device events
-async def on_device_event(*, event: DeviceUpdatedEvent) -> None:
+async def on_device_event(*, event: DeviceStateChangedEvent) -> None:
     print(f"Device updated: {event.device_address}")
 
 central.event_bus.subscribe(
-    event_type=DeviceUpdatedEvent,
+    event_type=DeviceStateChangedEvent,
     event_key=None,
     handler=on_device_event,
 )

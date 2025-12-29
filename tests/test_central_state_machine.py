@@ -12,7 +12,7 @@ import pytest
 
 from aiohomematic.central.event_bus import EventBus
 from aiohomematic.central.health import CentralHealth, ConnectionHealth, HealthTracker
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.central.state_machine import (
     VALID_CENTRAL_TRANSITIONS,
     CentralStateMachine,
@@ -52,12 +52,12 @@ class TestCentralStateMachine:
 
         sm.transition_to(target=CentralState.INITIALIZING, reason="test")
 
-        # Two events are published: SystemStatusEvent and CentralStateChangedEvent
+        # Two events are published: SystemStatusChangedEvent and CentralStateChangedEvent
         assert event_bus.publish_sync.call_count == 2
 
-        # First call is SystemStatusEvent
+        # First call is SystemStatusChangedEvent
         first_event = event_bus.publish_sync.call_args_list[0].kwargs["event"]
-        assert isinstance(first_event, SystemStatusEvent)
+        assert isinstance(first_event, SystemStatusChangedEvent)
         assert first_event.central_state == CentralState.INITIALIZING
 
         # Second call is CentralStateChangedEvent
@@ -350,12 +350,12 @@ class TestHealthTracker:
         assert health.reconnect_attempts == 1
 
 
-class TestSystemStatusEvent:
-    """Tests for SystemStatusEvent."""
+class TestSystemStatusChangedEvent:
+    """Tests for SystemStatusChangedEvent."""
 
     def test_event_with_central_state(self) -> None:
         """Test event with central state."""
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             central_state=CentralState.RUNNING,
         )
@@ -366,7 +366,7 @@ class TestSystemStatusEvent:
 
     def test_event_with_client_state(self) -> None:
         """Test event with client state."""
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             client_state=("test-id", ClientState.CONNECTING, ClientState.CONNECTED),
         )
@@ -379,7 +379,7 @@ class TestSystemStatusEvent:
 
     def test_event_with_connection_state(self) -> None:
         """Test event with connection state."""
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             connection_state=("test-id", True),
         )
@@ -464,7 +464,7 @@ class TestHealthTrackerIntegration:
         assert health.client_state == ClientState.DISCONNECTED
 
 
-class TestSystemStatusEventRecoveryInteraction:
+class TestSystemStatusChangedEventRecoveryInteraction:
     """Tests for interaction between system status events and connection recovery."""
 
     @pytest.mark.asyncio
@@ -512,7 +512,7 @@ class TestSystemStatusEventRecoveryInteraction:
         # Create a system status event simulating a client becoming CONNECTED
         # (This would normally trigger transition to RUNNING if all clients are connected)
         client = central.client_coordinator.clients[0]
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             client_state=(client.interface_id, ClientState.CONNECTING, ClientState.CONNECTED),
         )
@@ -562,7 +562,7 @@ class TestSystemStatusEventRecoveryInteraction:
 
         # Create a system status event
         client = central.client_coordinator.clients[0]
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             client_state=(client.interface_id, ClientState.CONNECTING, ClientState.CONNECTED),
         )

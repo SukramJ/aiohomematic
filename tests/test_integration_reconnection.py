@@ -17,8 +17,8 @@ from unittest.mock import Mock
 import pytest
 
 from aiohomematic.central import CentralConnectionState
-from aiohomematic.central.event_bus import DataPointUpdatedEvent, EventBus
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.event_bus import DataPointValueReceivedEvent, EventBus
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import DataPointKey, ParamsetKey
 
@@ -108,13 +108,13 @@ class TestConnectionStateManagement:
 
 
 class TestConnectionStateEvents:
-    """Test SystemStatusEvent publishing for connection state changes."""
+    """Test SystemStatusChangedEvent publishing for connection state changes."""
 
     @pytest.mark.asyncio
     async def test_event_published_on_issue_add(self) -> None:
-        """Test that SystemStatusEvent is published when issue is added."""
+        """Test that SystemStatusChangedEvent is published when issue is added."""
         event_bus = EventBus()
-        received_events: list[SystemStatusEvent] = []
+        received_events: list[SystemStatusChangedEvent] = []
 
         class MockEventBusProvider:
             @property
@@ -123,12 +123,12 @@ class TestConnectionStateEvents:
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
 
-        def on_state_change(event: SystemStatusEvent) -> None:
+        def on_state_change(event: SystemStatusChangedEvent) -> None:
             if event.connection_state:
                 received_events.append(event)
 
         event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=on_state_change,
         )
@@ -146,9 +146,9 @@ class TestConnectionStateEvents:
 
     @pytest.mark.asyncio
     async def test_event_published_on_issue_remove(self) -> None:
-        """Test that SystemStatusEvent is published when issue is removed."""
+        """Test that SystemStatusChangedEvent is published when issue is removed."""
         event_bus = EventBus()
-        received_events: list[SystemStatusEvent] = []
+        received_events: list[SystemStatusChangedEvent] = []
 
         class MockEventBusProvider:
             @property
@@ -157,12 +157,12 @@ class TestConnectionStateEvents:
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
 
-        def on_state_change(event: SystemStatusEvent) -> None:
+        def on_state_change(event: SystemStatusChangedEvent) -> None:
             if event.connection_state:
                 received_events.append(event)
 
         event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=on_state_change,
         )
@@ -187,7 +187,7 @@ class TestConnectionStateEvents:
     async def test_events_published_on_clear_all(self) -> None:
         """Test that events are published for each cleared issue."""
         event_bus = EventBus()
-        received_events: list[SystemStatusEvent] = []
+        received_events: list[SystemStatusChangedEvent] = []
 
         class MockEventBusProvider:
             @property
@@ -196,12 +196,12 @@ class TestConnectionStateEvents:
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
 
-        def on_state_change(event: SystemStatusEvent) -> None:
+        def on_state_change(event: SystemStatusChangedEvent) -> None:
             if event.connection_state:
                 received_events.append(event)
 
         event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=on_state_change,
         )
@@ -281,12 +281,12 @@ class TestConnectionStateTransitions:
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
 
-        def track_state(event: SystemStatusEvent) -> None:
+        def track_state(event: SystemStatusChangedEvent) -> None:
             if event.connection_state:
                 state_history.append((event.connection_state[0], event.connection_state[1]))
 
         event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=track_state,
         )
@@ -327,12 +327,12 @@ class TestConnectionStateTransitions:
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
 
-        def track_state(event: SystemStatusEvent) -> None:
+        def track_state(event: SystemStatusChangedEvent) -> None:
             if event.connection_state:
                 state_history.append((event.connection_state[0], event.connection_state[1]))
 
         event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=track_state,
         )
@@ -364,12 +364,12 @@ class TestConnectionStateTransitions:
 
         state = CentralConnectionState(event_bus_provider=MockEventBusProvider())
 
-        def track_state(event: SystemStatusEvent) -> None:
+        def track_state(event: SystemStatusChangedEvent) -> None:
             if event.connection_state:
                 state_history.append((event.connection_state[0], event.connection_state[1]))
 
         event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=track_state,
         )
@@ -393,13 +393,13 @@ class TestEventSubscriptionPersistence:
     async def test_event_subscription_persists_through_state_changes(self) -> None:
         """Test that subscriptions remain active after connection state changes."""
         event_bus = EventBus()
-        connection_events: list[SystemStatusEvent] = []
-        data_events: list[DataPointUpdatedEvent] = []
+        connection_events: list[SystemStatusChangedEvent] = []
+        data_events: list[DataPointValueReceivedEvent] = []
 
-        def on_connection_change(event: SystemStatusEvent) -> None:
+        def on_connection_change(event: SystemStatusChangedEvent) -> None:
             connection_events.append(event)
 
-        def on_data_update(event: DataPointUpdatedEvent) -> None:
+        def on_data_update(event: DataPointValueReceivedEvent) -> None:
             data_events.append(event)
 
         dpk = DataPointKey(
@@ -411,29 +411,29 @@ class TestEventSubscriptionPersistence:
 
         # Subscribe to both event types
         unsub_connection = event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=on_connection_change,
         )
         unsub_data = event_bus.subscribe(
-            event_type=DataPointUpdatedEvent,
+            event_type=DataPointValueReceivedEvent,
             event_key=dpk,
             handler=on_data_update,
         )
 
         # Verify subscriptions are active
-        assert event_bus.get_subscription_count(event_type=SystemStatusEvent) == 1
-        assert event_bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 1
+        assert event_bus.get_subscription_count(event_type=SystemStatusChangedEvent) == 1
+        assert event_bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 1
 
         # Simulate connection state change
-        connection_event = SystemStatusEvent(
+        connection_event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             connection_state=("HmIP-RF", False),
         )
         await event_bus.publish(event=connection_event)
 
         # Simulate data event (would happen after reconnection)
-        data_event = DataPointUpdatedEvent(
+        data_event = DataPointValueReceivedEvent(
             timestamp=datetime.now(),
             dpk=dpk,
             value=True,
@@ -442,12 +442,12 @@ class TestEventSubscriptionPersistence:
         await event_bus.publish(event=data_event)
 
         # Both handlers should have received their events
-        assert len(connection_events) >= 1  # May receive multiple SystemStatusEvents
+        assert len(connection_events) >= 1  # May receive multiple SystemStatusChangedEvents
         assert len(data_events) == 1
 
         # Subscriptions should still be active
-        assert event_bus.get_subscription_count(event_type=SystemStatusEvent) == 1
-        assert event_bus.get_subscription_count(event_type=DataPointUpdatedEvent) == 1
+        assert event_bus.get_subscription_count(event_type=SystemStatusChangedEvent) == 1
+        assert event_bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 1
 
         # Cleanup
         unsub_connection()
@@ -457,13 +457,13 @@ class TestEventSubscriptionPersistence:
     async def test_multiple_reconnection_cycles_preserve_subscriptions(self) -> None:
         """Test subscriptions survive multiple disconnect/reconnect cycles."""
         event_bus = EventBus()
-        events_received: list[SystemStatusEvent] = []
+        events_received: list[SystemStatusChangedEvent] = []
 
-        def on_event(event: SystemStatusEvent) -> None:
+        def on_event(event: SystemStatusChangedEvent) -> None:
             events_received.append(event)
 
         event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=on_event,
         )
@@ -472,14 +472,14 @@ class TestEventSubscriptionPersistence:
         for _ in range(5):
             # Disconnect
             await event_bus.publish(
-                event=SystemStatusEvent(
+                event=SystemStatusChangedEvent(
                     timestamp=datetime.now(),
                     connection_state=("HmIP-RF", False),
                 )
             )
             # Reconnect
             await event_bus.publish(
-                event=SystemStatusEvent(
+                event=SystemStatusChangedEvent(
                     timestamp=datetime.now(),
                     connection_state=("HmIP-RF", True),
                 )
@@ -576,16 +576,16 @@ class TestReconnectionWithCentral:
         # Test subscription works
         events: list[Any] = []
 
-        def handler(event: SystemStatusEvent) -> None:
+        def handler(event: SystemStatusChangedEvent) -> None:
             events.append(event)
 
         unsub = event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=handler,
         )
 
-        assert event_bus.get_subscription_count(event_type=SystemStatusEvent) >= 1
+        assert event_bus.get_subscription_count(event_type=SystemStatusChangedEvent) >= 1
 
         unsub()
 

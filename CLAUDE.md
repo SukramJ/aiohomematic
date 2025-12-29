@@ -1006,13 +1006,13 @@ The project uses a unified **EventBus** system for internal event communication.
 
 ```python
 # EventBus API - Direct subscription
-from aiohomematic.central.event_bus import DataPointUpdatedEvent
+from aiohomematic.central.event_bus import DataPointValueReceivedEvent
 
-async def on_datapoint_update(event: DataPointUpdatedEvent) -> None:
+async def on_datapoint_update(event: DataPointValueReceivedEvent) -> None:
     print(f"DataPoint {event.dpk} = {event.value}")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     handler=on_datapoint_update
 )
 unsubscribe()

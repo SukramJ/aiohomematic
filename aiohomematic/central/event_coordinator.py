@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.decorators import callback_event
 from aiohomematic.central.event_bus import (
-    BackendParameterEvent,
-    DataPointStatusUpdatedEvent,
-    DataPointUpdatedEvent,
+    DataPointStatusReceivedEvent,
+    DataPointValueReceivedEvent,
     EventBus,
+    RpcParameterReceivedEvent,
 )
 from aiohomematic.central.integration_events import (
     DataPointsCreatedEvent,
@@ -139,12 +139,14 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         ):
             # Subscribe data point's event method to EventBus with filtering
 
-            async def event_handler(*, event: DataPointUpdatedEvent) -> None:
+            async def event_handler(*, event: DataPointValueReceivedEvent) -> None:
                 """Filter and handle data point events."""
                 if event.dpk == data_point.dpk:
                     await data_point.event(value=event.value, received_at=event.received_at)
 
-            self._event_bus.subscribe(event_type=DataPointUpdatedEvent, event_key=data_point.dpk, handler=event_handler)
+            self._event_bus.subscribe(
+                event_type=DataPointValueReceivedEvent, event_key=data_point.dpk, handler=event_handler
+            )
 
         # Also subscribe for status events if applicable
         self._add_status_subscription(data_point=data_point)
@@ -201,7 +203,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
             )
             # Publish status update event to main parameter (if subscribed)
             await self._event_bus.publish(
-                event=DataPointStatusUpdatedEvent(
+                event=DataPointStatusReceivedEvent(
                     timestamp=datetime.now(),
                     dpk=main_dpk,
                     status_value=value,
@@ -219,7 +221,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
 
         # Publish to EventBus (await directly for synchronous event processing)
         await self._event_bus.publish(
-            event=DataPointUpdatedEvent(
+            event=DataPointValueReceivedEvent(
                 timestamp=datetime.now(),
                 dpk=dpk,
                 value=value,
@@ -262,7 +264,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         async def _publish_backend_parameter_event() -> None:
             """Publish a backend parameter event to the event bus."""
             await self._event_bus.publish(
-                event=BackendParameterEvent(
+                event=RpcParameterReceivedEvent(
                     timestamp=datetime.now(),
                     interface_id=interface_id,
                     channel_address=channel_address,
@@ -373,13 +375,13 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         if not hasattr(data_point, "status_dpk") or data_point.status_dpk is None:
             return
 
-        async def status_event_handler(*, event: DataPointStatusUpdatedEvent) -> None:
+        async def status_event_handler(*, event: DataPointStatusReceivedEvent) -> None:
             """Filter and handle status events."""
             if event.dpk == data_point.dpk:
                 data_point.update_status(status_value=event.status_value)
 
         self._event_bus.subscribe(
-            event_type=DataPointStatusUpdatedEvent,
+            event_type=DataPointStatusReceivedEvent,
             event_key=data_point.dpk,
             handler=status_event_handler,
         )

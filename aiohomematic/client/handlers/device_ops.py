@@ -14,7 +14,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
-from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusEvent
+from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.const import (
@@ -120,7 +120,7 @@ class DeviceHandler(
         Raises
         ------
             ClientException: If the JSON-RPC call fails. Also publishes a
-                SystemStatusEvent with an IntegrationIssue.
+                SystemStatusChangedEvent with an IntegrationIssue.
 
         """
         try:
@@ -141,7 +141,7 @@ class DeviceHandler(
                 translation_placeholders=(("interface_id", self._interface_id),),
             )
             await self._client_deps.event_bus.publish(
-                event=SystemStatusEvent(
+                event=SystemStatusChangedEvent(
                     timestamp=datetime.now(),
                     issues=(issue,),
                 )

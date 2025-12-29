@@ -829,8 +829,8 @@ class TestClientClasses:
 
     @pytest.mark.asyncio
     async def test_fetch_all_device_data_exception_event(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """fetch_all_device_data should publish SystemStatusEvent with IntegrationIssue on ClientException and not raise when decorated with re_raise=False."""
-        from aiohomematic.central.integration_events import SystemStatusEvent
+        """fetch_all_device_data should publish SystemStatusChangedEvent with IntegrationIssue on ClientException and not raise when decorated with re_raise=False."""
+        from aiohomematic.central.integration_events import SystemStatusChangedEvent
 
         central = _FakeCentral()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
@@ -853,12 +853,12 @@ class TestClientClasses:
 
         central.json_rpc_client.get_all_device_data = raise_client_exc  # type: ignore[assignment]
 
-        # Capture SystemStatusEvent with fetch_data_failed issue by patching publish
-        received_events: list[SystemStatusEvent] = []
+        # Capture SystemStatusChangedEvent with fetch_data_failed issue by patching publish
+        received_events: list[SystemStatusChangedEvent] = []
         original_publish = central.event_bus.publish
 
         async def _capturing_publish(*, event: Any) -> None:
-            if isinstance(event, SystemStatusEvent) and event.issues:
+            if isinstance(event, SystemStatusChangedEvent) and event.issues:
                 for issue in event.issues:
                     if issue.issue_id.startswith("fetch_data_failed_"):
                         received_events.append(event)

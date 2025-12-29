@@ -14,7 +14,7 @@ from aiohomematic.central.event_bus import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     EventBus,
-    HealthRecordEvent,
+    HealthRecordedEvent,
 )
 from aiohomematic.client.circuit_breaker import (
     CircuitBreaker,
@@ -240,9 +240,9 @@ class TestCircuitBreaker:
 
     @pytest.mark.asyncio
     async def test_health_event_on_failure(self, event_capture: EventCapture) -> None:
-        """Test HealthRecordEvent is emitted on failure."""
+        """Test HealthRecordedEvent is emitted on failure."""
         event_bus = EventBus()
-        event_capture.subscribe_to(event_bus, HealthRecordEvent)
+        event_capture.subscribe_to(event_bus, HealthRecordedEvent)
 
         breaker = CircuitBreaker(
             interface_id="test",
@@ -256,16 +256,16 @@ class TestCircuitBreaker:
         await asyncio.sleep(0.01)
 
         event_capture.assert_event_emitted(
-            event_type=HealthRecordEvent,
+            event_type=HealthRecordedEvent,
             interface_id="test",
             success=False,
         )
 
     @pytest.mark.asyncio
     async def test_health_event_on_success(self, event_capture: EventCapture) -> None:
-        """Test HealthRecordEvent is emitted on success."""
+        """Test HealthRecordedEvent is emitted on success."""
         event_bus = EventBus()
-        event_capture.subscribe_to(event_bus, HealthRecordEvent)
+        event_capture.subscribe_to(event_bus, HealthRecordedEvent)
 
         breaker = CircuitBreaker(
             interface_id="test",
@@ -279,7 +279,7 @@ class TestCircuitBreaker:
         await asyncio.sleep(0.01)
 
         event_capture.assert_event_emitted(
-            event_type=HealthRecordEvent,
+            event_type=HealthRecordedEvent,
             interface_id="test",
             success=True,
         )

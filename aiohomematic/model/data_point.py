@@ -36,7 +36,7 @@ from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
 from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.event_bus import DataPointUpdatedCallbackEvent, DeviceRemovedEvent
+from aiohomematic.central.event_bus import DataPointStateChangedEvent, DeviceRemovedEvent
 from aiohomematic.const import (
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
@@ -388,7 +388,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             """
             publish_tasks = [
                 self._event_bus_provider.event_bus.publish(
-                    event=DataPointUpdatedCallbackEvent(
+                    event=DataPointStateChangedEvent(
                         timestamp=datetime.now(),
                         unique_id=self._unique_id,
                         custom_id=cid,
@@ -458,12 +458,12 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         # Create adapter that filters for this data point's events with matching custom_id.
         # The EventBus receives events for ALL data points, so we filter by unique_id
         # and custom_id to ensure only the correct handler receives each event.
-        def event_handler(*, event: DataPointUpdatedCallbackEvent) -> None:
+        def event_handler(*, event: DataPointStateChangedEvent) -> None:
             if event.unique_id == self._unique_id and event.custom_id == custom_id:
                 handler(data_point=self, custom_id=custom_id)
 
         unsubscribe = self._event_bus_provider.event_bus.subscribe(
-            event_type=DataPointUpdatedCallbackEvent,
+            event_type=DataPointStateChangedEvent,
             event_key=self._unique_id,
             handler=event_handler,
         )

@@ -312,10 +312,10 @@ class CircuitBreaker:
             return
 
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import HealthRecordEvent  # noqa: PLC0415
+        from aiohomematic.central.event_bus import HealthRecordedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
-            event=HealthRecordEvent(
+            event=HealthRecordedEvent(
                 timestamp=datetime.now(),
                 interface_id=self._interface_id,
                 success=success,

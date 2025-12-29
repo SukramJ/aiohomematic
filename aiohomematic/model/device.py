@@ -54,7 +54,7 @@ import orjson
 
 from aiohomematic import i18n
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.event_bus import DeviceUpdatedEvent, FirmwareUpdatedEvent, LinkPeerChangedEvent
+from aiohomematic.central.event_bus import DeviceStateChangedEvent, FirmwareStateChangedEvent, LinkPeerChangedEvent
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CLICK_EVENTS,
@@ -771,7 +771,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         # Publish to EventBus asynchronously
         async def _publish_device_updated() -> None:
             await self._event_bus_provider.event_bus.publish(
-                event=DeviceUpdatedEvent(
+                event=DeviceStateChangedEvent(
                     timestamp=datetime.now(),
                     device_address=self._address,
                 )
@@ -802,7 +802,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             # Publish to EventBus asynchronously
             async def _publish_firmware_updated() -> None:
                 await self._event_bus_provider.event_bus.publish(
-                    event=FirmwareUpdatedEvent(
+                    event=FirmwareStateChangedEvent(
                         timestamp=datetime.now(),
                         device_address=self._address,
                     )
@@ -841,12 +841,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Subscribe update handler."""
 
         # Create adapter that filters for this device's events
-        def event_handler(*, event: DeviceUpdatedEvent) -> None:
+        def event_handler(*, event: DeviceStateChangedEvent) -> None:
             if event.device_address == self._address:
                 handler()
 
         return self._event_bus_provider.event_bus.subscribe(
-            event_type=DeviceUpdatedEvent,
+            event_type=DeviceStateChangedEvent,
             event_key=self._address,
             handler=event_handler,
         )
@@ -855,12 +855,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Subscribe firmware update handler."""
 
         # Create adapter that filters for this device's events
-        def event_handler(*, event: FirmwareUpdatedEvent) -> None:
+        def event_handler(*, event: FirmwareStateChangedEvent) -> None:
             if event.device_address == self._address:
                 handler()
 
         return self._event_bus_provider.event_bus.subscribe(
-            event_type=FirmwareUpdatedEvent,
+            event_type=FirmwareStateChangedEvent,
             event_key=self._address,
             handler=event_handler,
         )

@@ -32,7 +32,7 @@ Event Flow
         │
         ├─► RecoveryStageChangedEvent (per stage transition)
         │
-        ├─► RecoveryAttemptEvent (per attempt)
+        ├─► RecoveryAttemptedEvent (per attempt)
         │
         └─► RecoveryCompletedEvent / RecoveryFailedEvent
 
@@ -58,7 +58,7 @@ from aiohomematic.central.event_bus import (
     CircuitBreakerTrippedEvent,
     ConnectionLostEvent,
     HeartbeatTimerFiredEvent,
-    RecoveryAttemptEvent,
+    RecoveryAttemptedEvent,
     RecoveryCompletedEvent,
     RecoveryFailedEvent,
     RecoveryStageChangedEvent,
@@ -341,7 +341,7 @@ class ConnectionRecoveryCoordinator:
     ) -> None:
         """Emit a recovery attempt event."""
         await self._event_bus.publish(
-            event=RecoveryAttemptEvent(
+            event=RecoveryAttemptedEvent(
                 timestamp=datetime.now(),
                 interface_id=interface_id,
                 attempt_number=state.attempt_count,

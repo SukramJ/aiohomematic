@@ -174,7 +174,7 @@ class EventSequenceAssertion:
     Example:
     -------
         sequence = EventSequenceAssertion(expected_sequence=[
-            ConnectionStageEvent,
+            ConnectionStageChangedEvent,
             ClientStateChangedEvent,
             CentralStateChangedEvent,
         ])

@@ -288,23 +288,23 @@ unsubscribe()
 For more control over event handling:
 
 ```python
-from aiohomematic.central.event_bus import DataPointUpdatedEvent, DeviceUpdatedEvent
+from aiohomematic.central.event_bus import DataPointValueReceivedEvent, DeviceStateChangedEvent
 
-async def on_datapoint_update(*, event: DataPointUpdatedEvent) -> None:
+async def on_datapoint_update(*, event: DataPointValueReceivedEvent) -> None:
     print(f"DataPoint {event.dpk} = {event.value}")
 
-async def on_device_update(*, event: DeviceUpdatedEvent) -> None:
+async def on_device_update(*, event: DeviceStateChangedEvent) -> None:
     print(f"Device updated: {event.device_address}")
 
 # Subscribe to specific events
 central.event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=None,
     handler=on_datapoint_update,
 )
 
 central.event_bus.subscribe(
-    event_type=DeviceUpdatedEvent,
+    event_type=DeviceStateChangedEvent,
     event_key=None,
     handler=on_device_update,
 )
@@ -349,13 +349,13 @@ else:
     print("Not connected")
 
 # Subscribe to device availability changes
-from aiohomematic.central.event_bus import DeviceUpdatedEvent
+from aiohomematic.central.event_bus import DeviceStateChangedEvent
 
-async def on_device_updated(*, event: DeviceUpdatedEvent) -> None:
+async def on_device_updated(*, event: DeviceStateChangedEvent) -> None:
     print(f"Device {event.device_address} was updated")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=DeviceUpdatedEvent,
+    event_type=DeviceStateChangedEvent,
     event_key=None,
     handler=on_device_updated,
 )

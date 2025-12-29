@@ -56,7 +56,7 @@ from types import TracebackType
 from typing import Any, Final, Self
 
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.central.event_bus import DataPointUpdatedEvent
+from aiohomematic.central.event_bus import DataPointValueReceivedEvent
 from aiohomematic.const import ParamsetKey
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
@@ -364,11 +364,11 @@ class HomematicAPI:
 
         """
 
-        async def event_handler(*, event: DataPointUpdatedEvent) -> None:
+        async def event_handler(*, event: DataPointValueReceivedEvent) -> None:
             callback(event.dpk.channel_address, event.dpk.parameter, event.value)
 
         return self.central.event_bus.subscribe(
-            event_type=DataPointUpdatedEvent,
+            event_type=DataPointValueReceivedEvent,
             event_key=None,
             handler=event_handler,
         )

@@ -48,7 +48,7 @@ from aiohomematic.central.integration_events import (
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
     DeviceTriggerEvent,
-    SystemStatusEvent,
+    SystemStatusChangedEvent,
 )
 from aiohomematic.client import ClientConfig, InterfaceConfig
 from aiohomematic.const import LOCAL_HOST, Interface, OptionalSettings
@@ -171,7 +171,7 @@ class FactoryWithClient:
             """Handle device trigger events."""
             self.ha_event_mock(event)
 
-        def _system_status_event_handler(event: SystemStatusEvent) -> None:
+        def _system_status_event_handler(event: SystemStatusChangedEvent) -> None:
             """Handle system status events (issues, state changes)."""
             self.ha_event_mock(event)
 
@@ -192,7 +192,7 @@ class FactoryWithClient:
         )
         self._event_bus_unsubscribe_callbacks.append(
             central.event_bus.subscribe(
-                event_type=SystemStatusEvent, event_key=None, handler=_system_status_event_handler
+                event_type=SystemStatusChangedEvent, event_key=None, handler=_system_status_event_handler
             )
         )
 

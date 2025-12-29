@@ -91,7 +91,7 @@ from aiohomematic.central.health import (  # noqa: F401 - ConnectionHealth used 
     HealthTracker,
 )
 from aiohomematic.central.hub_coordinator import HubCoordinator
-from aiohomematic.central.integration_events import SystemStatusEvent
+from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob as _SchedulerJob
 from aiohomematic.central.state_machine import CentralStateMachine
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
@@ -350,7 +350,7 @@ class CentralUnit(
 
         # Subscribe to system status events to update central state machine
         self.event_bus.subscribe(
-            event_type=SystemStatusEvent,
+            event_type=SystemStatusChangedEvent,
             event_key=None,  # Subscribe to all system status events
             handler=self._on_system_status_event,
         )
@@ -1075,7 +1075,7 @@ class CentralUnit(
                 await asyncio.sleep(timeout_cfg.rpc_timeout / 10)
         return ip_addr
 
-    def _on_system_status_event(self, *, event: SystemStatusEvent) -> None:
+    def _on_system_status_event(self, *, event: SystemStatusChangedEvent) -> None:
         """Handle system status events and update central state machine accordingly."""
         # Only handle client state changes
         if event.client_state is None:
@@ -1514,7 +1514,7 @@ class CentralConnectionState:
     Track connection status for the central unit.
 
     Manages connection issues per transport (JSON-RPC and XML-RPC proxies),
-    publishing SystemStatusEvent via EventBus for state changes.
+    publishing SystemStatusChangedEvent via EventBus for state changes.
     """
 
     def __init__(self, *, event_bus_provider: EventBusProviderProtocol | None = None) -> None:
@@ -1634,10 +1634,10 @@ class CentralConnectionState:
         return removed
 
     def _publish_state_change(self, *, interface_id: str, connected: bool) -> None:
-        """Publish SystemStatusEvent via EventBus."""
+        """Publish SystemStatusChangedEvent via EventBus."""
         if self._event_bus_provider is None:
             return
-        event = SystemStatusEvent(
+        event = SystemStatusChangedEvent(
             timestamp=datetime.now(),
             connection_state=(interface_id, connected),
         )

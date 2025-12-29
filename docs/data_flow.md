@@ -37,7 +37,7 @@ Purpose: Event callbacks from backend; many CCU operations can also be done via 
 1. Backend calls the local callback server started by Central (xml_rpc_server.XmlRpcServer), method RPCFunctions.event(interface_id, channel_address, parameter, value).
 2. RPCFunctions looks up the Central for interface_id and forwards the event via decorators to Central's event_coordinator.data_point_event(...).
 3. Central resolves the target DataPoint from (channel_address, parameter), converts value if needed, updates dynamic caches and the DataPoint's internal state.
-4. Central publishes events via the EventBus system (DataPointUpdatedEvent, DeviceUpdatedEvent, etc.). Subscribers receive notifications through the modern `subscribe_to_*` API. Connection health metadata (PingPongCache, last-seen timestamps) is updated. Pending CommandCache entries may be reconciled if the event confirms a write.
+4. Central publishes events via the EventBus system (DataPointValueReceivedEvent, DeviceStateChangedEvent, etc.). Subscribers receive notifications through the modern `subscribe_to_*` API. Connection health metadata (PingPongCache, last-seen timestamps) is updated. Pending CommandCache entries may be reconciled if the event confirms a write.
 5. If the event indicates structural changes (newDevices, deleteDevices, updateDevice, replaceDevice, readdedDevice), the respective RPCFunctions handlers forward to Central which triggers model updates (reload descriptions, add/remove devices/channels).
 
 ---
@@ -78,9 +78,9 @@ Trigger points
 2. Convert incoming raw value to the DataPoint's typed value when necessary (e.g., boolean normalization, levels).
 3. Update in-memory value cache for DataPointKey and set modified/last-updated timestamps.
 4. Update DataPoint internal state and publish events to subscribers via EventBus:
-   - `DataPointUpdatedEvent`: Notifies about value changes
-   - `DeviceUpdatedEvent`: Notifies about device state changes
-   - `FirmwareUpdatedEvent`: Notifies about firmware state changes
+   - `DataPointValueReceivedEvent`: Notifies about value changes
+   - `DeviceStateChangedEvent`: Notifies about device state changes
+   - `FirmwareStateChangedEvent`: Notifies about firmware state changes
 5. Subscribers receive notifications through the modern `subscribe_to_*` API (e.g., `subscribe_to_data_point_updated`, `subscribe_to_device_updated`).
 6. Reconcile pending commands (if the new value matches a recent write) and adjust connection health markers.
 

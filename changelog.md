@@ -4,6 +4,12 @@
 
 ### Bug Fixes
 
+- **ConnectionRecoveryCoordinator**: Fixed JSON-RPC authentication failures during connection recovery
+
+  - Added `clear_json_rpc_session()` method to `Client` class
+  - Session is now cleared at recovery start to force re-authentication
+  - Prevents "access denied" errors when CCU restarts and invalidates existing sessions
+
 - **HubCoordinator**: Fixed inbox data not being fetched during initialization
 
   - `init_hub()` now calls `fetch_inbox_data(scheduled=False)` alongside program/sysvar data
@@ -49,6 +55,10 @@
   - `aiohomematic/central/recovery.py`
   - `aiohomematic/metrics/service.py`
 - **Removed deprecated exports from `aiohomematic.metrics`**: `record_service_call`, `get_service_stats`, `clear_service_stats`
+- **BaseParameterDataPoint**: Renamed `previous_value` to `last_active_value` with changed semantics
+  - Now stores only meaningful (non-default) values instead of the immediate previous value
+  - Enables "restore last brightness" feature for dimmers - stores last non-zero level
+  - Hub data points (sysvar, metrics, inbox) use separate caching for refresh/modify detection
 
 ---
 

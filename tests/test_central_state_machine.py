@@ -13,7 +13,6 @@ import pytest
 from aiohomematic.central.event_bus import EventBus
 from aiohomematic.central.health import CentralHealth, ConnectionHealth, HealthTracker
 from aiohomematic.central.integration_events import SystemStatusEvent
-from aiohomematic.central.recovery import DataLoadStage, RecoveryCoordinator, RecoveryResult
 from aiohomematic.central.state_machine import (
     VALID_CENTRAL_TRANSITIONS,
     CentralStateMachine,
@@ -349,91 +348,6 @@ class TestHealthTracker:
         health = tracker.get_client_health(interface_id="test-id")
         assert health is not None
         assert health.reconnect_attempts == 1
-
-
-class TestRecoveryCoordinator:
-    """Tests for RecoveryCoordinator."""
-
-    def test_get_recovery_state(self) -> None:
-        """Test getting recovery state for an interface."""
-        event_bus = MagicMock(spec=EventBus)
-        state_machine = CentralStateMachine(central_name="test", event_bus=event_bus)
-        health_tracker = HealthTracker(central_name="test")
-
-        coordinator = RecoveryCoordinator(
-            central_name="test",
-            state_machine=state_machine,
-            health_tracker=health_tracker,
-        )
-
-        # Should return None for unregistered interface
-        assert coordinator.get_recovery_state(interface_id="test-id") is None
-
-        # Register and retrieve
-        coordinator.register_interface(interface_id="test-id")
-        state = coordinator.get_recovery_state(interface_id="test-id")
-        assert state is not None
-        assert state.interface_id == "test-id"
-
-    def test_initial_state(self) -> None:
-        """Test initial state of RecoveryCoordinator."""
-        event_bus = MagicMock(spec=EventBus)
-        state_machine = CentralStateMachine(central_name="test", event_bus=event_bus)
-        health_tracker = HealthTracker(central_name="test")
-
-        coordinator = RecoveryCoordinator(
-            central_name="test",
-            state_machine=state_machine,
-            health_tracker=health_tracker,
-        )
-
-        assert coordinator.recovery_states == {}
-        assert coordinator.in_recovery is False
-
-    def test_register_interface(self) -> None:
-        """Test registering an interface for recovery tracking."""
-        event_bus = MagicMock(spec=EventBus)
-        state_machine = CentralStateMachine(central_name="test", event_bus=event_bus)
-        health_tracker = HealthTracker(central_name="test")
-
-        coordinator = RecoveryCoordinator(
-            central_name="test",
-            state_machine=state_machine,
-            health_tracker=health_tracker,
-        )
-
-        state = coordinator.register_interface(interface_id="test-id")
-        assert state is not None
-        assert state.interface_id == "test-id"
-        assert state.attempt_count == 0
-
-    def test_reset_interface(self) -> None:
-        """Test reset_interface clears attempt tracking."""
-        event_bus = MagicMock(spec=EventBus)
-        state_machine = CentralStateMachine(central_name="test", event_bus=event_bus)
-        health_tracker = HealthTracker(central_name="test")
-
-        coordinator = RecoveryCoordinator(
-            central_name="test",
-            state_machine=state_machine,
-            health_tracker=health_tracker,
-        )
-
-        # Register and simulate attempts
-        state = coordinator.register_interface(interface_id="test-id")
-        state.record_attempt(result=RecoveryResult.FAILED, stage=DataLoadStage.BASIC)
-        state.record_attempt(result=RecoveryResult.FAILED, stage=DataLoadStage.BASIC)
-
-        assert state.attempt_count == 2
-        assert state.consecutive_failures == 2
-
-        # Reset
-        coordinator.reset_interface(interface_id="test-id")
-
-        state = coordinator.get_recovery_state(interface_id="test-id")
-        assert state is not None
-        assert state.attempt_count == 0
-        assert state.consecutive_failures == 0
 
 
 class TestSystemStatusEvent:

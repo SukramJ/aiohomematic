@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.53"
+VERSION: Final = "2025.12.54"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -579,6 +579,100 @@ class ConnectionStage(IntEnum):
             4: "Connection Established",
         }
         return names.get(self.value, "Unknown")
+
+
+class RecoveryStage(StrEnum):
+    """
+    Stages of the unified connection recovery process.
+
+    The ConnectionRecoveryCoordinator progresses through these stages
+    when recovering a failed connection. Each stage emits a
+    RecoveryStageChangedEvent for observability.
+
+    Stage Progression
+    -----------------
+    Normal recovery: IDLE → DETECTING → COOLDOWN → TCP_CHECKING → RPC_CHECKING
+                     → WARMING_UP → STABILITY_CHECK → RECONNECTING → DATA_LOADING
+                     → RECOVERED
+
+    Failed recovery: Any stage → FAILED → HEARTBEAT (periodic retry)
+
+    Retry from FAILED: HEARTBEAT → TCP_CHECKING → ... → RECOVERED (or back to FAILED)
+    """
+
+    IDLE = "idle"
+    """No recovery in progress."""
+
+    DETECTING = "detecting"
+    """Connection loss detected, preparing recovery."""
+
+    COOLDOWN = "cooldown"
+    """Initial cool-down period before recovery attempt."""
+
+    TCP_CHECKING = "tcp_checking"
+    """Checking TCP port availability (non-invasive)."""
+
+    RPC_CHECKING = "rpc_checking"
+    """Checking RPC service responds (listMethods)."""
+
+    WARMING_UP = "warming_up"
+    """Waiting for services to stabilize after RPC responds."""
+
+    STABILITY_CHECK = "stability_check"
+    """Confirming RPC stability before reconnection."""
+
+    RECONNECTING = "reconnecting"
+    """Performing full client reconnection (init call)."""
+
+    DATA_LOADING = "data_loading"
+    """Loading device and paramset data post-reconnect."""
+
+    RECOVERED = "recovered"
+    """Recovery completed successfully."""
+
+    FAILED = "failed"
+    """Recovery failed after max retries."""
+
+    HEARTBEAT = "heartbeat"
+    """Periodic retry attempt in FAILED state."""
+
+    @property
+    def display_name(self) -> str:
+        """Return human-readable stage name."""
+        names: dict[str, str] = {
+            "idle": "Idle",
+            "detecting": "Detecting Loss",
+            "cooldown": "Cool-down",
+            "tcp_checking": "TCP Check",
+            "rpc_checking": "RPC Check",
+            "warming_up": "Warming Up",
+            "stability_check": "Stability Check",
+            "reconnecting": "Reconnecting",
+            "data_loading": "Loading Data",
+            "recovered": "Recovered",
+            "failed": "Failed",
+            "heartbeat": "Heartbeat Retry",
+        }
+        return names.get(self.value, "Unknown")
+
+
+class RecoveryResult(StrEnum):
+    """Result of a recovery attempt."""
+
+    SUCCESS = "success"
+    """Recovery was fully successful."""
+
+    PARTIAL = "partial"
+    """Some clients recovered, others still failed."""
+
+    FAILED = "failed"
+    """Recovery failed for all clients."""
+
+    MAX_RETRIES = "max_retries"
+    """Maximum retry attempts reached."""
+
+    CANCELLED = "cancelled"
+    """Recovery was cancelled (e.g., during shutdown)."""
 
 
 class CommandRxMode(StrEnum):

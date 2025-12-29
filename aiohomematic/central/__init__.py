@@ -80,6 +80,7 @@ from aiohomematic.central import rpc_server as rpc
 from aiohomematic.central.cache_coordinator import CacheCoordinator
 from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.config_builder import CentralConfigBuilder, ValidationError
+from aiohomematic.central.connection_recovery import ConnectionRecoveryCoordinator
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.event_bus import EventBatch, EventBus, EventPriority
@@ -91,10 +92,6 @@ from aiohomematic.central.health import (  # noqa: F401 - ConnectionHealth used 
 )
 from aiohomematic.central.hub_coordinator import HubCoordinator
 from aiohomematic.central.integration_events import SystemStatusEvent
-from aiohomematic.central.recovery import (  # noqa: F401 - RecoveryResult used for re-export
-    RecoveryCoordinator,
-    RecoveryResult,
-)
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob as _SchedulerJob
 from aiohomematic.central.state_machine import CentralStateMachine
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
@@ -325,11 +322,16 @@ class CentralUnit(
             state_provider=self,
         )
 
-        self._recovery_coordinator: Final = RecoveryCoordinator(
-            central_name=self._config.name,
-            state_machine=self._central_state_machine,
-            health_tracker=self._health_tracker,
+        # Unified connection recovery coordinator (event-driven)
+        self._connection_recovery_coordinator: Final = ConnectionRecoveryCoordinator(
+            central_info=self,
+            config_provider=self,
             client_provider=self._client_coordinator,
+            coordinator_provider=self,
+            device_data_refresher=self,
+            event_bus=self._event_bus,
+            task_scheduler=self.looper,
+            state_machine=self._central_state_machine,
         )
 
         # Metrics observer for event-driven metrics (single source of truth)
@@ -345,7 +347,6 @@ class CentralUnit(
             data_cache=self._cache_coordinator.data_cache,
             observer=self._metrics_observer,
             hub_data_point_manager=self._hub_coordinator,
-            recovery_coordinator=self._recovery_coordinator,
         )
 
         # Subscribe to system status events to update central state machine
@@ -370,6 +371,9 @@ class CentralUnit(
     central_state_machine: Final = DelegatedProperty[CentralStateMachine](path="_central_state_machine")
     client_coordinator: Final = DelegatedProperty[ClientCoordinator](path="_client_coordinator")
     config: Final = DelegatedProperty["CentralConfig"](path="_config")
+    connection_recovery_coordinator: Final = DelegatedProperty[ConnectionRecoveryCoordinator](
+        path="_connection_recovery_coordinator"
+    )
     connection_state: Final = DelegatedProperty["CentralConnectionState"](path="_connection_state")
     device_coordinator: Final = DelegatedProperty[DeviceCoordinator](path="_device_coordinator")
     device_registry: Final = DelegatedProperty[DeviceRegistry](path="_device_registry")
@@ -386,7 +390,6 @@ class CentralUnit(
     metrics: Final = DelegatedProperty[MetricsObserver](path="_metrics_observer")
     metrics_aggregator: Final = DelegatedProperty[MetricsAggregator](path="_metrics_aggregator")
     name: Final = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
-    recovery_coordinator: Final = DelegatedProperty[RecoveryCoordinator](path="_recovery_coordinator")
     state: Final = DelegatedProperty[CentralState](path="_central_state_machine.state")
     url: Final = DelegatedProperty[str](path="_url", kind=Kind.INFO, log_context=True)
 
@@ -973,6 +976,7 @@ class CentralUnit(
         await self.save_files(save_device_descriptions=True, save_paramset_descriptions=True)
         await self._stop_scheduler()
         self._metrics_observer.stop()
+        self._connection_recovery_coordinator.stop()
         await self._client_coordinator.stop_clients()
         if self._json_rpc_client and self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()

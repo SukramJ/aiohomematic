@@ -57,7 +57,6 @@ from aiohomematic.metrics.stats import CacheStats, ServiceStats
 if TYPE_CHECKING:
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.health import HealthTracker
-    from aiohomematic.central.recovery import RecoveryCoordinator
     from aiohomematic.metrics.observer import MetricsObserver
     from aiohomematic.store.dynamic.data import CentralDataCache
 
@@ -111,7 +110,6 @@ class MetricsAggregator:
         "_health_tracker",
         "_hub_data_point_manager",
         "_observer",
-        "_recovery_coordinator",
     )
 
     def __init__(
@@ -125,7 +123,6 @@ class MetricsAggregator:
         data_cache: CentralDataCache,
         observer: MetricsObserver | None = None,
         hub_data_point_manager: HubDataPointManagerForMetricsProtocol | None = None,
-        recovery_coordinator: RecoveryCoordinator | None = None,
     ) -> None:
         """
         Initialize the metrics aggregator.
@@ -139,7 +136,6 @@ class MetricsAggregator:
             data_cache: The CentralDataCache instance
             observer: Optional MetricsObserver for event-driven metrics
             hub_data_point_manager: Optional hub data point manager
-            recovery_coordinator: Optional recovery coordinator
 
         """
         self._central_name: Final = central_name
@@ -150,7 +146,6 @@ class MetricsAggregator:
         self._observer: Final = observer
         self._data_cache: Final = data_cache
         self._hub_data_point_manager: Final = hub_data_point_manager
-        self._recovery_coordinator: Final = recovery_coordinator
 
     @property
     def cache(self) -> CacheMetrics:

@@ -1,3 +1,33 @@
+# Version 2025.12.54 (2025-12-29)
+
+## What's Changed
+
+### New Features
+
+- **Unified Connection Recovery Coordinator**: New event-driven coordinator consolidating connection recovery logic
+
+  - Located in `aiohomematic/central/connection_recovery.py`
+  - Consolidates `SelfHealingCoordinator`, `RecoveryCoordinator`, and `BackgroundScheduler._check_connection`
+  - **Event-Driven Architecture**: Subscribes to `ConnectionLostEvent` and `CircuitBreakerTrippedEvent`
+  - **Staged Recovery Process**: TCP check → RPC check → Warmup → Stability check → Reconnect → Data load
+  - **Retry Management**: Exponential backoff with max 8 attempts, heartbeat retry in FAILED state
+  - **Parallel Recovery**: Throttled parallel recovery with semaphore (max 2 concurrent)
+  - **New Recovery Events**:
+    - `ConnectionLostEvent`: Emitted when connection is lost
+    - `RecoveryStageChangedEvent`: Tracks recovery stage transitions
+    - `RecoveryAttemptEvent`: Records each recovery attempt
+    - `RecoveryCompletedEvent`: Emitted on successful recovery
+    - `RecoveryFailedEvent`: Emitted when max retries reached
+    - `HeartbeatTimerFiredEvent`: Triggers heartbeat retries in FAILED state
+  - **New Enum**: `RecoveryStage` with 12 stages (IDLE, DETECTING, COOLDOWN, TCP_CHECKING, etc.)
+
+### Internal Changes
+
+- **CentralUnit**: Removed old `RecoveryCoordinator`, added new `ConnectionRecoveryCoordinator`
+- **MetricsAggregator**: Removed unused `recovery_coordinator` parameter
+
+---
+
 # Version 2025.12.53 (2025-12-28)
 
 ## What's Changed

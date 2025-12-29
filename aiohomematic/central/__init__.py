@@ -318,7 +318,6 @@ class CentralUnit(
             event_coordinator=self._event_coordinator,
             hub_data_fetcher=self._hub_coordinator,
             event_bus_provider=self,
-            json_rpc_client_provider=self,
             state_provider=self,
         )
 

@@ -4,10 +4,10 @@
 
 ### New Features
 
-- **Unified Connection Recovery Coordinator**: New event-driven coordinator consolidating connection recovery logic
+- **Unified Connection Recovery Coordinator**: New event-driven coordinator handling all connection recovery
 
   - Located in `aiohomematic/central/connection_recovery.py`
-  - Consolidates `SelfHealingCoordinator`, `RecoveryCoordinator`, and `BackgroundScheduler._check_connection`
+  - Replaces `SelfHealingCoordinator`, `RecoveryCoordinator`, and `BackgroundScheduler` recovery logic
   - **Event-Driven Architecture**: Subscribes to `ConnectionLostEvent` and `CircuitBreakerTrippedEvent`
   - **Staged Recovery Process**: TCP check → RPC check → Warmup → Stability check → Reconnect → Data load
   - **Retry Management**: Exponential backoff with max 8 attempts, heartbeat retry in FAILED state
@@ -25,6 +25,11 @@
 
 - **CentralUnit**: Removed old `RecoveryCoordinator`, added new `ConnectionRecoveryCoordinator`
 - **MetricsAggregator**: Removed unused `recovery_coordinator` parameter
+- **BackgroundScheduler**: Refactored to detection-only architecture
+  - `_check_connection` now only detects connection issues and emits `ConnectionLostEvent`
+  - Removed `_handle_staged_reconnection`, `_load_data_with_retry`, and related recovery methods (~350 LOC)
+  - Removed `json_rpc_client_provider` parameter (no longer needed)
+  - All recovery logic now handled by `ConnectionRecoveryCoordinator`
 - **Removed deprecated files**:
   - `aiohomematic/central/self_healing.py`
   - `aiohomematic/central/recovery.py`

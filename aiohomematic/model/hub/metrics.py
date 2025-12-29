@@ -44,7 +44,7 @@ from aiohomematic.interfaces.operations import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 from aiohomematic.support import PayloadMixin
 
 if TYPE_CHECKING:
@@ -60,17 +60,17 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         "_cached_value",
         "_metrics_observer",
         "_name_data",
-        "_sensor_name",
         "_state_uncertain",
     )
 
     _category = DataPointCategory.HUB_SENSOR
     _enabled_default = True
+    _sensor_name: str
+    _unit: str
 
     def __init__(
         self,
         *,
-        sensor_name: str,
         metrics_observer: MetricsObserver,
         config_provider: ConfigProviderProtocol,
         central_info: CentralInfoProtocol,
@@ -82,15 +82,14 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
     ) -> None:
         """Initialize the metrics sensor."""
         PayloadMixin.__init__(self)
-        self._sensor_name: Final = sensor_name
         self._metrics_observer: Final = metrics_observer
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
-            parameter=slugify(sensor_name),
+            parameter=slugify(self._sensor_name),
         )
         self._name_data: Final = get_hub_data_point_name_data(
-            channel=None, legacy_name=sensor_name, central_name=central_info.name
+            channel=None, legacy_name=self._sensor_name, central_name=central_info.name
         )
         super().__init__(
             unique_id=unique_id,
@@ -109,6 +108,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
     name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
+    unit: Final = DelegatedProperty[str](path="_unit", kind=Kind.CONFIG)
 
     @property
     def channel(self) -> ChannelProtocol | None:
@@ -129,6 +129,11 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
     def legacy_name(self) -> str | None:
         """Return the original name."""
         return None
+
+    @state_property
+    def value(self) -> float:
+        """Return the system health score as percentage (0-100)."""
+        return self._get_current_value()
 
     def refresh(self, *, write_at: datetime) -> None:
         """Refresh the sensor value from metrics observer."""
@@ -163,41 +168,8 @@ class HmSystemHealthSensor(_BaseMetricsSensor):
     """
 
     __slots__ = ()
-
-    def __init__(
-        self,
-        *,
-        metrics_observer: MetricsObserver,
-        config_provider: ConfigProviderProtocol,
-        central_info: CentralInfoProtocol,
-        event_bus_provider: EventBusProviderProtocol,
-        event_publisher: EventPublisherProtocol,
-        task_scheduler: TaskSchedulerProtocol,
-        paramset_description_provider: ParamsetDescriptionProviderProtocol,
-        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
-    ) -> None:
-        """Initialize the system health sensor."""
-        super().__init__(
-            sensor_name=METRICS_SENSOR_SYSTEM_HEALTH_NAME,
-            metrics_observer=metrics_observer,
-            config_provider=config_provider,
-            central_info=central_info,
-            event_bus_provider=event_bus_provider,
-            event_publisher=event_publisher,
-            task_scheduler=task_scheduler,
-            paramset_description_provider=paramset_description_provider,
-            parameter_visibility_provider=parameter_visibility_provider,
-        )
-
-    @config_property
-    def unit(self) -> str | None:
-        """Return the unit of the data_point."""
-        return "%"
-
-    @state_property
-    def value(self) -> float:
-        """Return the system health score as percentage (0-100)."""
-        return self._get_current_value()
+    _sensor_name = METRICS_SENSOR_SYSTEM_HEALTH_NAME
+    _unit = "%"
 
     def _get_current_value(self) -> float:
         """Return the current health score as percentage."""
@@ -212,46 +184,12 @@ class HmConnectionLatencySensor(_BaseMetricsSensor):
     """
 
     __slots__ = ()
-
-    def __init__(
-        self,
-        *,
-        metrics_observer: MetricsObserver,
-        config_provider: ConfigProviderProtocol,
-        central_info: CentralInfoProtocol,
-        event_bus_provider: EventBusProviderProtocol,
-        event_publisher: EventPublisherProtocol,
-        task_scheduler: TaskSchedulerProtocol,
-        paramset_description_provider: ParamsetDescriptionProviderProtocol,
-        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
-    ) -> None:
-        """Initialize the connection latency sensor."""
-        super().__init__(
-            sensor_name=METRICS_SENSOR_CONNECTION_LATENCY_NAME,
-            metrics_observer=metrics_observer,
-            config_provider=config_provider,
-            central_info=central_info,
-            event_bus_provider=event_bus_provider,
-            event_publisher=event_publisher,
-            task_scheduler=task_scheduler,
-            paramset_description_provider=paramset_description_provider,
-            parameter_visibility_provider=parameter_visibility_provider,
-        )
-
-    @config_property
-    def unit(self) -> str | None:
-        """Return the unit of the data_point."""
-        return "ms"
-
-    @state_property
-    def value(self) -> float:
-        """Return the average connection latency in milliseconds."""
-        return self._get_current_value()
+    _sensor_name = METRICS_SENSOR_CONNECTION_LATENCY_NAME
+    _unit = "ms"
 
     def _get_current_value(self) -> float:
         """Return the current average latency from ping/pong metrics."""
-        latency = self._metrics_observer.get_aggregated_latency(pattern="ping_pong")
-        return round(latency.avg_ms, 1)
+        return round(self._metrics_observer.get_aggregated_latency(pattern="ping_pong").avg_ms, 1)
 
 
 class HmLastEventAgeSensor(_BaseMetricsSensor):
@@ -263,41 +201,8 @@ class HmLastEventAgeSensor(_BaseMetricsSensor):
     """
 
     __slots__ = ()
-
-    def __init__(
-        self,
-        *,
-        metrics_observer: MetricsObserver,
-        config_provider: ConfigProviderProtocol,
-        central_info: CentralInfoProtocol,
-        event_bus_provider: EventBusProviderProtocol,
-        event_publisher: EventPublisherProtocol,
-        task_scheduler: TaskSchedulerProtocol,
-        paramset_description_provider: ParamsetDescriptionProviderProtocol,
-        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
-    ) -> None:
-        """Initialize the last event age sensor."""
-        super().__init__(
-            sensor_name=METRICS_SENSOR_LAST_EVENT_AGE_NAME,
-            metrics_observer=metrics_observer,
-            config_provider=config_provider,
-            central_info=central_info,
-            event_bus_provider=event_bus_provider,
-            event_publisher=event_publisher,
-            task_scheduler=task_scheduler,
-            paramset_description_provider=paramset_description_provider,
-            parameter_visibility_provider=parameter_visibility_provider,
-        )
-
-    @config_property
-    def unit(self) -> str | None:
-        """Return the unit of the data_point."""
-        return "s"
-
-    @state_property
-    def value(self) -> float:
-        """Return the seconds since last backend event."""
-        return self._get_current_value()
+    _sensor_name = METRICS_SENSOR_LAST_EVENT_AGE_NAME
+    _unit = "s"
 
     def _get_current_value(self) -> float:
         """Return the current last event age in seconds."""

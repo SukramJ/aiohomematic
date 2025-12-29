@@ -397,13 +397,13 @@ if (total := self.hits + self.misses) == 0:
 return (self.hits / total) * 100
 
 # ❌ WRONG - pylint R6103 violation
-stats_by_method = get_service_stats(central_name=self._central_name)
-if not stats_by_method:
-    return ServiceMetrics()
+latency = self._observer.get_latency(key=key)
+if latency is None:
+    continue
 
 # ✅ CORRECT - use assignment expression
-if not (stats_by_method := get_service_stats(central_name=self._central_name)):
-    return ServiceMetrics()
+if (latency := self._observer.get_latency(key=key)) is None:
+    continue
 ```
 
 This pattern reduces code duplication and makes the code more Pythonic.

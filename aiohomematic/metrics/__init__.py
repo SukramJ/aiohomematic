@@ -33,8 +33,6 @@ Note: Protocol dependencies for MetricsAggregator are in aiohomematic.interfaces
 - DeviceProviderForMetricsProtocol
 - HubDataPointManagerForMetricsProtocol
 
-Service tracking:
-- record_service_call, get_service_stats, clear_service_stats
 """
 
 from __future__ import annotations
@@ -77,7 +75,6 @@ from aiohomematic.metrics.observer import (
     MetricsObserver,
     ObserverSnapshot,
 )
-from aiohomematic.metrics.service import clear_service_stats, get_service_stats, record_service_call
 from aiohomematic.metrics.stats import CacheStats, LatencyStats, ServiceStats
 
 __all__ = [
@@ -118,10 +115,6 @@ __all__ = [
     "MAX_METRIC_KEYS",
     "MetricsObserver",
     "ObserverSnapshot",
-    # Service
-    "clear_service_stats",
-    "get_service_stats",
-    "record_service_call",
     # Stats
     "CacheStats",
     "LatencyStats",

@@ -25,6 +25,11 @@
 
 - **CentralUnit**: Removed old `RecoveryCoordinator`, added new `ConnectionRecoveryCoordinator`
 - **MetricsAggregator**: Removed unused `recovery_coordinator` parameter
+- **Removed deprecated files**:
+  - `aiohomematic/central/self_healing.py`
+  - `aiohomematic/central/recovery.py`
+  - `aiohomematic/metrics/service.py`
+- **Removed deprecated exports from `aiohomematic.metrics`**: `record_service_call`, `get_service_stats`, `clear_service_stats`
 
 ---
 
@@ -129,7 +134,7 @@
 - **Removed `PingPongCache.latency_stats`**: Use MetricsObserver instead
 - **Removed `CentralDataCache.stats`**: Use MetricsObserver counters instead (new `.size` property for entry count)
 - **`CircuitBreaker` now accepts optional `event_bus`**: New optional parameter for metric event emission
-- **Service registry deprecated**: `record_service_call`, `get_service_stats`, `clear_service_stats` are deprecated; use MetricsObserver instead
+- **Service registry removed**: `record_service_call`, `get_service_stats`, `clear_service_stats` (deprecated in 2025.12.53) removed; use MetricsObserver instead
 - **`ClientStateMachine` now accepts optional `event_bus`**: New optional parameter for `ClientStateChangedEvent` emission
 - **`RequestCoalescer` now accepts optional `event_bus` and `interface_id`**: New optional parameters for `RequestCoalescedEvent` emission
 - **`ClientCoordinator` now requires `event_bus_provider`**: New mandatory parameter for subscribing to `HealthRecordEvent`

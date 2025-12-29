@@ -1098,7 +1098,13 @@ class CentralUnit(
 
         # Only transition if central is in a state that allows it
         if (current_state := self._central_state_machine.state) not in (CentralState.STARTING, CentralState.STOPPED):
-            if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
+            # Don't transition to RUNNING if recovery is still in progress for any interface.
+            # The ConnectionRecoveryCoordinator will handle the transition when all recoveries complete.
+            if (
+                all_connected
+                and not self._connection_recovery_coordinator.in_recovery
+                and self._central_state_machine.can_transition_to(target=CentralState.RUNNING)
+            ):
                 self._central_state_machine.transition_to(
                     target=CentralState.RUNNING,
                     reason=f"all clients connected (triggered by {interface_id})",

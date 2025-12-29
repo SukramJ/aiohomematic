@@ -462,3 +462,114 @@ class TestHealthTrackerIntegration:
         health = central.health_tracker.get_client_health(interface_id=client.interface_id)
         assert health is not None
         assert health.client_state == ClientState.DISCONNECTED
+
+
+class TestSystemStatusEventRecoveryInteraction:
+    """Tests for interaction between system status events and connection recovery."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (None, True, None, None),
+        ],
+    )
+    async def test_no_premature_transition_to_running_during_recovery(
+        self, central_client_factory_with_homegear_client: Any
+    ) -> None:
+        """
+        Test that system doesn't transition to RUNNING while recovery is in progress.
+
+        This tests the fix for the bug where the central would prematurely declare
+        'all clients connected' when some clients reconnected, even though other
+        clients were still in the recovery process.
+
+        The scenario:
+        1. Central is in RECOVERING state
+        2. All clients show CONNECTED state
+        3. But connection_recovery_coordinator.in_recovery is True (recovery still active)
+        4. System should NOT transition to RUNNING until recovery completes
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+
+        # Put central in RECOVERING state
+        central._central_state_machine.transition_to(
+            target=CentralState.RECOVERING,
+            reason="Test: simulating recovery",
+        )
+        assert central._central_state_machine.state == CentralState.RECOVERING
+
+        # Simulate that recovery is still in progress by adding an interface to active recoveries
+        test_interface_id = "test-recovery-interface"
+        central._connection_recovery_coordinator._active_recoveries.add(test_interface_id)
+        assert central._connection_recovery_coordinator.in_recovery is True
+
+        # Create a system status event simulating a client becoming CONNECTED
+        # (This would normally trigger transition to RUNNING if all clients are connected)
+        client = central.client_coordinator.clients[0]
+        event = SystemStatusEvent(
+            timestamp=datetime.now(),
+            client_state=(client.interface_id, ClientState.CONNECTING, ClientState.CONNECTED),
+        )
+
+        # Call the event handler
+        central._on_system_status_event(event=event)
+
+        # System should still be in RECOVERING, not RUNNING
+        # because recovery is in progress (in_recovery is True)
+        assert central._central_state_machine.state == CentralState.RECOVERING
+
+        # Now simulate recovery completing
+        central._connection_recovery_coordinator._active_recoveries.discard(test_interface_id)
+        assert central._connection_recovery_coordinator.in_recovery is False
+
+        # Trigger the event again - now it should transition to RUNNING
+        central._on_system_status_event(event=event)
+        assert central._central_state_machine.state == CentralState.RUNNING
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (None, True, None, None),
+        ],
+    )
+    async def test_transition_to_running_when_no_recovery_in_progress(
+        self, central_client_factory_with_homegear_client: Any
+    ) -> None:
+        """Test that system transitions to RUNNING when all clients connected and no recovery active."""
+        central, _, _ = central_client_factory_with_homegear_client
+
+        # Put central in RECOVERING state (can transition to RUNNING from here)
+        central._central_state_machine.transition_to(
+            target=CentralState.RECOVERING,
+            reason="Test: simulating recovery",
+        )
+
+        # Ensure no recovery is in progress
+        central._connection_recovery_coordinator._active_recoveries.clear()
+        assert central._connection_recovery_coordinator.in_recovery is False
+
+        # Create a system status event
+        client = central.client_coordinator.clients[0]
+        event = SystemStatusEvent(
+            timestamp=datetime.now(),
+            client_state=(client.interface_id, ClientState.CONNECTING, ClientState.CONNECTED),
+        )
+
+        # Call the event handler - should transition to RUNNING since:
+        # 1. All clients are CONNECTED (from fixture setup)
+        # 2. No recovery is in progress
+        central._on_system_status_event(event=event)
+
+        assert central._central_state_machine.state == CentralState.RUNNING

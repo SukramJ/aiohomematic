@@ -686,7 +686,7 @@ class BaseParameterDataPoint[
         "_operations",
         "_parameter",
         "_paramset_key",
-        "_previous_value",
+        "_last_active_value",
         "_raw_unit",
         "_service",
         "_special",
@@ -736,7 +736,7 @@ class BaseParameterDataPoint[
             custom_only=True,
         )
         self._current_value: ParameterT | None = None
-        self._previous_value: ParameterT | None = None
+        self._last_active_value: ParameterT | None = None
         self._temporary_value: ParameterT | None = None
 
         self._state_uncertain: bool = True
@@ -770,12 +770,12 @@ class BaseParameterDataPoint[
     ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
     is_forced_sensor: Final = DelegatedProperty[bool](path="_is_forced_sensor")
     is_un_ignored: Final = DelegatedProperty[bool](path="_is_un_ignored")
+    last_active_value: Final = DelegatedProperty[ParameterT | None](path="_last_active_value")
     max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
     min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
     multiplier: Final = DelegatedProperty[float](path="_multiplier")
     parameter: Final = DelegatedProperty[str](path="_parameter", log_context=True)
     paramset_key: Final = DelegatedProperty[ParamsetKey](path="_paramset_key")
-    previous_value: Final = DelegatedProperty[ParameterT | None](path="_previous_value")
     raw_unit: Final = DelegatedProperty[str | None](path="_raw_unit")
     service: Final = DelegatedProperty[bool](path="_service")
     status: Final = DelegatedProperty[ParameterStatus | None](path="_status_value")
@@ -1019,8 +1019,11 @@ class BaseParameterDataPoint[
             self._set_refreshed_at(refreshed_at=write_at)
         else:
             self._set_modified_at(modified_at=write_at)
-            self._previous_value = old_value
             self._current_value = new_value
+            # Track last user value: store new value only if it differs from default
+            # This is used for "restore last value" scenarios (e.g., dimmer brightness)
+            if new_value != self._default:
+                self._last_active_value = new_value
         self._state_uncertain = False
         self.publish_data_point_updated_event()
         return (old_value, new_value)

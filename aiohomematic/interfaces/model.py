@@ -567,6 +567,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
+    def last_active_value(self) -> ParameterT | None:
+        """Return the last meaningful (non-default) value of the data point."""
+
+    @property
+    @abstractmethod
     def max(self) -> ParameterT:
         """Return max value."""
 
@@ -589,11 +594,6 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
     @abstractmethod
     def paramset_key(self) -> ParamsetKey:
         """Return paramset_key name."""
-
-    @property
-    @abstractmethod
-    def previous_value(self) -> ParameterT:
-        """Return the previous value of the data point."""
 
     @property
     @abstractmethod

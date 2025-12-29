@@ -35,9 +35,9 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
     """Class for a Homematic inbox sensor."""
 
     __slots__ = (
+        "_cached_device_count",
         "_devices",
         "_name_data",
-        "_previous_value",
         "_state_uncertain",
     )
 
@@ -76,7 +76,7 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         )
         self._state_uncertain: bool = True
         self._devices: tuple[InboxDeviceData, ...] = ()
-        self._previous_value: int = 0
+        self._cached_device_count: int = 0
 
     available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
     devices: Final = DelegatedProperty[tuple[InboxDeviceData, ...]](path="_devices", kind=Kind.STATE)
@@ -117,8 +117,9 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
 
     def update_data(self, *, devices: tuple[InboxDeviceData, ...], write_at: datetime) -> None:
         """Update the data point with new inbox devices."""
-        if self._devices != devices:
-            self._previous_value = len(self._devices)
+        new_count = len(devices)
+        if self._cached_device_count != new_count or self._devices != devices:
+            self._cached_device_count = new_count
             self._devices = devices
             self._set_modified_at(modified_at=write_at)
         else:

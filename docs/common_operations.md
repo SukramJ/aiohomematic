@@ -70,7 +70,7 @@ if central.connection_state.has_any_issue:
     print(f"Connection issues: {central.connection_state.issue_count}")
 
 # Subscribe to device state changes
-from aiohomematic.central.event_bus import DeviceStateChangedEvent
+from aiohomematic.central.events import DeviceStateChangedEvent
 
 
 async def on_device_updated(*, event: DeviceStateChangedEvent) -> None:
@@ -288,7 +288,7 @@ unsubscribe()
 ### Typed Event Handling with EventBus
 
 ```python
-from aiohomematic.central.event_bus import (
+from aiohomematic.central.events import (
     DataPointUpdatedEvent,
     DeviceStateChangedEvent,
     FirmwareStateChangedEvent,

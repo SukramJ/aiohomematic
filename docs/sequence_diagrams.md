@@ -352,7 +352,7 @@ VALID_CENTRAL_TRANSITIONS = {
 State changes are published to external integrations via the `SystemStatusChangedEvent`:
 
 ```python
-from aiohomematic.central.integration_events import SystemStatusChangedEvent, SystemStatusChangedEventType
+from aiohomematic.central.events import SystemStatusChangedEvent, SystemStatusChangedEventType
 
 # SystemStatusChangedEvent is emitted for integration consumers (e.g., Home Assistant)
 # with status_type indicating the nature of the change

@@ -48,7 +48,7 @@ class Event:
     timestamp: datetime
 ```
 
-Key event types (defined in `aiohomematic/central/event_bus.py`):
+Key event types (defined in `aiohomematic/central/events/bus.py`):
 
 - **DataPointValueReceivedEvent**: Data point value changed
 - **DataPointStatusReceivedEvent**: Data point status (availability) changed
@@ -60,7 +60,7 @@ Key event types (defined in `aiohomematic/central/event_bus.py`):
 - **DataPointStateChangedEvent**: Callback event for data point updates
 - **DeviceRemovedEvent**: Device was removed
 
-Integration events (defined in `aiohomematic/central/integration_events.py`):
+Integration events (defined in `aiohomematic/central/events/integration.py`):
 
 - **SystemStatusChangedEvent**: System status changes (for Home Assistant integration)
 - **DeviceLifecycleEvent**: Device lifecycle events (created, removed, availability)
@@ -89,7 +89,7 @@ class EventBus:
 ### Basic Subscription
 
 ```python
-from aiohomematic.central.event_bus import EventBus, DataPointValueReceivedEvent
+from aiohomematic.central.events import EventBus, DataPointValueReceivedEvent
 from aiohomematic.const import DataPointKey, ParamsetKey
 
 bus = EventBus()
@@ -423,7 +423,7 @@ print(f"Failed handlers: {stats['failed_handlers']}")
 
 - Updated event types list to reflect actual implementation
 - Removed references to non-existent event classes
-- Added integration events from `integration_events.py`
+- Added integration events from `events/integration.py`
 - Fixed code examples to use existing event types
 
 ### 2025-12-07 - Documentation Update

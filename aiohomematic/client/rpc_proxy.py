@@ -36,8 +36,8 @@ import xmlrpc.client
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
-from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.const import ISO_8859_1
 from aiohomematic.exceptions import (
     AuthFailure,

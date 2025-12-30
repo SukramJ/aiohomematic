@@ -109,7 +109,7 @@ Subscribe to device events:
 
 .. code-block:: python
 
-    from aiohomematic.central.event_bus import DataPointUpdatedEvent
+    from aiohomematic.central.events import DataPointUpdatedEvent
 
     async def handle_update(event: DataPointUpdatedEvent):
         print(f"Data point {event.state_path} = {event.value}")
@@ -128,7 +128,7 @@ Complete Example
     import asyncio
     from aiohomematic.central import CentralConfig
     from aiohomematic.client import InterfaceConfig, Interface
-    from aiohomematic.central.event_bus import DataPointUpdatedEvent
+    from aiohomematic.central.events import DataPointUpdatedEvent
 
     async def main():
         # Configuration

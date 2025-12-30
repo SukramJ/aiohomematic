@@ -50,7 +50,7 @@ Event Handling
 
 .. code-block:: python
 
-    from aiohomematic.central.event_bus import DataPointUpdatedEvent
+    from aiohomematic.central.events import DataPointUpdatedEvent
 
     async def monitor_changes(central):
         """Monitor all data point changes."""
@@ -116,7 +116,7 @@ Complete Application
     import asyncio
     from aiohomematic.central import CentralConfig
     from aiohomematic.client import InterfaceConfig, Interface
-    from aiohomematic.central.event_bus import DataPointUpdatedEvent
+    from aiohomematic.central.events import DataPointUpdatedEvent
 
     class HomematicMonitor:
         """Monitor Homematic devices."""

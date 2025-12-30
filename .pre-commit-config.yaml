@@ -31,6 +31,12 @@ repos:
         types_or: [python]
         files: ^(tests|aiohomematic_test_support)/.+\.py$
         pass_filenames: false
+      - id: lint-all-exports
+        name: lint-all-exports
+        entry: script/run-in-env.sh python script/lint_all_exports.py
+        language: script
+        files: ^aiohomematic/.+/__init__\.py$
+        pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.14.10
     hooks:

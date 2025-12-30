@@ -127,7 +127,7 @@ await batch.flush()
 
 ## References
 
-- `aiohomematic/central/event_bus.py` - EventBus implementation
+- `aiohomematic/central/events/bus.py` - EventBus implementation
 - `docs/architecture.md` - "Event System Enhancements: Implemented" section
 
 ---

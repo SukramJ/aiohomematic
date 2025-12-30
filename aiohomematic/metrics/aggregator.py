@@ -35,7 +35,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.client import CircuitState
+from aiohomematic.client.circuit_breaker import CircuitState
 from aiohomematic.const import INIT_DATETIME
 from aiohomematic.metrics._protocols import (
     ClientProviderForMetricsProtocol,

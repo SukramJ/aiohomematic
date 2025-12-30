@@ -100,6 +100,8 @@
 - Event-driven test patterns with `EventCapture` fixture for behavior verification through events
 - Import standardization with `lint-package-imports` pre-commit hook enforcing package facade usage
 - Package structure refactoring: Split large `__init__.py` files into dedicated modules
+  - `central/coordinators/` subpackage for CacheCoordinator, ClientCoordinator, ConnectionRecoveryCoordinator, DeviceCoordinator, EventCoordinator, HubCoordinator
+  - `central/events/` subpackage for EventBus, event types, and integration events
   - `client/ccu.py`, `client/config.py` for client classes
   - `model/hub/hub.py` for Hub orchestrator
 - Export validation with `lint_all_exports.py` ensuring consistent `__all__` exports

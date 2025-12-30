@@ -99,8 +99,6 @@ __all__ = [
     "DpText",
     # Factory
     "create_data_point_and_append_to_channel",
-    # Resolver
-    "DataPointTypeResolver",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

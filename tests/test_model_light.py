@@ -18,7 +18,7 @@ from aiohomematic.model.custom import (
     CustomDpIpFixedColorLight,
     CustomDpIpRGBWLight,
 )
-from aiohomematic.model.custom.light import _NOT_USED, _ColorBehaviour, _FixedColor
+from aiohomematic.model.custom.light import _NOT_USED, FixedColor, _ColorBehaviour
 from aiohomematic.model.custom.mixins import _TimeUnit
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
@@ -471,7 +471,7 @@ class TestCustomDpIpFixedColorLight:
         )
         assert light.brightness == 0
         assert light.is_on is False
-        assert light.color_name == _FixedColor.BLACK
+        assert light.color_name == FixedColor.BLACK
         assert light.channel_color_name is None
         assert light.group_brightness is None
         assert light.channel_hs_color is None
@@ -479,7 +479,7 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
@@ -503,70 +503,70 @@ class TestCustomDpIpFixedColorLight:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 0
-        assert light.color_name == _FixedColor.WHITE
+        assert light.color_name == FixedColor.WHITE
 
         await light.turn_on(hs_color=(350, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.RED, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.RED, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        assert light.color_name == _FixedColor.RED
+        assert light.color_name == FixedColor.RED
 
         await light.turn_on(hs_color=(0.0, 0.0))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        assert light.color_name == _FixedColor.WHITE
+        assert light.color_name == FixedColor.WHITE
 
         await light.turn_on(hs_color=(60.0, 50.0))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.YELLOW, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.YELLOW, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        assert light.color_name == _FixedColor.YELLOW
+        assert light.color_name == FixedColor.YELLOW
 
         await light.turn_on(hs_color=(120, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.GREEN, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.GREEN, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        assert light.color_name == _FixedColor.GREEN
+        assert light.color_name == FixedColor.GREEN
 
         await light.turn_on(hs_color=(180, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.TURQUOISE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.TURQUOISE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        assert light.color_name == _FixedColor.TURQUOISE
+        assert light.color_name == FixedColor.TURQUOISE
 
         await light.turn_on(hs_color=(240, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.BLUE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.BLUE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        assert light.color_name == _FixedColor.BLUE
+        assert light.color_name == FixedColor.BLUE
 
         await light.turn_on(hs_color=(300, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.PURPLE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.PURPLE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
-        assert light.color_name == _FixedColor.PURPLE
+        assert light.color_name == FixedColor.PURPLE
 
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6985973:7", parameter="LEVEL", value=0.5
@@ -577,7 +577,7 @@ class TestCustomDpIpFixedColorLight:
             interface_id=const.INTERFACE_ID, channel_address="VCU6985973:7", parameter="COLOR", value=1
         )
         assert light.channel_hs_color == (240.0, 100.0)
-        assert light.channel_color_name == _FixedColor.BLUE
+        assert light.channel_color_name == FixedColor.BLUE
 
         await light.turn_off()
         light.set_timer_on_time(on_time=18)
@@ -717,16 +717,16 @@ class TestCustomDpIpFixedColorLight:
         )
         assert light.brightness == 0
         assert light.is_on is False
-        assert light.color_name == _FixedColor.BLACK
+        assert light.color_name == FixedColor.BLACK
         await light.turn_on()
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.WHITE
+        assert light.color_name == FixedColor.WHITE
 
         await light.turn_on(brightness=100)
         assert mock_client.method_calls[-1] == call.put_paramset(
@@ -736,7 +736,7 @@ class TestCustomDpIpFixedColorLight:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 100
-        assert light.color_name == _FixedColor.WHITE
+        assert light.color_name == FixedColor.WHITE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_off()
@@ -748,89 +748,89 @@ class TestCustomDpIpFixedColorLight:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 0
-        assert light.color_name == _FixedColor.WHITE
+        assert light.color_name == FixedColor.WHITE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(hs_color=(350, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.RED, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.RED, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.RED
+        assert light.color_name == FixedColor.RED
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(hs_color=(0.0, 0.0))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.WHITE
+        assert light.color_name == FixedColor.WHITE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(hs_color=(60.0, 50.0))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.YELLOW, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.YELLOW, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.YELLOW
+        assert light.color_name == FixedColor.YELLOW
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(hs_color=(120, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.GREEN, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.GREEN, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.GREEN
+        assert light.color_name == FixedColor.GREEN
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(hs_color=(180, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.TURQUOISE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.TURQUOISE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.TURQUOISE
+        assert light.color_name == FixedColor.TURQUOISE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(hs_color=(240, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.BLUE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.BLUE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.BLUE
+        assert light.color_name == FixedColor.BLUE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(hs_color=(300, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": _FixedColor.PURPLE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={"COLOR": FixedColor.PURPLE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 255
-        assert light.color_name == _FixedColor.PURPLE
+        assert light.color_name == FixedColor.PURPLE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_off()
         assert light.brightness == 0
-        assert light.color_name == _FixedColor.PURPLE
+        assert light.color_name == FixedColor.PURPLE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(brightness=100)
@@ -841,7 +841,7 @@ class TestCustomDpIpFixedColorLight:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 100
-        assert light.color_name == _FixedColor.PURPLE
+        assert light.color_name == FixedColor.PURPLE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(brightness=33)
@@ -852,7 +852,7 @@ class TestCustomDpIpFixedColorLight:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 33
-        assert light.color_name == _FixedColor.PURPLE
+        assert light.color_name == FixedColor.PURPLE
         assert light.effect == _ColorBehaviour.ON
 
         await light.turn_on(effect="FLASH_MIDDLE")
@@ -863,7 +863,7 @@ class TestCustomDpIpFixedColorLight:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 33
-        assert light.color_name == _FixedColor.PURPLE
+        assert light.color_name == FixedColor.PURPLE
         assert light.effect == "FLASH_MIDDLE"
 
         await light.turn_on(brightness=66)
@@ -874,7 +874,7 @@ class TestCustomDpIpFixedColorLight:
             wait_for_callback=WAIT_FOR_CALLBACK,
         )
         assert light.brightness == 66
-        assert light.color_name == _FixedColor.PURPLE
+        assert light.color_name == FixedColor.PURPLE
         assert light.effect == "FLASH_MIDDLE"
 
         await light.turn_off()

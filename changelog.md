@@ -1,3 +1,16 @@
+# Version 2025.12.55 (2025-12-30)
+
+## What's Changed
+
+### New Features
+
+- **Fixed Color Light API**: Expose fixed color utilities as public API for Home Assistant integration
+  - `FixedColor` enum (previously `_FixedColor`) - available color names (WHITE, RED, YELLOW, etc.)
+  - `FIXED_COLOR_TO_HS` mapping (previously `_FIXED_COLOR_SWITCHER`) - converts fixed colors to HS values
+  - `hs_color_to_fixed_converter()` function (previously `_convert_color()`) - converts HS color to nearest fixed color
+
+---
+
 # Version 2025.12.54 (2025-12-29)
 
 ## What's Changed

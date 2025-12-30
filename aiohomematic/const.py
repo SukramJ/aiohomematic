@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.54"
+VERSION: Final = "2025.12.55"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1862,26 +1862,6 @@ def is_interface_default_port(*, interface: Interface | str, port: int) -> bool:
     return False
 
 
-# Define public API for this module
-__all__ = tuple(
-    sorted(
-        name
-        for name, obj in globals().items()
-        if not name.startswith("_")
-        and (
-            name.isupper()  # constants like VERSION, patterns, defaults
-            or inspect.isclass(obj)  # Enums, dataclasses, TypedDicts, NamedTuple classes
-            or inspect.isfunction(obj)  # module functions
-        )
-        and (
-            getattr(obj, "__module__", __name__) == __name__
-            if not isinstance(obj, int | float | str | bytes | tuple | frozenset | dict)
-            else True
-        )
-    )
-)
-
-
 class AstroType(IntEnum):
     """Enum for astro event types."""
 
@@ -2090,3 +2070,23 @@ DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]
 DEFAULT_SCHEDULE_DICT = dict[int, DEFAULT_SCHEDULE_GROUP]
 RAW_SCHEDULE_DICT = dict[str, float | int]
 SCHEDULE_PATTERN: Final = re.compile(r"^\d+_WP_")
+
+
+# Define public API for this module
+__all__ = tuple(
+    sorted(
+        name
+        for name, obj in globals().items()
+        if not name.startswith("_")
+        and (
+            name.isupper()  # constants like VERSION, patterns, defaults
+            or inspect.isclass(obj)  # Enums, dataclasses, TypedDicts, NamedTuple classes
+            or inspect.isfunction(obj)  # module functions
+        )
+        and (
+            getattr(obj, "__module__", __name__) == __name__
+            if not isinstance(obj, int | float | str | bytes | tuple | frozenset | dict)
+            else True
+        )
+    )
+)

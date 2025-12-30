@@ -48,13 +48,13 @@ import logging
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.central.integration_events import SystemStatusChangedEvent
+from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.const import CentralState, FailureReason
 from aiohomematic.interfaces import CentralStateMachineProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ class CentralStateMachine(CentralStateMachineProtocol):
     event loop/thread.
 
     Example:
-        from aiohomematic.central.event_bus import CentralStateChangedEvent, EventBus
+        from aiohomematic.central.events import CentralStateChangedEvent, EventBus
 
         def on_state_changed(*, event: CentralStateChangedEvent) -> None:
             print(f"Central state: {event.old_state} -> {event.new_state}")
@@ -361,7 +361,7 @@ class CentralStateMachine(CentralStateMachineProtocol):
             return
 
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import CentralStateChangedEvent  # noqa: PLC0415
+        from aiohomematic.central.events import CentralStateChangedEvent  # noqa: PLC0415
 
         # Include failure info when transitioning to FAILED state
         failure_reason = self._failure_reason if new_state == CentralState.FAILED else None

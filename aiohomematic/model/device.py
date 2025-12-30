@@ -54,7 +54,7 @@ import orjson
 
 from aiohomematic import i18n
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.event_bus import DeviceStateChangedEvent, FirmwareStateChangedEvent, LinkPeerChangedEvent
+from aiohomematic.central.events import DeviceStateChangedEvent, FirmwareStateChangedEvent, LinkPeerChangedEvent
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CLICK_EVENTS,

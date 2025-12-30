@@ -37,7 +37,7 @@ from typing import Final
 
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import SUB_DIRECTORY_CACHE, SUB_DIRECTORY_SESSION
-from aiohomematic.store.persistent.base import get_file_path
+from aiohomematic.store.persistent.base import get_file_name, get_file_path
 from aiohomematic.store.persistent.device import DeviceDescriptionCache
 from aiohomematic.store.persistent.paramset import ParamsetDescriptionCache
 from aiohomematic.store.persistent.session import SessionRecorder
@@ -46,10 +46,14 @@ from aiohomematic.support import delete_file
 _LOGGER: Final = logging.getLogger(__name__)
 
 __all__ = [
+    # Caches
     "DeviceDescriptionCache",
     "ParamsetDescriptionCache",
     "SessionRecorder",
+    # Utilities
     "cleanup_files",
+    "get_file_name",
+    "get_file_path",
 ]
 
 

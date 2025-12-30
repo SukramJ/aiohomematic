@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from aiohomematic.central.client_coordinator import ClientCoordinator
-from aiohomematic.central.event_bus import EventBus
+from aiohomematic.central.coordinators import ClientCoordinator
+from aiohomematic.central.events import EventBus
 from aiohomematic.const import Interface, ProxyInitState
 
 

@@ -14,7 +14,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
-from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusChangedEvent
+from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.const import (
@@ -49,7 +49,7 @@ from aiohomematic.support import (
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
     from aiohomematic.interfaces import ClientDependenciesProtocol, DeviceProtocol
-    from aiohomematic.store import CommandCache
+    from aiohomematic.store.dynamic import CommandCache
 
 _LOGGER: Final = logging.getLogger(__name__)
 

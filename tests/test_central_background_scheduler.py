@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 
-from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob
+from aiohomematic.central import BackgroundScheduler, SchedulerJob
 from aiohomematic.const import CentralState, ScheduleTimerConfig
 
 
@@ -344,7 +344,7 @@ class TestBackgroundSchedulerEventHandling:
         """BackgroundScheduler should track DeviceLifecycleEvent with CREATED type."""
         from datetime import datetime
 
-        from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
+        from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 
         central = MagicMock()
         central.event_bus = MagicMock()
@@ -385,7 +385,7 @@ class TestBackgroundSchedulerEventHandling:
         """BackgroundScheduler should ignore non-CREATED DeviceLifecycleEvent types."""
         from datetime import datetime
 
-        from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
+        from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 
         central = MagicMock()
         central.event_bus = MagicMock()

@@ -32,7 +32,7 @@ Design Philosophy
 
 Example Usage
 -------------
-    from aiohomematic.central.integration_events import (
+    from aiohomematic.central.events import (
         SystemStatusChangedEvent,
         DeviceLifecycleEvent,
         DataPointsCreatedEvent,
@@ -61,7 +61,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
-from aiohomematic.central.event_bus import Event
+from aiohomematic.central.events.bus import Event
 from aiohomematic.const import CentralState, ClientState, DataPointCategory, DeviceTriggerEventType, FailureReason
 
 if TYPE_CHECKING:

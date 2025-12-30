@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-from aiohomematic.central.health import CentralHealth, ConnectionHealth, HealthTracker
+from aiohomematic.central import CentralHealth, ConnectionHealth, HealthTracker
 from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
 

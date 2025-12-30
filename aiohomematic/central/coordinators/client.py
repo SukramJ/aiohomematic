@@ -38,7 +38,7 @@ from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import HealthRecordedEvent
+    from aiohomematic.central.events import HealthRecordedEvent
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class ClientCoordinator(ClientProviderProtocol):
 
         # Subscribe to health record events from circuit breakers
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import HealthRecordedEvent  # noqa: PLC0415
+        from aiohomematic.central.events import HealthRecordedEvent  # noqa: PLC0415
 
         self._unsubscribe_health_record = self._event_bus_provider.event_bus.subscribe(
             event_type=HealthRecordedEvent,

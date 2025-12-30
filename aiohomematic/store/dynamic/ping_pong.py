@@ -16,7 +16,7 @@ import time
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusChangedEvent
+from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.const import (
     PING_PONG_CACHE_MAX_SIZE,
     PING_PONG_MISMATCH_COUNT,

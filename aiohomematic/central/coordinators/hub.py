@@ -21,7 +21,7 @@ import logging
 from typing import Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.event_bus import ProgramExecutedEvent, SysvarStateChangedEvent
+from aiohomematic.central.events import ProgramExecutedEvent, SysvarStateChangedEvent
 from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (

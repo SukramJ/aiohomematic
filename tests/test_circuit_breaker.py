@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from aiohomematic.central.event_bus import (
+from aiohomematic.central.events import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     EventBus,

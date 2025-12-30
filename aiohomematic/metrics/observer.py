@@ -43,7 +43,7 @@ import math
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.event_bus import EventPriority
+from aiohomematic.central.events import EventPriority
 from aiohomematic.metrics.events import (
     CounterMetricEvent,
     GaugeMetricEvent,
@@ -57,7 +57,7 @@ from aiohomematic.metrics.stats import LatencyStats
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 

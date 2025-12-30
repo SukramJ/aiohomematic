@@ -70,7 +70,7 @@ from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -315,7 +315,7 @@ class CircuitBreaker:
             return
 
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import HealthRecordedEvent  # noqa: PLC0415
+        from aiohomematic.central.events import HealthRecordedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
             event=HealthRecordedEvent(
@@ -336,7 +336,7 @@ class CircuitBreaker:
             return
 
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import CircuitBreakerStateChangedEvent  # noqa: PLC0415
+        from aiohomematic.central.events import CircuitBreakerStateChangedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
             event=CircuitBreakerStateChangedEvent(
@@ -356,7 +356,7 @@ class CircuitBreaker:
             return
 
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent  # noqa: PLC0415
+        from aiohomematic.central.events import CircuitBreakerTrippedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
             event=CircuitBreakerTrippedEvent(

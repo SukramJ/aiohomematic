@@ -43,7 +43,7 @@ from unittest.mock import MagicMock, Mock, patch
 from aiohttp import ClientSession
 
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.central.integration_events import (
+from aiohomematic.central.events import (
     DataPointsCreatedEvent,
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,

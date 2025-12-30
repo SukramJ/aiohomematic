@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from aiohomematic.central.event_bus import (
+from aiohomematic.central.events import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     DataRefreshCompletedEvent,
@@ -436,7 +436,7 @@ class TestEventCaptureUtilities:
         """Test clear method removes captured events."""
         capture = EventCapture()
         # Manually add some events for testing
-        from aiohomematic.central.event_bus import Event
+        from aiohomematic.central.events import Event
 
         class DummyEvent(Event):
             @property

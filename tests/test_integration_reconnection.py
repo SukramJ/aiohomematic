@@ -17,8 +17,7 @@ from unittest.mock import Mock
 import pytest
 
 from aiohomematic.central import CentralConnectionState
-from aiohomematic.central.event_bus import DataPointValueReceivedEvent, EventBus
-from aiohomematic.central.integration_events import SystemStatusChangedEvent
+from aiohomematic.central.events import DataPointValueReceivedEvent, EventBus, SystemStatusChangedEvent
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import DataPointKey, ParamsetKey
 

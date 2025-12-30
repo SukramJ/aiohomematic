@@ -26,7 +26,7 @@ Event-based tests verify behavior:
 # Robust - tests observable behavior
 async def test_circuit_breaker_trips():
     from aiohomematic_test_support.event_capture import EventCapture
-    from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent
+    from aiohomematic.central.events import CircuitBreakerTrippedEvent
 
     central = await create_central()
     capture = EventCapture()
@@ -50,7 +50,7 @@ async def test_circuit_breaker_trips():
 
 ```python
 from aiohomematic_test_support.event_capture import EventCapture
-from aiohomematic.central.event_bus import SomeEvent
+from aiohomematic.central.events import SomeEvent
 
 capture = EventCapture()
 capture.subscribe_to(event_bus, SomeEvent)

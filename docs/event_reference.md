@@ -52,7 +52,7 @@ aiohomematic uses a type-safe, async-first EventBus for decoupled event handling
 Fired when a data point value is updated from the backend.
 
 ```python
-from aiohomematic.central.event_bus import DataPointValueReceivedEvent
+from aiohomematic.central.events import DataPointValueReceivedEvent
 ```
 
 | Field         | Type           | Description                              |
@@ -80,7 +80,7 @@ unsubscribe = central.event_bus.subscribe(
 Fired when a STATUS parameter value is updated (e.g., LEVEL_STATUS).
 
 ```python
-from aiohomematic.central.event_bus import DataPointStatusReceivedEvent
+from aiohomematic.central.events import DataPointStatusReceivedEvent
 ```
 
 | Field          | Type           | Description                            |
@@ -97,7 +97,7 @@ from aiohomematic.central.event_bus import DataPointStatusReceivedEvent
 Callback event for external integrations (e.g., Home Assistant entities).
 
 ```python
-from aiohomematic.central.event_bus import DataPointStateChangedEvent
+from aiohomematic.central.events import DataPointStateChangedEvent
 ```
 
 | Field       | Type       | Description                          |
@@ -117,7 +117,7 @@ from aiohomematic.central.event_bus import DataPointStateChangedEvent
 Raw parameter update event from the backend (re-published from RPC callbacks).
 
 ```python
-from aiohomematic.central.event_bus import RpcParameterReceivedEvent
+from aiohomematic.central.events import RpcParameterReceivedEvent
 ```
 
 | Field             | Type       | Description                              |
@@ -139,7 +139,7 @@ from aiohomematic.central.event_bus import RpcParameterReceivedEvent
 System variable value was updated.
 
 ```python
-from aiohomematic.central.event_bus import SysvarStateChangedEvent
+from aiohomematic.central.events import SysvarStateChangedEvent
 ```
 
 | Field         | Type       | Description                            |
@@ -160,7 +160,7 @@ from aiohomematic.central.event_bus import SysvarStateChangedEvent
 Device state has been updated.
 
 ```python
-from aiohomematic.central.event_bus import DeviceStateChangedEvent
+from aiohomematic.central.events import DeviceStateChangedEvent
 ```
 
 | Field            | Type       | Description                |
@@ -175,7 +175,7 @@ from aiohomematic.central.event_bus import DeviceStateChangedEvent
 Device or data point has been removed.
 
 ```python
-from aiohomematic.central.event_bus import DeviceRemovedEvent
+from aiohomematic.central.events import DeviceRemovedEvent
 ```
 
 | Field       | Type       | Description                             |
@@ -190,7 +190,7 @@ from aiohomematic.central.event_bus import DeviceRemovedEvent
 Device firmware information has been updated.
 
 ```python
-from aiohomematic.central.event_bus import FirmwareStateChangedEvent
+from aiohomematic.central.events import FirmwareStateChangedEvent
 ```
 
 | Field            | Type       | Description                |
@@ -205,7 +205,7 @@ from aiohomematic.central.event_bus import FirmwareStateChangedEvent
 Channel link peer addresses have changed.
 
 ```python
-from aiohomematic.central.event_bus import LinkPeerChangedEvent
+from aiohomematic.central.events import LinkPeerChangedEvent
 ```
 
 | Field             | Type       | Description                |
@@ -224,7 +224,7 @@ from aiohomematic.central.event_bus import LinkPeerChangedEvent
 Connection reconnection stage progression during recovery.
 
 ```python
-from aiohomematic.central.event_bus import ConnectionStageChangedEvent
+from aiohomematic.central.events import ConnectionStageChangedEvent
 from aiohomematic.const import ConnectionStage
 ```
 
@@ -262,7 +262,7 @@ unsubscribe = central.event_bus.subscribe(
 Connection health status update.
 
 ```python
-from aiohomematic.central.event_bus import ConnectionHealthChangedEvent
+from aiohomematic.central.events import ConnectionHealthChangedEvent
 ```
 
 | Field                     | Type                    | Description                    |
@@ -285,7 +285,7 @@ from aiohomematic.central.event_bus import ConnectionHealthChangedEvent
 Cache invalidation notification.
 
 ```python
-from aiohomematic.central.event_bus import CacheInvalidatedEvent
+from aiohomematic.central.events import CacheInvalidatedEvent
 from aiohomematic.const import CacheType, CacheInvalidationReason
 ```
 
@@ -314,7 +314,7 @@ from aiohomematic.const import CacheType, CacheInvalidationReason
 Circuit breaker state transition.
 
 ```python
-from aiohomematic.central.event_bus import CircuitBreakerStateChangedEvent
+from aiohomematic.central.events import CircuitBreakerStateChangedEvent
 from aiohomematic.client.circuit_breaker import CircuitState
 ```
 
@@ -353,7 +353,7 @@ unsubscribe = central.event_bus.subscribe(
 Circuit breaker tripped (opened due to repeated failures).
 
 ```python
-from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent
+from aiohomematic.central.events import CircuitBreakerTrippedEvent
 ```
 
 | Field                 | Type          | Description                         |
@@ -375,7 +375,7 @@ from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent
 Emitted by CircuitBreaker when a request succeeds or fails, enabling decoupled health tracking.
 
 ```python
-from aiohomematic.central.event_bus import HealthRecordedEvent
+from aiohomematic.central.events import HealthRecordedEvent
 ```
 
 | Field          | Type       | Description                        |
@@ -409,7 +409,7 @@ unsubscribe = central.event_bus.subscribe(
 Client state machine transition.
 
 ```python
-from aiohomematic.central.event_bus import ClientStateChangedEvent
+from aiohomematic.central.events import ClientStateChangedEvent
 ```
 
 | Field          | Type          | Description                        |
@@ -436,7 +436,7 @@ from aiohomematic.central.event_bus import ClientStateChangedEvent
 Central unit state machine transition.
 
 ```python
-from aiohomematic.central.event_bus import CentralStateChangedEvent
+from aiohomematic.central.events import CentralStateChangedEvent
 ```
 
 | Field          | Type          | Description                         |
@@ -480,7 +480,7 @@ unsubscribe = central.event_bus.subscribe(
 Data refresh operation triggered.
 
 ```python
-from aiohomematic.central.event_bus import DataRefreshTriggeredEvent
+from aiohomematic.central.events import DataRefreshTriggeredEvent
 ```
 
 | Field          | Type          | Description                                                   |
@@ -497,7 +497,7 @@ from aiohomematic.central.event_bus import DataRefreshTriggeredEvent
 Data refresh operation completed.
 
 ```python
-from aiohomematic.central.event_bus import DataRefreshCompletedEvent
+from aiohomematic.central.events import DataRefreshCompletedEvent
 ```
 
 | Field             | Type          | Description                    |
@@ -535,7 +535,7 @@ unsubscribe = central.event_bus.subscribe(
 Backend program was executed.
 
 ```python
-from aiohomematic.central.event_bus import ProgramExecutedEvent
+from aiohomematic.central.events import ProgramExecutedEvent
 ```
 
 | Field          | Type       | Description                                       |
@@ -557,7 +557,7 @@ from aiohomematic.central.event_bus import ProgramExecutedEvent
 Multiple requests were coalesced into one.
 
 ```python
-from aiohomematic.central.event_bus import RequestCoalescedEvent
+from aiohomematic.central.events import RequestCoalescedEvent
 ```
 
 | Field             | Type       | Description                      |
@@ -573,14 +573,14 @@ from aiohomematic.central.event_bus import RequestCoalescedEvent
 
 ## Integration Events
 
-These events are defined in `aiohomematic/central/integration_events.py` and are designed for Home Assistant and other consumers.
+These events are defined in `aiohomematic/central/events/integration.py` and are designed for Home Assistant and other consumers.
 
 ### SystemStatusChangedEvent
 
 Aggregated system status changes for integration consumers.
 
 ```python
-from aiohomematic.central.integration_events import SystemStatusChangedEvent
+from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.const import CentralState, FailureReason
 ```
 
@@ -619,7 +619,7 @@ unsubscribe = central.event_bus.subscribe(
 Device lifecycle events (created, removed, availability).
 
 ```python
-from aiohomematic.central.integration_events import (
+from aiohomematic.central.events import (
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
 )
@@ -663,7 +663,7 @@ unsubscribe = central.event_bus.subscribe(
 New data points created event.
 
 ```python
-from aiohomematic.central.integration_events import DataPointsCreatedEvent
+from aiohomematic.central.events import DataPointsCreatedEvent
 from aiohomematic.const import DataPointCategory
 ```
 
@@ -679,7 +679,7 @@ from aiohomematic.const import DataPointCategory
 Device trigger events (button press, motion, etc.).
 
 ```python
-from aiohomematic.central.integration_events import DeviceTriggerEvent
+from aiohomematic.central.events import DeviceTriggerEvent
 from aiohomematic.const import DeviceTriggerEventType
 ```
 
@@ -765,7 +765,7 @@ unsubscribe = channel.subscribe_to_link_peer_changed(
 ### Direct Subscription
 
 ```python
-from aiohomematic.central.event_bus import EventBus, DataPointValueReceivedEvent
+from aiohomematic.central.events import EventBus, DataPointValueReceivedEvent
 
 # Subscribe to all events of a type
 unsubscribe = event_bus.subscribe(
@@ -788,7 +788,7 @@ unsubscribe()
 ### Handler Priorities
 
 ```python
-from aiohomematic.central.event_bus import EventPriority
+from aiohomematic.central.events import EventPriority
 
 # High priority handler (runs before normal handlers)
 unsubscribe = event_bus.subscribe(
@@ -809,7 +809,7 @@ unsubscribe = event_bus.subscribe(
 ### Batch Publishing
 
 ```python
-from aiohomematic.central.event_bus import EventBatch
+from aiohomematic.central.events import EventBatch
 
 async with EventBatch(bus=event_bus) as batch:
     batch.add(event=event1)

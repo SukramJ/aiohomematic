@@ -99,3 +99,7 @@
 - Typed dataclasses (`CachedCommand`, `PongTracker`) replace untyped tuples and dicts
 - Event-driven test patterns with `EventCapture` fixture for behavior verification through events
 - Import standardization with `lint-package-imports` pre-commit hook enforcing package facade usage
+- Package structure refactoring: Split large `__init__.py` files into dedicated modules
+  - `client/ccu.py`, `client/config.py` for client classes
+  - `model/hub/hub.py` for Hub orchestrator
+- Export validation with `lint_all_exports.py` ensuring consistent `__all__` exports

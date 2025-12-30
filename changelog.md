@@ -11,6 +11,21 @@
 
 ### Code Quality
 
+- **Package Structure Refactoring**: Improved maintainability by splitting large `__init__.py` files
+
+  - `client/__init__.py` (1793 → 105 lines): Moved client classes to dedicated modules
+    - `client/ccu.py`: `ClientCCU`, `ClientJsonCCU`, `ClientHomegear`, `ClientConfig`
+    - `client/config.py`: `InterfaceConfig`
+  - `model/hub/__init__.py` (803 → 123 lines): Moved Hub class to dedicated module
+    - `model/hub/hub.py`: `Hub`, `ProgramDpType`, `MetricsDpType`
+  - All public APIs remain unchanged (re-exported from `__init__.py`)
+  - Fixed circular imports by using direct submodule imports in `metrics/aggregator.py` and `client/rpc_proxy.py`
+
+- **Export Validation**: New linter script for validating `__all__` exports
+
+  - `script/lint_all_exports.py`: Validates exports are imported, grouped, and sorted
+  - Ensures consistency across all package `__init__.py` files
+
 - **Import Standardization**: Enforce consistent package import conventions across the codebase
   - External consumers (tests, `aiohomematic_test_support`) must import public symbols from package `__init__.py` facades, not directly from submodules
   - Example: `from aiohomematic.interfaces import ChannelProtocol` instead of `from aiohomematic.interfaces.model import ChannelProtocol`

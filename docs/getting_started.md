@@ -288,7 +288,7 @@ unsubscribe()
 For more control over event handling:
 
 ```python
-from aiohomematic.central.event_bus import DataPointValueReceivedEvent, DeviceStateChangedEvent
+from aiohomematic.central.events import DataPointValueReceivedEvent, DeviceStateChangedEvent
 
 async def on_datapoint_update(*, event: DataPointValueReceivedEvent) -> None:
     print(f"DataPoint {event.dpk} = {event.value}")
@@ -349,7 +349,7 @@ else:
     print("Not connected")
 
 # Subscribe to device availability changes
-from aiohomematic.central.event_bus import DeviceStateChangedEvent
+from aiohomematic.central.events import DeviceStateChangedEvent
 
 async def on_device_updated(*, event: DeviceStateChangedEvent) -> None:
     print(f"Device {event.device_address} was updated")

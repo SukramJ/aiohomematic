@@ -81,7 +81,7 @@ Scheduler
 EventBus
 --------
 
-.. autoclass:: aiohomematic.central.event_bus.EventBus
+.. autoclass:: aiohomematic.central.events.EventBus
    :members:
    :undoc-members:
    :show-inheritance:

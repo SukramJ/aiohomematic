@@ -160,7 +160,7 @@ The Client class provides low-level RPC communication with the CCU/backend.
 
 ---
 
-### 3. aiohomematic.central.integration_events.SystemStatusChangedEvent (3 properties)
+### 3. aiohomematic.central.events.SystemStatusChangedEvent (3 properties)
 
 Event data for system status changes (used by Home Assistant integration).
 

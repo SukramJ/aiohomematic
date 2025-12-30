@@ -55,21 +55,34 @@ voluptuous>=0.15.0      # Configuration/schema validation
 ```
 /home/user/aiohomematic/
 ├── aiohomematic/                    # Main package (67 files, ~26.8K LOC)
-│   ├── central/                     # Central orchestration (11 files)
-│   │   ├── __init__.py             # CentralUnit, CentralConfig
-│   │   ├── cache_coordinator.py    # Cache management (DI: 8 protocols)
-│   │   ├── client_coordinator.py   # Client lifecycle (DI: ClientFactoryProtocol + 5 protocols)
-│   │   ├── device_coordinator.py   # Device operations (DI: 15 protocols)
-│   │   ├── device_registry.py      # Device storage (DI: 2 protocols)
-│   │   ├── event_coordinator.py    # Event handling (DI: 2 protocols)
-│   │   ├── hub_coordinator.py      # Hub entities (DI: 9 protocols)
-│   │   ├── scheduler.py            # Background tasks (DI: 7 protocols)
+│   ├── central/                     # Central orchestration (21 files in 3 dirs)
+│   │   ├── __init__.py             # CentralUnit, CentralConfig re-exports
+│   │   ├── central_unit.py         # CentralUnit implementation
+│   │   ├── config.py               # CentralConfig
+│   │   ├── config_builder.py       # CentralConfigBuilder
+│   │   ├── connection_state.py     # CentralConnectionState
+│   │   ├── device_registry.py      # DeviceRegistry
+│   │   ├── health.py               # CentralHealth, HealthTracker
+│   │   ├── scheduler.py            # BackgroundScheduler
+│   │   ├── state_machine.py        # CentralStateMachine
 │   │   ├── decorators.py           # RPC function decorators
 │   │   ├── rpc_server.py           # XML-RPC callback server
-│   │   └── event_bus.py            # Modern event system
+│   │   ├── coordinators/           # Coordinator classes (7 files)
+│   │   │   ├── cache.py            # CacheCoordinator
+│   │   │   ├── client.py           # ClientCoordinator
+│   │   │   ├── connection_recovery.py  # ConnectionRecoveryCoordinator
+│   │   │   ├── device.py           # DeviceCoordinator
+│   │   │   ├── event.py            # EventCoordinator
+│   │   │   └── hub.py              # HubCoordinator
+│   │   └── events/                 # Event system (3 files)
+│   │       ├── __init__.py         # Event re-exports
+│   │       ├── bus.py              # EventBus and event types
+│   │       └── integration.py      # Integration events for HA
 │   │
-│   ├── client/                      # Protocol adapters (7 files)
-│   │   ├── __init__.py             # Client abstractions
+│   ├── client/                      # Protocol adapters (9 files)
+│   │   ├── __init__.py             # Package facade and factory functions
+│   │   ├── ccu.py                  # ClientCCU, ClientJsonCCU, ClientHomegear, ClientConfig
+│   │   ├── config.py               # InterfaceConfig
 │   │   ├── json_rpc.py             # JSON-RPC implementation
 │   │   ├── rpc_proxy.py            # XML-RPC proxy wrapper
 │   │   ├── _rpc_errors.py          # RPC error handling
@@ -103,8 +116,21 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   │   │   ├── text.py             # Text input
 │   │   │   └── data_point.py       # Generic data point impl
 │   │   │
-│   │   ├── hub/                    # Hub-level entities (8 files)
-│   │   │   └── __init__.py         # Programs & system variables
+│   │   ├── hub/                    # Hub-level entities (14 files)
+│   │   │   ├── __init__.py         # Package facade and re-exports
+│   │   │   ├── hub.py              # Hub orchestrator, ProgramDpType, MetricsDpType
+│   │   │   ├── data_point.py       # GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
+│   │   │   ├── button.py           # ProgramDpButton
+│   │   │   ├── switch.py           # ProgramDpSwitch, SysvarDpSwitch
+│   │   │   ├── sensor.py           # SysvarDpSensor
+│   │   │   ├── binary_sensor.py    # SysvarDpBinarySensor
+│   │   │   ├── select.py           # SysvarDpSelect
+│   │   │   ├── number.py           # SysvarDpNumber
+│   │   │   ├── text.py             # SysvarDpText
+│   │   │   ├── install_mode.py     # InstallModeDpButton, InstallModeDpSensor
+│   │   │   ├── metrics.py          # HmSystemHealthSensor, HmConnectionLatencySensor, HmLastEventAgeSensor
+│   │   │   ├── inbox.py            # HmInboxSensor
+│   │   │   └── update.py           # HmUpdate
 │   │   │
 │   │   ├── calculated/             # Derived metrics (4 files)
 │   │   │   ├── data_point.py       # Calculated data points
@@ -173,12 +199,13 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   ├── homeassistant_lifecycle.md  # HA integration
 │   └── [Other docs]
 │
-├── script/                         # Development scripts (11 files)
+├── script/                         # Development scripts (12 files)
 │   ├── sort_class_members.py       # Organize class members
 │   ├── check_i18n.py               # Validate translations
 │   ├── check_i18n_catalogs.py      # Check translation catalogs
 │   ├── lint_kwonly.py              # Enforce keyword-only args
 │   ├── lint_package_imports.py     # Enforce package import conventions
+│   ├── lint_all_exports.py         # Validate __all__ exports in packages
 │   └── run-in-env.sh               # Run tools in venv
 │
 ├── .github/workflows/              # CI/CD workflows
@@ -1007,7 +1034,7 @@ The project uses a unified **EventBus** system for internal event communication.
 
 ```python
 # EventBus API - Direct subscription
-from aiohomematic.central.event_bus import DataPointValueReceivedEvent
+from aiohomematic.central.events import DataPointValueReceivedEvent
 
 async def on_datapoint_update(event: DataPointValueReceivedEvent) -> None:
     print(f"DataPoint {event.dpk} = {event.value}")
@@ -1316,12 +1343,13 @@ The following hooks run automatically on commit:
 1. **sort-class-members** - Organize class members
 2. **check-i18n** - Validate translations
 3. **lint-package-imports** - Enforce package import conventions
-4. **ruff** - Lint and format
-5. **mypy** - Type check
-6. **pylint** - Additional linting
-7. **codespell** - Spell check
-8. **bandit** - Security check
-9. **yamllint** - YAML validation
+4. **lint-all-exports** - Validate `__all__` exports
+5. **ruff** - Lint and format
+6. **mypy** - Type check
+7. **pylint** - Additional linting
+8. **codespell** - Spell check
+9. **bandit** - Security check
+10. **yamllint** - YAML validation
 
 **Bypass hooks** (NOT recommended):
 
@@ -1578,6 +1606,7 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 | `script/check_i18n_catalogs.py`  | Check translation completeness      |
 | `script/lint_kwonly.py`          | Enforce keyword-only arguments      |
 | `script/lint_package_imports.py` | Enforce package import conventions  |
+| `script/lint_all_exports.py`     | Validate `__all__` exports          |
 | `script/run-in-env.sh`           | Run commands in virtual environment |
 
 ---

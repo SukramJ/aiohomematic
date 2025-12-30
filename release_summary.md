@@ -98,3 +98,4 @@
 - Store package restructured into `persistent/` and `dynamic/` subpackages for better maintainability
 - Typed dataclasses (`CachedCommand`, `PongTracker`) replace untyped tuples and dicts
 - Event-driven test patterns with `EventCapture` fixture for behavior verification through events
+- Import standardization with `lint-package-imports` pre-commit hook enforcing package facade usage

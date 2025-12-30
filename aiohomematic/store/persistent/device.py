@@ -21,10 +21,15 @@ from aiohomematic.const import (
     DataOperationResult,
     DeviceDescription,
 )
-from aiohomematic.interfaces.central import CentralInfoProtocol, ConfigProviderProtocol, DeviceProviderProtocol
-from aiohomematic.interfaces.client import DeviceDescriptionsAccessProtocol
+from aiohomematic.interfaces import (
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    DeviceDescriptionProviderProtocol,
+    DeviceDescriptionsAccessProtocol,
+    DeviceProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
-from aiohomematic.interfaces.operations import DeviceDescriptionProviderProtocol, TaskSchedulerProtocol
 from aiohomematic.store.persistent.base import BasePersistentFile
 from aiohomematic.support import get_device_address
 

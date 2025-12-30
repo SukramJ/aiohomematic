@@ -65,7 +65,7 @@ from aiohomematic.central.event_bus import Event
 from aiohomematic.const import CentralState, ClientState, DataPointCategory, DeviceTriggerEventType, FailureReason
 
 if TYPE_CHECKING:
-    from aiohomematic.interfaces.model import CallbackDataPointProtocol
+    from aiohomematic.interfaces import CallbackDataPointProtocol
 
 
 __all__ = [

@@ -10,8 +10,9 @@ import pytest
 
 from aiohomematic.const import DataPointUsage
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model.custom.light import CustomDpSoundPlayerLed, _convert_flash_time_to_on_time_list
-from aiohomematic.model.custom.siren import CustomDpSoundPlayer, _convert_repetitions
+from aiohomematic.model.custom import CustomDpSoundPlayer, CustomDpSoundPlayerLed
+from aiohomematic.model.custom.light import _convert_flash_time_to_on_time_list
+from aiohomematic.model.custom.siren import _convert_repetitions
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 # HmIP-MP3P device address (from pydevccu session data)

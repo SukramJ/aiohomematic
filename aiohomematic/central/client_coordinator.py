@@ -23,15 +23,17 @@ from aiohomematic import client as hmcl, i18n
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, FailureReason, Interface, ProxyInitState
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ClientFactoryProtocol,
+    ClientProtocol,
+    ClientProviderProtocol,
     ConfigProviderProtocol,
+    CoordinatorProviderProtocol,
     EventBusProviderProtocol,
     HealthTrackerProtocol,
     SystemInfoProviderProtocol,
 )
-from aiohomematic.interfaces.client import ClientFactoryProtocol, ClientProtocol, ClientProviderProtocol
-from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 

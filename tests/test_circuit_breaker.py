@@ -16,12 +16,8 @@ from aiohomematic.central.event_bus import (
     EventBus,
     HealthRecordedEvent,
 )
-from aiohomematic.client.circuit_breaker import (
-    CircuitBreaker,
-    CircuitBreakerConfig,
-    CircuitBreakerMetrics,
-    CircuitState,
-)
+from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState
+from aiohomematic.client.circuit_breaker import CircuitBreakerMetrics
 from aiohomematic_test_support.event_capture import EventCapture
 
 

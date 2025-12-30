@@ -12,7 +12,10 @@ Key types:
 - DeviceProfileRegistry: Central registry class for device profile configurations
 
 Example usage:
-    from aiohomematic.model.custom.registry import DeviceProfileRegistry, DeviceConfig
+    from aiohomematic.model.custom import (
+        DeviceProfileRegistry,
+        DeviceConfig,
+    )
 
     # Register a device
     DeviceProfileRegistry.register(

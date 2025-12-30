@@ -34,16 +34,16 @@ from aiohomematic.central.event_coordinator import EventCoordinator
 from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import SCHEDULER_LOOP_SLEEP, SCHEDULER_NOT_STARTED_SLEEP, CentralState, DeviceFirmwareState
 from aiohomematic.exceptions import NoConnectionException
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
     CentralUnitStateProviderProtocol,
     ConfigProviderProtocol,
+    ConnectionStateProviderProtocol,
     DeviceDataRefresherProtocol,
     EventBusProviderProtocol,
-    FirmwareDataRefresherProtocol,
     HubDataFetcherProtocol,
 )
-from aiohomematic.interfaces.client import ConnectionStateProviderProtocol
+from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 from aiohomematic.type_aliases import UnsubscribeCallback

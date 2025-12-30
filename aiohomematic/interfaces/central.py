@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.device_coordinator import DeviceCoordinator
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator, SystemEventArgs
-    from aiohomematic.interfaces.model import (
+    from aiohomematic.interfaces import (
         CallbackDataPointProtocol,
         ChannelProtocol,
         GenericDataPointProtocolAny,

@@ -23,7 +23,7 @@ from aiohomematic.const import (
     PING_PONG_MISMATCH_COUNT_TTL,
     PingPongMismatchType,
 )
-from aiohomematic.interfaces.central import CentralInfoProtocol, EventBusProviderProtocol
+from aiohomematic.interfaces import CentralInfoProtocol, EventBusProviderProtocol
 from aiohomematic.metrics import MetricKeys, emit_latency
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.types import PongTracker

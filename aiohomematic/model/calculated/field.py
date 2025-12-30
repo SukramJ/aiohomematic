@@ -14,13 +14,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Final, cast, overload
 
 from aiohomematic.const import ParamsetKey
-from aiohomematic.interfaces.model import GenericDataPointProtocolAny
+from aiohomematic.interfaces import GenericDataPointProtocolAny
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from typing import Self
 
-    from aiohomematic.model.calculated.data_point import CalculatedDataPoint
+    from aiohomematic.model.calculated import CalculatedDataPoint
 
 __all__ = ["CalculatedDataPointField"]
 

@@ -15,13 +15,14 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.const import INIT_DATETIME, MAX_CACHE_AGE, NO_CACHE_ENTRY, CallSource, Interface, ParamsetKey
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ClientProviderProtocol,
+    DataCacheWriterProtocol,
     DataPointProviderProtocol,
     DeviceProviderProtocol,
     EventBusProviderProtocol,
 )
-from aiohomematic.interfaces.client import ClientProviderProtocol, DataCacheWriterProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter
 from aiohomematic.support import changed_within_seconds
 

@@ -34,8 +34,7 @@ from aiohomematic.const import (
     ParameterData,
     ParameterType,
 )
-from aiohomematic.interfaces.central import ConfigProviderProtocol
-from aiohomematic.interfaces.model import ChannelProtocol
+from aiohomematic.interfaces import ChannelProtocol, ConfigProviderProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import to_bool
 

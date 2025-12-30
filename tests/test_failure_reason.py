@@ -8,8 +8,8 @@ from unittest.mock import MagicMock
 
 from aiohomematic.central.integration_events import SystemStatusChangedEvent
 from aiohomematic.central.state_machine import CentralStateMachine
+from aiohomematic.client import ClientStateMachine
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
-from aiohomematic.client.state_machine import ClientStateMachine
 from aiohomematic.const import CentralState, ClientState, FailureReason
 from aiohomematic.exceptions import (
     AuthFailure,

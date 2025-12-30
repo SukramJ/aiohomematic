@@ -30,14 +30,13 @@ from aiohomematic.const import (
     DataPointCategory,
     HubValueType,
 )
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ChannelProtocol,
     ConfigProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
-)
-from aiohomematic.interfaces.model import ChannelProtocol, HubSensorDataPointProtocol
-from aiohomematic.interfaces.operations import (
+    HubSensorDataPointProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,

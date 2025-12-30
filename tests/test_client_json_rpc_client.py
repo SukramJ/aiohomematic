@@ -16,7 +16,8 @@ import orjson
 import pytest
 
 from aiohomematic import central as hmcu
-from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient, _get_params, _JsonKey, _JsonRpcMethod
+from aiohomematic.client import AioJsonRpcAioHttpClient
+from aiohomematic.client.json_rpc import _get_params, _JsonKey, _JsonRpcMethod
 from aiohomematic.const import (
     UTF_8,
     DescriptionMarker,

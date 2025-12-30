@@ -25,8 +25,7 @@ from aiohomematic.central.event_bus import (
     EventBus,
     RequestCoalescedEvent,
 )
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
-from aiohomematic.client.request_coalescer import RequestCoalescer
+from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState, RequestCoalescer
 from aiohomematic_test_support.event_capture import EventCapture, EventSequenceAssertion
 
 if TYPE_CHECKING:

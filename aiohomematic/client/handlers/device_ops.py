@@ -32,7 +32,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector, measure_execution_time
 from aiohomematic.exceptions import BaseHomematicException, ClientException, ValidationException
-from aiohomematic.interfaces.client import (
+from aiohomematic.interfaces import (
     DeviceDiscoveryOperationsProtocol,
     ParamsetOperationsProtocol,
     ValueOperationsProtocol,
@@ -47,10 +47,8 @@ from aiohomematic.support import (
 )
 
 if TYPE_CHECKING:
-    from aiohomematic.client import AioJsonRpcAioHttpClient
-    from aiohomematic.client.rpc_proxy import BaseRpcProxy
-    from aiohomematic.interfaces.client import ClientDependenciesProtocol
-    from aiohomematic.interfaces.model import DeviceProtocol
+    from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
+    from aiohomematic.interfaces import ClientDependenciesProtocol, DeviceProtocol
     from aiohomematic.store import CommandCache
 
 _LOGGER: Final = logging.getLogger(__name__)

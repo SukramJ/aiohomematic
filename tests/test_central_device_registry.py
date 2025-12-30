@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from aiohomematic.central.device_registry import DeviceRegistry
+from aiohomematic.central import DeviceRegistry
 
 
 class _FakeChannel:

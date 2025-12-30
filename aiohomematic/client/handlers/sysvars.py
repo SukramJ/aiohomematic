@@ -14,7 +14,7 @@ from typing import Any, Final
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import DescriptionMarker, SystemVariableData
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.client import SystemVariableOperationsProtocol
+from aiohomematic.interfaces import SystemVariableOperationsProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

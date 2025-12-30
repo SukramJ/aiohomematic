@@ -29,7 +29,10 @@ The circuit breaker has three states:
 
 Example Usage
 -------------
-    from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+    from aiohomematic.client import (
+        CircuitBreaker,
+        CircuitBreakerConfig,
+    )
 
     breaker = CircuitBreaker(
         config=CircuitBreakerConfig(

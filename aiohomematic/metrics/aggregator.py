@@ -35,7 +35,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.client import CircuitState
 from aiohomematic.const import INIT_DATETIME
 from aiohomematic.metrics._protocols import (
     ClientProviderForMetricsProtocol,
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.health import HealthTracker
     from aiohomematic.metrics.observer import MetricsObserver
-    from aiohomematic.store.dynamic.data import CentralDataCache
+    from aiohomematic.store import CentralDataCache
 
 
 # =============================================================================

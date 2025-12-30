@@ -81,6 +81,7 @@ from aiohomematic.central.cache_coordinator import CacheCoordinator
 from aiohomematic.central.client_coordinator import ClientCoordinator
 from aiohomematic.central.config_builder import CentralConfigBuilder, ValidationError
 from aiohomematic.central.connection_recovery import ConnectionRecoveryCoordinator
+from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.central.device_coordinator import DeviceCoordinator
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.event_bus import EventBatch, EventBus, EventPriority
@@ -196,6 +197,8 @@ __all__ = [
     "EventPriority",
     "ValidationError",
     "_SchedulerJob",
+    "callback_backend_system",
+    "callback_event",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

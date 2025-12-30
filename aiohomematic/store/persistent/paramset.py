@@ -23,10 +23,15 @@ from aiohomematic.const import (
     ParameterData,
     ParamsetKey,
 )
-from aiohomematic.interfaces.central import CentralInfoProtocol, ConfigProviderProtocol, DeviceProviderProtocol
-from aiohomematic.interfaces.client import ParamsetDescriptionWriterProtocol
+from aiohomematic.interfaces import (
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    DeviceProviderProtocol,
+    ParamsetDescriptionProviderProtocol,
+    ParamsetDescriptionWriterProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
-from aiohomematic.interfaces.operations import ParamsetDescriptionProviderProtocol, TaskSchedulerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent.base import BasePersistentFile
 from aiohomematic.store.types import InterfaceParamsetMap

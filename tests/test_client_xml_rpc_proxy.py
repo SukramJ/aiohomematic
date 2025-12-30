@@ -13,7 +13,7 @@ from aiohomematic import central as hmcu
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, _cleanup_args, _cleanup_item, _cleanup_paramset
 from aiohomematic.const import HubValueType
 from aiohomematic.exceptions import ClientException, NoConnectionException, UnsupportedException
-from aiohomematic.store.persistent import SessionRecorder
+from aiohomematic.store import SessionRecorder
 
 
 class TestXmlRpcProxyBasic:

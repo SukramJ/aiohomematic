@@ -24,21 +24,21 @@ from aiohomematic import i18n
 from aiohomematic.central.event_bus import ProgramExecutedEvent, SysvarStateChangedEvent
 from aiohomematic.const import DataPointCategory, Interface
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
     ChannelLookupProtocol,
+    ClientProviderProtocol,
     ConfigProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
+    GenericProgramDataPointProtocol,
+    GenericSysvarDataPointProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
     MetricsProviderProtocol,
-)
-from aiohomematic.interfaces.client import ClientProviderProtocol, PrimaryClientProviderProtocol
-from aiohomematic.interfaces.model import GenericProgramDataPointProtocol, GenericSysvarDataPointProtocol
-from aiohomematic.interfaces.operations import (
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
+    PrimaryClientProviderProtocol,
     TaskSchedulerProtocol,
 )
 from aiohomematic.model.hub import Hub, InstallModeDpType, MetricsDpType, ProgramDpType

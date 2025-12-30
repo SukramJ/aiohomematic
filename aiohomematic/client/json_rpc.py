@@ -62,8 +62,8 @@ import orjson
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
+from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,

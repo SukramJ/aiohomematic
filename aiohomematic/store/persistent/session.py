@@ -25,8 +25,12 @@ from typing import Any, Final, Self
 
 from aiohomematic import i18n
 from aiohomematic.const import FILE_SESSION_RECORDER, SUB_DIRECTORY_SESSION, RPCType
-from aiohomematic.interfaces.central import CentralInfoProtocol, ConfigProviderProtocol, DeviceProviderProtocol
-from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+from aiohomematic.interfaces import (
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    DeviceProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent.base import BasePersistentFile
 from aiohomematic.store.serialization import cleanup_params_for_session, freeze_params, unfreeze_params

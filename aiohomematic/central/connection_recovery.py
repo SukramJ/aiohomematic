@@ -63,7 +63,7 @@ from aiohomematic.central.event_bus import (
     RecoveryFailedEvent,
     RecoveryStageChangedEvent,
 )
-from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, FailureReason, RecoveryStage
 
 if TYPE_CHECKING:
@@ -71,10 +71,14 @@ if TYPE_CHECKING:
 
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.state_machine import CentralStateMachine
-    from aiohomematic.interfaces.central import CentralInfoProtocol, ConfigProviderProtocol, DeviceDataRefresherProtocol
-    from aiohomematic.interfaces.client import ClientProviderProtocol
-    from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
-    from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+    from aiohomematic.interfaces import (
+        CentralInfoProtocol,
+        ClientProviderProtocol,
+        ConfigProviderProtocol,
+        CoordinatorProviderProtocol,
+        DeviceDataRefresherProtocol,
+        TaskSchedulerProtocol,
+    )
 
 _LOGGER: Final = logging.getLogger(__name__)
 

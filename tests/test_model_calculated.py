@@ -15,15 +15,15 @@ import pytest
 from aiohomematic.const import INIT_DATETIME, Parameter, ParamsetKey
 from aiohomematic.model.calculated import (
     ApparentTemperature,
+    CalculatedDataPoint,
     DewPoint,
     DewPointSpread,
     Enthalpy,
     FrostPoint,
+    OperatingVoltageLevel,
     VaporConcentration,
 )
 from aiohomematic.model.calculated.climate import _is_relevant_for_model_temperature_and_humidity
-from aiohomematic.model.calculated.data_point import CalculatedDataPoint
-from aiohomematic.model.calculated.operating_voltage_level import OperatingVoltageLevel
 from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
     calculate_dew_point,

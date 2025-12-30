@@ -18,7 +18,7 @@ from aiohomematic.central.state_machine import (
     CentralStateMachine,
     InvalidCentralStateTransitionError,
 )
-from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
 
 

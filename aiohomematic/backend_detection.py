@@ -20,7 +20,7 @@ from aiohttp import ClientSession
 
 from aiohomematic import i18n
 from aiohomematic.central import CentralConnectionState
-from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
+from aiohomematic.client import AioJsonRpcAioHttpClient
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
 from aiohomematic.const import (
     DETECTION_PORT_BIDCOS_RF,

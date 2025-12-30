@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from aiohomematic import support as hms
 from aiohomematic.const import UN_IGNORE_WILDCARD, ParamsetKey
-from aiohomematic.interfaces.operations import ParameterVisibilityProviderProtocol
+from aiohomematic.interfaces import ParameterVisibilityProviderProtocol
 from aiohomematic.model.custom import get_required_parameters
 from aiohomematic.store.visibility.parser import ParsedUnIgnoreLine, UnIgnoreChannelNo, parse_un_ignore_line
 from aiohomematic.store.visibility.rules import (
@@ -38,8 +38,7 @@ from aiohomematic.store.visibility.rules import (
 from aiohomematic.support import element_matches_key
 
 if TYPE_CHECKING:
-    from aiohomematic.interfaces.central import ConfigProviderProtocol
-    from aiohomematic.interfaces.model import ChannelProtocol
+    from aiohomematic.interfaces import ChannelProtocol, ConfigProviderProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

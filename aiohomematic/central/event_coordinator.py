@@ -21,14 +21,14 @@ from functools import partial
 import logging
 from typing import TYPE_CHECKING, Any, Final, TypedDict, Unpack
 
-from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+from aiohomematic.interfaces import TaskSchedulerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.model.data_point import BaseDataPoint  # noqa: F401
 
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.decorators import callback_event
+from aiohomematic.central import callback_event
 from aiohomematic.central.event_bus import (
     DataPointStatusReceivedEvent,
     DataPointValueReceivedEvent,
@@ -50,12 +50,15 @@ from aiohomematic.const import (
     ParamsetKey,
     SystemEventType,
 )
-from aiohomematic.interfaces.central import EventBusProviderProtocol, EventPublisherProtocol, HealthTrackerProtocol
-from aiohomematic.interfaces.client import ClientProviderProtocol, LastEventTrackerProtocol
-from aiohomematic.interfaces.model import (
+from aiohomematic.interfaces import (
     BaseParameterDataPointProtocolAny,
+    ClientProviderProtocol,
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
     GenericDataPointProtocol,
     GenericEventProtocol,
+    HealthTrackerProtocol,
+    LastEventTrackerProtocol,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)

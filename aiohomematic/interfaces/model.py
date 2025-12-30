@@ -70,20 +70,20 @@ from aiohomematic.property_decorators import state_property
 from aiohomematic.type_aliases import DataPointUpdatedHandler, DeviceRemovedHandler, FirmwareUpdateHandler
 
 if TYPE_CHECKING:
-    from aiohomematic.interfaces.central import (
+    from aiohomematic.interfaces import (
         CentralInfoProtocol,
         ChannelLookupProtocol,
+        ClientProtocol,
         ConfigProviderProtocol,
         DataCacheProviderProtocol,
         DataPointProviderProtocol,
         EventBusProviderProtocol,
         EventPublisherProtocol,
         EventSubscriptionManagerProtocol,
-        FirmwareDataRefresherProtocol,
     )
-    from aiohomematic.interfaces.client import ClientProtocol
+    from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
+    from aiohomematic.model.custom import DeviceConfig
     from aiohomematic.model.custom.mixins import StateChangeArgs
-    from aiohomematic.model.custom.registry import DeviceConfig
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
 

@@ -61,10 +61,9 @@ from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 from aiohomematic.metrics._protocols import ClientProviderForMetricsProtocol
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralConfig, CentralConnectionState
+    from aiohomematic.central import CentralConfig, CentralConnectionState, DeviceRegistry
     from aiohomematic.central.cache_coordinator import CacheCoordinator
     from aiohomematic.central.device_coordinator import DeviceCoordinator
-    from aiohomematic.central.device_registry import DeviceRegistry
     from aiohomematic.central.event_bus import EventBus
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig

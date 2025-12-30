@@ -16,10 +16,13 @@ import logging
 from typing import Final, cast
 
 from aiohomematic.const import INIT_DATETIME, MAX_CACHE_AGE, Interface
-from aiohomematic.interfaces.central import CentralInfoProtocol
-from aiohomematic.interfaces.client import DeviceDetailsWriterProtocol, PrimaryClientProviderProtocol
+from aiohomematic.interfaces import (
+    CentralInfoProtocol,
+    DeviceDetailsProviderProtocol,
+    DeviceDetailsWriterProtocol,
+    PrimaryClientProviderProtocol,
+)
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
-from aiohomematic.interfaces.operations import DeviceDetailsProviderProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import changed_within_seconds, get_device_address
 

@@ -8,7 +8,7 @@ import logging
 from typing import Final
 
 from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
-from aiohomematic.interfaces.model import ChannelProtocol
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.calculated.support import (

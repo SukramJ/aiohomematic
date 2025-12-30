@@ -16,15 +16,14 @@ from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import ProductGroup
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException
-from aiohomematic.interfaces.client import FirmwareOperationsProtocol
+from aiohomematic.interfaces import FirmwareOperationsProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
-    from aiohomematic.client import AioJsonRpcAioHttpClient
-    from aiohomematic.client.rpc_proxy import BaseRpcProxy
+    from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
     from aiohomematic.const import Interface
-    from aiohomematic.interfaces.client import ClientDependenciesProtocol
+    from aiohomematic.interfaces import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

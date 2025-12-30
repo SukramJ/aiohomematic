@@ -23,20 +23,18 @@ from typing import Final
 
 from aiohomematic.central.event_bus import CacheInvalidatedEvent, DeviceRemovedEvent
 from aiohomematic.const import CacheInvalidationReason, CacheType, DataOperationResult, Interface
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ClientProviderProtocol,
     ConfigProviderProtocol,
     DataPointProviderProtocol,
     DeviceProviderProtocol,
     EventBusProviderProtocol,
-)
-from aiohomematic.interfaces.client import (
-    ClientProviderProtocol,
     PrimaryClientProviderProtocol,
     SessionRecorderProviderProtocol,
+    TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
-from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store import (
     CentralDataCache,

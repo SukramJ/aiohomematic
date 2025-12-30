@@ -24,7 +24,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.decorators import callback_backend_system
+from aiohomematic.central import callback_backend_system
 from aiohomematic.central.event_bus import DeviceRemovedEvent
 from aiohomematic.const import (
     CATEGORIES,
@@ -37,36 +37,29 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
+    CallbackDataPointProtocol,
     CentralInfoProtocol,
+    ChannelProtocol,
+    ClientProviderProtocol,
     ConfigProviderProtocol,
+    CoordinatorProviderProtocol,
     DataCacheProviderProtocol,
     DataPointProviderProtocol,
+    DeviceDescriptionProviderProtocol,
+    DeviceDetailsProviderProtocol,
+    DeviceProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
     EventSubscriptionManagerProtocol,
     FileOperationsProtocol,
-    FirmwareDataRefresherProtocol,
-)
-from aiohomematic.interfaces.client import (
-    ClientProviderProtocol,
-    DeviceDiscoveryAndMetadataProtocol,
-    DeviceDiscoveryWithIdentityProtocol,
-)
-from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
-from aiohomematic.interfaces.model import (
-    CallbackDataPointProtocol,
-    ChannelProtocol,
-    DeviceProtocol,
     GenericEventProtocolAny,
-)
-from aiohomematic.interfaces.operations import (
-    DeviceDescriptionProviderProtocol,
-    DeviceDetailsProviderProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
+from aiohomematic.interfaces.client import DeviceDiscoveryAndMetadataProtocol, DeviceDiscoveryWithIdentityProtocol
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
 from aiohomematic.model.device import Device
@@ -74,7 +67,7 @@ from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
-    from aiohomematic.central.device_registry import DeviceRegistry  # noqa: F401
+    from aiohomematic.central import DeviceRegistry  # noqa: F401
 
 _LOGGER: Final = logging.getLogger(__name__)
 

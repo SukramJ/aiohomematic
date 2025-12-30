@@ -173,11 +173,12 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   ├── homeassistant_lifecycle.md  # HA integration
 │   └── [Other docs]
 │
-├── script/                         # Development scripts (10 files)
+├── script/                         # Development scripts (11 files)
 │   ├── sort_class_members.py       # Organize class members
 │   ├── check_i18n.py               # Validate translations
 │   ├── check_i18n_catalogs.py      # Check translation catalogs
 │   ├── lint_kwonly.py              # Enforce keyword-only args
+│   ├── lint_package_imports.py     # Enforce package import conventions
 │   └── run-in-env.sh               # Run tools in venv
 │
 ├── .github/workflows/              # CI/CD workflows
@@ -1314,12 +1315,13 @@ The following hooks run automatically on commit:
 
 1. **sort-class-members** - Organize class members
 2. **check-i18n** - Validate translations
-3. **ruff** - Lint and format
-4. **mypy** - Type check
-5. **pylint** - Additional linting
-6. **codespell** - Spell check
-7. **bandit** - Security check
-8. **yamllint** - YAML validation
+3. **lint-package-imports** - Enforce package import conventions
+4. **ruff** - Lint and format
+5. **mypy** - Type check
+6. **pylint** - Additional linting
+7. **codespell** - Spell check
+8. **bandit** - Security check
+9. **yamllint** - YAML validation
 
 **Bypass hooks** (NOT recommended):
 
@@ -1569,13 +1571,14 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 
 ### Development Scripts
 
-| Script                          | Purpose                             |
-| ------------------------------- | ----------------------------------- |
-| `script/sort_class_members.py`  | Organize class members              |
-| `script/check_i18n.py`          | Validate translation usage          |
-| `script/check_i18n_catalogs.py` | Check translation completeness      |
-| `script/lint_kwonly.py`         | Enforce keyword-only arguments      |
-| `script/run-in-env.sh`          | Run commands in virtual environment |
+| Script                           | Purpose                             |
+| -------------------------------- | ----------------------------------- |
+| `script/sort_class_members.py`   | Organize class members              |
+| `script/check_i18n.py`           | Validate translation usage          |
+| `script/check_i18n_catalogs.py`  | Check translation completeness      |
+| `script/lint_kwonly.py`          | Enforce keyword-only arguments      |
+| `script/lint_package_imports.py` | Enforce package import conventions  |
+| `script/run-in-env.sh`           | Run commands in virtual environment |
 
 ---
 

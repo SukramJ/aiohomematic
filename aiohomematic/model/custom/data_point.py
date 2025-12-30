@@ -16,7 +16,7 @@ from typing import Any, Final, Unpack
 
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.model import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
+from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig

@@ -64,20 +64,21 @@ from aiohomematic.const import (
 from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
-from aiohomematic.interfaces.central import CentralInfoProtocol, EventBusProviderProtocol, EventPublisherProtocol
-from aiohomematic.interfaces.client import ClientProtocol, ValueAndParamsetOperationsProtocol
-from aiohomematic.interfaces.model import (
+from aiohomematic.interfaces import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
     CallbackDataPointProtocol,
+    CentralInfoProtocol,
     ChannelProtocol,
+    ClientProtocol,
     DeviceProtocol,
-)
-from aiohomematic.interfaces.operations import (
+    EventBusProviderProtocol,
+    EventPublisherProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.interfaces.client import ValueAndParamsetOperationsProtocol
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
 from aiohomematic.property_decorators import (
     DelegatedProperty,

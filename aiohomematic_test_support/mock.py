@@ -53,8 +53,7 @@ from aiohttp import ClientSession
 import orjson
 
 from aiohomematic.central import CentralUnit
-from aiohomematic.client import BaseRpcProxy
-from aiohomematic.client.circuit_breaker import CircuitBreaker
+from aiohomematic.client import BaseRpcProxy, CircuitBreaker
 from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
 from aiohomematic.client.rpc_proxy import _RpcMethod
 from aiohomematic.const import UTF_8, DataOperationResult, Parameter, ParamsetKey, RPCType

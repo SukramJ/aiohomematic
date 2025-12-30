@@ -12,7 +12,10 @@ Key types:
 - ProfileRegistry: Type alias for the profile configuration mapping
 
 Example usage:
-    from aiohomematic.model.custom.profile import ProfileConfig, ChannelGroupConfig
+    from aiohomematic.model.custom import (
+        ProfileConfig,
+        ChannelGroupConfig,
+    )
 
     MY_PROFILE = ProfileConfig(
         profile_type=ProfileType.HMIP_THERMOSTAT,

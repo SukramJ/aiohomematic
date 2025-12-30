@@ -91,38 +91,35 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ClientException
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
+    BaseParameterDataPointProtocol,
+    CalculatedDataPointProtocol,
+    CallbackDataPointProtocol,
     CentralInfoProtocol,
     ChannelLookupProtocol,
+    ChannelProtocol,
+    ClientProtocol,
+    ClientProviderProtocol,
     ConfigProviderProtocol,
+    CustomDataPointProtocol,
     DataCacheProviderProtocol,
     DataPointProviderProtocol,
+    DeviceDescriptionProviderProtocol,
+    DeviceDetailsProviderProtocol,
+    DeviceProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
     EventSubscriptionManagerProtocol,
     FileOperationsProtocol,
-    FirmwareDataRefresherProtocol,
-)
-from aiohomematic.interfaces.client import ClientProtocol, ClientProviderProtocol
-from aiohomematic.interfaces.model import (
-    BaseParameterDataPointProtocol,
-    CalculatedDataPointProtocol,
-    CallbackDataPointProtocol,
-    ChannelProtocol,
-    CustomDataPointProtocol,
-    DeviceProtocol,
     GenericDataPointProtocol,
     GenericDataPointProtocolAny,
     GenericEventProtocol,
     GenericEventProtocolAny,
-)
-from aiohomematic.interfaces.operations import (
-    DeviceDescriptionProviderProtocol,
-    DeviceDetailsProviderProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
 from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.generic import DpBinarySensor

@@ -52,7 +52,7 @@ from aiohomematic.central.integration_events import (
 )
 from aiohomematic.client import ClientConfig, InterfaceConfig
 from aiohomematic.const import LOCAL_HOST, Interface, OptionalSettings
-from aiohomematic.interfaces.client import ClientProtocol
+from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.mock import SessionPlayer, get_client_session, get_mock, get_xml_rpc_proxy
 

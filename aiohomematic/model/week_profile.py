@@ -384,7 +384,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
-from aiohomematic.interfaces.model import CustomDataPointProtocol, WeekProfileProtocol
+from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol
 
 if TYPE_CHECKING:
     from aiohomematic.model.custom import BaseCustomDpClimate

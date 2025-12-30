@@ -14,17 +14,16 @@ from slugify import slugify
 from aiohomematic import i18n
 from aiohomematic.const import HUB_ADDRESS, DataPointCategory, SystemUpdateData
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ChannelProtocol,
     ConfigProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
-)
-from aiohomematic.interfaces.client import PrimaryClientProviderProtocol
-from aiohomematic.interfaces.model import ChannelProtocol, GenericHubDataPointProtocol
-from aiohomematic.interfaces.operations import (
+    GenericHubDataPointProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
+    PrimaryClientProviderProtocol,
     TaskSchedulerProtocol,
 )
 from aiohomematic.model.data_point import CallbackDataPoint

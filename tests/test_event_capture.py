@@ -15,7 +15,7 @@ from aiohomematic.central.event_bus import (
     DataRefreshCompletedEvent,
     EventBus,
 )
-from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.client import CircuitState
 from aiohomematic.const import ConnectionStage
 from aiohomematic_test_support.event_capture import EventCapture, EventSequenceAssertion
 

@@ -16,9 +16,8 @@ from aiohomematic.decorators import inspector
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
-    from aiohomematic.client import AioJsonRpcAioHttpClient
-    from aiohomematic.client.rpc_proxy import BaseRpcProxy
-    from aiohomematic.interfaces.client import ClientDependenciesProtocol
+    from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
+    from aiohomematic.interfaces import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

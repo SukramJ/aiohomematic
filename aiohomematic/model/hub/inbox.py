@@ -11,14 +11,13 @@ from typing import Final
 from slugify import slugify
 
 from aiohomematic.const import HUB_ADDRESS, INBOX_SENSOR_NAME, DataPointCategory, HubValueType, InboxDeviceData
-from aiohomematic.interfaces.central import (
+from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ChannelProtocol,
     ConfigProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
-)
-from aiohomematic.interfaces.model import ChannelProtocol, HubSensorDataPointProtocol
-from aiohomematic.interfaces.operations import (
+    HubSensorDataPointProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,

@@ -49,9 +49,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
-from aiohomematic.interfaces.central import CentralHealthProtocol, ConnectionHealthProtocol, HealthTrackerProtocol
+from aiohomematic.interfaces import CentralHealthProtocol, ConnectionHealthProtocol, HealthTrackerProtocol
 from aiohomematic.metrics import MetricKeys, emit_health
 from aiohomematic.property_decorators import DelegatedProperty
 

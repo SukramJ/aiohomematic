@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Final, cast, overload
 
 from aiohomematic.const import Field
-from aiohomematic.interfaces.model import GenericDataPointProtocolAny
+from aiohomematic.interfaces import GenericDataPointProtocolAny
 from aiohomematic.model.generic import DpDummy
 from aiohomematic.property_decorators import DelegatedProperty
 

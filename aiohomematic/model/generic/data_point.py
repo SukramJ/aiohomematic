@@ -17,7 +17,7 @@ from aiohomematic.central.integration_events import DeviceLifecycleEvent, Device
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces.model import ChannelProtocol, GenericDataPointProtocol
+from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model import data_point as hme
 from aiohomematic.model.support import DataPointNameData, get_data_point_name_data
 from aiohomematic.property_decorators import hm_property

@@ -128,7 +128,7 @@ from aiohomematic.type_aliases import UnsubscribeCallback
 if TYPE_CHECKING:
     from typing import Self
 
-    from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+    from aiohomematic.interfaces import TaskSchedulerProtocol
 
 _LOGGER = logging.getLogger(__name__)
 

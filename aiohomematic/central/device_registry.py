@@ -20,9 +20,7 @@ import asyncio
 import logging
 from typing import Final
 
-from aiohomematic.interfaces.central import CentralInfoProtocol
-from aiohomematic.interfaces.client import ClientProviderProtocol
-from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
+from aiohomematic.interfaces import CentralInfoProtocol, ChannelProtocol, ClientProviderProtocol, DeviceProtocol
 from aiohomematic.support import get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)

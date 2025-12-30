@@ -28,8 +28,12 @@ import orjson
 from slugify import slugify
 
 from aiohomematic.const import FILE_NAME_TS_PATTERN, INIT_DATETIME, UTF_8, DataOperationResult
-from aiohomematic.interfaces.central import CentralInfoProtocol, ConfigProviderProtocol, DeviceProviderProtocol
-from aiohomematic.interfaces.operations import TaskSchedulerProtocol
+from aiohomematic.interfaces import (
+    CentralInfoProtocol,
+    ConfigProviderProtocol,
+    DeviceProviderProtocol,
+    TaskSchedulerProtocol,
+)
 from aiohomematic.support import (
     check_or_create_directory,
     create_random_device_addresses,

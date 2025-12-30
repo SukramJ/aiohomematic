@@ -265,7 +265,7 @@ class TestConnectionStateWorkflow:
         from aiohomematic.central import CentralConnectionState
         from aiohomematic.central.event_bus import EventBus
         from aiohomematic.central.integration_events import SystemStatusChangedEvent
-        from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
+        from aiohomematic.client import AioJsonRpcAioHttpClient
 
         # Create event bus and mock provider
         event_bus = EventBus()
@@ -324,8 +324,7 @@ class TestConnectionStateWorkflow:
     async def test_connection_state_multiple_issues(self) -> None:
         """Test connection state with multiple concurrent issues."""
         from aiohomematic.central import CentralConnectionState
-        from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
-        from aiohomematic.client.rpc_proxy import BaseRpcProxy
+        from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 
         state = CentralConnectionState()
 

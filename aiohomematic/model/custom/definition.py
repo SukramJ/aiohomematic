@@ -19,7 +19,7 @@ from typing import Final, cast
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory, DeviceProfile, Parameter
 from aiohomematic.exceptions import AioHomematicException
-from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
+from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.custom.profile import (
     DEFAULT_DATA_POINTS,
     PROFILE_CONFIGS,

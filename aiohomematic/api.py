@@ -58,7 +58,7 @@ from typing import Any, Final, Self
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.event_bus import DataPointValueReceivedEvent
 from aiohomematic.const import ParamsetKey
-from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.retry import with_retry
 from aiohomematic.support import get_device_address

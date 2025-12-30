@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from aiohomematic.const import SystemUpdateData
-from aiohomematic.model.hub.update import HmUpdate
+from aiohomematic.model.hub import HmUpdate
 
 
 class _FakeScheduleTimerConfig:

@@ -14,14 +14,13 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.const import DescriptionMarker, ProgramData
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces.client import ProgramOperationsProtocol
+from aiohomematic.interfaces import ProgramOperationsProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
-    from aiohomematic.client import AioJsonRpcAioHttpClient
-    from aiohomematic.client.rpc_proxy import BaseRpcProxy
+    from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
     from aiohomematic.const import Interface
-    from aiohomematic.interfaces.client import ClientDependenciesProtocol
+    from aiohomematic.interfaces import ClientDependenciesProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

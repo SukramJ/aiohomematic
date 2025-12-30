@@ -14,8 +14,7 @@ import logging
 import pytest
 
 from aiohomematic.central import CentralConfig, CentralConnectionState
-from aiohomematic.client import BaseRpcProxy, InterfaceConfig
-from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
+from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy, InterfaceConfig
 from aiohomematic.const import Interface
 
 

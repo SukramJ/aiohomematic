@@ -1,3 +1,25 @@
+# Version 2025.12.55 (2025-12-30)
+
+## What's Changed
+
+### New Features
+
+- **Fixed Color Light API**: Expose fixed color utilities as public API for Home Assistant integration
+  - `FixedColor` enum (previously `_FixedColor`) - available color names (WHITE, RED, YELLOW, etc.)
+  - `FIXED_COLOR_TO_HS` mapping (previously `_FIXED_COLOR_SWITCHER`) - converts fixed colors to HS values
+  - `hs_color_to_fixed_converter()` function (previously `_convert_color()`) - converts HS color to nearest fixed color
+
+### Code Quality
+
+- **Import Standardization**: Enforce consistent package import conventions across the codebase
+  - External consumers (tests, `aiohomematic_test_support`) must import public symbols from package `__init__.py` facades, not directly from submodules
+  - Example: `from aiohomematic.interfaces import ChannelProtocol` instead of `from aiohomematic.interfaces.model import ChannelProtocol`
+  - Added `callback_backend_system` and `callback_event` decorators to `aiohomematic.central` public API
+  - New pre-commit hook `lint-package-imports` enforces these conventions
+  - New linter script `script/lint_package_imports.py` with `--all` flag for checking internal imports
+
+---
+
 # Version 2025.12.54 (2025-12-29)
 
 ## What's Changed

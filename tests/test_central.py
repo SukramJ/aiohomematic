@@ -1463,8 +1463,7 @@ class TestCentralDeviceCreation:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """_create_devices should catch exceptions from Device() and from data point creation and continue."""
-        from aiohomematic.central.device_coordinator import DeviceCoordinator
-        from aiohomematic.central.device_registry import DeviceRegistry
+        from aiohomematic.central import DeviceCoordinator, DeviceRegistry
 
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
         central._device_registry = DeviceRegistry(central_info=central, client_provider=central)

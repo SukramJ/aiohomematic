@@ -29,7 +29,7 @@ How It Works
 
 Example Usage
 -------------
-    from aiohomematic.client.request_coalescer import RequestCoalescer
+    from aiohomematic.client import RequestCoalescer
 
     coalescer = RequestCoalescer()
 

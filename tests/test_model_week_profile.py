@@ -19,8 +19,7 @@ from aiohomematic.const import (
     WeekdayStr,
 )
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model.custom import CustomDpRfThermostat
-from aiohomematic.model.custom.data_point import CustomDataPoint
+from aiohomematic.model.custom import CustomDataPoint, CustomDpRfThermostat
 from aiohomematic.model.week_profile import (
     ClimateWeekProfile,
     DefaultWeekProfile,

@@ -19,7 +19,7 @@ from aiohomematic.const import DeviceDescription, Interface, ParameterData, Para
 from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
 if TYPE_CHECKING:
-    from aiohomematic.interfaces.model import ChannelProtocol
+    from aiohomematic.interfaces import ChannelProtocol
 
 
 @runtime_checkable

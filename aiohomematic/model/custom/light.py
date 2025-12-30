@@ -65,7 +65,7 @@ class _ColorBehaviour(StrEnum):
     ON = "ON"
 
 
-class _FixedColor(StrEnum):
+class FixedColor(StrEnum):
     """Enum with colors."""
 
     BLACK = "BLACK"
@@ -94,9 +94,9 @@ class _StateChangeArg(StrEnum):
 
 
 _NO_COLOR: Final = (
-    _FixedColor.BLACK,
-    _FixedColor.DO_NOT_CARE,
-    _FixedColor.OLD_VALUE,
+    FixedColor.BLACK,
+    FixedColor.DO_NOT_CARE,
+    FixedColor.OLD_VALUE,
 )
 
 _EXCLUDE_FROM_COLOR_BEHAVIOUR: Final = (
@@ -111,14 +111,14 @@ _OFF_COLOR_BEHAVIOUR: Final = (
     _ColorBehaviour.OLD_VALUE,
 )
 
-_FIXED_COLOR_SWITCHER: Mapping[str, tuple[float, float]] = {
-    _FixedColor.WHITE: (_MIN_HUE, _MIN_SATURATION),
-    _FixedColor.RED: (_MIN_HUE, _MAX_SATURATION),
-    _FixedColor.YELLOW: (60.0, _MAX_SATURATION),
-    _FixedColor.GREEN: (120.0, _MAX_SATURATION),
-    _FixedColor.TURQUOISE: (180.0, _MAX_SATURATION),
-    _FixedColor.BLUE: (240.0, _MAX_SATURATION),
-    _FixedColor.PURPLE: (300.0, _MAX_SATURATION),
+FIXED_COLOR_TO_HS_CONVERTER: Mapping[str, tuple[float, float]] = {
+    FixedColor.WHITE: (_MIN_HUE, _MIN_SATURATION),
+    FixedColor.RED: (_MIN_HUE, _MAX_SATURATION),
+    FixedColor.YELLOW: (60.0, _MAX_SATURATION),
+    FixedColor.GREEN: (120.0, _MAX_SATURATION),
+    FixedColor.TURQUOISE: (180.0, _MAX_SATURATION),
+    FixedColor.BLUE: (240.0, _MAX_SATURATION),
+    FixedColor.PURPLE: (300.0, _MAX_SATURATION),
 }
 
 # ON_TIME_LIST values mapping: (ms_value, enum_string)
@@ -722,7 +722,7 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
     def channel_hs_color(self) -> tuple[float, float] | None:
         """Return the channel hue and saturation color value [float, float]."""
         if self._dp_channel_color.value is not None:
-            return _FIXED_COLOR_SWITCHER.get(self._dp_channel_color.value, (_MIN_HUE, _MIN_SATURATION))
+            return FIXED_COLOR_TO_HS_CONVERTER.get(self._dp_channel_color.value, (_MIN_HUE, _MIN_SATURATION))
         return None
 
     @state_property
@@ -744,7 +744,7 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
         if (
             self._dp_color.value is not None
             and isinstance(self._dp_color.value, str)
-            and (hs_color := _FIXED_COLOR_SWITCHER.get(self._dp_color.value)) is not None
+            and (hs_color := FIXED_COLOR_TO_HS_CONVERTER.get(self._dp_color.value)) is not None
         ):
             return hs_color
         return _MIN_HUE, _MIN_SATURATION
@@ -755,10 +755,10 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
         if not self.is_state_change(on=True, **kwargs):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
-            simple_rgb_color = _convert_color(color=hs_color)
+            simple_rgb_color = hs_color_to_fixed_converter(color=hs_color)
             await self._dp_color.send_value(value=simple_rgb_color, collector=collector)
         elif self.color_name in _NO_COLOR:
-            await self._dp_color.send_value(value=_FixedColor.WHITE, collector=collector)
+            await self._dp_color.send_value(value=FixedColor.WHITE, collector=collector)
         if (effect := kwargs.get("effect")) is not None and effect in self._effect_list:
             await self._dp_effect.send_value(value=effect, collector=collector)
         elif self._dp_effect.value not in self._effect_list:
@@ -779,7 +779,7 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
         )
 
 
-def _convert_color(*, color: tuple[float, float]) -> str:
+def hs_color_to_fixed_converter(*, color: tuple[float, float]) -> str:
     """
     Convert the given color to the reduced color of the device.
 
@@ -788,18 +788,18 @@ def _convert_color(*, color: tuple[float, float]) -> str:
     """
     hue: int = int(color[0])
     if int(color[1]) < 5:
-        return _FixedColor.WHITE
+        return FixedColor.WHITE
     if 30 < hue <= 90:
-        return _FixedColor.YELLOW
+        return FixedColor.YELLOW
     if 90 < hue <= 150:
-        return _FixedColor.GREEN
+        return FixedColor.GREEN
     if 150 < hue <= 210:
-        return _FixedColor.TURQUOISE
+        return FixedColor.TURQUOISE
     if 210 < hue <= 270:
-        return _FixedColor.BLUE
+        return FixedColor.BLUE
     if 270 < hue <= 330:
-        return _FixedColor.PURPLE
-    return _FixedColor.RED
+        return FixedColor.PURPLE
+    return FixedColor.RED
 
 
 class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
@@ -833,7 +833,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
         if (
             self._dp_color.value is not None
             and isinstance(self._dp_color.value, str)
-            and (hs_color := _FIXED_COLOR_SWITCHER.get(self._dp_color.value)) is not None
+            and (hs_color := FIXED_COLOR_TO_HS_CONVERTER.get(self._dp_color.value)) is not None
         ):
             return hs_color
         return _MIN_HUE, _MIN_SATURATION
@@ -847,7 +847,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
     ) -> None:
         """Turn off the LED."""
         await self._dp_level.send_value(value=0.0, collector=collector)
-        await self._dp_color.send_value(value=_FixedColor.BLACK, collector=collector)
+        await self._dp_color.send_value(value=FixedColor.BLACK, collector=collector)
         await self._dp_on_time_value.send_value(value=0, collector=collector)
 
     @bind_collector
@@ -884,11 +884,11 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
 
         # Handle color: convert hs_color or default to WHITE (like CustomDpIpFixedColorLight)
         if (hs_color := kwargs.get("hs_color")) is not None:
-            color = _convert_color(color=hs_color)
+            color = hs_color_to_fixed_converter(color=hs_color)
         elif self.color_name in _NO_COLOR:
-            color = _FixedColor.WHITE
+            color = FixedColor.WHITE
         else:
-            color = self.color_name or _FixedColor.WHITE
+            color = self.color_name or FixedColor.WHITE
 
         # Send parameters - order matters for batching
         await self._dp_level.send_value(value=brightness, collector=collector)

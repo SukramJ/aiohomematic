@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from aiohomematic.central.health import CentralHealth, ConnectionHealth, HealthTracker
-from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
 
 if TYPE_CHECKING:

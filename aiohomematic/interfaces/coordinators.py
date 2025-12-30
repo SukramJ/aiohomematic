@@ -14,10 +14,10 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from aiohomematic.central import DeviceRegistry
     from aiohomematic.central.cache_coordinator import CacheCoordinator
     from aiohomematic.central.client_coordinator import ClientCoordinator
     from aiohomematic.central.device_coordinator import DeviceCoordinator
-    from aiohomematic.central.device_registry import DeviceRegistry
     from aiohomematic.central.event_coordinator import EventCoordinator
     from aiohomematic.central.hub_coordinator import HubCoordinator
 

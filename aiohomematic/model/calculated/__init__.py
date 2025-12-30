@@ -54,15 +54,19 @@ from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.operating_voltage_level import OperatingVoltageLevel
 
 __all__ = [
-    "ApparentTemperature",
+    # Base
     "CalculatedDataPoint",
+    # Climate
+    "ApparentTemperature",
     "DewPoint",
     "DewPointSpread",
     "Enthalpy",
     "FrostPoint",
-    "OperatingVoltageLevel",
     "VaporConcentration",
+    # Factory
     "create_calculated_data_points",
+    # Voltage
+    "OperatingVoltageLevel",
 ]
 
 _CALCULATED_DATA_POINTS: Final = (

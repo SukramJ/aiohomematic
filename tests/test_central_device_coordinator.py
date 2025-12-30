@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from aiohomematic.central.device_coordinator import DeviceCoordinator
+from aiohomematic.central.coordinators import DeviceCoordinator
 from aiohomematic.const import DeviceDescription
 
 

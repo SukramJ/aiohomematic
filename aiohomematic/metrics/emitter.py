@@ -44,7 +44,7 @@ from aiohomematic.metrics.events import CounterMetricEvent, GaugeMetricEvent, He
 from aiohomematic.metrics.keys import MetricKey
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 
 @runtime_checkable

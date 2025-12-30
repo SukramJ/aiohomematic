@@ -12,9 +12,9 @@ from unittest.mock import call
 
 import pytest
 
-from aiohomematic import central as hmcu
-from aiohomematic.central import CentralConfig, _SchedulerJob, check_config as central_check_config
-from aiohomematic.central.integration_events import SystemStatusChangedEvent
+from aiohomematic import central as hmcu, client as hmcl
+from aiohomematic.central import CentralConfig, SchedulerJob, check_config as central_check_config
+from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
@@ -27,6 +27,7 @@ from aiohomematic.const import (
     Operations,
     Parameter,
     ParamsetKey,
+    SourceOfDeviceCreation,
 )
 from aiohomematic.exceptions import (
     AioHomematicConfigException,
@@ -55,7 +56,7 @@ class _FakeChannel:
 
 
 class _FakeTask:
-    """A simple awaitable callable to be used as `_SchedulerJob` task."""
+    """A simple awaitable callable to be used as `SchedulerJob` task."""
 
     def __init__(self, marker: dict[str, int]) -> None:
         self._marker = marker
@@ -765,7 +766,7 @@ class TestCentralCallbacksAndServices:
         import asyncio
         from datetime import datetime
 
-        from aiohomematic.central.integration_events import IntegrationIssue, SystemStatusChangedEvent
+        from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
 
         central, _, factory = central_client_factory_with_homegear_client
         issue = IntegrationIssue(
@@ -1080,12 +1081,12 @@ class TestSchedulerJob:
 
     @pytest.mark.asyncio
     async def test_scheduler_job_ready_run_and_schedule_next_execution(self) -> None:
-        """`_SchedulerJob` readiness, running the task, and scheduling next run work as expected."""
+        """`SchedulerJob` readiness, running the task, and scheduling next run work as expected."""
         marker: dict[str, int] = {}
 
         # Set next_run into the past to ensure "ready" is True.
         past = datetime.now() - timedelta(seconds=10)
-        job = _SchedulerJob(task=_FakeTask(marker), run_interval=5, next_run=past)
+        job = SchedulerJob(task=_FakeTask(marker), run_interval=5, next_run=past)
 
         assert job.ready is True
         nr1 = job.next_run
@@ -1100,10 +1101,10 @@ class TestSchedulerJob:
 
     @pytest.mark.asyncio
     async def test_scheduler_job_ready_when_next_run_in_future(self) -> None:
-        """_SchedulerJob should report ready=False when next_run is in the future."""
+        """SchedulerJob should report ready=False when next_run is in the future."""
         marker: dict[str, int] = {}
         future = datetime.now() + timedelta(seconds=3600)  # 1 hour in future
-        job = _SchedulerJob(task=_FakeTask(marker), run_interval=60, next_run=future)
+        job = SchedulerJob(task=_FakeTask(marker), run_interval=60, next_run=future)
 
         # Should not be ready
         assert job.ready is False
@@ -1125,7 +1126,7 @@ class TestCentralConfig:
         def fail_create_dir(*, directory: str) -> bool:  # type: ignore[override]
             raise AioHomematicException("dir error")
 
-        monkeypatch.setattr("aiohomematic.central.check_or_create_directory", fail_create_dir)
+        monkeypatch.setattr("aiohomematic.central.config.check_or_create_directory", fail_create_dir)
 
         cfg = CentralConfig(
             central_id="c1",
@@ -1176,7 +1177,7 @@ class TestCentralConfig:
             """Return False to force directory creation failure."""
             raise AioHomematicException("failed to create dir")
 
-        monkeypatch.setattr("aiohomematic.central.check_or_create_directory", fail_create_dir)
+        monkeypatch.setattr("aiohomematic.central.config.check_or_create_directory", fail_create_dir)
 
         errors = central_check_config(
             central_name="bad@name",  # contains IDENTIFIER_SEPARATOR
@@ -1371,7 +1372,7 @@ class TestCentralEventHandling:
         """
         from unittest.mock import AsyncMock, MagicMock
 
-        from aiohomematic.central.event_coordinator import EventCoordinator
+        from aiohomematic.central.coordinators import EventCoordinator
 
         # Create a bare instance without running CentralUnit.__init__
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
@@ -1449,7 +1450,7 @@ class TestCentralValidation:
         async def raise_bhe(*args: Any, **kwargs: Any):  # noqa: ANN001
             raise MyBHE("fail")
 
-        monkeypatch.setattr(hmcu.hmcl, "create_client", raise_bhe)
+        monkeypatch.setattr(hmcl, "create_client", raise_bhe)
 
         with pytest.raises(MyBHE):
             await hmcu.CentralUnit.validate_config_and_get_system_information(central)
@@ -1463,7 +1464,8 @@ class TestCentralDeviceCreation:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """_create_devices should catch exceptions from Device() and from data point creation and continue."""
-        from aiohomematic.central import DeviceCoordinator, DeviceRegistry
+        from aiohomematic.central import DeviceRegistry
+        from aiohomematic.central.coordinators import DeviceCoordinator
 
         central = hmcu.CentralUnit.__new__(hmcu.CentralUnit)  # type: ignore[call-arg]
         central._device_registry = DeviceRegistry(central_info=central, client_provider=central)
@@ -1505,12 +1507,12 @@ class TestCentralDeviceCreation:
             def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN001
                 raise Exception("ctor")
 
-        import aiohomematic.central.device_coordinator as hm_device_coordinator
+        import aiohomematic.central.coordinators.device as hm_device_coordinator
 
         monkeypatch.setattr(hm_device_coordinator, "Device", BoomDevice)
 
         await device_coordinator.create_devices(
-            new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
+            new_device_addresses=new_device_addresses, source=SourceOfDeviceCreation.NEW
         )
 
         # Second pass: Device succeeds, but creation helpers raise to hit second except path
@@ -1537,7 +1539,7 @@ class TestCentralDeviceCreation:
         monkeypatch.setattr(hm_model, "create_data_points_and_events", raise_on_create)
 
         await device_coordinator.create_devices(
-            new_device_addresses=new_device_addresses, source=hmcu.SourceOfDeviceCreation.NEW
+            new_device_addresses=new_device_addresses, source=SourceOfDeviceCreation.NEW
         )
 
         # Should not have raised; internal logging covered the branches

@@ -24,8 +24,8 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central import callback_backend_system
-from aiohomematic.central.event_bus import DeviceRemovedEvent
+from aiohomematic.central.decorators import callback_backend_system
+from aiohomematic.central.events import DeviceRemovedEvent
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,

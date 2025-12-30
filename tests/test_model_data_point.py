@@ -9,11 +9,11 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
+from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import CallSource, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters
 from aiohomematic.model.generic import DpSensor, DpSwitch
-from aiohomematic.store import check_ignore_parameters_is_clean
+from aiohomematic.store.visibility import check_ignore_parameters_is_clean
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 

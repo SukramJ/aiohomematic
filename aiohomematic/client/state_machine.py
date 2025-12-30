@@ -22,7 +22,7 @@ from aiohomematic.const import ClientState, FailureReason
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ class ClientStateMachine:
 
     Example:
     -------
-        from aiohomematic.central.event_bus import ClientStateChangedEvent, EventBus
+        from aiohomematic.central.events import ClientStateChangedEvent, EventBus
 
         def on_state_changed(*, event: ClientStateChangedEvent) -> None:
             print(f"State changed: {event.old_state} -> {event.new_state}")
@@ -306,7 +306,7 @@ class ClientStateMachine:
             return
 
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import ClientStateChangedEvent  # noqa: PLC0415
+        from aiohomematic.central.events import ClientStateChangedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
             event=ClientStateChangedEvent(

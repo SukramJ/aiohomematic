@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from aiohomematic.central.integration_events import SystemStatusChangedEvent
+from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.central.state_machine import CentralStateMachine
 from aiohomematic.client import ClientStateMachine
 from aiohomematic.client._rpc_errors import exception_to_failure_reason

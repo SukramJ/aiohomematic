@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from aiohomematic.central.event_coordinator import EventCoordinator
+from aiohomematic.central.coordinators import EventCoordinator
 from aiohomematic.const import DataPointKey, DeviceTriggerEventType, EventData, Parameter, ParamsetKey, SystemEventType
 from aiohomematic.model.generic import GenericDataPoint
 

@@ -269,47 +269,37 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
-from aiohomematic.metrics._protocols import (
-    ClientProviderForMetricsProtocol,
-    DeviceProviderForMetricsProtocol,
-    HubDataPointManagerForMetricsProtocol,
-)
 
 __all__ = [
-    # Central Composite Protocol
-    "CentralProtocol",
-    # Identity & Configuration
-    "CentralInfoProtocol",
-    "CentralUnitStateProviderProtocol",
-    "ConfigProviderProtocol",
-    "SystemInfoProviderProtocol",
-    # Central State Machine
-    "CentralStateMachineProtocol",
-    "CentralStateMachineProviderProtocol",
-    # Health Tracking
-    "CentralHealthProtocol",
-    "ConnectionHealthProtocol",
-    "HealthProviderProtocol",
-    "HealthTrackerProtocol",
-    # Metrics
-    "MetricsProviderProtocol",
-    # Event System
-    "EventBusProviderProtocol",
-    "EventPublisherProtocol",
-    "EventSubscriptionManagerProtocol",
-    "LastEventTrackerProtocol",
-    # Cache Read (Providers)
+    # Cache providers
     "DataCacheProviderProtocol",
     "DeviceDescriptionProviderProtocol",
     "DeviceDescriptionsAccessProtocol",
     "DeviceDetailsProviderProtocol",
     "ParameterVisibilityProviderProtocol",
     "ParamsetDescriptionProviderProtocol",
-    # Cache Write (Writers)
+    # Cache writers
     "DataCacheWriterProtocol",
     "DeviceDetailsWriterProtocol",
     "ParamsetDescriptionWriterProtocol",
-    # Client Management - Sub-Protocols (ISP)
+    # Central composite
+    "CentralProtocol",
+    # Central health
+    "CentralHealthProtocol",
+    "ConnectionHealthProtocol",
+    "HealthProviderProtocol",
+    "HealthTrackerProtocol",
+    # Central identity
+    "CentralInfoProtocol",
+    "CentralUnitStateProviderProtocol",
+    "ConfigProviderProtocol",
+    "SystemInfoProviderProtocol",
+    # Central state machine
+    "CentralStateMachineProtocol",
+    "CentralStateMachineProviderProtocol",
+    # Client composite
+    "ClientProtocol",
+    # Client operations
     "BackupOperationsProtocol",
     "ClientCapabilitiesProtocol",
     "ClientConnectionProtocol",
@@ -324,34 +314,34 @@ __all__ = [
     "ProgramOperationsProtocol",
     "SystemVariableOperationsProtocol",
     "ValueOperationsProtocol",
-    # Client Management - Composite
-    "ClientProtocol",
-    # Client Management - Utilities
+    # Client providers
     "ClientDependenciesProtocol",
     "ClientFactoryProtocol",
-    "ClientProviderForMetricsProtocol",
     "ClientProviderProtocol",
     "ConnectionStateProviderProtocol",
     "JsonRpcClientProviderProtocol",
     "PrimaryClientProviderProtocol",
-    # Device & Channel Lookup
+    # Device and channel lookup
     "ChannelLookupProtocol",
     "DataPointProviderProtocol",
     "DeviceLookupProtocol",
-    "DeviceProviderForMetricsProtocol",
     "DeviceProviderProtocol",
-    # Device Operations
+    # Device operations
     "DeviceDataRefresherProtocol",
     "DeviceManagementProtocol",
     "NewDeviceHandlerProtocol",
-    # Hub Operations
+    # Event system
+    "EventBusProviderProtocol",
+    "EventPublisherProtocol",
+    "EventSubscriptionManagerProtocol",
+    "LastEventTrackerProtocol",
+    # Hub operations
     "HubDataFetcherProtocol",
-    "HubDataPointManagerForMetricsProtocol",
     "HubDataPointManagerProtocol",
     "HubFetchOperationsProtocol",
-    # Task Scheduling
-    "TaskSchedulerProtocol",
-    # Model Protocols - Channel (sub-protocols + composite)
+    # Metrics
+    "MetricsProviderProtocol",
+    # Model channel
     "ChannelDataPointAccessProtocol",
     "ChannelGroupingProtocol",
     "ChannelIdentityProtocol",
@@ -359,7 +349,18 @@ __all__ = [
     "ChannelLinkManagementProtocol",
     "ChannelMetadataProtocol",
     "ChannelProtocol",
-    # Model Protocols - Device (sub-protocols + composite)
+    # Model data point
+    "BaseDataPointProtocol",
+    "BaseParameterDataPointProtocol",
+    "BaseParameterDataPointProtocolAny",
+    "CalculatedDataPointProtocol",
+    "CallbackDataPointProtocol",
+    "CustomDataPointProtocol",
+    "GenericDataPointProtocol",
+    "GenericDataPointProtocolAny",
+    "GenericEventProtocol",
+    "GenericEventProtocolAny",
+    # Model device
     "DeviceAvailabilityProtocol",
     "DeviceChannelAccessProtocol",
     "DeviceConfigurationProtocol",
@@ -371,28 +372,18 @@ __all__ = [
     "DeviceProtocol",
     "DeviceProvidersProtocol",
     "DeviceWeekProfileProtocol",
-    # Model Protocols - Hub
-    "HubProtocol",
-    # Model Protocols - DataPoint Hierarchy
-    "BaseDataPointProtocol",
-    "BaseParameterDataPointProtocol",
-    "BaseParameterDataPointProtocolAny",
-    "CalculatedDataPointProtocol",
-    "CallbackDataPointProtocol",
-    "CustomDataPointProtocol",
-    "GenericDataPointProtocol",
-    "GenericDataPointProtocolAny",
-    "GenericEventProtocol",
-    "GenericEventProtocolAny",
-    # Model Protocols - Hub DataPoints
+    # Model hub
     "GenericHubDataPointProtocol",
     "GenericInstallModeDataPointProtocol",
     "GenericProgramDataPointProtocol",
     "GenericSysvarDataPointProtocol",
+    "HubProtocol",
     "HubSensorDataPointProtocol",
-    # Model Protocols - Other
+    # Model week profile
     "WeekProfileProtocol",
-    # Utility Protocols
+    # Task scheduling
+    "TaskSchedulerProtocol",
+    # Utility protocols
     "BackupProviderProtocol",
     "CallbackAddressProviderProtocol",
     "ClientCoordinationProtocol",

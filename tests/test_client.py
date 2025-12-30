@@ -249,7 +249,7 @@ class _FakeCentral:
     def __init__(self) -> None:
         from types import SimpleNamespace
 
-        from aiohomematic.central.event_bus import EventBus
+        from aiohomematic.central.events import EventBus
 
         self._event_bus = EventBus()
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
@@ -420,7 +420,7 @@ class _FakeCentral2:
     """
 
     def __init__(self, *, push_updates: bool = True) -> None:
-        from aiohomematic.central.event_bus import EventBus
+        from aiohomematic.central.events import EventBus
 
         self._event_bus = EventBus()
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
@@ -830,7 +830,7 @@ class TestClientClasses:
     @pytest.mark.asyncio
     async def test_fetch_all_device_data_exception_event(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """fetch_all_device_data should publish SystemStatusChangedEvent with IntegrationIssue on ClientException and not raise when decorated with re_raise=False."""
-        from aiohomematic.central.integration_events import SystemStatusChangedEvent
+        from aiohomematic.central.events import SystemStatusChangedEvent
 
         central = _FakeCentral()
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)

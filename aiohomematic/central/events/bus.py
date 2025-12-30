@@ -46,7 +46,7 @@ Public API
 
 Example Usage
 -------------
-    from aiohomematic.central.event_bus import (
+    from aiohomematic.central.events import (
         EventBus,
         EventBatch,
         EventPriority,

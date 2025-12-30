@@ -126,28 +126,36 @@ from aiohomematic.model.hub.update import HmUpdate
 from aiohomematic.property_decorators import DelegatedProperty
 
 __all__ = [
+    # Base
     "GenericHubDataPoint",
     "GenericProgramDataPoint",
     "GenericSysvarDataPoint",
-    "HmConnectionLatencySensor",
-    "HmInboxSensor",
-    "HmLastEventAgeSensor",
-    "HmSystemHealthSensor",
-    "HmUpdate",
+    # Hub
     "Hub",
+    # Inbox
+    "HmInboxSensor",
+    # Install mode
     "InstallModeDpButton",
     "InstallModeDpSensor",
     "InstallModeDpType",
+    # Metrics
+    "HmConnectionLatencySensor",
+    "HmLastEventAgeSensor",
+    "HmSystemHealthSensor",
     "MetricsDpType",
+    # Program
     "ProgramDpButton",
     "ProgramDpSwitch",
     "ProgramDpType",
+    # Sysvar
     "SysvarDpBinarySensor",
     "SysvarDpNumber",
     "SysvarDpSelect",
     "SysvarDpSensor",
     "SysvarDpSwitch",
     "SysvarDpText",
+    # Update
+    "HmUpdate",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

@@ -53,7 +53,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.central.event_bus import (
+from aiohomematic.central.events import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     ConnectionLostEvent,
@@ -69,7 +69,7 @@ from aiohomematic.const import CentralState, FailureReason, RecoveryStage
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
     from aiohomematic.central.state_machine import CentralStateMachine
     from aiohomematic.interfaces import (
         CentralInfoProtocol,

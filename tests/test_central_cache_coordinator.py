@@ -8,16 +8,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from aiohomematic.central.cache_coordinator import CacheCoordinator
-from aiohomematic.central.event_bus import CacheInvalidatedEvent, EventBus
+from aiohomematic.central.coordinators import CacheCoordinator
+from aiohomematic.central.events import CacheInvalidatedEvent, EventBus
 from aiohomematic.const import CacheInvalidationReason, CacheType
-from aiohomematic.store import (
-    CentralDataCache,
-    DeviceDescriptionCache,
-    DeviceDetailsCache,
-    ParamsetDescriptionCache,
-    SessionRecorder,
-)
+from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
+from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
 from aiohomematic_test_support.event_capture import EventCapture
 
 
@@ -545,7 +540,7 @@ class TestCacheCoordinatorSessionRecording:
         central = _FakeCentral()
         central.config.enable_session_recording = True
 
-        with patch("aiohomematic.central.cache_coordinator.SessionRecorder"):
+        with patch("aiohomematic.central.coordinators.cache.SessionRecorder"):
             _ = CacheCoordinator(
                 central_info=central,
                 device_provider=central,

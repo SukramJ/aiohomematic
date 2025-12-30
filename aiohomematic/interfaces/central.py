@@ -31,10 +31,13 @@ from aiohomematic.metrics._protocols import DeviceProviderForMetricsProtocol, Hu
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConfig
-    from aiohomematic.central.client_coordinator import ClientCoordinator
-    from aiohomematic.central.device_coordinator import DeviceCoordinator
-    from aiohomematic.central.event_bus import EventBus
-    from aiohomematic.central.event_coordinator import EventCoordinator, SystemEventArgs
+    from aiohomematic.central.coordinators import (
+        ClientCoordinator,
+        DeviceCoordinator,
+        EventCoordinator,
+        SystemEventArgs,
+    )
+    from aiohomematic.central.events import EventBus
     from aiohomematic.interfaces import (
         CallbackDataPointProtocol,
         ChannelProtocol,

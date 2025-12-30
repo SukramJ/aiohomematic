@@ -11,7 +11,7 @@ import inspect
 import logging
 from typing import Any, Final, cast
 
-from aiohomematic import central as hmcu, client as hmcl, i18n
+from aiohomematic import client as hmcl, i18n
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic.const import SystemEventType
 from aiohomematic.exceptions import AioHomematicException
@@ -47,8 +47,8 @@ def callback_backend_system(system_event: SystemEventType) -> Callable[[Callable
             try:
                 unit = args[0]
                 looper: Any = None
-                # Check for CentralUnit
-                if isinstance(unit, hmcu.CentralUnit):
+                # Check for CentralUnit (by duck typing - has looper attribute)
+                if hasattr(unit, "looper"):
                     looper = unit.looper
                 # Check for coordinator with _task_scheduler
                 elif hasattr(unit, "_task_scheduler"):
@@ -143,8 +143,8 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
         try:
             unit = args[0]
             looper: Any = None
-            # Check for CentralUnit
-            if isinstance(unit, hmcu.CentralUnit):
+            # Check for CentralUnit (by duck typing - has looper attribute)
+            if hasattr(unit, "looper"):
                 looper = unit.looper
             # Check for coordinator with _task_scheduler
             elif hasattr(unit, "_task_scheduler"):

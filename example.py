@@ -9,11 +9,7 @@ import sys
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig
-from aiohomematic.central.integration_events import (
-    DataPointsCreatedEvent,
-    DeviceLifecycleEvent,
-    DeviceLifecycleEventType,
-)
+from aiohomematic.central.events import DataPointsCreatedEvent, DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.client import InterfaceConfig
 
 logging.basicConfig(level=logging.DEBUG)

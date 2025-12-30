@@ -58,7 +58,7 @@ from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
 from aiohomematic.client.rpc_proxy import _RpcMethod
 from aiohomematic.const import UTF_8, DataOperationResult, Parameter, ParamsetKey, RPCType
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store.serialization import cleanup_params_for_session, freeze_params, unfreeze_params
+from aiohomematic.store import cleanup_params_for_session, freeze_params, unfreeze_params
 from aiohomematic_test_support import const
 
 _LOGGER = logging.getLogger(__name__)

@@ -10,13 +10,15 @@ from datetime import datetime
 
 import pytest
 
-from aiohomematic.central.event_bus import (
+from aiohomematic.central.events import (
     DataPointValueReceivedEvent,
+    DeviceLifecycleEvent,
+    DeviceLifecycleEventType,
+    DeviceTriggerEvent,
     EventBus,
     RpcParameterReceivedEvent,
     SysvarStateChangedEvent,
 )
-from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType, DeviceTriggerEvent
 from aiohomematic.const import DataPointKey, DeviceTriggerEventType, ParamsetKey
 
 

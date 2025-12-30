@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from aiohomematic.const import Parameter, ParamsetKey
-from aiohomematic.store import ParameterVisibilityCache, check_ignore_parameters_is_clean
+from aiohomematic.store.visibility import ParameterVisibilityCache, check_ignore_parameters_is_clean
 
 
 @dataclass(slots=True)

@@ -130,8 +130,12 @@ __all__ = [
     "CustomDpGarage",
     "CustomDpIpBlind",
     "CustomDpWindowDrive",
-    # Data Point
+    # Data point
     "CustomDataPoint",
+    # Definition
+    "create_custom_data_points",
+    "data_point_definition_exists",
+    "get_required_parameters",
     # Light
     "CustomDpColorDimmer",
     "CustomDpColorDimmerEffect",
@@ -150,40 +154,36 @@ __all__ = [
     "CustomDpIpLock",
     "CustomDpRfLock",
     "LockState",
+    # Profile
+    "ChannelGroupConfig",
+    "DEFAULT_DATA_POINTS",
+    "PROFILE_CONFIGS",
+    "ProfileConfig",
+    "ProfileRegistry",
+    "RebasedChannelGroupConfig",
+    "get_profile_config",
+    "rebase_channel_group",
+    # Registry
+    "DeviceConfig",
+    "DeviceProfileRegistry",
+    "ExtendedDeviceConfig",
     # Siren
     "BaseCustomDpSiren",
     "CustomDpIpSiren",
     "CustomDpIpSirenSmoke",
     "SirenOnArgs",
-    # Sound Player
+    # Sound player
     "CustomDpSoundPlayer",
     "CustomDpSoundPlayerLed",
     "PlaySoundArgs",
     "SoundPlayerLedOnArgs",
     # Switch
     "CustomDpSwitch",
-    # Text Display
+    # Text display
     "CustomDpTextDisplay",
     "TextDisplayArgs",
     # Valve
     "CustomDpIpIrrigationValve",
-    # Definition
-    "create_custom_data_points",
-    "data_point_definition_exists",
-    "get_required_parameters",
-    # Profile (type-safe)
-    "ChannelGroupConfig",
-    "DEFAULT_DATA_POINTS",
-    "ProfileConfig",
-    "ProfileRegistry",
-    "PROFILE_CONFIGS",
-    "RebasedChannelGroupConfig",
-    "get_profile_config",
-    "rebase_channel_group",
-    # Registry (new type-safe approach)
-    "DeviceConfig",
-    "DeviceProfileRegistry",
-    "ExtendedDeviceConfig",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

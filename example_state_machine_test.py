@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.central.event_bus import CentralStateChangedEvent, ClientStateChangedEvent, SystemEventTypeData
+from aiohomematic.central.events import CentralStateChangedEvent, ClientStateChangedEvent, DeviceLifecycleEvent
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import CentralState, ClientState
 
@@ -161,19 +161,14 @@ class StateMachineTestMonitor:
         if event.new_state == ClientState.RECONNECTING:
             self.reconnect_count += 1
 
-    def _on_system_event(self, event: SystemEventTypeData) -> None:
-        """Handle system events."""
+    def _on_device_lifecycle(self, event: DeviceLifecycleEvent) -> None:
+        """Handle device lifecycle events."""
         self.event_count += 1
-        if event.system_event in (
-            const.SystemEventType.NEW_DEVICES,
-            const.SystemEventType.DEVICES_CREATED,
-            const.SystemEventType.DELETE_DEVICES,
-        ):
-            _LOGGER.info(
-                "\033[33m[SYSTEM EVENT]\033[0m %s (data keys: %s)",
-                event.system_event.value,
-                list(event.data.keys()) if event.data else "none",
-            )
+        _LOGGER.info(
+            "\033[33m[DEVICE LIFECYCLE]\033[0m %s (addresses: %s)",
+            event.event_type.value,
+            event.device_addresses or "none",
+        )
 
     def _print_state_change(
         self,
@@ -337,9 +332,9 @@ class StateMachineTestMonitor:
         )
 
         event_bus.subscribe(
-            event_type=SystemEventTypeData,
+            event_type=DeviceLifecycleEvent,
             event_key=None,
-            handler=self._on_system_event,
+            handler=self._on_device_lifecycle,
         )
 
         print("\n" + "=" * 70)  # noqa: T201

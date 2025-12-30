@@ -13,7 +13,7 @@ import logging
 from typing import Any, Final, TypeAlias
 
 from aiohomematic import i18n
-from aiohomematic.central.integration_events import DeviceLifecycleEvent, DeviceLifecycleEventType
+from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException

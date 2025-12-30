@@ -55,10 +55,10 @@ from aiohomematic.metrics.dataclasses import (
 from aiohomematic.metrics.stats import CacheStats, ServiceStats
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
     from aiohomematic.central.health import HealthTracker
     from aiohomematic.metrics.observer import MetricsObserver
-    from aiohomematic.store import CentralDataCache
+    from aiohomematic.store.dynamic import CentralDataCache
 
 
 # =============================================================================

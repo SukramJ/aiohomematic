@@ -81,8 +81,11 @@ from aiohomematic.model.generic.text import DpText
 from aiohomematic.model.support import is_binary_sensor
 
 __all__ = [
+    # Base
     "BaseDpNumber",
-    "DataPointTypeResolver",
+    "GenericDataPoint",
+    "GenericDataPointAny",
+    # Data points
     "DpAction",
     "DpActionSelect",
     "DpBinarySensor",
@@ -94,10 +97,10 @@ __all__ = [
     "DpSensor",
     "DpSwitch",
     "DpText",
-    "GenericDataPoint",
-    "GenericDataPointAny",
-    "_determine_data_point_type",
+    # Factory
     "create_data_point_and_append_to_channel",
+    # Resolver
+    "DataPointTypeResolver",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

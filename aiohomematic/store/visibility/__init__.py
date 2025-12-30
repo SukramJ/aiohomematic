@@ -34,6 +34,7 @@ from __future__ import annotations
 from aiohomematic.store.visibility.cache import ParameterVisibilityCache, check_ignore_parameters_is_clean
 
 __all__ = [
+    # Visibility
     "ParameterVisibilityCache",
     "check_ignore_parameters_is_clean",
 ]

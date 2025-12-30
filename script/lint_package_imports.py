@@ -33,14 +33,22 @@ from typing import NamedTuple
 
 # Packages that define __all__ and should enforce import rules
 PACKAGES_WITH_PUBLIC_API: tuple[str, ...] = (
+    "aiohomematic.central",
+    "aiohomematic.central.coordinators",
+    "aiohomematic.central.events",
+    "aiohomematic.client",
+    "aiohomematic.client.handlers",
+    "aiohomematic.interfaces",
+    "aiohomematic.metrics",
+    "aiohomematic.model",
+    "aiohomematic.model.calculated",
     "aiohomematic.model.custom",
     "aiohomematic.model.generic",
-    "aiohomematic.model.calculated",
     "aiohomematic.model.hub",
-    "aiohomematic.central",
-    "aiohomematic.client",
-    "aiohomematic.interfaces",
     "aiohomematic.store",
+    "aiohomematic.store.dynamic",
+    "aiohomematic.store.persistent",
+    "aiohomematic.store.visibility",
 )
 
 # Directories to skip

@@ -8,7 +8,7 @@ import asyncio
 
 import pytest
 
-from aiohomematic.central.event_bus import EventBus, RequestCoalescedEvent
+from aiohomematic.central.events import EventBus, RequestCoalescedEvent
 from aiohomematic.client import RequestCoalescer
 from aiohomematic.client.request_coalescer import CoalescerMetrics
 from aiohomematic_test_support.event_capture import EventCapture

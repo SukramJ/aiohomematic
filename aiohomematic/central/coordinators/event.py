@@ -28,18 +28,16 @@ if TYPE_CHECKING:
     from aiohomematic.model.data_point import BaseDataPoint  # noqa: F401
 
 from aiohomematic.async_support import loop_check
-from aiohomematic.central import callback_event
-from aiohomematic.central.event_bus import (
+from aiohomematic.central.decorators import callback_event
+from aiohomematic.central.events import (
+    DataPointsCreatedEvent,
     DataPointStatusReceivedEvent,
     DataPointValueReceivedEvent,
-    EventBus,
-    RpcParameterReceivedEvent,
-)
-from aiohomematic.central.integration_events import (
-    DataPointsCreatedEvent,
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
     DeviceTriggerEvent,
+    EventBus,
+    RpcParameterReceivedEvent,
 )
 from aiohomematic.const import (
     DataPointCategory,

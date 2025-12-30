@@ -17,7 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from aiohomematic.central.event_bus import DataPointValueReceivedEvent
+from aiohomematic.central.events import DataPointValueReceivedEvent
 from aiohomematic.const import DataPointKey, ParamsetKey
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
@@ -153,7 +153,7 @@ class TestEventSubscriptionWorkflow:
     @pytest.mark.asyncio
     async def test_multiple_subscribers_different_devices(self) -> None:
         """Test multiple subscribers for different devices receive correct events."""
-        from aiohomematic.central.event_bus import EventBus
+        from aiohomematic.central.events import EventBus
 
         bus = EventBus()
         device1_events: list[DataPointValueReceivedEvent] = []
@@ -208,7 +208,7 @@ class TestEventSubscriptionWorkflow:
     @pytest.mark.asyncio
     async def test_subscribe_receive_unsubscribe_flow(self) -> None:
         """Test complete subscribe -> receive -> unsubscribe workflow."""
-        from aiohomematic.central.event_bus import EventBus
+        from aiohomematic.central.events import EventBus
 
         bus = EventBus()
         received_events: list[DataPointValueReceivedEvent] = []
@@ -263,8 +263,7 @@ class TestConnectionStateWorkflow:
     async def test_connection_state_event_on_issue(self) -> None:
         """Test that SystemStatusChangedEvent with connection_state is published on issues."""
         from aiohomematic.central import CentralConnectionState
-        from aiohomematic.central.event_bus import EventBus
-        from aiohomematic.central.integration_events import SystemStatusChangedEvent
+        from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
         from aiohomematic.client import AioJsonRpcAioHttpClient
 
         # Create event bus and mock provider
@@ -359,7 +358,7 @@ class TestConcurrentOperations:
     @pytest.mark.asyncio
     async def test_concurrent_event_publishing(self) -> None:
         """Test that concurrent event publishing works correctly."""
-        from aiohomematic.central.event_bus import EventBus
+        from aiohomematic.central.events import EventBus
 
         bus = EventBus()
         received_events: list[DataPointValueReceivedEvent] = []
@@ -398,7 +397,7 @@ class TestConcurrentOperations:
     @pytest.mark.asyncio
     async def test_concurrent_subscribe_unsubscribe(self) -> None:
         """Test that concurrent subscribe/unsubscribe operations are thread-safe."""
-        from aiohomematic.central.event_bus import EventBus
+        from aiohomematic.central.events import EventBus
 
         bus = EventBus()
         dpk = DataPointKey(

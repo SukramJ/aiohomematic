@@ -58,7 +58,7 @@ from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -234,7 +234,7 @@ class RequestCoalescer:
             return
 
         # Import here to avoid circular dependency
-        from aiohomematic.central.event_bus import RequestCoalescedEvent  # noqa: PLC0415
+        from aiohomematic.central.events import RequestCoalescedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
             event=RequestCoalescedEvent(

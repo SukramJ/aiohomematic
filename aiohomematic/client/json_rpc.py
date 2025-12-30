@@ -46,7 +46,7 @@ from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import unquote
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 from aiohttp import (
     ClientConnectorCertificateError,
@@ -110,7 +110,7 @@ from aiohomematic.exceptions import (
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.retry import with_retry
-from aiohomematic.store import SessionRecorder
+from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import (
     LogContextMixin,
     cleanup_script_for_session_recorder,

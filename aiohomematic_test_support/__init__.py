@@ -40,7 +40,7 @@ Using the factory to create a test central with session playback:
 Using EventCapture for behavior-focused testing:
 
     from aiohomematic_test_support.event_capture import EventCapture
-    from aiohomematic.central.event_bus import CircuitBreakerTrippedEvent
+    from aiohomematic.central.events import CircuitBreakerTrippedEvent
 
     capture = EventCapture()
     capture.subscribe_to(central.event_bus, CircuitBreakerTrippedEvent)
@@ -53,7 +53,7 @@ Using EventCapture for behavior-focused testing:
 Using EventDrivenMockServer for event-triggered test behavior:
 
     from aiohomematic_test_support.event_mock import EventDrivenMockServer
-    from aiohomematic.central.event_bus import DataRefreshTriggeredEvent
+    from aiohomematic.central.events import DataRefreshTriggeredEvent
 
     mock_server = EventDrivenMockServer(event_bus=central.event_bus)
     mock_server.when(DataRefreshTriggeredEvent).then_call(

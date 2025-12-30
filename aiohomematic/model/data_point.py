@@ -36,7 +36,7 @@ from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
 from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.event_bus import DataPointStateChangedEvent, DeviceRemovedEvent
+from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent
 from aiohomematic.const import (
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,

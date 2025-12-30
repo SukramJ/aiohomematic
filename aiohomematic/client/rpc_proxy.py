@@ -49,12 +49,12 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.retry import with_retry
-from aiohomematic.store import SessionRecorder
+from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 from aiohomematic.type_aliases import CallableAny
 
 if TYPE_CHECKING:
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 

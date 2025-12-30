@@ -58,7 +58,7 @@ from aiohomematic.property_decorators import DelegatedProperty
 if TYPE_CHECKING:
     from typing import Any
 
-    from aiohomematic.central.event_bus import EventBus
+    from aiohomematic.central.events import EventBus
     from aiohomematic.central.state_machine import CentralStateMachine
 
 # Threshold for considering events as "recent" (5 minutes)

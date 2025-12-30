@@ -77,7 +77,10 @@ from aiohomematic.model.calculated import create_calculated_data_points
 from aiohomematic.model.event import create_event_and_append_to_channel
 from aiohomematic.model.generic import create_data_point_and_append_to_channel
 
-__all__ = ["create_data_points_and_events"]
+__all__ = [
+    # Factory
+    "create_data_points_and_events",
+]
 
 # Some parameters are marked as INTERNAL in the paramset and not considered by default,
 # but some are required and should be added here.

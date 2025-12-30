@@ -8,7 +8,7 @@ from datetime import datetime
 
 import pytest
 
-from aiohomematic.central.event_bus import EventBus, HandlerStats
+from aiohomematic.central.events import EventBus, HandlerStats
 from aiohomematic.metrics import (
     CacheMetrics,
     CacheStats,
@@ -280,7 +280,7 @@ class TestEventBusHandlerStats:
     @pytest.mark.asyncio
     async def test_handler_error_tracking(self) -> None:
         """Test that handler errors are tracked."""
-        from aiohomematic.central.event_bus import DeviceStateChangedEvent
+        from aiohomematic.central.events import DeviceStateChangedEvent
 
         bus = EventBus()
 
@@ -303,7 +303,7 @@ class TestEventBusHandlerStats:
     @pytest.mark.asyncio
     async def test_handler_stats_tracking(self) -> None:
         """Test that handler stats are tracked during event publishing."""
-        from aiohomematic.central.event_bus import DeviceStateChangedEvent
+        from aiohomematic.central.events import DeviceStateChangedEvent
 
         bus = EventBus()
 

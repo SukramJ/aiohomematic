@@ -294,7 +294,7 @@ class TestDeviceFirmware:
         # Provide a mutable current_desc and patch method on the class to return it
         current_desc = dict(orig_desc)
 
-        from aiohomematic.store import DeviceDescriptionCache
+        from aiohomematic.store.persistent import DeviceDescriptionCache
 
         def _patched_get_device_description(self, *, interface_id: str, address: str) -> dict[str, Any]:  # noqa: D401
             return dict(current_desc)

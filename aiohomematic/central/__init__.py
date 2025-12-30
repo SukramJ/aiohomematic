@@ -35,26 +35,25 @@ Typical usage is to create a CentralConfig, build a CentralUnit, then start it.
 Example (simplified):
 
     from aiohomematic.central import CentralConfig
-    from aiohomematic import client as hmcl
-
-    iface_cfgs = {
-        hmcl.InterfaceConfig(interface=hmcl.Interface.HMIP, port=2010, enabled=True),
-        hmcl.InterfaceConfig(interface=hmcl.Interface.BIDCOS_RF, port=2001, enabled=True),
-    }
+    from aiohomematic.client import InterfaceConfig
+    from aiohomematic.const import Interface
 
     cfg = CentralConfig(
-        central_id="ccu-main",
-        host="ccu.local",
-        interface_configs=iface_cfgs,
         name="MyCCU",
-        password="secret",
+        host="ccu.local",
         username="admin",
+        password="secret",
+        central_id="ccu-main",
+        interface_configs={
+            InterfaceConfig(central_name="MyCCU", interface=Interface.HMIP_RF, port=2010),
+            InterfaceConfig(central_name="MyCCU", interface=Interface.BIDCOS_RF, port=2001),
+        },
     )
 
     central = cfg.create_central()
-    central.start()           # start XML-RPC server, create/init clients, load store
+    await central.start()     # start XML-RPC server, create/init clients, load store
     # ... interact with devices / data points via central ...
-    central.stop()
+    await central.stop()
 
 Notes
 -----

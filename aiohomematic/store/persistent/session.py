@@ -21,20 +21,26 @@ import asyncio
 from collections import defaultdict
 from datetime import UTC, datetime
 import logging
-from typing import Any, Final, Self
+import random
+from typing import TYPE_CHECKING, Any, Final, Self, cast
+
+import orjson
+from slugify import slugify
 
 from aiohomematic import i18n
-from aiohomematic.const import FILE_SESSION_RECORDER, SUB_DIRECTORY_SESSION, RPCType
-from aiohomematic.interfaces import (
-    CentralInfoProtocol,
-    ConfigProviderProtocol,
-    DeviceProviderProtocol,
-    TaskSchedulerProtocol,
-)
+from aiohomematic.const import FILE_NAME_TS_PATTERN, FILE_SESSION_RECORDER, SUB_DIRECTORY_SESSION, RPCType
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store.persistent.base import BasePersistentFile
 from aiohomematic.store.serialization import cleanup_params_for_session, freeze_params, unfreeze_params
 from aiohomematic.support import extract_exc_args
+
+if TYPE_CHECKING:
+    from aiohomematic.interfaces import (
+        CentralInfoProtocol,
+        ConfigProviderProtocol,
+        DeviceProviderProtocol,
+        TaskSchedulerProtocol,
+    )
+    from aiohomematic.store import StorageFactoryProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -44,7 +50,7 @@ def _now() -> int:
     return int(datetime.now(tz=UTC).timestamp())
 
 
-class SessionRecorder(BasePersistentFile):
+class SessionRecorder:
     """
     Session recorder for central unit.
 
@@ -78,14 +84,16 @@ class SessionRecorder(BasePersistentFile):
 
     __slots__ = (
         "_active",
+        "_central_info",
+        "_config_provider",
+        "_device_provider",
         "_is_recording",
         "_refresh_on_get",
+        "_storage_factory",
         "_store",
+        "_task_scheduler",
         "_ttl",
     )
-
-    _file_postfix = FILE_SESSION_RECORDER
-    _sub_directory = SUB_DIRECTORY_SESSION
 
     def __init__(
         self,
@@ -94,11 +102,25 @@ class SessionRecorder(BasePersistentFile):
         config_provider: ConfigProviderProtocol,
         device_provider: DeviceProviderProtocol,
         task_scheduler: TaskSchedulerProtocol,
+        storage_factory: StorageFactoryProtocol,
         active: bool,
         ttl_seconds: float,
         refresh_on_get: bool = False,
     ):
-        """Initialize the cache."""
+        """
+        Initialize the session recorder.
+
+        Args:
+            central_info: Provider for central system information.
+            config_provider: Provider for configuration access.
+            device_provider: Provider for device registry access.
+            task_scheduler: Scheduler for background tasks.
+            storage_factory: Factory for creating storage instances.
+            active: Whether recording is initially active.
+            ttl_seconds: Time-to-live for recorded entries (0 = no expiry).
+            refresh_on_get: Whether to extend TTL on read access.
+
+        """
         self._active = active
         if ttl_seconds < 0:
             raise ValueError(i18n.tr(key="exception.store.session_recorder.ttl_positive"))
@@ -110,13 +132,11 @@ class SessionRecorder(BasePersistentFile):
         self._store: dict[str, dict[str, dict[str, dict[int, Any]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
         )
-        super().__init__(
-            config_provider=config_provider,
-            task_scheduler=task_scheduler,
-            central_info=central_info,
-            device_provider=device_provider,
-            persistent_content=self._store,
-        )
+        self._central_info: Final = central_info
+        self._config_provider: Final = config_provider
+        self._device_provider: Final = device_provider
+        self._task_scheduler: Final = task_scheduler
+        self._storage_factory: Final = storage_factory
 
     def __repr__(self) -> str:
         """Return the representation."""
@@ -196,6 +216,10 @@ class SessionRecorder(BasePersistentFile):
         for rpc_type in list(self._store.keys()):
             for method in list(self._store[rpc_type].keys()):
                 self._purge_expired_at(rpc_type=rpc_type, method=method)
+
+    async def clear(self) -> None:
+        """Clear all stored session data."""
+        self._store.clear()
 
     async def deactivate(
         self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
@@ -369,6 +393,33 @@ class SessionRecorder(BasePersistentFile):
             return None
         return datetime.fromtimestamp(latest_ts_int, tz=UTC)
 
+    async def save(self, *, randomize_output: bool, use_ts_in_file_name: bool) -> None:
+        """
+        Save the session data to storage.
+
+        Args:
+            randomize_output: Whether to randomize device addresses in output.
+            use_ts_in_file_name: Whether to include timestamp in the filename.
+
+        """
+        if not self._should_save:
+            return
+
+        # Build storage key with optional timestamp
+        ts = datetime.now(tz=UTC) if use_ts_in_file_name else None
+        key = self._build_storage_key(ts=ts)
+
+        # Prepare data for storage
+        data = self._prepare_save_data(randomize_output=randomize_output)
+
+        # Create storage and save
+        storage = self._storage_factory.create_storage(
+            key=key,
+            sub_directory=SUB_DIRECTORY_SESSION,
+        )
+        await storage.save(data=data)
+        _LOGGER.debug("Saved session recording to %s", key)
+
     def set(
         self,
         *,
@@ -395,6 +446,13 @@ class SessionRecorder(BasePersistentFile):
         """Ensure and return the innermost bucket."""
         return self._store[rpc_type][method]
 
+    def _build_storage_key(self, *, ts: datetime | None = None) -> str:
+        """Build the storage key for saving session data."""
+        key = f"{slugify(self._central_info.name)}_{FILE_SESSION_RECORDER}"
+        if ts:
+            key += f"_{ts.strftime(FILE_NAME_TS_PATTERN)}"
+        return key
+
     async def _deactivate_after_delay(
         self, *, delay: int, auto_save: bool, randomize_output: bool, use_ts_in_file_name: bool
     ) -> None:
@@ -413,6 +471,29 @@ class SessionRecorder(BasePersistentFile):
             return False
         now = now if now is not None else _now()
         return (now - ts) > self._ttl
+
+    def _prepare_save_data(self, *, randomize_output: bool) -> dict[str, Any]:
+        """Prepare the data for saving, optionally randomizing device addresses."""
+        data: dict[str, Any] = dict(self._store)
+
+        if not randomize_output:
+            return data
+
+        # Collect all device addresses for randomization
+        if not (device_addresses := [device.address for device in self._device_provider.devices]):
+            return data
+
+        # Create randomized address mapping
+        randomized = device_addresses.copy()
+        random.shuffle(randomized)
+        address_map = dict(zip(device_addresses, randomized, strict=True))
+
+        # Replace addresses in the serialized data
+        json_str = orjson.dumps(data).decode("utf-8")
+        for original, replacement in address_map.items():
+            json_str = json_str.replace(original, replacement)
+
+        return cast(dict[str, Any], orjson.loads(json_str))
 
     def _purge_expired_at(
         self,

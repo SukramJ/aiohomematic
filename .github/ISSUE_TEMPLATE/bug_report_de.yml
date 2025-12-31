@@ -4,7 +4,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Dieses Formular dient ausschließlich zur Meldung von Fehlern! Nutze die Diskussionen für Funktions- und Support-Anfragen.
+        Dieses Formular dient ausschließlich zur Meldung von Fehlern!
+        Bei Fragen zur Installation nutze bitte die entsprechenden Foren, falls die Dokumentation nicht ausreicht.
+        Nutze die Diskussionen für Funktions- und sonstige Anfragen.
         Bitte vermeide unnötigen Aufwand, indem die folgenden Punkte aufmerksam gelesen werden. Andernfalls behalte ich mir das Recht vor, das Issue kommentarlos zu schließen.
   - type: checkboxes
     attributes:

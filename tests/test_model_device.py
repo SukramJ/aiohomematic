@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
+import zipfile
 
 import pytest
 
 from aiohomematic.const import (
     CLICK_EVENTS,
-    DEVICE_DESCRIPTIONS_DIR,
-    PARAMSET_DESCRIPTIONS_DIR,
+    DEVICE_DESCRIPTIONS_ZIP_DIR,
+    PARAMSET_DESCRIPTIONS_ZIP_DIR,
     REPORT_VALUE_USAGE_VALUE_ID,
     VIRTUAL_REMOTE_MODELS,
     DeviceTriggerEventType,
@@ -92,11 +93,18 @@ class TestDeviceBasics:
 
         await device.export_device_definition()
 
-        # Expect the two export directories to exist and contain at least one file
-        dev_dir = tmp_path / DEVICE_DESCRIPTIONS_DIR
-        par_dir = tmp_path / PARAMSET_DESCRIPTIONS_DIR
-        assert dev_dir.exists() and par_dir.exists()
-        assert any(dev_dir.iterdir()) and any(par_dir.iterdir())
+        # Expect a ZIP file named after the device model containing both subdirectories
+        model = device.model
+        zip_path = tmp_path / f"{model}.zip"
+        assert zip_path.exists(), f"Expected ZIP file {zip_path} to exist"
+
+        # Verify ZIP contents: should have device_descriptions and paramset_descriptions subdirs
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            names = zf.namelist()
+            assert any(DEVICE_DESCRIPTIONS_ZIP_DIR in n for n in names), f"Missing {DEVICE_DESCRIPTIONS_ZIP_DIR} in ZIP"
+            assert any(PARAMSET_DESCRIPTIONS_ZIP_DIR in n for n in names), (
+                f"Missing {PARAMSET_DESCRIPTIONS_ZIP_DIR} in ZIP"
+            )
 
         # Force an exception path by patching exporter to raise inside export
         from aiohomematic.model import device as device_module

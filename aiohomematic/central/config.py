@@ -60,6 +60,7 @@ from aiohomematic.support import (
 
 if TYPE_CHECKING:
     from aiohomematic.central.central_unit import CentralUnit
+    from aiohomematic.store import StorageFactoryProtocol
 
 
 class CentralConfig:
@@ -93,6 +94,7 @@ class CentralConfig:
         schedule_timer_config: ScheduleTimerConfig = DEFAULT_SCHEDULE_TIMER_CONFIG,
         start_direct: bool = False,
         storage_directory: str = DEFAULT_STORAGE_DIRECTORY,
+        storage_factory: StorageFactoryProtocol | None = None,
         sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
         timeout_config: TimeoutConfig = DEFAULT_TIMEOUT_CONFIG,
         tls: bool = DEFAULT_TLS,
@@ -138,6 +140,7 @@ class CentralConfig:
         self.session_recorder_start = self.session_recorder_start_for_seconds > 0
         self.schedule_timer_config: Final = schedule_timer_config
         self.storage_directory: Final = storage_directory
+        self.storage_factory: Final = storage_factory
         self.sysvar_markers: Final = sysvar_markers
         self.timeout_config: Final = timeout_config
         self.tls: Final = tls

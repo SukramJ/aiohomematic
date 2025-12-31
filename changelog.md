@@ -1,3 +1,31 @@
+# Version 2025.12.56 (2025-12-31)
+
+## What's Changed
+
+### New Features
+
+- **Storage Abstraction Layer**: New unified storage system for all persistent data
+
+  - `StorageProtocol` and `StorageFactoryProtocol` interfaces for DuckTyping compatibility
+  - `Storage` class with orjson serialization, atomic writes, ZIP loading, version migrations, delayed/debounced saves
+  - `LocalStorageFactory` as default implementation for standalone usage
+  - Enables Home Assistant to substitute its native Store via factory pattern
+  - All persistent caches (`DeviceDescriptionCache`, `ParamsetDescriptionCache`, `SessionRecorder`) refactored to use Storage
+  - `CentralConfig.storage_factory` field for dependency injection
+  - `cleanup_files()` method for deleting all storage files
+  - Configurable storage options: `raw_mode` (no metadata wrapper), `formatted` (indented JSON), `as_zip` (ZIP compression)
+
+- **Device Definition Export**: Single ZIP file export for device definitions
+  - `_DefinitionExporter` now creates `{model}.zip` containing subdirectories
+  - `device_descriptions/{model}.json` and `paramset_descriptions/{model}.json` inside ZIP
+  - Formatted JSON output with indentation for readability
+
+### Code Quality
+
+- **BasePersistentCache**: New base class replacing `BasePersistentFile` with cleaner separation of concerns
+
+---
+
 # Version 2025.12.55 (2025-12-30)
 
 ## What's Changed

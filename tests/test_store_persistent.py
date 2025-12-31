@@ -14,13 +14,15 @@ import pytest
 from aiohomematic.async_support import Looper
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
+    FILE_DEVICES,
+    FILE_PARAMSETS,
     SUB_DIRECTORY_CACHE,
     SUB_DIRECTORY_SESSION,
     DataOperationResult,
     ParamsetKey,
     RPCType,
 )
-from aiohomematic.store import freeze_params, unfreeze_params
+from aiohomematic.store import LocalStorageFactory, StorageProtocol, freeze_params, unfreeze_params
 from aiohomematic.store.persistent import (
     DeviceDescriptionCache,
     ParamsetDescriptionCache,
@@ -62,11 +64,31 @@ class _CentralStub:
         self.looper = Looper()
         # Used by BasePersistentFile._manipulate_content when randomizing
         self.device_registry = SimpleNamespace(devices=[])
+        # Storage factory for the new Storage-based caches
+        self.storage_factory = LocalStorageFactory(
+            base_directory=storage_directory,
+            central_name=name,
+            task_scheduler=self.looper,
+        )
 
     @property
     def devices(self) -> list[_DeviceObj]:
         """Return devices from device_registry."""
         return self.device_registry.devices
+
+    def create_device_storage(self) -> StorageProtocol:
+        """Create storage for device descriptions."""
+        return self.storage_factory.create_storage(
+            key=FILE_DEVICES,
+            sub_directory=SUB_DIRECTORY_CACHE,
+        )
+
+    def create_paramset_storage(self) -> StorageProtocol:
+        """Create storage for paramset descriptions."""
+        return self.storage_factory.create_storage(
+            key=FILE_PARAMSETS,
+            sub_directory=SUB_DIRECTORY_CACHE,
+        )
 
 
 class TestHelperFunctions:
@@ -150,10 +172,8 @@ class TestDeviceDescriptionCache:
         """Test adding device with existing address updates description."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -179,10 +199,8 @@ class TestDeviceDescriptionCache:
         """Test finding a specific device description."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -200,10 +218,8 @@ class TestDeviceDescriptionCache:
         """Test getting addresses across all interfaces."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         ddc.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
@@ -218,10 +234,8 @@ class TestDeviceDescriptionCache:
         """Test getting all device descriptions for an interface."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -238,10 +252,8 @@ class TestDeviceDescriptionCache:
         """Test getting raw device descriptions list."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -256,10 +268,8 @@ class TestDeviceDescriptionCache:
         """Test checking if interface has device descriptions."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         ddc.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
@@ -269,14 +279,18 @@ class TestDeviceDescriptionCache:
 
     @pytest.mark.asyncio
     async def test_load_from_zip(self, tmp_path) -> None:
-        """Test loading from ZIP file."""
+        """Test loading from ZIP file via Storage abstraction."""
         central = _CentralStub("Test Central", str(tmp_path))
         iface = "if1"
         dev_addr = "DEV123"
         ch_addr = f"{dev_addr}{ADDRESS_SEPARATOR}1"
 
-        # Create ZIP with device descriptions
-        plain_json = tmp_path / "plain.json"
+        # Create cache directory and ZIP file at storage location
+        cache_dir = tmp_path / SUB_DIRECTORY_CACHE
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create plain JSON content
+        plain_json = cache_dir / "plain.json"
         with open(plain_json, "w", encoding="utf-8") as fp:
             json.dump(
                 {
@@ -288,17 +302,17 @@ class TestDeviceDescriptionCache:
                 fp,
             )
 
-        zip_path = tmp_path / "cache.zip"
+        # Create ZIP at expected storage path (uses FILE_DEVICES = "homematic_devices")
+        zip_path = cache_dir / "test-central_homematic_devices.json.zip"
         with zipfile.ZipFile(zip_path, "w") as zf:
-            zf.write(plain_json, arcname=plain_json.name)
+            zf.write(plain_json, arcname="data.json")
 
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
-        load_result = await ddc.load(file_path=str(zip_path))
+        # Storage abstracts the file loading - just call load()
+        load_result = await ddc.load()
         assert load_result == DataOperationResult.LOAD_SUCCESS
 
         # Verify data loaded correctly
@@ -314,22 +328,19 @@ class TestDeviceDescriptionCache:
         """Test that loading missing file returns NO_LOAD."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
-        assert await ddc.load(file_path=str(tmp_path / "does_not_exist.json")) == DataOperationResult.NO_LOAD
+        # Storage returns None for missing file, cache returns NO_LOAD
+        assert await ddc.load() == DataOperationResult.NO_LOAD
 
     @pytest.mark.asyncio
     async def test_load_with_caches_disabled(self, tmp_path) -> None:
         """Test that load returns NO_LOAD when caches are disabled."""
         central = _CentralStub("Test Central", str(tmp_path), use_caches=False)
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         result = await ddc.load()
@@ -340,10 +351,8 @@ class TestDeviceDescriptionCache:
         """Test removing a device updates internal maps."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -362,17 +371,15 @@ class TestDeviceDescriptionCache:
         assert dev_addr not in ddc.get_addresses(interface_id=iface)
 
     @pytest.mark.asyncio
-    async def test_save_load_and_randomize(self, tmp_path) -> None:
-        """Test save/load behavior with randomized output."""
+    async def test_save_and_load_roundtrip(self, tmp_path) -> None:
+        """Test save/load roundtrip via Storage abstraction."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
-        # Add a device description and save
+        # Add device descriptions
         iface = "if1"
         dev_addr = "ABC1234"
         ch_addr = f"{dev_addr}{ADDRESS_SEPARATOR}1"
@@ -384,7 +391,6 @@ class TestDeviceDescriptionCache:
                 "TYPE": "HM-TEST",
             },
         )
-        # Also add child channel description
         ddc.add_device(
             interface_id=iface,
             device_description={
@@ -394,30 +400,40 @@ class TestDeviceDescriptionCache:
             },
         )
 
-        # Randomization uses central.device_registry.devices
-        central.device_registry.devices = [_DeviceObj(address=dev_addr)]
-
-        # Save with randomization and timestamped filename
-        result = await ddc.save(randomize_output=True, use_ts_in_file_name=True)
+        # Save via Storage abstraction
+        result = await ddc.save()
         assert result == DataOperationResult.SAVE_SUCCESS
 
-        # Verify file exists and device address has been randomized
+        # Verify file exists
         files = list((tmp_path / SUB_DIRECTORY_CACHE).glob("*.json"))
         assert files, "Expected a persistent file to be created"
-        content = files[0].read_text(encoding="utf-8")
-        assert dev_addr not in content, "Original address should be randomized"
+
+        # Create new cache and load
+        ddc2 = DeviceDescriptionCache(
+            storage=central.create_device_storage(),
+            config_provider=central,
+        )
+        load_result = await ddc2.load()
+        assert load_result == DataOperationResult.LOAD_SUCCESS
+
+        # Verify data loaded correctly
+        assert ddc2.get_model(device_address=dev_addr) == "HM-TEST"
+        assert dev_addr in ddc2.get_addresses(interface_id=iface)
 
     @pytest.mark.asyncio
     async def test_save_no_changes(self, tmp_path) -> None:
         """Test that save returns NO_SAVE when content hasn't changed."""
         central = _CentralStub("Test Central", str(tmp_path))
         ddc = DeviceDescriptionCache(
-            central_info=central,
+            storage=central.create_device_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
-        # Initially unchanged -> NO_SAVE
+
+        # Add some data and save
+        ddc.add_device(interface_id="if1", device_description={"ADDRESS": "D1", "CHILDREN": [], "TYPE": "T1"})
+        assert await ddc.save() == DataOperationResult.SAVE_SUCCESS
+
+        # Second save without changes -> NO_SAVE
         assert await ddc.save() == DataOperationResult.NO_SAVE
 
 
@@ -429,10 +445,8 @@ class TestParamsetDescriptionCache:
         """Test adding paramset descriptions and querying them."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -479,10 +493,8 @@ class TestParamsetDescriptionCache:
         """Test getting all paramsets for a channel."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -510,10 +522,8 @@ class TestParamsetDescriptionCache:
         """Test getting specific parameter data."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -542,10 +552,8 @@ class TestParamsetDescriptionCache:
         """Test getting all paramset descriptions for a channel."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -567,10 +575,8 @@ class TestParamsetDescriptionCache:
         """Test that channels without ADDRESS_SEPARATOR return False."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         # Channel without separator should return False
@@ -581,10 +587,8 @@ class TestParamsetDescriptionCache:
         """Test parameter that exists in only one channel."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -603,10 +607,8 @@ class TestParamsetDescriptionCache:
         """Test that load returns NO_LOAD when caches are disabled."""
         central = _CentralStub("C", str(tmp_path), use_caches=False)
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         result = await pdc.load()
@@ -617,10 +619,8 @@ class TestParamsetDescriptionCache:
         """Test removing device paramset descriptions."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -658,10 +658,8 @@ class TestParamsetDescriptionCache:
         """Test save/load triggers parameter list initialization."""
         central = _CentralStub("C", str(tmp_path))
         pdc = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
 
         iface = "if1"
@@ -676,10 +674,8 @@ class TestParamsetDescriptionCache:
         # Save and reload
         assert await pdc.save() in (DataOperationResult.SAVE_SUCCESS, DataOperationResult.NO_SAVE)
         pdc2 = ParamsetDescriptionCache(
-            central_info=central,
+            storage=central.create_paramset_storage(),
             config_provider=central,
-            device_provider=central,
-            task_scheduler=central.looper,
         )
         assert await pdc2.load() in (DataOperationResult.LOAD_SUCCESS, DataOperationResult.NO_LOAD)
 
@@ -696,6 +692,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=False,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -720,6 +717,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=False,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -747,6 +745,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -771,6 +770,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -795,6 +795,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -819,6 +820,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -843,6 +845,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0.5,
             refresh_on_get=False,
@@ -872,6 +875,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -902,6 +906,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -929,6 +934,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -955,6 +961,7 @@ class TestSessionRecorder:
                 config_provider=central,
                 device_provider=central,
                 task_scheduler=central.looper,
+                storage_factory=central.storage_factory,
                 active=False,
                 ttl_seconds=-1,
                 refresh_on_get=False,
@@ -969,6 +976,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -999,6 +1007,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=10,
             refresh_on_get=True,
@@ -1027,6 +1036,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -1037,19 +1047,23 @@ class TestSessionRecorder:
 
     @pytest.mark.asyncio
     async def test_save_and_clear(self, tmp_path) -> None:
-        """Test saving to disk and clearing."""
+        """Test saving to disk and clearing in-memory store."""
         central = _CentralStub("C", str(tmp_path))
         rec = SessionRecorder(
             central_info=central,
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
         )
 
         rec.set(rpc_type=str(RPCType.XML_RPC), method="m", params=(1, 2), response=123)
+
+        # Verify data is in store
+        assert rec.get(rpc_type=str(RPCType.XML_RPC), method="m", params=(1, 2)) == 123
 
         # Save
         await rec.save(randomize_output=False, use_ts_in_file_name=True)
@@ -1059,9 +1073,15 @@ class TestSessionRecorder:
         files = list(session_dir.glob("*.json"))
         assert files, "Should have saved file"
 
-        # Clear
+        # Clear in-memory store (files remain for potential later use)
         await rec.clear()
-        assert list(session_dir.glob("*.json")) == []
+
+        # In-memory store should be empty
+        assert rec.get(rpc_type=str(RPCType.XML_RPC), method="m", params=(1, 2)) is None
+
+        # File cleanup is done via StorageFactory.cleanup_files(), not clear()
+        # Files remain on disk until explicit cleanup
+        assert len(list(session_dir.glob("*.json"))) > 0
 
     @pytest.mark.asyncio
     async def test_set_and_get_basic(self, tmp_path) -> None:
@@ -1072,6 +1092,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,
@@ -1098,6 +1119,7 @@ class TestSessionRecorder:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0.5,
             refresh_on_get=False,

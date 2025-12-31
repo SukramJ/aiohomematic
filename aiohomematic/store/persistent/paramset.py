@@ -13,73 +13,59 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping
 import logging
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
-from aiohomematic.const import (
-    ADDRESS_SEPARATOR,
-    FILE_PARAMSETS,
-    SUB_DIRECTORY_CACHE,
-    DataOperationResult,
-    ParameterData,
-    ParamsetKey,
-)
-from aiohomematic.interfaces import (
-    CentralInfoProtocol,
-    ConfigProviderProtocol,
-    DeviceProviderProtocol,
-    ParamsetDescriptionProviderProtocol,
-    ParamsetDescriptionWriterProtocol,
-    TaskSchedulerProtocol,
-)
+from aiohomematic.const import ADDRESS_SEPARATOR, ParameterData, ParamsetKey
+from aiohomematic.interfaces import ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store.persistent.base import BasePersistentFile
+from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.store.types import InterfaceParamsetMap
 from aiohomematic.support import get_split_channel_address
+
+if TYPE_CHECKING:
+    from aiohomematic.interfaces import ConfigProviderProtocol
+    from aiohomematic.store.storage import StorageProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
 class ParamsetDescriptionCache(
-    BasePersistentFile, ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
+    BasePersistentCache, ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
 ):
     """Cache for paramset descriptions."""
 
-    __slots__ = (
-        "_address_parameter_cache",
-        "_raw_paramset_descriptions",
-    )
-
-    _file_postfix = FILE_PARAMSETS
-    _sub_directory = SUB_DIRECTORY_CACHE
+    __slots__ = ("_address_parameter_cache",)
 
     def __init__(
         self,
         *,
+        storage: StorageProtocol,
         config_provider: ConfigProviderProtocol,
-        task_scheduler: TaskSchedulerProtocol,
-        central_info: CentralInfoProtocol,
-        device_provider: DeviceProviderProtocol,
     ) -> None:
-        """Initialize the paramset description cache."""
-        # {interface_id, {channel_address, paramsets}}
-        self._raw_paramset_descriptions: Final[InterfaceParamsetMap] = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(dict))
-        )
-        super().__init__(
-            config_provider=config_provider,
-            task_scheduler=task_scheduler,
-            central_info=central_info,
-            device_provider=device_provider,
-            persistent_content=self._raw_paramset_descriptions,
-        )
+        """
+        Initialize the paramset description cache.
 
+        Args:
+            storage: Storage instance for persistence.
+            config_provider: Provider for configuration access.
+
+        """
         # {(device_address, parameter), [channel_no]}
         self._address_parameter_cache: Final[dict[tuple[str, str], set[int | None]]] = {}
+        super().__init__(
+            storage=storage,
+            config_provider=config_provider,
+        )
 
     raw_paramset_descriptions: Final = DelegatedProperty[
         Mapping[str, Mapping[str, Mapping[ParamsetKey, Mapping[str, ParameterData]]]]
     ](path="_raw_paramset_descriptions")
+
+    @property
+    def _raw_paramset_descriptions(self) -> InterfaceParamsetMap:
+        """Return the raw paramset descriptions (alias to _content)."""
+        return self._content
 
     def add(
         self,
@@ -156,15 +142,6 @@ class ParamsetDescriptionCache(
             return len(channels) > 1
         return False
 
-    async def load(self, *, file_path: str | None = None) -> DataOperationResult:
-        """Load paramset descriptions from disk into paramset cache."""
-        if not self._config_provider.config.use_caches:
-            _LOGGER.debug("load: not caching device descriptions for %s", self._central_info.name)
-            return DataOperationResult.NO_LOAD
-        if (result := await super().load(file_path=file_path)) == DataOperationResult.LOAD_SUCCESS:
-            self._init_address_parameter_list()
-        return result
-
     def remove_device(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """Remove device paramset descriptions from cache."""
         if interface := self._raw_paramset_descriptions.get(device.interface_id):
@@ -182,6 +159,10 @@ class ParamsetDescriptionCache(
             for parameter in paramset:
                 cache.setdefault((device_address, parameter), set()).add(channel_no)
 
+    def _create_empty_content(self) -> dict[str, Any]:
+        """Create empty content structure."""
+        return defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+
     def _init_address_parameter_list(self) -> None:
         """
         Initialize a device_address/parameter list.
@@ -191,3 +172,8 @@ class ParamsetDescriptionCache(
         for channel_paramsets in self._raw_paramset_descriptions.values():
             for channel_address, paramsets in channel_paramsets.items():
                 self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
+
+    def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
+        """Rebuild indexes from loaded data."""
+        self._address_parameter_cache.clear()
+        self._init_address_parameter_list()

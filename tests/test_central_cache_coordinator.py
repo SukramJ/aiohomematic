@@ -11,6 +11,7 @@ import pytest
 from aiohomematic.central.coordinators import CacheCoordinator
 from aiohomematic.central.events import CacheInvalidatedEvent, EventBus
 from aiohomematic.const import CacheInvalidationReason, CacheType
+from aiohomematic.store import LocalStorageFactory
 from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
 from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
 from aiohomematic_test_support.event_capture import EventCapture
@@ -19,7 +20,7 @@ from aiohomematic_test_support.event_capture import EventCapture
 class _FakeCentral:
     """Minimal fake CentralUnit for testing - implements all required protocols."""
 
-    def __init__(self, *, name: str = "test_central") -> None:
+    def __init__(self, *, name: str = "test_central", tmp_dir: str = "/tmp/test") -> None:  # noqa: S108  # nosec B108
         """Initialize a fake central."""
         self.name = name
         self.available = True
@@ -27,8 +28,9 @@ class _FakeCentral:
         self.config = MagicMock()
         self.config.cache_dir = "/tmp/test_cache"  # noqa: S108  # nosec B108
         self.config.enable_session_recording = False
-        self.config.storage_directory = "/tmp/test"  # noqa: S108  # nosec B108
+        self.config.storage_directory = tmp_dir
         self.config.session_recorder_start = False
+        self.config.use_caches = True
         self.primary_client = None
         self.clients = []
         self.looper = MagicMock()
@@ -41,6 +43,12 @@ class _FakeCentral:
         self.event_bus = MagicMock()
         self.event_bus.publish = AsyncMock()
         self.event_bus.publish_sync = MagicMock()
+        # Storage factory for cache coordinator
+        self.storage_factory = LocalStorageFactory(
+            base_directory=tmp_dir,
+            central_name=name,
+            task_scheduler=self.looper,
+        )
 
     def get_client(self, *, interface_id: str) -> MagicMock | None:
         """Get client by interface_id."""
@@ -58,9 +66,9 @@ class _FakeCentral:
 class TestCacheCoordinatorBasics:
     """Test basic CacheCoordinator functionality."""
 
-    def test_cache_coordinator_initialization(self) -> None:
+    def test_cache_coordinator_initialization(self, tmp_path) -> None:
         """CacheCoordinator should initialize with protocol interfaces."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         coordinator = CacheCoordinator(
             central_info=central,
             device_provider=central,
@@ -69,6 +77,7 @@ class TestCacheCoordinatorBasics:
             event_bus_provider=central,
             primary_client_provider=central,
             config_provider=central,
+            storage_factory=central.storage_factory,
             task_scheduler=central.looper,
             session_recorder_active=False,
         )  # type: ignore[arg-type]
@@ -79,9 +88,9 @@ class TestCacheCoordinatorBasics:
         assert coordinator.device_descriptions is not None
         assert coordinator.paramset_descriptions is not None
 
-    def test_data_cache_property(self) -> None:
+    def test_data_cache_property(self, tmp_path) -> None:
         """Data cache property should return the cache instance."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         coordinator = CacheCoordinator(
             central_info=central,
             device_provider=central,
@@ -90,6 +99,7 @@ class TestCacheCoordinatorBasics:
             event_bus_provider=central,
             primary_client_provider=central,
             config_provider=central,
+            storage_factory=central.storage_factory,
             task_scheduler=central.looper,
             session_recorder_active=False,
         )  # type: ignore[arg-type]
@@ -99,9 +109,9 @@ class TestCacheCoordinatorBasics:
         # Verify property returns same instance (consistent identity)
         assert cache is coordinator.data_cache
 
-    def test_device_descriptions_property(self) -> None:
+    def test_device_descriptions_property(self, tmp_path) -> None:
         """Device descriptions property should return the cache instance."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         coordinator = CacheCoordinator(
             central_info=central,
             device_provider=central,
@@ -110,6 +120,7 @@ class TestCacheCoordinatorBasics:
             event_bus_provider=central,
             primary_client_provider=central,
             config_provider=central,
+            storage_factory=central.storage_factory,
             task_scheduler=central.looper,
             session_recorder_active=False,
         )  # type: ignore[arg-type]
@@ -119,9 +130,9 @@ class TestCacheCoordinatorBasics:
         # Verify property returns same instance (consistent identity)
         assert cache is coordinator.device_descriptions
 
-    def test_device_details_property(self) -> None:
+    def test_device_details_property(self, tmp_path) -> None:
         """Device details property should return the cache instance."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         coordinator = CacheCoordinator(
             central_info=central,
             device_provider=central,
@@ -130,6 +141,7 @@ class TestCacheCoordinatorBasics:
             event_bus_provider=central,
             primary_client_provider=central,
             config_provider=central,
+            storage_factory=central.storage_factory,
             task_scheduler=central.looper,
             session_recorder_active=False,
         )  # type: ignore[arg-type]
@@ -139,9 +151,9 @@ class TestCacheCoordinatorBasics:
         # Verify property returns same instance (consistent identity)
         assert cache is coordinator.device_details
 
-    def test_paramset_descriptions_property(self) -> None:
+    def test_paramset_descriptions_property(self, tmp_path) -> None:
         """Paramset descriptions property should return the cache instance."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         coordinator = CacheCoordinator(
             central_info=central,
             device_provider=central,
@@ -150,6 +162,7 @@ class TestCacheCoordinatorBasics:
             event_bus_provider=central,
             primary_client_provider=central,
             config_provider=central,
+            storage_factory=central.storage_factory,
             task_scheduler=central.looper,
             session_recorder_active=False,
         )  # type: ignore[arg-type]
@@ -164,9 +177,9 @@ class TestCacheCoordinatorClearOperations:
     """Test cache clearing operations."""
 
     @pytest.mark.asyncio
-    async def test_clear_all(self) -> None:
+    async def test_clear_all(self, tmp_path) -> None:
         """Clear all caches."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock all cache clear methods at class level
         with (
@@ -184,6 +197,7 @@ class TestCacheCoordinatorClearOperations:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -196,9 +210,9 @@ class TestCacheCoordinatorClearOperations:
             mock_param_clear.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_clear_all_handles_exceptions(self) -> None:
+    async def test_clear_all_handles_exceptions(self, tmp_path) -> None:
         """Clear all should handle exceptions gracefully."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock one cache to raise an exception
         with (
@@ -214,6 +228,7 @@ class TestCacheCoordinatorClearOperations:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -226,9 +241,9 @@ class TestCacheCoordinatorLoadOperations:
     """Test cache loading operations."""
 
     @pytest.mark.asyncio
-    async def test_load_all(self) -> None:
+    async def test_load_all(self, tmp_path) -> None:
         """Load all caches."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock all cache load methods
         with (
@@ -245,6 +260,7 @@ class TestCacheCoordinatorLoadOperations:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -255,9 +271,9 @@ class TestCacheCoordinatorLoadOperations:
             mock_param_load.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_load_all_handles_exceptions(self) -> None:
+    async def test_load_all_handles_exceptions(self, tmp_path) -> None:
         """Load all should raise exceptions from cache loads."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock one cache to raise an exception
         with (
@@ -274,6 +290,7 @@ class TestCacheCoordinatorLoadOperations:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -286,9 +303,9 @@ class TestCacheCoordinatorSaveOperations:
     """Test cache saving operations."""
 
     @pytest.mark.asyncio
-    async def test_save_all(self) -> None:
+    async def test_save_all(self, tmp_path) -> None:
         """Save all caches."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock all cache save methods
         with (
@@ -303,6 +320,7 @@ class TestCacheCoordinatorSaveOperations:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -316,9 +334,9 @@ class TestCacheCoordinatorSaveOperations:
             mock_param_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_save_all_handles_exceptions(self) -> None:
+    async def test_save_all_handles_exceptions(self, tmp_path) -> None:
         """Save all should raise exceptions from cache saves."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock one cache to raise an exception
         with (
@@ -333,6 +351,7 @@ class TestCacheCoordinatorSaveOperations:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -348,9 +367,9 @@ class TestCacheCoordinatorDeviceRemoval:
     """Test device removal from caches."""
 
     @pytest.mark.asyncio
-    async def test_remove_device_from_caches(self) -> None:
+    async def test_remove_device_from_caches(self, tmp_path) -> None:
         """Remove device from all caches."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Create a mock device
         mock_device = MagicMock()
@@ -370,6 +389,7 @@ class TestCacheCoordinatorDeviceRemoval:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -381,9 +401,9 @@ class TestCacheCoordinatorDeviceRemoval:
             mock_param_remove.assert_called_once_with(device=mock_device)
 
     @pytest.mark.asyncio
-    async def test_remove_device_handles_exceptions(self) -> None:
+    async def test_remove_device_handles_exceptions(self, tmp_path) -> None:
         """Remove device should handle exceptions gracefully."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Create a mock device
         mock_device = MagicMock()
@@ -401,6 +421,7 @@ class TestCacheCoordinatorDeviceRemoval:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -413,11 +434,11 @@ class TestCacheCoordinatorIntegration:
     """Integration tests for CacheCoordinator."""
 
     @pytest.mark.asyncio
-    async def test_concurrent_operations(self) -> None:
+    async def test_concurrent_operations(self, tmp_path) -> None:
         """Test concurrent cache operations."""
         import asyncio
 
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock methods with async delay
         async def mock_load() -> None:
@@ -442,6 +463,7 @@ class TestCacheCoordinatorIntegration:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -461,9 +483,9 @@ class TestCacheCoordinatorIntegration:
             mock_param_save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_full_cache_lifecycle(self) -> None:
+    async def test_full_cache_lifecycle(self, tmp_path) -> None:
         """Test full cache lifecycle (load, use, save, clear)."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
 
         # Mock all methods
         with (
@@ -487,6 +509,7 @@ class TestCacheCoordinatorIntegration:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -515,9 +538,9 @@ class TestCacheCoordinatorIntegration:
 class TestCacheCoordinatorSessionRecording:
     """Test session recording cache functionality."""
 
-    def test_session_recording_cache_when_disabled(self) -> None:
+    def test_session_recording_cache_when_disabled(self, tmp_path) -> None:
         """Session recording cache should be inactive when disabled."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         central.config.enable_session_recording = False
         coordinator = CacheCoordinator(
             central_info=central,
@@ -527,6 +550,7 @@ class TestCacheCoordinatorSessionRecording:
             event_bus_provider=central,
             primary_client_provider=central,
             config_provider=central,
+            storage_factory=central.storage_factory,
             task_scheduler=central.looper,
             session_recorder_active=False,
         )  # type: ignore[arg-type]
@@ -535,9 +559,9 @@ class TestCacheCoordinatorSessionRecording:
         assert coordinator.recorder is not None
         assert coordinator.recorder.active is False
 
-    def test_session_recording_cache_when_enabled(self) -> None:
+    def test_session_recording_cache_when_enabled(self, tmp_path) -> None:
         """Session recording cache should be created when enabled."""
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         central.config.enable_session_recording = True
 
         with patch("aiohomematic.central.coordinators.cache.SessionRecorder"):
@@ -549,6 +573,7 @@ class TestCacheCoordinatorSessionRecording:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -561,12 +586,12 @@ class TestCacheCoordinatorEvents:
     """Test event emission from CacheCoordinator."""
 
     @pytest.mark.asyncio
-    async def test_clear_emits_cache_invalidated_event(self, event_capture: EventCapture) -> None:
+    async def test_clear_emits_cache_invalidated_event(self, event_capture: EventCapture, tmp_path) -> None:
         """Clear should emit CacheInvalidatedEvent."""
         event_bus = EventBus()
         event_capture.subscribe_to(event_bus, CacheInvalidatedEvent)
 
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         central.event_bus = event_bus
 
         with (
@@ -584,6 +609,7 @@ class TestCacheCoordinatorEvents:
                 event_bus_provider=central,
                 primary_client_provider=central,
                 config_provider=central,
+                storage_factory=central.storage_factory,
                 task_scheduler=central.looper,
                 session_recorder_active=False,
             )  # type: ignore[arg-type]
@@ -598,14 +624,14 @@ class TestCacheCoordinatorEvents:
             )
 
     @pytest.mark.asyncio
-    async def test_clear_on_stop_emits_cache_invalidated_event(self, event_capture: EventCapture) -> None:
+    async def test_clear_on_stop_emits_cache_invalidated_event(self, event_capture: EventCapture, tmp_path) -> None:
         """Clear on stop should emit CacheInvalidatedEvent with SHUTDOWN reason."""
         import asyncio
 
         event_bus = EventBus()
         event_capture.subscribe_to(event_bus, CacheInvalidatedEvent)
 
-        central = _FakeCentral()
+        central = _FakeCentral(tmp_dir=str(tmp_path))
         central.event_bus = event_bus
 
         coordinator = CacheCoordinator(
@@ -616,6 +642,7 @@ class TestCacheCoordinatorEvents:
             event_bus_provider=central,
             primary_client_provider=central,
             config_provider=central,
+            storage_factory=central.storage_factory,
             task_scheduler=central.looper,
             session_recorder_active=False,
         )  # type: ignore[arg-type]

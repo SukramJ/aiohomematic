@@ -1070,7 +1070,7 @@ class TestSessionRecorder:
 
         # Files should exist
         session_dir = tmp_path / SUB_DIRECTORY_SESSION
-        files = list(session_dir.glob("*.json"))
+        files = list(session_dir.glob("*.zip"))
         assert files, "Should have saved file"
 
         # Clear in-memory store (files remain for potential later use)
@@ -1081,7 +1081,7 @@ class TestSessionRecorder:
 
         # File cleanup is done via StorageFactory.cleanup_files(), not clear()
         # Files remain on disk until explicit cleanup
-        assert len(list(session_dir.glob("*.json"))) > 0
+        assert len(list(session_dir.glob("*.zip"))) > 0
 
     @pytest.mark.asyncio
     async def test_set_and_get_basic(self, tmp_path) -> None:

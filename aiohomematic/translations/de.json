@@ -159,6 +159,7 @@
   "log.central.create_clients.no_primary_identified": "CREATE_CLIENTS fehlgeschlagen: Kein primärer Client für {name} identifiziert",
   "log.central.rename_device.not_found": "RENAME_DEVICE fehlgeschlagen: Gerät {device_address} nicht gefunden auf {name}",
   "log.central.restart_clients.restarted": "RESTART_CLIENTS: Zentrale {name} hat Clients neu gestartet",
+  "log.central.rpc_server.background_task_failed": "Hintergrundaufgabe {task_name} fehlgeschlagen: {error}",
   "log.central.rpc_server.error": "ERROR fehlgeschlagen: interface_id = {interface_id}, error_code = {error_code}, message = {msg}",
   "log.central.rpc_server.method_failed": "XML-RPC-Methode {method_name} fehlgeschlagen",
   "log.central.rpc_server.protocol_error": "XML-RPC-Protokollfehler: {error}",

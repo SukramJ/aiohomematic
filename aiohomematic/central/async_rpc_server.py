@@ -14,19 +14,24 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Final
 from xml.parsers.expat import ExpatError
 import xmlrpc.client
 
 from aiohttp import web
+import orjson
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType
 from aiohomematic.interfaces.central import RpcServerCentralProtocol
+from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
 from aiohomematic.support import log_boundary_error
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+
+    from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -205,6 +210,32 @@ class AsyncRPCFunctions:
         # Store task references to prevent garbage collection (RUF006)
         self._background_tasks: Final[set[asyncio.Task[None]]] = set()
 
+    @property
+    def active_tasks_count(self) -> int:
+        """Return the number of active background tasks."""
+        return len(self._background_tasks)
+
+    async def cancel_background_tasks(self) -> None:
+        """Cancel all background tasks and wait for them to complete."""
+        if not self._background_tasks:
+            return
+
+        _LOGGER.debug(
+            "Cancelling %d background tasks",
+            len(self._background_tasks),
+        )
+
+        # Cancel all tasks
+        for task in self._background_tasks:
+            task.cancel()
+
+        # Wait for all tasks to complete (with timeout)
+        if self._background_tasks:
+            await asyncio.wait(
+                self._background_tasks,
+                timeout=5.0,
+            )
+
     async def deleteDevices(
         self,
         interface_id: str,
@@ -359,11 +390,25 @@ class AsyncRPCFunctions:
         """Create a background task and track it to prevent garbage collection."""
         task: asyncio.Task[None] = asyncio.create_task(coro, name=name)
         self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
+        task.add_done_callback(self._on_background_task_done)
 
     def _get_central_entry(self, *, interface_id: str) -> _AsyncCentralEntry | None:
         """Return central entry by interface_id."""
         return self._rpc_server.get_central_entry(interface_id=interface_id)
+
+    def _on_background_task_done(self, task: asyncio.Task[None]) -> None:
+        """Handle background task completion and log any errors."""
+        self._background_tasks.discard(task)
+        if task.cancelled():
+            return
+        if exc := task.exception():
+            _LOGGER.warning(
+                i18n.tr(
+                    key="log.central.rpc_server.background_task_failed",
+                    task_name=task.get_name(),
+                    error=exc,
+                )
+            )
 
     def _publish_system_event(self, *, interface_id: str, system_event: SystemEventType) -> None:
         """Publish a system event to the event coordinator."""
@@ -424,6 +469,11 @@ class AsyncXmlRpcServer:
         # Configure routes
         self._app.router.add_post("/", self._handle_request)
         self._app.router.add_post("/RPC2", self._handle_request)
+        self._app.router.add_get("/health", self._handle_health_check)
+
+        # Metrics counters
+        self._request_count: int = 0
+        self._error_count: int = 0
 
         self._initialized = True
 
@@ -439,6 +489,13 @@ class AsyncXmlRpcServer:
             instance = super().__new__(cls)
             cls._instances[key] = instance
         return cls._instances[key]
+
+    @property
+    def _event_bus(self) -> EventBus | None:
+        """Return event bus from first registered central (for metrics)."""
+        for entry in self._centrals.values():
+            return entry.central.event_coordinator.event_bus
+        return None
 
     @property
     def listen_ip_addr(self) -> str:
@@ -539,6 +596,9 @@ class AsyncXmlRpcServer:
             await self._runner.cleanup()
             self._runner = None
 
+        # Cancel and wait for background tasks
+        await self._cancel_background_tasks()
+
         self._started = False
 
         # Remove from instances
@@ -547,11 +607,48 @@ class AsyncXmlRpcServer:
 
         _LOGGER.debug("AsyncXmlRpcServer stopped")
 
+    async def _cancel_background_tasks(self) -> None:
+        """Cancel all background tasks and wait for them to complete."""
+        await self._rpc_functions.cancel_background_tasks()
+
+    async def _handle_health_check(
+        self,
+        request: web.Request,  # noqa: ARG002
+    ) -> web.Response:
+        """Handle health check request."""
+        health_data = {
+            "status": "healthy" if self._started else "stopped",
+            "started": self._started,
+            "centrals_count": len(self._centrals),
+            "centrals": list(self._centrals.keys()),
+            "active_background_tasks": self._rpc_functions.active_tasks_count,
+            "request_count": self._request_count,
+            "error_count": self._error_count,
+            "listen_address": f"{self._ip_addr}:{self._actual_port}",
+        }
+        return web.Response(
+            body=orjson.dumps(health_data),
+            content_type="application/json",
+            charset="utf-8",
+        )
+
     async def _handle_request(
         self,
         request: web.Request,
     ) -> web.Response:
         """Handle incoming XML-RPC request."""
+        start_time = time.perf_counter()
+        self._request_count += 1
+
+        # Emit request counter metric
+        if event_bus := self._event_bus:
+            emit_counter(event_bus=event_bus, key=MetricKeys.rpc_server_request())
+            emit_gauge(
+                event_bus=event_bus,
+                key=MetricKeys.rpc_server_active_tasks(),
+                value=self._rpc_functions.active_tasks_count,
+            )
+
         try:
             body = await request.read()
             response_xml = await self._dispatcher.dispatch(xml_data=body)
@@ -561,17 +658,32 @@ class AsyncXmlRpcServer:
                 charset="utf-8",
             )
         except XmlRpcProtocolError as err:
+            self._error_count += 1
+            if event_bus := self._event_bus:
+                emit_counter(event_bus=event_bus, key=MetricKeys.rpc_server_error())
             _LOGGER.warning(i18n.tr(key="log.central.rpc_server.protocol_error", error=err))
             return web.Response(
                 status=400,
                 text="XML-RPC protocol error",
             )
         except Exception:
+            self._error_count += 1
+            if event_bus := self._event_bus:
+                emit_counter(event_bus=event_bus, key=MetricKeys.rpc_server_error())
             _LOGGER.exception(i18n.tr(key="log.central.rpc_server.unexpected_error"))
             return web.Response(
                 status=500,
                 text="Internal Server Error",
             )
+        finally:
+            # Emit latency metric
+            if event_bus := self._event_bus:
+                duration_ms = (time.perf_counter() - start_time) * 1000
+                emit_latency(
+                    event_bus=event_bus,
+                    key=MetricKeys.rpc_server_request_latency(),
+                    duration_ms=duration_ms,
+                )
 
 
 async def create_async_xml_rpc_server(

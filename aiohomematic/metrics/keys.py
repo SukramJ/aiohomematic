@@ -192,6 +192,42 @@ class MetricKeys:
         return MetricKey("ping_pong", "rtt", interface_id)
 
     @staticmethod
+    def rpc_server_active_tasks() -> MetricKey:
+        """
+        RPC server active background tasks gauge.
+
+        Current number of background tasks being processed.
+        """
+        return MetricKey("rpc_server", "active_tasks")
+
+    @staticmethod
+    def rpc_server_error() -> MetricKey:
+        """
+        RPC server error counter.
+
+        Incremented when request handling fails.
+        """
+        return MetricKey("rpc_server", "error")
+
+    @staticmethod
+    def rpc_server_request() -> MetricKey:
+        """
+        RPC server request counter.
+
+        Incremented for each incoming request.
+        """
+        return MetricKey("rpc_server", "request")
+
+    @staticmethod
+    def rpc_server_request_latency() -> MetricKey:
+        """
+        RPC server request handling latency.
+
+        Tracks how long request handling takes.
+        """
+        return MetricKey("rpc_server", "latency")
+
+    @staticmethod
     def self_healing_recovery(*, interface_id: str) -> MetricKey:
         """
         Self-healing recovery counter.

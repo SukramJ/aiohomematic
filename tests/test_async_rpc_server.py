@@ -699,3 +699,67 @@ async def test_factory_default_parameters():
         assert server.started is True
     finally:
         await server.stop()
+
+
+# --- Health Check Endpoint Tests ---
+
+
+@pytest.mark.asyncio
+async def test_server_health_check_endpoint():
+    """Test health check endpoint returns server status."""
+    server = AsyncXmlRpcServer(ip_addr="127.0.0.1", port=0)
+    await server.start()
+
+    try:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(f"http://127.0.0.1:{server.listen_port}/health") as response,
+        ):
+            assert response.status == 200
+            assert response.content_type == "application/json"
+
+            data = await response.json()
+            assert data["status"] == "healthy"
+            assert data["started"] is True
+            assert data["centrals_count"] == 0
+            assert data["centrals"] == []
+            assert data["active_background_tasks"] == 0
+            assert data["request_count"] == 0
+            assert data["error_count"] == 0
+            assert "listen_address" in data
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_server_health_check_with_requests():
+    """Test health check shows request and error counts."""
+    server = AsyncXmlRpcServer(ip_addr="127.0.0.1", port=0)
+    await server.start()
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Make a valid request
+            valid_xml = xmlrpc.client.dumps((), methodname="system.listMethods")
+            async with session.post(
+                f"http://127.0.0.1:{server.listen_port}/",
+                data=valid_xml.encode("utf-8"),
+                headers={"Content-Type": "text/xml"},
+            ) as response:
+                assert response.status == 200
+
+            # Make an invalid request (will cause error)
+            async with session.post(
+                f"http://127.0.0.1:{server.listen_port}/",
+                data=b"not valid xml",
+                headers={"Content-Type": "text/xml"},
+            ) as response:
+                assert response.status == 400
+
+            # Check health reflects the requests
+            async with session.get(f"http://127.0.0.1:{server.listen_port}/health") as response:
+                data = await response.json()
+                assert data["request_count"] == 2
+                assert data["error_count"] == 1
+    finally:
+        await server.stop()

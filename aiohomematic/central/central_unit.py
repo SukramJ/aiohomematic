@@ -70,6 +70,7 @@ from aiohomematic.interfaces.model import (
 from aiohomematic.metrics import MetricsAggregator, MetricsObserver
 from aiohomematic.model.hub import InstallModeDpType
 from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property
+from aiohomematic.store import LocalStorageFactory, StorageFactoryProtocol
 from aiohomematic.support import (
     LogContextMixin,
     PayloadMixin,
@@ -125,6 +126,13 @@ class CentralUnit(
             event_bus=self._event_bus,
         )
 
+        # Initialize storage factory (use provided or create local)
+        self._storage_factory: Final[StorageFactoryProtocol] = central_config.storage_factory or LocalStorageFactory(
+            base_directory=central_config.storage_directory,
+            central_name=central_config.name,
+            task_scheduler=self.looper,
+        )
+
         # Initialize coordinators
         self._client_coordinator: Final = ClientCoordinator(
             client_factory=self,
@@ -144,6 +152,7 @@ class CentralUnit(
             event_bus_provider=self,
             primary_client_provider=self._client_coordinator,
             session_recorder_active=self.config.session_recorder_start,
+            storage_factory=self._storage_factory,
             task_scheduler=self.looper,
         )
         self._event_coordinator: Final = EventCoordinator(

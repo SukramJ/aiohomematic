@@ -13,6 +13,7 @@ from aiohomematic import central as hmcu
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, _cleanup_args, _cleanup_item, _cleanup_paramset
 from aiohomematic.const import HubValueType
 from aiohomematic.exceptions import ClientException, NoConnectionException, UnsupportedException
+from aiohomematic.store import LocalStorageFactory
 from aiohomematic.store.persistent import SessionRecorder
 
 
@@ -115,6 +116,11 @@ class TestSessionRecording:
                 self.config = type("obj", (), {"storage_directory": str(tmp_path), "use_caches": True})()
                 self.looper = Looper()
                 self.devices = []
+                self.storage_factory = LocalStorageFactory(
+                    base_directory=str(tmp_path),
+                    central_name=self.name,
+                    task_scheduler=self.looper,
+                )
 
         (_, base_url) = mock_xml_rpc_server
         conn_state = hmcu.CentralConnectionState()
@@ -126,6 +132,7 @@ class TestSessionRecording:
             config_provider=central,
             device_provider=central,
             task_scheduler=central.looper,
+            storage_factory=central.storage_factory,
             active=True,
             ttl_seconds=0,
             refresh_on_get=False,

@@ -22,7 +22,15 @@ import logging
 from typing import Final
 
 from aiohomematic.central.events import CacheInvalidatedEvent, DeviceRemovedEvent
-from aiohomematic.const import CacheInvalidationReason, CacheType, DataOperationResult, Interface
+from aiohomematic.const import (
+    FILE_DEVICES,
+    FILE_PARAMSETS,
+    SUB_DIRECTORY_CACHE,
+    CacheInvalidationReason,
+    CacheType,
+    DataOperationResult,
+    Interface,
+)
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
     ClientProviderProtocol,
@@ -36,6 +44,7 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.property_decorators import DelegatedProperty
+from aiohomematic.store import StorageFactoryProtocol
 from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
 from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
 from aiohomematic.store.visibility import ParameterVisibilityCache
@@ -93,26 +102,37 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         event_bus_provider: EventBusProviderProtocol,
         primary_client_provider: PrimaryClientProviderProtocol,
         session_recorder_active: bool,
+        storage_factory: StorageFactoryProtocol,
         task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the cache coordinator.
 
         Args:
-        ----
-            central_info: Provider for central system information
-            device_provider: Provider for device access
-            client_provider: Provider for client access
-            data_point_provider: Provider for data point access
-            event_bus_provider: Provider for event bus access
-            primary_client_provider: Provider for primary client access
-            config_provider: Provider for configuration access
-            task_scheduler: Provider for task scheduling
-            session_recorder_active: Whether session recording should be active
+            central_info: Provider for central system information.
+            device_provider: Provider for device access.
+            client_provider: Provider for client access.
+            data_point_provider: Provider for data point access.
+            event_bus_provider: Provider for event bus access.
+            primary_client_provider: Provider for primary client access.
+            config_provider: Provider for configuration access.
+            storage_factory: Factory for creating storage instances.
+            task_scheduler: Provider for task scheduling.
+            session_recorder_active: Whether session recording should be active.
 
         """
         self._central_info: Final = central_info
         self._event_bus_provider: Final = event_bus_provider
+
+        # Create storage instances for persistent caches
+        device_storage = storage_factory.create_storage(
+            key=FILE_DEVICES,
+            sub_directory=SUB_DIRECTORY_CACHE,
+        )
+        paramset_storage = storage_factory.create_storage(
+            key=FILE_PARAMSETS,
+            sub_directory=SUB_DIRECTORY_CACHE,
+        )
 
         # Initialize all caches with protocol interfaces
         self._data_cache: Final = CentralDataCache(
@@ -127,16 +147,12 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             primary_client_provider=primary_client_provider,
         )
         self._device_descriptions_cache: Final = DeviceDescriptionCache(
-            central_info=central_info,
+            storage=device_storage,
             config_provider=config_provider,
-            device_provider=device_provider,
-            task_scheduler=task_scheduler,
         )
         self._paramset_descriptions_cache: Final = ParamsetDescriptionCache(
-            central_info=central_info,
+            storage=paramset_storage,
             config_provider=config_provider,
-            device_provider=device_provider,
-            task_scheduler=task_scheduler,
         )
         self._parameter_visibility_cache: Final = ParameterVisibilityCache(
             config_provider=config_provider,
@@ -146,6 +162,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             config_provider=config_provider,
             device_provider=device_provider,
             task_scheduler=task_scheduler,
+            storage_factory=storage_factory,
             ttl_seconds=600,
             active=session_recorder_active,
         )

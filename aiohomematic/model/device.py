@@ -45,10 +45,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 from datetime import datetime
+from functools import partial
 import logging
 import os
 import random
 from typing import Any, Final, cast
+import zipfile
 
 import orjson
 
@@ -58,18 +60,17 @@ from aiohomematic.central.events import DeviceStateChangedEvent, FirmwareStateCh
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CLICK_EVENTS,
-    DEVICE_DESCRIPTIONS_DIR,
+    DEVICE_DESCRIPTIONS_ZIP_DIR,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
     NO_CACHE_ENTRY,
-    PARAMSET_DESCRIPTIONS_DIR,
+    PARAMSET_DESCRIPTIONS_ZIP_DIR,
     RELEVANT_INIT_PARAMETERS,
     REPORT_VALUE_USAGE_DATA,
     REPORT_VALUE_USAGE_VALUE_ID,
     VIRTUAL_REMOTE_MODELS,
     WEEK_PROFILE_PATTERN,
     CallSource,
-    DataOperationResult,
     DataPointCategory,
     DataPointKey,
     DataPointUsage,
@@ -135,7 +136,6 @@ from aiohomematic.support import (
     CacheEntry,
     LogContextMixin,
     PayloadMixin,
-    check_or_create_directory,
     extract_exc_args,
     get_channel_address,
     get_channel_no,
@@ -1629,7 +1629,6 @@ class _DefinitionExporter:
 
     __slots__ = (
         "_client",
-        "_config_provider",
         "_device_address",
         "_device_description_provider",
         "_interface_id",
@@ -1641,17 +1640,16 @@ class _DefinitionExporter:
     def __init__(self, *, device: DeviceProtocol) -> None:
         """Initialize the device exporter."""
         self._client: Final = device.client
-        self._config_provider: Final = device.config_provider
         self._device_description_provider: Final = device.device_description_provider
         self._task_scheduler: Final = device.task_scheduler
-        self._storage_directory: Final = self._config_provider.config.storage_directory
+        self._storage_directory: Final = device.config_provider.config.storage_directory
         self._interface_id: Final = device.interface_id
         self._device_address: Final = device.address
         self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def export_data(self) -> None:
-        """Export data."""
+        """Export device and paramset descriptions as a single ZIP file."""
         device_descriptions: Mapping[str, DeviceDescription] = (
             self._device_description_provider.get_device_with_channels(
                 interface_id=self._interface_id, device_address=self._device_address
@@ -1661,15 +1659,15 @@ class _DefinitionExporter:
             str, dict[ParamsetKey, dict[str, ParameterData]]
         ] = await self._client.get_all_paramset_descriptions(device_descriptions=tuple(device_descriptions.values()))
         model = device_descriptions[self._device_address]["TYPE"]
-        file_name = f"{model}.json"
 
-        # anonymize device_descriptions
+        # anonymize device_descriptions (list format matching pydevccu)
         anonymize_device_descriptions: list[DeviceDescription] = []
         for device_description in device_descriptions.values():
             new_device_description: DeviceDescription = device_description.copy()
-            new_device_description["ADDRESS"] = self._anonymize_address(address=new_device_description["ADDRESS"])
+            new_address = self._anonymize_address(address=new_device_description["ADDRESS"])
+            new_device_description["ADDRESS"] = new_address
             if new_device_description.get("PARENT"):
-                new_device_description["PARENT"] = new_device_description["ADDRESS"].split(ADDRESS_SEPARATOR)[0]
+                new_device_description["PARENT"] = new_address.split(ADDRESS_SEPARATOR, maxsplit=1)[0]
             elif new_device_description.get("CHILDREN"):
                 new_device_description["CHILDREN"] = [
                     self._anonymize_address(address=a) for a in new_device_description["CHILDREN"]
@@ -1681,36 +1679,53 @@ class _DefinitionExporter:
         for address, paramset_description in paramset_descriptions.items():
             anonymize_paramset_descriptions[self._anonymize_address(address=address)] = paramset_description
 
-        # Save device_descriptions for device to file.
-        await self._save(
-            directory=f"{self._storage_directory}/{DEVICE_DESCRIPTIONS_DIR}",
-            file_name=file_name,
-            data=anonymize_device_descriptions,
-        )
-
-        # Save device_descriptions for device to file.
-        await self._save(
-            directory=f"{self._storage_directory}/{PARAMSET_DESCRIPTIONS_DIR}",
-            file_name=file_name,
-            data=anonymize_paramset_descriptions,
-        )
+        # Write single ZIP file with subdirectories
+        if self._task_scheduler:
+            await self._task_scheduler.async_add_executor_job(
+                partial(
+                    self._write_export_zip,
+                    model=model,
+                    device_descriptions=anonymize_device_descriptions,
+                    paramset_descriptions=anonymize_paramset_descriptions,
+                ),
+                name="export-device-definition",
+            )
+        else:
+            await asyncio.to_thread(
+                self._write_export_zip,
+                model=model,
+                device_descriptions=anonymize_device_descriptions,
+                paramset_descriptions=anonymize_paramset_descriptions,
+            )
 
     def _anonymize_address(self, *, address: str) -> str:
+        """Anonymize device address with random ID."""
         address_parts = address.split(ADDRESS_SEPARATOR)
         address_parts[0] = self._random_id
         return ADDRESS_SEPARATOR.join(address_parts)
 
-    async def _save(self, *, directory: str, file_name: str, data: Any) -> DataOperationResult:
-        """Save file to disk."""
+    def _write_export_zip(
+        self,
+        *,
+        model: str,
+        device_descriptions: list[DeviceDescription],
+        paramset_descriptions: dict[str, dict[ParamsetKey, dict[str, ParameterData]]],
+    ) -> None:
+        """Write export data to a ZIP file with subdirectories."""
+        # Ensure directory exists
+        os.makedirs(self._storage_directory, exist_ok=True)
 
-        def perform_save() -> DataOperationResult:
-            if not check_or_create_directory(directory=directory):
-                return DataOperationResult.NO_SAVE  # pragma: no cover
-            with open(file=os.path.join(directory, file_name), mode="wb") as fptr:
-                fptr.write(orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
-            return DataOperationResult.SAVE_SUCCESS
+        zip_path = os.path.join(self._storage_directory, f"{model}.zip")
+        temp_path = f"{zip_path}.tmp"
 
-        return cast(
-            DataOperationResult,
-            await self._task_scheduler.async_add_executor_job(perform_save, name="save-device-description"),
-        )
+        # Serialize JSON with formatting
+        opts = orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS
+        device_json = orjson.dumps(device_descriptions, option=opts)
+        paramset_json = orjson.dumps(paramset_descriptions, option=opts)
+
+        # Write ZIP with subdirectories
+        with zipfile.ZipFile(temp_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(f"{DEVICE_DESCRIPTIONS_ZIP_DIR}/{model}.json", device_json)
+            zf.writestr(f"{PARAMSET_DESCRIPTIONS_ZIP_DIR}/{model}.json", paramset_json)
+
+        os.replace(temp_path, zip_path)

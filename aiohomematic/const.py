@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.55"
+VERSION: Final = "2025.12.56"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -184,7 +184,6 @@ CONF_USERNAME: Final = "username"
 
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
 DATETIME_FORMAT_MILLIS: Final = "%d.%m.%Y %H:%M:%S.%f'"
-DEVICE_DESCRIPTIONS_DIR: Final = "export_device_descriptions"
 DUMMY_SERIAL: Final = "SN0815"
 FILE_DEVICES: Final = "homematic_devices"
 FILE_PARAMSETS: Final = "homematic_paramsets"
@@ -224,7 +223,8 @@ MAX_CACHE_AGE: Final = 10
 MAX_CONCURRENT_HTTP_SESSIONS: Final = 3
 MAX_WAIT_FOR_CALLBACK: Final = 60
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
-PARAMSET_DESCRIPTIONS_DIR: Final = "export_paramset_descriptions"
+DEVICE_DESCRIPTIONS_ZIP_DIR: Final = "device_descriptions"
+PARAMSET_DESCRIPTIONS_ZIP_DIR: Final = "paramset_descriptions"
 PATH_JSON_RPC: Final = "/api/homematic.cgi"
 PING_PONG_MISMATCH_COUNT: Final = 15
 PING_PONG_MISMATCH_COUNT_TTL: Final = 300

@@ -1361,6 +1361,18 @@ git commit --no-verify -m "message"
 
 ## Key Conventions
 
+### Documentation Language
+
+**All documentation must be written in English.** This includes:
+
+- Architecture Decision Records (ADRs) in `docs/adr/`
+- Technical documentation in `docs/`
+- Code comments and docstrings
+- Commit messages and PR descriptions
+- README and changelog entries
+
+This ensures consistency and accessibility for all contributors.
+
 ### Import Aliases
 
 The project defines standard import aliases (enforced by ruff):

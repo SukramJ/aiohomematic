@@ -2,6 +2,13 @@
 
 ## What's Changed
 
+### Storage & Persistence
+
+- **Storage Abstraction Layer**: Unified storage system enabling Home Assistant Store integration
+  - Protocol-based architecture allows transparent substitution of storage backends
+  - Local implementation uses orjson for fast serialization with atomic writes
+  - Supports ZIP archive loading, version migrations, and delayed/debounced saves
+
 ### Connection Recovery
 
 - **Unified Recovery Architecture**: New event-driven connection recovery coordinator

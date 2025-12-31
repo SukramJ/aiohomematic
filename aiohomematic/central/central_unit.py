@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Final
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper
-from aiohomematic.central import rpc_server as rpc
+from aiohomematic.central import async_rpc_server as async_rpc, rpc_server as rpc
 from aiohomematic.central.connection_state import CentralConnectionState
 from aiohomematic.central.coordinators import (
     CacheCoordinator,
@@ -51,6 +51,7 @@ from aiohomematic.const import (
     FailureReason,
     Interface,
     Operations,
+    OptionalSettings,
     ParamsetKey,
     SourceOfDeviceCreation,
     SystemInformation,
@@ -108,7 +109,7 @@ class CentralUnit(
         self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()
-        self._xml_rpc_server: rpc.XmlRpcServer | None = None
+        self._xml_rpc_server: rpc.XmlRpcServer | async_rpc.AsyncXmlRpcServer | None = None
         self._json_rpc_client: AioJsonRpcAioHttpClient | None = None
 
         # Initialize event bus and state machine early (needed by coordinators)
@@ -287,10 +288,12 @@ class CentralUnit(
     def _has_active_threads(self) -> bool:
         """Return if active sub threads are alive."""
         # BackgroundScheduler is async-based, not a thread
-        # Only check XML-RPC server thread
-        return bool(
-            self._xml_rpc_server and self._xml_rpc_server.no_central_assigned and self._xml_rpc_server.is_alive()
-        )
+        # Only check XML-RPC server thread (async server doesn't use threads)
+        if not self._xml_rpc_server or not self._xml_rpc_server.no_central_assigned:
+            return False
+        if isinstance(self._xml_rpc_server, async_rpc.AsyncXmlRpcServer):
+            return self._xml_rpc_server.started
+        return self._xml_rpc_server.is_alive()
 
     @property
     def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
@@ -768,14 +771,21 @@ class CentralUnit(
             else self._config.callback_port_xml_rpc or self._config.default_callback_port_xml_rpc
         )
         try:
-            if (
-                xml_rpc_server := rpc.create_xml_rpc_server(ip_addr=self._listen_ip_addr, port=port_xml_rpc)
-                if self._config.enable_xml_rpc_server
-                else None
-            ):
-                self._xml_rpc_server = xml_rpc_server
-                self._listen_port_xml_rpc = xml_rpc_server.listen_port
-                self._xml_rpc_server.add_central(central=self, looper=self.looper)
+            if self._config.enable_xml_rpc_server:
+                if OptionalSettings.ASYNC_RPC_SERVER in self._config.optional_settings:
+                    # Use async XML-RPC server (experimental)
+                    async_server = await async_rpc.create_async_xml_rpc_server(
+                        ip_addr=self._listen_ip_addr, port=port_xml_rpc
+                    )
+                    self._xml_rpc_server = async_server
+                    self._listen_port_xml_rpc = async_server.listen_port
+                    async_server.add_central(central=self)
+                else:
+                    # Use thread-based XML-RPC server (default)
+                    xml_rpc_server = rpc.create_xml_rpc_server(ip_addr=self._listen_ip_addr, port=port_xml_rpc)
+                    self._xml_rpc_server = xml_rpc_server
+                    self._listen_port_xml_rpc = xml_rpc_server.listen_port
+                    xml_rpc_server.add_central(central=self, looper=self.looper)
         except OSError as oserr:  # pragma: no cover - environment/OS-specific socket binding failures are not reliably reproducible in CI
             if self._central_state_machine.can_transition_to(target=CentralState.FAILED):
                 self._central_state_machine.transition_to(
@@ -877,7 +887,10 @@ class CentralUnit(
             self._xml_rpc_server.remove_central(central=self)
             # un-register and stop XmlRPC-Server, if possible
             if self._xml_rpc_server.no_central_assigned:
-                self._xml_rpc_server.stop()
+                if isinstance(self._xml_rpc_server, async_rpc.AsyncXmlRpcServer):
+                    await self._xml_rpc_server.stop()
+                else:
+                    self._xml_rpc_server.stop()
             _LOGGER.debug("STOP: XmlRPC-Server stopped")
         else:
             _LOGGER.debug("STOP: shared XmlRPC-Server NOT stopped. There is still another central instance registered")

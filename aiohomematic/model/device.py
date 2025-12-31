@@ -1660,13 +1660,14 @@ class _DefinitionExporter:
         ] = await self._client.get_all_paramset_descriptions(device_descriptions=tuple(device_descriptions.values()))
         model = device_descriptions[self._device_address]["TYPE"]
 
-        # anonymize device_descriptions
+        # anonymize device_descriptions (list format matching pydevccu)
         anonymize_device_descriptions: list[DeviceDescription] = []
         for device_description in device_descriptions.values():
             new_device_description: DeviceDescription = device_description.copy()
-            new_device_description["ADDRESS"] = self._anonymize_address(address=new_device_description["ADDRESS"])
+            new_address = self._anonymize_address(address=new_device_description["ADDRESS"])
+            new_device_description["ADDRESS"] = new_address
             if new_device_description.get("PARENT"):
-                new_device_description["PARENT"] = new_device_description["ADDRESS"].split(ADDRESS_SEPARATOR)[0]
+                new_device_description["PARENT"] = new_address.split(ADDRESS_SEPARATOR, maxsplit=1)[0]
             elif new_device_description.get("CHILDREN"):
                 new_device_description["CHILDREN"] = [
                     self._anonymize_address(address=a) for a in new_device_description["CHILDREN"]

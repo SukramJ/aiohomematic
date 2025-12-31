@@ -4,6 +4,15 @@
 
 ### New Features
 
+- **Async XML-RPC Server** (Experimental): New asyncio-native XML-RPC server using aiohttp
+
+  - Enable via `OptionalSettings.ASYNC_RPC_SERVER` in `CentralConfig.optional_settings`
+  - Alternative to the thread-based XML-RPC server for receiving callbacks from Homematic backend
+  - Full support for `system.multicall` (batched events from CCU)
+  - Fire-and-forget pattern for event processing (immediate response to backend)
+  - Singleton pattern per (ip_addr, port) combination
+  - See ADR 0011 for design rationale
+
 - **Storage Abstraction Layer**: New unified storage system for all persistent data
 
   - `StorageProtocol` and `StorageFactoryProtocol` interfaces for DuckTyping compatibility

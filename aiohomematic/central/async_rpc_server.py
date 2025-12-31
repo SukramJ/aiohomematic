@@ -564,7 +564,7 @@ class AsyncXmlRpcServer:
             _LOGGER.warning(i18n.tr(key="log.central.rpc_server.protocol_error", error=err))
             return web.Response(
                 status=400,
-                text=str(err),
+                text="XML-RPC protocol error",
             )
         except Exception:
             _LOGGER.exception(i18n.tr(key="log.central.rpc_server.unexpected_error"))

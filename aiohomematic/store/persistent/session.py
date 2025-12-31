@@ -416,6 +416,8 @@ class SessionRecorder:
         storage = self._storage_factory.create_storage(
             key=key,
             sub_directory=SUB_DIRECTORY_SESSION,
+            formatted=False,
+            as_zip=True,
         )
         await storage.save(data=data)
         _LOGGER.debug("Saved session recording to %s", key)

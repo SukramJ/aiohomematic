@@ -350,6 +350,18 @@ class CircuitBreaker:
             )
         )
 
+    def _emit_state_transition_counter(self) -> None:
+        """Emit a counter for state transitions."""
+        if self._event_bus is None:
+            return
+
+        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
+
+        emit_counter(
+            event_bus=self._event_bus,
+            key=MetricKeys.circuit_state_transition(interface_id=self._interface_id),
+        )
+
     def _emit_tripped_event(self) -> None:
         """Emit a circuit breaker tripped event."""
         if self._event_bus is None:
@@ -383,6 +395,7 @@ class CircuitBreaker:
         self._state = new_state
         self._metrics.state_transitions += 1
         self._metrics.last_state_change = datetime.now()
+        self._emit_state_transition_counter()
 
         # Use DEBUG for expected recovery transitions, INFO for issues and recovery attempts
         if old_state == CircuitState.HALF_OPEN and new_state == CircuitState.CLOSED:

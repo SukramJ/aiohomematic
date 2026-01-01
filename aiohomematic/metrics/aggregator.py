@@ -392,55 +392,61 @@ class MetricsAggregator:
     @property
     def rpc(self) -> RpcMetrics:
         """Return aggregated RPC metrics from all clients."""
-        total_requests = 0
+        # Get counters from observer (event-driven)
         successful_requests = 0
         failed_requests = 0
         rejected_requests = 0
         coalesced_requests = 0
         executed_requests = 0
-        pending_requests = 0
         state_transitions = 0
-        circuit_breakers_open = 0
-        circuit_breakers_half_open = 0
-        last_failure_time: datetime | None = None
         total_latency_ms = 0.0
         max_latency_ms = 0.0
         latency_count = 0
 
-        for client in self._client_provider.clients:
-            # Circuit breaker metrics (if available on this client type)
-            if (cb := getattr(client, "circuit_breaker", None)) is not None:
-                cb_metrics = cb.metrics
-                total_requests += cb_metrics.total_requests
-                successful_requests += cb_metrics.successful_requests
-                failed_requests += cb_metrics.failed_requests
-                rejected_requests += cb_metrics.rejected_requests
-                state_transitions += cb_metrics.state_transitions
-
-                if cb.state == CircuitState.OPEN:
-                    circuit_breakers_open += 1
-                elif cb.state == CircuitState.HALF_OPEN:
-                    circuit_breakers_half_open += 1
-
-                if cb_metrics.last_failure_time is not None and (
-                    last_failure_time is None or cb_metrics.last_failure_time > last_failure_time
-                ):
-                    last_failure_time = cb_metrics.last_failure_time
-
-            # Request coalescer metrics (if available on this client type)
-            if (coalescer := getattr(client, "request_coalescer", None)) is not None:
-                coal_metrics = coalescer.metrics
-                coalesced_requests += coal_metrics.coalesced_requests
-                executed_requests += coal_metrics.executed_requests
-                pending_requests += coalescer.pending_count
-
-        # Latency metrics from MetricsObserver (event-driven)
         if self._observer is not None:
+            # Circuit breaker metrics from observer
+            successful_requests = self._observer.get_aggregated_counter(pattern="circuit.success.")
+            failed_requests = self._observer.get_aggregated_counter(pattern="circuit.failure.")
+            rejected_requests = self._observer.get_aggregated_counter(pattern="circuit.rejection.")
+            state_transitions = self._observer.get_aggregated_counter(pattern="circuit.state_transition.")
+
+            # Coalescer metrics from observer
+            coalesced_requests = self._observer.get_aggregated_counter(pattern="coalescer.coalesced.")
+            executed_requests = self._observer.get_aggregated_counter(pattern="coalescer.execute.")
+
+            # Latency metrics from observer
             latency_tracker = self._observer.get_aggregated_latency(pattern="ping_pong.rtt")
             if latency_tracker.count > 0:
                 total_latency_ms = latency_tracker.total_ms
                 latency_count = latency_tracker.count
                 max_latency_ms = latency_tracker.max_ms
+
+        # Calculate total requests (success + failure + rejection)
+        total_requests = successful_requests + failed_requests + rejected_requests
+
+        # These require direct access (current state, not counters)
+        pending_requests = 0
+        circuit_breakers_open = 0
+        circuit_breakers_half_open = 0
+        last_failure_time: datetime | None = None
+
+        for client in self._client_provider.clients:
+            # Circuit breaker state (current, not counter)
+            if (cb := getattr(client, "circuit_breaker", None)) is not None:
+                if cb.state == CircuitState.OPEN:
+                    circuit_breakers_open += 1
+                elif cb.state == CircuitState.HALF_OPEN:
+                    circuit_breakers_half_open += 1
+
+                # last_failure_time from circuit breaker metrics
+                if cb.metrics.last_failure_time is not None and (
+                    last_failure_time is None or cb.metrics.last_failure_time > last_failure_time
+                ):
+                    last_failure_time = cb.metrics.last_failure_time
+
+            # Pending count from coalescer (current gauge, not counter)
+            if (coalescer := getattr(client, "request_coalescer", None)) is not None:
+                pending_requests += coalescer.pending_count
 
         avg_latency_ms = total_latency_ms / latency_count if latency_count > 0 else 0.0
 

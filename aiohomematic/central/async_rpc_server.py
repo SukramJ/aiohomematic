@@ -466,14 +466,14 @@ class AsyncXmlRpcServer:
         self._dispatcher.register_instance(instance=self._rpc_functions)
         self._dispatcher.register_introspection_functions()
 
+        # Local counters for health endpoint (work without central)
+        self._request_count: int = 0
+        self._error_count: int = 0
+
         # Configure routes
         self._app.router.add_post("/", self._handle_request)
         self._app.router.add_post("/RPC2", self._handle_request)
         self._app.router.add_get("/health", self._handle_health_check)
-
-        # Metrics counters
-        self._request_count: int = 0
-        self._error_count: int = 0
 
         self._initialized = True
 
@@ -640,7 +640,7 @@ class AsyncXmlRpcServer:
         start_time = time.perf_counter()
         self._request_count += 1
 
-        # Emit request counter metric
+        # Emit request counter metric (if central registered)
         if event_bus := self._event_bus:
             emit_counter(event_bus=event_bus, key=MetricKeys.rpc_server_request())
             emit_gauge(

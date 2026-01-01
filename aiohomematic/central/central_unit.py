@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
-from functools import partial
 import logging
 from typing import TYPE_CHECKING, Final
 
@@ -961,10 +960,7 @@ class CentralUnit(
         ip_addr: str | None = None
         while ip_addr is None:
             try:
-                ip_addr = await self.looper.async_add_executor_job(
-                    partial(get_ip_addr, host=self._config.host, port=port),
-                    name="get_ip_addr",
-                )
+                ip_addr = await get_ip_addr(host=self._config.host, port=port)
             except AioHomematicException:
                 ip_addr = LOCAL_HOST
             if ip_addr is None:

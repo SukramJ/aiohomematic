@@ -1,3 +1,18 @@
+# Version 2026.1.2 (2026-01-01)
+
+## What's Changed
+
+### Refactoring
+
+- **Async DNS Resolution**: `get_ip_addr()` now uses async `loop.getaddrinfo()` instead of blocking `socket.gethostbyname()`
+
+  - Eliminates need for executor thread pool for DNS lookups
+  - Direct `await` instead of `async_add_executor_job()` wrapper
+
+- **Removed Dead Code**: Removed unused `shrink_json_file()` function from `support.py`
+
+---
+
 # Version 2026.1.1 (2026-01-01)
 
 ## What's Changed

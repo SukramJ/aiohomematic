@@ -127,3 +127,4 @@
   - `*DescriptionCache` → `*DescriptionRegistry` (authoritative stores)
   - `ParameterVisibilityCache` → `ParameterVisibilityRegistry`
 - **TrackerStatistics**: Dedicated statistics class for trackers (evictions only, no hit/miss)
+- **Async DNS Resolution**: `get_ip_addr()` uses async `loop.getaddrinfo()` instead of blocking DNS lookup

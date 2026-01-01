@@ -60,7 +60,7 @@ jobs:
           ls -l dist/
 
       - name: Upload built distributions as artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: release-dists
           path: dist/

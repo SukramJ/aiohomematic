@@ -5,7 +5,7 @@ Tests for runtime store in aiohomematic.store.dynamic.
 
 This test suite focuses on lightweight, behavior-centric checks that improve
 coverage without touching production logic. It covers:
-- CommandCache add/get/remove flows including combined parameter handling.
+- CommandTracker add/get/remove flows including combined parameter handling.
 - PingPongTracker counters, threshold flags, event emission, and warnings.
 """
 
@@ -22,7 +22,7 @@ import pytest
 from aiohomematic.async_support import Looper
 from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
 from aiohomematic.const import ParamsetKey, PingPongMismatchType
-from aiohomematic.store.dynamic import CommandCache, PingPongTracker
+from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
 
 
 def get_ping_pong_info(event: SystemStatusChangedEvent) -> tuple[str | None, str | None, int | None, bool]:
@@ -101,40 +101,42 @@ class TrackingLooper:
         self.created.append(name)
 
 
-class TestCommandCache:
-    """Test CommandCache functionality."""
+class TestCommandTracker:
+    """Test CommandTracker functionality."""
 
-    def test_command_cache_add_and_get_last_value_send(self) -> None:
-        """Validate add/get/remove flows for CommandCache using set_value path."""
-        cache = CommandCache(interface_id="if1")
+    def test_command_tracker_add_and_get_last_value_send(self) -> None:
+        """Validate add/get/remove flows for CommandTracker using set_value path."""
+        tracker = CommandTracker(interface_id="if1")
 
         # Basic set_value path
-        dpk_values = cache.add_set_value(channel_address="OEQ1234:1", parameter="LEVEL", value=0.7)
+        dpk_values = tracker.add_set_value(channel_address="OEQ1234:1", parameter="LEVEL", value=0.7)
         assert len(dpk_values) == 1
         (dpk, stored_value) = next(iter(dpk_values))
         assert stored_value == 0.7
 
         # get_last_value_send returns value while fresh
-        assert cache.get_last_value_send(dpk=dpk, max_age=3600) == 0.7
+        assert tracker.get_last_value_send(dpk=dpk, max_age=3600) == 0.7
 
         # With max_age 0, entry is considered stale and should be removed and return None
-        assert cache.get_last_value_send(dpk=dpk, max_age=0) is None
+        assert tracker.get_last_value_send(dpk=dpk, max_age=0) is None
         # Calling again still returns None (already purged)
-        assert cache.get_last_value_send(dpk=dpk, max_age=3600) is None
+        assert tracker.get_last_value_send(dpk=dpk, max_age=3600) is None
 
-    def test_command_cache_add_put_paramset_and_remove(self) -> None:
+    def test_command_tracker_add_put_paramset_and_remove(self) -> None:
         """Ensure add_put_paramset store values and targeted remove purges entries."""
-        cache = CommandCache(interface_id="if2")
+        tracker = CommandTracker(interface_id="if2")
 
         # Put two parameters
         values = {"LEVEL": 1.0, "ON_TIME": 2}
-        dpk_values = cache.add_put_paramset(channel_address="OEQ9999:4", paramset_key=ParamsetKey.VALUES, values=values)
+        dpk_values = tracker.add_put_paramset(
+            channel_address="OEQ9999:4", paramset_key=ParamsetKey.VALUES, values=values
+        )
         assert len(dpk_values) == 2
 
         # Pick one DPK to remove (by matching value) — should delete even if not stale
         dpk_to_remove = next(iter(dpk_values))[0]
-        cache.remove_last_value_send(dpk=dpk_to_remove, value=values[dpk_to_remove.parameter], max_age=3600)
-        assert cache.get_last_value_send(dpk=dpk_to_remove, max_age=3600) is None
+        tracker.remove_last_value_send(dpk=dpk_to_remove, value=values[dpk_to_remove.parameter], max_age=3600)
+        assert tracker.get_last_value_send(dpk=dpk_to_remove, max_age=3600) is None
 
 
 class TestPingPongTracker:

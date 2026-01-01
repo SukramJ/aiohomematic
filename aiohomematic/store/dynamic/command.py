@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Command cache for tracking recently sent commands.
+Command tracker for tracking recently sent commands.
 
-This module provides CommandCache which tracks recently sent commands per data point
+This module provides CommandTracker which tracks recently sent commands per data point
 with automatic expiry and configurable size limits to prevent unbounded memory growth.
 
 Memory management strategy (three-tier approach):
-    1. Lazy cleanup: When cache exceeds CLEANUP_THRESHOLD, remove expired entries
+    1. Lazy cleanup: When tracker exceeds CLEANUP_THRESHOLD, remove expired entries
     2. Warning threshold: Log warning when approaching MAX_SIZE (hysteresis prevents spam)
     3. Hard limit eviction: When MAX_SIZE reached, remove oldest 20% of entries
 """
@@ -19,31 +19,30 @@ import logging
 from typing import Any, Final
 
 from aiohomematic.const import (
-    COMMAND_CACHE_MAX_SIZE,
-    COMMAND_CACHE_WARNING_THRESHOLD,
+    COMMAND_TRACKER_MAX_SIZE,
+    COMMAND_TRACKER_WARNING_THRESHOLD,
     DP_KEY_VALUE,
-    LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD,
     LAST_COMMAND_SEND_STORE_TIMEOUT,
+    LAST_COMMAND_SEND_TRACKER_CLEANUP_THRESHOLD,
     DataPointKey,
     ParamsetKey,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from aiohomematic.interfaces import CacheWithStatisticsProtocol
-from aiohomematic.store.types import CachedCommand, CacheName, CacheStatistics
+from aiohomematic.store.types import CachedCommand, TrackerStatistics
 from aiohomematic.support import changed_within_seconds
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CommandCache(CacheWithStatisticsProtocol):
+class CommandTracker:
     """
-    Cache for send commands with resource limits.
+    Tracker for sent commands with resource limits.
 
     Tracks recently sent commands per data point with automatic expiry
     and configurable size limits to prevent unbounded memory growth.
 
     Memory management strategy (three-tier approach):
-        1. Lazy cleanup: When cache exceeds CLEANUP_THRESHOLD, remove expired entries
+        1. Lazy cleanup: When tracker exceeds CLEANUP_THRESHOLD, remove expired entries
         2. Warning threshold: Log warning when approaching MAX_SIZE (hysteresis prevents spam)
         3. Hard limit eviction: When MAX_SIZE reached, remove oldest 20% of entries
 
@@ -59,9 +58,9 @@ class CommandCache(CacheWithStatisticsProtocol):
     )
 
     def __init__(self, *, interface_id: str) -> None:
-        """Initialize command cache."""
+        """Initialize command tracker."""
         self._interface_id: Final = interface_id
-        self._stats: Final = CacheStatistics()
+        self._stats: Final = TrackerStatistics()
         # Maps DataPointKey to CachedCommand for tracking recent commands.
         # Used to detect duplicate sends and for unconfirmed value tracking.
         self._last_send_command: Final[dict[DataPointKey, CachedCommand]] = {}
@@ -69,18 +68,13 @@ class CommandCache(CacheWithStatisticsProtocol):
         self._warning_logged: bool = False
 
     @property
-    def name(self) -> CacheName:
-        """Return the cache name."""
-        return CacheName.COMMAND
-
-    @property
     def size(self) -> int:
-        """Return the current cache size."""
+        """Return the current tracker size."""
         return len(self._last_send_command)
 
     @property
-    def statistics(self) -> CacheStatistics:
-        """Return the cache statistics."""
+    def statistics(self) -> TrackerStatistics:
+        """Return the tracker statistics."""
         return self._stats
 
     def add_combined_parameter(
@@ -99,8 +93,8 @@ class CommandCache(CacheWithStatisticsProtocol):
         self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> set[DP_KEY_VALUE]:
         """Add data from put paramset command."""
-        # Cleanup expired entries when cache size exceeds threshold
-        if len(self._last_send_command) > LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD:
+        # Cleanup expired entries when tracker size exceeds threshold
+        if len(self._last_send_command) > LAST_COMMAND_SEND_TRACKER_CLEANUP_THRESHOLD:
             self.cleanup_expired()
 
         # Enforce hard size limit
@@ -132,8 +126,8 @@ class CommandCache(CacheWithStatisticsProtocol):
                 parameter=parameter, channel_address=channel_address, combined_parameter=value
             )
 
-        # Cleanup expired entries when cache size exceeds threshold
-        if len(self._last_send_command) > LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD:
+        # Cleanup expired entries when tracker size exceeds threshold
+        if len(self._last_send_command) > LAST_COMMAND_SEND_TRACKER_CLEANUP_THRESHOLD:
             self.cleanup_expired()
 
         # Enforce hard size limit
@@ -151,7 +145,7 @@ class CommandCache(CacheWithStatisticsProtocol):
 
     def cleanup_expired(self, *, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> int:
         """
-        Remove expired command cache entries.
+        Remove expired command tracker entries.
 
         Return the number of entries removed.
 
@@ -176,7 +170,7 @@ class CommandCache(CacheWithStatisticsProtocol):
         return len(expired_keys)
 
     def clear(self) -> None:
-        """Clear all cached command entries."""
+        """Clear all tracked command entries."""
         self._last_send_command.clear()
 
     def get_last_value_send(self, *, dpk: DataPointKey, max_age: int = LAST_COMMAND_SEND_STORE_TIMEOUT) -> Any:
@@ -206,37 +200,37 @@ class CommandCache(CacheWithStatisticsProtocol):
 
     def _enforce_size_limit(self) -> None:
         """
-        Enforce size limits on the cache to prevent unbounded growth.
+        Enforce size limits on the tracker to prevent unbounded growth.
 
         LRU-style eviction algorithm:
-            When cache reaches MAX_SIZE, evict the oldest 20% of entries.
+            When tracker reaches MAX_SIZE, evict the oldest 20% of entries.
             The 20% threshold is a heuristic that balances:
             - Memory reclamation (enough entries removed to be meaningful)
             - Performance (not called too frequently)
             - Data retention (most recent entries are preserved)
 
         Warning hysteresis:
-            The _warning_logged flag prevents log spam when cache size oscillates
+            The _warning_logged flag prevents log spam when tracker size oscillates
             near the warning threshold. Warning is logged once when threshold is
             exceeded, then reset only when size drops below threshold.
         """
         current_size = len(self._last_send_command)
 
         # Warning with hysteresis: log once when crossing threshold, reset when below
-        if current_size >= COMMAND_CACHE_WARNING_THRESHOLD and not self._warning_logged:
+        if current_size >= COMMAND_TRACKER_WARNING_THRESHOLD and not self._warning_logged:
             _LOGGER.warning(  # i18n-log: ignore
-                "CommandCache for %s approaching size limit: %d/%d entries",
+                "CommandTracker for %s approaching size limit: %d/%d entries",
                 self._interface_id,
                 current_size,
-                COMMAND_CACHE_MAX_SIZE,
+                COMMAND_TRACKER_MAX_SIZE,
             )
             self._warning_logged = True
-        elif current_size < COMMAND_CACHE_WARNING_THRESHOLD:
-            # Reset warning flag when cache shrinks below threshold
+        elif current_size < COMMAND_TRACKER_WARNING_THRESHOLD:
+            # Reset warning flag when tracker shrinks below threshold
             self._warning_logged = False
 
         # Hard limit enforcement with LRU eviction
-        if current_size >= COMMAND_CACHE_MAX_SIZE:
+        if current_size >= COMMAND_TRACKER_MAX_SIZE:
             # Sort entries by timestamp (oldest first) for LRU eviction
             sorted_entries = sorted(
                 self._last_send_command.items(),
@@ -249,7 +243,7 @@ class CommandCache(CacheWithStatisticsProtocol):
             # Track evictions via local counter
             self._stats.record_eviction(count=remove_count)
             _LOGGER.debug(
-                "CommandCache for %s evicted %d oldest entries (size was %d)",
+                "CommandTracker for %s evicted %d oldest entries (size was %d)",
                 self._interface_id,
                 remove_count,
                 current_size,

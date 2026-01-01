@@ -277,21 +277,19 @@ class CacheMetrics:
     ping_pong_tracker: SizeOnlyStats = field(default_factory=SizeOnlyStats)
     """Ping-pong tracker size."""
 
+    command_tracker: SizeOnlyStats = field(default_factory=SizeOnlyStats)
+    """Command tracker size (tracks sent commands, no hit/miss semantics)."""
+
     # True caches (with hit/miss semantics)
     data_cache: CacheStats = field(default_factory=CacheStats)
     """Central data cache stats."""
 
-    command_cache: CacheStats = field(default_factory=CacheStats)
-    """Command cache stats."""
-
     @property
     def overall_hit_rate(self) -> float:
-        """Return overall cache hit rate (data_cache + command_cache only)."""
-        total_hits = self.data_cache.hits + self.command_cache.hits
-        total_misses = self.data_cache.misses + self.command_cache.misses
-        if (total := total_hits + total_misses) == 0:
+        """Return overall cache hit rate (data_cache only, command_tracker has no hit/miss semantics)."""
+        if (total := self.data_cache.hits + self.data_cache.misses) == 0:
             return 100.0
-        return (total_hits / total) * 100
+        return (self.data_cache.hits / total) * 100
 
     @property
     def total_entries(self) -> int:
@@ -301,8 +299,8 @@ class CacheMetrics:
             + self.paramset_descriptions.size
             + self.visibility_registry.size
             + self.ping_pong_tracker.size
+            + self.command_tracker.size
             + self.data_cache.size
-            + self.command_cache.size
         )
 
 

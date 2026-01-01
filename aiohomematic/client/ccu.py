@@ -99,7 +99,7 @@ from aiohomematic.exceptions import BaseHomematicException, ClientException, NoC
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store.dynamic import CommandCache, PingPongTracker
+from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
 from aiohomematic.support import LogContextMixin, build_xml_rpc_headers, build_xml_rpc_uri, extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -140,7 +140,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         "_is_callback_alive",
         "_is_initialized",
         "_json_rpc_client",
-        "_last_value_send_cache",
+        "_last_value_send_tracker",
         "_link_handler",
         "_metadata_handler",
         "_modified_at",
@@ -159,7 +159,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Initialize the Client."""
         self._config: Final = client_config
         self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
-        self._last_value_send_cache = CommandCache(
+        self._last_value_send_tracker = CommandTracker(
             interface_id=client_config.interface_id,
         )
         self._state_machine: Final = ClientStateMachine(
@@ -212,7 +212,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     central: Final = DelegatedProperty[ClientDependenciesProtocol](path="_config.client_deps")
     interface: Final = DelegatedProperty[Interface](path="_config.interface")
     interface_id: Final = DelegatedProperty[str](path="_config.interface_id", log_context=True)
-    last_value_send_cache: Final = DelegatedProperty[CommandCache](path="_last_value_send_cache")
+    last_value_send_tracker: Final = DelegatedProperty[CommandTracker](path="_last_value_send_tracker")
     ping_pong_tracker: Final = DelegatedProperty[PingPongTracker](path="_ping_pong_tracker")
     state: Final = DelegatedProperty[ClientState](path="_state_machine.state")
     state_machine: Final = DelegatedProperty[ClientStateMachine](path="_state_machine")
@@ -982,7 +982,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            last_value_send_cache=self._last_value_send_cache,
+            last_value_send_tracker=self._last_value_send_tracker,
         )
 
         self._link_handler = LinkHandler(

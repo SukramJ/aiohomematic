@@ -138,7 +138,7 @@ Protocol Categories
     - `CallbackAddressProviderProtocol`: Callback address management
     - `ClientCoordinationProtocol`: Client coordination operations
     - `SessionRecorderProviderProtocol`: Session recording access
-    - `CommandCacheProtocol`: Command cache operations
+    - `CommandTrackerProtocol`: Command tracker operations
     - `PingPongTrackerProtocol`: Ping/pong cache operations
 
 Submodules
@@ -200,7 +200,7 @@ from aiohomematic.interfaces.client import (
     ClientProtocol,
     ClientProviderProtocol,
     ClientSupportProtocol,
-    CommandCacheProtocol,
+    CommandTrackerProtocol,
     ConnectionStateProviderProtocol,
     DataCacheWriterProtocol,
     DeviceDescriptionsAccessProtocol,
@@ -390,7 +390,7 @@ __all__ = [
     "BackupProviderProtocol",
     "CallbackAddressProviderProtocol",
     "ClientCoordinationProtocol",
-    "CommandCacheProtocol",
+    "CommandTrackerProtocol",
     "CoordinatorProviderProtocol",
     "FileOperationsProtocol",
     "PingPongTrackerProtocol",

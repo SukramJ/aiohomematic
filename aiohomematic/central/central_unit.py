@@ -908,9 +908,9 @@ class CentralUnit(
         self._cache_coordinator.clear_on_stop()
         _LOGGER.debug("STOP: In-memory caches cleared")
 
-        # Clear client-level caches (command cache, ping-pong cache)
+        # Clear client-level trackers (command tracker, ping-pong tracker)
         for client in self._client_coordinator.clients:
-            client.last_value_send_cache.clear()
+            client.last_value_send_tracker.clear()
             client.ping_pong_tracker.clear()
         _LOGGER.debug("STOP: Client caches cleared")
 

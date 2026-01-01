@@ -29,10 +29,14 @@ class SizeOnlyStats:
     - ParamsetDescriptionRegistry (authoritative store)
     - ParameterVisibilityRegistry (rule engine with memoization)
     - PingPongTracker (connection health tracker)
+    - CommandTracker (sent command tracker)
     """
 
     size: int = 0
     """Current number of entries."""
+
+    evictions: int = 0
+    """Number of entries removed (for memory management, not cache semantics)."""
 
 
 @dataclass(slots=True)
@@ -42,7 +46,6 @@ class CacheStats:
 
     Used for true caches with hit/miss semantics:
     - CentralDataCache
-    - CommandCache
     """
 
     hits: int = 0

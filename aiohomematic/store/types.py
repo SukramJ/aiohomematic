@@ -49,9 +49,6 @@ InterfaceParamsetMap: TypeAlias = dict[str, ChannelParamsetMap]
 class CacheName(StrEnum):
     """Enumeration of cache names for identification."""
 
-    COMMAND = "command"
-    """Command cache for tracking sent commands."""
-
     DATA = "data"
     """Central data cache for device/channel values."""
 
@@ -109,6 +106,35 @@ class CacheStatistics:
         """Reset all counters to zero."""
         self.hits = 0
         self.misses = 0
+        self.evictions = 0
+
+
+# =============================================================================
+# Tracker Statistics
+# =============================================================================
+
+
+@dataclass(slots=True)
+class TrackerStatistics:
+    """
+    Lightweight statistics container for tracker memory management.
+
+    Unlike CacheStatistics, trackers don't have hit/miss semantics.
+    They only track evictions for memory management monitoring.
+
+    Attributes:
+        evictions: Number of entries evicted from tracker.
+
+    """
+
+    evictions: int = 0
+
+    def record_eviction(self, *, count: int = 1) -> None:
+        """Record tracker eviction(s)."""
+        self.evictions += count
+
+    def reset(self) -> None:
+        """Reset all counters to zero."""
         self.evictions = 0
 
 

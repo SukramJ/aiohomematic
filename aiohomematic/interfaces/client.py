@@ -589,8 +589,8 @@ class ClientSupportProtocol(Protocol):
     __slots__ = ()
 
     @property
-    def last_value_send_cache(self) -> CommandCacheProtocol:
-        """Return the last value send cache."""
+    def last_value_send_tracker(self) -> CommandTrackerProtocol:
+        """Return the last value send tracker."""
 
     @property
     def ping_pong_tracker(self) -> PingPongTrackerProtocol:
@@ -1010,8 +1010,8 @@ class CallbackAddressProviderProtocol(Protocol):
 
 
 @runtime_checkable
-class CommandCacheProtocol(Protocol):
-    """Protocol for command cache operations."""
+class CommandTrackerProtocol(Protocol):
+    """Protocol for command tracker operations."""
 
     @abstractmethod
     def add_put_paramset(
@@ -1031,7 +1031,7 @@ class CommandCacheProtocol(Protocol):
 
     @abstractmethod
     def clear(self) -> None:
-        """Clear all cached command entries."""
+        """Clear all tracked command entries."""
 
     @abstractmethod
     def get_last_value_send(self, *, dpk: DataPointKey, max_age: int = ...) -> Any:

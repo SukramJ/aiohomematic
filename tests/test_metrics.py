@@ -157,19 +157,20 @@ class TestCacheMetrics:
     """Tests for CacheMetrics dataclass."""
 
     def test_overall_hit_rate(self) -> None:
-        """Test overall hit rate calculation (only true caches contribute)."""
+        """Test overall hit rate calculation (only data_cache contributes)."""
         metrics = CacheMetrics(
             # Registries don't contribute to hit rate
             device_descriptions=SizeOnlyStats(size=100),
             paramset_descriptions=SizeOnlyStats(size=200),
             visibility_registry=SizeOnlyStats(size=50),
             ping_pong_tracker=SizeOnlyStats(size=10),
-            # True caches contribute to hit rate
+            # Tracker doesn't contribute to hit rate (no hit/miss semantics)
+            command_tracker=SizeOnlyStats(size=5),
+            # Only data_cache (true cache) contributes to hit rate
             data_cache=CacheStats(hits=80, misses=20),
-            command_cache=CacheStats(hits=20, misses=0),
         )
-        # Total: 100 hits, 20 misses = 83.33%
-        assert abs(metrics.overall_hit_rate - 83.33) < 0.1
+        # Total: 80 hits, 20 misses = 80%
+        assert abs(metrics.overall_hit_rate - 80.0) < 0.1
 
     def test_total_entries(self) -> None:
         """Test total entries calculation."""
@@ -178,8 +179,8 @@ class TestCacheMetrics:
             paramset_descriptions=SizeOnlyStats(size=20),
             visibility_registry=SizeOnlyStats(size=15),
             ping_pong_tracker=SizeOnlyStats(size=2),
+            command_tracker=SizeOnlyStats(size=5),
             data_cache=CacheStats(size=30),
-            command_cache=CacheStats(size=5),
         )
         assert metrics.total_entries == 82
 

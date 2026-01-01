@@ -34,8 +34,8 @@
   - New `SizeOnlyStats` for registries/trackers (size only, no hit/miss semantics)
   - `CacheStats` reserved for true caches with hit/miss/eviction tracking
   - Registries: `device_descriptions`, `paramset_descriptions`, `visibility_registry` (size only)
-  - Trackers: `ping_pong_tracker` (size only)
-  - True caches: `data_cache`, `command_cache` (size, hits, misses, evictions)
+  - Trackers: `ping_pong_tracker`, `command_tracker` (size and evictions only)
+  - True caches: `data_cache` (size, hits, misses, evictions)
   - New `CacheProviderForMetricsProtocol` for centralized cache access
 
 ### Bug Fixes
@@ -55,11 +55,14 @@
 ### Refactoring
 
 - **Semantic Class Naming**: Renamed classes to better reflect their actual purpose
+  - `CommandCache` → `CommandTracker` (tracks sent commands, no hit/miss semantics)
   - `PingPongCache` → `PingPongTracker` (tracks connection health, not a cache)
   - `DeviceDescriptionCache` → `DeviceDescriptionRegistry` (authoritative store, not a cache)
   - `ParamsetDescriptionCache` → `ParamsetDescriptionRegistry` (authoritative store, not a cache)
   - `ParameterVisibilityCache` → `ParameterVisibilityRegistry` (defines rules, memoization is implementation detail)
-  - `CacheName` enum reduced to `COMMAND` and `DATA` (the actual caches with hit/miss semantics)
+  - `last_value_send_cache` → `last_value_send_tracker` property on clients
+  - `CacheName` enum reduced to `DATA` only (the actual cache with hit/miss semantics)
+  - New `TrackerStatistics` for tracker-specific stats (evictions only, no hits/misses)
   - Removed `CacheStatistics` from `ParameterVisibilityRegistry` (deterministic rules don't need hit/miss tracking)
 
 ---

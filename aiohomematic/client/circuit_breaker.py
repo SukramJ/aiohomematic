@@ -103,32 +103,6 @@ class CircuitBreakerConfig:
     """Number of consecutive successes in HALF_OPEN before closing the circuit."""
 
 
-@dataclass(slots=True)
-class CircuitBreakerMetrics:
-    """Metrics for monitoring circuit breaker behavior."""
-
-    total_requests: int = 0
-    """Total number of requests processed."""
-
-    successful_requests: int = 0
-    """Number of successful requests."""
-
-    failed_requests: int = 0
-    """Number of failed requests."""
-
-    rejected_requests: int = 0
-    """Number of requests rejected due to open circuit."""
-
-    state_transitions: int = 0
-    """Number of state transitions."""
-
-    last_failure_time: datetime | None = None
-    """Timestamp of last failure."""
-
-    last_state_change: datetime | None = None
-    """Timestamp of last state change."""
-
-
 class CircuitBreaker:
     """
     Circuit breaker for RPC calls to prevent retry-storms.
@@ -173,11 +147,11 @@ class CircuitBreaker:
         self._state: CircuitState = CircuitState.CLOSED
         self._failure_count: int = 0
         self._success_count: int = 0
+        self._total_requests: int = 0
         self._last_failure_time: datetime | None = None
-        self._metrics: CircuitBreakerMetrics = CircuitBreakerMetrics()
 
-    metrics: Final = DelegatedProperty[CircuitBreakerMetrics](path="_metrics")
     state: Final = DelegatedProperty[CircuitState](path="_state")
+    total_requests: Final = DelegatedProperty[int](path="_total_requests")
 
     @property
     def is_available(self) -> bool:
@@ -204,6 +178,11 @@ class CircuitBreaker:
         # HALF_OPEN - allow one request through
         return True
 
+    @property
+    def last_failure_time(self) -> datetime | None:
+        """Return the timestamp of the last failure."""
+        return self._last_failure_time
+
     def record_failure(self) -> None:
         """
         Record a failed request.
@@ -211,11 +190,8 @@ class CircuitBreaker:
         In CLOSED state: increments failure count and may open circuit.
         In HALF_OPEN state: immediately opens circuit.
         """
-        self._metrics.total_requests += 1
-        self._metrics.failed_requests += 1
-        self._metrics.last_failure_time = datetime.now()
-
         self._failure_count += 1
+        self._total_requests += 1
         self._last_failure_time = datetime.now()
 
         if self._state == CircuitState.CLOSED:
@@ -225,18 +201,11 @@ class CircuitBreaker:
             # Any failure in HALF_OPEN goes back to OPEN
             self._transition_to(new_state=CircuitState.OPEN)
 
-        # Emit metric event
+        # Emit failure counter (failures are significant events worth tracking)
         self._emit_counter(metric="failure")
-
-        # Emit health record event
-        self._emit_health_record(success=False)
 
     def record_rejection(self) -> None:
         """Record a rejected request (circuit is open)."""
-        self._metrics.total_requests += 1
-        self._metrics.rejected_requests += 1
-
-        # Emit metric event
         self._emit_counter(metric="rejection")
 
     def record_success(self) -> None:
@@ -245,9 +214,11 @@ class CircuitBreaker:
 
         In CLOSED state: resets failure count.
         In HALF_OPEN state: increments success count and may close circuit.
+
+        Note: Success is not emitted as an event (high frequency, low signal).
+        Use total_requests property for request counting.
         """
-        self._metrics.total_requests += 1
-        self._metrics.successful_requests += 1
+        self._total_requests += 1
 
         if self._state == CircuitState.CLOSED:
             self._failure_count = 0
@@ -256,17 +227,12 @@ class CircuitBreaker:
             if self._success_count >= self._config.success_threshold:
                 self._transition_to(new_state=CircuitState.CLOSED)
 
-        # Emit metric event
-        self._emit_counter(metric="success")
-
-        # Emit health record event
-        self._emit_health_record(success=True)
-
     def reset(self) -> None:
         """Reset the circuit breaker to initial state."""
         self._state = CircuitState.CLOSED
         self._failure_count = 0
         self._success_count = 0
+        self._total_requests = 0
         self._last_failure_time = None
         _LOGGER.debug(
             "CIRCUIT_BREAKER: Reset to CLOSED for %s",
@@ -275,14 +241,19 @@ class CircuitBreaker:
 
     def _emit_counter(self, *, metric: str) -> None:
         """
-        Emit a counter metric event.
+        Emit a counter metric event for significant events only.
 
         Uses lazy import to avoid circular dependency:
         circuit_breaker → metrics → aggregator → circuit_breaker.
 
         Args:
         ----
-            metric: The metric type ("success", "failure", "rejection")
+            metric: The metric type ("failure", "rejection")
+
+        Note:
+        ----
+            Success is not emitted as an event (high frequency, low signal).
+            Only failures and rejections are tracked via events.
 
         """
         if self._event_bus is None:
@@ -291,9 +262,7 @@ class CircuitBreaker:
         # Lazy import to avoid circular dependency with metrics module
         from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
 
-        if metric == "success":
-            key = MetricKeys.circuit_success(interface_id=self._interface_id)
-        elif metric == "failure":
+        if metric == "failure":
             key = MetricKeys.circuit_failure(interface_id=self._interface_id)
         elif metric == "rejection":
             key = MetricKeys.circuit_rejection(interface_id=self._interface_id)
@@ -301,29 +270,6 @@ class CircuitBreaker:
             return
 
         emit_counter(event_bus=self._event_bus, key=key)
-
-    def _emit_health_record(self, *, success: bool) -> None:
-        """
-        Emit a health record event.
-
-        Args:
-        ----
-            success: Whether the request succeeded
-
-        """
-        if self._event_bus is None:
-            return
-
-        # Import here to avoid circular dependency
-        from aiohomematic.central.events import HealthRecordedEvent  # noqa: PLC0415
-
-        self._event_bus.publish_sync(
-            event=HealthRecordedEvent(
-                timestamp=datetime.now(),
-                interface_id=self._interface_id,
-                success=success,
-            )
-        )
 
     def _emit_state_change_event(
         self,
@@ -348,6 +294,18 @@ class CircuitBreaker:
                 success_count=self._success_count,
                 last_failure_time=self._last_failure_time,
             )
+        )
+
+    def _emit_state_transition_counter(self) -> None:
+        """Emit a counter for state transitions."""
+        if self._event_bus is None:
+            return
+
+        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
+
+        emit_counter(
+            event_bus=self._event_bus,
+            key=MetricKeys.circuit_state_transition(interface_id=self._interface_id),
         )
 
     def _emit_tripped_event(self) -> None:
@@ -381,8 +339,7 @@ class CircuitBreaker:
             return
 
         self._state = new_state
-        self._metrics.state_transitions += 1
-        self._metrics.last_state_change = datetime.now()
+        self._emit_state_transition_counter()
 
         # Use DEBUG for expected recovery transitions, INFO for issues and recovery attempts
         if old_state == CircuitState.HALF_OPEN and new_state == CircuitState.CLOSED:

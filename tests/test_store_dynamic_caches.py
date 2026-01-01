@@ -6,7 +6,7 @@ Tests for runtime store in aiohomematic.store.dynamic.
 This test suite focuses on lightweight, behavior-centric checks that improve
 coverage without touching production logic. It covers:
 - CommandCache add/get/remove flows including combined parameter handling.
-- PingPongCache counters, threshold flags, event emission, and warnings.
+- PingPongTracker counters, threshold flags, event emission, and warnings.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import pytest
 from aiohomematic.async_support import Looper
 from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
 from aiohomematic.const import ParamsetKey, PingPongMismatchType
-from aiohomematic.store.dynamic import CommandCache, PingPongCache
+from aiohomematic.store.dynamic import CommandCache, PingPongTracker
 
 
 def get_ping_pong_info(event: SystemStatusChangedEvent) -> tuple[str | None, str | None, int | None, bool]:
@@ -61,7 +61,7 @@ class _CapturingEventBus(EventBus):
 
 
 class CentralStub:
-    """Minimal stub to capture interface events published by PingPongCache."""
+    """Minimal stub to capture interface events published by PingPongTracker."""
 
     def __init__(self, name: str = "central-stub") -> None:
         """Initialize the stub with a name and event collection storage."""
@@ -96,7 +96,7 @@ class TrackingLooper:
     def __init__(self) -> None:
         self.created: list[str] = []
 
-    # Match signature used by PingPongCache
+    # Match signature used by PingPongTracker
     def create_task(self, *, target, name: str) -> None:  # type: ignore[no-untyped-def]
         self.created.append(name)
 
@@ -137,13 +137,13 @@ class TestCommandCache:
         assert cache.get_last_value_send(dpk=dpk_to_remove, max_age=3600) is None
 
 
-class TestPingPongCache:
-    """Test PingPongCache functionality."""
+class TestPingPongTracker:
+    """Test PingPongTracker functionality."""
 
     def test_pingpongcache_cleanup_by_ttl(self) -> None:
         """Confirm TTL-based cleanup removes stale timestamps from both store."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifTTL", allowed_delta=1, ttl=1
         )
 
@@ -175,7 +175,7 @@ class TestPingPongCache:
     def test_pingpongcache_clear_resets_state(self) -> None:
         """Verify that clear() empties counts and prevents spurious events immediately after."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifC", allowed_delta=1, ttl=60
         )
 
@@ -196,7 +196,7 @@ class TestPingPongCache:
     def test_pingpongcache_publishes_single_reset_event_on_drop_from_high(self) -> None:
         """Ensure exactly one reset event (mismatch=0) is sent when dropping from high to low pending state."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifR", allowed_delta=1, ttl=60
         )
 
@@ -234,7 +234,7 @@ class TestPingPongCache:
     def test_pingpongcache_retry_coalesces_single_task(self) -> None:
         """Ensure multiple schedules for the same token are coalesced into a single task creation."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifCoal", allowed_delta=1, ttl=60
         )
 
@@ -254,7 +254,7 @@ class TestPingPongCache:
     async def test_pingpongcache_retry_reconciles_with_looper(self) -> None:
         """With a looper, the retry should reconcile an unknown pong with a late pending ping and publish events."""
         central = CentralWithLooperStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifLoop", allowed_delta=5, ttl=60
         )
 
@@ -289,7 +289,7 @@ class TestPingPongCache:
     async def test_pingpongcache_retry_skips_without_looper(self) -> None:
         """When no looper is available, scheduling a retry should be skipped and token reschedulable."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifNoLoop", allowed_delta=1, ttl=60
         )
 
@@ -307,9 +307,9 @@ class TestPingPongCache:
         allowed_delta: int,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Verify PingPongCache counters, threshold flips, warnings, and event payloads."""
+        """Verify PingPongTracker counters, threshold flips, warnings, and event payloads."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifX", allowed_delta=allowed_delta, ttl=60
         )
 
@@ -365,7 +365,7 @@ class TestPingPongCache:
     def test_pingpongcache_throttles_low_state_pending_events(self) -> None:
         """Confirm that in low state, PENDING_PONG events are published only on even counts (2, 4, ...)."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifT", allowed_delta=10, ttl=60
         )
 
@@ -389,7 +389,7 @@ class TestPingPongCache:
     ) -> None:
         """Ensure high unknown pongs trigger a warning and an interface event with correct payload."""
         central = CentralStub()
-        ppc = PingPongCache(
+        ppc = PingPongTracker(
             event_bus_provider=central, central_info=central, interface_id="ifU", allowed_delta=1, ttl=60
         )
 

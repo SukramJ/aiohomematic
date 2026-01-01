@@ -55,38 +55,12 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
-from aiohomematic.property_decorators import DelegatedProperty
-
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-
-@dataclass(slots=True)
-class CoalescerMetrics:
-    """Metrics for monitoring coalescer effectiveness."""
-
-    total_requests: int = 0
-    """Total number of requests received."""
-
-    executed_requests: int = 0
-    """Number of requests that actually executed (not coalesced)."""
-
-    coalesced_requests: int = 0
-    """Number of requests that were coalesced (avoided execution)."""
-
-    failed_requests: int = 0
-    """Number of requests that failed."""
-
-    @property
-    def coalesce_rate(self) -> float:
-        """Return the percentage of requests that were coalesced."""
-        if self.total_requests == 0:
-            return 0.0
-        return (self.coalesced_requests / self.total_requests) * 100
 
 
 @dataclass(slots=True)
@@ -128,14 +102,23 @@ class RequestCoalescer:
         self._event_bus = event_bus
         self._interface_id = interface_id or name
         self._pending: dict[str, _PendingRequest] = {}
-        self._metrics: CoalescerMetrics = CoalescerMetrics()
+        self._total_requests: int = 0
+        self._executed_requests: int = 0
 
-    metrics: Final = DelegatedProperty[CoalescerMetrics](path="_metrics")
+    @property
+    def executed_requests(self) -> int:
+        """Return the number of executed requests (not coalesced)."""
+        return self._executed_requests
 
     @property
     def pending_count(self) -> int:
         """Return the number of pending requests."""
         return len(self._pending)
+
+    @property
+    def total_requests(self) -> int:
+        """Return the total number of requests received."""
+        return self._total_requests
 
     def clear(self) -> None:
         """
@@ -178,13 +161,14 @@ class RequestCoalescer:
             Any exception raised by the executor is propagated to all waiters
 
         """
-        self._metrics.total_requests += 1
+        self._total_requests += 1
 
         # Check if there's already a pending request for this key
         if key in self._pending:
             pending = self._pending[key]
             pending.waiter_count += 1
-            self._metrics.coalesced_requests += 1
+            # Coalescing is a significant event worth tracking (shows efficiency)
+            self._emit_coalesced_counter()
             _LOGGER.debug(
                 "COALESCER[%s]: Coalescing request for key=%s (waiters=%d)",
                 self._name,
@@ -199,6 +183,7 @@ class RequestCoalescer:
         loop = asyncio.get_running_loop()
         future: asyncio.Future[T] = loop.create_future()
         self._pending[key] = _PendingRequest(future=future)
+        self._executed_requests += 1
 
         _LOGGER.debug(
             "COALESCER[%s]: Executing request for key=%s",
@@ -207,11 +192,10 @@ class RequestCoalescer:
         )
 
         try:
-            self._metrics.executed_requests += 1
             result = await executor()
             future.set_result(result)
         except Exception as exc:
-            self._metrics.failed_requests += 1
+            self._emit_failure_counter()
             future.set_exception(exc)
             raise
         else:
@@ -243,6 +227,28 @@ class RequestCoalescer:
                 coalesced_count=coalesced_count,
                 interface_id=self._interface_id,
             )
+        )
+
+    def _emit_coalesced_counter(self) -> None:
+        """Emit a counter for coalesced requests (significant event)."""
+        if self._event_bus is None:
+            return
+        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
+
+        emit_counter(
+            event_bus=self._event_bus,
+            key=MetricKeys.coalescer_coalesced(interface_id=self._interface_id),
+        )
+
+    def _emit_failure_counter(self) -> None:
+        """Emit a counter for failed requests (significant event)."""
+        if self._event_bus is None:
+            return
+        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
+
+        emit_counter(
+            event_bus=self._event_bus,
+            key=MetricKeys.coalescer_failure(interface_id=self._interface_id),
         )
 
 

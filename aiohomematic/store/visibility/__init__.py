@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Parameter visibility rules and cache for Homematic data points.
+Parameter visibility rules and registry for Homematic data points.
 
 This package determines which parameters should be created, shown, hidden,
 ignored, or un-ignored for channels and devices. It centralizes the rules
@@ -11,11 +11,11 @@ Package structure
 -----------------
 - rules: Static visibility rules (constants, mappings, patterns)
 - parser: Un-ignore configuration line parsing
-- cache: ParameterVisibilityCache implementation
+- registry: ParameterVisibilityRegistry implementation
 
 Public API
 ----------
-- ParameterVisibilityCache: Main visibility decision cache
+- ParameterVisibilityRegistry: Main visibility decision registry
 - check_ignore_parameters_is_clean: Validation helper
 
 Key concepts
@@ -31,10 +31,10 @@ Key concepts
 
 from __future__ import annotations
 
-from aiohomematic.store.visibility.cache import ParameterVisibilityCache, check_ignore_parameters_is_clean
+from aiohomematic.store.visibility.registry import ParameterVisibilityRegistry, check_ignore_parameters_is_clean
 
 __all__ = [
     # Visibility
-    "ParameterVisibilityCache",
+    "ParameterVisibilityRegistry",
     "check_ignore_parameters_is_clean",
 ]

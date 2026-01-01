@@ -116,6 +116,14 @@ class InternalBackendException(BaseHomematicException):
         super().__init__("InternalBackendException", *args)
 
 
+class DescriptionNotFoundException(BaseHomematicException):
+    """Exception raised when a device/channel description is not found in the cache."""
+
+    def __init__(self, *args: Any) -> None:
+        """Initialize the DescriptionNotFoundException."""
+        super().__init__("DescriptionNotFoundException", *args)
+
+
 def _reduce_args(*, args: tuple[Any, ...]) -> tuple[Any, ...] | Any:
     """Return the first arg, if there is only one arg."""
     return args[0] if len(args) == 1 else args

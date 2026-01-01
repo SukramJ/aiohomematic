@@ -81,6 +81,18 @@ class DeviceRegistry:
         """
         return tuple(self._devices.values())
 
+    @property
+    def models(self) -> tuple[str, ...]:
+        """
+        Return the models of the devices in the registry.
+
+        Returns
+        -------
+            Models of all devices
+
+        """
+        return tuple(sorted({d.model for d in self.devices}))
+
     async def add_device(self, *, device: DeviceProtocol) -> None:
         """
         Add a device to the registry.

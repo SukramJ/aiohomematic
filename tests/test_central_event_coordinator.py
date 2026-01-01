@@ -77,8 +77,8 @@ class _FakeClient:
     def __init__(self, *, supports_ping_pong: bool = True) -> None:
         """Initialize a fake client."""
         self.supports_ping_pong = supports_ping_pong
-        self.ping_pong_cache = MagicMock()
-        self.ping_pong_cache.handle_received_pong = MagicMock()
+        self.ping_pong_tracker = MagicMock()
+        self.ping_pong_tracker.handle_received_pong = MagicMock()
 
 
 class _FakeHealthTracker:
@@ -245,7 +245,7 @@ class TestEventCoordinatorDataPointEvent:
         )
 
         # Should have handled pong
-        client.ping_pong_cache.handle_received_pong.assert_called_once_with(pong_token="test_token")
+        client.ping_pong_tracker.handle_received_pong.assert_called_once_with(pong_token="test_token")
 
     @pytest.mark.asyncio
     async def test_data_point_event_publishes_to_event_bus(self) -> None:

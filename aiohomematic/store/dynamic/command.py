@@ -28,13 +28,14 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
-from aiohomematic.store.types import CachedCommand
+from aiohomematic.interfaces import CacheWithStatisticsProtocol
+from aiohomematic.store.types import CachedCommand, CacheName, CacheStatistics
 from aiohomematic.support import changed_within_seconds
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CommandCache:
+class CommandCache(CacheWithStatisticsProtocol):
     """
     Cache for send commands with resource limits.
 
@@ -53,12 +54,14 @@ class CommandCache:
     __slots__ = (
         "_interface_id",
         "_last_send_command",
+        "_stats",
         "_warning_logged",
     )
 
     def __init__(self, *, interface_id: str) -> None:
         """Initialize command cache."""
         self._interface_id: Final = interface_id
+        self._stats: Final = CacheStatistics()
         # Maps DataPointKey to CachedCommand for tracking recent commands.
         # Used to detect duplicate sends and for unconfirmed value tracking.
         self._last_send_command: Final[dict[DataPointKey, CachedCommand]] = {}
@@ -66,9 +69,19 @@ class CommandCache:
         self._warning_logged: bool = False
 
     @property
+    def name(self) -> CacheName:
+        """Return the cache name."""
+        return CacheName.COMMAND
+
+    @property
     def size(self) -> int:
         """Return the current cache size."""
         return len(self._last_send_command)
+
+    @property
+    def statistics(self) -> CacheStatistics:
+        """Return the cache statistics."""
+        return self._stats
 
     def add_combined_parameter(
         self, *, parameter: str, channel_address: str, combined_parameter: str
@@ -157,6 +170,9 @@ class CommandCache:
         # Pass 2: Delete expired entries
         for dpk in expired_keys:
             del self._last_send_command[dpk]
+        # Track evictions via local counter
+        if expired_keys:
+            self._stats.record_eviction(count=len(expired_keys))
         return len(expired_keys)
 
     def clear(self) -> None:
@@ -230,6 +246,8 @@ class CommandCache:
             remove_count = max(1, current_size // 5)
             for dpk, _ in sorted_entries[:remove_count]:
                 del self._last_send_command[dpk]
+            # Track evictions via local counter
+            self._stats.record_eviction(count=remove_count)
             _LOGGER.debug(
                 "CommandCache for %s evicted %d oldest entries (size was %d)",
                 self._interface_id,

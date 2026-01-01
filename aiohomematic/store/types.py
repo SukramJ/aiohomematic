@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 if TYPE_CHECKING:
@@ -38,6 +39,77 @@ ParameterMap: TypeAlias = dict[str, "ParameterData"]
 ParamsetMap: TypeAlias = dict["ParamsetKey", ParameterMap]
 ChannelParamsetMap: TypeAlias = dict[str, ParamsetMap]
 InterfaceParamsetMap: TypeAlias = dict[str, ChannelParamsetMap]
+
+
+# =============================================================================
+# Cache Name Enum
+# =============================================================================
+
+
+class CacheName(StrEnum):
+    """Enumeration of cache names for identification."""
+
+    COMMAND = "command"
+    """Command cache for tracking sent commands."""
+
+    DATA = "data"
+    """Central data cache for device/channel values."""
+
+
+# =============================================================================
+# Cache Statistics
+# =============================================================================
+
+
+@dataclass(slots=True)
+class CacheStatistics:
+    """
+    Lightweight statistics container for cache performance tracking.
+
+    Provides local counters for hits, misses, and evictions instead of
+    event-based tracking to reduce EventBus overhead. MetricsAggregator
+    reads these counters directly for reporting.
+
+    Attributes:
+        hits: Number of successful cache lookups.
+        misses: Number of failed cache lookups.
+        evictions: Number of entries evicted from cache.
+
+    """
+
+    hits: int = 0
+    misses: int = 0
+    evictions: int = 0
+
+    @property
+    def hit_rate(self) -> float:
+        """Return cache hit rate as percentage (0-100)."""
+        if (total := self.hits + self.misses) == 0:
+            return 100.0
+        return (self.hits / total) * 100
+
+    @property
+    def total_lookups(self) -> int:
+        """Return total number of cache lookups."""
+        return self.hits + self.misses
+
+    def record_eviction(self, *, count: int = 1) -> None:
+        """Record cache eviction(s)."""
+        self.evictions += count
+
+    def record_hit(self) -> None:
+        """Record a cache hit."""
+        self.hits += 1
+
+    def record_miss(self) -> None:
+        """Record a cache miss."""
+        self.misses += 1
+
+    def reset(self) -> None:
+        """Reset all counters to zero."""
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
 
 
 # =============================================================================
@@ -65,7 +137,7 @@ class PongTracker:
     """
     Tracker for pending or unknown pong tokens.
 
-    Used by PingPongCache to track ping/pong events with timestamps
+    Used by PingPongTracker to track ping/pong events with timestamps
     for TTL expiry and size limit enforcement.
 
     Attributes:

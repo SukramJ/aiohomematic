@@ -53,7 +53,6 @@ from aiohomematic.const import (
     Operations,
     OptionalSettings,
     ParamsetKey,
-    SourceOfDeviceCreation,
     SystemInformation,
 )
 from aiohomematic.decorators import inspector
@@ -238,6 +237,8 @@ class CentralUnit(
             data_cache=self._cache_coordinator.data_cache,
             observer=self._metrics_observer,
             hub_data_point_manager=self._hub_coordinator,
+            cache_provider=self._cache_coordinator,
+            recovery_provider=self._connection_recovery_coordinator,
         )
 
         # Subscribe to system status events to update central state machine
@@ -809,13 +810,9 @@ class CentralUnit(
                         refresh_only_existing=False,
                     )
         else:
-            if await self._client_coordinator.start_clients() and (
-                new_device_addresses := self._device_coordinator.check_for_new_device_addresses()
-            ):
-                await self._device_coordinator.create_devices(
-                    new_device_addresses=new_device_addresses,
-                    source=SourceOfDeviceCreation.CACHE,
-                )
+            if await self._client_coordinator.start_clients():
+                # Use atomic check-and-create to prevent race with newDevices callbacks
+                await self._device_coordinator.check_and_create_devices_from_cache()
             if self._config.enable_xml_rpc_server:
                 self._start_scheduler()
 
@@ -914,7 +911,7 @@ class CentralUnit(
         # Clear client-level caches (command cache, ping-pong cache)
         for client in self._client_coordinator.clients:
             client.last_value_send_cache.clear()
-            client.ping_pong_cache.clear()
+            client.ping_pong_tracker.clear()
         _LOGGER.debug("STOP: Client caches cleared")
 
         # cancel outstanding tasks to speed up teardown

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Device description cache for persisting device/channel metadata.
+Device description registry for persisting device/channel metadata.
 
-This module provides DeviceDescriptionCache which persists device descriptions
+This module provides DeviceDescriptionRegistry which persists device descriptions
 per interface, including the mapping of device/channels and model metadata.
 """
 
@@ -14,7 +14,9 @@ from collections.abc import Mapping
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
+from aiohomematic import i18n
 from aiohomematic.const import ADDRESS_SEPARATOR, DeviceDescription
+from aiohomematic.exceptions import DescriptionNotFoundException
 from aiohomematic.interfaces import DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.store.persistent.base import BasePersistentCache
@@ -27,8 +29,10 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class DeviceDescriptionCache(BasePersistentCache, DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol):
-    """Cache for device/channel names."""
+class DeviceDescriptionRegistry(
+    BasePersistentCache, DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol
+):
+    """Registry for device/channel descriptions."""
 
     __slots__ = (
         "_addresses",
@@ -63,6 +67,11 @@ class DeviceDescriptionCache(BasePersistentCache, DeviceDescriptionProviderProto
         """Return the raw device descriptions (alias to _content)."""
         return self._content
 
+    @property
+    def size(self) -> int:
+        """Return total number of device descriptions in cache."""
+        return sum(len(descriptions) for descriptions in self._raw_device_descriptions.values())
+
     def add_device(self, *, interface_id: str, device_description: DeviceDescription) -> None:
         """Add a device to the cache."""
         # Fast-path: If the address is not yet known, skip costly removal operations.
@@ -90,7 +99,16 @@ class DeviceDescriptionCache(BasePersistentCache, DeviceDescriptionProviderProto
 
     def get_device_description(self, *, interface_id: str, address: str) -> DeviceDescription:
         """Return the device description by interface and device_address."""
-        return self._device_descriptions[interface_id][address]
+        try:
+            return self._device_descriptions[interface_id][address]
+        except KeyError as exc:
+            raise DescriptionNotFoundException(
+                i18n.tr(
+                    key="exception.store.device_description.not_found",
+                    address=address,
+                    interface_id=interface_id,
+                )
+            ) from exc
 
     def get_device_descriptions(self, *, interface_id: str) -> Mapping[str, DeviceDescription]:
         """Return the devices by interface."""

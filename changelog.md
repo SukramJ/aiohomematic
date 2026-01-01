@@ -1,3 +1,69 @@
+# Version 2026.1.1 (2026-01-01)
+
+## What's Changed
+
+### New Features
+
+- **RPC Server Metrics**: New `rpc_server` section in metrics aggregation
+
+  - Tracks incoming requests from CCU to the XML-RPC callback server
+  - `RpcServerMetrics` dataclass with: `total_requests`, `total_errors`, `active_tasks`, `avg_latency_ms`, `max_latency_ms`
+  - Computed properties: `error_rate`, `success_rate`
+  - Available via `MetricsAggregator.rpc_server` and included in `MetricsSnapshot`
+
+- **Generic Metrics Serialization**: `MetricsSnapshot.to_dict()` method for JSON-serializable output
+
+  - Automatically converts all fields and computed `@property` values
+  - Handles datetime → ISO format, float → rounded to 2 decimals, nested dataclasses → recursive conversion
+  - Eliminates manual field mapping in diagnostics code
+
+- **Generic Health Serialization**: `CentralHealth.to_dict()` and `ConnectionHealth.to_dict()` methods
+
+  - Same generic conversion as metrics: fields, properties, datetime, Enum → name
+  - Nested `client_health` dict with per-client status automatically converted
+  - Simplifies diagnostics and monitoring integration
+
+- **Data Points by Category**: New `ModelMetrics.data_points_by_category` field
+
+  - Counts all data points grouped by `DataPointCategory` (SWITCH, SENSOR, CLIMATE, etc.)
+  - Includes device data points, program data points, and sysvar data points
+  - Available via `MetricsAggregator.model.data_points_by_category` and in `MetricsSnapshot`
+  - Replaces manual counting logic in diagnostics code
+
+- **Complete Cache Metrics**: Full cache statistics in `CacheMetrics`
+  - New `SizeOnlyStats` for registries/trackers (size only, no hit/miss semantics)
+  - `CacheStats` reserved for true caches with hit/miss/eviction tracking
+  - Registries: `device_descriptions`, `paramset_descriptions`, `visibility_registry` (size only)
+  - Trackers: `ping_pong_tracker` (size only)
+  - True caches: `data_cache`, `command_cache` (size, hits, misses, evictions)
+  - New `CacheProviderForMetricsProtocol` for centralized cache access
+
+### Bug Fixes
+
+- **Race Condition in Device Creation**: Fixed race condition between newDevices callback and startup code
+
+  - Root cause: Startup code called `check_for_new_device_addresses()` while callback was still populating cache
+  - Device creation now happens inside semaphore in `_add_new_devices()` to ensure all descriptions are cached first
+  - New `check_and_create_devices_from_cache()` method for atomic check-and-create with semaphore protection
+  - Startup code now uses atomic method to prevent racing with callbacks
+
+- **Resilient Device Creation**: Device creation no longer crashes when channel descriptions are missing
+  - New `DescriptionNotFoundException` for specific error handling
+  - `Device.__init__` gracefully skips channels with missing descriptions and logs a warning
+  - Device remains functional with available channels
+
+### Refactoring
+
+- **Semantic Class Naming**: Renamed classes to better reflect their actual purpose
+  - `PingPongCache` → `PingPongTracker` (tracks connection health, not a cache)
+  - `DeviceDescriptionCache` → `DeviceDescriptionRegistry` (authoritative store, not a cache)
+  - `ParamsetDescriptionCache` → `ParamsetDescriptionRegistry` (authoritative store, not a cache)
+  - `ParameterVisibilityCache` → `ParameterVisibilityRegistry` (defines rules, memoization is implementation detail)
+  - `CacheName` enum reduced to `COMMAND` and `DATA` (the actual caches with hit/miss semantics)
+  - Removed `CacheStatistics` from `ParameterVisibilityRegistry` (deterministic rules don't need hit/miss tracking)
+
+---
+
 # Version 2026.1.0 (2026-01-01)
 
 ## What's Changed
@@ -30,6 +96,7 @@
   - Configurable storage options: `raw_mode` (no metadata wrapper), `formatted` (indented JSON), `as_zip` (ZIP compression)
 
 - **Device Definition Export**: Single ZIP file export for device definitions
+
   - `_DefinitionExporter` now creates `{model}.zip` containing subdirectories
   - `device_descriptions/{model}.json` and `paramset_descriptions/{model}.json` inside ZIP
   - Formatted JSON output with indentation for readability

@@ -19,6 +19,7 @@ from aiohomematic.metrics import (
     ModelMetrics,
     RecoveryMetrics,
     RpcMetrics,
+    SizeOnlyStats,
 )
 
 
@@ -156,11 +157,16 @@ class TestCacheMetrics:
     """Tests for CacheMetrics dataclass."""
 
     def test_overall_hit_rate(self) -> None:
-        """Test overall hit rate calculation."""
+        """Test overall hit rate calculation (only true caches contribute)."""
         metrics = CacheMetrics(
-            device_descriptions=CacheStats(hits=50, misses=10),
-            paramset_descriptions=CacheStats(hits=30, misses=10),
-            data_cache=CacheStats(hits=20, misses=0),
+            # Registries don't contribute to hit rate
+            device_descriptions=SizeOnlyStats(size=100),
+            paramset_descriptions=SizeOnlyStats(size=200),
+            visibility_registry=SizeOnlyStats(size=50),
+            ping_pong_tracker=SizeOnlyStats(size=10),
+            # True caches contribute to hit rate
+            data_cache=CacheStats(hits=80, misses=20),
+            command_cache=CacheStats(hits=20, misses=0),
         )
         # Total: 100 hits, 20 misses = 83.33%
         assert abs(metrics.overall_hit_rate - 83.33) < 0.1
@@ -168,12 +174,12 @@ class TestCacheMetrics:
     def test_total_entries(self) -> None:
         """Test total entries calculation."""
         metrics = CacheMetrics(
-            device_descriptions=CacheStats(size=10),
-            paramset_descriptions=CacheStats(size=20),
+            device_descriptions=SizeOnlyStats(size=10),
+            paramset_descriptions=SizeOnlyStats(size=20),
+            visibility_registry=SizeOnlyStats(size=15),
+            ping_pong_tracker=SizeOnlyStats(size=2),
             data_cache=CacheStats(size=30),
             command_cache=CacheStats(size=5),
-            ping_pong_cache=CacheStats(size=2),
-            visibility_cache=CacheStats(size=15),
         )
         assert metrics.total_entries == 82
 

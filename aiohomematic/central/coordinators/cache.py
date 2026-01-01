@@ -43,11 +43,12 @@ from aiohomematic.interfaces import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
+from aiohomematic.metrics._protocols import CacheProviderForMetricsProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store import StorageFactoryProtocol
+from aiohomematic.store import CacheStatistics, StorageFactoryProtocol
 from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
-from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
-from aiohomematic.store.visibility import ParameterVisibilityCache
+from aiohomematic.store.persistent import DeviceDescriptionRegistry, ParamsetDescriptionRegistry, SessionRecorder
+from aiohomematic.store.visibility import ParameterVisibilityRegistry
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -76,17 +77,17 @@ class _DeviceRemovalAdapter:
         return dict.fromkeys(self.channel_addresses)
 
 
-class CacheCoordinator(SessionRecorderProviderProtocol):
+class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsProtocol):
     """Coordinator for all cache operations in the central unit."""
 
     __slots__ = (
         "_central_info",
         "_data_cache",
-        "_device_descriptions_cache",
+        "_device_descriptions_registry",
         "_device_details_cache",
         "_event_bus_provider",
-        "_parameter_visibility_cache",
-        "_paramset_descriptions_cache",
+        "_parameter_visibility_registry",
+        "_paramset_descriptions_registry",
         "_session_recorder",
         "_unsubscribers",
     )
@@ -140,21 +141,20 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             client_provider=client_provider,
             data_point_provider=data_point_provider,
             central_info=central_info,
-            event_bus_provider=event_bus_provider,
         )
         self._device_details_cache: Final = DeviceDetailsCache(
             central_info=central_info,
             primary_client_provider=primary_client_provider,
         )
-        self._device_descriptions_cache: Final = DeviceDescriptionCache(
+        self._device_descriptions_registry: Final = DeviceDescriptionRegistry(
             storage=device_storage,
             config_provider=config_provider,
         )
-        self._paramset_descriptions_cache: Final = ParamsetDescriptionCache(
+        self._paramset_descriptions_registry: Final = ParamsetDescriptionRegistry(
             storage=paramset_storage,
             config_provider=config_provider,
         )
-        self._parameter_visibility_cache: Final = ParameterVisibilityCache(
+        self._parameter_visibility_registry: Final = ParameterVisibilityRegistry(
             config_provider=config_provider,
         )
         self._session_recorder: Final = SessionRecorder(
@@ -178,11 +178,38 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         )
 
     data_cache: Final = DelegatedProperty[CentralDataCache](path="_data_cache")
-    device_descriptions: Final = DelegatedProperty[DeviceDescriptionCache](path="_device_descriptions_cache")
+    device_descriptions: Final = DelegatedProperty[DeviceDescriptionRegistry](path="_device_descriptions_registry")
     device_details: Final = DelegatedProperty[DeviceDetailsCache](path="_device_details_cache")
-    parameter_visibility: Final = DelegatedProperty[ParameterVisibilityCache](path="_parameter_visibility_cache")
-    paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionCache](path="_paramset_descriptions_cache")
+    parameter_visibility: Final = DelegatedProperty[ParameterVisibilityRegistry](path="_parameter_visibility_registry")
+    paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionRegistry](
+        path="_paramset_descriptions_registry"
+    )
     recorder: Final = DelegatedProperty[SessionRecorder](path="_session_recorder")
+
+    @property
+    def data_cache_size(self) -> int:
+        """Return data cache size."""
+        return self._data_cache.size
+
+    @property
+    def data_cache_statistics(self) -> CacheStatistics:
+        """Return data cache statistics."""
+        return self._data_cache.statistics
+
+    @property
+    def device_descriptions_size(self) -> int:
+        """Return device descriptions cache size."""
+        return self._device_descriptions_registry.size
+
+    @property
+    def paramset_descriptions_size(self) -> int:
+        """Return paramset descriptions cache size."""
+        return self._paramset_descriptions_registry.size
+
+    @property
+    def visibility_cache_size(self) -> int:
+        """Return visibility cache size."""
+        return self._parameter_visibility_registry.size
 
     async def clear_all(
         self,
@@ -199,8 +226,8 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         """
         _LOGGER.debug("CLEAR_ALL: Clearing all caches for %s", self._central_info.name)
 
-        await self._device_descriptions_cache.clear()
-        await self._paramset_descriptions_cache.clear()
+        await self._device_descriptions_registry.clear()
+        await self._paramset_descriptions_registry.clear()
         await self._session_recorder.clear()
         data_cache_size = self._data_cache.size
         self._device_details_cache.clear()
@@ -223,7 +250,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         data_cache_size = self._data_cache.size
         self._device_details_cache.clear()
         self._data_cache.clear()
-        self._parameter_visibility_cache.clear_memoization_caches()
+        self._parameter_visibility_registry.clear_memoization_caches()
 
         # Emit cache invalidation event (sync publish)
         self._event_bus_provider.event_bus.publish_sync(
@@ -248,8 +275,8 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         _LOGGER.debug("LOAD_ALL: Loading caches for %s", self._central_info.name)
 
         if DataOperationResult.LOAD_FAIL in (
-            await self._device_descriptions_cache.load(),
-            await self._paramset_descriptions_cache.load(),
+            await self._device_descriptions_registry.load(),
+            await self._paramset_descriptions_registry.load(),
         ):
             _LOGGER.warning(  # i18n-log: ignore
                 "LOAD_ALL failed: Unable to load caches for %s. Clearing files",
@@ -289,8 +316,8 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             "REMOVE_DEVICE_FROM_CACHES: Removing device %s from caches",
             device.address,
         )
-        self._device_descriptions_cache.remove_device(device=device)
-        self._paramset_descriptions_cache.remove_device(device=device)
+        self._device_descriptions_registry.remove_device(device=device)
+        self._paramset_descriptions_registry.remove_device(device=device)
         self._device_details_cache.remove_device(device=device)
 
     async def save_all(
@@ -316,9 +343,9 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         )
 
         if save_device_descriptions:
-            await self._device_descriptions_cache.save()
+            await self._device_descriptions_registry.save()
         if save_paramset_descriptions:
-            await self._paramset_descriptions_cache.save()
+            await self._paramset_descriptions_registry.save()
 
     def stop(self) -> None:
         """Stop the coordinator and unsubscribe from events."""
@@ -355,6 +382,6 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
             interface_id=event.interface_id,
             channel_addresses=event.channel_addresses,
         )
-        self._device_descriptions_cache.remove_device(device=removal_info)  # type: ignore[arg-type]
-        self._paramset_descriptions_cache.remove_device(device=removal_info)  # type: ignore[arg-type]
+        self._device_descriptions_registry.remove_device(device=removal_info)  # type: ignore[arg-type]
+        self._paramset_descriptions_registry.remove_device(device=removal_info)  # type: ignore[arg-type]
         self._device_details_cache.remove_device(device=removal_info)  # type: ignore[arg-type]

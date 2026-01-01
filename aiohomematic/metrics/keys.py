@@ -147,13 +147,13 @@ class MetricKeys:
         return MetricKey("circuit", "state", interface_id)
 
     @staticmethod
-    def circuit_success(*, interface_id: str) -> MetricKey:
+    def circuit_state_transition(*, interface_id: str) -> MetricKey:
         """
-        Circuit breaker success counter.
+        Circuit breaker state transition counter.
 
-        Incremented when a request succeeds.
+        Incremented when the circuit breaker changes state.
         """
-        return MetricKey("circuit", "success", interface_id)
+        return MetricKey("circuit", "state_transition", interface_id)
 
     @staticmethod
     def client_health(*, interface_id: str) -> MetricKey:
@@ -163,6 +163,24 @@ class MetricKeys:
         Indicates whether the client connection is healthy.
         """
         return MetricKey("client", "health", interface_id)
+
+    @staticmethod
+    def coalescer_coalesced(*, interface_id: str) -> MetricKey:
+        """
+        Coalescer coalesced request counter.
+
+        Incremented when a request is coalesced (avoided execution).
+        """
+        return MetricKey("coalescer", "coalesced", interface_id)
+
+    @staticmethod
+    def coalescer_failure(*, interface_id: str) -> MetricKey:
+        """
+        Coalescer failed request counter.
+
+        Incremented when a request fails.
+        """
+        return MetricKey("coalescer", "failure", interface_id)
 
     @staticmethod
     def handler_error(*, event_type: str) -> MetricKey:

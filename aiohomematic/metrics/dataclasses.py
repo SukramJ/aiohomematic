@@ -20,15 +20,69 @@ Public API
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aiohomematic.const import INIT_DATETIME
-from aiohomematic.metrics.stats import CacheStats, ServiceStats
+from aiohomematic.metrics.stats import CacheStats, ServiceStats, SizeOnlyStats
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    pass
+
+
+def _convert_value(*, value: Any) -> Any:
+    """
+    Convert a value to a JSON-serializable format.
+
+    Handles:
+    - datetime → ISO format string
+    - float → rounded to 2 decimal places
+    - Mapping → dict with converted values
+    - dataclass → dict with fields and properties
+    - list/tuple → list with converted items
+    - None, int, str, bool → pass through
+    """
+    if value is None or isinstance(value, (bool, int, str)):
+        return value
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, float):
+        return round(value, 2)
+    if is_dataclass(value) and not isinstance(value, type):
+        return _dataclass_to_dict(obj=value)
+    if isinstance(value, Mapping):
+        return {k: _convert_value(value=v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_convert_value(value=item) for item in value]
+    # Fallback for unknown types
+    return str(value)
+
+
+def _dataclass_to_dict(*, obj: Any) -> dict[str, Any]:
+    """
+    Convert a dataclass instance to a dictionary.
+
+    Includes both dataclass fields and @property computed values.
+    """
+    result: dict[str, Any] = {}
+
+    # Add dataclass fields
+    for f in fields(obj):
+        attr_value = getattr(obj, f.name)
+        result[f.name] = _convert_value(value=attr_value)
+
+    # Add @property computed values
+    for name in dir(type(obj)):
+        if name.startswith("_"):
+            continue
+        attr = getattr(type(obj), name, None)
+        if isinstance(attr, property):
+            attr_value = getattr(obj, name)
+            result[name] = _convert_value(value=attr_value)
+
+    return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +162,44 @@ class RpcMetrics:
 
 
 @dataclass(frozen=True, slots=True)
+class RpcServerMetrics:
+    """
+    RPC server metrics for incoming requests from CCU.
+
+    Tracks requests received by the XML-RPC callback server.
+    """
+
+    total_requests: int = 0
+    """Total incoming requests received."""
+
+    total_errors: int = 0
+    """Total request handling errors."""
+
+    active_tasks: int = 0
+    """Currently active background tasks."""
+
+    avg_latency_ms: float = 0.0
+    """Average request handling latency in milliseconds."""
+
+    max_latency_ms: float = 0.0
+    """Maximum request handling latency in milliseconds."""
+
+    @property
+    def error_rate(self) -> float:
+        """Return error rate as percentage."""
+        if self.total_requests == 0:
+            return 0.0
+        return (self.total_errors / self.total_requests) * 100
+
+    @property
+    def success_rate(self) -> float:
+        """Return success rate as percentage."""
+        if self.total_requests == 0:
+            return 100.0
+        return ((self.total_requests - self.total_errors) / self.total_requests) * 100
+
+
+@dataclass(frozen=True, slots=True)
 class EventMetrics:
     """EventBus metrics."""
 
@@ -164,45 +256,53 @@ class EventMetrics:
 
 @dataclass(frozen=True, slots=True)
 class CacheMetrics:
-    """Aggregated cache metrics."""
+    """
+    Aggregated cache and registry metrics.
 
-    device_descriptions: CacheStats = field(default_factory=CacheStats)
-    """Device description cache stats."""
+    Distinguishes between true caches (with hit/miss semantics) and
+    registries/trackers (size-only).
+    """
 
-    paramset_descriptions: CacheStats = field(default_factory=CacheStats)
-    """Paramset description cache stats."""
+    # Registries (authoritative stores, size-only)
+    device_descriptions: SizeOnlyStats = field(default_factory=SizeOnlyStats)
+    """Device description registry size."""
 
+    paramset_descriptions: SizeOnlyStats = field(default_factory=SizeOnlyStats)
+    """Paramset description registry size."""
+
+    visibility_registry: SizeOnlyStats = field(default_factory=SizeOnlyStats)
+    """Visibility registry memoization size."""
+
+    # Trackers (size-only)
+    ping_pong_tracker: SizeOnlyStats = field(default_factory=SizeOnlyStats)
+    """Ping-pong tracker size."""
+
+    # True caches (with hit/miss semantics)
     data_cache: CacheStats = field(default_factory=CacheStats)
     """Central data cache stats."""
 
     command_cache: CacheStats = field(default_factory=CacheStats)
     """Command cache stats."""
 
-    ping_pong_cache: CacheStats = field(default_factory=CacheStats)
-    """Ping-pong cache stats."""
-
-    visibility_cache: CacheStats = field(default_factory=CacheStats)
-    """Visibility cache stats."""
-
     @property
     def overall_hit_rate(self) -> float:
-        """Return overall cache hit rate."""
-        total_hits = self.device_descriptions.hits + self.paramset_descriptions.hits + self.data_cache.hits
-        total_misses = self.device_descriptions.misses + self.paramset_descriptions.misses + self.data_cache.misses
+        """Return overall cache hit rate (data_cache + command_cache only)."""
+        total_hits = self.data_cache.hits + self.command_cache.hits
+        total_misses = self.data_cache.misses + self.command_cache.misses
         if (total := total_hits + total_misses) == 0:
             return 100.0
         return (total_hits / total) * 100
 
     @property
     def total_entries(self) -> int:
-        """Return total cached entries across all caches."""
+        """Return total entries across all caches and registries."""
         return (
             self.device_descriptions.size
             + self.paramset_descriptions.size
+            + self.visibility_registry.size
+            + self.ping_pong_tracker.size
             + self.data_cache.size
             + self.command_cache.size
-            + self.ping_pong_cache.size
-            + self.visibility_cache.size
         )
 
 
@@ -301,6 +401,9 @@ class ModelMetrics:
     data_points_subscribed: int = 0
     """Data points with active subscriptions."""
 
+    data_points_by_category: Mapping[str, int] = field(default_factory=dict)
+    """Data point counts by category (DataPointCategory name -> count)."""
+
     programs_total: int = 0
     """Hub programs."""
 
@@ -348,7 +451,10 @@ class MetricsSnapshot:
     """Snapshot timestamp."""
 
     rpc: RpcMetrics = field(default_factory=RpcMetrics)
-    """RPC communication metrics."""
+    """RPC client communication metrics (outgoing to CCU)."""
+
+    rpc_server: RpcServerMetrics = field(default_factory=RpcServerMetrics)
+    """RPC server metrics (incoming from CCU)."""
 
     events: EventMetrics = field(default_factory=EventMetrics)
     """EventBus metrics."""
@@ -367,3 +473,19 @@ class MetricsSnapshot:
 
     services: ServiceMetrics = field(default_factory=ServiceMetrics)
     """Service call statistics."""
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert snapshot to a JSON-serializable dictionary.
+
+        Automatically converts all fields and computed properties:
+        - datetime → ISO format string
+        - float → rounded to 2 decimal places
+        - Nested dataclasses → recursively converted
+        - Mapping → dict with converted values
+
+        Returns:
+            Dictionary representation of the snapshot.
+
+        """
+        return _dataclass_to_dict(obj=self)

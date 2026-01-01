@@ -96,8 +96,16 @@ class DeviceHandler(
             proxy_read=proxy_read,
         )
         self._last_value_send_cache: Final = last_value_send_cache
-        self._device_description_coalescer: Final = RequestCoalescer(name=f"device_desc:{interface_id}")
-        self._paramset_description_coalescer: Final = RequestCoalescer(name=f"paramset:{interface_id}")
+        self._device_description_coalescer: Final = RequestCoalescer(
+            name=f"device_desc:{interface_id}",
+            event_bus=client_deps.event_bus,
+            interface_id=interface_id,
+        )
+        self._paramset_description_coalescer: Final = RequestCoalescer(
+            name=f"paramset:{interface_id}",
+            event_bus=client_deps.event_bus,
+            interface_id=interface_id,
+        )
 
     @property
     def paramset_description_coalescer(self) -> RequestCoalescer:

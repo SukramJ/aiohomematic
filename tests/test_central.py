@@ -940,7 +940,7 @@ class TestCentralPingPong:
         while count < max_count:
             await client.check_connection_availability(handle_ping_pong=True)
             count += 1
-        assert len(client.ping_pong_cache._pending) == max_count
+        assert len(client.ping_pong_tracker._pending) == max_count
         # Wait for async event bus publish to complete
         await asyncio.sleep(0.1)
         # Verify the ha_event_mock received a SystemStatusChangedEvent with an IntegrationIssue
@@ -976,15 +976,15 @@ class TestCentralPingPong:
         client._is_initialized = True
         interface_id = client.interface_id
         await client.check_connection_availability(handle_ping_pong=True)
-        assert len(client.ping_pong_cache._pending) == 1
-        for token_stored in list(client.ping_pong_cache._pending.tokens):
+        assert len(client.ping_pong_tracker._pending) == 1
+        for token_stored in list(client.ping_pong_tracker._pending.tokens):
             await central.event_coordinator.data_point_event(
                 interface_id=interface_id,
                 channel_address="",
                 parameter=Parameter.PONG,
                 value=f"{interface_id}#{token_stored}",
             )
-        assert len(client.ping_pong_cache._pending) == 0
+        assert len(client.ping_pong_tracker._pending) == 0
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -1016,7 +1016,7 @@ class TestCentralPingPong:
             )
             count += 1
 
-        assert len(client.ping_pong_cache._unknown) == 16
+        assert len(client.ping_pong_tracker._unknown) == 16
 
 
 class TestCentralCaches:

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Parameter visibility cache for Homematic data points.
+Parameter visibility registry for Homematic data points.
 
-This module provides the ParameterVisibilityCache class which determines whether
+This module provides the ParameterVisibilityRegistry class which determines whether
 parameters should be created, shown, hidden, ignored, or un-ignored for channels
 and devices. It consolidates rules from multiple sources and memoizes decisions
 to avoid repeated computations.
@@ -38,7 +38,7 @@ from aiohomematic.store.visibility.rules import (
 from aiohomematic.support import element_matches_key
 
 if TYPE_CHECKING:
-    from aiohomematic.interfaces import ChannelProtocol, ConfigProviderProtocol
+    from aiohomematic.interfaces import ChannelProtocol, ConfigProviderProtocol, EventBusProviderProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -221,13 +221,13 @@ def _get_parameters_for_model_prefix(*, model_prefix: str | None) -> frozenset[P
 
 
 # =============================================================================
-# Parameter Visibility Cache
+# Parameter Visibility Registry
 # =============================================================================
 
 
-class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
+class ParameterVisibilityRegistry(ParameterVisibilityProviderProtocol):
     """
-    Cache for parameter visibility decisions.
+    Registry for parameter visibility decisions.
 
     Centralizes rules that determine whether a data point parameter is created,
     ignored, un-ignored, or merely hidden for UI purposes. Combines static rules
@@ -255,8 +255,9 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         self,
         *,
         config_provider: ConfigProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol | None = None,  # Kept for compatibility, unused
     ) -> None:
-        """Initialize the parameter visibility cache."""
+        """Initialize the parameter visibility registry."""
         self._config_provider: Final = config_provider
         self._storage_directory: Final = config_provider.config.storage_directory
         self._required_parameters: Final = get_required_parameters()
@@ -286,6 +287,11 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         self._param_un_ignored_cache: dict[UnIgnoreCacheKey, bool] = {}
 
         self._init()
+
+    @property
+    def size(self) -> int:
+        """Return total size of memoization caches."""
+        return len(self._param_ignored_cache) + len(self._param_un_ignored_cache)
 
     def clear_memoization_caches(self) -> None:
         """Clear the per-instance memoization caches to free memory."""
@@ -585,7 +591,7 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         return accept_channel is not None and accept_channel != channel.no
 
     def _init(self) -> None:
-        """Initialize the cache with static and configured rules."""
+        """Initialize the registry with static and configured rules."""
         # Load device-specific rules from RELEVANT_MASTER_PARAMSETS_BY_DEVICE
         for model, (channel_nos, parameters) in RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items():
             model_l = model.lower()
@@ -661,7 +667,7 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         )
 
     def _process_un_ignore_entries(self, *, lines: Iterable[str]) -> None:
-        """Process un-ignore configuration entries into the cache."""
+        """Process un-ignore configuration entries into the registry."""
         for line in lines:
             if not line.strip():
                 continue

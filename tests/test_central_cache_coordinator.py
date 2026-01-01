@@ -13,7 +13,7 @@ from aiohomematic.central.events import CacheInvalidatedEvent, EventBus
 from aiohomematic.const import CacheInvalidationReason, CacheType
 from aiohomematic.store import LocalStorageFactory
 from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
-from aiohomematic.store.persistent import DeviceDescriptionCache, ParamsetDescriptionCache, SessionRecorder
+from aiohomematic.store.persistent import DeviceDescriptionRegistry, ParamsetDescriptionRegistry, SessionRecorder
 from aiohomematic_test_support.event_capture import EventCapture
 
 
@@ -185,8 +185,8 @@ class TestCacheCoordinatorClearOperations:
         with (
             patch.object(CentralDataCache, "clear", new=MagicMock()) as mock_data_clear,
             patch.object(DeviceDetailsCache, "clear", new=MagicMock()) as mock_details_clear,
-            patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()) as mock_desc_clear,
-            patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
+            patch.object(DeviceDescriptionRegistry, "clear", new=AsyncMock()) as mock_desc_clear,
+            patch.object(ParamsetDescriptionRegistry, "clear", new=AsyncMock()) as mock_param_clear,
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
         ):
             coordinator = CacheCoordinator(
@@ -247,8 +247,8 @@ class TestCacheCoordinatorLoadOperations:
 
         # Mock all cache load methods
         with (
-            patch.object(DeviceDescriptionCache, "load", new=AsyncMock()) as mock_desc_load,
-            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock()) as mock_param_load,
+            patch.object(DeviceDescriptionRegistry, "load", new=AsyncMock()) as mock_desc_load,
+            patch.object(ParamsetDescriptionRegistry, "load", new=AsyncMock()) as mock_param_load,
             patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
             patch.object(CentralDataCache, "load", new=AsyncMock()),
         ):
@@ -277,8 +277,8 @@ class TestCacheCoordinatorLoadOperations:
 
         # Mock one cache to raise an exception
         with (
-            patch.object(DeviceDescriptionCache, "load", new=AsyncMock(side_effect=RuntimeError("Load error"))),
-            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock()),
+            patch.object(DeviceDescriptionRegistry, "load", new=AsyncMock(side_effect=RuntimeError("Load error"))),
+            patch.object(ParamsetDescriptionRegistry, "load", new=AsyncMock()),
             patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
             patch.object(CentralDataCache, "load", new=AsyncMock()),
         ):
@@ -309,8 +309,8 @@ class TestCacheCoordinatorSaveOperations:
 
         # Mock all cache save methods
         with (
-            patch.object(DeviceDescriptionCache, "save", new=AsyncMock()) as mock_desc_save,
-            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()) as mock_param_save,
+            patch.object(DeviceDescriptionRegistry, "save", new=AsyncMock()) as mock_desc_save,
+            patch.object(ParamsetDescriptionRegistry, "save", new=AsyncMock()) as mock_param_save,
         ):
             coordinator = CacheCoordinator(
                 central_info=central,
@@ -340,8 +340,8 @@ class TestCacheCoordinatorSaveOperations:
 
         # Mock one cache to raise an exception
         with (
-            patch.object(DeviceDescriptionCache, "save", new=AsyncMock(side_effect=RuntimeError("Save error"))),
-            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()),
+            patch.object(DeviceDescriptionRegistry, "save", new=AsyncMock(side_effect=RuntimeError("Save error"))),
+            patch.object(ParamsetDescriptionRegistry, "save", new=AsyncMock()),
         ):
             coordinator = CacheCoordinator(
                 central_info=central,
@@ -378,8 +378,8 @@ class TestCacheCoordinatorDeviceRemoval:
         # Mock cache removal methods
         with (
             patch.object(DeviceDetailsCache, "remove_device", new=MagicMock()) as mock_details_remove,
-            patch.object(DeviceDescriptionCache, "remove_device", new=MagicMock()) as mock_desc_remove,
-            patch.object(ParamsetDescriptionCache, "remove_device", new=MagicMock()) as mock_param_remove,
+            patch.object(DeviceDescriptionRegistry, "remove_device", new=MagicMock()) as mock_desc_remove,
+            patch.object(ParamsetDescriptionRegistry, "remove_device", new=MagicMock()) as mock_param_remove,
         ):
             coordinator = CacheCoordinator(
                 central_info=central,
@@ -448,12 +448,12 @@ class TestCacheCoordinatorIntegration:
             await asyncio.sleep(0.01)
 
         with (
-            patch.object(DeviceDescriptionCache, "load", new=AsyncMock(side_effect=mock_load)) as mock_desc_load,
-            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock(side_effect=mock_load)) as mock_param_load,
+            patch.object(DeviceDescriptionRegistry, "load", new=AsyncMock(side_effect=mock_load)) as mock_desc_load,
+            patch.object(ParamsetDescriptionRegistry, "load", new=AsyncMock(side_effect=mock_load)) as mock_param_load,
             patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
             patch.object(CentralDataCache, "load", new=AsyncMock()),
-            patch.object(DeviceDescriptionCache, "save", new=AsyncMock(side_effect=mock_save)) as mock_desc_save,
-            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock(side_effect=mock_save)) as mock_param_save,
+            patch.object(DeviceDescriptionRegistry, "save", new=AsyncMock(side_effect=mock_save)) as mock_desc_save,
+            patch.object(ParamsetDescriptionRegistry, "save", new=AsyncMock(side_effect=mock_save)) as mock_param_save,
         ):
             coordinator = CacheCoordinator(
                 central_info=central,
@@ -489,16 +489,16 @@ class TestCacheCoordinatorIntegration:
 
         # Mock all methods
         with (
-            patch.object(DeviceDescriptionCache, "load", new=AsyncMock()) as mock_desc_load,
-            patch.object(ParamsetDescriptionCache, "load", new=AsyncMock()) as mock_param_load,
+            patch.object(DeviceDescriptionRegistry, "load", new=AsyncMock()) as mock_desc_load,
+            patch.object(ParamsetDescriptionRegistry, "load", new=AsyncMock()) as mock_param_load,
             patch.object(DeviceDetailsCache, "load", new=AsyncMock()),
             patch.object(CentralDataCache, "load", new=AsyncMock()),
-            patch.object(DeviceDescriptionCache, "save", new=AsyncMock()) as mock_desc_save,
-            patch.object(ParamsetDescriptionCache, "save", new=AsyncMock()) as mock_param_save,
+            patch.object(DeviceDescriptionRegistry, "save", new=AsyncMock()) as mock_desc_save,
+            patch.object(ParamsetDescriptionRegistry, "save", new=AsyncMock()) as mock_param_save,
             patch.object(CentralDataCache, "clear", new=MagicMock()) as mock_data_clear,
             patch.object(DeviceDetailsCache, "clear", new=MagicMock()) as mock_details_clear,
-            patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()) as mock_desc_clear,
-            patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()) as mock_param_clear,
+            patch.object(DeviceDescriptionRegistry, "clear", new=AsyncMock()) as mock_desc_clear,
+            patch.object(ParamsetDescriptionRegistry, "clear", new=AsyncMock()) as mock_param_clear,
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
         ):
             coordinator = CacheCoordinator(
@@ -597,8 +597,8 @@ class TestCacheCoordinatorEvents:
         with (
             patch.object(CentralDataCache, "clear", new=MagicMock()),
             patch.object(DeviceDetailsCache, "clear", new=MagicMock()),
-            patch.object(DeviceDescriptionCache, "clear", new=AsyncMock()),
-            patch.object(ParamsetDescriptionCache, "clear", new=AsyncMock()),
+            patch.object(DeviceDescriptionRegistry, "clear", new=AsyncMock()),
+            patch.object(ParamsetDescriptionRegistry, "clear", new=AsyncMock()),
             patch.object(SessionRecorder, "clear", new=AsyncMock()),
         ):
             coordinator = CacheCoordinator(

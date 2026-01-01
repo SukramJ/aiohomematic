@@ -302,13 +302,13 @@ class TestDeviceFirmware:
         # Provide a mutable current_desc and patch method on the class to return it
         current_desc = dict(orig_desc)
 
-        from aiohomematic.store.persistent import DeviceDescriptionCache
+        from aiohomematic.store.persistent import DeviceDescriptionRegistry
 
         def _patched_get_device_description(self, *, interface_id: str, address: str) -> dict[str, Any]:  # noqa: D401
             return dict(current_desc)
 
         monkeypatch.setattr(
-            DeviceDescriptionCache, "get_device_description", _patched_get_device_description, raising=True
+            DeviceDescriptionRegistry, "get_device_description", _patched_get_device_description, raising=True
         )
 
         await central.device_coordinator.refresh_firmware_data()

@@ -3,16 +3,16 @@
 """
 Persistent store used to persist Homematic metadata between runs.
 
-This package provides on-disk caches that complement the short-lived, in-memory
-caches from aiohomematic.store.dynamic. The goal is to minimize expensive data
+This package provides on-disk registries that complement the short-lived, in-memory
+stores from aiohomematic.store.dynamic. The goal is to minimize expensive data
 retrieval from the backend by storing stable metadata such as device and
 paramset descriptions in JSON files inside a dedicated cache directory.
 
 Package structure
 -----------------
 - base: BasePersistentFile abstract base class
-- device: DeviceDescriptionCache for device/channel metadata
-- paramset: ParamsetDescriptionCache for parameter descriptions
+- device: DeviceDescriptionRegistry for device/channel metadata
+- paramset: ParamsetDescriptionRegistry for parameter descriptions
 - session: SessionRecorder for RPC call/response recording
 
 Key behaviors
@@ -23,8 +23,8 @@ Key behaviors
 
 Public API
 ----------
-- DeviceDescriptionCache: Device and channel description storage
-- ParamsetDescriptionCache: Paramset description storage
+- DeviceDescriptionRegistry: Device and channel description storage
+- ParamsetDescriptionRegistry: Paramset description storage
 - SessionRecorder: RPC session recording for testing
 - cleanup_files: Clean up cache files for a central unit
 """
@@ -38,17 +38,17 @@ from typing import Final
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import SUB_DIRECTORY_CACHE, SUB_DIRECTORY_SESSION
 from aiohomematic.store.persistent.base import get_file_name, get_file_path
-from aiohomematic.store.persistent.device import DeviceDescriptionCache
-from aiohomematic.store.persistent.paramset import ParamsetDescriptionCache
+from aiohomematic.store.persistent.device import DeviceDescriptionRegistry
+from aiohomematic.store.persistent.paramset import ParamsetDescriptionRegistry
 from aiohomematic.store.persistent.session import SessionRecorder
 from aiohomematic.support import delete_file
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 __all__ = [
-    # Caches
-    "DeviceDescriptionCache",
-    "ParamsetDescriptionCache",
+    # Registries
+    "DeviceDescriptionRegistry",
+    "ParamsetDescriptionRegistry",
     "SessionRecorder",
     # Utilities
     "cleanup_files",

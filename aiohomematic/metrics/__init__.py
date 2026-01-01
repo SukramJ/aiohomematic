@@ -25,7 +25,7 @@ Event-driven:
 
 Polling-based:
 - MetricsAggregator, MetricsSnapshot
-- RpcMetrics, EventMetrics, CacheMetrics, HealthMetrics
+- RpcMetrics, RpcServerMetrics, EventMetrics, CacheMetrics, HealthMetrics
 - RecoveryMetrics, ModelMetrics, ServiceMetrics
 
 Note: Protocol dependencies for MetricsAggregator are in aiohomematic.interfaces:
@@ -46,6 +46,7 @@ from aiohomematic.metrics.dataclasses import (
     ModelMetrics,
     RecoveryMetrics,
     RpcMetrics,
+    RpcServerMetrics,
     ServiceMetrics,
 )
 from aiohomematic.metrics.emitter import (
@@ -75,7 +76,7 @@ from aiohomematic.metrics.observer import (
     MetricsObserver,
     ObserverSnapshot,
 )
-from aiohomematic.metrics.stats import CacheStats, LatencyStats, ServiceStats
+from aiohomematic.metrics.stats import CacheStats, LatencyStats, ServiceStats, SizeOnlyStats
 
 __all__ = [
     # Aggregator
@@ -88,6 +89,7 @@ __all__ = [
     "ModelMetrics",
     "RecoveryMetrics",
     "RpcMetrics",
+    "RpcServerMetrics",
     "ServiceMetrics",
     # Emitter
     "EventBusProviderProtocol",
@@ -119,4 +121,5 @@ __all__ = [
     "CacheStats",
     "LatencyStats",
     "ServiceStats",
+    "SizeOnlyStats",
 ]

@@ -50,6 +50,7 @@ from aiohomematic.metrics.dataclasses import (
     ModelMetrics,
     RecoveryMetrics,
     RpcMetrics,
+    RpcServerMetrics,
     ServiceMetrics,
 )
 from aiohomematic.metrics.stats import CacheStats, ServiceStats
@@ -231,13 +232,24 @@ class MetricsAggregator:
         generic_count = 0
         custom_count = 0
         calculated_count = 0
+        by_category: dict[str, int] = {}
 
         for device in devices:
             for channel in device.channels.values():
-                generic_count += len(channel.generic_data_points)
-                calculated_count += len(channel.calculated_data_points)
-                if channel.custom_data_point is not None:
+                for dp in channel.generic_data_points:
+                    generic_count += 1
+                    cat_name = dp.category.name
+                    by_category[cat_name] = by_category.get(cat_name, 0) + 1
+
+                for dp in channel.calculated_data_points:
+                    calculated_count += 1
+                    cat_name = dp.category.name
+                    by_category[cat_name] = by_category.get(cat_name, 0) + 1
+
+                if (custom_dp := channel.custom_data_point) is not None:
                     custom_count += 1
+                    cat_name = custom_dp.category.name
+                    by_category[cat_name] = by_category.get(cat_name, 0) + 1
 
         # Subscription counting available via EventBus.get_total_subscription_count()
         subscribed_count = self._event_bus.get_total_subscription_count()
@@ -245,8 +257,15 @@ class MetricsAggregator:
         programs_total = 0
         sysvars_total = 0
         if self._hub_data_point_manager is not None:
-            programs_total = len(self._hub_data_point_manager.program_data_points)
-            sysvars_total = len(self._hub_data_point_manager.sysvar_data_points)
+            for dp in self._hub_data_point_manager.program_data_points:
+                programs_total += 1
+                cat_name = dp.category.name
+                by_category[cat_name] = by_category.get(cat_name, 0) + 1
+
+            for dp in self._hub_data_point_manager.sysvar_data_points:
+                sysvars_total += 1
+                cat_name = dp.category.name
+                by_category[cat_name] = by_category.get(cat_name, 0) + 1
 
         return ModelMetrics(
             devices_total=len(devices),
@@ -256,6 +275,7 @@ class MetricsAggregator:
             data_points_custom=custom_count,
             data_points_calculated=calculated_count,
             data_points_subscribed=subscribed_count,
+            data_points_by_category=dict(sorted(by_category.items())),
             programs_total=programs_total,
             sysvars_total=sysvars_total,
         )
@@ -339,6 +359,32 @@ class MetricsAggregator:
         )
 
     @property
+    def rpc_server(self) -> RpcServerMetrics:
+        """Return RPC server metrics (incoming requests from CCU)."""
+        if self._observer is None:
+            return RpcServerMetrics()
+
+        total_requests = self._observer.get_counter(key="rpc_server.request")
+        total_errors = self._observer.get_counter(key="rpc_server.error")
+        active_tasks = int(self._observer.get_gauge(key="rpc_server.active_tasks"))
+
+        # Get latency metrics
+        latency = self._observer.get_latency(key="rpc_server.latency")
+        avg_latency_ms = 0.0
+        max_latency_ms = 0.0
+        if latency is not None and latency.count > 0:
+            avg_latency_ms = latency.total_ms / latency.count
+            max_latency_ms = latency.max_ms
+
+        return RpcServerMetrics(
+            total_requests=total_requests,
+            total_errors=total_errors,
+            active_tasks=active_tasks,
+            avg_latency_ms=avg_latency_ms,
+            max_latency_ms=max_latency_ms,
+        )
+
+    @property
     def services(self) -> ServiceMetrics:
         """Return service call metrics from MetricsObserver."""
         if self._observer is None:
@@ -387,6 +433,7 @@ class MetricsAggregator:
         return MetricsSnapshot(
             timestamp=datetime.now(),
             rpc=self.rpc,
+            rpc_server=self.rpc_server,
             events=self.events,
             cache=self.cache,
             health=self.health,

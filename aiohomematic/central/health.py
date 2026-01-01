@@ -45,9 +45,11 @@ Example:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Final
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
@@ -56,10 +58,65 @@ from aiohomematic.metrics import MetricKeys, emit_health
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
-    from typing import Any
-
     from aiohomematic.central.events import EventBus
     from aiohomematic.central.state_machine import CentralStateMachine
+
+
+def _convert_value(*, value: Any) -> Any:
+    """
+    Convert a value to a JSON-serializable format.
+
+    Handles:
+    - datetime → ISO format string
+    - float → rounded to 2 decimal places
+    - Enum → name string
+    - Mapping → dict with converted values
+    - dataclass → dict with fields and properties
+    - list/tuple → list with converted items
+    - None, int, str, bool → pass through
+    """
+    if value is None or isinstance(value, (bool, int, str)):
+        return value
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, float):
+        return round(value, 2)
+    if isinstance(value, Enum):
+        return value.name
+    if is_dataclass(value) and not isinstance(value, type):
+        return _dataclass_to_dict(obj=value)
+    if isinstance(value, Mapping):
+        return {k: _convert_value(value=v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_convert_value(value=item) for item in value]
+    # Fallback for unknown types
+    return str(value)
+
+
+def _dataclass_to_dict(*, obj: Any) -> dict[str, Any]:
+    """
+    Convert a dataclass instance to a dictionary.
+
+    Includes both dataclass fields and @property computed values.
+    """
+    result: dict[str, Any] = {}
+
+    # Add dataclass fields
+    for f in fields(obj):
+        attr_value = getattr(obj, f.name)
+        result[f.name] = _convert_value(value=attr_value)
+
+    # Add @property computed values
+    for name in dir(type(obj)):
+        if name.startswith("_"):
+            continue
+        attr = getattr(type(obj), name, None)
+        if isinstance(attr, property):
+            attr_value = getattr(obj, name)
+            result[name] = _convert_value(value=attr_value)
+
+    return result
+
 
 # Threshold for considering events as "recent" (5 minutes)
 EVENT_STALENESS_THRESHOLD: Final = 300.0
@@ -262,6 +319,18 @@ class ConnectionHealth(ConnectionHealthProtocol):
         """Reset the reconnect attempt counter (called on successful recovery)."""
         self.reconnect_attempts = 0
 
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert to a JSON-serializable dictionary.
+
+        Automatically converts all fields and computed properties.
+
+        Returns:
+            Dictionary representation of connection health.
+
+        """
+        return _dataclass_to_dict(obj=self)
+
     def update_from_client(self, *, client: Any) -> None:
         """
         Update health from client state.
@@ -291,7 +360,6 @@ class ConnectionHealth(ConnectionHealthProtocol):
             and hasattr(client._json_rpc_client, "_circuit_breaker")
         ):
             self.json_rpc_circuit = client._json_rpc_client._circuit_breaker.state
-        # pylint: enable=protected-access
 
 
 @dataclass(slots=True)
@@ -444,6 +512,19 @@ class CentralHealth(CentralHealthProtocol):
         Based on user's choice: ALL clients must be CONNECTED.
         """
         return self.all_clients_healthy
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert to a JSON-serializable dictionary.
+
+        Automatically converts all fields and computed properties.
+        Client health entries are keyed by interface_id.
+
+        Returns:
+            Dictionary representation of central health.
+
+        """
+        return _dataclass_to_dict(obj=self)
 
     def unregister_client(self, *, interface_id: str) -> None:
         """

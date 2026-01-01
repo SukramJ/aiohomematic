@@ -1,3 +1,36 @@
+# Version 2026.1.1 (2026-01-01)
+
+## What's Changed
+
+### New Features
+
+- **RPC Server Metrics**: New `rpc_server` section in metrics aggregation
+
+  - Tracks incoming requests from CCU to the XML-RPC callback server
+  - `RpcServerMetrics` dataclass with: `total_requests`, `total_errors`, `active_tasks`, `avg_latency_ms`, `max_latency_ms`
+  - Computed properties: `error_rate`, `success_rate`
+  - Available via `MetricsAggregator.rpc_server` and included in `MetricsSnapshot`
+
+- **Generic Metrics Serialization**: `MetricsSnapshot.to_dict()` method for JSON-serializable output
+
+  - Automatically converts all fields and computed `@property` values
+  - Handles datetime → ISO format, float → rounded to 2 decimals, nested dataclasses → recursive conversion
+  - Eliminates manual field mapping in diagnostics code
+
+- **Generic Health Serialization**: `CentralHealth.to_dict()` and `ConnectionHealth.to_dict()` methods
+
+  - Same generic conversion as metrics: fields, properties, datetime, Enum → name
+  - Nested `client_health` dict with per-client status automatically converted
+  - Simplifies diagnostics and monitoring integration
+
+- **Data Points by Category**: New `ModelMetrics.data_points_by_category` field
+  - Counts all data points grouped by `DataPointCategory` (SWITCH, SENSOR, CLIMATE, etc.)
+  - Includes device data points, program data points, and sysvar data points
+  - Available via `MetricsAggregator.model.data_points_by_category` and in `MetricsSnapshot`
+  - Replaces manual counting logic in diagnostics code
+
+---
+
 # Version 2026.1.0 (2026-01-01)
 
 ## What's Changed
@@ -30,6 +63,7 @@
   - Configurable storage options: `raw_mode` (no metadata wrapper), `formatted` (indented JSON), `as_zip` (ZIP compression)
 
 - **Device Definition Export**: Single ZIP file export for device definitions
+
   - `_DefinitionExporter` now creates `{model}.zip` containing subdirectories
   - `device_descriptions/{model}.json` and `paramset_descriptions/{model}.json` inside ZIP
   - Formatted JSON output with indentation for readability

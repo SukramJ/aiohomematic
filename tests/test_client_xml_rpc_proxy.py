@@ -215,7 +215,8 @@ class TestErrorHandling:
         exc_msg = str(exc_info.value).lower()
         assert "connection" in exc_msg or "http" in exc_msg
         # Circuit breaker should have recorded failures during retry attempts
-        assert proxy.circuit_breaker.metrics.failed_requests > 0
+        # (internal _failure_count is used for state machine logic)
+        assert proxy.circuit_breaker._failure_count > 0
 
         await proxy.stop()
 

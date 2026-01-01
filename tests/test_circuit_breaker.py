@@ -17,7 +17,7 @@ from aiohomematic.central.events import (
     HealthRecordedEvent,
 )
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState
-from aiohomematic.client.circuit_breaker import CircuitBreakerMetrics
+from aiohomematic.metrics import MetricKeys, MetricsObserver
 from aiohomematic_test_support.event_capture import EventCapture
 
 
@@ -47,21 +47,6 @@ class TestCircuitBreakerConfig:
         config = CircuitBreakerConfig()
         with pytest.raises(AttributeError):
             config.failure_threshold = 10  # type: ignore[misc]
-
-
-class TestCircuitBreakerMetrics:
-    """Tests for CircuitBreakerMetrics."""
-
-    def test_initial_state(self) -> None:
-        """Test initial metrics state."""
-        metrics = CircuitBreakerMetrics()
-        assert metrics.total_requests == 0
-        assert metrics.successful_requests == 0
-        assert metrics.failed_requests == 0
-        assert metrics.rejected_requests == 0
-        assert metrics.state_transitions == 0
-        assert metrics.last_failure_time is None
-        assert metrics.last_state_change is None
 
 
 class TestCircuitState:
@@ -298,32 +283,44 @@ class TestCircuitBreaker:
         assert breaker.state == CircuitState.CLOSED
         assert breaker.is_available is True
 
-    def test_metrics_tracking(self) -> None:
-        """Test comprehensive metrics tracking."""
+    @pytest.mark.asyncio
+    async def test_metrics_tracking_via_observer(self) -> None:
+        """Test comprehensive metrics tracking via observer."""
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
         config = CircuitBreakerConfig(failure_threshold=2)
-        breaker = CircuitBreaker(config=config, interface_id="test")
+        breaker = CircuitBreaker(config=config, interface_id="test", event_bus=event_bus)
 
         breaker.record_success()
         breaker.record_failure()
         breaker.record_failure()  # Opens circuit
         breaker.record_rejection()
 
-        assert breaker.metrics.total_requests == 4
-        assert breaker.metrics.successful_requests == 1
-        assert breaker.metrics.failed_requests == 2
-        assert breaker.metrics.rejected_requests == 1
-        assert breaker.metrics.state_transitions == 1
-        assert breaker.metrics.last_failure_time is not None
+        # Give event loop time to process scheduled events
+        await asyncio.sleep(0.01)
 
-    def test_no_transition_to_same_state(self) -> None:
+        # Verify counters via observer
+        assert observer.get_counter(key=MetricKeys.circuit_success(interface_id="test")) == 1
+        assert observer.get_counter(key=MetricKeys.circuit_failure(interface_id="test")) == 2
+        assert observer.get_counter(key=MetricKeys.circuit_rejection(interface_id="test")) == 1
+        assert observer.get_counter(key=MetricKeys.circuit_state_transition(interface_id="test")) == 1
+        assert breaker.last_failure_time is not None
+
+    @pytest.mark.asyncio
+    async def test_no_transition_to_same_state(self) -> None:
         """Test no transition when already in target state."""
-        breaker = CircuitBreaker(interface_id="test")
-        initial_transitions = breaker.metrics.state_transitions
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
+        breaker = CircuitBreaker(interface_id="test", event_bus=event_bus)
+
+        await asyncio.sleep(0.01)
+        initial_transitions = observer.get_counter(key=MetricKeys.circuit_state_transition(interface_id="test"))
 
         # Try to transition to CLOSED while already CLOSED
         breaker._transition_to(new_state=CircuitState.CLOSED)
 
-        assert breaker.metrics.state_transitions == initial_transitions
+        await asyncio.sleep(0.01)
+        assert observer.get_counter(key=MetricKeys.circuit_state_transition(interface_id="test")) == initial_transitions
 
     def test_open_circuit_not_available(self) -> None:
         """Test open circuit is not available."""
@@ -358,46 +355,63 @@ class TestCircuitBreaker:
 
         assert breaker.is_available is False
 
-    def test_record_failure_at_threshold_opens_circuit(self) -> None:
+    @pytest.mark.asyncio
+    async def test_record_failure_at_threshold_opens_circuit(self) -> None:
         """Test failures at threshold open circuit."""
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
         config = CircuitBreakerConfig(failure_threshold=5)
-        breaker = CircuitBreaker(config=config, interface_id="test")
+        breaker = CircuitBreaker(config=config, interface_id="test", event_bus=event_bus)
 
         for _ in range(5):
             breaker.record_failure()
 
         assert breaker.state == CircuitState.OPEN
         assert breaker.is_available is False
-        assert breaker.metrics.state_transitions == 1
 
-    def test_record_failure_below_threshold(self) -> None:
+        await asyncio.sleep(0.01)
+        assert observer.get_counter(key=MetricKeys.circuit_state_transition(interface_id="test")) == 1
+
+    @pytest.mark.asyncio
+    async def test_record_failure_below_threshold(self) -> None:
         """Test failures below threshold don't open circuit."""
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
         config = CircuitBreakerConfig(failure_threshold=5)
-        breaker = CircuitBreaker(config=config, interface_id="test")
+        breaker = CircuitBreaker(config=config, interface_id="test", event_bus=event_bus)
 
         for _ in range(4):
             breaker.record_failure()
 
         assert breaker.state == CircuitState.CLOSED
         assert breaker.is_available is True
-        assert breaker.metrics.failed_requests == 4
 
-    def test_record_rejection(self) -> None:
+        await asyncio.sleep(0.01)
+        assert observer.get_counter(key=MetricKeys.circuit_failure(interface_id="test")) == 4
+
+    @pytest.mark.asyncio
+    async def test_record_rejection(self) -> None:
         """Test recording a rejected request."""
-        breaker = CircuitBreaker(interface_id="test")
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
+        breaker = CircuitBreaker(interface_id="test", event_bus=event_bus)
         breaker.record_rejection()
 
-        assert breaker.metrics.total_requests == 1
-        assert breaker.metrics.rejected_requests == 1
+        await asyncio.sleep(0.01)
+        assert observer.get_counter(key=MetricKeys.circuit_rejection(interface_id="test")) == 1
 
-    def test_record_success_in_closed_state(self) -> None:
+    @pytest.mark.asyncio
+    async def test_record_success_in_closed_state(self) -> None:
         """Test recording success in CLOSED state."""
-        breaker = CircuitBreaker(interface_id="test")
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
+        breaker = CircuitBreaker(interface_id="test", event_bus=event_bus)
         breaker.record_success()
 
         assert breaker.state == CircuitState.CLOSED
-        assert breaker.metrics.total_requests == 1
-        assert breaker.metrics.successful_requests == 1
+
+        await asyncio.sleep(0.01)
+        assert observer.get_counter(key=MetricKeys.circuit_success(interface_id="test")) == 1
 
     def test_reset(self) -> None:
         """Test resetting circuit breaker."""
@@ -411,14 +425,18 @@ class TestCircuitBreaker:
         assert breaker.state == CircuitState.CLOSED
         assert breaker.is_available is True
 
-    def test_state_transition_logging(self) -> None:
-        """Test state transitions are logged."""
+    @pytest.mark.asyncio
+    async def test_state_transition_counter(self) -> None:
+        """Test state transitions emit counter events."""
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
         config = CircuitBreakerConfig(failure_threshold=1)
-        breaker = CircuitBreaker(config=config, interface_id="test")
+        breaker = CircuitBreaker(config=config, interface_id="test", event_bus=event_bus)
 
         breaker.record_failure()
-        assert breaker.metrics.state_transitions == 1
-        assert breaker.metrics.last_state_change is not None
+
+        await asyncio.sleep(0.01)
+        assert observer.get_counter(key=MetricKeys.circuit_state_transition(interface_id="test")) == 1
 
     @pytest.mark.asyncio
     async def test_success_count_reset_on_state_change(self, event_capture: EventCapture) -> None:

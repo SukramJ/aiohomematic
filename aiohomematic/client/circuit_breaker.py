@@ -103,32 +103,6 @@ class CircuitBreakerConfig:
     """Number of consecutive successes in HALF_OPEN before closing the circuit."""
 
 
-@dataclass(slots=True)
-class CircuitBreakerMetrics:
-    """Metrics for monitoring circuit breaker behavior."""
-
-    total_requests: int = 0
-    """Total number of requests processed."""
-
-    successful_requests: int = 0
-    """Number of successful requests."""
-
-    failed_requests: int = 0
-    """Number of failed requests."""
-
-    rejected_requests: int = 0
-    """Number of requests rejected due to open circuit."""
-
-    state_transitions: int = 0
-    """Number of state transitions."""
-
-    last_failure_time: datetime | None = None
-    """Timestamp of last failure."""
-
-    last_state_change: datetime | None = None
-    """Timestamp of last state change."""
-
-
 class CircuitBreaker:
     """
     Circuit breaker for RPC calls to prevent retry-storms.
@@ -174,9 +148,7 @@ class CircuitBreaker:
         self._failure_count: int = 0
         self._success_count: int = 0
         self._last_failure_time: datetime | None = None
-        self._metrics: CircuitBreakerMetrics = CircuitBreakerMetrics()
 
-    metrics: Final = DelegatedProperty[CircuitBreakerMetrics](path="_metrics")
     state: Final = DelegatedProperty[CircuitState](path="_state")
 
     @property
@@ -204,6 +176,11 @@ class CircuitBreaker:
         # HALF_OPEN - allow one request through
         return True
 
+    @property
+    def last_failure_time(self) -> datetime | None:
+        """Return the timestamp of the last failure."""
+        return self._last_failure_time
+
     def record_failure(self) -> None:
         """
         Record a failed request.
@@ -211,10 +188,6 @@ class CircuitBreaker:
         In CLOSED state: increments failure count and may open circuit.
         In HALF_OPEN state: immediately opens circuit.
         """
-        self._metrics.total_requests += 1
-        self._metrics.failed_requests += 1
-        self._metrics.last_failure_time = datetime.now()
-
         self._failure_count += 1
         self._last_failure_time = datetime.now()
 
@@ -233,10 +206,6 @@ class CircuitBreaker:
 
     def record_rejection(self) -> None:
         """Record a rejected request (circuit is open)."""
-        self._metrics.total_requests += 1
-        self._metrics.rejected_requests += 1
-
-        # Emit metric event
         self._emit_counter(metric="rejection")
 
     def record_success(self) -> None:
@@ -246,9 +215,6 @@ class CircuitBreaker:
         In CLOSED state: resets failure count.
         In HALF_OPEN state: increments success count and may close circuit.
         """
-        self._metrics.total_requests += 1
-        self._metrics.successful_requests += 1
-
         if self._state == CircuitState.CLOSED:
             self._failure_count = 0
         elif self._state == CircuitState.HALF_OPEN:
@@ -393,8 +359,6 @@ class CircuitBreaker:
             return
 
         self._state = new_state
-        self._metrics.state_transitions += 1
-        self._metrics.last_state_change = datetime.now()
         self._emit_state_transition_counter()
 
         # Use DEBUG for expected recovery transitions, INFO for issues and recovery attempts

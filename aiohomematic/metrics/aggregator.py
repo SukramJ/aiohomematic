@@ -439,10 +439,10 @@ class MetricsAggregator:
                     circuit_breakers_half_open += 1
 
                 # last_failure_time from circuit breaker metrics
-                if cb.metrics.last_failure_time is not None and (
-                    last_failure_time is None or cb.metrics.last_failure_time > last_failure_time
+                if cb.last_failure_time is not None and (
+                    last_failure_time is None or cb.last_failure_time > last_failure_time
                 ):
-                    last_failure_time = cb.metrics.last_failure_time
+                    last_failure_time = cb.last_failure_time
 
             # Pending count from coalescer (current gauge, not counter)
             if (coalescer := getattr(client, "request_coalescer", None)) is not None:

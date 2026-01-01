@@ -10,45 +10,8 @@ import pytest
 
 from aiohomematic.central.events import EventBus, RequestCoalescedEvent
 from aiohomematic.client import RequestCoalescer
-from aiohomematic.client.request_coalescer import CoalescerMetrics
+from aiohomematic.metrics import MetricKeys, MetricsObserver
 from aiohomematic_test_support.event_capture import EventCapture
-
-
-class TestCoalescerMetrics:
-    """Tests for CoalescerMetrics dataclass."""
-
-    def test_coalesce_rate_calculation(self) -> None:
-        """Test coalesce rate calculation."""
-        metrics = CoalescerMetrics(
-            total_requests=10,
-            executed_requests=4,
-            coalesced_requests=6,
-            failed_requests=0,
-        )
-        assert metrics.coalesce_rate == 60.0
-
-    def test_coalesce_rate_no_coalescing(self) -> None:
-        """Test coalesce rate with no coalescing."""
-        metrics = CoalescerMetrics(
-            total_requests=10,
-            executed_requests=10,
-            coalesced_requests=0,
-            failed_requests=0,
-        )
-        assert metrics.coalesce_rate == 0.0
-
-    def test_coalesce_rate_zero_requests(self) -> None:
-        """Test coalesce rate with no requests."""
-        metrics = CoalescerMetrics()
-        assert metrics.coalesce_rate == 0.0
-
-    def test_initial_state(self) -> None:
-        """Test initial metrics state."""
-        metrics = CoalescerMetrics()
-        assert metrics.total_requests == 0
-        assert metrics.executed_requests == 0
-        assert metrics.coalesced_requests == 0
-        assert metrics.failed_requests == 0
 
 
 class TestRequestCoalescer:
@@ -118,9 +81,6 @@ class TestRequestCoalescer:
 
         assert results == ["result", "result"]
         assert execution_count == 1  # Only executed once
-        assert coalescer.metrics.total_requests == 2
-        assert coalescer.metrics.executed_requests == 1
-        assert coalescer.metrics.coalesced_requests == 1
 
         # Verify coalescing via event
         event_capture.assert_event_emitted(
@@ -133,6 +93,7 @@ class TestRequestCoalescer:
     async def test_different_keys_not_coalesced(self, event_capture: EventCapture) -> None:
         """Test requests with different keys are not coalesced - no event emitted."""
         event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
@@ -153,7 +114,7 @@ class TestRequestCoalescer:
         assert result1 == "result-1"
         assert result2 == "result-2"
         assert execution_count == 2
-        assert coalescer.metrics.coalesced_requests == 0
+        assert observer.get_counter(key=MetricKeys.coalescer_coalesced(interface_id="test-rf")) == 0
 
         # Verify no coalescing event was emitted (different keys = no coalescing)
         event_capture.assert_no_event(event_type=RequestCoalescedEvent)
@@ -161,7 +122,9 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_exception_propagated_to_all_waiters(self) -> None:
         """Test exceptions are propagated to all waiting callers."""
-        coalescer = RequestCoalescer(name="test")
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
+        coalescer = RequestCoalescer(name="test", event_bus=event_bus, interface_id="test-rf")
         execution_started = asyncio.Event()
 
         async def failing_executor():
@@ -185,14 +148,16 @@ class TestRequestCoalescer:
         with pytest.raises(ValueError, match="Test error"):
             await task2
 
-        assert coalescer.metrics.failed_requests == 1
+        # Give event loop time to process scheduled events
+        await asyncio.sleep(0.01)
+
+        assert observer.get_counter(key=MetricKeys.coalescer_failure(interface_id="test-rf")) == 1
         assert coalescer.pending_count == 0
 
     def test_init(self) -> None:
         """Test initialization."""
         coalescer = RequestCoalescer(name="test")
         assert coalescer.pending_count == 0
-        assert coalescer.metrics.total_requests == 0
 
     def test_init_default_name(self) -> None:
         """Test initialization with default name."""
@@ -203,6 +168,7 @@ class TestRequestCoalescer:
     async def test_many_waiters(self, event_capture: EventCapture) -> None:
         """Test many concurrent waiters for same key, verified via events."""
         event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
@@ -230,29 +196,15 @@ class TestRequestCoalescer:
 
         assert all(r == "shared-result" for r in results)
         assert execution_count == 1
-        assert coalescer.metrics.total_requests == 10
-        assert coalescer.metrics.executed_requests == 1
-        assert coalescer.metrics.coalesced_requests == 9
+        assert observer.get_counter(key=MetricKeys.coalescer_request(interface_id="test-rf")) == 10
+        assert observer.get_counter(key=MetricKeys.coalescer_execute(interface_id="test-rf")) == 1
+        assert observer.get_counter(key=MetricKeys.coalescer_coalesced(interface_id="test-rf")) == 9
 
         # Verify coalescing events were emitted (one per additional waiter)
         # The last event should show the final coalesced_count of 10
         events = event_capture.get_events_of_type(event_type=RequestCoalescedEvent)
         assert len(events) == 9  # 9 coalesced requests = 9 events
         assert events[-1].coalesced_count == 10  # Final count includes all waiters
-
-    @pytest.mark.asyncio
-    async def test_metrics_property(self) -> None:
-        """Test metrics property returns current metrics."""
-        coalescer = RequestCoalescer(name="test")
-
-        async def executor():
-            return "result"
-
-        await coalescer.execute(key="key", executor=executor)
-
-        metrics = coalescer.metrics
-        assert metrics.total_requests == 1
-        assert metrics.executed_requests == 1
 
     @pytest.mark.asyncio
     async def test_pending_cleanup_on_failure(self) -> None:
@@ -284,7 +236,9 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_sequential_requests_same_key(self) -> None:
         """Test sequential requests with same key both execute."""
-        coalescer = RequestCoalescer(name="test")
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
+        coalescer = RequestCoalescer(name="test", event_bus=event_bus, interface_id="test-rf")
         execution_count = 0
 
         async def executor():
@@ -298,13 +252,19 @@ class TestRequestCoalescer:
         assert result1 == "result-1"
         assert result2 == "result-2"
         assert execution_count == 2
-        assert coalescer.metrics.executed_requests == 2
-        assert coalescer.metrics.coalesced_requests == 0
+
+        # Give event loop time to process scheduled events
+        await asyncio.sleep(0.01)
+
+        assert observer.get_counter(key=MetricKeys.coalescer_execute(interface_id="test-rf")) == 2
+        assert observer.get_counter(key=MetricKeys.coalescer_coalesced(interface_id="test-rf")) == 0
 
     @pytest.mark.asyncio
     async def test_single_request(self) -> None:
         """Test single request execution."""
-        coalescer = RequestCoalescer(name="test")
+        event_bus = EventBus()
+        observer = MetricsObserver(event_bus=event_bus)
+        coalescer = RequestCoalescer(name="test", event_bus=event_bus, interface_id="test-rf")
 
         async def executor():
             return "result"
@@ -312,9 +272,13 @@ class TestRequestCoalescer:
         result = await coalescer.execute(key="test-key", executor=executor)
 
         assert result == "result"
-        assert coalescer.metrics.total_requests == 1
-        assert coalescer.metrics.executed_requests == 1
-        assert coalescer.metrics.coalesced_requests == 0
+
+        # Give event loop time to process scheduled events
+        await asyncio.sleep(0.01)
+
+        assert observer.get_counter(key=MetricKeys.coalescer_request(interface_id="test-rf")) == 1
+        assert observer.get_counter(key=MetricKeys.coalescer_execute(interface_id="test-rf")) == 1
+        assert observer.get_counter(key=MetricKeys.coalescer_coalesced(interface_id="test-rf")) == 0
         assert coalescer.pending_count == 0
 
     @pytest.mark.asyncio

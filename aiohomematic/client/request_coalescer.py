@@ -55,38 +55,12 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
-from aiohomematic.property_decorators import DelegatedProperty
-
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-
-@dataclass(slots=True)
-class CoalescerMetrics:
-    """Metrics for monitoring coalescer effectiveness."""
-
-    total_requests: int = 0
-    """Total number of requests received."""
-
-    executed_requests: int = 0
-    """Number of requests that actually executed (not coalesced)."""
-
-    coalesced_requests: int = 0
-    """Number of requests that were coalesced (avoided execution)."""
-
-    failed_requests: int = 0
-    """Number of requests that failed."""
-
-    @property
-    def coalesce_rate(self) -> float:
-        """Return the percentage of requests that were coalesced."""
-        if self.total_requests == 0:
-            return 0.0
-        return (self.coalesced_requests / self.total_requests) * 100
 
 
 @dataclass(slots=True)
@@ -128,9 +102,6 @@ class RequestCoalescer:
         self._event_bus = event_bus
         self._interface_id = interface_id or name
         self._pending: dict[str, _PendingRequest] = {}
-        self._metrics: CoalescerMetrics = CoalescerMetrics()
-
-    metrics: Final = DelegatedProperty[CoalescerMetrics](path="_metrics")
 
     @property
     def pending_count(self) -> int:
@@ -178,14 +149,12 @@ class RequestCoalescer:
             Any exception raised by the executor is propagated to all waiters
 
         """
-        self._metrics.total_requests += 1
         self._emit_request_counter()
 
         # Check if there's already a pending request for this key
         if key in self._pending:
             pending = self._pending[key]
             pending.waiter_count += 1
-            self._metrics.coalesced_requests += 1
             self._emit_coalesced_counter()
             _LOGGER.debug(
                 "COALESCER[%s]: Coalescing request for key=%s (waiters=%d)",
@@ -209,12 +178,10 @@ class RequestCoalescer:
         )
 
         try:
-            self._metrics.executed_requests += 1
             self._emit_execute_counter()
             result = await executor()
             future.set_result(result)
         except Exception as exc:
-            self._metrics.failed_requests += 1
             self._emit_failure_counter()
             future.set_exception(exc)
             raise

@@ -8,6 +8,7 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 from collections import defaultdict
 from collections.abc import Collection, Mapping
@@ -289,10 +290,12 @@ def find_free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def get_ip_addr(*, host: str, port: int) -> str | None:
-    """Get local_ip from socket."""
+async def get_ip_addr(*, host: str, port: int) -> str | None:
+    """Get local_ip from socket using async DNS resolution."""
+    loop = asyncio.get_running_loop()
     try:
-        socket.gethostbyname(host)
+        # Async DNS resolution instead of blocking socket.gethostbyname()
+        await loop.getaddrinfo(host, port, family=socket.AF_INET)
     except Exception as exc:
         raise AioHomematicException(
             i18n.tr(
@@ -302,6 +305,7 @@ def get_ip_addr(*, host: str, port: int) -> str | None:
                 reason=extract_exc_args(exc=exc),
             )
         ) from exc
+    # UDP socket operations are non-blocking (just sets destination)
     tmp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     tmp_socket.settimeout(TIMEOUT)
     tmp_socket.connect((host, port))
@@ -584,15 +588,6 @@ def cleanup_text_from_html_tags(*, text: str) -> str:
 def create_random_device_addresses(*, addresses: list[str]) -> dict[str, str]:
     """Create a random device address."""
     return {adr: f"VCU{int(random.randint(1000000, 9999999))}" for adr in addresses}
-
-
-def shrink_json_file(*, file_name: str) -> None:
-    """Shrink a json file."""
-    with open(file_name, "rb") as f:
-        data = orjson.loads(f.read())
-
-    with open(file_name, "wb") as f:
-        f.write(orjson.dumps(data))
 
 
 # --- Structured error boundary logging helpers ---

@@ -19,7 +19,10 @@ IMPORTANT: This module must NOT import from interfaces/ to avoid circular import
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from aiohomematic.store.types import CacheStatistics
 
 
 @runtime_checkable
@@ -83,8 +86,8 @@ class CacheProviderForMetricsProtocol(Protocol):
     """
     Minimal protocol for cache access in metrics context.
 
-    Provides cache sizes needed by MetricsAggregator to collect
-    cache statistics without requiring the full CacheCoordinator.
+    Provides cache sizes and statistics needed by MetricsAggregator to collect
+    cache metrics without requiring the full CacheCoordinator.
 
     Implemented by CacheCoordinator.
     """
@@ -93,6 +96,11 @@ class CacheProviderForMetricsProtocol(Protocol):
     @abstractmethod
     def data_cache_size(self) -> int:
         """Return data cache size."""
+
+    @property
+    @abstractmethod
+    def data_cache_statistics(self) -> CacheStatistics:
+        """Return data cache statistics."""
 
     @property
     @abstractmethod

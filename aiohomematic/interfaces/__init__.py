@@ -139,7 +139,7 @@ Protocol Categories
     - `ClientCoordinationProtocol`: Client coordination operations
     - `SessionRecorderProviderProtocol`: Session recording access
     - `CommandCacheProtocol`: Command cache operations
-    - `PingPongCacheProtocol`: Ping/pong cache operations
+    - `PingPongTrackerProtocol`: Ping/pong cache operations
 
 Submodules
 ----------
@@ -215,7 +215,7 @@ from aiohomematic.interfaces.client import (
     NewDeviceHandlerProtocol,
     ParamsetDescriptionWriterProtocol,
     ParamsetOperationsProtocol,
-    PingPongCacheProtocol,
+    PingPongTrackerProtocol,
     PrimaryClientProviderProtocol,
     ProgramOperationsProtocol,
     SessionRecorderProviderProtocol,
@@ -263,6 +263,7 @@ from aiohomematic.interfaces.model import (
     WeekProfileProtocol,
 )
 from aiohomematic.interfaces.operations import (
+    CacheWithStatisticsProtocol,
     DeviceDescriptionProviderProtocol,
     DeviceDetailsProviderProtocol,
     ParameterVisibilityProviderProtocol,
@@ -271,6 +272,8 @@ from aiohomematic.interfaces.operations import (
 )
 
 __all__ = [
+    # Cache protocols
+    "CacheWithStatisticsProtocol",
     # Cache providers
     "DataCacheProviderProtocol",
     "DeviceDescriptionProviderProtocol",
@@ -390,6 +393,6 @@ __all__ = [
     "CommandCacheProtocol",
     "CoordinatorProviderProtocol",
     "FileOperationsProtocol",
-    "PingPongCacheProtocol",
+    "PingPongTrackerProtocol",
     "SessionRecorderProviderProtocol",
 ]

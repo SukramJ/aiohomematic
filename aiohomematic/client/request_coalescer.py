@@ -102,11 +102,23 @@ class RequestCoalescer:
         self._event_bus = event_bus
         self._interface_id = interface_id or name
         self._pending: dict[str, _PendingRequest] = {}
+        self._total_requests: int = 0
+        self._executed_requests: int = 0
+
+    @property
+    def executed_requests(self) -> int:
+        """Return the number of executed requests (not coalesced)."""
+        return self._executed_requests
 
     @property
     def pending_count(self) -> int:
         """Return the number of pending requests."""
         return len(self._pending)
+
+    @property
+    def total_requests(self) -> int:
+        """Return the total number of requests received."""
+        return self._total_requests
 
     def clear(self) -> None:
         """
@@ -149,12 +161,13 @@ class RequestCoalescer:
             Any exception raised by the executor is propagated to all waiters
 
         """
-        self._emit_request_counter()
+        self._total_requests += 1
 
         # Check if there's already a pending request for this key
         if key in self._pending:
             pending = self._pending[key]
             pending.waiter_count += 1
+            # Coalescing is a significant event worth tracking (shows efficiency)
             self._emit_coalesced_counter()
             _LOGGER.debug(
                 "COALESCER[%s]: Coalescing request for key=%s (waiters=%d)",
@@ -170,6 +183,7 @@ class RequestCoalescer:
         loop = asyncio.get_running_loop()
         future: asyncio.Future[T] = loop.create_future()
         self._pending[key] = _PendingRequest(future=future)
+        self._executed_requests += 1
 
         _LOGGER.debug(
             "COALESCER[%s]: Executing request for key=%s",
@@ -178,7 +192,6 @@ class RequestCoalescer:
         )
 
         try:
-            self._emit_execute_counter()
             result = await executor()
             future.set_result(result)
         except Exception as exc:
@@ -217,7 +230,7 @@ class RequestCoalescer:
         )
 
     def _emit_coalesced_counter(self) -> None:
-        """Emit a counter for coalesced requests."""
+        """Emit a counter for coalesced requests (significant event)."""
         if self._event_bus is None:
             return
         from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
@@ -227,19 +240,8 @@ class RequestCoalescer:
             key=MetricKeys.coalescer_coalesced(interface_id=self._interface_id),
         )
 
-    def _emit_execute_counter(self) -> None:
-        """Emit a counter for executed requests."""
-        if self._event_bus is None:
-            return
-        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
-
-        emit_counter(
-            event_bus=self._event_bus,
-            key=MetricKeys.coalescer_execute(interface_id=self._interface_id),
-        )
-
     def _emit_failure_counter(self) -> None:
-        """Emit a counter for failed requests."""
+        """Emit a counter for failed requests (significant event)."""
         if self._event_bus is None:
             return
         from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
@@ -247,17 +249,6 @@ class RequestCoalescer:
         emit_counter(
             event_bus=self._event_bus,
             key=MetricKeys.coalescer_failure(interface_id=self._interface_id),
-        )
-
-    def _emit_request_counter(self) -> None:
-        """Emit a counter for total requests."""
-        if self._event_bus is None:
-            return
-        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
-
-        emit_counter(
-            event_bus=self._event_bus,
-            key=MetricKeys.coalescer_request(interface_id=self._interface_id),
         )
 
 

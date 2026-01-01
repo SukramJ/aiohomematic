@@ -11,7 +11,7 @@ visibility, including:
 - Hidden parameters that are created but not displayed by default
 - Event suppression rules for specific devices
 
-These rules are used by ParameterVisibilityCache to make visibility decisions.
+These rules are used by ParameterVisibilityRegistry to make visibility decisions.
 """
 
 from __future__ import annotations

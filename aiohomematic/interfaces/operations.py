@@ -20,6 +20,7 @@ from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import ChannelProtocol
+    from aiohomematic.store import CacheName, CacheStatistics
 
 
 @runtime_checkable
@@ -54,7 +55,7 @@ class ParameterVisibilityProviderProtocol(Protocol):
     """
     Protocol for accessing parameter visibility information.
 
-    Implemented by ParameterVisibilityCache.
+    Implemented by ParameterVisibilityRegistry.
     """
 
     @abstractmethod
@@ -91,7 +92,7 @@ class DeviceDetailsProviderProtocol(Protocol):
     """
     Protocol for accessing device details.
 
-    Implemented by DeviceDescriptionCache.
+    Implemented by DeviceDescriptionRegistry.
     """
 
     @abstractmethod
@@ -124,7 +125,7 @@ class DeviceDescriptionProviderProtocol(Protocol):
     """
     Protocol for accessing device descriptions.
 
-    Implemented by DeviceDescriptionCache.
+    Implemented by DeviceDescriptionRegistry.
     """
 
     @abstractmethod
@@ -141,7 +142,7 @@ class ParamsetDescriptionProviderProtocol(Protocol):
     """
     Protocol for accessing paramset descriptions.
 
-    Implemented by ParamsetDescriptionCache.
+    Implemented by ParamsetDescriptionRegistry.
     """
 
     @abstractmethod
@@ -165,3 +166,29 @@ class ParamsetDescriptionProviderProtocol(Protocol):
     @abstractmethod
     def is_in_multiple_channels(self, *, channel_address: str, parameter: str) -> bool:
         """Check if parameter is in multiple channels per device."""
+
+
+@runtime_checkable
+class CacheWithStatisticsProtocol(Protocol):
+    """
+    Protocol for caches that provide statistics.
+
+    Caches implementing this protocol provide local counters for hits, misses,
+    and evictions that can be read directly by MetricsAggregator without
+    requiring EventBus events.
+    """
+
+    @property
+    @abstractmethod
+    def name(self) -> CacheName:
+        """Return the cache name for identification."""
+
+    @property
+    @abstractmethod
+    def size(self) -> int:
+        """Return current number of entries in the cache."""
+
+    @property
+    @abstractmethod
+    def statistics(self) -> CacheStatistics:
+        """Return the cache statistics container."""

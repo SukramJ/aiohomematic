@@ -76,7 +76,7 @@ from aiohomematic.metrics.observer import (
     MetricsObserver,
     ObserverSnapshot,
 )
-from aiohomematic.metrics.stats import CacheStats, LatencyStats, ServiceStats
+from aiohomematic.metrics.stats import CacheStats, LatencyStats, ServiceStats, SizeOnlyStats
 
 __all__ = [
     # Aggregator
@@ -121,4 +121,5 @@ __all__ = [
     "CacheStats",
     "LatencyStats",
     "ServiceStats",
+    "SizeOnlyStats",
 ]

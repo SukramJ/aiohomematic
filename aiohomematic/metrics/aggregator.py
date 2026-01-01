@@ -55,7 +55,7 @@ from aiohomematic.metrics.dataclasses import (
     RpcServerMetrics,
     ServiceMetrics,
 )
-from aiohomematic.metrics.stats import CacheStats, ServiceStats
+from aiohomematic.metrics.stats import CacheStats, ServiceStats, SizeOnlyStats
 
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
@@ -161,14 +161,8 @@ class MetricsAggregator:
     @property
     def cache(self) -> CacheMetrics:
         """Return cache statistics."""
-        # Get hit/miss counts from MetricsObserver (event-driven)
-        data_hits = 0
-        data_misses = 0
-        if self._observer is not None:
-            data_hits = self._observer.get_counter(key="cache.data.hit")
-            data_misses = self._observer.get_counter(key="cache.data.miss")
-
-        # Get data cache size (always available)
+        # Get data cache statistics directly from cache
+        data_stats = self._data_cache.statistics
         data_cache_size = self._data_cache.size
 
         # Get cache sizes from provider if available
@@ -180,53 +174,42 @@ class MetricsAggregator:
             device_descriptions_size = self._cache_provider.device_descriptions_size
             paramset_descriptions_size = self._cache_provider.paramset_descriptions_size
 
-        # Get visibility cache hit/miss from observer (event-driven)
-        visibility_hits = 0
-        visibility_misses = 0
-        if self._observer is not None:
-            visibility_hits = self._observer.get_counter(key="cache.visibility.hit")
-            visibility_misses = self._observer.get_counter(key="cache.visibility.miss")
-
         # Aggregate command cache and ping_pong cache from all clients
         command_cache_size = 0
-        ping_pong_cache_size = 0
+        command_cache_evictions = 0
+        ping_pong_tracker_size = 0
         for client in self._client_provider.clients:
             if (cmd_cache := getattr(client, "last_value_send_cache", None)) is not None:
                 command_cache_size += cmd_cache.size
-            if (pp_cache := getattr(client, "ping_pong_cache", None)) is not None:
-                ping_pong_cache_size += pp_cache.size
-
-        # Get command cache evictions from observer (event-driven)
-        command_cache_evictions = 0
-        data_cache_evictions = 0
-        if self._observer is not None:
-            command_cache_evictions = self._observer.get_counter(key="cache.command.eviction")
-            data_cache_evictions = self._observer.get_counter(key="cache.data.eviction")
+                command_cache_evictions += cmd_cache.statistics.evictions
+            if (pp_cache := getattr(client, "ping_pong_tracker", None)) is not None:
+                ping_pong_tracker_size += pp_cache.size
 
         return CacheMetrics(
-            device_descriptions=CacheStats(
+            # Registries (size-only)
+            device_descriptions=SizeOnlyStats(
                 size=device_descriptions_size,
             ),
-            paramset_descriptions=CacheStats(
+            paramset_descriptions=SizeOnlyStats(
                 size=paramset_descriptions_size,
             ),
+            visibility_registry=SizeOnlyStats(
+                size=visibility_cache_size,
+            ),
+            # Trackers (size-only)
+            ping_pong_tracker=SizeOnlyStats(
+                size=ping_pong_tracker_size,
+            ),
+            # True caches (with hit/miss semantics)
             data_cache=CacheStats(
                 size=data_cache_size,
-                hits=data_hits,
-                misses=data_misses,
-                evictions=data_cache_evictions,
+                hits=data_stats.hits,
+                misses=data_stats.misses,
+                evictions=data_stats.evictions,
             ),
             command_cache=CacheStats(
                 size=command_cache_size,
                 evictions=command_cache_evictions,
-            ),
-            ping_pong_cache=CacheStats(
-                size=ping_pong_cache_size,
-            ),
-            visibility_cache=CacheStats(
-                size=visibility_cache_size,
-                hits=visibility_hits,
-                misses=visibility_misses,
             ),
         )
 
@@ -392,27 +375,23 @@ class MetricsAggregator:
     @property
     def rpc(self) -> RpcMetrics:
         """Return aggregated RPC metrics from all clients."""
-        # Get counters from observer (event-driven)
-        successful_requests = 0
+        # Get significant event counters from observer (failures, rejections, transitions, coalesced)
         failed_requests = 0
         rejected_requests = 0
         coalesced_requests = 0
-        executed_requests = 0
         state_transitions = 0
         total_latency_ms = 0.0
         max_latency_ms = 0.0
         latency_count = 0
 
         if self._observer is not None:
-            # Circuit breaker metrics from observer
-            successful_requests = self._observer.get_aggregated_counter(pattern="circuit.success.")
+            # Circuit breaker metrics from observer (only significant events)
             failed_requests = self._observer.get_aggregated_counter(pattern="circuit.failure.")
             rejected_requests = self._observer.get_aggregated_counter(pattern="circuit.rejection.")
             state_transitions = self._observer.get_aggregated_counter(pattern="circuit.state_transition.")
 
-            # Coalescer metrics from observer
+            # Coalescer metrics from observer (only significant events)
             coalesced_requests = self._observer.get_aggregated_counter(pattern="coalescer.coalesced.")
-            executed_requests = self._observer.get_aggregated_counter(pattern="coalescer.execute.")
 
             # Latency metrics from observer
             latency_tracker = self._observer.get_aggregated_latency(pattern="ping_pong.rtt")
@@ -421,33 +400,38 @@ class MetricsAggregator:
                 latency_count = latency_tracker.count
                 max_latency_ms = latency_tracker.max_ms
 
-        # Calculate total requests (success + failure + rejection)
-        total_requests = successful_requests + failed_requests + rejected_requests
-
-        # These require direct access (current state, not counters)
+        # Read local counters directly from circuit breakers and coalescers
+        # These are high-frequency metrics that don't emit events
+        total_requests = 0
+        executed_requests = 0
         pending_requests = 0
         circuit_breakers_open = 0
         circuit_breakers_half_open = 0
         last_failure_time: datetime | None = None
 
         for client in self._client_provider.clients:
-            # Circuit breaker state (current, not counter)
+            # Circuit breaker state and local counters
             if (cb := getattr(client, "circuit_breaker", None)) is not None:
+                # Total requests from local counter (no event emission)
+                total_requests += cb.total_requests
+
                 if cb.state == CircuitState.OPEN:
                     circuit_breakers_open += 1
                 elif cb.state == CircuitState.HALF_OPEN:
                     circuit_breakers_half_open += 1
 
-                # last_failure_time from circuit breaker metrics
                 if cb.last_failure_time is not None and (
                     last_failure_time is None or cb.last_failure_time > last_failure_time
                 ):
                     last_failure_time = cb.last_failure_time
 
-            # Pending count from coalescer (current gauge, not counter)
+            # Coalescer local counters
             if (coalescer := getattr(client, "request_coalescer", None)) is not None:
                 pending_requests += coalescer.pending_count
+                executed_requests += coalescer.executed_requests
 
+        # Calculate successful requests from total minus failures and rejections
+        successful_requests = total_requests - failed_requests - rejected_requests
         avg_latency_ms = total_latency_ms / latency_count if latency_count > 0 else 0.0
 
         return RpcMetrics(

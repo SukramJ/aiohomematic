@@ -196,8 +196,10 @@ class TestRequestCoalescer:
 
         assert all(r == "shared-result" for r in results)
         assert execution_count == 1
-        assert observer.get_counter(key=MetricKeys.coalescer_request(interface_id="test-rf")) == 10
-        assert observer.get_counter(key=MetricKeys.coalescer_execute(interface_id="test-rf")) == 1
+        # Local counters track total and executed requests
+        assert coalescer.total_requests == 10
+        assert coalescer.executed_requests == 1
+        # Coalesced counter is event-based (significant event)
         assert observer.get_counter(key=MetricKeys.coalescer_coalesced(interface_id="test-rf")) == 9
 
         # Verify coalescing events were emitted (one per additional waiter)
@@ -253,10 +255,10 @@ class TestRequestCoalescer:
         assert result2 == "result-2"
         assert execution_count == 2
 
-        # Give event loop time to process scheduled events
-        await asyncio.sleep(0.01)
-
-        assert observer.get_counter(key=MetricKeys.coalescer_execute(interface_id="test-rf")) == 2
+        # Local counters track executed requests
+        assert coalescer.total_requests == 2
+        assert coalescer.executed_requests == 2
+        # No coalescing occurred (sequential requests)
         assert observer.get_counter(key=MetricKeys.coalescer_coalesced(interface_id="test-rf")) == 0
 
     @pytest.mark.asyncio
@@ -272,12 +274,10 @@ class TestRequestCoalescer:
         result = await coalescer.execute(key="test-key", executor=executor)
 
         assert result == "result"
-
-        # Give event loop time to process scheduled events
-        await asyncio.sleep(0.01)
-
-        assert observer.get_counter(key=MetricKeys.coalescer_request(interface_id="test-rf")) == 1
-        assert observer.get_counter(key=MetricKeys.coalescer_execute(interface_id="test-rf")) == 1
+        # Local counters track request and execution counts
+        assert coalescer.total_requests == 1
+        assert coalescer.executed_requests == 1
+        # No coalescing occurred (single request)
         assert observer.get_counter(key=MetricKeys.coalescer_coalesced(interface_id="test-rf")) == 0
         assert coalescer.pending_count == 0
 

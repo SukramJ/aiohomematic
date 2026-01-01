@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Device description cache for persisting device/channel metadata.
+Device description registry for persisting device/channel metadata.
 
-This module provides DeviceDescriptionCache which persists device descriptions
+This module provides DeviceDescriptionRegistry which persists device descriptions
 per interface, including the mapping of device/channels and model metadata.
 """
 
@@ -27,8 +27,10 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class DeviceDescriptionCache(BasePersistentCache, DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol):
-    """Cache for device/channel names."""
+class DeviceDescriptionRegistry(
+    BasePersistentCache, DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol
+):
+    """Registry for device/channel descriptions."""
 
     __slots__ = (
         "_addresses",

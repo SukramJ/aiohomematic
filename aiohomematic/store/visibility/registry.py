@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Parameter visibility cache for Homematic data points.
+Parameter visibility registry for Homematic data points.
 
-This module provides the ParameterVisibilityCache class which determines whether
+This module provides the ParameterVisibilityRegistry class which determines whether
 parameters should be created, shown, hidden, ignored, or un-ignored for channels
 and devices. It consolidates rules from multiple sources and memoizes decisions
 to avoid repeated computations.
@@ -18,8 +18,7 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from aiohomematic import support as hms
 from aiohomematic.const import UN_IGNORE_WILDCARD, ParamsetKey
-from aiohomematic.interfaces import EventBusProviderProtocol, ParameterVisibilityProviderProtocol
-from aiohomematic.metrics import MetricKeys, emit_counter
+from aiohomematic.interfaces import ParameterVisibilityProviderProtocol
 from aiohomematic.model.custom import get_required_parameters
 from aiohomematic.store.visibility.parser import ParsedUnIgnoreLine, UnIgnoreChannelNo, parse_un_ignore_line
 from aiohomematic.store.visibility.rules import (
@@ -39,7 +38,7 @@ from aiohomematic.store.visibility.rules import (
 from aiohomematic.support import element_matches_key
 
 if TYPE_CHECKING:
-    from aiohomematic.interfaces import ChannelProtocol, ConfigProviderProtocol
+    from aiohomematic.interfaces import ChannelProtocol, ConfigProviderProtocol, EventBusProviderProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -222,13 +221,13 @@ def _get_parameters_for_model_prefix(*, model_prefix: str | None) -> frozenset[P
 
 
 # =============================================================================
-# Parameter Visibility Cache
+# Parameter Visibility Registry
 # =============================================================================
 
 
-class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
+class ParameterVisibilityRegistry(ParameterVisibilityProviderProtocol):
     """
-    Cache for parameter visibility decisions.
+    Registry for parameter visibility decisions.
 
     Centralizes rules that determine whether a data point parameter is created,
     ignored, un-ignored, or merely hidden for UI purposes. Combines static rules
@@ -241,7 +240,6 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         "_custom_un_ignore_rules",
         "_custom_un_ignore_values_parameters",
         "_device_un_ignore_rules",
-        "_event_bus_provider",
         "_ignore_custom_device_definition_models",
         "_param_ignored_cache",
         "_param_un_ignored_cache",
@@ -257,11 +255,10 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         self,
         *,
         config_provider: ConfigProviderProtocol,
-        event_bus_provider: EventBusProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol | None = None,  # Kept for compatibility, unused
     ) -> None:
-        """Initialize the parameter visibility cache."""
+        """Initialize the parameter visibility registry."""
         self._config_provider: Final = config_provider
-        self._event_bus_provider: Final = event_bus_provider
         self._storage_directory: Final = config_provider.config.storage_directory
         self._required_parameters: Final = get_required_parameters()
         self._raw_un_ignores: Final[frozenset[str]] = config_provider.config.un_ignore_list or frozenset()
@@ -373,18 +370,8 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         model_l = channel.device.model.lower()
 
         if (cache_key := IgnoreCacheKey(model_l, channel.no, paramset_key, parameter)) in self._param_ignored_cache:
-            emit_counter(
-                event_bus=self._event_bus_provider.event_bus,
-                key=MetricKeys.cache_hit(cache_name="visibility"),
-                delta=1,
-            )
             return self._param_ignored_cache[cache_key]
 
-        emit_counter(
-            event_bus=self._event_bus_provider.event_bus,
-            key=MetricKeys.cache_miss(cache_name="visibility"),
-            delta=1,
-        )
         result = self._check_parameter_is_ignored(
             channel=channel,
             paramset_key=paramset_key,
@@ -604,7 +591,7 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         return accept_channel is not None and accept_channel != channel.no
 
     def _init(self) -> None:
-        """Initialize the cache with static and configured rules."""
+        """Initialize the registry with static and configured rules."""
         # Load device-specific rules from RELEVANT_MASTER_PARAMSETS_BY_DEVICE
         for model, (channel_nos, parameters) in RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items():
             model_l = model.lower()
@@ -643,29 +630,14 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         """
         # Fast path: simple VALUES parameter un-ignore
         if paramset_key == ParamsetKey.VALUES and parameter in self._custom_un_ignore_values_parameters:
-            emit_counter(
-                event_bus=self._event_bus_provider.event_bus,
-                key=MetricKeys.cache_hit(cache_name="visibility"),
-                delta=1,
-            )
             return True
 
         model_l = channel.device.model.lower()
         cache_key = UnIgnoreCacheKey(model_l, channel.no, paramset_key, parameter, custom_only)
 
         if cache_key in self._param_un_ignored_cache:
-            emit_counter(
-                event_bus=self._event_bus_provider.event_bus,
-                key=MetricKeys.cache_hit(cache_name="visibility"),
-                delta=1,
-            )
             return self._param_un_ignored_cache[cache_key]
 
-        emit_counter(
-            event_bus=self._event_bus_provider.event_bus,
-            key=MetricKeys.cache_miss(cache_name="visibility"),
-            delta=1,
-        )
         result = self._check_parameter_is_un_ignored(
             channel=channel,
             paramset_key=paramset_key,
@@ -695,7 +667,7 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         )
 
     def _process_un_ignore_entries(self, *, lines: Iterable[str]) -> None:
-        """Process un-ignore configuration entries into the cache."""
+        """Process un-ignore configuration entries into the registry."""
         for line in lines:
             if not line.strip():
                 continue

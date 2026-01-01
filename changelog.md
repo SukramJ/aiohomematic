@@ -31,14 +31,22 @@
   - Replaces manual counting logic in diagnostics code
 
 - **Complete Cache Metrics**: Full cache statistics in `CacheMetrics`
-  - `device_descriptions`: Size of persistent device description cache
-  - `paramset_descriptions`: Size of persistent paramset description cache
-  - `data_cache`: Size, hits, misses (tracked via events)
-  - `command_cache`: Aggregated size and eviction count from all client command caches
-  - `ping_pong_cache`: Aggregated size from all client ping/pong caches
-  - `visibility_cache`: Size of parameter visibility memoization cache
+  - New `SizeOnlyStats` for registries/trackers (size only, no hit/miss semantics)
+  - `CacheStats` reserved for true caches with hit/miss/eviction tracking
+  - Registries: `device_descriptions`, `paramset_descriptions`, `visibility_registry` (size only)
+  - Trackers: `ping_pong_tracker` (size only)
+  - True caches: `data_cache`, `command_cache` (size, hits, misses, evictions)
   - New `CacheProviderForMetricsProtocol` for centralized cache access
-  - Eviction tracking in `CommandCache` for LRU and expiry evictions
+
+### Refactoring
+
+- **Semantic Class Naming**: Renamed classes to better reflect their actual purpose
+  - `PingPongCache` → `PingPongTracker` (tracks connection health, not a cache)
+  - `DeviceDescriptionCache` → `DeviceDescriptionRegistry` (authoritative store, not a cache)
+  - `ParamsetDescriptionCache` → `ParamsetDescriptionRegistry` (authoritative store, not a cache)
+  - `ParameterVisibilityCache` → `ParameterVisibilityRegistry` (defines rules, memoization is implementation detail)
+  - `CacheName` enum reduced to `COMMAND` and `DATA` (the actual caches with hit/miss semantics)
+  - Removed `CacheStatistics` from `ParameterVisibilityRegistry` (deterministic rules don't need hit/miss tracking)
 
 ---
 

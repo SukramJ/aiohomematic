@@ -916,7 +916,7 @@ class CentralUnit(
         # Clear client-level caches (command cache, ping-pong cache)
         for client in self._client_coordinator.clients:
             client.last_value_send_cache.clear()
-            client.ping_pong_cache.clear()
+            client.ping_pong_tracker.clear()
         _LOGGER.debug("STOP: Client caches cleared")
 
         # cancel outstanding tasks to speed up teardown

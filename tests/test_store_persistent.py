@@ -24,8 +24,8 @@ from aiohomematic.const import (
 )
 from aiohomematic.store import LocalStorageFactory, StorageProtocol, freeze_params, unfreeze_params
 from aiohomematic.store.persistent import (
-    DeviceDescriptionCache,
-    ParamsetDescriptionCache,
+    DeviceDescriptionRegistry,
+    ParamsetDescriptionRegistry,
     SessionRecorder,
     cleanup_files,
     get_file_name,
@@ -164,14 +164,14 @@ class TestHelperFunctions:
         assert unfrozen == invalid
 
 
-class TestDeviceDescriptionCache:
-    """Test DeviceDescriptionCache functionality."""
+class TestDeviceDescriptionRegistry:
+    """Test DeviceDescriptionRegistry functionality."""
 
     @pytest.mark.asyncio
     async def test_add_device_updates_existing(self, tmp_path) -> None:
         """Test adding device with existing address updates description."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
@@ -180,52 +180,52 @@ class TestDeviceDescriptionCache:
         dev_addr = "DEV1"
 
         # Add device first time
-        ddc.add_device(
+        ddr.add_device(
             interface_id=iface,
             device_description={"ADDRESS": dev_addr, "CHILDREN": [], "TYPE": "TYPE1"},
         )
 
         # Add same device with different type (update)
-        ddc.add_device(
+        ddr.add_device(
             interface_id=iface,
             device_description={"ADDRESS": dev_addr, "CHILDREN": [], "TYPE": "TYPE2"},
         )
 
         # Should have updated type
-        assert ddc.get_model(device_address=dev_addr) == "TYPE2"
+        assert ddr.get_model(device_address=dev_addr) == "TYPE2"
 
     @pytest.mark.asyncio
     async def test_find_device_description(self, tmp_path) -> None:
         """Test finding a specific device description."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
 
         iface = "if1"
-        ddc.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
+        ddr.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
 
-        desc = ddc.find_device_description(interface_id=iface, device_address="DEV1")
+        desc = ddr.find_device_description(interface_id=iface, device_address="DEV1")
         assert desc is not None
         assert desc["TYPE"] == "T1"
 
-        not_found = ddc.find_device_description(interface_id=iface, device_address="NONEXISTENT")
+        not_found = ddr.find_device_description(interface_id=iface, device_address="NONEXISTENT")
         assert not_found is None
 
     @pytest.mark.asyncio
     async def test_get_addresses_all_interfaces(self, tmp_path) -> None:
         """Test getting addresses across all interfaces."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
 
-        ddc.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
-        ddc.add_device(interface_id="if2", device_description={"ADDRESS": "DEV2", "CHILDREN": [], "TYPE": "T2"})
+        ddr.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
+        ddr.add_device(interface_id="if2", device_description={"ADDRESS": "DEV2", "CHILDREN": [], "TYPE": "T2"})
 
-        all_addresses = ddc.get_addresses()
+        all_addresses = ddr.get_addresses()
         assert "DEV1" in all_addresses
         assert "DEV2" in all_addresses
 
@@ -233,16 +233,16 @@ class TestDeviceDescriptionCache:
     async def test_get_device_descriptions(self, tmp_path) -> None:
         """Test getting all device descriptions for an interface."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
 
         iface = "if1"
-        ddc.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
-        ddc.add_device(interface_id=iface, device_description={"ADDRESS": "DEV2", "CHILDREN": [], "TYPE": "T2"})
+        ddr.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
+        ddr.add_device(interface_id=iface, device_description={"ADDRESS": "DEV2", "CHILDREN": [], "TYPE": "T2"})
 
-        descs = ddc.get_device_descriptions(interface_id=iface)
+        descs = ddr.get_device_descriptions(interface_id=iface)
         assert len(descs) == 2
         assert "DEV1" in descs
         assert "DEV2" in descs
@@ -251,15 +251,15 @@ class TestDeviceDescriptionCache:
     async def test_get_raw_device_descriptions(self, tmp_path) -> None:
         """Test getting raw device descriptions list."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
 
         iface = "if1"
-        ddc.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
+        ddr.add_device(interface_id=iface, device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
 
-        raw_descs = ddc.get_raw_device_descriptions(interface_id=iface)
+        raw_descs = ddr.get_raw_device_descriptions(interface_id=iface)
         assert len(raw_descs) == 1
         assert raw_descs[0]["ADDRESS"] == "DEV1"
 
@@ -267,15 +267,15 @@ class TestDeviceDescriptionCache:
     async def test_has_device_descriptions(self, tmp_path) -> None:
         """Test checking if interface has device descriptions."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
 
-        ddc.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
+        ddr.add_device(interface_id="if1", device_description={"ADDRESS": "DEV1", "CHILDREN": [], "TYPE": "T1"})
 
-        assert ddc.has_device_descriptions(interface_id="if1") is True
-        assert ddc.has_device_descriptions(interface_id="if2") is False
+        assert ddr.has_device_descriptions(interface_id="if1") is True
+        assert ddr.has_device_descriptions(interface_id="if2") is False
 
     @pytest.mark.asyncio
     async def test_load_from_zip(self, tmp_path) -> None:
@@ -307,50 +307,50 @@ class TestDeviceDescriptionCache:
         with zipfile.ZipFile(zip_path, "w") as zf:
             zf.write(plain_json, arcname="data.json")
 
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
         # Storage abstracts the file loading - just call load()
-        load_result = await ddc.load()
+        load_result = await ddr.load()
         assert load_result == DataOperationResult.LOAD_SUCCESS
 
         # Verify data loaded correctly
-        assert iface in ddc.get_interface_ids()
-        assert dev_addr in ddc.get_addresses(interface_id=iface)
-        assert ddc.get_model(device_address=dev_addr) == "HM-TEST"
+        assert iface in ddr.get_interface_ids()
+        assert dev_addr in ddr.get_addresses(interface_id=iface)
+        assert ddr.get_model(device_address=dev_addr) == "HM-TEST"
 
-        dev_map = ddc.get_device_with_channels(interface_id=iface, device_address=dev_addr)
+        dev_map = ddr.get_device_with_channels(interface_id=iface, device_address=dev_addr)
         assert set(dev_map.keys()) == {dev_addr, ch_addr}
 
     @pytest.mark.asyncio
     async def test_load_missing_file(self, tmp_path) -> None:
         """Test that loading missing file returns NO_LOAD."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
         # Storage returns None for missing file, cache returns NO_LOAD
-        assert await ddc.load() == DataOperationResult.NO_LOAD
+        assert await ddr.load() == DataOperationResult.NO_LOAD
 
     @pytest.mark.asyncio
     async def test_load_with_caches_disabled(self, tmp_path) -> None:
         """Test that load returns NO_LOAD when caches are disabled."""
         central = _CentralStub("Test Central", str(tmp_path), use_caches=False)
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
 
-        result = await ddc.load()
+        result = await ddr.load()
         assert result == DataOperationResult.NO_LOAD
 
     @pytest.mark.asyncio
     async def test_remove_device(self, tmp_path) -> None:
         """Test removing a device updates internal maps."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
@@ -358,8 +358,8 @@ class TestDeviceDescriptionCache:
         iface = "if1"
         dev_addr = "ADDR"
         ch_addr = f"{dev_addr}{ADDRESS_SEPARATOR}1"
-        ddc.add_device(interface_id=iface, device_description={"ADDRESS": dev_addr, "CHILDREN": [ch_addr], "TYPE": "X"})
-        ddc.add_device(interface_id=iface, device_description={"ADDRESS": ch_addr, "CHILDREN": [], "TYPE": "XCH"})
+        ddr.add_device(interface_id=iface, device_description={"ADDRESS": dev_addr, "CHILDREN": [ch_addr], "TYPE": "X"})
+        ddr.add_device(interface_id=iface, device_description={"ADDRESS": ch_addr, "CHILDREN": [], "TYPE": "XCH"})
 
         class _Dev:
             def __init__(self):
@@ -367,14 +367,14 @@ class TestDeviceDescriptionCache:
                 self.address = dev_addr
                 self.channels = {ch_addr: object()}
 
-        ddc.remove_device(device=_Dev())
-        assert dev_addr not in ddc.get_addresses(interface_id=iface)
+        ddr.remove_device(device=_Dev())
+        assert dev_addr not in ddr.get_addresses(interface_id=iface)
 
     @pytest.mark.asyncio
     async def test_save_and_load_roundtrip(self, tmp_path) -> None:
         """Test save/load roundtrip via Storage abstraction."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
@@ -383,7 +383,7 @@ class TestDeviceDescriptionCache:
         iface = "if1"
         dev_addr = "ABC1234"
         ch_addr = f"{dev_addr}{ADDRESS_SEPARATOR}1"
-        ddc.add_device(
+        ddr.add_device(
             interface_id=iface,
             device_description={
                 "ADDRESS": dev_addr,
@@ -391,7 +391,7 @@ class TestDeviceDescriptionCache:
                 "TYPE": "HM-TEST",
             },
         )
-        ddc.add_device(
+        ddr.add_device(
             interface_id=iface,
             device_description={
                 "ADDRESS": ch_addr,
@@ -401,7 +401,7 @@ class TestDeviceDescriptionCache:
         )
 
         # Save via Storage abstraction
-        result = await ddc.save()
+        result = await ddr.save()
         assert result == DataOperationResult.SAVE_SUCCESS
 
         # Verify file exists
@@ -409,7 +409,7 @@ class TestDeviceDescriptionCache:
         assert files, "Expected a persistent file to be created"
 
         # Create new cache and load
-        ddc2 = DeviceDescriptionCache(
+        ddc2 = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
@@ -424,27 +424,27 @@ class TestDeviceDescriptionCache:
     async def test_save_no_changes(self, tmp_path) -> None:
         """Test that save returns NO_SAVE when content hasn't changed."""
         central = _CentralStub("Test Central", str(tmp_path))
-        ddc = DeviceDescriptionCache(
+        ddr = DeviceDescriptionRegistry(
             storage=central.create_device_storage(),
             config_provider=central,
         )
 
         # Add some data and save
-        ddc.add_device(interface_id="if1", device_description={"ADDRESS": "D1", "CHILDREN": [], "TYPE": "T1"})
-        assert await ddc.save() == DataOperationResult.SAVE_SUCCESS
+        ddr.add_device(interface_id="if1", device_description={"ADDRESS": "D1", "CHILDREN": [], "TYPE": "T1"})
+        assert await ddr.save() == DataOperationResult.SAVE_SUCCESS
 
         # Second save without changes -> NO_SAVE
-        assert await ddc.save() == DataOperationResult.NO_SAVE
+        assert await ddr.save() == DataOperationResult.NO_SAVE
 
 
-class TestParamsetDescriptionCache:
-    """Test ParamsetDescriptionCache functionality."""
+class TestParamsetDescriptionRegistry:
+    """Test ParamsetDescriptionRegistry functionality."""
 
     @pytest.mark.asyncio
     async def test_add_and_query_paramsets(self, tmp_path) -> None:
         """Test adding paramset descriptions and querying them."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
@@ -455,36 +455,36 @@ class TestParamsetDescriptionCache:
         ch2 = f"{dev_addr}:2"
 
         # Add two channels with VALUES paramsets
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch1,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
         )
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch2,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
         )
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch1,
             paramset_key=ParamsetKey.MASTER,
             paramset_description={"NORM": {"TYPE": "INTEGER"}},
         )
 
-        assert pdc.has_interface_id(interface_id=iface)
-        assert set(pdc.get_paramset_keys(interface_id=iface, channel_address=ch1)) == {
+        assert pdr.has_interface_id(interface_id=iface)
+        assert set(pdr.get_paramset_keys(interface_id=iface, channel_address=ch1)) == {
             ParamsetKey.VALUES,
             ParamsetKey.MASTER,
         }
 
         # LEVEL parameter appears in multiple channels
-        assert pdc.is_in_multiple_channels(channel_address=ch1, parameter="LEVEL") is True
+        assert pdr.is_in_multiple_channels(channel_address=ch1, parameter="LEVEL") is True
 
         # get_channel_addresses_by_paramset_key groups by device address
-        by_key = pdc.get_channel_addresses_by_paramset_key(interface_id=iface, device_address=dev_addr)
+        by_key = pdr.get_channel_addresses_by_paramset_key(interface_id=iface, device_address=dev_addr)
         assert set(by_key.keys()) == {ParamsetKey.VALUES, ParamsetKey.MASTER}
         assert set(by_key[ParamsetKey.VALUES]) == {ch1, ch2}
 
@@ -492,27 +492,27 @@ class TestParamsetDescriptionCache:
     async def test_get_channel_paramset_descriptions(self, tmp_path) -> None:
         """Test getting all paramsets for a channel."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
 
         iface = "if1"
         ch = "D1:1"
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
         )
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch,
             paramset_key=ParamsetKey.MASTER,
             paramset_description={"NORM": {"TYPE": "INTEGER"}},
         )
 
-        all_paramsets = pdc.get_channel_paramset_descriptions(interface_id=iface, channel_address=ch)
+        all_paramsets = pdr.get_channel_paramset_descriptions(interface_id=iface, channel_address=ch)
         assert len(all_paramsets) == 2
         assert ParamsetKey.VALUES in all_paramsets
         assert ParamsetKey.MASTER in all_paramsets
@@ -521,28 +521,28 @@ class TestParamsetDescriptionCache:
     async def test_get_parameter_data(self, tmp_path) -> None:
         """Test getting specific parameter data."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
 
         iface = "if1"
         ch = "D1:1"
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT", "MIN": 0.0, "MAX": 1.0}},
         )
 
-        param_data = pdc.get_parameter_data(
+        param_data = pdr.get_parameter_data(
             interface_id=iface, channel_address=ch, paramset_key=ParamsetKey.VALUES, parameter="LEVEL"
         )
         assert param_data is not None
         assert param_data["TYPE"] == "FLOAT"
 
         # Test non-existent parameter
-        not_found = pdc.get_parameter_data(
+        not_found = pdr.get_parameter_data(
             interface_id=iface, channel_address=ch, paramset_key=ParamsetKey.VALUES, parameter="NONEXISTENT"
         )
         assert not_found is None
@@ -551,21 +551,21 @@ class TestParamsetDescriptionCache:
     async def test_get_paramset_descriptions(self, tmp_path) -> None:
         """Test getting all paramset descriptions for a channel."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
 
         iface = "if1"
         ch = "D1:1"
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}, "STATE": {"TYPE": "BOOL"}},
         )
 
-        descs = pdc.get_paramset_descriptions(interface_id=iface, channel_address=ch, paramset_key=ParamsetKey.VALUES)
+        descs = pdr.get_paramset_descriptions(interface_id=iface, channel_address=ch, paramset_key=ParamsetKey.VALUES)
         assert len(descs) == 2
         assert "LEVEL" in descs
         assert "STATE" in descs
@@ -574,51 +574,51 @@ class TestParamsetDescriptionCache:
     async def test_is_in_multiple_channels_no_separator(self, tmp_path) -> None:
         """Test that channels without ADDRESS_SEPARATOR return False."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
 
         # Channel without separator should return False
-        assert pdc.is_in_multiple_channels(channel_address="INVALID", parameter="PARAM") is False
+        assert pdr.is_in_multiple_channels(channel_address="INVALID", parameter="PARAM") is False
 
     @pytest.mark.asyncio
     async def test_is_in_multiple_channels_single_channel(self, tmp_path) -> None:
         """Test parameter that exists in only one channel."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
 
         iface = "if1"
         ch = "D1:1"
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"UNIQUE_PARAM": {"TYPE": "STRING"}},
         )
 
-        assert pdc.is_in_multiple_channels(channel_address=ch, parameter="UNIQUE_PARAM") is False
+        assert pdr.is_in_multiple_channels(channel_address=ch, parameter="UNIQUE_PARAM") is False
 
     @pytest.mark.asyncio
     async def test_load_with_caches_disabled(self, tmp_path) -> None:
         """Test that load returns NO_LOAD when caches are disabled."""
         central = _CentralStub("C", str(tmp_path), use_caches=False)
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
 
-        result = await pdc.load()
+        result = await pdr.load()
         assert result == DataOperationResult.NO_LOAD
 
     @pytest.mark.asyncio
     async def test_remove_device(self, tmp_path) -> None:
         """Test removing device paramset descriptions."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
@@ -628,13 +628,13 @@ class TestParamsetDescriptionCache:
         ch1 = f"{dev_addr}:1"
         ch2 = f"{dev_addr}:2"
 
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch1,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
         )
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch2,
             paramset_key=ParamsetKey.VALUES,
@@ -647,24 +647,24 @@ class TestParamsetDescriptionCache:
                 self.address = dev_addr
                 self.channels = {ch1: object(), ch2: object()}
 
-        pdc.remove_device(device=_Dev())
+        pdr.remove_device(device=_Dev())
 
         # Channels should be removed
-        assert pdc.get_channel_paramset_descriptions(interface_id=iface, channel_address=ch1) == {}
-        assert pdc.get_channel_paramset_descriptions(interface_id=iface, channel_address=ch2) == {}
+        assert pdr.get_channel_paramset_descriptions(interface_id=iface, channel_address=ch1) == {}
+        assert pdr.get_channel_paramset_descriptions(interface_id=iface, channel_address=ch2) == {}
 
     @pytest.mark.asyncio
     async def test_save_and_load(self, tmp_path) -> None:
         """Test save/load triggers parameter list initialization."""
         central = _CentralStub("C", str(tmp_path))
-        pdc = ParamsetDescriptionCache(
+        pdr = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )
 
         iface = "if1"
         ch1 = "D1:1"
-        pdc.add(
+        pdr.add(
             interface_id=iface,
             channel_address=ch1,
             paramset_key=ParamsetKey.VALUES,
@@ -672,8 +672,8 @@ class TestParamsetDescriptionCache:
         )
 
         # Save and reload
-        assert await pdc.save() in (DataOperationResult.SAVE_SUCCESS, DataOperationResult.NO_SAVE)
-        pdc2 = ParamsetDescriptionCache(
+        assert await pdr.save() in (DataOperationResult.SAVE_SUCCESS, DataOperationResult.NO_SAVE)
+        pdc2 = ParamsetDescriptionRegistry(
             storage=central.create_paramset_storage(),
             config_provider=central,
         )

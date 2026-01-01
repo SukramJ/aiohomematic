@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Ping/pong cache for connection health monitoring.
+Ping/pong tracker for connection health monitoring.
 
-This module provides PingPongCache which tracks ping/pong timestamps to detect
+This module provides PingPongTracker which tracks ping/pong timestamps to detect
 connection health issues and publishes interface events on mismatch thresholds.
 """
 
@@ -34,8 +34,8 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class PingPongCache:
-    """Cache to collect ping/pong events with ttl."""
+class PingPongTracker:
+    """Tracker for ping/pong events to monitor connection health."""
 
     __slots__ = (
         "_allowed_delta",

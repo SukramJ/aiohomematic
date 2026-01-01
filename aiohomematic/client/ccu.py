@@ -99,7 +99,7 @@ from aiohomematic.exceptions import BaseHomematicException, ClientException, NoC
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store.dynamic import CommandCache, PingPongCache
+from aiohomematic.store.dynamic import CommandCache, PingPongTracker
 from aiohomematic.support import LogContextMixin, build_xml_rpc_headers, build_xml_rpc_uri, extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         "_link_handler",
         "_metadata_handler",
         "_modified_at",
-        "_ping_pong_cache",
+        "_ping_pong_tracker",
         "_program_handler",
         "_proxy",
         "_proxy_read",
@@ -161,7 +161,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
         self._last_value_send_cache = CommandCache(
             interface_id=client_config.interface_id,
-            event_bus=client_config.client_deps.event_bus,
         )
         self._state_machine: Final = ClientStateMachine(
             interface_id=client_config.interface_id,
@@ -176,7 +175,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._connection_error_count: int = 0
         self._is_callback_alive: bool = True
         self._reconnect_attempts: int = 0
-        self._ping_pong_cache: Final = PingPongCache(
+        self._ping_pong_tracker: Final = PingPongTracker(
             event_bus_provider=client_config.client_deps,
             central_info=client_config.client_deps,
             interface_id=client_config.interface_id,
@@ -214,7 +213,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     interface: Final = DelegatedProperty[Interface](path="_config.interface")
     interface_id: Final = DelegatedProperty[str](path="_config.interface_id", log_context=True)
     last_value_send_cache: Final = DelegatedProperty[CommandCache](path="_last_value_send_cache")
-    ping_pong_cache: Final = DelegatedProperty[PingPongCache](path="_ping_pong_cache")
+    ping_pong_tracker: Final = DelegatedProperty[PingPongTracker](path="_ping_pong_tracker")
     state: Final = DelegatedProperty[ClientState](path="_state_machine.state")
     state_machine: Final = DelegatedProperty[ClientStateMachine](path="_state_machine")
     supports_push_updates: Final = DelegatedProperty[bool](path="_config.supports_push_updates")
@@ -385,7 +384,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
                 callerId = f"{self.interface_id}#{token}" if handle_ping_pong else self.interface_id
                 await self._proxy.ping(callerId)
-                self._ping_pong_cache.handle_send_ping(ping_token=token)
+                self._ping_pong_tracker.handle_send_ping(ping_token=token)
             elif not self.is_initialized:
                 await self._proxy.ping(self.interface_id)
             self.modified_at = dt_now
@@ -670,7 +669,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             return ProxyInitState.INIT_FAILED
         try:
             _LOGGER.debug("PROXY_INIT: init('%s', '%s')", self._config.init_url, self.interface_id)
-            self._ping_pong_cache.clear()
+            self._ping_pong_tracker.clear()
             await self._proxy.init(self._config.init_url, self.interface_id)
             self._state_machine.transition_to(target=ClientState.CONNECTED, reason="proxy initialized")
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
@@ -1086,7 +1085,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             # Clear stale ping/pong state when connection is restored.
             # PINGs sent during CCU downtime cannot receive PONGs, so the cache
             # would contain stale entries that cause false mismatch alarms.
-            self._ping_pong_cache.clear()
+            self._ping_pong_tracker.clear()
             _LOGGER.debug(
                 "PING PONG CACHE: Cleared on connection restored: %s",
                 self.interface_id,

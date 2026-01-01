@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Paramset description cache for persisting parameter metadata.
+Paramset description registry for persisting parameter metadata.
 
-This module provides ParamsetDescriptionCache which persists paramset descriptions
+This module provides ParamsetDescriptionRegistry which persists paramset descriptions
 per interface and channel, and offers helpers to query parameters, paramset keys
 and related channel addresses.
 """
@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class ParamsetDescriptionCache(
+class ParamsetDescriptionRegistry(
     BasePersistentCache, ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
 ):
-    """Cache for paramset descriptions."""
+    """Registry for paramset descriptions."""
 
     __slots__ = ("_address_parameter_cache",)
 

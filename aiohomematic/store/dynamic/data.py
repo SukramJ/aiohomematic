@@ -16,20 +16,20 @@ from typing import Any, Final
 
 from aiohomematic.const import INIT_DATETIME, MAX_CACHE_AGE, NO_CACHE_ENTRY, CallSource, Interface, ParamsetKey
 from aiohomematic.interfaces import (
+    CacheWithStatisticsProtocol,
     CentralInfoProtocol,
     ClientProviderProtocol,
     DataCacheWriterProtocol,
     DataPointProviderProtocol,
     DeviceProviderProtocol,
-    EventBusProviderProtocol,
 )
-from aiohomematic.metrics import MetricKeys, emit_counter
+from aiohomematic.store.types import CacheName, CacheStatistics
 from aiohomematic.support import changed_within_seconds
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CentralDataCache(DataCacheWriterProtocol):
+class CentralDataCache(DataCacheWriterProtocol, CacheWithStatisticsProtocol):
     """Central cache for device/channel initial data."""
 
     __slots__ = (
@@ -37,8 +37,8 @@ class CentralDataCache(DataCacheWriterProtocol):
         "_client_provider",
         "_data_point_provider",
         "_device_provider",
-        "_event_bus_provider",
         "_refreshed_at",
+        "_stats",
         "_value_cache",
     )
 
@@ -49,22 +49,31 @@ class CentralDataCache(DataCacheWriterProtocol):
         client_provider: ClientProviderProtocol,
         data_point_provider: DataPointProviderProtocol,
         central_info: CentralInfoProtocol,
-        event_bus_provider: EventBusProviderProtocol,
     ) -> None:
         """Initialize the central data cache."""
         self._device_provider: Final = device_provider
         self._client_provider: Final = client_provider
         self._data_point_provider: Final = data_point_provider
         self._central_info: Final = central_info
-        self._event_bus_provider: Final = event_bus_provider
+        self._stats: Final = CacheStatistics()
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
 
     @property
+    def name(self) -> CacheName:
+        """Return the cache name."""
+        return CacheName.DATA
+
+    @property
     def size(self) -> int:
         """Return total number of entries in cache."""
         return sum(len(cache) for cache in self._value_cache.values())
+
+    @property
+    def statistics(self) -> CacheStatistics:
+        """Return the cache statistics."""
+        return self._stats
 
     def add_data(self, *, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""
@@ -91,23 +100,11 @@ class CentralDataCache(DataCacheWriterProtocol):
         if not self._is_empty(interface=interface) and (iface_cache := self._value_cache.get(interface)) is not None:
             result = iface_cache.get(f"{interface}.{channel_address}.{parameter}", NO_CACHE_ENTRY)
             if result != NO_CACHE_ENTRY:
-                emit_counter(
-                    event_bus=self._event_bus_provider.event_bus,
-                    key=MetricKeys.cache_hit(),
-                    delta=1,
-                )
+                self._stats.record_hit()
             else:
-                emit_counter(
-                    event_bus=self._event_bus_provider.event_bus,
-                    key=MetricKeys.cache_miss(),
-                    delta=1,
-                )
+                self._stats.record_miss()
             return result
-        emit_counter(
-            event_bus=self._event_bus_provider.event_bus,
-            key=MetricKeys.cache_miss(),
-            delta=1,
-        )
+        self._stats.record_miss()
         return NO_CACHE_ENTRY
 
     async def load(self, *, direct_call: bool = False, interface: Interface | None = None) -> None:
@@ -149,11 +146,7 @@ class CentralDataCache(DataCacheWriterProtocol):
         if not changed_within_seconds(last_change=self._get_refreshed_at(interface=interface)):
             # Track eviction before clearing
             if (evicted_count := len(self._value_cache.get(interface, {}))) > 0:
-                emit_counter(
-                    event_bus=self._event_bus_provider.event_bus,
-                    key=MetricKeys.cache_eviction(),
-                    delta=evicted_count,
-                )
+                self._stats.record_eviction(count=evicted_count)
             self.clear(interface=interface)
             return True
         return False

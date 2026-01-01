@@ -20,8 +20,30 @@ import math
 
 
 @dataclass(slots=True)
+class SizeOnlyStats:
+    """
+    Size-only statistics for registries and trackers.
+
+    Used for components that are not true caches (no hit/miss semantics):
+    - DeviceDescriptionRegistry (authoritative store)
+    - ParamsetDescriptionRegistry (authoritative store)
+    - ParameterVisibilityRegistry (rule engine with memoization)
+    - PingPongTracker (connection health tracker)
+    """
+
+    size: int = 0
+    """Current number of entries."""
+
+
+@dataclass(slots=True)
 class CacheStats:
-    """Statistics for cache performance monitoring."""
+    """
+    Statistics for cache performance monitoring.
+
+    Used for true caches with hit/miss semantics:
+    - CentralDataCache
+    - CommandCache
+    """
 
     hits: int = 0
     """Number of successful cache lookups."""

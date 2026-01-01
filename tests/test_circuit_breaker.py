@@ -10,12 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from aiohomematic.central.events import (
-    CircuitBreakerStateChangedEvent,
-    CircuitBreakerTrippedEvent,
-    EventBus,
-    HealthRecordedEvent,
-)
+from aiohomematic.central.events import CircuitBreakerStateChangedEvent, CircuitBreakerTrippedEvent, EventBus
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState
 from aiohomematic.metrics import MetricKeys, MetricsObserver
 from aiohomematic_test_support.event_capture import EventCapture
@@ -219,52 +214,6 @@ class TestCircuitBreaker:
         breaker.record_success()
         assert breaker.state == CircuitState.HALF_OPEN  # Not yet at threshold
 
-    @pytest.mark.asyncio
-    async def test_health_event_on_failure(self, event_capture: EventCapture) -> None:
-        """Test HealthRecordedEvent is emitted on failure."""
-        event_bus = EventBus()
-        event_capture.subscribe_to(event_bus, HealthRecordedEvent)
-
-        breaker = CircuitBreaker(
-            interface_id="test",
-            event_bus=event_bus,
-        )
-
-        breaker.record_failure()
-
-        # Give the event loop a chance to process the scheduled publish
-        # Use a small delay since publish_sync schedules an async task
-        await asyncio.sleep(0.01)
-
-        event_capture.assert_event_emitted(
-            event_type=HealthRecordedEvent,
-            interface_id="test",
-            success=False,
-        )
-
-    @pytest.mark.asyncio
-    async def test_health_event_on_success(self, event_capture: EventCapture) -> None:
-        """Test HealthRecordedEvent is emitted on success."""
-        event_bus = EventBus()
-        event_capture.subscribe_to(event_bus, HealthRecordedEvent)
-
-        breaker = CircuitBreaker(
-            interface_id="test",
-            event_bus=event_bus,
-        )
-
-        breaker.record_success()
-
-        # Give the event loop a chance to process the scheduled publish
-        # Use a small delay since publish_sync schedules an async task
-        await asyncio.sleep(0.01)
-
-        event_capture.assert_event_emitted(
-            event_type=HealthRecordedEvent,
-            interface_id="test",
-            success=True,
-        )
-
     def test_init_custom_config(self) -> None:
         """Test initialization with custom config."""
         config = CircuitBreakerConfig(failure_threshold=3)
@@ -299,11 +248,12 @@ class TestCircuitBreaker:
         # Give event loop time to process scheduled events
         await asyncio.sleep(0.01)
 
-        # Verify counters via observer
-        assert observer.get_counter(key=MetricKeys.circuit_success(interface_id="test")) == 1
+        # Verify counters via observer (only significant events are emitted)
         assert observer.get_counter(key=MetricKeys.circuit_failure(interface_id="test")) == 2
         assert observer.get_counter(key=MetricKeys.circuit_rejection(interface_id="test")) == 1
         assert observer.get_counter(key=MetricKeys.circuit_state_transition(interface_id="test")) == 1
+        # Success is tracked via local counter (not event-based)
+        assert breaker.total_requests == 3  # 1 success + 2 failures (rejection doesn't increment total)
         assert breaker.last_failure_time is not None
 
     @pytest.mark.asyncio
@@ -403,15 +353,12 @@ class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_record_success_in_closed_state(self) -> None:
         """Test recording success in CLOSED state."""
-        event_bus = EventBus()
-        observer = MetricsObserver(event_bus=event_bus)
-        breaker = CircuitBreaker(interface_id="test", event_bus=event_bus)
+        breaker = CircuitBreaker(interface_id="test")
         breaker.record_success()
 
         assert breaker.state == CircuitState.CLOSED
-
-        await asyncio.sleep(0.01)
-        assert observer.get_counter(key=MetricKeys.circuit_success(interface_id="test")) == 1
+        # Success tracked via local counter (not event-based for performance)
+        assert breaker.total_requests == 1
 
     def test_reset(self) -> None:
         """Test resetting circuit breaker."""

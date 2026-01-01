@@ -593,7 +593,7 @@ class ClientSupportProtocol(Protocol):
         """Return the last value send cache."""
 
     @property
-    def ping_pong_cache(self) -> PingPongCacheProtocol:
+    def ping_pong_tracker(self) -> PingPongTrackerProtocol:
         """Return the ping pong cache."""
 
     def get_product_group(self, *, model: str) -> ProductGroup:
@@ -885,7 +885,7 @@ class ParamsetDescriptionWriterProtocol(Protocol):
     """
     Protocol for writing paramset descriptions.
 
-    Implemented by ParamsetDescriptionCache.
+    Implemented by ParamsetDescriptionRegistry.
     """
 
     @abstractmethod
@@ -931,7 +931,7 @@ class DeviceDescriptionsAccessProtocol(Protocol):
     """
     Protocol for accessing device descriptions from cache.
 
-    Implemented by DeviceDescriptionCache.
+    Implemented by DeviceDescriptionRegistry.
     """
 
     @abstractmethod
@@ -1049,7 +1049,7 @@ class CommandCacheProtocol(Protocol):
 
 
 @runtime_checkable
-class PingPongCacheProtocol(Protocol):
+class PingPongTrackerProtocol(Protocol):
     """Protocol for ping/pong cache operations."""
 
     @abstractmethod

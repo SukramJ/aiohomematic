@@ -159,7 +159,10 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Initialize the Client."""
         self._config: Final = client_config
         self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
-        self._last_value_send_cache = CommandCache(interface_id=client_config.interface_id)
+        self._last_value_send_cache = CommandCache(
+            interface_id=client_config.interface_id,
+            event_bus=client_config.client_deps.event_bus,
+        )
         self._state_machine: Final = ClientStateMachine(
             interface_id=client_config.interface_id,
             event_bus=client_config.client_deps.event_bus,

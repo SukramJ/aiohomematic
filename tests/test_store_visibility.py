@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from aiohomematic.central.events import EventBus
 from aiohomematic.const import Parameter, ParamsetKey
 from aiohomematic.store.visibility import ParameterVisibilityCache, check_ignore_parameters_is_clean
 
@@ -21,6 +22,18 @@ class _Cfg:
     storage_directory: str = ""
     un_ignore_list: frozenset[str] | None = frozenset()
     ignore_custom_device_definition_models: frozenset[str] = frozenset({"hmip-ignored*"})
+
+
+class _EventBusProvider:
+    """Minimal event bus provider stub for tests."""
+
+    def __init__(self) -> None:
+        self._event_bus = EventBus()
+
+    @property
+    def event_bus(self) -> EventBus:
+        """Return the event bus."""
+        return self._event_bus
 
 
 class _Central:
@@ -53,7 +66,7 @@ class TestParameterUnIgnore:
     def test_parameter_is_un_ignored_custom_complex_master_path(self) -> None:
         """Custom un_ignore complex entry (MASTER@model:channel) should set early True branch."""
         central = _Central2()
-        pvc = ParameterVisibilityCache(config_provider=central)
+        pvc = ParameterVisibilityCache(config_provider=central, event_bus_provider=_EventBusProvider())
 
         # Add a complex un_ignore entry targeting a specific model/channel for MASTER
         line = f"{Parameter.OPERATING_VOLTAGE}:MASTER@HmIP-Any:1"
@@ -72,7 +85,7 @@ class TestParameterUnIgnore:
 
     def test_parameter_is_un_ignored_from_mapping_master_and_values(self) -> None:
         """Built-in mappings should mark some MASTER/VALUES parameters as un-ignored for certain models."""
-        pvc = ParameterVisibilityCache(config_provider=_Central())
+        pvc = ParameterVisibilityCache(config_provider=_Central(), event_bus_provider=_EventBusProvider())
         # Choose a model with PARAMSET MASTER entries defined in module mappings for channel 1
         ch_master = _Channel(model="HmIP-DRSI1", address="A1:1", no=1)
         # CHANNEL_OPERATION_MODE is whitelisted for MASTER for this model mapping
@@ -103,7 +116,7 @@ class TestModelIgnore:
         central = _Central()
         # Override ignore patterns to include an exact model name and a wildcard prefix
         central.config.ignore_custom_device_definition_models = frozenset({"HmIP-Exact", "HmIP-"})
-        pvc = ParameterVisibilityCache(config_provider=central)
+        pvc = ParameterVisibilityCache(config_provider=central, event_bus_provider=_EventBusProvider())
         assert pvc.model_is_ignored(model="HmIP-Exact") is True
         assert pvc.model_is_ignored(model="HmIP-Other") is True  # matches HmIP-* wildcard
         assert pvc.model_is_ignored(model="Other-Thing") is False
@@ -114,7 +127,7 @@ class TestParameterIgnore:
 
     def test_parameter_is_ignored_accept_only_on_channel_rule(self) -> None:
         """LOWBAT should be accepted only on defined channel, ignored on others."""
-        pvc = ParameterVisibilityCache(config_provider=_Central())
+        pvc = ParameterVisibilityCache(config_provider=_Central(), event_bus_provider=_EventBusProvider())
         ch0 = _Channel(model="HmIP-XYZ", address="D1:0", no=0)
         ch1 = _Channel(model="HmIP-XYZ", address="D1:1", no=1)
 
@@ -132,7 +145,7 @@ class TestShouldSkipParameter:
 
     def test_should_skip_parameter_master_logic(self) -> None:
         """should_skip_parameter combines ignore and un-ignore and master relevant-channel logic."""
-        pvc = ParameterVisibilityCache(config_provider=_Central())
+        pvc = ParameterVisibilityCache(config_provider=_Central(), event_bus_provider=_EventBusProvider())
 
         # A model/channel that is relevant for MASTER via mapping
         ch = _Channel(model="HmIP-Any", address="A:0", no=0)
@@ -168,7 +181,9 @@ class TestParameterHidden:
         # Prepare a custom un_ignore that would unhide a hidden parameter globally for VALUES
         # Format: PARAM:VALUES@*:* where * means wildcard for model and channel
         un_ignore = frozenset({f"{Parameter.GLOBAL_BUTTON_LOCK}:VALUES@*:*"})
-        pvc = ParameterVisibilityCache(config_provider=_Central(un_ignore_list=un_ignore))
+        pvc = ParameterVisibilityCache(
+            config_provider=_Central(un_ignore_list=un_ignore), event_bus_provider=_EventBusProvider()
+        )
 
         ch = _Channel(model="HmIP-Any", address="X:1", no=1)
 
@@ -184,7 +199,7 @@ class TestRelevantParamset:
 
     def test_is_relevant_paramset_values_true_master_by_model_and_channel(self) -> None:
         """VALUES should always be relevant; MASTER relevance depends on channel and model prefix mapping."""
-        pvc = ParameterVisibilityCache(config_provider=_Central())
+        pvc = ParameterVisibilityCache(config_provider=_Central(), event_bus_provider=_EventBusProvider())
 
         # VALUES always relevant
         ch = _Channel(model="HmIP-Any", address="Y:1", no=1)

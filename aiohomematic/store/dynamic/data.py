@@ -147,6 +147,13 @@ class CentralDataCache(DataCacheWriterProtocol):
             return True
         # Auto-expire stale cache by interface.
         if not changed_within_seconds(last_change=self._get_refreshed_at(interface=interface)):
+            # Track eviction before clearing
+            if (evicted_count := len(self._value_cache.get(interface, {}))) > 0:
+                emit_counter(
+                    event_bus=self._event_bus_provider.event_bus,
+                    key=MetricKeys.cache_eviction(),
+                    delta=evicted_count,
+                )
             self.clear(interface=interface)
             return True
         return False

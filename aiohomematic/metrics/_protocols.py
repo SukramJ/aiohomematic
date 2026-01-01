@@ -76,3 +76,57 @@ class HubDataPointManagerForMetricsProtocol(Protocol):
     @abstractmethod
     def sysvar_data_points(self) -> tuple[Any, ...]:
         """Return all system variable data points."""
+
+
+@runtime_checkable
+class CacheProviderForMetricsProtocol(Protocol):
+    """
+    Minimal protocol for cache access in metrics context.
+
+    Provides cache sizes needed by MetricsAggregator to collect
+    cache statistics without requiring the full CacheCoordinator.
+
+    Implemented by CacheCoordinator.
+    """
+
+    @property
+    @abstractmethod
+    def data_cache_size(self) -> int:
+        """Return data cache size."""
+
+    @property
+    @abstractmethod
+    def device_descriptions_size(self) -> int:
+        """Return device descriptions cache size."""
+
+    @property
+    @abstractmethod
+    def paramset_descriptions_size(self) -> int:
+        """Return paramset descriptions cache size."""
+
+    @property
+    @abstractmethod
+    def visibility_cache_size(self) -> int:
+        """Return visibility cache size."""
+
+
+@runtime_checkable
+class RecoveryProviderForMetricsProtocol(Protocol):
+    """
+    Minimal protocol for recovery status access in metrics context.
+
+    Provides recovery statistics needed by MetricsAggregator to collect
+    recovery metrics without requiring the full ConnectionRecoveryCoordinator.
+
+    Implemented by ConnectionRecoveryCoordinator.
+    """
+
+    @property
+    @abstractmethod
+    def in_recovery(self) -> bool:
+        """Return True if any recovery is in progress."""
+
+    @property
+    @abstractmethod
+    def recovery_states(self) -> dict[str, Any]:
+        """Return recovery states for all tracked interfaces."""

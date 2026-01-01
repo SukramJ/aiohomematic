@@ -106,7 +106,8 @@ class TestCommandCache:
 
     def test_command_cache_add_and_get_last_value_send(self) -> None:
         """Validate add/get/remove flows for CommandCache using set_value path."""
-        cache = CommandCache(interface_id="if1")
+        event_bus = _CapturingEventBus()
+        cache = CommandCache(interface_id="if1", event_bus=event_bus)
 
         # Basic set_value path
         dpk_values = cache.add_set_value(channel_address="OEQ1234:1", parameter="LEVEL", value=0.7)
@@ -124,7 +125,8 @@ class TestCommandCache:
 
     def test_command_cache_add_put_paramset_and_remove(self) -> None:
         """Ensure add_put_paramset store values and targeted remove purges entries."""
-        cache = CommandCache(interface_id="if2")
+        event_bus = _CapturingEventBus()
+        cache = CommandCache(interface_id="if2", event_bus=event_bus)
 
         # Put two parameters
         values = {"LEVEL": 1.0, "ON_TIME": 2}

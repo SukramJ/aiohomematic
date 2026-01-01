@@ -67,6 +67,15 @@ class ParamsetDescriptionCache(
         """Return the raw paramset descriptions (alias to _content)."""
         return self._content
 
+    @property
+    def size(self) -> int:
+        """Return total number of paramset descriptions in cache."""
+        return sum(
+            len(channel_paramsets)
+            for interface_paramsets in self._raw_paramset_descriptions.values()
+            for channel_paramsets in interface_paramsets.values()
+        )
+
     def add(
         self,
         *,

@@ -238,6 +238,8 @@ class CentralUnit(
             data_cache=self._cache_coordinator.data_cache,
             observer=self._metrics_observer,
             hub_data_point_manager=self._hub_coordinator,
+            cache_provider=self._cache_coordinator,
+            recovery_provider=self._connection_recovery_coordinator,
         )
 
         # Subscribe to system status events to update central state machine

@@ -18,7 +18,8 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from aiohomematic import support as hms
 from aiohomematic.const import UN_IGNORE_WILDCARD, ParamsetKey
-from aiohomematic.interfaces import ParameterVisibilityProviderProtocol
+from aiohomematic.interfaces import EventBusProviderProtocol, ParameterVisibilityProviderProtocol
+from aiohomematic.metrics import MetricKeys, emit_counter
 from aiohomematic.model.custom import get_required_parameters
 from aiohomematic.store.visibility.parser import ParsedUnIgnoreLine, UnIgnoreChannelNo, parse_un_ignore_line
 from aiohomematic.store.visibility.rules import (
@@ -240,6 +241,7 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         "_custom_un_ignore_rules",
         "_custom_un_ignore_values_parameters",
         "_device_un_ignore_rules",
+        "_event_bus_provider",
         "_ignore_custom_device_definition_models",
         "_param_ignored_cache",
         "_param_un_ignored_cache",
@@ -255,9 +257,11 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         self,
         *,
         config_provider: ConfigProviderProtocol,
+        event_bus_provider: EventBusProviderProtocol,
     ) -> None:
         """Initialize the parameter visibility cache."""
         self._config_provider: Final = config_provider
+        self._event_bus_provider: Final = event_bus_provider
         self._storage_directory: Final = config_provider.config.storage_directory
         self._required_parameters: Final = get_required_parameters()
         self._raw_un_ignores: Final[frozenset[str]] = config_provider.config.un_ignore_list or frozenset()
@@ -286,6 +290,11 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         self._param_un_ignored_cache: dict[UnIgnoreCacheKey, bool] = {}
 
         self._init()
+
+    @property
+    def size(self) -> int:
+        """Return total size of memoization caches."""
+        return len(self._param_ignored_cache) + len(self._param_un_ignored_cache)
 
     def clear_memoization_caches(self) -> None:
         """Clear the per-instance memoization caches to free memory."""
@@ -364,8 +373,18 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         model_l = channel.device.model.lower()
 
         if (cache_key := IgnoreCacheKey(model_l, channel.no, paramset_key, parameter)) in self._param_ignored_cache:
+            emit_counter(
+                event_bus=self._event_bus_provider.event_bus,
+                key=MetricKeys.cache_hit(cache_name="visibility"),
+                delta=1,
+            )
             return self._param_ignored_cache[cache_key]
 
+        emit_counter(
+            event_bus=self._event_bus_provider.event_bus,
+            key=MetricKeys.cache_miss(cache_name="visibility"),
+            delta=1,
+        )
         result = self._check_parameter_is_ignored(
             channel=channel,
             paramset_key=paramset_key,
@@ -624,14 +643,29 @@ class ParameterVisibilityCache(ParameterVisibilityProviderProtocol):
         """
         # Fast path: simple VALUES parameter un-ignore
         if paramset_key == ParamsetKey.VALUES and parameter in self._custom_un_ignore_values_parameters:
+            emit_counter(
+                event_bus=self._event_bus_provider.event_bus,
+                key=MetricKeys.cache_hit(cache_name="visibility"),
+                delta=1,
+            )
             return True
 
         model_l = channel.device.model.lower()
         cache_key = UnIgnoreCacheKey(model_l, channel.no, paramset_key, parameter, custom_only)
 
         if cache_key in self._param_un_ignored_cache:
+            emit_counter(
+                event_bus=self._event_bus_provider.event_bus,
+                key=MetricKeys.cache_hit(cache_name="visibility"),
+                delta=1,
+            )
             return self._param_un_ignored_cache[cache_key]
 
+        emit_counter(
+            event_bus=self._event_bus_provider.event_bus,
+            key=MetricKeys.cache_miss(cache_name="visibility"),
+            delta=1,
+        )
         result = self._check_parameter_is_un_ignored(
             channel=channel,
             paramset_key=paramset_key,

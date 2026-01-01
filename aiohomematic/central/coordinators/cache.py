@@ -156,6 +156,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
         )
         self._parameter_visibility_cache: Final = ParameterVisibilityCache(
             config_provider=config_provider,
+            event_bus_provider=event_bus_provider,
         )
         self._session_recorder: Final = SessionRecorder(
             central_info=central_info,
@@ -183,6 +184,26 @@ class CacheCoordinator(SessionRecorderProviderProtocol):
     parameter_visibility: Final = DelegatedProperty[ParameterVisibilityCache](path="_parameter_visibility_cache")
     paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionCache](path="_paramset_descriptions_cache")
     recorder: Final = DelegatedProperty[SessionRecorder](path="_session_recorder")
+
+    @property
+    def data_cache_size(self) -> int:
+        """Return data cache size."""
+        return self._data_cache.size
+
+    @property
+    def device_descriptions_size(self) -> int:
+        """Return device descriptions cache size."""
+        return self._device_descriptions_cache.size
+
+    @property
+    def paramset_descriptions_size(self) -> int:
+        """Return paramset descriptions cache size."""
+        return self._paramset_descriptions_cache.size
+
+    @property
+    def visibility_cache_size(self) -> int:
+        """Return visibility cache size."""
+        return self._parameter_visibility_cache.size
 
     async def clear_all(
         self,

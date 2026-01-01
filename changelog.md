@@ -24,10 +24,21 @@
   - Simplifies diagnostics and monitoring integration
 
 - **Data Points by Category**: New `ModelMetrics.data_points_by_category` field
+
   - Counts all data points grouped by `DataPointCategory` (SWITCH, SENSOR, CLIMATE, etc.)
   - Includes device data points, program data points, and sysvar data points
   - Available via `MetricsAggregator.model.data_points_by_category` and in `MetricsSnapshot`
   - Replaces manual counting logic in diagnostics code
+
+- **Complete Cache Metrics**: Full cache statistics in `CacheMetrics`
+  - `device_descriptions`: Size of persistent device description cache
+  - `paramset_descriptions`: Size of persistent paramset description cache
+  - `data_cache`: Size, hits, misses (tracked via events)
+  - `command_cache`: Aggregated size and eviction count from all client command caches
+  - `ping_pong_cache`: Aggregated size from all client ping/pong caches
+  - `visibility_cache`: Size of parameter visibility memoization cache
+  - New `CacheProviderForMetricsProtocol` for centralized cache access
+  - Eviction tracking in `CommandCache` for LRU and expiry evictions
 
 ---
 

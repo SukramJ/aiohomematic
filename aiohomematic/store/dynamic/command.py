@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic.const import (
     COMMAND_CACHE_MAX_SIZE,
@@ -28,8 +28,12 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
+from aiohomematic.metrics import MetricKeys, emit_counter
 from aiohomematic.store.types import CachedCommand
 from aiohomematic.support import changed_within_seconds
+
+if TYPE_CHECKING:
+    from aiohomematic.central.events import EventBus
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -51,14 +55,16 @@ class CommandCache:
     """
 
     __slots__ = (
+        "_event_bus",
         "_interface_id",
         "_last_send_command",
         "_warning_logged",
     )
 
-    def __init__(self, *, interface_id: str) -> None:
+    def __init__(self, *, interface_id: str, event_bus: EventBus) -> None:
         """Initialize command cache."""
         self._interface_id: Final = interface_id
+        self._event_bus: Final = event_bus
         # Maps DataPointKey to CachedCommand for tracking recent commands.
         # Used to detect duplicate sends and for unconfirmed value tracking.
         self._last_send_command: Final[dict[DataPointKey, CachedCommand]] = {}
@@ -157,6 +163,13 @@ class CommandCache:
         # Pass 2: Delete expired entries
         for dpk in expired_keys:
             del self._last_send_command[dpk]
+        # Track evictions via EventBus
+        if expired_keys:
+            emit_counter(
+                event_bus=self._event_bus,
+                key=MetricKeys.cache_eviction(cache_name="command"),
+                delta=len(expired_keys),
+            )
         return len(expired_keys)
 
     def clear(self) -> None:
@@ -230,6 +243,12 @@ class CommandCache:
             remove_count = max(1, current_size // 5)
             for dpk, _ in sorted_entries[:remove_count]:
                 del self._last_send_command[dpk]
+            # Track evictions via EventBus
+            emit_counter(
+                event_bus=self._event_bus,
+                key=MetricKeys.cache_eviction(cache_name="command"),
+                delta=remove_count,
+            )
             _LOGGER.debug(
                 "CommandCache for %s evicted %d oldest entries (size was %d)",
                 self._interface_id,

@@ -63,6 +63,11 @@ class DeviceDescriptionCache(BasePersistentCache, DeviceDescriptionProviderProto
         """Return the raw device descriptions (alias to _content)."""
         return self._content
 
+    @property
+    def size(self) -> int:
+        """Return total number of device descriptions in cache."""
+        return sum(len(descriptions) for descriptions in self._raw_device_descriptions.values())
+
     def add_device(self, *, interface_id: str, device_description: DeviceDescription) -> None:
         """Add a device to the cache."""
         # Fast-path: If the address is not yet known, skip costly removal operations.

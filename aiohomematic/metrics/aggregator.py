@@ -38,9 +38,11 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.client.circuit_breaker import CircuitState
 from aiohomematic.const import INIT_DATETIME
 from aiohomematic.metrics._protocols import (
+    CacheProviderForMetricsProtocol,
     ClientProviderForMetricsProtocol,
     DeviceProviderForMetricsProtocol,
     HubDataPointManagerForMetricsProtocol,
+    RecoveryProviderForMetricsProtocol,
 )
 from aiohomematic.metrics.dataclasses import (
     CacheMetrics,
@@ -103,6 +105,7 @@ class MetricsAggregator:
     """
 
     __slots__ = (
+        "_cache_provider",
         "_central_name",
         "_client_provider",
         "_data_cache",
@@ -111,6 +114,7 @@ class MetricsAggregator:
         "_health_tracker",
         "_hub_data_point_manager",
         "_observer",
+        "_recovery_provider",
     )
 
     def __init__(
@@ -124,6 +128,8 @@ class MetricsAggregator:
         data_cache: CentralDataCache,
         observer: MetricsObserver | None = None,
         hub_data_point_manager: HubDataPointManagerForMetricsProtocol | None = None,
+        cache_provider: CacheProviderForMetricsProtocol | None = None,
+        recovery_provider: RecoveryProviderForMetricsProtocol | None = None,
     ) -> None:
         """
         Initialize the metrics aggregator.
@@ -137,6 +143,8 @@ class MetricsAggregator:
             data_cache: The CentralDataCache instance
             observer: Optional MetricsObserver for event-driven metrics
             hub_data_point_manager: Optional hub data point manager
+            cache_provider: Optional cache provider for cache statistics
+            recovery_provider: Optional recovery provider for recovery statistics
 
         """
         self._central_name: Final = central_name
@@ -147,22 +155,78 @@ class MetricsAggregator:
         self._observer: Final = observer
         self._data_cache: Final = data_cache
         self._hub_data_point_manager: Final = hub_data_point_manager
+        self._cache_provider: Final = cache_provider
+        self._recovery_provider: Final = recovery_provider
 
     @property
     def cache(self) -> CacheMetrics:
         """Return cache statistics."""
         # Get hit/miss counts from MetricsObserver (event-driven)
-        hits = 0
-        misses = 0
+        data_hits = 0
+        data_misses = 0
         if self._observer is not None:
-            hits = self._observer.get_counter(key="cache.data.hit")
-            misses = self._observer.get_counter(key="cache.data.miss")
+            data_hits = self._observer.get_counter(key="cache.data.hit")
+            data_misses = self._observer.get_counter(key="cache.data.miss")
+
+        # Get data cache size (always available)
+        data_cache_size = self._data_cache.size
+
+        # Get cache sizes from provider if available
+        visibility_cache_size = 0
+        device_descriptions_size = 0
+        paramset_descriptions_size = 0
+        if self._cache_provider is not None:
+            visibility_cache_size = self._cache_provider.visibility_cache_size
+            device_descriptions_size = self._cache_provider.device_descriptions_size
+            paramset_descriptions_size = self._cache_provider.paramset_descriptions_size
+
+        # Get visibility cache hit/miss from observer (event-driven)
+        visibility_hits = 0
+        visibility_misses = 0
+        if self._observer is not None:
+            visibility_hits = self._observer.get_counter(key="cache.visibility.hit")
+            visibility_misses = self._observer.get_counter(key="cache.visibility.miss")
+
+        # Aggregate command cache and ping_pong cache from all clients
+        command_cache_size = 0
+        ping_pong_cache_size = 0
+        for client in self._client_provider.clients:
+            if (cmd_cache := getattr(client, "last_value_send_cache", None)) is not None:
+                command_cache_size += cmd_cache.size
+            if (pp_cache := getattr(client, "ping_pong_cache", None)) is not None:
+                ping_pong_cache_size += pp_cache.size
+
+        # Get command cache evictions from observer (event-driven)
+        command_cache_evictions = 0
+        data_cache_evictions = 0
+        if self._observer is not None:
+            command_cache_evictions = self._observer.get_counter(key="cache.command.eviction")
+            data_cache_evictions = self._observer.get_counter(key="cache.data.eviction")
 
         return CacheMetrics(
+            device_descriptions=CacheStats(
+                size=device_descriptions_size,
+            ),
+            paramset_descriptions=CacheStats(
+                size=paramset_descriptions_size,
+            ),
             data_cache=CacheStats(
-                size=self._data_cache.size,
-                hits=hits,
-                misses=misses,
+                size=data_cache_size,
+                hits=data_hits,
+                misses=data_misses,
+                evictions=data_cache_evictions,
+            ),
+            command_cache=CacheStats(
+                size=command_cache_size,
+                evictions=command_cache_evictions,
+            ),
+            ping_pong_cache=CacheStats(
+                size=ping_pong_cache_size,
+            ),
+            visibility_cache=CacheStats(
+                size=visibility_cache_size,
+                hits=visibility_hits,
+                misses=visibility_misses,
             ),
         )
 
@@ -207,11 +271,13 @@ class MetricsAggregator:
         clients_degraded = len(health.degraded_clients)
         clients_failed = len(health.failed_clients)
 
-        # Get the most recent event time across all clients
+        # Aggregate metrics across all clients
         last_event_time = INIT_DATETIME
+        reconnect_attempts = 0
         for client_health in health.client_health.values():
             if client_health.last_event_received is not None and client_health.last_event_received > last_event_time:
                 last_event_time = client_health.last_event_received
+            reconnect_attempts += client_health.reconnect_attempts
 
         return HealthMetrics(
             overall_score=health.overall_health_score,
@@ -219,6 +285,7 @@ class MetricsAggregator:
             clients_healthy=clients_healthy,
             clients_degraded=clients_degraded,
             clients_failed=clients_failed,
+            reconnect_attempts=reconnect_attempts,
             last_event_time=last_event_time,
         )
 
@@ -283,9 +350,44 @@ class MetricsAggregator:
     @property
     def recovery(self) -> RecoveryMetrics:
         """Return recovery metrics."""
-        # RecoveryCoordinator stats tracking to be added in future enhancement
-        # For now, return default metrics
-        return RecoveryMetrics()
+        if self._recovery_provider is None:
+            return RecoveryMetrics()
+
+        if not (recovery_states := self._recovery_provider.recovery_states):
+            return RecoveryMetrics(
+                in_progress=self._recovery_provider.in_recovery,
+            )
+
+        # Aggregate metrics across all interface recovery states
+        attempts_total = 0
+        successes = 0
+        failures = 0
+        max_retries_reached = 0
+        last_recovery_time: datetime | None = None
+
+        for state in recovery_states.values():
+            attempts_total += state.attempt_count
+            failures += state.consecutive_failures
+            # Count successes as attempts minus current consecutive failures
+            if state.attempt_count > state.consecutive_failures:
+                successes += state.attempt_count - state.consecutive_failures
+            # Check if max retries reached (can_retry is False when at limit)
+            if not state.can_retry:
+                max_retries_reached += 1
+            # Track most recent recovery attempt
+            if state.last_attempt is not None and (
+                last_recovery_time is None or state.last_attempt > last_recovery_time
+            ):
+                last_recovery_time = state.last_attempt
+
+        return RecoveryMetrics(
+            attempts_total=attempts_total,
+            successes=successes,
+            failures=failures,
+            max_retries_reached=max_retries_reached,
+            in_progress=self._recovery_provider.in_recovery,
+            last_recovery_time=last_recovery_time,
+        )
 
     @property
     def rpc(self) -> RpcMetrics:

@@ -53,7 +53,6 @@ from aiohomematic.const import (
     Operations,
     OptionalSettings,
     ParamsetKey,
-    SourceOfDeviceCreation,
     SystemInformation,
 )
 from aiohomematic.decorators import inspector
@@ -811,13 +810,9 @@ class CentralUnit(
                         refresh_only_existing=False,
                     )
         else:
-            if await self._client_coordinator.start_clients() and (
-                new_device_addresses := self._device_coordinator.check_for_new_device_addresses()
-            ):
-                await self._device_coordinator.create_devices(
-                    new_device_addresses=new_device_addresses,
-                    source=SourceOfDeviceCreation.CACHE,
-                )
+            if await self._client_coordinator.start_clients():
+                # Use atomic check-and-create to prevent race with newDevices callbacks
+                await self._device_coordinator.check_and_create_devices_from_cache()
             if self._config.enable_xml_rpc_server:
                 self._start_scheduler()
 

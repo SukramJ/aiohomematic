@@ -224,6 +224,25 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             source=SourceOfDeviceCreation.MANUAL,
         )
 
+    async def check_and_create_devices_from_cache(self) -> None:
+        """
+        Check for new devices in cache and create them atomically.
+
+        Race condition prevention:
+            This method acquires the device_add_semaphore to ensure it doesn't
+            race with _add_new_devices() which is populating the cache from
+            newDevices callbacks. Without this synchronization, the startup
+            code could try to create devices while descriptions are still
+            being added, resulting in devices with missing channels.
+
+        """
+        async with self._device_add_semaphore:
+            if new_device_addresses := self.check_for_new_device_addresses():
+                await self.create_devices(
+                    new_device_addresses=new_device_addresses,
+                    source=SourceOfDeviceCreation.CACHE,
+                )
+
     def check_for_new_device_addresses(self, *, interface_id: str | None = None) -> Mapping[str, set[str]]:
         """
         Check if there are new devices that need to be created.
@@ -748,10 +767,13 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 save_paramset_descriptions=save_descriptions,
             )
 
-        if new_device_addresses := self.check_for_new_device_addresses(interface_id=interface_id):
-            await self._coordinator_provider.cache_coordinator.device_details.load()
-            await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
-            await self.create_devices(new_device_addresses=new_device_addresses, source=source)
+            # Device creation MUST be inside semaphore to prevent race condition:
+            # Without this, startup code can call check_for_new_device_addresses()
+            # while callback is still adding descriptions, causing incomplete devices.
+            if new_device_addresses := self.check_for_new_device_addresses(interface_id=interface_id):
+                await self._coordinator_provider.cache_coordinator.device_details.load()
+                await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
+                await self.create_devices(new_device_addresses=new_device_addresses, source=source)
 
     def _identify_new_device_descriptions(
         self, *, device_descriptions: tuple[DeviceDescription, ...], interface_id: str | None = None
@@ -791,7 +813,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             dev_desc
             for dev_desc in device_descriptions
             # Use PARENT if present (channel entry), else ADDRESS (device entry)
-            if (dev_desc["ADDRESS"] if not (parent_address := dev_desc.get("PARENT")) else parent_address)
+            if (parent_address if (parent_address := dev_desc.get("PARENT")) else dev_desc["ADDRESS"])
             not in known_addresses
         )
 

@@ -40,11 +40,17 @@
 
 ### Bug Fixes
 
-- **Resilient Device Creation**: Device creation no longer crashes when channel descriptions cannot be retrieved from CCU
+- **Race Condition in Device Creation**: Fixed race condition between newDevices callback and startup code
+
+  - Root cause: Startup code called `check_for_new_device_addresses()` while callback was still populating cache
+  - Device creation now happens inside semaphore in `_add_new_devices()` to ensure all descriptions are cached first
+  - New `check_and_create_devices_from_cache()` method for atomic check-and-create with semaphore protection
+  - Startup code now uses atomic method to prevent racing with callbacks
+
+- **Resilient Device Creation**: Device creation no longer crashes when channel descriptions are missing
   - New `DescriptionNotFoundException` for specific error handling
   - `Device.__init__` gracefully skips channels with missing descriptions and logs a warning
-  - Prevents `KeyError` crashes on first start when CCU fails to provide all channel descriptions
-  - Device remains functional with available channels; missing channels load on next restart
+  - Device remains functional with available channels
 
 ### Refactoring
 

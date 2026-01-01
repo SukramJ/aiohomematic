@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """
 Session recorder for persisting RPC method calls and responses.
 

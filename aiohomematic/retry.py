@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """
 Retry logic with exponential backoff for transient network errors.
 

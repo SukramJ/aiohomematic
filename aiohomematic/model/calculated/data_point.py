@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """
 Base implementation for calculated data points deriving values from other data points.
 

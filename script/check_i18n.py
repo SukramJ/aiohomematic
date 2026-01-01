@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """
 Pre-commit hook: ensure exceptions and selected log messages use translated messages.
 

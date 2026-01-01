@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """Module for calculating the operating voltage level in the sensor category."""
 
 from __future__ import annotations

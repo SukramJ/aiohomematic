@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """Tests for keyword-only method linter (script.lint_kwonly)."""
 
 from __future__ import annotations

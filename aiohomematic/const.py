@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """
 Constants used by aiohomematic.
 
@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2025.12.56"
+VERSION: Final = "2026.1.0"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (

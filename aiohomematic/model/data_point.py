@@ -839,7 +839,7 @@ class BaseParameterDataPoint[
         """Return the unconfirmed value send for the data_point."""
         return cast(
             ParameterT,
-            self._client.last_value_send_cache.get_last_value_send(dpk=self.dpk),
+            self._client.last_value_send_tracker.get_last_value_send(dpk=self.dpk),
         )
 
     @config_property

@@ -174,16 +174,16 @@ class MetricsAggregator:
             device_descriptions_size = self._cache_provider.device_descriptions_size
             paramset_descriptions_size = self._cache_provider.paramset_descriptions_size
 
-        # Aggregate command cache and ping_pong cache from all clients
-        command_cache_size = 0
-        command_cache_evictions = 0
+        # Aggregate command tracker and ping_pong tracker from all clients
+        command_tracker_size = 0
+        command_tracker_evictions = 0
         ping_pong_tracker_size = 0
         for client in self._client_provider.clients:
-            if (cmd_cache := getattr(client, "last_value_send_cache", None)) is not None:
-                command_cache_size += cmd_cache.size
-                command_cache_evictions += cmd_cache.statistics.evictions
-            if (pp_cache := getattr(client, "ping_pong_tracker", None)) is not None:
-                ping_pong_tracker_size += pp_cache.size
+            if (cmd_tracker := getattr(client, "last_value_send_tracker", None)) is not None:
+                command_tracker_size += cmd_tracker.size
+                command_tracker_evictions += cmd_tracker.statistics.evictions
+            if (pp_tracker := getattr(client, "ping_pong_tracker", None)) is not None:
+                ping_pong_tracker_size += pp_tracker.size
 
         return CacheMetrics(
             # Registries (size-only)
@@ -200,16 +200,16 @@ class MetricsAggregator:
             ping_pong_tracker=SizeOnlyStats(
                 size=ping_pong_tracker_size,
             ),
+            command_tracker=SizeOnlyStats(
+                size=command_tracker_size,
+                evictions=command_tracker_evictions,
+            ),
             # True caches (with hit/miss semantics)
             data_cache=CacheStats(
                 size=data_cache_size,
                 hits=data_stats.hits,
                 misses=data_stats.misses,
                 evictions=data_stats.evictions,
-            ),
-            command_cache=CacheStats(
-                size=command_cache_size,
-                evictions=command_cache_evictions,
             ),
         )
 

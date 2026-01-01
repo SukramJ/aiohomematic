@@ -49,7 +49,7 @@ from aiohomematic.support import (
 if TYPE_CHECKING:
     from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
     from aiohomematic.interfaces import ClientDependenciesProtocol, DeviceProtocol
-    from aiohomematic.store.dynamic import CommandCache
+    from aiohomematic.store.dynamic import CommandTracker
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class DeviceHandler(
     - Value conversion and validation
     """
 
-    __slots__ = ("_device_description_coalescer", "_last_value_send_cache", "_paramset_description_coalescer")
+    __slots__ = ("_device_description_coalescer", "_last_value_send_tracker", "_paramset_description_coalescer")
 
     def __init__(
         self,
@@ -84,7 +84,7 @@ class DeviceHandler(
         json_rpc_client: AioJsonRpcAioHttpClient,
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
-        last_value_send_cache: CommandCache,
+        last_value_send_tracker: CommandTracker,
     ) -> None:
         """Initialize the device operations handler."""
         super().__init__(
@@ -95,7 +95,7 @@ class DeviceHandler(
             proxy=proxy,
             proxy_read=proxy_read,
         )
-        self._last_value_send_cache: Final = last_value_send_cache
+        self._last_value_send_tracker: Final = last_value_send_tracker
         self._device_description_coalescer: Final = RequestCoalescer(
             name=f"device_desc:{interface_id}",
             event_bus=client_deps.event_bus,
@@ -544,8 +544,8 @@ class DeviceHandler(
             if is_link_call:
                 return set()
 
-            # store the send value in the last_value_send_cache
-            dpk_values = self._last_value_send_cache.add_put_paramset(
+            # store the send value in the last_value_send_tracker
+            dpk_values = self._last_value_send_tracker.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey(paramset_key_or_link_address),
                 values=checked_values,
@@ -751,8 +751,8 @@ class DeviceHandler(
                     raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
             else:
                 await self._exec_set_value(channel_address=channel_address, parameter=parameter, value=value)
-            # store the send value in the last_value_send_cache
-            dpk_values = self._last_value_send_cache.add_set_value(
+            # store the send value in the last_value_send_tracker
+            dpk_values = self._last_value_send_tracker.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
             )
             self._write_temporary_value(dpk_values=dpk_values)

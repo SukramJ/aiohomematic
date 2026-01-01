@@ -64,7 +64,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
-        self._device.client.last_value_send_cache.remove_last_value_send(
+        self._device.client.last_value_send_tracker.remove_last_value_send(
             dpk=self.dpk,
             value=value,
         )

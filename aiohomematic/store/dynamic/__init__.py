@@ -8,7 +8,7 @@ communication with Homematic interfaces.
 
 Package structure
 -----------------
-- command: CommandCache for tracking sent commands
+- command: CommandTracker for tracking sent commands
 - details: DeviceDetailsCache for device metadata
 - data: CentralDataCache for parameter values
 - ping_pong: PingPongTracker for connection health monitoring
@@ -20,7 +20,7 @@ Key behaviors
 
 Public API
 ----------
-- CommandCache: Tracks recently sent commands per data point
+- CommandTracker: Tracks recently sent commands per data point
 - DeviceDetailsCache: Device names, rooms, functions, interfaces
 - CentralDataCache: Stores recently fetched parameter values
 - PingPongTracker: Connection health monitoring via ping/pong
@@ -28,7 +28,7 @@ Public API
 
 from __future__ import annotations
 
-from aiohomematic.store.dynamic.command import CommandCache
+from aiohomematic.store.dynamic.command import CommandTracker
 from aiohomematic.store.dynamic.data import CentralDataCache
 from aiohomematic.store.dynamic.details import DeviceDetailsCache
 from aiohomematic.store.dynamic.ping_pong import PingPongTracker
@@ -36,8 +36,8 @@ from aiohomematic.store.dynamic.ping_pong import PingPongTracker
 __all__ = [
     # Caches
     "CentralDataCache",
-    "CommandCache",
     "DeviceDetailsCache",
     # Trackers
+    "CommandTracker",
     "PingPongTracker",
 ]

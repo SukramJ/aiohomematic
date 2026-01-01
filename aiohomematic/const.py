@@ -211,12 +211,12 @@ RETRY_BACKOFF_MULTIPLIER: Final = 2.0
 
 KWARGS_ARG_CUSTOM_ID: Final = "custom_id"
 KWARGS_ARG_DATA_POINT: Final = "data_point"
-LAST_COMMAND_SEND_CACHE_CLEANUP_THRESHOLD: Final = 100  # Cleanup when cache size exceeds this
+LAST_COMMAND_SEND_TRACKER_CLEANUP_THRESHOLD: Final = 100  # Cleanup when tracker size exceeds this
 LAST_COMMAND_SEND_STORE_TIMEOUT: Final = 60
 
 # Resource limits for internal collections
-COMMAND_CACHE_MAX_SIZE: Final = 500  # Maximum entries in command cache
-COMMAND_CACHE_WARNING_THRESHOLD: Final = 400  # Log warning when approaching limit
+COMMAND_TRACKER_MAX_SIZE: Final = 500  # Maximum entries in command tracker
+COMMAND_TRACKER_WARNING_THRESHOLD: Final = 400  # Log warning when approaching limit
 PING_PONG_CACHE_MAX_SIZE: Final = 100  # Maximum entries in ping/pong cache per interface
 LOCAL_HOST: Final = "127.0.0.1"
 MAX_CACHE_AGE: Final = 10

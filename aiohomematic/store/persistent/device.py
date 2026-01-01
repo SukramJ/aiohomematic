@@ -14,7 +14,9 @@ from collections.abc import Mapping
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
+from aiohomematic import i18n
 from aiohomematic.const import ADDRESS_SEPARATOR, DeviceDescription
+from aiohomematic.exceptions import DescriptionNotFoundException
 from aiohomematic.interfaces import DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.store.persistent.base import BasePersistentCache
@@ -97,7 +99,16 @@ class DeviceDescriptionRegistry(
 
     def get_device_description(self, *, interface_id: str, address: str) -> DeviceDescription:
         """Return the device description by interface and device_address."""
-        return self._device_descriptions[interface_id][address]
+        try:
+            return self._device_descriptions[interface_id][address]
+        except KeyError as exc:
+            raise DescriptionNotFoundException(
+                i18n.tr(
+                    key="exception.store.device_description.not_found",
+                    address=address,
+                    interface_id=interface_id,
+                )
+            ) from exc
 
     def get_device_descriptions(self, *, interface_id: str) -> Mapping[str, DeviceDescription]:
         """Return the devices by interface."""

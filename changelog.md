@@ -38,6 +38,14 @@
   - True caches: `data_cache`, `command_cache` (size, hits, misses, evictions)
   - New `CacheProviderForMetricsProtocol` for centralized cache access
 
+### Bug Fixes
+
+- **Resilient Device Creation**: Device creation no longer crashes when channel descriptions cannot be retrieved from CCU
+  - New `DescriptionNotFoundException` for specific error handling
+  - `Device.__init__` gracefully skips channels with missing descriptions and logs a warning
+  - Prevents `KeyError` crashes on first start when CCU fails to provide all channel descriptions
+  - Device remains functional with available channels; missing channels load on next restart
+
 ### Refactoring
 
 - **Semantic Class Naming**: Renamed classes to better reflect their actual purpose

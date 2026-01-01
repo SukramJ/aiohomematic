@@ -91,7 +91,12 @@ from aiohomematic.const import (
     get_link_target_categories,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ClientException
+from aiohomematic.exceptions import (
+    AioHomematicException,
+    BaseHomematicException,
+    ClientException,
+    DescriptionNotFoundException,
+)
 from aiohomematic.interfaces import (
     BaseParameterDataPointProtocol,
     CalculatedDataPointProtocol,
@@ -322,9 +327,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         channel_addresses = tuple(
             [device_address] + [address for address in self._device_description["CHILDREN"] if address != ""]
         )
-        self._channels: Final[dict[str, ChannelProtocol]] = {
-            address: Channel(device=self, channel_address=address) for address in channel_addresses
-        }
+        self._channels: Final[dict[str, ChannelProtocol]] = {}
+        for address in channel_addresses:
+            try:
+                self._channels[address] = Channel(device=self, channel_address=address)
+            except DescriptionNotFoundException:
+                _LOGGER.warning(i18n.tr(key="log.model.device.channel_description_not_found", address=address))
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
         self._rooms: Final = device_details_provider.get_device_rooms(device_address=device_address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None

@@ -1,8 +1,22 @@
-# Version 2025.12.56 (2025-12-31)
+# Version 2026.1.0 (2026-01-01)
 
 ## What's Changed
 
 ### New Features
+
+- **Async XML-RPC Server** (Experimental): New asyncio-native XML-RPC server using aiohttp
+
+  - Enable via `OptionalSettings.ASYNC_RPC_SERVER` in `CentralConfig.optional_settings`
+  - Alternative to the thread-based XML-RPC server for receiving callbacks from Homematic backend
+  - Full support for `system.multicall` (batched events from CCU)
+  - Fire-and-forget pattern for event processing (immediate response to backend)
+  - Graceful shutdown with background task cancellation and 5s timeout
+  - Health-check endpoint (`GET /health`) returning JSON with server status, request/error counts, active tasks
+  - Metrics integration: `rpc_server.request`, `rpc_server.error`, `rpc_server.latency`, `rpc_server.active_tasks`
+  - Singleton pattern per (ip_addr, port) combination
+  - Comprehensive test coverage: 48 tests (41 unit, 4 integration, 3 stress)
+  - Performance validated: >1,000 req/s throughput, <500ms average multicall response
+  - See ADR 0012 for design rationale and performance benchmarks
 
 - **Storage Abstraction Layer**: New unified storage system for all persistent data
 

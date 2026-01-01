@@ -8,6 +8,16 @@
   - Protocol-based architecture allows transparent substitution of storage backends
   - Local implementation uses orjson for fast serialization with atomic writes
   - Supports ZIP archive loading, version migrations, and delayed/debounced saves
+- **Device Definition Export**: Export device definitions as single ZIP file for easier sharing and debugging
+
+### RPC Server
+
+- **Async XML-RPC Server** (Experimental): New asyncio-native alternative to thread-based server
+  - Enable via `OptionalSettings.ASYNC_RPC_SERVER` in CentralConfig
+  - Full `system.multicall` support for batched CCU events
+  - Health-check endpoint (`GET /health`) for monitoring
+  - Metrics: request count, error count, latency, active background tasks
+  - Graceful shutdown with task cancellation
 
 ### Connection Recovery
 

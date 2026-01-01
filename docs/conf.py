@@ -20,7 +20,7 @@ from aiohomematic.const import VERSION
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "aiohomematic"
-copyright_text = "2021-2025, SukramJ"
+copyright_text = "2021-2026, SukramJ"
 author = "SukramJ"
 release = VERSION
 version = VERSION

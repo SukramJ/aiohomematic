@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2021-2025
+# Copyright (c) 2021-2026
 """Tests for mapping of RPC errors to aiohomematic exceptions."""
 
 from __future__ import annotations

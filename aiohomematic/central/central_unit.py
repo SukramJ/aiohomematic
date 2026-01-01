@@ -773,7 +773,7 @@ class CentralUnit(
         try:
             if self._config.enable_xml_rpc_server:
                 if OptionalSettings.ASYNC_RPC_SERVER in self._config.optional_settings:
-                    # Use async XML-RPC server (experimental)
+                    # Use async XML-RPC server (opt-in)
                     async_server = await async_rpc.create_async_xml_rpc_server(
                         ip_addr=self._listen_ip_addr, port=port_xml_rpc
                     )

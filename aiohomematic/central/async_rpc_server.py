@@ -7,7 +7,7 @@ Provides an asyncio-native XML-RPC server using aiohttp for
 receiving callbacks from the Homematic backend.
 
 This is an experimental alternative to the thread-based XML-RPC server
-(see ADR 0011). Enable via OptionalSettings.ASYNC_RPC_SERVER.
+(see ADR 0012). Enable via OptionalSettings.ASYNC_RPC_SERVER.
 """
 
 from __future__ import annotations

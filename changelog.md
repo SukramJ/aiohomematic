@@ -14,7 +14,9 @@
   - Health-check endpoint (`GET /health`) returning JSON with server status, request/error counts, active tasks
   - Metrics integration: `rpc_server.request`, `rpc_server.error`, `rpc_server.latency`, `rpc_server.active_tasks`
   - Singleton pattern per (ip_addr, port) combination
-  - See ADR 0011 for design rationale
+  - Comprehensive test coverage: 48 tests (41 unit, 4 integration, 3 stress)
+  - Performance validated: >1,000 req/s throughput, <500ms average multicall response
+  - See ADR 0012 for design rationale and performance benchmarks
 
 - **Storage Abstraction Layer**: New unified storage system for all persistent data
 

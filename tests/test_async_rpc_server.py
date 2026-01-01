@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 import xmlrpc.client
 
@@ -763,3 +765,417 @@ async def test_server_health_check_with_requests():
                 assert data["error_count"] == 1
     finally:
         await server.stop()
+
+
+# --- Integration Tests ---
+
+
+class TestIntegration:
+    """Integration tests for async RPC server with CentralUnit."""
+
+    @pytest.mark.asyncio
+    async def test_full_event_flow_with_central(self):
+        """Test full event flow from HTTP request through to central coordinator."""
+        server = await create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0)
+
+        try:
+            # Create mock central with tracking
+            mock_central = MagicMock()
+            mock_central.name = "test-central"
+            mock_central.client_coordinator.has_client.return_value = True
+
+            # Track coordinator calls
+            event_calls: list[dict] = []
+
+            async def track_event(interface_id, channel_address, parameter, value):
+                event_calls.append(
+                    {
+                        "interface_id": interface_id,
+                        "channel_address": channel_address,
+                        "parameter": parameter,
+                        "value": value,
+                    }
+                )
+
+            mock_central.event_coordinator.data_point_event = track_event
+
+            server.add_central(central=mock_central)
+
+            # Send event via HTTP
+            async with aiohttp.ClientSession() as session:
+                xml_request = xmlrpc.client.dumps(
+                    ("test-interface", "DEV001:1", "STATE", True),
+                    methodname="event",
+                )
+                async with session.post(
+                    f"http://127.0.0.1:{server.listen_port}/",
+                    data=xml_request.encode("utf-8"),
+                    headers={"Content-Type": "text/xml"},
+                ) as response:
+                    assert response.status == 200
+
+            # Wait for background task to complete
+            await asyncio.sleep(0.1)
+
+            # Verify event was processed
+            assert len(event_calls) == 1
+            assert event_calls[0]["interface_id"] == "test-interface"
+            assert event_calls[0]["channel_address"] == "DEV001:1"
+            assert event_calls[0]["parameter"] == "STATE"
+            assert event_calls[0]["value"] is True
+
+        finally:
+            await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_graceful_shutdown_cancels_tasks(self):
+        """Test that shutdown cancels pending background tasks."""
+        server = await create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0)
+
+        try:
+            mock_central = MagicMock()
+            mock_central.name = "test-central"
+            mock_central.client_coordinator.has_client.return_value = True
+
+            # Create a slow handler
+            async def slow_event(*args, **kwargs):
+                await asyncio.sleep(10)  # Very slow
+
+            mock_central.event_coordinator.data_point_event = slow_event
+
+            server.add_central(central=mock_central)
+
+            # Send several events to create background tasks
+            async with aiohttp.ClientSession() as session:
+                for i in range(5):
+                    xml = xmlrpc.client.dumps(
+                        ("test-if", f"DEV{i:03d}:1", "STATE", True),
+                        methodname="event",
+                    )
+                    await session.post(
+                        f"http://127.0.0.1:{server.listen_port}/",
+                        data=xml.encode("utf-8"),
+                    )
+
+            await asyncio.sleep(0.05)
+
+            # Verify tasks are pending
+            assert server._rpc_functions.active_tasks_count > 0
+
+        finally:
+            # Stop should cancel all tasks within timeout
+            start = time.monotonic()
+            await server.stop()
+            elapsed = time.monotonic() - start
+
+            # Should complete quickly (not wait for 10s tasks)
+            assert elapsed < 6.0
+
+            # Tasks should be cancelled
+            assert server._rpc_functions.active_tasks_count == 0
+
+    @pytest.mark.asyncio
+    async def test_multicall_event_batch_integration(self):
+        """Test system.multicall with batched events like CCU sends."""
+        server = await create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0)
+
+        try:
+            mock_central = MagicMock()
+            mock_central.name = "test-central"
+            mock_central.client_coordinator.has_client.return_value = True
+
+            event_calls: list[dict] = []
+
+            async def track_event(interface_id, channel_address, parameter, value):
+                event_calls.append(
+                    {
+                        "interface_id": interface_id,
+                        "channel_address": channel_address,
+                        "parameter": parameter,
+                        "value": value,
+                    }
+                )
+
+            mock_central.event_coordinator.data_point_event = track_event
+
+            server.add_central(central=mock_central)
+
+            # Build multicall request like CCU does
+            calls = [
+                {"methodName": "event", "params": ["test-if", "DEV001:1", "STATE", True]},
+                {"methodName": "event", "params": ["test-if", "DEV001:1", "LEVEL", 0.75]},
+                {"methodName": "event", "params": ["test-if", "DEV002:0", "LOWBAT", False]},
+            ]
+            xml_request = xmlrpc.client.dumps((calls,), methodname="system.multicall")
+
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
+                    f"http://127.0.0.1:{server.listen_port}/",
+                    data=xml_request.encode("utf-8"),
+                    headers={"Content-Type": "text/xml"},
+                ) as response,
+            ):
+                assert response.status == 200
+                body = await response.read()
+                result = xmlrpc.client.loads(body.decode("utf-8"))
+                # All 3 events should return True (success)
+                assert result[0][0] == [[True], [True], [True]]
+
+            # Wait for background tasks
+            await asyncio.sleep(0.1)
+
+            # Verify all events were processed
+            assert len(event_calls) == 3
+
+        finally:
+            await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_multiple_centrals_routing(self):
+        """Test that events are routed to correct central based on interface_id."""
+        server = await create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0)
+
+        try:
+            # Create two mock centrals
+            central1_events: list[str] = []
+            central2_events: list[str] = []
+
+            mock_central1 = MagicMock()
+            mock_central1.name = "central-1"
+            mock_central1.client_coordinator.has_client.side_effect = lambda interface_id: interface_id.startswith(
+                "hmip"
+            )
+
+            async def track1(interface_id, channel_address, parameter, value):
+                central1_events.append(f"{interface_id}:{channel_address}")
+
+            mock_central1.event_coordinator.data_point_event = track1
+
+            mock_central2 = MagicMock()
+            mock_central2.name = "central-2"
+            mock_central2.client_coordinator.has_client.side_effect = lambda interface_id: interface_id.startswith(
+                "bidcos"
+            )
+
+            async def track2(interface_id, channel_address, parameter, value):
+                central2_events.append(f"{interface_id}:{channel_address}")
+
+            mock_central2.event_coordinator.data_point_event = track2
+
+            server.add_central(central=mock_central1)
+            server.add_central(central=mock_central2)
+
+            async with aiohttp.ClientSession() as session:
+                # Send event to central1
+                xml1 = xmlrpc.client.dumps(("hmip-rf", "DEV001:1", "STATE", True), methodname="event")
+                await session.post(
+                    f"http://127.0.0.1:{server.listen_port}/",
+                    data=xml1.encode("utf-8"),
+                )
+
+                # Send event to central2
+                xml2 = xmlrpc.client.dumps(("bidcos-rf", "DEV002:1", "STATE", False), methodname="event")
+                await session.post(
+                    f"http://127.0.0.1:{server.listen_port}/",
+                    data=xml2.encode("utf-8"),
+                )
+
+            await asyncio.sleep(0.1)
+
+            assert central1_events == ["hmip-rf:DEV001:1"]
+            assert central2_events == ["bidcos-rf:DEV002:1"]
+
+        finally:
+            await server.stop()
+
+
+# --- Stress Tests ---
+
+
+class TestStress:
+    """Stress tests for performance validation."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_events(self):
+        """Test handling 1000 concurrent event requests."""
+        server = await create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0)
+
+        try:
+            mock_central = MagicMock()
+            mock_central.name = "test-central"
+            mock_central.client_coordinator.has_client.return_value = True
+
+            event_count = 0
+            lock = asyncio.Lock()
+
+            async def count_event(*args, **kwargs):
+                nonlocal event_count
+                async with lock:
+                    event_count += 1
+
+            mock_central.event_coordinator.data_point_event = count_event
+            server.add_central(central=mock_central)
+
+            num_requests = 1000
+
+            async def send_event(session: aiohttp.ClientSession, n: int):
+                request = xmlrpc.client.dumps(
+                    (f"interface-{n % 4}", f"DEV{n:04d}:1", "STATE", n % 2 == 0),
+                    methodname="event",
+                )
+                async with session.post(
+                    f"http://127.0.0.1:{server.listen_port}/",
+                    data=request,
+                ) as response:
+                    assert response.status == 200
+
+            start = time.monotonic()
+
+            async with aiohttp.ClientSession() as session:
+                tasks = [send_event(session, i) for i in range(num_requests)]
+                await asyncio.gather(*tasks)
+
+            elapsed = time.monotonic() - start
+
+            # Wait for background tasks to complete
+            await asyncio.sleep(0.5)
+
+            # Verify all events were processed
+            assert event_count == num_requests
+
+            # Performance: should handle 1000 requests quickly
+            # Typical: <1s on modern hardware
+            assert elapsed < 10.0, f"Took {elapsed:.2f}s for {num_requests} requests"
+
+            # Calculate throughput (for documentation purposes)
+            # 1000 requests should complete in <1s on modern hardware
+            assert num_requests / elapsed > 100, "Throughput too low"
+
+        finally:
+            await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_multicall_batch_performance(self):
+        """Test performance of system.multicall with large batches."""
+        server = await create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0)
+
+        try:
+            mock_central = MagicMock()
+            mock_central.name = "test-central"
+            mock_central.client_coordinator.has_client.return_value = True
+
+            event_count = 0
+            lock = asyncio.Lock()
+
+            async def count_event(*args, **kwargs):
+                nonlocal event_count
+                async with lock:
+                    event_count += 1
+
+            mock_central.event_coordinator.data_point_event = count_event
+            server.add_central(central=mock_central)
+
+            # Build large multicall batch (typical CCU behavior)
+            batch_size = 100
+            calls = [
+                {"methodName": "event", "params": [f"if-{i % 4}", f"DEV{i:04d}:1", "STATE", i % 2 == 0]}
+                for i in range(batch_size)
+            ]
+            xml_request = xmlrpc.client.dumps((calls,), methodname="system.multicall")
+
+            num_requests = 50
+            times: list[float] = []
+
+            async with aiohttp.ClientSession() as session:
+                for _ in range(num_requests):
+                    start = time.monotonic()
+                    async with session.post(
+                        f"http://127.0.0.1:{server.listen_port}/",
+                        data=xml_request.encode("utf-8"),
+                    ) as response:
+                        assert response.status == 200
+                        await response.read()
+                    times.append(time.monotonic() - start)
+
+            # Wait for background tasks
+            await asyncio.sleep(1.0)
+
+            # Verify all events processed
+            assert event_count == num_requests * batch_size
+
+            avg_time = sum(times) / len(times)
+
+            # Performance: multicall should be fast (<500ms average)
+            assert avg_time < 0.5, f"Avg multicall time {avg_time:.2f}s too slow"
+
+        finally:
+            await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_sustained_load(self):
+        """Test sustained load over multiple batches."""
+        server = await create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0)
+
+        try:
+            mock_central = MagicMock()
+            mock_central.name = "test-central"
+            mock_central.client_coordinator.has_client.return_value = True
+
+            total_events = 0
+            lock = asyncio.Lock()
+
+            async def count_event(*args, **kwargs):
+                nonlocal total_events
+                async with lock:
+                    total_events += 1
+
+            mock_central.event_coordinator.data_point_event = count_event
+            server.add_central(central=mock_central)
+
+            num_batches = 10
+            events_per_batch = 100
+            batch_times: list[float] = []
+
+            async with aiohttp.ClientSession() as session:
+                for _ in range(num_batches):
+                    batch_start = time.monotonic()
+                    tasks = []
+
+                    for i in range(events_per_batch):
+                        request = xmlrpc.client.dumps(
+                            ("interface", f"DEV{i:04d}:1", "STATE", True),
+                            methodname="event",
+                        )
+                        tasks.append(
+                            session.post(
+                                f"http://127.0.0.1:{server.listen_port}/",
+                                data=request,
+                            )
+                        )
+
+                    responses = await asyncio.gather(*tasks)
+                    for resp in responses:
+                        assert resp.status == 200
+                        await resp.release()
+
+                    batch_time = time.monotonic() - batch_start
+                    batch_times.append(batch_time)
+
+                    # Small delay between batches
+                    await asyncio.sleep(0.05)
+
+            # Wait for background tasks
+            await asyncio.sleep(0.5)
+
+            # Verify all events processed
+            assert total_events == num_batches * events_per_batch
+
+            # Calculate statistics
+            avg_batch_time = sum(batch_times) / len(batch_times)
+
+            # Performance: batches should complete quickly (<1s average)
+            assert avg_batch_time < 1.0, f"Avg batch time {avg_batch_time:.2f}s too slow"
+
+        finally:
+            await server.stop()

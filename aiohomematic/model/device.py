@@ -325,7 +325,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             model=self._model,
         )
         channel_addresses = tuple(
-            [device_address] + [address for address in self._device_description["CHILDREN"] if address != ""]
+            [device_address] + [address for address in self._device_description.get("CHILDREN", []) if address != ""]
         )
         self._channels: Final[dict[str, ChannelProtocol]] = {}
         for address in channel_addresses:

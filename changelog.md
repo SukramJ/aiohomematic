@@ -28,8 +28,13 @@
 ### Bug Fixes
 
 - **Fix KeyError for PARENT in Device Descriptions**: Use `.get()` to safely access optional `PARENT` field
+
   - Some device descriptions may not include the `PARENT` key
   - Fixes `KeyError: 'PARENT'` during device discovery
+
+- **Fix KeyError for CHILDREN in Device Descriptions**: Use `.get()` to safely access optional `CHILDREN` field
+  - Affected files: `model/device.py`, `client/handlers/device_ops.py`, `store/persistent/device.py`
+  - Prevents `KeyError: 'CHILDREN'` for devices without channel children
 
 ### Documentation
 

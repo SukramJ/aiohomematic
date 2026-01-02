@@ -5,8 +5,14 @@
 ### Bug Fixes
 
 - **Fix PingPong Race Condition**: Register ping token in tracker _before_ sending the ping request
+
   - Previously, the CCU could respond with PONG before the token was registered, causing false "unknown PONG" counts
   - Now the token is tracked before `await proxy.ping()`, eliminating the race condition
+
+- **Fix Week Profile ScheduleCondition**: Extended `ScheduleCondition` enum with all 8 valid values
+  - Added: `FIXED_IF_BEFORE_ASTRO`, `ASTRO_IF_BEFORE_FIXED`, `FIXED_IF_AFTER_ASTRO`, `ASTRO_IF_AFTER_FIXED`, `EARLIEST_OF_FIXED_AND_ASTRO`, `LATEST_OF_FIXED_AND_ASTRO`
+  - Fixes `ValueError: 7 is not a valid ScheduleCondition` on HmIP-BROLL blinds with astro-based schedules
+  - Added graceful fallback for unknown enum values in `AstroType`, `TimeBase`, and `ScheduleCondition`
 
 ---
 

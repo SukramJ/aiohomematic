@@ -588,11 +588,23 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
             int_value = int(value)
 
             if field == ScheduleField.ASTRO_TYPE:
-                schedule_data[group_no][field] = AstroType(int_value)
+                try:
+                    schedule_data[group_no][field] = AstroType(int_value)
+                except ValueError:
+                    # Unknown astro type - store as raw int for forward compatibility
+                    schedule_data[group_no][field] = int_value
             elif field == ScheduleField.CONDITION:
-                schedule_data[group_no][field] = ScheduleCondition(int_value)
+                try:
+                    schedule_data[group_no][field] = ScheduleCondition(int_value)
+                except ValueError:
+                    # Unknown condition - store as raw int for forward compatibility
+                    schedule_data[group_no][field] = int_value
             elif field in (ScheduleField.DURATION_BASE, ScheduleField.RAMP_TIME_BASE):
-                schedule_data[group_no][field] = TimeBase(int_value)
+                try:
+                    schedule_data[group_no][field] = TimeBase(int_value)
+                except ValueError:
+                    # Unknown time base - store as raw int for forward compatibility
+                    schedule_data[group_no][field] = int_value
             elif field == ScheduleField.LEVEL:
                 schedule_data[group_no][field] = int_value if isinstance(value, int) else float(value)
             elif field == ScheduleField.LEVEL_2:

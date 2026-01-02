@@ -1906,6 +1906,12 @@ class ScheduleCondition(IntEnum):
 
     FIXED_TIME = 0
     ASTRO = 1
+    FIXED_IF_BEFORE_ASTRO = 2
+    ASTRO_IF_BEFORE_FIXED = 3
+    FIXED_IF_AFTER_ASTRO = 4
+    ASTRO_IF_AFTER_FIXED = 5
+    EARLIEST_OF_FIXED_AND_ASTRO = 6
+    LATEST_OF_FIXED_AND_ASTRO = 7
 
 
 class ScheduleField(StrEnum):

@@ -57,7 +57,7 @@ from aiohomematic.client.handlers import (
     SystemVariableHandler,
 )
 from aiohomematic.client.request_coalescer import RequestCoalescer
-from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy
+from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy, NullRpcProxy
 from aiohomematic.client.state_machine import ClientStateMachine
 from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
@@ -1287,6 +1287,30 @@ class ClientJsonCCU(ClientCCU):
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
+
+    @inspector
+    async def init_client(self) -> None:
+        """Initialize the client."""
+        self._state_machine.transition_to(target=ClientState.INITIALIZING)
+        try:
+            self._system_information = await self._get_system_information()
+            # Use NullRpcProxy since ClientJsonCCU uses JSON-RPC exclusively.
+            # The handlers are needed for JSON-RPC operations but don't use proxies.
+            self._proxy = NullRpcProxy(
+                interface_id=self.interface_id,
+                connection_state=self._config.client_deps.connection_state,
+                event_bus=self._config.client_deps.event_bus,
+            )
+            self._proxy_read = self._proxy
+            self._init_handlers()
+            self._state_machine.transition_to(target=ClientState.INITIALIZED)
+        except Exception as exc:
+            self._state_machine.transition_to(
+                target=ClientState.FAILED,
+                reason=str(exc),
+                failure_reason=exception_to_failure_reason(exc=exc),
+            )
+            raise
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:

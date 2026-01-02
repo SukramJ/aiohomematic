@@ -23,10 +23,10 @@ from aiohomematic.const import (
     PING_PONG_MISMATCH_COUNT_TTL,
     PingPongMismatchType,
 )
-from aiohomematic.interfaces import CentralInfoProtocol, EventBusProviderProtocol
+from aiohomematic.interfaces import CentralInfoProtocol, EventBusProviderProtocol, IncidentRecorderProtocol
 from aiohomematic.metrics import MetricKeys, emit_latency
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.store.types import PongTracker
+from aiohomematic.store.types import IncidentSeverity, IncidentType, PingPongJournal, PongTracker
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
@@ -42,7 +42,9 @@ class PingPongTracker:
         "_central_info",
         "_connection_state",
         "_event_bus_provider",
+        "_incident_recorder",
         "_interface_id",
+        "_journal",
         "_pending",
         "_retry_at",
         "_ttl",
@@ -56,6 +58,7 @@ class PingPongTracker:
         central_info: CentralInfoProtocol,
         interface_id: str,
         connection_state: CentralConnectionState | None = None,
+        incident_recorder: IncidentRecorderProtocol | None = None,
         allowed_delta: int = PING_PONG_MISMATCH_COUNT,
         ttl: int = PING_PONG_MISMATCH_COUNT_TTL,
     ):
@@ -65,11 +68,13 @@ class PingPongTracker:
         self._central_info: Final = central_info
         self._interface_id: Final = interface_id
         self._connection_state: Final = connection_state
+        self._incident_recorder: Final = incident_recorder
         self._allowed_delta: Final = allowed_delta
         self._ttl: Final = ttl
         self._pending: Final = PongTracker(tokens=set(), seen_at={})
         self._unknown: Final = PongTracker(tokens=set(), seen_at={})
         self._retry_at: Final[set[str]] = set()
+        self._journal: Final = PingPongJournal()
 
     allowed_delta: Final = DelegatedProperty[int](path="_allowed_delta")
 
@@ -81,19 +86,26 @@ class PingPongTracker:
         return self._connection_state.has_rpc_proxy_issue(interface_id=self._interface_id)
 
     @property
+    def journal(self) -> PingPongJournal:
+        """Return the diagnostic journal for this tracker."""
+        return self._journal
+
+    @property
     def size(self) -> int:
         """Return total size of pending and unknown pong sets."""
         return len(self._pending) + len(self._unknown)
 
     def clear(self) -> None:
-        """Clear the cache."""
+        """Clear the cache and journal."""
         self._pending.clear()
         self._unknown.clear()
+        self._journal.clear()
 
     def handle_received_pong(self, *, pong_token: str) -> None:
         """Handle received pong token."""
         if self._pending.contains(token=pong_token):
             # Calculate round-trip latency and emit metric event
+            rtt_ms: float | None = None
             if (send_time := self._pending.seen_at.get(pong_token)) is not None:
                 rtt_ms = (time.monotonic() - send_time) * 1000
                 emit_latency(
@@ -101,6 +113,8 @@ class PingPongTracker:
                     key=MetricKeys.ping_pong_rtt(interface_id=self._interface_id),
                     duration_ms=rtt_ms,
                 )
+            # Record successful PONG in journal
+            self._journal.record_pong_received(token=pong_token, rtt_ms=rtt_ms or 0.0)
             self._pending.remove(token=pong_token)
             self._cleanup_tracker(tracker=self._pending, tracker_name="pending")
             count = len(self._pending)
@@ -112,6 +126,8 @@ class PingPongTracker:
                 pong_token,
             )
         else:
+            # Record unknown PONG in journal
+            self._journal.record_pong_unknown(token=pong_token)
             # Track unknown pong with monotonic insertion time for TTL expiry.
             self._unknown.add(token=pong_token, timestamp=time.monotonic())
             self._cleanup_tracker(tracker=self._unknown, tracker_name="unknown")
@@ -137,6 +153,8 @@ class PingPongTracker:
                 ping_token,
             )
             return
+        # Record PING in journal
+        self._journal.record_ping_sent(token=ping_token)
         self._pending.add(token=ping_token, timestamp=time.monotonic())
         self._cleanup_tracker(tracker=self._pending, tracker_name="pending")
         # Throttle event emission to every second ping to avoid spamming callbacks,
@@ -193,6 +211,13 @@ class PingPongTracker:
                             interface_id=self._interface_id,
                         )
                     )
+                    # Record incident for persistent diagnostics
+                    self._record_incident_async(
+                        incident_type=IncidentType.PING_PONG_MISMATCH_HIGH,
+                        severity=IncidentSeverity.ERROR,
+                        message=f"Pending PONG count ({count}) exceeded threshold ({self._allowed_delta})",
+                        context={"pending_count": count, "threshold": self._allowed_delta},
+                    )
                 self._pending.logged = True
             # In low state:
             # - If we previously logged a high state, publish a reset event (mismatch=0) exactly once.
@@ -215,6 +240,13 @@ class PingPongTracker:
                             interface_id=self._interface_id,
                         )
                     )
+                    # Record incident for persistent diagnostics
+                    self._record_incident_async(
+                        incident_type=IncidentType.PING_PONG_UNKNOWN_HIGH,
+                        severity=IncidentSeverity.WARNING,
+                        message=f"Unknown PONG count ({count}) exceeded threshold ({self._allowed_delta})",
+                        context={"unknown_count": count, "threshold": self._allowed_delta},
+                    )
                 self._unknown.logged = True
             elif self._unknown.logged:
                 # Publish reset event when dropping below threshold after being in high state.
@@ -233,6 +265,9 @@ class PingPongTracker:
         ]
         for token in expired_tokens:
             tracker.remove(token=token)
+            # Record expired PINGs in journal (pending tracker only - these are unanswered PINGs)
+            if tracker_name == "pending":
+                self._journal.record_pong_expired(token=token)
             _LOGGER.debug(
                 "PING PONG CACHE: Removing expired %s PONG: %s - %i for ts: %s",
                 tracker_name,
@@ -257,6 +292,52 @@ class PingPongTracker:
                 self._interface_id,
                 PING_PONG_CACHE_MAX_SIZE,
             )
+
+    def _record_incident_async(
+        self,
+        *,
+        incident_type: IncidentType,
+        severity: IncidentSeverity,
+        message: str,
+        context: dict[str, int],
+    ) -> None:
+        """
+        Schedule async incident recording via the looper.
+
+        This method fires and forgets the incident recording since we don't want
+        to block the sync caller. If no incident_recorder or looper is available,
+        the incident is silently skipped.
+        """
+        if (incident_recorder := self._incident_recorder) is None:
+            return
+
+        if (looper := getattr(self._central_info, "looper", None)) is None:
+            _LOGGER.debug(
+                "PING PONG CACHE: Skip incident recording for %s on %s (no looper)",
+                incident_type.value,
+                self._interface_id,
+            )
+            return
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=incident_type,
+                    severity=severity,
+                    message=message,
+                    interface_id=self._interface_id,
+                    context=context,
+                    journal=self._journal,
+                )
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug(
+                    "PING PONG CACHE: Failed to record incident %s on %s: %s",
+                    incident_type.value,
+                    self._interface_id,
+                    err,
+                )
+
+        looper.create_task(target=_record, name=f"ppc_incident_{self._interface_id}_{incident_type.value}")
 
     async def _retry_reconcile_pong(self, *, token: str) -> None:
         """Attempt to reconcile a previously-unknown PONG with a late pending PING."""

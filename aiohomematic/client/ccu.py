@@ -180,6 +180,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             central_info=client_config.client_deps,
             interface_id=client_config.interface_id,
             connection_state=client_config.client_deps.connection_state,
+            incident_recorder=client_config.client_deps.cache_coordinator.incident_store,
         )
         self._proxy: BaseRpcProxy
         self._proxy_read: BaseRpcProxy

@@ -17,7 +17,7 @@ Audience: Contributors and integrators who need a precise understanding of messa
 - CentralUnit (aiohomematic/central): orchestrates clients, runs XML-RPC callback server, stores caches, and hosts the runtime model.
 - Clients (aiohomematic/client): protocol adapters for XML-RPC (XmlRpcProxy) and JSON-RPC (JsonRpcAioHttpClient).
 - Model (aiohomematic/model): Device, Channel, DataPoints, Events; strictly no network I/O.
-- Store (aiohomematic/store): persistent descriptions and dynamic value/state caches.
+- Store (aiohomematic/store): persistent descriptions, dynamic value/state caches, and diagnostic incident storage.
 
 ---
 
@@ -37,7 +37,7 @@ Purpose: Event callbacks from backend; many CCU operations can also be done via 
 1. Backend calls the local callback server started by Central (xml_rpc_server.XmlRpcServer), method RPCFunctions.event(interface_id, channel_address, parameter, value).
 2. RPCFunctions looks up the Central for interface_id and forwards the event via decorators to Central's event_coordinator.data_point_event(...).
 3. Central resolves the target DataPoint from (channel_address, parameter), converts value if needed, updates dynamic caches and the DataPoint's internal state.
-4. Central publishes events via the EventBus system (DataPointValueReceivedEvent, DeviceStateChangedEvent, etc.). Subscribers receive notifications through the modern `subscribe_to_*` API. Connection health metadata (PingPongCache, last-seen timestamps) is updated. Pending CommandCache entries may be reconciled if the event confirms a write.
+4. Central publishes events via the EventBus system (DataPointValueReceivedEvent, DeviceStateChangedEvent, etc.). Subscribers receive notifications through the modern `subscribe_to_*` API. Connection health metadata (PingPongTracker, last-seen timestamps) is updated. PingPongTracker records incidents to IncidentStore when mismatch thresholds are exceeded. Pending CommandCache entries may be reconciled if the event confirms a write.
 5. If the event indicates structural changes (newDevices, deleteDevices, updateDevice, replaceDevice, readdedDevice), the respective RPCFunctions handlers forward to Central which triggers model updates (reload descriptions, add/remove devices/channels).
 
 ---

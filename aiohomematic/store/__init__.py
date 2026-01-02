@@ -31,12 +31,16 @@ from aiohomematic.store.storage import (
     StorageFactoryProtocol,
     StorageProtocol,
 )
-from aiohomematic.store.types import CacheName, CacheStatistics
+from aiohomematic.store.types import CacheName, CacheStatistics, IncidentSeverity, IncidentSnapshot, IncidentType
 
 __all__ = [
     # Cache
     "CacheName",
     "CacheStatistics",
+    # Incident types
+    "IncidentSeverity",
+    "IncidentSnapshot",
+    "IncidentType",
     # Serialization
     "cleanup_params_for_session",
     "freeze_params",

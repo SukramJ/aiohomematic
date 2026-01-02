@@ -282,7 +282,7 @@ class DeviceHandler(
             )
 
         if main_dd:
-            for channel_address in main_dd["CHILDREN"]:
+            for channel_address in main_dd.get("CHILDREN", []):
                 if channel_dd := await self.get_device_description(address=channel_address):
                     all_device_description.append(channel_dd)
                 else:

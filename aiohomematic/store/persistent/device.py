@@ -119,7 +119,7 @@ class DeviceDescriptionRegistry(
         device_descriptions: dict[str, DeviceDescription] = {
             device_address: self.get_device_description(interface_id=interface_id, address=device_address)
         }
-        children = device_descriptions[device_address]["CHILDREN"]
+        children = device_descriptions[device_address].get("CHILDREN", [])
         for channel_address in children:
             device_descriptions[channel_address] = self.get_device_description(
                 interface_id=interface_id, address=channel_address

@@ -24,6 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
+import time
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 if TYPE_CHECKING:
@@ -200,3 +201,326 @@ class PongTracker:
         """Remove a token and its timestamp."""
         self.tokens.discard(token)
         self.seen_at.pop(token, None)
+
+
+# =============================================================================
+# PingPong Journal Types
+# =============================================================================
+
+
+class PingPongEventType(StrEnum):
+    """Types of events recorded in the PingPong journal."""
+
+    PING_SENT = "PING_SENT"
+    """A PING was sent to the backend."""
+
+    PONG_RECEIVED = "PONG_RECEIVED"
+    """A matching PONG was received (success)."""
+
+    PONG_UNKNOWN = "PONG_UNKNOWN"
+    """A PONG was received without a matching PING."""
+
+    PONG_EXPIRED = "PONG_EXPIRED"
+    """A PING expired without receiving a PONG (TTL exceeded)."""
+
+
+@dataclass(frozen=True, slots=True)
+class PingPongJournalEvent:
+    """
+    Single event in the PingPong diagnostic journal.
+
+    Immutable record of a ping/pong event for diagnostic purposes.
+    Events are stored in a ring buffer and can be exported for analysis.
+
+    Attributes:
+        timestamp: Monotonic timestamp for age calculation and ordering.
+        timestamp_iso: ISO format timestamp for human-readable display.
+        event_type: Type of event (PING_SENT, PONG_RECEIVED, etc.).
+        token: The ping/pong token (truncated for display).
+        rtt_ms: Round-trip time in milliseconds (only for PONG_RECEIVED).
+
+    """
+
+    timestamp: float
+    timestamp_iso: str
+    event_type: PingPongEventType
+    token: str
+    rtt_ms: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        result: dict[str, Any] = {
+            "time": self.timestamp_iso,
+            "type": self.event_type.value,
+            "token": self.token,
+        }
+        if self.rtt_ms is not None:
+            result["rtt_ms"] = round(self.rtt_ms, 2)
+        return result
+
+
+@dataclass(slots=True)
+class PingPongJournal:
+    """
+    Ring buffer for PingPong diagnostic events.
+
+    Provides diagnostic history for HA Diagnostics without log parsing.
+    Events are stored in a fixed-size ring buffer with optional time-based eviction.
+
+    Features:
+        - Fixed-size ring buffer (default 100 entries)
+        - Time-based eviction (default 30 minutes)
+        - RTT statistics aggregation (avg/min/max)
+        - JSON-serializable for HA Diagnostics
+
+    Attributes:
+        max_entries: Maximum number of events to store.
+        max_age_seconds: Maximum age of events before eviction.
+
+    """
+
+    max_entries: int = 100
+    max_age_seconds: float = 1800.0  # 30 minutes
+    _events: list[PingPongJournalEvent] | None = None
+    _rtt_samples: list[float] | None = None
+
+    def __post_init__(self) -> None:
+        """Initialize internal collections."""
+        if self._events is None:
+            self._events = []
+        if self._rtt_samples is None:
+            self._rtt_samples = []
+
+    @property
+    def events(self) -> list[PingPongJournalEvent]:
+        """Return the events list."""
+        if self._events is None:
+            self._events = []
+        return self._events
+
+    @property
+    def rtt_samples(self) -> list[float]:
+        """Return the RTT samples list."""
+        if self._rtt_samples is None:
+            self._rtt_samples = []
+        return self._rtt_samples
+
+    def clear(self) -> None:
+        """Clear all events and statistics."""
+        self.events.clear()
+        self.rtt_samples.clear()
+
+    def count_events_by_type(self, *, event_type: PingPongEventType, minutes: int = 5) -> int:
+        """Count events of a specific type within the last N minutes."""
+        cutoff = time.monotonic() - (minutes * 60)
+        return sum(1 for e in self.events if e.event_type == event_type and e.timestamp >= cutoff)
+
+    def get_diagnostics(self) -> dict[str, Any]:
+        """Return full diagnostics data for HA Diagnostics."""
+        return {
+            "total_events": len(self.events),
+            "max_entries": self.max_entries,
+            "max_age_seconds": self.max_age_seconds,
+            "rtt_statistics": self.get_rtt_statistics(),
+            "recent_events": self.get_recent_events(limit=20),
+        }
+
+    def get_recent_events(self, *, limit: int = 50) -> list[dict[str, Any]]:
+        """Return recent events as list of dicts."""
+        return [e.to_dict() for e in self.events[-limit:]]
+
+    def get_rtt_statistics(self) -> dict[str, Any]:
+        """Return RTT statistics from collected samples."""
+        if not self.rtt_samples:
+            return {
+                "samples": 0,
+                "avg_ms": None,
+                "min_ms": None,
+                "max_ms": None,
+            }
+
+        return {
+            "samples": len(self.rtt_samples),
+            "avg_ms": round(sum(self.rtt_samples) / len(self.rtt_samples), 2),
+            "min_ms": round(min(self.rtt_samples), 2),
+            "max_ms": round(max(self.rtt_samples), 2),
+        }
+
+    def get_success_rate(self, *, minutes: int = 5) -> float:
+        """Calculate success rate (PONGs received / PINGs sent) over last N minutes."""
+        pings = self.count_events_by_type(event_type=PingPongEventType.PING_SENT, minutes=minutes)
+        pongs = self.count_events_by_type(event_type=PingPongEventType.PONG_RECEIVED, minutes=minutes)
+
+        if pings == 0:
+            return 1.0  # No pings = 100% success (nothing to fail)
+        return pongs / pings
+
+    def record_ping_sent(self, *, token: str) -> None:
+        """Record a PING being sent."""
+        self._add_event(
+            event_type=PingPongEventType.PING_SENT,
+            token=token,
+        )
+
+    def record_pong_expired(self, *, token: str) -> None:
+        """Record a PING that expired without PONG."""
+        self._add_event(
+            event_type=PingPongEventType.PONG_EXPIRED,
+            token=token,
+        )
+
+    def record_pong_received(self, *, token: str, rtt_ms: float) -> None:
+        """Record a matching PONG received with RTT."""
+        self._add_event(
+            event_type=PingPongEventType.PONG_RECEIVED,
+            token=token,
+            rtt_ms=rtt_ms,
+        )
+        # Keep last 50 RTT samples for statistics
+        self.rtt_samples.append(rtt_ms)
+        if len(self.rtt_samples) > 50:
+            self.rtt_samples.pop(0)
+
+    def record_pong_unknown(self, *, token: str) -> None:
+        """Record an unknown PONG (no matching PING)."""
+        self._add_event(
+            event_type=PingPongEventType.PONG_UNKNOWN,
+            token=token,
+        )
+
+    def _add_event(
+        self,
+        *,
+        event_type: PingPongEventType,
+        token: str,
+        rtt_ms: float | None = None,
+    ) -> None:
+        """Add event to journal with automatic eviction."""
+        now = time.monotonic()
+
+        # Time-based eviction
+        while self.events and (now - self.events[0].timestamp) > self.max_age_seconds:
+            self.events.pop(0)
+
+        # Size-based eviction
+        while len(self.events) >= self.max_entries:
+            self.events.pop(0)
+
+        # Truncate token for display (keep last 20 chars)
+        display_token = token[-20:] if len(token) > 20 else token
+
+        self.events.append(
+            PingPongJournalEvent(
+                timestamp=now,
+                timestamp_iso=datetime.now().isoformat(timespec="milliseconds"),
+                event_type=event_type,
+                token=display_token,
+                rtt_ms=rtt_ms,
+            )
+        )
+
+
+# =============================================================================
+# Incident Store Types
+# =============================================================================
+
+
+class IncidentType(StrEnum):
+    """Types of incidents that can be recorded for diagnostics."""
+
+    PING_PONG_MISMATCH_HIGH = "PING_PONG_MISMATCH_HIGH"
+    """PingPong pending count exceeded threshold."""
+
+    PING_PONG_UNKNOWN_HIGH = "PING_PONG_UNKNOWN_HIGH"
+    """PingPong unknown PONG count exceeded threshold."""
+
+    CONNECTION_LOST = "CONNECTION_LOST"
+    """Connection to backend was lost."""
+
+    CONNECTION_RESTORED = "CONNECTION_RESTORED"
+    """Connection to backend was restored."""
+
+    RPC_ERROR = "RPC_ERROR"
+    """RPC call failed with error."""
+
+    CALLBACK_TIMEOUT = "CALLBACK_TIMEOUT"
+    """Callback from backend timed out."""
+
+    DEVICE_UNAVAILABLE = "DEVICE_UNAVAILABLE"
+    """Device became unavailable."""
+
+    INIT_FAILURE = "INIT_FAILURE"
+    """Interface initialization failed."""
+
+
+class IncidentSeverity(StrEnum):
+    """Severity levels for incidents."""
+
+    INFO = "info"
+    """Informational incident (e.g., connection restored)."""
+
+    WARNING = "warning"
+    """Warning incident (e.g., threshold approached)."""
+
+    ERROR = "error"
+    """Error incident (e.g., connection lost)."""
+
+    CRITICAL = "critical"
+    """Critical incident (e.g., repeated failures)."""
+
+
+@dataclass(frozen=True, slots=True)
+class IncidentSnapshot:
+    """
+    Immutable snapshot of an incident for diagnostic analysis.
+
+    Unlike Journal events which expire after TTL, incidents are preserved
+    indefinitely (up to max count) for post-mortem analysis.
+
+    Attributes:
+        incident_id: Unique identifier for this incident.
+        timestamp_iso: ISO format timestamp for human-readable display.
+        incident_type: Type of incident that occurred.
+        severity: Severity level of the incident.
+        interface_id: Interface where incident occurred (if applicable).
+        message: Human-readable description of the incident.
+        context: Additional context data for debugging.
+        journal_excerpt: Journal events around the time of incident.
+
+    """
+
+    incident_id: str
+    timestamp_iso: str
+    incident_type: IncidentType
+    severity: IncidentSeverity
+    interface_id: str | None
+    message: str
+    context: dict[str, Any]
+    journal_excerpt: list[dict[str, Any]]
+
+    @classmethod
+    def from_dict(cls, *, data: dict[str, Any]) -> IncidentSnapshot:
+        """Create IncidentSnapshot from dictionary."""
+        return cls(
+            incident_id=data["incident_id"],
+            timestamp_iso=data["timestamp"],
+            incident_type=IncidentType(data["type"]),
+            severity=IncidentSeverity(data["severity"]),
+            interface_id=data.get("interface_id"),
+            message=data["message"],
+            context=data.get("context", {}),
+            journal_excerpt=data.get("journal_excerpt", []),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "incident_id": self.incident_id,
+            "timestamp": self.timestamp_iso,
+            "type": self.incident_type.value,
+            "severity": self.severity.value,
+            "interface_id": self.interface_id,
+            "message": self.message,
+            "context": self.context,
+            "journal_excerpt": self.journal_excerpt,
+        }

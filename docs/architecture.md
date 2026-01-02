@@ -10,10 +10,10 @@ This document describes the high‑level architecture of aiohomematic, focusing 
 - Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear). Clients abstract XML‑RPC and JSON‑RPC calls, maintain connection health, and translate high‑level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Concrete types: ClientCCU, ClientJsonCCU, ClientHomegear. A client belongs to one Interface (BidCos‑RF, HmIP, etc.).
 - Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device‑specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
 - Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values. Organized into subpackages:
-  - persistent/: DeviceDescriptionCache and ParamsetDescriptionCache store descriptions on disk between runs. SessionRecorder captures RPC sessions for testing.
-  - dynamic/: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongCache hold in‑memory runtime state and connection health.
-  - visibility/: ParameterVisibilityCache applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
-  - types.py: Shared typed dataclasses (CachedCommand, PongTracker) for cache entries.
+  - persistent/: DeviceDescriptionRegistry and ParamsetDescriptionRegistry store descriptions on disk between runs. IncidentStore persists diagnostic incidents for post-mortem analysis. SessionRecorder captures RPC sessions for testing.
+  - dynamic/: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongTracker hold in‑memory runtime state and connection health. PingPongTracker includes a PingPongJournal for diagnostic events.
+  - visibility/: ParameterVisibilityRegistry applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
+  - types.py: Shared typed dataclasses (CachedCommand, PongTracker, PingPongJournal, IncidentSnapshot) for cache entries.
   - serialization.py: Session recording utilities for freeze/unfreeze of parameters.
 - Support (aiohomematic/support.py and helpers): Cross‑cutting utilities: URI/header construction for XML‑RPC, input validation, hashing, network helpers, conversion helpers, and small abstractions used across central and client. aiohomematic/async_support.py provides helpers for periodic tasks.
 
@@ -27,7 +27,7 @@ Components receive only protocol interfaces via constructor injection, with **ze
 
 - **CacheCoordinator**: Receives 8 protocol interfaces (CentralInfo, DeviceProvider, ClientProvider, etc.)
 - **DeviceRegistry**: Receives CentralInfo + ClientProvider
-- **ParameterVisibilityCache**: Receives ConfigProvider
+- **ParameterVisibilityRegistry**: Receives ConfigProvider
 - **EventCoordinator**: Receives ClientProvider + TaskScheduler
 - **DeviceCoordinator**: Receives 3 protocol interfaces
 - **BackgroundScheduler**: Receives 7 protocol interfaces
@@ -91,6 +91,7 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 - **DeviceDescriptionProviderProtocol**: Device descriptions lookup
 - **ParamsetDescriptionProviderProtocol**: Paramset descriptions and multi-channel checks
 - **ParameterVisibilityProviderProtocol**: Parameter visibility rules
+- **IncidentRecorderProtocol**: Incident recording for diagnostics (record_incident method)
 
 **Model Protocols** (`interfaces/model.py`):
 
@@ -163,7 +164,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 
 1. Client.list_devices() fetches device descriptions from the backend (or uses cached copies if valid).
 2. For new or changed devices, CentralUnit.\_add_new_devices() instantiates Device and Channel objects and attaches paramset descriptions.
-3. For each channel, create_data_points_and_events() (model package) iterates over paramset descriptions, applies ParameterVisibilityCache rules, creates Events where appropriate, and instantiates DataPoints via the generic/custom/calculated factories.
+3. For each channel, create_data_points_and_events() (model package) iterates over paramset descriptions, applies ParameterVisibilityRegistry rules, creates Events where appropriate, and instantiates DataPoints via the generic/custom/calculated factories.
 4. Central indexes DataPoints and Events for quick lookup and subscription management.
 
 ## State read and write
@@ -190,13 +191,15 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 ## Caching strategy
 
 - Persistent caches (on disk)
-  - DeviceDescriptionCache and ParamsetDescriptionCache reduce cold‑start time and load on the backend. Central decides when to refresh and when to trust cached data (based on age and configuration).
+  - DeviceDescriptionRegistry and ParamsetDescriptionRegistry reduce cold‑start time and load on the backend. Central decides when to refresh and when to trust cached data (based on age and configuration).
+  - IncidentStore persists diagnostic incidents (e.g., PING_PONG_MISMATCH_HIGH, PING_PONG_UNKNOWN_HIGH) for post-mortem analysis. Uses save-on-incident, load-on-demand strategy with automatic cleanup of old incidents.
 - Dynamic caches (in memory)
   - CentralDataCache holds recent values and metadata to accelerate lookups and avoid redundant conversions.
-  - CommandCache and PingPongCache support write‑ack workflows and connection health checks.
+  - CommandCache and PingPongTracker support write‑ack workflows and connection health checks.
+  - PingPongTracker includes a PingPongJournal ring buffer for tracking PING/PONG events and RTT statistics.
   - DeviceDetailsCache stores supplementary per‑device data fetched on demand.
 - Visibility cache
-  - ParameterVisibilityCache determines which parameters are exposed as DataPoints/events, influenced by user un‑ignore lists and marker rules.
+  - ParameterVisibilityRegistry determines which parameters are exposed as DataPoints/events, influenced by user un‑ignore lists and marker rules.
 
 ## Concurrency model
 

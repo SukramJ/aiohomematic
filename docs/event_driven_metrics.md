@@ -16,7 +16,7 @@ The event-driven metrics architecture replaces polling-based metric collection w
         │ emit_latency()     │ emit_counter()     │ emit_health()      │
         │                    │                    │                    ▼
 ┌───────┴───────┐    ┌───────┴───────┐    ┌───────┴───────┐    ┌───────────────┐
-│ PingPongCache │    │    Client     │    │ HealthTracker │    │MetricsObserver│
+│PingPongTracker│    │    Client     │    │ HealthTracker │    │MetricsObserver│
 │               │    │               │    │               │    │               │
 │ round_trip    │    │ rpc_call      │    │ client_state  │    │ Aggregates:   │
 │ latency       │    │ latency       │    │ changes       │    │ - Latency     │
@@ -209,10 +209,10 @@ total_hits = observer.get_aggregated_counter(pattern="cache")
 
 ## Data Flow
 
-### Latency Metric Flow (PingPongCache Example)
+### Latency Metric Flow (PingPongTracker Example)
 
 ```
-1. PingPongCache.handle_received_pong()
+1. PingPongTracker.handle_received_pong()
    │
    ├─► Calculates round-trip time
    │

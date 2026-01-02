@@ -858,7 +858,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
     def _store_delayed_device_descriptions(self, *, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Store device descriptions for delayed creation."""
         for dev_desc in device_descriptions:
-            device_address = dev_desc["PARENT"] or dev_desc["ADDRESS"]
+            device_address = dev_desc.get("PARENT") or dev_desc["ADDRESS"]
             self._delayed_device_descriptions[device_address].append(dev_desc)
 
 

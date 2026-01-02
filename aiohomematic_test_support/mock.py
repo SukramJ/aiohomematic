@@ -333,11 +333,11 @@ def get_xml_rpc_proxy(  # noqa: C901
 
             for dd in devices:
                 if ignore_devices_on_create is not None and (
-                    dd["ADDRESS"] in ignore_devices_on_create or dd["PARENT"] in ignore_devices_on_create
+                    dd["ADDRESS"] in ignore_devices_on_create or dd.get("PARENT") in ignore_devices_on_create
                 ):
                     continue
                 if address_device_translation is not None:
-                    if dd["ADDRESS"] in address_device_translation or dd["PARENT"] in address_device_translation:
+                    if dd["ADDRESS"] in address_device_translation or dd.get("PARENT") in address_device_translation:
                         new_devices.append(dd)
                 else:
                     new_devices.append(dd)

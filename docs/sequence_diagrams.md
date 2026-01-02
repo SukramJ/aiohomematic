@@ -80,8 +80,8 @@ sequenceDiagram
   participant CC as ClientCoordinator
   participant DC as DeviceCoordinator
   participant CaC as CacheCoordinator
-  participant DDC as DeviceDescriptionCache
-  participant PDC as ParamsetDescriptionCache
+  participant DDC as DeviceDescriptionRegistry
+  participant PDC as ParamsetDescriptionRegistry
   participant CX as ClientCCU
   participant DR as DeviceRegistry
   participant D as Device
@@ -643,8 +643,8 @@ sequenceDiagram
   participant App as Application
   participant C as CentralUnit
   participant CaC as CacheCoordinator
-  participant DDC as DeviceDescriptionCache
-  participant PDC as ParamsetDescriptionCache
+  participant DDC as DeviceDescriptionRegistry
+  participant PDC as ParamsetDescriptionRegistry
   participant CDC as CentralDataCache
   participant DDtC as DeviceDetailsCache
   participant CX as ClientCCU
@@ -741,22 +741,24 @@ sequenceDiagram
 
 ### Cache types and invalidation rules
 
-| Cache                    | Type       | Storage | Invalidation Trigger                         | TTL             |
-| ------------------------ | ---------- | ------- | -------------------------------------------- | --------------- |
-| DeviceDescriptionCache   | Persistent | Disk    | NEW_DEVICES, DELETE_DEVICES, manual clear    | MAX_CACHE_AGE   |
-| ParamsetDescriptionCache | Persistent | Disk    | Device structure change, manual clear        | MAX_CACHE_AGE   |
-| CentralDataCache         | Dynamic    | Memory  | Reconnect, periodic refresh, interface clear | MAX_CACHE_AGE/3 |
-| DeviceDetailsCache       | Dynamic    | Memory  | Explicit refresh, manual clear               | None (refresh)  |
-| CommandCache             | Dynamic    | Memory  | TTL expiry per entry, clear on write confirm | Per-entry TTL   |
-| PingPongCache            | Dynamic    | Memory  | Pong received, TTL expiry                    | Per-entry TTL   |
-| ParameterVisibilityCache | Computed   | Memory  | Never (static rules)                         | Unbounded       |
+| Cache                       | Type       | Storage | Invalidation Trigger                         | TTL             |
+| --------------------------- | ---------- | ------- | -------------------------------------------- | --------------- |
+| DeviceDescriptionRegistry   | Persistent | Disk    | NEW_DEVICES, DELETE_DEVICES, manual clear    | MAX_CACHE_AGE   |
+| ParamsetDescriptionRegistry | Persistent | Disk    | Device structure change, manual clear        | MAX_CACHE_AGE   |
+| IncidentStore               | Persistent | Disk    | Save-on-incident, cleanup on load            | 7 days default  |
+| CentralDataCache            | Dynamic    | Memory  | Reconnect, periodic refresh, interface clear | MAX_CACHE_AGE/3 |
+| DeviceDetailsCache          | Dynamic    | Memory  | Explicit refresh, manual clear               | None (refresh)  |
+| CommandCache                | Dynamic    | Memory  | TTL expiry per entry, clear on write confirm | Per-entry TTL   |
+| PingPongTracker             | Dynamic    | Memory  | Pong received, TTL expiry                    | Per-entry TTL   |
+| ParameterVisibilityRegistry | Computed   | Memory  | Never (static rules)                         | Unbounded       |
 
 ### Notes
 
 - **Persistent caches** survive restarts and reduce cold-start time.
 - **Dynamic caches** are cleared on connection issues to ensure data freshness.
 - **MAX_CACHE_AGE** default is typically 24 hours for persistent caches.
-- **ParameterVisibilityCache** is intentionally unbounded (see ADR 0005).
+- **ParameterVisibilityRegistry** is intentionally unbounded (see ADR 0005).
+- **IncidentStore** uses save-on-incident, load-on-demand strategy for efficient diagnostics.
 - Backend events (NEW_DEVICES, DELETE_DEVICES) trigger cache invalidation automatically.
 
 ---

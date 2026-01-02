@@ -289,6 +289,7 @@ class _FakeCentral:
             device_descriptions=SimpleNamespace(
                 get_device_descriptions=lambda **kwargs: [],
             ),
+            incident_store=None,
         )
 
     @property
@@ -477,6 +478,7 @@ class _FakeCentral2:
             device_descriptions=SimpleNamespace(
                 get_device_descriptions=lambda **kwargs: [],
             ),
+            incident_store=None,
         )
 
     @property

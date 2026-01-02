@@ -24,6 +24,7 @@ from typing import Final
 from aiohomematic.central.events import CacheInvalidatedEvent, DeviceRemovedEvent
 from aiohomematic.const import (
     FILE_DEVICES,
+    FILE_INCIDENTS,
     FILE_PARAMSETS,
     SUB_DIRECTORY_CACHE,
     CacheInvalidationReason,
@@ -47,7 +48,12 @@ from aiohomematic.metrics._protocols import CacheProviderForMetricsProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store import CacheStatistics, StorageFactoryProtocol
 from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
-from aiohomematic.store.persistent import DeviceDescriptionRegistry, ParamsetDescriptionRegistry, SessionRecorder
+from aiohomematic.store.persistent import (
+    DeviceDescriptionRegistry,
+    IncidentStore,
+    ParamsetDescriptionRegistry,
+    SessionRecorder,
+)
 from aiohomematic.store.visibility import ParameterVisibilityRegistry
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -86,6 +92,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
         "_device_descriptions_registry",
         "_device_details_cache",
         "_event_bus_provider",
+        "_incident_store",
         "_parameter_visibility_registry",
         "_paramset_descriptions_registry",
         "_session_recorder",
@@ -134,6 +141,10 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
             key=FILE_PARAMSETS,
             sub_directory=SUB_DIRECTORY_CACHE,
         )
+        incident_storage = storage_factory.create_storage(
+            key=FILE_INCIDENTS,
+            sub_directory=SUB_DIRECTORY_CACHE,
+        )
 
         # Initialize all caches with protocol interfaces
         self._data_cache: Final = CentralDataCache(
@@ -155,6 +166,10 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
             config_provider=config_provider,
         )
         self._parameter_visibility_registry: Final = ParameterVisibilityRegistry(
+            config_provider=config_provider,
+        )
+        self._incident_store: Final = IncidentStore(
+            storage=incident_storage,
             config_provider=config_provider,
         )
         self._session_recorder: Final = SessionRecorder(
@@ -180,6 +195,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
     data_cache: Final = DelegatedProperty[CentralDataCache](path="_data_cache")
     device_descriptions: Final = DelegatedProperty[DeviceDescriptionRegistry](path="_device_descriptions_registry")
     device_details: Final = DelegatedProperty[DeviceDetailsCache](path="_device_details_cache")
+    incident_store: Final = DelegatedProperty[IncidentStore](path="_incident_store")
     parameter_visibility: Final = DelegatedProperty[ParameterVisibilityRegistry](path="_parameter_visibility_registry")
     paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionRegistry](
         path="_paramset_descriptions_registry"

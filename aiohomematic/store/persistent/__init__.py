@@ -12,6 +12,7 @@ Package structure
 -----------------
 - base: BasePersistentFile abstract base class
 - device: DeviceDescriptionRegistry for device/channel metadata
+- incident: IncidentStore for diagnostic incident snapshots
 - paramset: ParamsetDescriptionRegistry for parameter descriptions
 - session: SessionRecorder for RPC call/response recording
 
@@ -24,6 +25,7 @@ Key behaviors
 Public API
 ----------
 - DeviceDescriptionRegistry: Device and channel description storage
+- IncidentStore: Persistent diagnostic incident storage
 - ParamsetDescriptionRegistry: Paramset description storage
 - SessionRecorder: RPC session recording for testing
 - cleanup_files: Clean up cache files for a central unit
@@ -39,6 +41,7 @@ from aiohomematic.async_support import loop_check
 from aiohomematic.const import SUB_DIRECTORY_CACHE, SUB_DIRECTORY_SESSION
 from aiohomematic.store.persistent.base import get_file_name, get_file_path
 from aiohomematic.store.persistent.device import DeviceDescriptionRegistry
+from aiohomematic.store.persistent.incident import IncidentStore
 from aiohomematic.store.persistent.paramset import ParamsetDescriptionRegistry
 from aiohomematic.store.persistent.session import SessionRecorder
 from aiohomematic.support import delete_file
@@ -48,6 +51,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 __all__ = [
     # Registries
     "DeviceDescriptionRegistry",
+    "IncidentStore",
     "ParamsetDescriptionRegistry",
     "SessionRecorder",
     # Utilities

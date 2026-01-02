@@ -152,12 +152,12 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │   │   ├── operations.py           # Cache & visibility protocols
 │   │   └── coordinators.py         # Coordinator protocols
 │   │
-│   ├── store/                       # Persistence and caching (17 files)
+│   ├── store/                       # Persistence and caching (18 files)
 │   │   ├── __init__.py             # Store orchestration and re-exports
-│   │   ├── types.py                # Shared type definitions (CachedCommand, PongTracker)
+│   │   ├── types.py                # Shared type definitions (CachedCommand, PongTracker, PingPongJournal)
 │   │   ├── serialization.py        # Session recording utilities
-│   │   ├── persistent/             # Disk-backed caches (5 files)
-│   │   │   └── device.py, paramset.py, session.py, base.py
+│   │   ├── persistent/             # Disk-backed caches (6 files)
+│   │   │   └── device.py, paramset.py, session.py, incident.py, base.py
 │   │   ├── dynamic/                # In-memory caches (5 files)
 │   │   │   └── command.py, data.py, details.py, ping_pong.py
 │   │   └── visibility/             # Parameter filtering rules (3 files)
@@ -808,9 +808,9 @@ await central.stop()
 
 **Responsibility**: Caching and persistence
 
-- **Persistent**: DeviceDescriptionCache, ParamsetDescriptionCache (disk)
-- **Dynamic**: CentralDataCache, CommandCache, PingPongCache (memory)
-- **Visibility**: ParameterVisibilityCache (filtering rules)
+- **Persistent**: DeviceDescriptionRegistry, ParamsetDescriptionRegistry, IncidentStore, SessionRecorder (disk)
+- **Dynamic**: CentralDataCache, CommandCache, PingPongTracker (memory)
+- **Visibility**: ParameterVisibilityRegistry (filtering rules)
 
 ### Design Patterns Used
 
@@ -993,6 +993,7 @@ class CentralInfoProtocol(Protocol):
 - **HubDataPointManagerProtocol**: Hub data point management (programs and sysvars)
 - **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
 - **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
+- **IncidentRecorderProtocol**: Incident recording for diagnostics (record_incident method)
 
 CentralUnit implements all protocols with explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 

@@ -266,6 +266,7 @@ from aiohomematic.interfaces.operations import (
     CacheWithStatisticsProtocol,
     DeviceDescriptionProviderProtocol,
     DeviceDetailsProviderProtocol,
+    IncidentRecorderProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
@@ -342,6 +343,8 @@ __all__ = [
     "HubDataFetcherProtocol",
     "HubDataPointManagerProtocol",
     "HubFetchOperationsProtocol",
+    # Incident recording
+    "IncidentRecorderProtocol",
     # Metrics
     "MetricsProviderProtocol",
     # Model channel

@@ -1,3 +1,36 @@
+# Version 2026.1.5 (2026-01-02)
+
+## What's Changed
+
+### New Features
+
+- **Add IncidentStore for Persistent Diagnostic Incidents**: New storage system for tracking and persisting diagnostic incidents
+
+  - Introduces `IncidentStore` in `aiohomematic/store/persistent/incident.py`
+  - Implements save-on-incident, load-on-demand persistence strategy
+  - Stores incidents in `{storage_path}/cache/{central_name}_hm_incidents.json`
+  - Automatic cleanup of old incidents (default: 7 days retention)
+  - Incidents are deleted when integration is removed via `cleanup_files()`
+
+- **PingPong Tracker Incident Recording**: Connection health issues are now recorded as incidents
+
+  - `PING_PONG_MISMATCH_HIGH` (ERROR): When pending PONG count exceeds threshold
+  - `PING_PONG_UNKNOWN_HIGH` (WARNING): When unknown PONG count exceeds threshold
+  - Incidents include context (counts, thresholds) and journal excerpts for debugging
+  - Added `IncidentRecorderProtocol` for decoupled incident recording
+
+- **PingPong Diagnostics Journal**: Enhanced diagnostic capabilities for connection monitoring
+
+  - `PingPongJournal` ring buffer tracks PING/PONG events with timestamps
+  - RTT (round-trip time) statistics available via `get_rtt_statistics()`
+  - Journal excerpts attached to incidents for post-mortem analysis
+
+### Documentation
+
+- Added `docs/analysis/pingpong_analysis.md` with comprehensive PingPong system documentation
+
+---
+
 # Version 2026.1.4 (2026-01-02)
 
 ## What's Changed

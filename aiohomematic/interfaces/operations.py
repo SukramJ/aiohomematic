@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Coroutine, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
@@ -21,6 +21,7 @@ from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 if TYPE_CHECKING:
     from aiohomematic.interfaces import ChannelProtocol
     from aiohomematic.store import CacheName, CacheStatistics
+    from aiohomematic.store.types import IncidentSeverity, IncidentSnapshot, IncidentType, PingPongJournal
 
 
 @runtime_checkable
@@ -192,3 +193,25 @@ class CacheWithStatisticsProtocol(Protocol):
     @abstractmethod
     def statistics(self) -> CacheStatistics:
         """Return the cache statistics container."""
+
+
+@runtime_checkable
+class IncidentRecorderProtocol(Protocol):
+    """
+    Protocol for recording diagnostic incidents.
+
+    Implemented by IncidentStore.
+    """
+
+    @abstractmethod
+    def record_incident(
+        self,
+        *,
+        incident_type: IncidentType,
+        severity: IncidentSeverity,
+        message: str,
+        interface_id: str | None = None,
+        context: dict[str, Any] | None = None,
+        journal: PingPongJournal | None = None,
+    ) -> Coroutine[Any, Any, IncidentSnapshot]:
+        """Record a new incident and persist it."""

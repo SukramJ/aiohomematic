@@ -82,7 +82,7 @@ jobs:
       TAG_NAME: ${{ github.event.release.tag_name || github.event.client_payload.tag }}
     steps:
       - name: Download built distributions
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: release-dists
           path: dist/

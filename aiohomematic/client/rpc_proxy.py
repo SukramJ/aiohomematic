@@ -382,6 +382,59 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 )
 
 
+class NullRpcProxy(BaseRpcProxy):
+    """
+    Null RPC proxy for clients that don't use XML-RPC.
+
+    Used by ClientJsonCCU to satisfy handler initialization requirements
+    without creating actual XML-RPC connections. All operations raise
+    UnsupportedException if called.
+    """
+
+    def __init__(
+        self,
+        *,
+        interface_id: str,
+        connection_state: hmcu.CentralConnectionState,
+        event_bus: EventBus | None = None,
+    ) -> None:
+        """Initialize null proxy."""
+        super().__init__(
+            max_workers=0,
+            interface_id=interface_id,
+            connection_state=connection_state,
+            magic_method=self._null_method,
+            tls=False,
+            verify_tls=False,
+            session_recorder=None,
+            event_bus=event_bus,
+        )
+
+    async def do_init(self) -> None:
+        """No-op initialization."""
+
+    async def _async_request(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Raise UnsupportedException for any RPC request."""
+        raise UnsupportedException(
+            i18n.tr(key="exception.client.xmlrpc.null_proxy_unsupported", interface_id=self._interface_id)
+        )
+
+    def _null_method(
+        self,
+        request_func: Any,  # noqa: ARG002
+        *args: Any,
+        **kwargs: Any,  # noqa: ARG002
+    ) -> Any:
+        """Return a callable that raises UnsupportedException."""
+
+        async def _raise(*args: Any, **kwargs: Any) -> None:  # noqa: ARG001
+            raise UnsupportedException(
+                i18n.tr(key="exception.client.xmlrpc.null_proxy_unsupported", interface_id=self._interface_id)
+            )
+
+        return _raise
+
+
 def _cleanup_args(*args: Any) -> Any:
     """Cleanup the type of args."""
     if len(args[1]) == 0:

@@ -52,6 +52,7 @@
   "exception.client.xmlrpc.method_unsupported": "XmlRPC.__ASYNC_REQUEST: method '{method} not supported by the backend.",
   "exception.client.xmlrpc.no_connection": "No connection to {interface_id}",
   "exception.client.xmlrpc.no_connection_with_reason": "No connection to {context}: {reason}",
+  "exception.client.xmlrpc.null_proxy_unsupported": "XML-RPC not supported on {interface_id} - use JSON-RPC methods instead",
   "exception.client.xmlrpc.os_error": "OSError on {interface_id}: {reason}",
   "exception.client.xmlrpc.ssl_error": "SSLError on {interface_id}: {reason}",
   "exception.config.check.callback_host.invalid": "Invalid callback hostname or ipv4 address",

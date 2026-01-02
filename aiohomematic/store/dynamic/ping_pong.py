@@ -216,9 +216,9 @@ class PingPongTracker:
                         )
                     )
                 self._unknown.logged = True
-            else:
-                # For unknown pongs, only reset the logged flag when we drop below the threshold.
-                # We do not publish an event here since there is no explicit expectation for a reset notification.
+            elif self._unknown.logged:
+                # Publish reset event when dropping below threshold after being in high state.
+                _publish_event(mismatch_count=0)
                 self._unknown.logged = False
 
     def _cleanup_tracker(self, *, tracker: PongTracker, tracker_name: str) -> None:

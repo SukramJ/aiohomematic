@@ -160,6 +160,29 @@ class TestGenericSelect:
         )
         assert select.value == "CLOSED"
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, ["WINDOW_STATE"]),
+        ],
+    )
+    async def test_hmselect_un_ignore_creates_data_point(self, central_client_factory_with_homegear_client) -> None:
+        """Test that un_ignore makes WINDOW_STATE data point usage DATA_POINT."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        select: DpSelect = cast(
+            DpSelect,
+            central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+        )
+        # When WINDOW_STATE is un-ignored, usage should be DATA_POINT
+        assert select.is_un_ignored is True
+        assert select.usage == DataPointUsage.DATA_POINT
+
 
 class TestSysvarSelect:
     """Tests for sysvar select data points."""

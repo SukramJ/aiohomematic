@@ -1,3 +1,23 @@
+# Version 2026.1.4 (2026-01-02)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix PingPong Unknown Issue Not Cleared**: Unknown PONG mismatch issues are now properly cleared when conditions normalize
+
+  - Previously, when unknown PONGs exceeded the threshold (15), a repair issue was created but never removed
+  - Now a reset event (`mismatch_count=0`) is published when the count drops below the threshold
+  - Matches the existing behavior for pending PING mismatches
+
+- **Fix OperatingVoltageLevel Shows Unknown After Restart** (Issue #2674): Battery parameters now load from cache on startup
+
+  - Previously, parameters with `ignore_on_initial_load=True` (e.g., `OPERATING_VOLTAGE`, `LOW_BAT`) would remain "Unknown" after HA restart until the device was triggered
+  - Now these parameters load from the persistent data cache while still skipping RPC calls to avoid waking battery devices
+  - Calculated data points like `OperatingVoltageLevel` now show their cached values immediately after restart
+
+---
+
 # Version 2026.1.3 (2026-01-02)
 
 ## What's Changed

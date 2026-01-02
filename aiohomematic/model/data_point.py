@@ -925,6 +925,21 @@ class BaseParameterDataPoint[
             CallSource.HM_INIT,
             CallSource.HA_INIT,
         ):
+            # For ignored parameters, only try to load from cache (no RPC call).
+            # This allows calculated data points to get their values on restart
+            # without waking up battery-powered devices.
+            if (
+                self._paramset_key == ParamsetKey.VALUES
+                and (
+                    cached_value := self._device.data_cache_provider.get_data(
+                        interface=self._device.interface,
+                        channel_address=self._channel.address,
+                        parameter=self._parameter,
+                    )
+                )
+                != NO_CACHE_ENTRY
+            ):
+                self.write_value(value=cached_value, write_at=datetime.now())
             return
 
         if direct_call is False and hms.changed_within_seconds(last_change=self._refreshed_at):

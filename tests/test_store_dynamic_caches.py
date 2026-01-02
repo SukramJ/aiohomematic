@@ -385,6 +385,47 @@ class TestPingPongTracker:
         # Expect events only for even counts up to 4
         assert counts == [2, 4]
 
+    def test_pingpongcache_unknown_pong_publishes_reset_event_on_drop_from_high(self) -> None:
+        """Ensure a reset event (mismatch_count=0) is published when unknown pong count drops below threshold."""
+        central = CentralStub()
+        ppc = PingPongTracker(
+            event_bus_provider=central, central_info=central, interface_id="ifUR", allowed_delta=1, ttl=5
+        )
+
+        # Add two unknown pongs to exceed allowed_delta=1 (puts us in "high" state)
+        ts1 = str(datetime.now() + timedelta(seconds=1000))
+        ts2 = str(datetime.now() + timedelta(seconds=1001))
+        ppc.handle_received_pong(pong_token=ts1)
+        ppc.handle_received_pong(pong_token=ts2)
+
+        # Verify we're in high state
+        assert ppc._unknown.logged is True
+
+        # Simulate TTL expiry by manipulating the seen_at timestamps
+        # Set timestamps to be older than TTL (5 seconds ago)
+        old_time = time.monotonic() - 10  # 10 seconds ago, well past TTL of 5
+        ppc._unknown.seen_at[ts1] = old_time
+        ppc._unknown.seen_at[ts2] = old_time
+
+        # Trigger cleanup by calling _check_and_publish_pong_event
+        # (this happens internally when new pongs arrive or during normal operation)
+        ppc._check_and_publish_pong_event(mismatch_type=PingPongMismatchType.UNKNOWN)
+
+        # Now we should be in low state and a reset event should have been published
+        assert ppc._unknown.logged is False
+
+        # Extract unknown events and their mismatch counts
+        unk_events = [
+            get_ping_pong_info(e)
+            for e in central.events
+            if get_ping_pong_info(e)[1] == PingPongMismatchType.UNKNOWN.value
+        ]
+        mismatch_counts = [info[2] for info in unk_events]
+
+        # There must be one event with mismatch 2 (high), and exactly one reset (0)
+        assert 2 in mismatch_counts
+        assert mismatch_counts.count(0) == 1
+
     def test_pingpongcache_unknown_pong_warning_and_event(
         self,
         caplog: pytest.LogCaptureFixture,

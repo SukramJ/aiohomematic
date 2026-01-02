@@ -4,13 +4,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import cast
 from unittest.mock import MagicMock, call
 
 import pytest
 
 from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
-from aiohomematic.const import CallSource, DataPointUsage, ParamsetKey
+from aiohomematic.const import CallSource, DataPointUsage, Interface, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters
 from aiohomematic.model.generic import DpSensor, DpSwitch
 from aiohomematic.store.visibility import check_ignore_parameters_is_clean
@@ -265,3 +266,107 @@ class TestWrappedDataPoint:
         assert wrapped_data_point._is_forced_sensor is True
         assert wrapped_data_point.category == "sensor"
         assert wrapped_data_point.usage == DataPointUsage.DATA_POINT
+
+
+class TestIgnoreOnInitialLoad:
+    """Tests for ignore_on_initial_load parameter handling."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ignore_on_initial_load_no_cache_remains_none(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Test that ignore_on_initial_load data points with no cache stay None.
+
+        When there's no cached value and ignore_on_initial_load=True,
+        the value should remain None (no RPC call to wake battery devices).
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+        )
+        assert switch.value is None
+
+        # Record the number of method calls before our test
+        call_count_before = len(mock_client.method_calls)
+
+        # Mock the data point to have ignore_on_initial_load=True
+        switch._ignore_on_initial_load = True
+
+        # Try to load the value with HA_INIT call source (no cache, should not call backend)
+        await switch.load_data_point_value(call_source=CallSource.HA_INIT)
+
+        # Value should remain None (no cache, and we don't make RPC calls for ignored params)
+        assert switch.value is None
+
+        # Verify no RPC calls were made
+        assert len(mock_client.method_calls) == call_count_before
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ignore_on_initial_load_uses_cache(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Test that ignore_on_initial_load data points load from cache on init.
+
+        Regression test for issue #2674:
+        OperatingVoltageLevel sensor shows unknown after restart until device is triggered.
+        The fix ensures that even when ignore_on_initial_load=True, cached values are used.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        # Get a data point to test
+        switch: DpSwitch = cast(
+            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+        )
+        assert switch.value is None
+
+        # Pre-populate the central data cache with a value (use BIDCOS_RF, matching test fixture)
+        cache_key = f"{Interface.BIDCOS_RF}.VCU2128127:4.STATE"
+        data_cache = central.cache_coordinator.data_cache
+        data_cache._value_cache.setdefault(Interface.BIDCOS_RF, {})[cache_key] = True
+        # Set refreshed_at to prevent cache from being considered stale
+        data_cache._refreshed_at[Interface.BIDCOS_RF] = datetime.now()
+
+        # Record the number of method calls before our test
+        call_count_before = len(mock_client.method_calls)
+
+        # Mock the data point to have ignore_on_initial_load=True
+        switch._ignore_on_initial_load = True
+
+        # Try to load the value with HA_INIT call source (should use cache, not RPC)
+        await switch.load_data_point_value(call_source=CallSource.HA_INIT)
+
+        # Verify the value was loaded from cache
+        assert switch.value is True
+
+        # Verify is_refreshed and is_valid are True after loading from cache
+        # This is critical for HA integration - if is_valid is False, HA marks the entity as "restored"
+        assert switch.is_refreshed is True
+        assert switch.is_valid is True
+
+        # Verify no RPC calls were made (should have used cache only)
+        assert len(mock_client.method_calls) == call_count_before

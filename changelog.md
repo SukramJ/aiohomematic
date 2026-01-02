@@ -25,6 +25,12 @@
   - RTT (round-trip time) statistics available via `get_rtt_statistics()`
   - Journal excerpts attached to incidents for post-mortem analysis
 
+### Bug Fixes
+
+- **Fix KeyError for PARENT in Device Descriptions**: Use `.get()` to safely access optional `PARENT` field
+  - Some device descriptions may not include the `PARENT` key
+  - Fixes `KeyError: 'PARENT'` during device discovery
+
 ### Documentation
 
 - Added `docs/analysis/pingpong_analysis.md` with comprehensive PingPong system documentation

@@ -1,3 +1,15 @@
+# Version 2026.1.3 (2026-01-02)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix PingPong Race Condition**: Register ping token in tracker _before_ sending the ping request
+  - Previously, the CCU could respond with PONG before the token was registered, causing false "unknown PONG" counts
+  - Now the token is tracked before `await proxy.ping()`, eliminating the race condition
+
+---
+
 # Version 2026.1.2 (2026-01-01)
 
 ## What's Changed

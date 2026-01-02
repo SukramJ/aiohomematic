@@ -382,9 +382,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             dt_now = datetime.now()
             if handle_ping_pong and self.supports_ping_pong and self.is_initialized:
                 token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
-                callerId = f"{self.interface_id}#{token}" if handle_ping_pong else self.interface_id
-                await self._proxy.ping(callerId)
+                callerId = f"{self.interface_id}#{token}"
+                # Register token BEFORE sending ping to avoid race condition:
+                # CCU may respond with PONG before await returns
                 self._ping_pong_tracker.handle_send_ping(ping_token=token)
+                await self._proxy.ping(callerId)
             elif not self.is_initialized:
                 await self._proxy.ping(self.interface_id)
             self.modified_at = dt_now

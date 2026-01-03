@@ -167,7 +167,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Initialize the Client."""
         self._config: Final = client_config
         self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
-        self._last_value_send_tracker = CommandTracker(
+        self._last_value_send_tracker: Final = CommandTracker(
             interface_id=client_config.interface_id,
         )
         self._state_machine: Final = ClientStateMachine(

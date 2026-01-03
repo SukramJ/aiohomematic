@@ -947,17 +947,17 @@ class EventBus:
                 If provided, publish_sync() will use it instead of raw asyncio.
 
         """
-        self._subscriptions: dict[type[Event], dict[Any, list[_PrioritizedHandler]]] = defaultdict(
+        self._subscriptions: Final[dict[type[Event], dict[Any, list[_PrioritizedHandler]]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        self._enable_event_logging = enable_event_logging
-        self._event_count: dict[type[Event], int] = defaultdict(int)
+        self._enable_event_logging: Final = enable_event_logging
+        self._event_count: Final[dict[type[Event], int]] = defaultdict(int)
         self._handler_order_counter: int = 0  # For stable sorting within same priority
-        self._task_scheduler = task_scheduler
+        self._task_scheduler: Final = task_scheduler
         # Track pending tasks to prevent garbage collection (used only when no task_scheduler)
-        self._pending_tasks: set[asyncio.Task[None]] = set()
+        self._pending_tasks: Final[set[asyncio.Task[None]]] = set()
         # Handler execution statistics for metrics
-        self._handler_stats = HandlerStats()
+        self._handler_stats: Final = HandlerStats()
 
     def clear_event_stats(self) -> None:
         """Clear event statistics counters to free memory."""

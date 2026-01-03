@@ -37,7 +37,7 @@ class CentralConnectionState:
         """Initialize the CentralConnectionStatus."""
         self._json_issues: Final[list[str]] = []
         self._rpc_proxy_issues: Final[list[str]] = []
-        self._event_bus_provider = event_bus_provider
+        self._event_bus_provider: Final = event_bus_provider
 
     @property
     def has_any_issue(self) -> bool:

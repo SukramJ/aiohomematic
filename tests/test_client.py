@@ -480,7 +480,11 @@ class _FakeCentral2:
         if not push_updates:
             self.config.interfaces_requiring_periodic_refresh = {Interface.BIDCOS_RF}
 
-        self.looper = SimpleNamespace(create_task=lambda **kwargs: None)  # type: ignore[misc]
+        def _close_task(*, target: Any, name: str) -> None:  # noqa: ARG001
+            """Close coroutine to avoid 'never awaited' warning."""
+            target.close()
+
+        self.looper = SimpleNamespace(create_task=_close_task)  # type: ignore[misc]
 
     @property
     def cache_coordinator(self):  # noqa: D401,ANN201

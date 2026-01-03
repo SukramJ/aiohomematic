@@ -1,3 +1,21 @@
+# Version 2026.1.8 (2026-01-03)
+
+## What's Changed
+
+### Improvements
+
+- **Reduce RPC Error Log Noise**: Expected RPC errors during initial data loading no longer clutter the logs
+
+  - Added `_XmlRpcFaultCode` enum documenting all Homematic XML-RPC error codes (-1 to -10)
+  - Expected errors (Unknown Parameter, UNREACH, Unknown Device, etc.) now recorded with WARNING severity
+  - Incident Store always logs at DEBUG level - its purpose is recording, not active logging
+  - Active logging remains at the source (`log_boundary_error`, `@inspector` decorator)
+  - Eliminates duplicate logging between Incident Store and boundary error handlers
+
+- **Increase Incident Store Capacity**: Raised `INCIDENT_STORE_MAX_PER_TYPE` from 20 to 50 for better diagnostics
+
+---
+
 # Version 2026.1.7 (2026-01-03)
 
 ## What's Changed

@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.7"
+VERSION: Final = "2026.1.8"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -190,7 +190,7 @@ FILE_INCIDENTS: Final = "homematic_incidents"
 FILE_PARAMSETS: Final = "homematic_paramsets"
 FILE_SESSION_RECORDER: Final = "homematic_session_recorder"
 FILE_NAME_TS_PATTERN: Final = "%Y%m%d_%H%M%S"
-INCIDENT_STORE_MAX_PER_TYPE: Final = 20
+INCIDENT_STORE_MAX_PER_TYPE: Final = 50
 SUB_DIRECTORY_CACHE: Final = "cache"
 SUB_DIRECTORY_SESSION: Final = "session"
 HUB_PATH: Final = "hub"

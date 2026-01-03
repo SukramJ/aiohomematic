@@ -95,6 +95,58 @@ _OS_ERROR_CODES: Final[dict[int, str]] = {
 }
 
 
+class _XmlRpcFaultCode(IntEnum):
+    """
+    XML-RPC fault codes from the Homematic backend.
+
+    Reference: CCU documentation for XML-RPC fault codes.
+    """
+
+    GENERIC_ERROR = -1
+    """General error (often UNREACH - device temporarily unreachable)."""
+
+    UNKNOWN_DEVICE = -2
+    """Unknown device or channel."""
+
+    UNKNOWN_PARAMSET = -3
+    """Unknown paramset."""
+
+    ADDRESS_EXPECTED = -4
+    """Device address was expected."""
+
+    UNKNOWN_PARAMETER = -5
+    """Unknown parameter or value."""
+
+    OPERATION_NOT_SUPPORTED = -6
+    """Operation not supported by this parameter."""
+
+    UPDATE_NOT_POSSIBLE = -7
+    """Interface cannot perform update."""
+
+    INSUFFICIENT_DUTYCYCLE = -8
+    """Not enough DutyCycle available."""
+
+    DEVICE_OUT_OF_RANGE = -9
+    """Device is not in range."""
+
+    TRANSMISSION_PENDING = -10
+    """Transmission to device pending."""
+
+
+# Fault codes that are expected during initial data loading and normal operation.
+# These indicate transient or known conditions, not actual system errors.
+_EXPECTED_XMLRPC_FAULT_CODES: Final[frozenset[int]] = frozenset(
+    {
+        _XmlRpcFaultCode.GENERIC_ERROR,
+        _XmlRpcFaultCode.UNKNOWN_DEVICE,
+        _XmlRpcFaultCode.UNKNOWN_PARAMSET,
+        _XmlRpcFaultCode.UNKNOWN_PARAMETER,
+        _XmlRpcFaultCode.DEVICE_OUT_OF_RANGE,
+        _XmlRpcFaultCode.TRANSMISSION_PENDING,
+    }
+)
+
+
 # noinspection PyProtectedMember,PyUnresolvedReferences
 class BaseRpcProxy(ABC):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
@@ -182,8 +234,21 @@ class BaseRpcProxy(ABC):
         error_type: str,
         error_message: str,
         protocol: str = "xml-rpc",
+        is_expected: bool = False,
     ) -> None:
-        """Record an RPC_ERROR incident for diagnostics."""
+        """
+        Record an RPC_ERROR incident for diagnostics.
+
+        Args:
+            method: RPC method that failed.
+            error_type: Type of error (e.g., XMLRPCFault, OSError).
+            error_message: Error message from the exception.
+            protocol: RPC protocol used (xml-rpc or json-rpc).
+            is_expected: If True, use WARNING severity instead of ERROR.
+                Expected errors are common during data loading (e.g., unknown
+                parameters, unreachable devices) and should not clutter logs.
+
+        """
         if (incident_recorder := self._incident_recorder) is None:
             return
 
@@ -192,6 +257,9 @@ class BaseRpcProxy(ABC):
 
         # Sanitize error message to remove sensitive information
         sanitized_message = sanitize_error_message(message=error_message)
+
+        # Use WARNING for expected errors to reduce log noise
+        severity = IncidentSeverity.WARNING if is_expected else IncidentSeverity.ERROR
 
         context = {
             "protocol": protocol,
@@ -205,7 +273,7 @@ class BaseRpcProxy(ABC):
             try:
                 await incident_recorder.record_incident(
                     incident_type=IncidentType.RPC_ERROR,
-                    severity=IncidentSeverity.ERROR,
+                    severity=severity,
                     message=f"RPC error on {self._interface_id}: {error_type} during {method}",
                     interface_id=self._interface_id,
                     context=context,
@@ -392,6 +460,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 method=str(args[0]),
                 error_type="XMLRPCFault",
                 error_message=f"Code {flt.faultCode}: {flt.faultString}",
+                is_expected=flt.faultCode in _EXPECTED_XMLRPC_FAULT_CODES,
             )
             raise map_xmlrpc_fault(code=flt.faultCode, fault_string=flt.faultString, ctx=ctx) from flt
         except TypeError as terr:

@@ -11,6 +11,7 @@ All tests include a docstring.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from aiohomematic.central.events import EventBus
 from aiohomematic.const import Parameter, ParamsetKey
@@ -24,11 +25,18 @@ class _Cfg:
     ignore_custom_device_definition_models: frozenset[str] = frozenset({"hmip-ignored*"})
 
 
+class _NoOpTaskScheduler:
+    """Task scheduler that does nothing - for sync tests without event loop."""
+
+    def create_task(self, *, target: Any, name: str) -> None:  # noqa: ARG002
+        """Ignore task creation in sync tests."""
+
+
 class _EventBusProvider:
     """Minimal event bus provider stub for tests."""
 
     def __init__(self) -> None:
-        self._event_bus = EventBus()
+        self._event_bus = EventBus(task_scheduler=_NoOpTaskScheduler())
 
     @property
     def event_bus(self) -> EventBus:

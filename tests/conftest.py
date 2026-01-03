@@ -16,8 +16,10 @@ from aiohttp import ClientSession
 import pydevccu
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralUnit
-from aiohomematic.central.events import DeviceLifecycleEvent, DeviceTriggerEvent
+from aiohomematic.central.events import DeviceLifecycleEvent, DeviceTriggerEvent, EventBus
+from aiohomematic.client import CircuitBreaker
 from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import (
@@ -226,3 +228,24 @@ def event_capture() -> Generator[EventCapture]:
         yield capture
     finally:
         capture.cleanup()
+
+
+# Task scheduler and event bus fixtures
+
+
+@pytest.fixture
+def looper() -> Looper:
+    """Provide a Looper instance for task scheduling in tests."""
+    return Looper()
+
+
+@pytest.fixture
+def event_bus(looper: Looper) -> EventBus:
+    """Provide an EventBus instance with task_scheduler for tests."""
+    return EventBus(task_scheduler=looper)
+
+
+@pytest.fixture
+def circuit_breaker(looper: Looper, event_bus: EventBus) -> CircuitBreaker:
+    """Provide a CircuitBreaker instance for tests."""
+    return CircuitBreaker(interface_id="test", event_bus=event_bus, task_scheduler=looper)

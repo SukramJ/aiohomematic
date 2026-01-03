@@ -1,3 +1,17 @@
+# Version 2026.1.7 (2026-01-03)
+
+## What's Changed
+
+### Internal
+
+- **Remove asyncio Fallbacks**: Made `task_scheduler` a required parameter in core infrastructure classes
+  - `EventBus`, `CircuitBreaker`, and `Storage` now require explicit `TaskSchedulerProtocol` injection
+  - Removes runtime asyncio event loop fallback code that was only used in tests
+  - Improves code clarity and ensures consistent dependency injection patterns
+  - Test infrastructure updated with `_NoOpTaskScheduler` for synchronous tests
+
+---
+
 # Version 2026.1.6 (2026-01-03)
 
 ## What's Changed

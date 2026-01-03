@@ -46,11 +46,18 @@ def get_ping_pong_info(event: SystemStatusChangedEvent) -> tuple[str | None, str
     return (None, None, None, True)
 
 
+class _NoOpTaskScheduler:
+    """Task scheduler that does nothing - for sync tests without event loop."""
+
+    def create_task(self, *, target: Any, name: str) -> None:  # noqa: ARG002
+        """Ignore task creation in sync tests."""
+
+
 class _CapturingEventBus(EventBus):
     """EventBus subclass that captures all published events for testing."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *, task_scheduler: Any) -> None:
+        super().__init__(task_scheduler=task_scheduler)
         self.captured_events: list[SystemStatusChangedEvent] = []
 
     def publish_sync(self, *, event: Any) -> None:
@@ -66,7 +73,7 @@ class CentralStub:
     def __init__(self, name: str = "central-stub") -> None:
         """Initialize the stub with a name and event collection storage."""
         self.name = name
-        self._event_bus = _CapturingEventBus()
+        self._event_bus = _CapturingEventBus(task_scheduler=_NoOpTaskScheduler())
         # Properties for protocol compatibility
         self.available = True
         self.model = "Test"

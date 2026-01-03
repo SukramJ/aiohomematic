@@ -97,7 +97,7 @@ class _FakeHealthTracker:
 class _FakeEventBus:
     """Minimal fake EventBus for testing."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, task_scheduler: Any = None) -> None:
         """Initialize a fake event bus."""
         self._subscriptions: dict[str, list[Any]] = {}
 

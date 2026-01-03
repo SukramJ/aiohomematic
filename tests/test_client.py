@@ -259,9 +259,10 @@ class _FakeCentral:
     def __init__(self) -> None:
         from types import SimpleNamespace
 
+        from aiohomematic.async_support import Looper
         from aiohomematic.central.events import EventBus
 
-        self._event_bus = EventBus()
+        self._event_bus = EventBus(task_scheduler=Looper())
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = _FakeJsonRpcClient()
         self.device_details = _FakeDeviceDetails()
@@ -435,9 +436,10 @@ class _FakeCentral2:
     """
 
     def __init__(self, *, push_updates: bool = True) -> None:
+        from aiohomematic.async_support import Looper
         from aiohomematic.central.events import EventBus
 
-        self._event_bus = EventBus()
+        self._event_bus = EventBus(task_scheduler=Looper())
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = SimpleNamespace()  # not used in these tests
         self.device_details = SimpleNamespace(

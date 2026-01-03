@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central.events import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
@@ -33,7 +34,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_assert_event_emitted_success(self) -> None:
         """Test assert_event_emitted passes when event exists."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -58,7 +59,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_assert_event_emitted_with_count(self) -> None:
         """Test assert_event_emitted with count parameter."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -82,7 +83,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_assert_event_emitted_wrong_attrs(self) -> None:
         """Test assert_event_emitted fails with wrong attributes."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -106,7 +107,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_assert_no_event(self) -> None:
         """Test assert_no_event."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -132,7 +133,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_capture_multiple_event_types(self) -> None:
         """Test capturing multiple event types."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(
             event_bus,
@@ -165,7 +166,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_capture_single_event(self) -> None:
         """Test capturing a single event."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -185,7 +186,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_cleanup_unsubscribes(self) -> None:
         """Test cleanup properly unsubscribes from events."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -217,7 +218,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_clear(self) -> None:
         """Test clearing captured events."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -239,7 +240,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_get_event_count(self) -> None:
         """Test counting events by type."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
@@ -261,7 +262,7 @@ class TestEventCapture:
     @pytest.mark.asyncio
     async def test_get_events_of_type(self) -> None:
         """Test filtering events by type."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         capture = EventCapture()
         # Subscribe to specific event types (EventBus requires exact type matching)
         capture.subscribe_to(
@@ -359,7 +360,7 @@ class TestEventSequenceAssertion:
     @pytest.mark.asyncio
     async def test_strict_sequence_pass(self) -> None:
         """Test strict sequence verification passes."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         sequence = EventSequenceAssertion(
             expected_sequence=[
                 ConnectionStageChangedEvent,
@@ -445,7 +446,7 @@ class TestEventDrivenMockServer:
         """Test basic event handling."""
         from aiohomematic_test_support.event_mock import EventDrivenMockServer
 
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         results: list[CircuitBreakerTrippedEvent] = []
@@ -469,7 +470,7 @@ class TestEventDrivenMockServer:
         """Test cleanup unsubscribes and clears state."""
         from aiohomematic_test_support.event_mock import EventDrivenMockServer
 
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         results: list[CircuitBreakerTrippedEvent] = []
@@ -505,7 +506,7 @@ class TestEventDrivenMockServer:
         """Test invocation counting."""
         from aiohomematic_test_support.event_mock import EventDrivenMockServer
 
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=lambda e: None)
@@ -531,7 +532,7 @@ class TestEventDrivenMockServer:
         """Test filtering events by attributes."""
         from aiohomematic_test_support.event_mock import EventDrivenMockServer
 
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         results: list[CircuitBreakerTrippedEvent] = []
@@ -570,7 +571,7 @@ class TestEventDrivenMockServer:
         """Test one-shot handler is removed after first invocation."""
         from aiohomematic_test_support.event_mock import EventDrivenMockServer
 
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         results: list[CircuitBreakerTrippedEvent] = []
@@ -609,7 +610,7 @@ class TestEventDrivenMockServer:
         """Test publishing another event in response."""
         from aiohomematic_test_support.event_mock import EventDrivenMockServer
 
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         # When a trip happens, publish a state change

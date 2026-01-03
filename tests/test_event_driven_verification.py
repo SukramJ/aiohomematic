@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central.events import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
@@ -48,7 +49,8 @@ class TestCircuitBreakerEventVerification:
     @pytest.mark.asyncio
     async def test_circuit_breaker_recovery_emits_state_change(self, event_capture: EventCapture) -> None:
         """Test circuit breaker emits state change events during recovery cycle."""
-        event_bus = EventBus()
+        looper = Looper()
+        event_bus = EventBus(task_scheduler=looper)
         event_capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
 
         config = CircuitBreakerConfig(
@@ -60,6 +62,7 @@ class TestCircuitBreakerEventVerification:
             config=config,
             interface_id="test-hmip",
             event_bus=event_bus,
+            task_scheduler=looper,
         )
 
         # Trip the circuit
@@ -95,7 +98,8 @@ class TestCircuitBreakerEventVerification:
     @pytest.mark.asyncio
     async def test_circuit_breaker_trips_emits_event(self, event_capture: EventCapture) -> None:
         """Test circuit breaker emits CircuitBreakerTrippedEvent when tripping."""
-        event_bus = EventBus()
+        looper = Looper()
+        event_bus = EventBus(task_scheduler=looper)
         event_capture.subscribe_to(
             event_bus,
             CircuitBreakerTrippedEvent,
@@ -107,6 +111,7 @@ class TestCircuitBreakerEventVerification:
             config=config,
             interface_id="test-rf",
             event_bus=event_bus,
+            task_scheduler=looper,
         )
 
         # Simulate failures until circuit trips
@@ -134,7 +139,8 @@ class TestCircuitBreakerEventVerification:
     @pytest.mark.asyncio
     async def test_half_open_failure_reopens_circuit_via_events(self, event_capture: EventCapture) -> None:
         """Test half-open failure reopens circuit, verified via events."""
-        event_bus = EventBus()
+        looper = Looper()
+        event_bus = EventBus(task_scheduler=looper)
         event_capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=1, recovery_timeout=0.1)
@@ -142,6 +148,7 @@ class TestCircuitBreakerEventVerification:
             config=config,
             interface_id="test",
             event_bus=event_bus,
+            task_scheduler=looper,
         )
 
         # Open circuit
@@ -181,7 +188,7 @@ class TestIntegrationEventPatterns:
     @pytest.mark.asyncio
     async def test_data_refresh_events_integration(self, event_capture: EventCapture) -> None:
         """Test data refresh events are properly emitted."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(
             event_bus,
             DataRefreshTriggeredEvent,
@@ -230,7 +237,8 @@ class TestIntegrationEventPatterns:
     @pytest.mark.asyncio
     async def test_event_sequence_verification(self) -> None:
         """Test verifying event sequences using EventSequenceAssertion."""
-        event_bus = EventBus()
+        looper = Looper()
+        event_bus = EventBus(task_scheduler=looper)
 
         # Set up sequence assertion for expected state transitions
         sequence = EventSequenceAssertion(
@@ -255,6 +263,7 @@ class TestIntegrationEventPatterns:
             config=config,
             interface_id="test",
             event_bus=event_bus,
+            task_scheduler=looper,
         )
 
         # Trigger state change
@@ -268,7 +277,8 @@ class TestIntegrationEventPatterns:
     @pytest.mark.asyncio
     async def test_no_events_assertion(self, event_capture: EventCapture) -> None:
         """Test asserting no events of a type were emitted."""
-        event_bus = EventBus()
+        looper = Looper()
+        event_bus = EventBus(task_scheduler=looper)
         event_capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=5)
@@ -276,6 +286,7 @@ class TestIntegrationEventPatterns:
             config=config,
             interface_id="test",
             event_bus=event_bus,
+            task_scheduler=looper,
         )
 
         # Record failures below threshold
@@ -303,7 +314,7 @@ class TestPerformanceEventPatterns:
     @pytest.mark.asyncio
     async def test_coalescing_effectiveness(self, event_capture: EventCapture) -> None:
         """Test that request coalescing is working via events."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
@@ -346,7 +357,7 @@ class TestPerformanceEventPatterns:
     @pytest.mark.asyncio
     async def test_coalescing_reports_correct_interface(self, event_capture: EventCapture) -> None:
         """Test coalescing events include correct interface_id."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
@@ -381,7 +392,7 @@ class TestPerformanceEventPatterns:
     @pytest.mark.asyncio
     async def test_coalescing_with_different_keys(self, event_capture: EventCapture) -> None:
         """Test that different keys are not coalesced, verified via events."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
@@ -410,7 +421,8 @@ class TestEventCaptureUtilities:
     @pytest.mark.asyncio
     async def test_assert_event_emitted_with_count(self, event_capture: EventCapture) -> None:
         """Test asserting exact number of events."""
-        event_bus = EventBus()
+        looper = Looper()
+        event_bus = EventBus(task_scheduler=looper)
         event_capture.subscribe_to(event_bus, CircuitBreakerTrippedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=1)
@@ -418,6 +430,7 @@ class TestEventCaptureUtilities:
             config=config,
             interface_id="test",
             event_bus=event_bus,
+            task_scheduler=looper,
         )
 
         # Trip once
@@ -455,7 +468,8 @@ class TestEventCaptureUtilities:
     @pytest.mark.asyncio
     async def test_event_count(self, event_capture: EventCapture) -> None:
         """Test get_event_count method."""
-        event_bus = EventBus()
+        looper = Looper()
+        event_bus = EventBus(task_scheduler=looper)
         event_capture.subscribe_to(event_bus, CircuitBreakerStateChangedEvent)
 
         config = CircuitBreakerConfig(failure_threshold=1, success_threshold=1)
@@ -463,6 +477,7 @@ class TestEventCaptureUtilities:
             config=config,
             interface_id="test",
             event_bus=event_bus,
+            task_scheduler=looper,
         )
 
         # Trigger multiple state changes

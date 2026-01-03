@@ -21,7 +21,7 @@ Handler classes
 from __future__ import annotations
 
 from aiohomematic.client.handlers.backup import BackupHandler
-from aiohomematic.client.handlers.device_ops import DeviceHandler
+from aiohomematic.client.handlers.device_ops import DeviceHandler, _wait_for_state_change_or_timeout
 from aiohomematic.client.handlers.firmware import FirmwareHandler
 from aiohomematic.client.handlers.link_mgmt import LinkHandler
 from aiohomematic.client.handlers.metadata import MetadataHandler
@@ -36,4 +36,5 @@ __all__ = [
     "MetadataHandler",
     "ProgramHandler",
     "SystemVariableHandler",
+    "_wait_for_state_change_or_timeout",
 ]

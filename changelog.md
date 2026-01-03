@@ -1,3 +1,18 @@
+# Version 2026.1.6 (2026-01-03)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix CuXD/CCU-Jack Device Control**: `ClientJsonCCU` now properly overrides `set_value` and `put_paramset` to use JSON-RPC
+  - Root cause: After handler refactoring (#2554), `DeviceHandler` used XML-RPC proxy for all value operations
+  - `ClientJsonCCU` used `NullRpcProxy` which threw `UnsupportedException` for all RPC calls
+  - CuXD and CCU-Jack devices could not be controlled (set_value failed silently)
+  - Fix restores the JSON-RPC based value operations that worked in version 2025.11.7
+  - Added tests to verify `ClientJsonCCU` uses JSON-RPC for `set_value` and `put_paramset`
+
+---
+
 # Version 2026.1.5 (2026-01-02)
 
 ## What's Changed

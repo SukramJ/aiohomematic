@@ -225,8 +225,18 @@ class _FakeJsonRpcClient:
 class _FakeParamsetDescriptions:
     """Minimal paramset descriptions exposing required methods."""
 
-    def get_parameter_data(self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str):  # noqa: D401,ARG002
-        # Return a dict mimicking ParameterData with TYPE FLOAT for LEVEL
+    def __init__(self) -> None:
+        # Can be set by tests to provide custom paramset descriptions
+        self._raw_paramset_descriptions: dict[str, Any] = {}
+
+    def get_parameter_data(self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str):  # noqa: D401
+        # First check _raw_paramset_descriptions if set
+        if self._raw_paramset_descriptions:
+            try:
+                return self._raw_paramset_descriptions[interface_id][channel_address][paramset_key].get(parameter)
+            except KeyError:
+                pass
+        # Fallback: Return a dict mimicking ParameterData with TYPE FLOAT for LEVEL
         if parameter == "LEVEL":
             return {"TYPE": "FLOAT"}
         return None
@@ -312,6 +322,10 @@ class _FakeCentral:
 
     def get_client(self, *, interface_id: str):  # noqa: D401,ARG002
         return self._clients.get(interface_id)
+
+    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):  # noqa: D401,ARG002
+        """Return None - no data points in fake central."""
+        return
 
     def has_client(self, *, interface_id: str) -> bool:  # noqa: D401,ARG002
         return interface_id in self._clients
@@ -807,6 +821,130 @@ class TestClientClasses:
 
         client_ccu._proxy = _ErrProxy()  # type: ignore[attr-defined]
         assert await client_ccu.check_connection_availability(handle_ping_pong=True) is False
+
+    @pytest.mark.asyncio
+    async def test_clientjsonccu_put_paramset_uses_json_rpc(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify ClientJsonCCU.put_paramset uses JSON-RPC client, not XML-RPC proxy."""
+        central = _FakeCentral()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
+        from aiohomematic.client.rpc_proxy import NullRpcProxy
+
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
+        client_json = _ClientJsonCCU(client_config=ccfg)
+
+        # Initialize client
+        from aiohomematic.const import SystemInformation
+
+        client_json._system_information = SystemInformation(  # type: ignore[attr-defined]
+            available_interfaces=(Interface.CUXD,),
+            serial="CUxD_TEST",
+        )
+        client_json._proxy = NullRpcProxy(  # type: ignore[attr-defined]
+            interface_id=client_json.interface_id,
+            connection_state=central.connection_state,
+            event_bus=central.event_bus,
+        )
+        client_json._proxy_read = client_json._proxy  # type: ignore[attr-defined]
+        client_json._init_handlers()
+
+        # Track JSON-RPC calls
+        json_rpc_calls: list[str] = []
+
+        async def mock_set_value(
+            *, interface: Interface, address: str, parameter: str, value_type: str, value: Any
+        ) -> None:
+            json_rpc_calls.append(f"set_value:{address}:{parameter}:{value}")
+
+        monkeypatch.setattr(central.json_rpc_client, "set_value", mock_set_value)
+
+        # Mock paramset description
+        central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions = {
+            "c-CUxD": {
+                "dev1:1": {
+                    ParamsetKey.VALUES: {
+                        "STATE": {"TYPE": "BOOL", "OPERATIONS": 7},
+                        "LEVEL": {"TYPE": "FLOAT", "OPERATIONS": 7},
+                    },
+                }
+            }
+        }
+
+        # Call put_paramset - should use JSON-RPC via _exec_put_paramset
+        await client_json.put_paramset(
+            channel_address="dev1:1",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={"STATE": True, "LEVEL": 0.5},
+            wait_for_callback=None,
+        )
+
+        # Verify JSON-RPC was called for each value
+        assert len(json_rpc_calls) == 2
+        assert "set_value:dev1:1:STATE:True" in json_rpc_calls
+        assert "set_value:dev1:1:LEVEL:0.5" in json_rpc_calls
+
+    @pytest.mark.asyncio
+    async def test_clientjsonccu_set_value_uses_json_rpc(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """
+        Verify ClientJsonCCU.set_value uses JSON-RPC client, not XML-RPC proxy.
+
+        This test ensures that CuXD and CCU-Jack devices can be controlled via JSON-RPC.
+        The NullRpcProxy used by ClientJsonCCU would throw UnsupportedException if called.
+        """
+        central = _FakeCentral()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
+        from aiohomematic.client.rpc_proxy import NullRpcProxy
+
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
+        client_json = _ClientJsonCCU(client_config=ccfg)
+
+        # Initialize client - this sets up NullRpcProxy
+        from aiohomematic.const import SystemInformation
+
+        client_json._system_information = SystemInformation(  # type: ignore[attr-defined]
+            available_interfaces=(Interface.CUXD,),
+            serial="CUxD_TEST",
+        )
+        client_json._proxy = NullRpcProxy(  # type: ignore[attr-defined]
+            interface_id=client_json.interface_id,
+            connection_state=central.connection_state,
+            event_bus=central.event_bus,
+        )
+        client_json._proxy_read = client_json._proxy  # type: ignore[attr-defined]
+        client_json._init_handlers()
+
+        # Track JSON-RPC calls
+        json_rpc_calls: list[str] = []
+
+        async def mock_set_value(
+            *, interface: Interface, address: str, parameter: str, value_type: str, value: Any
+        ) -> None:
+            json_rpc_calls.append(f"set_value:{address}:{parameter}:{value}")
+
+        monkeypatch.setattr(central.json_rpc_client, "set_value", mock_set_value)
+
+        # Mock paramset description to provide parameter type
+        central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions = {
+            "c-CUxD": {
+                "dev1:1": {
+                    ParamsetKey.VALUES: {"STATE": {"TYPE": "BOOL", "OPERATIONS": 7}},
+                }
+            }
+        }
+
+        # Call set_value - should use JSON-RPC, not XML-RPC proxy
+        await client_json.set_value(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+            value=True,
+            wait_for_callback=None,
+        )
+
+        # Verify JSON-RPC was called
+        assert len(json_rpc_calls) == 1
+        assert json_rpc_calls[0] == "set_value:dev1:1:STATE:True"
 
     @pytest.mark.asyncio
     async def test_clientjsonccu_value_and_description_error(self, monkeypatch: pytest.MonkeyPatch) -> None:

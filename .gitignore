@@ -27,3 +27,4 @@ venv
 /aiohomematic_test_support/dist
 /docs/_build/doctrees
 *.zip
+*.log

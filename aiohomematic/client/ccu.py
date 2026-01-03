@@ -55,6 +55,7 @@ from aiohomematic.client.handlers import (
     MetadataHandler,
     ProgramHandler,
     SystemVariableHandler,
+    _wait_for_state_change_or_timeout,
 )
 from aiohomematic.client.request_coalescer import RequestCoalescer
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy, BaseRpcProxy, NullRpcProxy
@@ -100,7 +101,14 @@ from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientPro
 from aiohomematic.interfaces.model import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
-from aiohomematic.support import LogContextMixin, build_xml_rpc_headers, build_xml_rpc_uri, extract_exc_args
+from aiohomematic.support import (
+    LogContextMixin,
+    build_xml_rpc_headers,
+    build_xml_rpc_uri,
+    extract_exc_args,
+    get_device_address,
+    supports_rx_mode,
+)
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -1326,6 +1334,120 @@ class ClientJsonCCU(ClientCCU):
             )
         return None
 
+    @inspector(re_raise=False, no_raise_return=set())
+    async def put_paramset(
+        self,
+        *,
+        channel_address: str,
+        paramset_key_or_link_address: ParamsetKey | str,
+        values: dict[str, Any],
+        wait_for_callback: int | None = WAIT_FOR_CALLBACK,
+        rx_mode: CommandRxMode | None = None,
+        check_against_pd: bool = False,
+    ) -> set[DP_KEY_VALUE]:
+        """
+        Set paramsets manually via JSON-RPC.
+
+        Overrides the base class to use JSON-RPC instead of XML-RPC proxy.
+        """
+        try:
+            await self._exec_put_paramset(
+                channel_address=channel_address,
+                paramset_key=paramset_key_or_link_address,
+                values=values,
+                rx_mode=rx_mode,
+            )
+            # store the send value in the last_value_send_tracker
+            dpk_values = self._last_value_send_tracker.add_put_paramset(
+                channel_address=channel_address,
+                paramset_key=ParamsetKey(paramset_key_or_link_address),
+                values=values,
+            )
+            self._write_temporary_value(dpk_values=dpk_values)
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                i18n.tr(
+                    key="exception.client.put_paramset.failed",
+                    channel_address=channel_address,
+                    paramset_key=paramset_key_or_link_address,
+                    values=values,
+                    reason=extract_exc_args(exc=bhexc),
+                )
+            ) from bhexc
+        else:
+            return dpk_values
+
+    @inspector(re_raise=False, no_raise_return=set())
+    async def set_value(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        value: Any,
+        wait_for_callback: int | None = WAIT_FOR_CALLBACK,
+        rx_mode: CommandRxMode | None = None,
+        check_against_pd: bool = False,
+    ) -> set[DP_KEY_VALUE]:
+        """
+        Set single value on paramset VALUES via JSON-RPC.
+
+        Overrides the base class to use JSON-RPC instead of XML-RPC proxy.
+        """
+        if paramset_key != ParamsetKey.VALUES:
+            return await self.put_paramset(
+                channel_address=channel_address,
+                paramset_key_or_link_address=paramset_key,
+                values={parameter: value},
+                wait_for_callback=wait_for_callback,
+                rx_mode=rx_mode,
+                check_against_pd=check_against_pd,
+            )
+
+        try:
+            _LOGGER.debug("SET_VALUE: %s, %s, %s", channel_address, parameter, value)
+            if rx_mode and (device := self.central.device_coordinator.get_device(address=channel_address)):
+                if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
+                    await self._exec_set_value(
+                        channel_address=channel_address,
+                        parameter=parameter,
+                        value=value,
+                        rx_mode=rx_mode,
+                    )
+                else:
+                    raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
+            else:
+                await self._exec_set_value(channel_address=channel_address, parameter=parameter, value=value)
+
+            # store the send value in the last_value_send_tracker
+            dpk_values = self._last_value_send_tracker.add_set_value(
+                channel_address=channel_address, parameter=parameter, value=value
+            )
+            self._write_temporary_value(dpk_values=dpk_values)
+
+            if wait_for_callback is not None and (
+                device := self.central.device_coordinator.get_device(
+                    address=get_device_address(address=channel_address)
+                )
+            ):
+                await _wait_for_state_change_or_timeout(
+                    device=device,
+                    dpk_values=dpk_values,
+                    wait_for_callback=wait_for_callback,
+                )
+        except BaseHomematicException as bhexc:
+            raise ClientException(
+                i18n.tr(
+                    key="exception.client.set_value.failed",
+                    channel_address=channel_address,
+                    parameter=parameter,
+                    value=value,
+                    reason=extract_exc_args(exc=bhexc),
+                )
+            ) from bhexc
+        else:
+            return dpk_values
+
     async def _exec_put_paramset(
         self,
         *,
@@ -1418,6 +1540,18 @@ class ClientJsonCCU(ClientCCU):
             available_interfaces=(self.interface,),
             serial=f"{self.interface}_{DUMMY_SERIAL}",
         )
+
+    def _write_temporary_value(self, *, dpk_values: set[DP_KEY_VALUE]) -> None:
+        """Write temporary values to polling data points for immediate UI feedback."""
+        for dpk, value in dpk_values:
+            if (
+                data_point := self.central.get_generic_data_point(
+                    channel_address=dpk.channel_address,
+                    parameter=dpk.parameter,
+                    paramset_key=dpk.paramset_key,
+                )
+            ) and data_point.requires_polling:
+                data_point.write_temporary_value(value=value, write_at=datetime.now())
 
 
 class ClientHomegear(ClientCCU):

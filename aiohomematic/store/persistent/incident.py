@@ -49,13 +49,15 @@ if TYPE_CHECKING:
     from aiohomematic.store.storage import StorageProtocol
     from aiohomematic.store.types import PingPongJournal
 
+from aiohomematic.interfaces import IncidentRecorderProtocol
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 # Default retention period for incidents
 DEFAULT_MAX_AGE_DAYS: Final = 7
 
 
-class IncidentStore(BasePersistentCache):
+class IncidentStore(BasePersistentCache, IncidentRecorderProtocol):
     """
     Persistent store for diagnostic incidents.
 

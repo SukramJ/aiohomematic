@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
-from collections.abc import Callable, Coroutine, Mapping
+from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
@@ -204,7 +204,7 @@ class IncidentRecorderProtocol(Protocol):
     """
 
     @abstractmethod
-    def record_incident(
+    async def record_incident(
         self,
         *,
         incident_type: IncidentType,
@@ -213,5 +213,5 @@ class IncidentRecorderProtocol(Protocol):
         interface_id: str | None = None,
         context: dict[str, Any] | None = None,
         journal: PingPongJournal | None = None,
-    ) -> Coroutine[Any, Any, IncidentSnapshot]:
+    ) -> IncidentSnapshot:
         """Record a new incident and persist it."""

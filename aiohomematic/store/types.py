@@ -446,12 +446,6 @@ class IncidentType(StrEnum):
     CALLBACK_TIMEOUT = "CALLBACK_TIMEOUT"
     """Callback from backend timed out."""
 
-    DEVICE_UNAVAILABLE = "DEVICE_UNAVAILABLE"
-    """Device became unavailable."""
-
-    INIT_FAILURE = "INIT_FAILURE"
-    """Interface initialization failed."""
-
     CIRCUIT_BREAKER_TRIPPED = "CIRCUIT_BREAKER_TRIPPED"
     """Circuit breaker opened due to excessive failures."""
 

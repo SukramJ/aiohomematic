@@ -73,7 +73,7 @@ from aiohomematic.property_decorators import DelegatedProperty
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
     from aiohomematic.central.events import EventBus
-    from aiohomematic.interfaces import IncidentRecorderProtocol
+    from aiohomematic.interfaces import IncidentRecorderProtocol, TaskSchedulerProtocol
 
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -129,6 +129,7 @@ class CircuitBreaker:
         issuer: Any = None,
         event_bus: EventBus | None = None,
         incident_recorder: IncidentRecorderProtocol | None = None,
+        task_scheduler: TaskSchedulerProtocol | None = None,
     ) -> None:
         """
         Initialize the circuit breaker.
@@ -141,14 +142,16 @@ class CircuitBreaker:
             issuer: Optional issuer object for CentralConnectionState
             event_bus: Optional EventBus for emitting events (metrics and health records)
             incident_recorder: Optional IncidentRecorderProtocol for recording diagnostic incidents
+            task_scheduler: Optional TaskSchedulerProtocol for scheduling async incident recording
 
         """
         self._config: Final = config or CircuitBreakerConfig()
         self._interface_id: Final = interface_id
-        self._connection_state = connection_state
-        self._issuer = issuer
-        self._event_bus = event_bus
-        self._incident_recorder = incident_recorder
+        self._connection_state: Final = connection_state
+        self._issuer: Final = issuer
+        self._event_bus: Final = event_bus
+        self._incident_recorder: Final = incident_recorder
+        self._task_scheduler: Final = task_scheduler
 
         self._state: CircuitState = CircuitState.CLOSED
         self._failure_count: int = 0
@@ -364,10 +367,15 @@ class CircuitBreaker:
                     err,
                 )
 
-        # Schedule the async recording - fire and forget
-        # Suppress RuntimeError when no event loop is running
-        with contextlib.suppress(RuntimeError):
-            asyncio.get_running_loop().create_task(_record())
+        # Schedule the async recording via task scheduler or fallback
+        if self._task_scheduler:
+            self._task_scheduler.create_task(
+                target=_record(),
+                name=f"record_circuit_breaker_recovered_incident_{interface_id}",
+            )
+        else:
+            with contextlib.suppress(RuntimeError):
+                asyncio.get_running_loop().create_task(_record())
 
     def _record_tripped_incident(self, *, old_state: CircuitState) -> None:
         """Record an incident when circuit breaker opens."""
@@ -408,10 +416,15 @@ class CircuitBreaker:
                     err,
                 )
 
-        # Schedule the async recording - fire and forget
-        # Suppress RuntimeError when no event loop is running
-        with contextlib.suppress(RuntimeError):
-            asyncio.get_running_loop().create_task(_record())
+        # Schedule the async recording via task scheduler or fallback
+        if self._task_scheduler:
+            self._task_scheduler.create_task(
+                target=_record(),
+                name=f"record_circuit_breaker_tripped_incident_{interface_id}",
+            )
+        else:
+            with contextlib.suppress(RuntimeError):
+                asyncio.get_running_loop().create_task(_record())
 
     def _transition_to(self, *, new_state: CircuitState) -> None:
         """

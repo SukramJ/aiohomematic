@@ -32,6 +32,25 @@
   - Recorded by `ConnectionRecoveryCoordinator` when handling connection loss events
   - Context includes: reason, client state, circuit breaker state, recovery attempt count, active recoveries
 
+- **CONNECTION_RESTORED Incident Recording**: Connection restoration events are now recorded as incidents
+
+  - `CONNECTION_RESTORED` (INFO): When connection to backend is successfully restored
+  - Recorded by `ConnectionRecoveryCoordinator` after successful recovery completion
+  - Context includes: total attempts, duration, stages completed, client state, circuit breaker state
+
+- **RPC_ERROR Incident Recording**: RPC call failures are now recorded as incidents
+
+  - `RPC_ERROR` (ERROR): When an RPC call fails (SSL, OS, protocol, or general errors)
+  - Recorded by both `AioXmlRpcProxy` (XML-RPC) and `AioJsonRpcAioHttpClient` (JSON-RPC)
+  - Context includes: protocol, method, error type, sanitized error message, TLS status
+  - Supports all error types: SSLError, OSError, XMLRPCFault, ProtocolError, JSONRPCError, etc.
+
+- **CALLBACK_TIMEOUT Incident Recording**: Callback timeout events are now recorded as incidents
+
+  - `CALLBACK_TIMEOUT` (WARNING): When no callback is received from backend within configured interval
+  - Recorded by `ClientCCU` when callback staleness is detected in `is_callback_alive()`
+  - Context includes: seconds since last event, configured threshold, last event time, client/circuit breaker state
+
 - **Per-Type Incident Storage**: IncidentStore now uses per-IncidentType storage limits
 
   - Each incident type maintains its own history (max 20 per type, 7-day retention)

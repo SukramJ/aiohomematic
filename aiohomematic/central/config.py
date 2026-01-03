@@ -403,6 +403,7 @@ class CentralConfig:
             verify_tls=self.verify_tls,
             session_recorder=central.cache_coordinator.recorder,
             event_bus=central.event_bus,
+            incident_recorder=central.cache_coordinator.incident_store,
         )
 
 

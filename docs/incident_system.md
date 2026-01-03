@@ -78,23 +78,16 @@ class IncidentRecorderProtocol(Protocol):
 
 ### Connection Health Incidents
 
-| Type                        | Severity | Source                        | Description                            |
-| --------------------------- | -------- | ----------------------------- | -------------------------------------- |
-| `PING_PONG_MISMATCH_HIGH`   | ERROR    | PingPongTracker               | Pending PONG count exceeded threshold  |
-| `PING_PONG_UNKNOWN_HIGH`    | WARNING  | PingPongTracker               | Unknown PONG count exceeded threshold  |
-| `CIRCUIT_BREAKER_TRIPPED`   | ERROR    | CircuitBreaker                | Circuit breaker opened due to failures |
-| `CIRCUIT_BREAKER_RECOVERED` | INFO     | CircuitBreaker                | Circuit breaker recovered              |
-| `CONNECTION_LOST`           | ERROR    | ConnectionRecoveryCoordinator | Connection to backend lost             |
-
-### Planned Incident Types
-
-| Type                  | Severity | Source    | Description                     |
-| --------------------- | -------- | --------- | ------------------------------- |
-| `CONNECTION_RESTORED` | INFO     | Client    | Connection restored             |
-| `RPC_ERROR`           | ERROR    | RpcProxy  | RPC call failed                 |
-| `CALLBACK_TIMEOUT`    | WARNING  | RpcServer | Callback from backend timed out |
-| `DEVICE_UNAVAILABLE`  | WARNING  | Device    | Device became unavailable       |
-| `INIT_FAILURE`        | ERROR    | Client    | Interface initialization failed |
+| Type                        | Severity | Source                                   | Description                            |
+| --------------------------- | -------- | ---------------------------------------- | -------------------------------------- |
+| `PING_PONG_MISMATCH_HIGH`   | ERROR    | PingPongTracker                          | Pending PONG count exceeded threshold  |
+| `PING_PONG_UNKNOWN_HIGH`    | WARNING  | PingPongTracker                          | Unknown PONG count exceeded threshold  |
+| `CIRCUIT_BREAKER_TRIPPED`   | ERROR    | CircuitBreaker                           | Circuit breaker opened due to failures |
+| `CIRCUIT_BREAKER_RECOVERED` | INFO     | CircuitBreaker                           | Circuit breaker recovered              |
+| `CONNECTION_LOST`           | ERROR    | ConnectionRecoveryCoordinator            | Connection to backend lost             |
+| `CONNECTION_RESTORED`       | INFO     | ConnectionRecoveryCoordinator            | Connection to backend restored         |
+| `RPC_ERROR`                 | ERROR    | AioXmlRpcProxy / AioJsonRpcAioHttpClient | RPC call failed                        |
+| `CALLBACK_TIMEOUT`          | WARNING  | ClientCCU                                | Callback from backend timed out        |
 
 ## Incident Data Structure
 
@@ -170,6 +163,43 @@ class IncidentSnapshot:
     "recovery_attempt_count": int,    # Number of recovery attempts so far
     "active_recoveries": list[str],   # List of interfaces currently recovering
     "in_failed_state": bool,          # Whether coordinator is in FAILED state
+}
+```
+
+### CONNECTION_RESTORED Context
+
+```python
+{
+    "total_attempts": int,            # Total recovery attempts made
+    "total_duration_ms": float,       # Total recovery duration in milliseconds
+    "stages_completed": list[str],    # Recovery stages completed (e.g., ["TCP_CHECKING", "RPC_CHECKING", ...])
+    "client_state": str | None,       # Client state after restoration
+    "circuit_breaker_state": str | None,  # Circuit breaker state after restoration
+    "was_in_failed_state": bool,      # Whether coordinator was in FAILED state before recovery
+}
+```
+
+### RPC_ERROR Context
+
+```python
+{
+    "protocol": str,                  # Protocol type ("xml-rpc" or "json-rpc")
+    "method": str,                    # RPC method that failed (e.g., "setValue", "getParamset")
+    "error_type": str,                # Error type (e.g., "SSLError", "OSError", "XMLRPCFault", "JSONRPCError")
+    "error_message": str,             # Sanitized error message (sensitive info removed)
+    "tls_enabled": bool,              # Whether TLS is enabled for this connection
+}
+```
+
+### CALLBACK_TIMEOUT Context
+
+```python
+{
+    "seconds_since_last_event": float,    # Time since last callback was received
+    "callback_warn_interval": float,      # Configured threshold in seconds
+    "last_event_time": str,               # ISO timestamp of last callback received
+    "client_state": str,                  # Client state when timeout detected
+    "circuit_breaker_state": str | None,  # Circuit breaker state (if available)
 }
 ```
 

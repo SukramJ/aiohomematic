@@ -670,11 +670,71 @@ class ConnectionRecoveryCoordinator:
                     err,
                 )
 
-        # Schedule the async recording - fire and forget
-        import contextlib  # noqa: PLC0415
+        # Schedule the async recording via task scheduler
+        self._task_scheduler.create_task(
+            target=_record(),
+            name=f"record_connection_lost_incident_{interface_id}",
+        )
 
-        with contextlib.suppress(RuntimeError):
-            asyncio.get_running_loop().create_task(_record())
+    def _record_connection_restored_incident(
+        self,
+        *,
+        interface_id: str,
+        state: InterfaceRecoveryState,
+    ) -> None:
+        """Record a CONNECTION_RESTORED incident for diagnostics."""
+        if (incident_recorder := self._incident_recorder) is None:
+            return
+
+        # Lazy import to avoid circular dependency
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        # Calculate recovery duration
+        duration_ms = (time.perf_counter() - state.recovery_start_time) * 1000 if state.recovery_start_time else 0.0
+
+        # Gather client state information if available
+        client_state: str | None = None
+        circuit_breaker_state: str | None = None
+        try:
+            if client := self._client_provider.get_client(interface_id=interface_id):
+                client_state = client.state.state.value if hasattr(client.state, "state") else None
+                # pylint: disable=protected-access
+                if hasattr(client, "_circuit_breaker") and client._circuit_breaker:  # noqa: SLF001
+                    circuit_breaker_state = client._circuit_breaker.state.value  # noqa: SLF001
+                # pylint: enable=protected-access
+        except Exception:  # noqa: BLE001
+            pass  # Don't fail incident recording if client info unavailable
+
+        context = {
+            "total_attempts": state.attempt_count,
+            "total_duration_ms": round(duration_ms, 2),
+            "stages_completed": [s.value for s in state.stages_completed],
+            "client_state": client_state,
+            "circuit_breaker_state": circuit_breaker_state,
+            "was_in_failed_state": self._in_failed_state,
+        }
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.CONNECTION_RESTORED,
+                    severity=IncidentSeverity.INFO,
+                    message=f"Connection restored for {interface_id} after {state.attempt_count} attempt(s)",
+                    interface_id=interface_id,
+                    context=context,
+                )
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug(
+                    "CONNECTION_RECOVERY: Failed to record connection restored incident for %s: %s",
+                    interface_id,
+                    err,
+                )
+
+        # Schedule the async recording via task scheduler
+        self._task_scheduler.create_task(
+            target=_record(),
+            name=f"record_connection_restored_incident_{interface_id}",
+        )
 
     async def _recover_all_interfaces(self, *, interface_ids: list[str]) -> None:
         """Recover multiple interfaces with throttling."""
@@ -854,8 +914,10 @@ class ConnectionRecoveryCoordinator:
 
             if success:
                 state.record_success()
-                state.reset()
+                # Record incident before reset (preserves recovery metrics)
+                self._record_connection_restored_incident(interface_id=interface_id, state=state)
                 await self._emit_recovery_completed(interface_id=interface_id, state=state)
+                state.reset()
                 self._transition_after_recovery()
             else:
                 state.record_failure()

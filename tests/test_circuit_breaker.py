@@ -16,6 +16,8 @@ from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitSta
 from aiohomematic.metrics import MetricKeys, MetricsObserver
 from aiohomematic_test_support.event_capture import EventCapture
 
+from tests.conftest import NoOpTaskScheduler
+
 
 class TestCircuitBreakerConfig:
     """Tests for CircuitBreakerConfig."""
@@ -116,7 +118,7 @@ class TestCircuitBreaker:
             failure_count=2,
         )
 
-    def test_connection_state_notified_on_close(self) -> None:
+    def test_connection_state_notified_on_close(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test CentralConnectionState is notified when circuit closes."""
         connection_state = MagicMock()
         issuer = MagicMock()
@@ -126,7 +128,7 @@ class TestCircuitBreaker:
             interface_id="test",
             connection_state=connection_state,
             issuer=issuer,
-            task_scheduler=Looper(),
+            task_scheduler=no_op_task_scheduler,
         )
 
         # Open circuit
@@ -139,7 +141,7 @@ class TestCircuitBreaker:
         breaker.record_success()
         connection_state.remove_issue.assert_called_once_with(issuer=issuer, iid="test")
 
-    def test_connection_state_notified_on_open(self) -> None:
+    def test_connection_state_notified_on_open(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test CentralConnectionState is notified when circuit opens."""
         connection_state = MagicMock()
         issuer = MagicMock()
@@ -149,16 +151,16 @@ class TestCircuitBreaker:
             interface_id="test",
             connection_state=connection_state,
             issuer=issuer,
-            task_scheduler=Looper(),
+            task_scheduler=no_op_task_scheduler,
         )
 
         breaker.record_failure()
         connection_state.add_issue.assert_called_once_with(issuer=issuer, iid="test")
 
-    def test_half_open_failure_reopens_circuit(self) -> None:
+    def test_half_open_failure_reopens_circuit(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test failure in half-open state reopens circuit."""
         config = CircuitBreakerConfig(failure_threshold=1)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         # Open circuit
         breaker.record_failure()
@@ -171,10 +173,10 @@ class TestCircuitBreaker:
         breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
 
-    def test_half_open_is_available(self) -> None:
+    def test_half_open_is_available(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test HALF_OPEN state is available."""
         config = CircuitBreakerConfig(failure_threshold=1)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         breaker.record_failure()
         breaker._last_failure_time = datetime.now() - timedelta(seconds=100)
@@ -186,10 +188,10 @@ class TestCircuitBreaker:
         # HALF_OPEN should remain available
         assert breaker.is_available is True
 
-    def test_half_open_success_at_threshold_closes_circuit(self) -> None:
+    def test_half_open_success_at_threshold_closes_circuit(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test success at threshold closes circuit."""
         config = CircuitBreakerConfig(failure_threshold=1, success_threshold=2)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         # Open circuit
         breaker.record_failure()
@@ -202,10 +204,10 @@ class TestCircuitBreaker:
 
         assert breaker.state == CircuitState.CLOSED
 
-    def test_half_open_success_increments_count(self) -> None:
+    def test_half_open_success_increments_count(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test success in half-open state increments count."""
         config = CircuitBreakerConfig(failure_threshold=1, success_threshold=2)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         # Open circuit
         breaker.record_failure()
@@ -352,21 +354,21 @@ class TestCircuitBreaker:
         assert call_kwargs["incident_type"] == IncidentType.CIRCUIT_BREAKER_TRIPPED
         assert call_kwargs["context"]["old_state"] == "half_open"
 
-    def test_init_custom_config(self) -> None:
+    def test_init_custom_config(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test initialization with custom config."""
         config = CircuitBreakerConfig(failure_threshold=3)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
         assert breaker.state == CircuitState.CLOSED
 
-    def test_init_default_config(self) -> None:
+    def test_init_default_config(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test initialization with default config."""
-        breaker = CircuitBreaker(interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(interface_id="test", task_scheduler=no_op_task_scheduler)
         assert breaker.state == CircuitState.CLOSED
         assert breaker.is_available is True
 
-    def test_initial_state_is_closed(self) -> None:
+    def test_initial_state_is_closed(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test circuit starts in CLOSED state."""
-        breaker = CircuitBreaker(interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(interface_id="test", task_scheduler=no_op_task_scheduler)
         assert breaker.state == CircuitState.CLOSED
         assert breaker.is_available is True
 
@@ -395,14 +397,14 @@ class TestCircuitBreaker:
         assert breaker.total_requests == 3  # 1 success + 2 failures (rejection doesn't increment total)
         assert breaker.last_failure_time is not None
 
-    def test_no_incident_when_recorder_is_none(self) -> None:
+    def test_no_incident_when_recorder_is_none(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test no error when incident_recorder is None."""
         config = CircuitBreakerConfig(failure_threshold=1)
         breaker = CircuitBreaker(
             config=config,
             interface_id="test",
             incident_recorder=None,
-            task_scheduler=Looper(),
+            task_scheduler=no_op_task_scheduler,
         )
 
         # Should not raise even without incident recorder
@@ -434,19 +436,19 @@ class TestCircuitBreaker:
         await asyncio.sleep(0.01)
         assert observer.get_counter(key=MetricKeys.circuit_state_transition(interface_id="test")) == initial_transitions
 
-    def test_open_circuit_not_available(self) -> None:
+    def test_open_circuit_not_available(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test open circuit is not available."""
         config = CircuitBreakerConfig(failure_threshold=1, recovery_timeout=1000.0)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
         assert breaker.is_available is False
 
-    def test_open_circuit_transitions_to_half_open_after_timeout(self) -> None:
+    def test_open_circuit_transitions_to_half_open_after_timeout(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test open circuit transitions to half-open after recovery timeout."""
         config = CircuitBreakerConfig(failure_threshold=1, recovery_timeout=0.1)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
@@ -457,10 +459,10 @@ class TestCircuitBreaker:
         assert breaker.is_available is True
         assert breaker.state == CircuitState.HALF_OPEN
 
-    def test_open_without_last_failure_time(self) -> None:
+    def test_open_without_last_failure_time(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test OPEN state behavior without last_failure_time."""
         config = CircuitBreakerConfig(failure_threshold=1)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         breaker.record_failure()
         breaker._last_failure_time = None  # Simulate edge case
@@ -525,10 +527,10 @@ class TestCircuitBreaker:
         # Success tracked via local counter (not event-based for performance)
         assert breaker.total_requests == 1
 
-    def test_reset(self) -> None:
+    def test_reset(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test resetting circuit breaker."""
         config = CircuitBreakerConfig(failure_threshold=1)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
@@ -585,10 +587,10 @@ class TestCircuitBreaker:
         # Event captures state at transition time; failure_count incremented
         assert events[2].failure_count == 2
 
-    def test_success_resets_failure_count_in_closed_state(self) -> None:
+    def test_success_resets_failure_count_in_closed_state(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test success resets failure count in closed state."""
         config = CircuitBreakerConfig(failure_threshold=5)
-        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=Looper())
+        breaker = CircuitBreaker(config=config, interface_id="test", task_scheduler=no_op_task_scheduler)
 
         # Record some failures
         for _ in range(3):

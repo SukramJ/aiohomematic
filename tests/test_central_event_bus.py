@@ -22,6 +22,8 @@ from aiohomematic.central.events import (
 )
 from aiohomematic.const import DataPointKey, DeviceTriggerEventType, ParamsetKey
 
+from tests.conftest import NoOpTaskScheduler
+
 
 class TestEventBus:
     """Test EventBus core functionality."""
@@ -141,15 +143,15 @@ class TestEventBus:
         assert "slow_end" in execution_order
         assert execution_order.index("fast_end") < execution_order.index("slow_end")
 
-    def test_event_bus_initialization(self) -> None:
+    def test_event_bus_initialization(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """EventBus should initialize with empty subscriptions."""
-        bus = EventBus(task_scheduler=Looper())
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
         assert bus.get_event_stats() == {}
 
-    def test_event_bus_initialization_with_logging(self) -> None:
+    def test_event_bus_initialization_with_logging(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """EventBus can be initialized with event logging enabled."""
-        bus = EventBus(task_scheduler=Looper(), enable_event_logging=True)
+        bus = EventBus(task_scheduler=no_op_task_scheduler, enable_event_logging=True)
         assert bus._enable_event_logging is True  # noqa: SLF001
 
     @pytest.mark.asyncio

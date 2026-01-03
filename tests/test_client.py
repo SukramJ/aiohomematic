@@ -20,6 +20,8 @@ from aiohomematic.client.handlers.device_ops import (
 from aiohomematic.const import DEFAULT_TIMEOUT_CONFIG, DataPointKey, Interface, ParamsetKey, ProductGroup
 from aiohomematic.exceptions import ClientException, NoConnectionException
 
+from tests.conftest import NoOpTaskScheduler
+
 
 class _FakeDP:
     """Minimal fake DataPoint that disables events to exercise early-return path."""
@@ -259,10 +261,9 @@ class _FakeCentral:
     def __init__(self) -> None:
         from types import SimpleNamespace
 
-        from aiohomematic.async_support import Looper
         from aiohomematic.central.events import EventBus
 
-        self._event_bus = EventBus(task_scheduler=Looper())
+        self._event_bus = EventBus(task_scheduler=NoOpTaskScheduler())
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = _FakeJsonRpcClient()
         self.device_details = _FakeDeviceDetails()
@@ -436,10 +437,9 @@ class _FakeCentral2:
     """
 
     def __init__(self, *, push_updates: bool = True) -> None:
-        from aiohomematic.async_support import Looper
         from aiohomematic.central.events import EventBus
 
-        self._event_bus = EventBus(task_scheduler=Looper())
+        self._event_bus = EventBus(task_scheduler=NoOpTaskScheduler())
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = SimpleNamespace()  # not used in these tests
         self.device_details = SimpleNamespace(

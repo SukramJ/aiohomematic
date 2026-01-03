@@ -233,9 +233,34 @@ def event_capture() -> Generator[EventCapture]:
 # Task scheduler and event bus fixtures
 
 
+class NoOpTaskScheduler:
+    """
+    Task scheduler that does nothing - for sync tests without event loop.
+
+    Use this in sync tests where you need a TaskSchedulerProtocol but don't
+    actually need to run async tasks. This avoids the Python 3.14+ issue where
+    asyncio.get_event_loop() raises RuntimeError outside async context.
+    """
+
+    def create_task(self, *, target: object, name: str) -> None:  # noqa: ARG002
+        """Close coroutine to avoid 'never awaited' warning."""
+        if hasattr(target, "close"):
+            target.close()  # type: ignore[union-attr]
+
+
+@pytest.fixture
+def no_op_task_scheduler() -> NoOpTaskScheduler:
+    """Provide a NoOpTaskScheduler for sync tests."""
+    return NoOpTaskScheduler()
+
+
 @pytest.fixture
 def looper() -> Looper:
-    """Provide a Looper instance for task scheduling in tests."""
+    """
+    Provide a Looper instance for task scheduling in tests.
+
+    Note: Only use in async tests. For sync tests, use no_op_task_scheduler.
+    """
     return Looper()
 
 

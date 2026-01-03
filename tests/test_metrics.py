@@ -23,6 +23,8 @@ from aiohomematic.metrics import (
     SizeOnlyStats,
 )
 
+from tests.conftest import NoOpTaskScheduler
+
 
 class TestLatencyStats:
     """Tests for LatencyStats dataclass."""
@@ -273,9 +275,9 @@ class TestMetricsSnapshot:
 class TestEventBusHandlerStats:
     """Tests for EventBus handler statistics integration."""
 
-    def test_clear_event_stats_resets_handler_stats(self) -> None:
+    def test_clear_event_stats_resets_handler_stats(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test that clear_event_stats resets handler stats."""
-        bus = EventBus(task_scheduler=Looper())
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
         bus._handler_stats.total_executions = 10
         bus._handler_stats.total_errors = 2
 

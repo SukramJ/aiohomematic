@@ -47,6 +47,24 @@
   - RTT (round-trip time) statistics available via `get_rtt_statistics()`
   - Journal excerpts attached to incidents for post-mortem analysis
 
+- **Circuit Breaker Incident Recording**: Circuit breaker state changes are now recorded as incidents
+
+  - `CIRCUIT_BREAKER_TRIPPED` (ERROR): When circuit breaker opens due to excessive failures
+  - `CIRCUIT_BREAKER_RECOVERED` (INFO): When circuit breaker recovers after successful test requests
+  - Incidents include comprehensive context: failure/success counts, thresholds, timestamps, total requests
+
+- **CONNECTION_LOST Incident Recording**: Connection loss events are now recorded as incidents
+
+  - `CONNECTION_LOST` (ERROR): When connection to backend is lost
+  - Recorded by `ConnectionRecoveryCoordinator` when handling connection loss events
+  - Context includes: reason, client state, circuit breaker state, recovery attempt count, active recoveries
+
+- **Per-Type Incident Storage**: IncidentStore now uses per-IncidentType storage limits
+
+  - Each incident type maintains its own history (max 20 per type, 7-day retention)
+  - Prevents high-frequency incidents from crowding out rare but important events
+  - Renamed `max_incidents` to `max_per_type` parameter
+
 ### Bug Fixes
 
 - **Fix KeyError for PARENT in Device Descriptions**: Use `.get()` to safely access optional `PARENT` field

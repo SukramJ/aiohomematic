@@ -237,32 +237,46 @@ class TestIncidentStore:
         assert len(rpc_errors) == 1
 
     @pytest.mark.asyncio
-    async def test_incident_size_limit(self, tmp_path) -> None:
-        """Test that incidents are evicted when max is exceeded."""
+    async def test_incident_size_limit_per_type(self, tmp_path) -> None:
+        """Test that incidents are evicted per-type when max is exceeded."""
         central = _CentralStub(name="test-ccu", storage_directory=str(tmp_path))
         store = IncidentStore(
             storage=central.create_incident_storage(),
             config_provider=central,
-            max_incidents=5,
+            max_per_type=5,
         )
 
-        # Record more than max
+        # Record more than max for one type
         for i in range(8):
             await store.record_incident(
                 incident_type=IncidentType.RPC_ERROR,
                 severity=IncidentSeverity.WARNING,
-                message=f"Error {i}",
+                message=f"RPC Error {i}",
             )
 
-        # Should be capped at max
-        assert store.incident_count == 5
+        # Record some for another type
+        for i in range(3):
+            await store.record_incident(
+                incident_type=IncidentType.CONNECTION_LOST,
+                severity=IncidentSeverity.ERROR,
+                message=f"Connection Lost {i}",
+            )
 
-        # Oldest should be evicted, newest should remain
-        messages = [inc.message for inc in store.incidents]
-        assert "Error 0" not in messages
-        assert "Error 1" not in messages
-        assert "Error 2" not in messages
-        assert "Error 7" in messages
+        # RPC_ERROR should be capped at 5, CONNECTION_LOST at 3
+        assert store.incident_count == 8  # 5 + 3
+
+        # Oldest RPC errors should be evicted
+        rpc_incidents = [inc for inc in store.incidents if inc.incident_type == IncidentType.RPC_ERROR]
+        assert len(rpc_incidents) == 5
+        messages = [inc.message for inc in rpc_incidents]
+        assert "RPC Error 0" not in messages
+        assert "RPC Error 1" not in messages
+        assert "RPC Error 2" not in messages
+        assert "RPC Error 7" in messages
+
+        # All CONNECTION_LOST should remain (under limit)
+        conn_incidents = [inc for inc in store.incidents if inc.incident_type == IncidentType.CONNECTION_LOST]
+        assert len(conn_incidents) == 3
 
     @pytest.mark.asyncio
     async def test_load_with_invalid_data(self, tmp_path) -> None:

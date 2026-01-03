@@ -452,6 +452,12 @@ class IncidentType(StrEnum):
     INIT_FAILURE = "INIT_FAILURE"
     """Interface initialization failed."""
 
+    CIRCUIT_BREAKER_TRIPPED = "CIRCUIT_BREAKER_TRIPPED"
+    """Circuit breaker opened due to excessive failures."""
+
+    CIRCUIT_BREAKER_RECOVERED = "CIRCUIT_BREAKER_RECOVERED"
+    """Circuit breaker recovered after successful test requests."""
+
 
 class IncidentSeverity(StrEnum):
     """Severity levels for incidents."""

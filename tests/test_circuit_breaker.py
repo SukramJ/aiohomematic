@@ -214,6 +214,137 @@ class TestCircuitBreaker:
         breaker.record_success()
         assert breaker.state == CircuitState.HALF_OPEN  # Not yet at threshold
 
+    @pytest.mark.asyncio
+    async def test_incident_recorded_on_circuit_open(self) -> None:
+        """Test incident is recorded when circuit opens."""
+        from unittest.mock import AsyncMock
+
+        incident_recorder = MagicMock()
+        incident_recorder.record_incident = AsyncMock()
+        config = CircuitBreakerConfig(failure_threshold=2)
+        breaker = CircuitBreaker(
+            config=config,
+            interface_id="test",
+            incident_recorder=incident_recorder,
+        )
+
+        # Trigger circuit to open
+        breaker.record_failure()
+        breaker.record_failure()
+
+        assert breaker.state == CircuitState.OPEN
+
+        # Wait for async task to complete
+        await asyncio.sleep(0.01)
+
+        # Verify incident was recorded
+        incident_recorder.record_incident.assert_called_once()
+        call_kwargs = incident_recorder.record_incident.call_args.kwargs
+
+        from aiohomematic.store import IncidentSeverity, IncidentType
+
+        assert call_kwargs["incident_type"] == IncidentType.CIRCUIT_BREAKER_TRIPPED
+        assert call_kwargs["severity"] == IncidentSeverity.ERROR
+        assert call_kwargs["interface_id"] == "test"
+        assert "failure_count" in call_kwargs["context"]
+        assert call_kwargs["context"]["failure_count"] == 2
+        assert call_kwargs["context"]["failure_threshold"] == 2
+
+    @pytest.mark.asyncio
+    async def test_incident_recorded_on_circuit_recovery(self) -> None:
+        """Test incident is recorded when circuit recovers."""
+        from unittest.mock import AsyncMock
+
+        incident_recorder = MagicMock()
+        incident_recorder.record_incident = AsyncMock()
+        config = CircuitBreakerConfig(failure_threshold=1, success_threshold=2)
+        breaker = CircuitBreaker(
+            config=config,
+            interface_id="test",
+            incident_recorder=incident_recorder,
+        )
+
+        # Open circuit
+        breaker.record_failure()
+        assert breaker.state == CircuitState.OPEN
+
+        # Wait for first async task
+        await asyncio.sleep(0.01)
+
+        # Transition to HALF_OPEN
+        breaker._last_failure_time = datetime.now() - timedelta(seconds=100)
+        _ = breaker.is_available
+        assert breaker.state == CircuitState.HALF_OPEN
+
+        # Reset mock to only capture recovery incident
+        incident_recorder.reset_mock()
+
+        # Recover circuit
+        breaker.record_success()
+        breaker.record_success()
+
+        assert breaker.state == CircuitState.CLOSED
+
+        # Wait for async task to complete
+        await asyncio.sleep(0.01)
+
+        # Verify recovery incident was recorded
+        incident_recorder.record_incident.assert_called_once()
+        call_kwargs = incident_recorder.record_incident.call_args.kwargs
+
+        from aiohomematic.store import IncidentSeverity, IncidentType
+
+        assert call_kwargs["incident_type"] == IncidentType.CIRCUIT_BREAKER_RECOVERED
+        assert call_kwargs["severity"] == IncidentSeverity.INFO
+        assert call_kwargs["interface_id"] == "test"
+        assert call_kwargs["context"]["success_count"] == 2
+        assert call_kwargs["context"]["success_threshold"] == 2
+
+    @pytest.mark.asyncio
+    async def test_incident_recorded_on_half_open_failure(self) -> None:
+        """Test incident is recorded when circuit reopens from HALF_OPEN."""
+        from unittest.mock import AsyncMock
+
+        incident_recorder = MagicMock()
+        incident_recorder.record_incident = AsyncMock()
+        config = CircuitBreakerConfig(failure_threshold=1)
+        breaker = CircuitBreaker(
+            config=config,
+            interface_id="test",
+            incident_recorder=incident_recorder,
+        )
+
+        # Open circuit
+        breaker.record_failure()
+        assert breaker.state == CircuitState.OPEN
+
+        # Wait for first async task
+        await asyncio.sleep(0.01)
+
+        # Transition to HALF_OPEN
+        breaker._last_failure_time = datetime.now() - timedelta(seconds=100)
+        _ = breaker.is_available
+        assert breaker.state == CircuitState.HALF_OPEN
+
+        # Reset mock to capture only the second trip
+        incident_recorder.reset_mock()
+
+        # Fail in HALF_OPEN - reopens circuit
+        breaker.record_failure()
+        assert breaker.state == CircuitState.OPEN
+
+        # Wait for async task to complete
+        await asyncio.sleep(0.01)
+
+        # Verify tripped incident was recorded again
+        incident_recorder.record_incident.assert_called_once()
+        call_kwargs = incident_recorder.record_incident.call_args.kwargs
+
+        from aiohomematic.store import IncidentType
+
+        assert call_kwargs["incident_type"] == IncidentType.CIRCUIT_BREAKER_TRIPPED
+        assert call_kwargs["context"]["old_state"] == "half_open"
+
     def test_init_custom_config(self) -> None:
         """Test initialization with custom config."""
         config = CircuitBreakerConfig(failure_threshold=3)
@@ -255,6 +386,27 @@ class TestCircuitBreaker:
         # Success is tracked via local counter (not event-based)
         assert breaker.total_requests == 3  # 1 success + 2 failures (rejection doesn't increment total)
         assert breaker.last_failure_time is not None
+
+    def test_no_incident_when_recorder_is_none(self) -> None:
+        """Test no error when incident_recorder is None."""
+        config = CircuitBreakerConfig(failure_threshold=1)
+        breaker = CircuitBreaker(
+            config=config,
+            interface_id="test",
+            incident_recorder=None,
+        )
+
+        # Should not raise even without incident recorder
+        breaker.record_failure()
+        assert breaker.state == CircuitState.OPEN
+
+        # Recover
+        breaker._last_failure_time = datetime.now() - timedelta(seconds=100)
+        _ = breaker.is_available
+        breaker.record_success()
+        breaker.record_success()
+
+        assert breaker.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
     async def test_no_transition_to_same_state(self) -> None:

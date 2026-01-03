@@ -59,6 +59,8 @@ Example Usage
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -71,6 +73,7 @@ from aiohomematic.property_decorators import DelegatedProperty
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
     from aiohomematic.central.events import EventBus
+    from aiohomematic.interfaces import IncidentRecorderProtocol
 
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -125,6 +128,7 @@ class CircuitBreaker:
         connection_state: CentralConnectionState | None = None,
         issuer: Any = None,
         event_bus: EventBus | None = None,
+        incident_recorder: IncidentRecorderProtocol | None = None,
     ) -> None:
         """
         Initialize the circuit breaker.
@@ -136,6 +140,7 @@ class CircuitBreaker:
             connection_state: Optional CentralConnectionState for integration
             issuer: Optional issuer object for CentralConnectionState
             event_bus: Optional EventBus for emitting events (metrics and health records)
+            incident_recorder: Optional IncidentRecorderProtocol for recording diagnostic incidents
 
         """
         self._config: Final = config or CircuitBreakerConfig()
@@ -143,6 +148,7 @@ class CircuitBreaker:
         self._connection_state = connection_state
         self._issuer = issuer
         self._event_bus = event_bus
+        self._incident_recorder = incident_recorder
 
         self._state: CircuitState = CircuitState.CLOSED
         self._failure_count: int = 0
@@ -326,6 +332,87 @@ class CircuitBreaker:
             )
         )
 
+    def _record_recovered_incident(self) -> None:
+        """Record an incident when circuit breaker recovers."""
+        if (incident_recorder := self._incident_recorder) is None:
+            return
+
+        # Lazy import to avoid circular dependency
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        # Capture values for the async closure
+        interface_id = self._interface_id
+        success_count = self._success_count
+        success_threshold = self._config.success_threshold
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.CIRCUIT_BREAKER_RECOVERED,
+                    severity=IncidentSeverity.INFO,
+                    message=f"Circuit breaker recovered for {interface_id} after {success_count} successful requests",
+                    interface_id=interface_id,
+                    context={
+                        "success_count": success_count,
+                        "success_threshold": success_threshold,
+                    },
+                )
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug(
+                    "CIRCUIT_BREAKER: Failed to record recovered incident for %s: %s",
+                    interface_id,
+                    err,
+                )
+
+        # Schedule the async recording - fire and forget
+        # Suppress RuntimeError when no event loop is running
+        with contextlib.suppress(RuntimeError):
+            asyncio.get_running_loop().create_task(_record())
+
+    def _record_tripped_incident(self, *, old_state: CircuitState) -> None:
+        """Record an incident when circuit breaker opens."""
+        if (incident_recorder := self._incident_recorder) is None:
+            return
+
+        # Lazy import to avoid circular dependency
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        # Capture values for the async closure
+        interface_id = self._interface_id
+        failure_count = self._failure_count
+        failure_threshold = self._config.failure_threshold
+        recovery_timeout = self._config.recovery_timeout
+        last_failure_time = self._last_failure_time.isoformat() if self._last_failure_time else None
+        total_requests = self._total_requests
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.CIRCUIT_BREAKER_TRIPPED,
+                    severity=IncidentSeverity.ERROR,
+                    message=f"Circuit breaker opened for {interface_id} after {failure_count} failures",
+                    interface_id=interface_id,
+                    context={
+                        "old_state": str(old_state),
+                        "failure_count": failure_count,
+                        "failure_threshold": failure_threshold,
+                        "recovery_timeout": recovery_timeout,
+                        "last_failure_time": last_failure_time,
+                        "total_requests": total_requests,
+                    },
+                )
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug(
+                    "CIRCUIT_BREAKER: Failed to record tripped incident for %s: %s",
+                    interface_id,
+                    err,
+                )
+
+        # Schedule the async recording - fire and forget
+        # Suppress RuntimeError when no event loop is running
+        with contextlib.suppress(RuntimeError):
+            asyncio.get_running_loop().create_task(_record())
+
     def _transition_to(self, *, new_state: CircuitState) -> None:
         """
         Handle state transition with logging and CentralConnectionState notification.
@@ -368,9 +455,14 @@ class CircuitBreaker:
         # Emit state change event
         self._emit_state_change_event(old_state=old_state, new_state=new_state)
 
-        # Emit tripped event when circuit opens
+        # Emit tripped event and record incident when circuit opens
         if new_state == CircuitState.OPEN:
             self._emit_tripped_event()
+            self._record_tripped_incident(old_state=old_state)
+
+        # Record recovery incident when circuit recovers from HALF_OPEN
+        if old_state == CircuitState.HALF_OPEN and new_state == CircuitState.CLOSED:
+            self._record_recovered_incident()
 
         # Reset counters based on new state
         if new_state == CircuitState.CLOSED:

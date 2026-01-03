@@ -31,10 +31,29 @@ _LOGGER: Final = logging.getLogger(__name__)
 class Looper(TaskSchedulerProtocol):
     """Helper class for event loop support."""
 
+    __slots__ = ("_loop_store", "_tasks")
+
     def __init__(self) -> None:
         """Initialize the loop helper."""
         self._tasks: Final[set[asyncio.Future[Any]]] = set()
-        self._loop = asyncio.get_event_loop()
+        self._loop_store: asyncio.AbstractEventLoop | None = None
+
+    @property
+    def _loop(self) -> asyncio.AbstractEventLoop:
+        """
+        Get the event loop, lazily acquiring it on first use.
+
+        Uses get_running_loop() when called from async context (preferred),
+        falls back to get_event_loop() for cross-thread scheduling scenarios.
+        """
+        if self._loop_store is None:
+            try:
+                self._loop_store = asyncio.get_running_loop()
+            except RuntimeError:
+                # Called from non-async context (e.g., during startup or from another thread)
+                # This path is used by call_soon_threadsafe for cross-thread task scheduling
+                self._loop_store = asyncio.get_event_loop()
+        return self._loop_store
 
     def async_add_executor_job[T](
         self,

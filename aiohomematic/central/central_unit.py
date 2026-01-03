@@ -809,9 +809,8 @@ class CentralUnit(
                         refresh_only_existing=False,
                     )
         else:
-            if await self._client_coordinator.start_clients():
-                # Use atomic check-and-create to prevent race with newDevices callbacks
-                await self._device_coordinator.check_and_create_devices_from_cache()
+            # Device creation is now done inside start_clients() before hub init
+            await self._client_coordinator.start_clients()
             if self._config.enable_xml_rpc_server:
                 self._start_scheduler()
 

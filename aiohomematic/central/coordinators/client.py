@@ -276,7 +276,10 @@ class ClientCoordinator(ClientProviderProtocol):
         # Initialize clients (sets them to CONNECTED state)
         await self._init_clients()
 
-        # Initialize hub (requires connected clients to fetch programs/sysvars)
+        # Create devices from cache BEFORE hub init - required for sysvar-to-channel association
+        await self._coordinator_provider.device_coordinator.check_and_create_devices_from_cache()
+
+        # Initialize hub (requires connected clients and devices to fetch programs/sysvars)
         await self._coordinator_provider.hub_coordinator.init_hub()
 
         self._clients_started = True

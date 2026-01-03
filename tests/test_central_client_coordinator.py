@@ -88,6 +88,8 @@ class _FakeCentral:
         self.config.enabled_interface_configs = []
         self.cache_coordinator = MagicMock()
         self.cache_coordinator.load_all = AsyncMock()
+        self.device_coordinator = MagicMock()
+        self.device_coordinator.check_and_create_devices_from_cache = AsyncMock()
         self.hub_coordinator = MagicMock()
         self.hub_coordinator.init_hub = AsyncMock()
         self.system_information = MagicMock()

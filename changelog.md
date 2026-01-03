@@ -2,13 +2,27 @@
 
 ## What's Changed
 
+### Bug Fixes
+
+- **Fix Runtime Device Addition**: Fixed `KeyError` when adding new devices during runtime after cache was loaded
+  - Root cause: `ParamsetDescriptionRegistry` lost its nested `defaultdict` structure after loading from JSON
+  - When a new device was added, accessing non-existent keys raised `KeyError` instead of creating empty dicts
+  - Error manifested as: `UPDATE_CACHES_WITH_NEW_DEVICES failed: KeyError [device_address]`
+  - Fix rebuilds proper `defaultdict` structure in `_process_loaded_content()`
+  - Added regression test for the scenario
+
 ### Internal
 
 - **Remove asyncio Fallbacks**: Made `task_scheduler` a required parameter in core infrastructure classes
+
   - `EventBus`, `CircuitBreaker`, and `Storage` now require explicit `TaskSchedulerProtocol` injection
   - Removes runtime asyncio event loop fallback code that was only used in tests
   - Improves code clarity and ensures consistent dependency injection patterns
   - Test infrastructure updated with `_NoOpTaskScheduler` for synchronous tests
+
+- **Remove Legacy Code**: Removed `regular_to_default_dict_hook` from `support.py`
+  - This function was used with `json.loads(object_hook=...)` before Storage Abstraction Layer
+  - No longer needed since `orjson` doesn't support object_hook parameter
 
 ---
 

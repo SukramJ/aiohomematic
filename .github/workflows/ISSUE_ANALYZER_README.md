@@ -103,7 +103,9 @@ _This analysis was generated automatically. For questions or problems, please us
 
 ### Customize documentation links
 
-The available documentation links are defined in `.github/scripts/analyze_issue.py`:
+The available documentation links are defined in `.github/scripts/analyze_issue.py`.
+
+> **Note:** These links use `blob/devel` because they are used in GitHub issue comments, which require absolute URLs. The `devel` branch contains the latest documentation.
 
 ```python
 DOCS_LINKS = {

@@ -40,7 +40,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 import uuid
 
-from aiohomematic.const import INCIDENT_STORE_MAX_INCIDENTS
+from aiohomematic.const import INCIDENT_STORE_MAX_PER_TYPE
 from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.store.types import IncidentSeverity, IncidentSnapshot, IncidentType
 
@@ -49,13 +49,15 @@ if TYPE_CHECKING:
     from aiohomematic.store.storage import StorageProtocol
     from aiohomematic.store.types import PingPongJournal
 
+from aiohomematic.interfaces import IncidentRecorderProtocol
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 # Default retention period for incidents
 DEFAULT_MAX_AGE_DAYS: Final = 7
 
 
-class IncidentStore(BasePersistentCache):
+class IncidentStore(BasePersistentCache, IncidentRecorderProtocol):
     """
     Persistent store for diagnostic incidents.
 
@@ -71,19 +73,24 @@ class IncidentStore(BasePersistentCache):
         - Automatic save after each incident (debounced)
         - Lazy loading on first diagnostics request
         - Time-based cleanup (default: 7 days)
-        - Size-based limiting (default: 50 incidents)
+        - Per-IncidentType size limiting (default: 20 per type)
         - Journal excerpt capture at incident time
+
+    Storage Organization:
+        Incidents are stored per-IncidentType to ensure each incident type
+        maintains its own history without being crowded out by high-frequency
+        incident types.
 
     """
 
-    __slots__ = ("_incidents", "_loaded", "_max_age_days", "_max_incidents")
+    __slots__ = ("_incidents_by_type", "_loaded", "_max_age_days", "_max_per_type")
 
     def __init__(
         self,
         *,
         storage: StorageProtocol,
         config_provider: ConfigProviderProtocol,
-        max_incidents: int = INCIDENT_STORE_MAX_INCIDENTS,
+        max_per_type: int = INCIDENT_STORE_MAX_PER_TYPE,
         max_age_days: int = DEFAULT_MAX_AGE_DAYS,
     ) -> None:
         """
@@ -92,25 +99,29 @@ class IncidentStore(BasePersistentCache):
         Args:
             storage: Storage instance for persistence.
             config_provider: Provider for configuration access.
-            max_incidents: Maximum number of incidents to store (default: 50).
+            max_per_type: Maximum number of incidents per IncidentType (default: 20).
             max_age_days: Maximum age of incidents in days (default: 7).
 
         """
         super().__init__(storage=storage, config_provider=config_provider)
-        self._max_incidents: Final = max_incidents
+        self._max_per_type: Final = max_per_type
         self._max_age_days: Final = max_age_days
-        self._incidents: list[IncidentSnapshot] = []
+        self._incidents_by_type: dict[IncidentType, list[IncidentSnapshot]] = {}
         self._loaded: bool = False
 
     @property
     def incident_count(self) -> int:
-        """Return the number of stored incidents (in-memory only)."""
-        return len(self._incidents)
+        """Return the total number of stored incidents (in-memory only)."""
+        return sum(len(incidents) for incidents in self._incidents_by_type.values())
 
     @property
     def incidents(self) -> list[IncidentSnapshot]:
-        """Return the list of stored incidents (in-memory only)."""
-        return list(self._incidents)
+        """Return all incidents as a flat list sorted by timestamp (in-memory only)."""
+        all_incidents: list[IncidentSnapshot] = []
+        for incidents in self._incidents_by_type.values():
+            all_incidents.extend(incidents)
+        all_incidents.sort(key=lambda i: i.timestamp_iso)
+        return all_incidents
 
     @property
     def is_loaded(self) -> bool:
@@ -119,7 +130,7 @@ class IncidentStore(BasePersistentCache):
 
     def clear_incidents(self) -> None:
         """Clear all incidents from memory (does not affect persistence)."""
-        self._incidents.clear()
+        self._incidents_by_type.clear()
         self._content["incidents"] = []
 
     async def get_all_incidents(self) -> list[IncidentSnapshot]:
@@ -129,7 +140,7 @@ class IncidentStore(BasePersistentCache):
         Loads from disk on first call.
         """
         await self._ensure_loaded()
-        return list(self._incidents)
+        return self.incidents
 
     async def get_diagnostics(self) -> dict[str, Any]:
         """
@@ -138,13 +149,14 @@ class IncidentStore(BasePersistentCache):
         Loads historical incidents from disk on first call.
         """
         await self._ensure_loaded()
+        all_incidents = self.incidents
         return {
-            "total_incidents": len(self._incidents),
-            "max_incidents": self._max_incidents,
+            "total_incidents": len(all_incidents),
+            "max_per_type": self._max_per_type,
             "max_age_days": self._max_age_days,
             "incidents_by_type": self._count_by_type(),
             "incidents_by_severity": self._count_by_severity(),
-            "recent_incidents": [i.to_dict() for i in self._incidents[-10:]],
+            "recent_incidents": [i.to_dict() for i in all_incidents[-10:]],
         }
 
     async def get_incidents_by_interface(self, *, interface_id: str) -> list[IncidentSnapshot]:
@@ -154,7 +166,7 @@ class IncidentStore(BasePersistentCache):
         Loads historical incidents from disk on first call.
         """
         await self._ensure_loaded()
-        return [i for i in self._incidents if i.interface_id == interface_id]
+        return [i for i in self.incidents if i.interface_id == interface_id]
 
     async def get_incidents_by_type(self, *, incident_type: IncidentType) -> list[IncidentSnapshot]:
         """
@@ -163,7 +175,7 @@ class IncidentStore(BasePersistentCache):
         Loads historical incidents from disk on first call.
         """
         await self._ensure_loaded()
-        return [i for i in self._incidents if i.incident_type == incident_type]
+        return list(self._incidents_by_type.get(incident_type, []))
 
     async def get_recent_incidents(self, *, limit: int = 20) -> list[dict[str, Any]]:
         """
@@ -172,7 +184,8 @@ class IncidentStore(BasePersistentCache):
         Loads historical incidents from disk on first call.
         """
         await self._ensure_loaded()
-        return [i.to_dict() for i in self._incidents[-limit:]]
+        all_incidents = self.incidents
+        return [i.to_dict() for i in all_incidents[-limit:]]
 
     async def record_incident(
         self,
@@ -221,19 +234,25 @@ class IncidentStore(BasePersistentCache):
             journal_excerpt=journal_excerpt,
         )
 
-        self._incidents.append(incident)
+        # Get or create the list for this incident type
+        if incident_type not in self._incidents_by_type:
+            self._incidents_by_type[incident_type] = []
+        type_incidents = self._incidents_by_type[incident_type]
 
-        # Enforce size limit
-        while len(self._incidents) > self._max_incidents:
-            evicted = self._incidents.pop(0)
+        type_incidents.append(incident)
+
+        # Enforce per-type size limit
+        while len(type_incidents) > self._max_per_type:
+            evicted = type_incidents.pop(0)
             _LOGGER.debug(
-                "INCIDENT STORE: Evicted oldest incident %s to maintain limit %d",
+                "INCIDENT STORE: Evicted oldest %s incident %s to maintain per-type limit %d",
+                incident_type.value,
                 evicted.incident_id,
-                self._max_incidents,
+                self._max_per_type,
             )
 
-        # Update content for persistence
-        self._content["incidents"] = [i.to_dict() for i in self._incidents]
+        # Update content for persistence (flat list for storage compatibility)
+        self._content["incidents"] = [i.to_dict() for i in self.incidents]
 
         _LOGGER.info(  # i18n-log: ignore
             "INCIDENT STORE: Recorded %s incident: %s (interface: %s)",
@@ -250,18 +269,15 @@ class IncidentStore(BasePersistentCache):
     def _count_by_severity(self) -> dict[str, int]:
         """Count incidents by severity."""
         counts: dict[str, int] = {}
-        for incident in self._incidents:
-            key = incident.severity.value
-            counts[key] = counts.get(key, 0) + 1
+        for incidents in self._incidents_by_type.values():
+            for incident in incidents:
+                key = incident.severity.value
+                counts[key] = counts.get(key, 0) + 1
         return counts
 
     def _count_by_type(self) -> dict[str, int]:
         """Count incidents by type."""
-        counts: dict[str, int] = {}
-        for incident in self._incidents:
-            key = incident.incident_type.value
-            counts[key] = counts.get(key, 0) + 1
-        return counts
+        return {incident_type.value: len(incidents) for incident_type, incidents in self._incidents_by_type.items()}
 
     def _create_empty_content(self) -> dict[str, Any]:
         """Create empty content structure."""
@@ -273,32 +289,40 @@ class IncidentStore(BasePersistentCache):
             return
 
         # Remember current in-memory incidents (from this session)
-        current_session_incidents = list(self._incidents)
+        current_session_by_type: dict[IncidentType, list[IncidentSnapshot]] = {}
+        for incident_type, incidents in self._incidents_by_type.items():
+            current_session_by_type[incident_type] = list(incidents)
 
         # Load from disk
         await self.load()
 
         # Merge: disk incidents first, then current session incidents
         # (avoiding duplicates by incident_id)
-        existing_ids = {i.incident_id for i in self._incidents}
-        for incident in current_session_incidents:
-            if incident.incident_id not in existing_ids:
-                self._incidents.append(incident)
+        for incident_type, session_incidents in current_session_by_type.items():
+            if incident_type not in self._incidents_by_type:
+                self._incidents_by_type[incident_type] = []
+            type_incidents = self._incidents_by_type[incident_type]
+            existing_ids = {i.incident_id for i in type_incidents}
+            for incident in session_incidents:
+                if incident.incident_id not in existing_ids:
+                    type_incidents.append(incident)
 
-        # Re-sort by timestamp and enforce limits
-        self._incidents.sort(key=lambda i: i.timestamp_iso)
-        while len(self._incidents) > self._max_incidents:
-            self._incidents.pop(0)
+        # Re-sort by timestamp and enforce per-type limits
+        for incidents in self._incidents_by_type.values():
+            incidents.sort(key=lambda i: i.timestamp_iso)
+            while len(incidents) > self._max_per_type:
+                incidents.pop(0)
 
         self._loaded = True
 
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
         """
-        Rebuild incidents list from loaded data.
+        Rebuild incidents by type from loaded data.
 
         Applies time-based cleanup: incidents older than max_age_days are removed.
+        Enforces per-type size limits.
         """
-        self._incidents.clear()
+        self._incidents_by_type.clear()
         incidents_data = data.get("incidents", [])
 
         # Calculate cutoff time for age-based cleanup
@@ -319,13 +343,24 @@ class IncidentStore(BasePersistentCache):
                 except ValueError:
                     pass  # Keep incidents with unparsable timestamps
 
-                self._incidents.append(incident)
+                # Add to type-specific list
+                if (incident_type := incident.incident_type) not in self._incidents_by_type:
+                    self._incidents_by_type[incident_type] = []
+                self._incidents_by_type[incident_type].append(incident)
                 loaded_count += 1
             except (KeyError, ValueError) as err:
                 _LOGGER.warning(  # i18n-log: ignore
                     "INCIDENT STORE: Failed to restore incident: %s",
                     err,
                 )
+
+        # Enforce per-type size limits after loading
+        for incidents in self._incidents_by_type.values():
+            # Sort by timestamp first
+            incidents.sort(key=lambda i: i.timestamp_iso)
+            # Remove oldest if over limit
+            while len(incidents) > self._max_per_type:
+                incidents.pop(0)
 
         if expired_count > 0:
             _LOGGER.debug(

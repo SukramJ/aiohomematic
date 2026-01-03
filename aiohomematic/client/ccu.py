@@ -167,7 +167,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Initialize the Client."""
         self._config: Final = client_config
         self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
-        self._last_value_send_tracker = CommandTracker(
+        self._last_value_send_tracker: Final = CommandTracker(
             interface_id=client_config.interface_id,
         )
         self._state_machine: Final = ClientStateMachine(
@@ -761,6 +761,11 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                         )
                     )
                     self._is_callback_alive = False
+                    self._record_callback_timeout_incident(
+                        seconds_since_last_event=seconds_since_last_event,
+                        callback_warn_interval=callback_warn,
+                        last_event_time=last_events_dt,
+                    )
                 _LOGGER.error(
                     i18n.tr(
                         key="log.client.is_callback_alive.no_events",
@@ -1101,6 +1106,48 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 "PING PONG CACHE: Cleared on connection restored: %s",
                 self.interface_id,
             )
+
+    def _record_callback_timeout_incident(
+        self,
+        *,
+        seconds_since_last_event: float,
+        callback_warn_interval: float,
+        last_event_time: datetime,
+    ) -> None:
+        """Record a CALLBACK_TIMEOUT incident for diagnostics."""
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        incident_recorder = self._config.client_deps.cache_coordinator.incident_store
+
+        # Get circuit breaker state safely (_proxy may not be set during early startup)
+        circuit_breaker_state: str | None = None
+        if hasattr(self, "_proxy") and hasattr(self._proxy, "circuit_breaker"):
+            circuit_breaker_state = self._proxy.circuit_breaker.state.value
+
+        context = {
+            "seconds_since_last_event": round(seconds_since_last_event, 2),
+            "callback_warn_interval": callback_warn_interval,
+            "last_event_time": last_event_time.strftime(DATETIME_FORMAT_MILLIS),
+            "client_state": self._state_machine.state.value,
+            "circuit_breaker_state": circuit_breaker_state,
+        }
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.CALLBACK_TIMEOUT,
+                    severity=IncidentSeverity.WARNING,
+                    message=f"No callback received for {self.interface_id} in {int(seconds_since_last_event)} seconds",
+                    interface_id=self.interface_id,
+                    context=context,
+                )
+            except Exception as err:
+                _LOGGER.debug("Failed to record CALLBACK_TIMEOUT incident: %s", err)
+
+        self._config.client_deps.looper.create_task(
+            target=_record(),
+            name=f"record_callback_timeout_incident_{self.interface_id}",
+        )
 
     async def _set_value(
         self,
@@ -1846,6 +1893,7 @@ class ClientConfig:
             verify_tls=config.verify_tls,
             session_recorder=self.client_deps.cache_coordinator.recorder,
             event_bus=self.client_deps.event_bus,
+            incident_recorder=self.client_deps.cache_coordinator.incident_store,
         )
         await xml_proxy.do_init()
         return xml_proxy

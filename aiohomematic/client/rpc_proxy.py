@@ -36,7 +36,7 @@ import xmlrpc.client
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
-from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault
+from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault, sanitize_error_message
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.const import ISO_8859_1
 from aiohomematic.exceptions import (
@@ -55,6 +55,7 @@ from aiohomematic.type_aliases import CallableAny
 
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
+    from aiohomematic.interfaces import IncidentRecorderProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -110,6 +111,7 @@ class BaseRpcProxy(ABC):
         session_recorder: SessionRecorder | None = None,
         circuit_breaker_config: CircuitBreakerConfig | None = None,
         event_bus: EventBus | None = None,
+        incident_recorder: IncidentRecorderProtocol | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         self._interface_id: Final = interface_id
@@ -128,6 +130,9 @@ class BaseRpcProxy(ABC):
         # Due to magic method the log_context must be defined manually.
         self.log_context: Final[Mapping[str, Any]] = {"interface_id": self._interface_id, "tls": tls}
 
+        # Incident recorder for diagnostic events
+        self._incident_recorder = incident_recorder
+
         # Circuit breaker for preventing retry-storms during backend outages
         self._circuit_breaker: Final = CircuitBreaker(
             config=circuit_breaker_config,
@@ -135,6 +140,8 @@ class BaseRpcProxy(ABC):
             connection_state=connection_state,
             issuer=self,
             event_bus=event_bus,
+            incident_recorder=incident_recorder,
+            task_scheduler=self._looper,
         )
 
     def __getattr__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
@@ -168,6 +175,54 @@ class BaseRpcProxy(ABC):
     async def _async_request(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         """Call method on server side."""
 
+    def _record_rpc_error_incident(
+        self,
+        *,
+        method: str,
+        error_type: str,
+        error_message: str,
+        protocol: str = "xml-rpc",
+    ) -> None:
+        """Record an RPC_ERROR incident for diagnostics."""
+        if (incident_recorder := self._incident_recorder) is None:
+            return
+
+        # Lazy import to avoid circular dependency
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        # Sanitize error message to remove sensitive information
+        sanitized_message = sanitize_error_message(message=error_message)
+
+        context = {
+            "protocol": protocol,
+            "method": method,
+            "error_type": error_type,
+            "error_message": sanitized_message,
+            "tls_enabled": bool(self._tls),
+        }
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.RPC_ERROR,
+                    severity=IncidentSeverity.ERROR,
+                    message=f"RPC error on {self._interface_id}: {error_type} during {method}",
+                    interface_id=self._interface_id,
+                    context=context,
+                )
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug(
+                    "RPC_PROXY: Failed to record RPC error incident for %s: %s",
+                    self._interface_id,
+                    err,
+                )
+
+        # Schedule the async recording via looper
+        self._looper.create_task(
+            target=_record(),
+            name=f"record_rpc_error_incident_{self._interface_id}",
+        )
+
     def _record_session(
         self, *, method: str, params: tuple[Any, ...], response: Any | None = None, exc: Exception | None = None
     ) -> bool:
@@ -196,6 +251,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         verify_tls: bool = False,
         session_recorder: SessionRecorder | None = None,
         event_bus: EventBus | None = None,
+        incident_recorder: IncidentRecorderProtocol | None = None,
     ) -> None:
         """Initialize new proxy for server and get local ip."""
         super().__init__(
@@ -207,6 +263,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             verify_tls=verify_tls,
             session_recorder=session_recorder,
             event_bus=event_bus,
+            incident_recorder=incident_recorder,
         )
 
         xmlrpc.client.ServerProxy.__init__(
@@ -291,6 +348,11 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 log_context=self.log_context,
             )
             self._circuit_breaker.record_failure()
+            self._record_rpc_error_incident(
+                method=str(args[0]),
+                error_type="SSLError",
+                error_message=message,
+            )
             raise NoConnectionException(
                 i18n.tr(key="exception.client.xmlrpc.ssl_error", interface_id=self._interface_id, reason=message)
             ) from sslerr
@@ -312,6 +374,11 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 log_context=self.log_context,
             )
             self._circuit_breaker.record_failure()
+            self._record_rpc_error_incident(
+                method=str(args[0]),
+                error_type="OSError",
+                error_message=str(extract_exc_args(exc=oserr)),
+            )
             raise NoConnectionException(
                 i18n.tr(
                     key="exception.client.xmlrpc.os_error",
@@ -321,11 +388,26 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             ) from oserr
         except xmlrpc.client.Fault as flt:
             ctx = RpcContext(protocol="xml-rpc", method=str(args[0]), interface=self._interface_id)
+            self._record_rpc_error_incident(
+                method=str(args[0]),
+                error_type="XMLRPCFault",
+                error_message=f"Code {flt.faultCode}: {flt.faultString}",
+            )
             raise map_xmlrpc_fault(code=flt.faultCode, fault_string=flt.faultString, ctx=ctx) from flt
         except TypeError as terr:
+            self._record_rpc_error_incident(
+                method=str(args[0]),
+                error_type="TypeError",
+                error_message=str(extract_exc_args(exc=terr)),
+            )
             raise ClientException(terr) from terr
         except xmlrpc.client.ProtocolError as perr:
             if not self._connection_state.has_issue(issuer=self, iid=self._interface_id):
+                self._record_rpc_error_incident(
+                    method=str(args[0]),
+                    error_type="ProtocolError",
+                    error_message=perr.errmsg,
+                )
                 if perr.errmsg == "Unauthorized":
                     raise AuthFailure(perr) from perr
                 raise NoConnectionException(
@@ -353,6 +435,11 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             # The retry mechanism with backoff should handle transient connection issues.
             # If the issue persists, circuit breaker will open and client will reconnect.
             self._circuit_breaker.record_failure()
+            self._record_rpc_error_incident(
+                method=str(args[0]),
+                error_type="ImproperConnectionState",
+                error_message=str(extract_exc_args(exc=icserr)),
+            )
             raise NoConnectionException(
                 i18n.tr(
                     key="exception.client.xmlrpc.http_connection_state_error",
@@ -361,6 +448,11 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 )
             ) from icserr
         except Exception as exc:
+            self._record_rpc_error_incident(
+                method=str(args[0]),
+                error_type=type(exc).__name__,
+                error_message=str(extract_exc_args(exc=exc)),
+            )
             raise ClientException(exc) from exc
 
     def _reset_transport(self) -> None:
@@ -397,6 +489,7 @@ class NullRpcProxy(BaseRpcProxy):
         interface_id: str,
         connection_state: hmcu.CentralConnectionState,
         event_bus: EventBus | None = None,
+        incident_recorder: IncidentRecorderProtocol | None = None,
     ) -> None:
         """Initialize null proxy."""
         super().__init__(
@@ -408,6 +501,7 @@ class NullRpcProxy(BaseRpcProxy):
             verify_tls=False,
             session_recorder=None,
             event_bus=event_bus,
+            incident_recorder=incident_recorder,
         )
 
     async def do_init(self) -> None:

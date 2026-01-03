@@ -47,6 +47,7 @@ from urllib.parse import unquote
 
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
+    from aiohomematic.interfaces import IncidentRecorderProtocol
 
 from aiohttp import (
     ClientConnectorCertificateError,
@@ -63,7 +64,7 @@ import orjson
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig
-from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error
+from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error, sanitize_error_message
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
@@ -245,6 +246,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         session_recorder: SessionRecorder | None = None,
         circuit_breaker_config: CircuitBreakerConfig | None = None,
         event_bus: EventBus | None = None,
+        incident_recorder: IncidentRecorderProtocol | None = None,
     ) -> None:
         """Session setup."""
         self._client_session: Final = (
@@ -272,6 +274,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._last_failed_login: datetime | None = None
         self._current_backoff: float = LOGIN_INITIAL_BACKOFF_SECONDS
 
+        # Incident recorder for diagnostic events
+        self._incident_recorder = incident_recorder
+        self._interface_id: Final = interface_id
+
         # Circuit breaker for preventing retry-storms during backend outages
         # Use interface_id for health tracking; fall back to URL for logging only
         self._circuit_breaker: Final = CircuitBreaker(
@@ -280,6 +286,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             connection_state=connection_state,
             issuer=self,
             event_bus=event_bus,
+            incident_recorder=incident_recorder,
+            task_scheduler=self._looper,
         )
 
     @staticmethod
@@ -1537,6 +1545,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                         log_context=self.log_context,
                     )
                     _LOGGER.debug("POST: %s", exc)
+                    # Record incident only for non-session methods
+                    if method not in _CIRCUIT_BREAKER_BYPASS_METHODS:
+                        self._record_rpc_error_incident(
+                            method=str(method),
+                            error_type="JSONRPCError",
+                            error_message=str(error.get("message", "")),
+                        )
                     raise exc
 
                 self._connection_state.remove_issue(issuer=self, iid=self._url)
@@ -1558,6 +1573,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     level=level,
                     log_context=dict(self.log_context) | {"status": response.status},
                 )
+                # Record incident only for non-session methods
+                if method not in _CIRCUIT_BREAKER_BYPASS_METHODS:
+                    self._record_rpc_error_incident(
+                        method=str(method),
+                        error_type="HTTPError",
+                        error_message=f"HTTP {response.status}: {error.get('message', '')}",
+                    )
                 raise exc
             raise ClientException(message)
         except BaseHomematicException as bhe:
@@ -1587,6 +1609,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 level=level,
                 log_context=self.log_context,
             )
+            self._record_rpc_error_incident(
+                method=str(method),
+                error_type="ClientConnectorCertificateError",
+                error_message=message,
+            )
             raise ClientException(
                 i18n.tr(key="exception.client.json_post.connector_certificate_error", reason=message)
             ) from cccerr
@@ -1604,6 +1631,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 level=level,
                 log_context=self.log_context,
             )
+            self._record_rpc_error_incident(
+                method=str(method),
+                error_type="ClientConnectorError",
+                error_message=message,
+            )
             raise ClientException(i18n.tr(key="exception.client.json_post.connector_error", reason=message)) from cceerr
         except (ClientError, OSError) as err:
             self.clear_session()
@@ -1618,6 +1650,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 level=level,
                 log_context=self.log_context,
             )
+            self._record_rpc_error_incident(
+                method=str(method),
+                error_type=type(err).__name__,
+                error_message=str(err),
+            )
             raise NoConnectionException(err) from err
         except (TypeError, Exception) as exc:
             self.clear_session()
@@ -1628,6 +1665,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 err=exc,
                 level=logging.ERROR,
                 log_context=self.log_context,
+            )
+            self._record_rpc_error_incident(
+                method=str(method),
+                error_type=type(exc).__name__,
+                error_message=str(exc),
             )
             raise ClientException(exc) from exc
 
@@ -1904,6 +1946,55 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 await self._do_logout(session_id=session_id)
 
         return response
+
+    def _record_rpc_error_incident(
+        self,
+        *,
+        method: str,
+        error_type: str,
+        error_message: str,
+    ) -> None:
+        """Record an RPC_ERROR incident for diagnostics."""
+        if (incident_recorder := self._incident_recorder) is None:
+            return
+
+        # Lazy import to avoid circular dependency
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        # Sanitize error message to remove sensitive information
+        sanitized_message = sanitize_error_message(message=error_message)
+
+        interface_id = self._interface_id or self._url
+
+        context = {
+            "protocol": "json-rpc",
+            "method": method,
+            "error_type": error_type,
+            "error_message": sanitized_message,
+            "tls_enabled": self._tls,
+        }
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.RPC_ERROR,
+                    severity=IncidentSeverity.ERROR,
+                    message=f"RPC error on {interface_id}: {error_type} during {method}",
+                    interface_id=interface_id,
+                    context=context,
+                )
+            except Exception as err:  # pragma: no cover
+                _LOGGER.debug(
+                    "JSON_RPC: Failed to record RPC error incident for %s: %s",
+                    interface_id,
+                    err,
+                )
+
+        # Schedule the async recording via looper
+        self._looper.create_task(
+            target=_record(),
+            name=f"record_rpc_error_incident_{interface_id}",
+        )
 
     def _record_session(
         self,

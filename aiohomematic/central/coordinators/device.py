@@ -137,20 +137,20 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
 
         """
         self._central_info: Final = central_info
-        self._client_provider = client_provider
+        self._client_provider: Final = client_provider
         self._config_provider: Final = config_provider
         self._coordinator_provider: Final = coordinator_provider
-        self._data_cache_provider = data_cache_provider
-        self._data_point_provider = data_point_provider
-        self._device_description_provider = device_description_provider
-        self._device_details_provider = device_details_provider
-        self._event_bus_provider = event_bus_provider
-        self._event_publisher = event_publisher
-        self._event_subscription_manager = event_subscription_manager
-        self._file_operations = file_operations
-        self._parameter_visibility_provider = parameter_visibility_provider
-        self._paramset_description_provider = paramset_description_provider
-        self._task_scheduler = task_scheduler
+        self._data_cache_provider: Final = data_cache_provider
+        self._data_point_provider: Final = data_point_provider
+        self._device_description_provider: Final = device_description_provider
+        self._device_details_provider: Final = device_details_provider
+        self._event_bus_provider: Final = event_bus_provider
+        self._event_publisher: Final = event_publisher
+        self._event_subscription_manager: Final = event_subscription_manager
+        self._file_operations: Final = file_operations
+        self._parameter_visibility_provider: Final = parameter_visibility_provider
+        self._paramset_description_provider: Final = paramset_description_provider
+        self._task_scheduler: Final = task_scheduler
         self._delayed_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
         self._device_add_semaphore: Final = asyncio.Semaphore()
 

@@ -18,13 +18,50 @@
   - Fix: Device creation now happens BEFORE hub initialization in `start_clients()`
   - Sysvars containing channel/device rega_ids are now properly linked to their devices in Home Assistant
 
+### New Features
+
+- **Circuit Breaker Incident Recording**: Circuit breaker state changes are now recorded as incidents
+
+  - `CIRCUIT_BREAKER_TRIPPED` (ERROR): When circuit breaker opens due to excessive failures
+  - `CIRCUIT_BREAKER_RECOVERED` (INFO): When circuit breaker recovers after successful test requests
+  - Incidents include comprehensive context: failure/success counts, thresholds, timestamps, total requests
+
+- **CONNECTION_LOST Incident Recording**: Connection loss events are now recorded as incidents
+
+  - `CONNECTION_LOST` (ERROR): When connection to backend is lost
+  - Recorded by `ConnectionRecoveryCoordinator` when handling connection loss events
+  - Context includes: reason, client state, circuit breaker state, recovery attempt count, active recoveries
+
+- **CONNECTION_RESTORED Incident Recording**: Connection restoration events are now recorded as incidents
+
+  - `CONNECTION_RESTORED` (INFO): When connection to backend is successfully restored
+  - Recorded by `ConnectionRecoveryCoordinator` after successful recovery completion
+  - Context includes: total attempts, duration, stages completed, client state, circuit breaker state
+
+- **RPC_ERROR Incident Recording**: RPC call failures are now recorded as incidents
+
+  - `RPC_ERROR` (ERROR): When an RPC call fails (SSL, OS, protocol, or general errors)
+  - Recorded by both `AioXmlRpcProxy` (XML-RPC) and `AioJsonRpcAioHttpClient` (JSON-RPC)
+  - Context includes: protocol, method, error type, sanitized error message, TLS status
+  - Supports all error types: SSLError, OSError, XMLRPCFault, ProtocolError, JSONRPCError, etc.
+
+- **CALLBACK_TIMEOUT Incident Recording**: Callback timeout events are now recorded as incidents
+
+  - `CALLBACK_TIMEOUT` (WARNING): When no callback is received from backend within configured interval
+  - Recorded by `ClientCCU` when callback staleness is detected in `is_callback_alive()`
+  - Context includes: seconds since last event, configured threshold, last event time, client/circuit breaker state
+
+- **Per-Type Incident Storage**: IncidentStore now uses per-IncidentType storage limits
+
+  - Each incident type maintains its own history (max 20 per type, 7-day retention)
+  - Prevents high-frequency incidents from crowding out rare but important events
+  - Renamed `max_incidents` to `max_per_type` parameter
+
 ---
 
 # Version 2026.1.5 (2026-01-02)
 
 ## What's Changed
-
-### New Features
 
 - **Add IncidentStore for Persistent Diagnostic Incidents**: New storage system for tracking and persisting diagnostic incidents
 
@@ -57,10 +94,6 @@
 - **Fix KeyError for CHILDREN in Device Descriptions**: Use `.get()` to safely access optional `CHILDREN` field
   - Affected files: `model/device.py`, `client/handlers/device_ops.py`, `store/persistent/device.py`
   - Prevents `KeyError: 'CHILDREN'` for devices without channel children
-
-### Documentation
-
-- Added `docs/analysis/pingpong_analysis.md` with comprehensive PingPong system documentation
 
 ---
 

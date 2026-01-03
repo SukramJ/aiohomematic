@@ -239,6 +239,7 @@ class Storage:
         "_lock",
         "_migrate_func",
         "_pending_data_func",
+        "_pending_task",
         "_raw_mode",
         "_task_scheduler",
         "_version",
@@ -287,6 +288,7 @@ class Storage:
         # Delayed save state
         self._delay_handle: asyncio.TimerHandle | None = None
         self._pending_data_func: Callable[[], dict[str, Any]] | None = None
+        self._pending_task: asyncio.Task[None] | None = None
 
         # Build file path
         directory = base_directory
@@ -338,7 +340,7 @@ class Storage:
         loop = asyncio.get_running_loop()
         self._delay_handle = loop.call_later(
             delay,
-            lambda: asyncio.create_task(self._execute_delayed_save()),
+            self._trigger_delayed_save,
         )
 
     async def flush(self) -> None:
@@ -524,6 +526,18 @@ class Storage:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
             raise StorageError(f"Failed to save storage '{self._key}': {exc}") from exc  # i18n-exc: ignore
+
+    def _trigger_delayed_save(self) -> None:
+        """Trigger the delayed save task via task_scheduler or asyncio."""
+        if self._task_scheduler:
+            self._task_scheduler.create_task(
+                target=self._execute_delayed_save(),
+                name=f"storage-delayed-save-{self._key}",
+            )
+        else:
+            # Store task reference to prevent garbage collection (RUF006)
+            self._pending_task = asyncio.create_task(self._execute_delayed_save())
+            self._pending_task.add_done_callback(lambda _: setattr(self, "_pending_task", None))
 
     def _validate_serializable(self, *, data: dict[str, Any] | list[Any]) -> None:
         """

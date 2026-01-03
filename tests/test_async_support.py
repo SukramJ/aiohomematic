@@ -290,7 +290,9 @@ class TestLooper:
         def raise_cancel(*args, **kwargs):  # noqa: ARG001
             raise FutCancelledError
 
-        monkeypatch.setattr(looper._loop, "call_soon_threadsafe", raise_cancel)  # noqa: SLF001
+        # Access .loop to trigger lazy initialization before patching
+        _ = looper._loop
+        monkeypatch.setattr(looper._loop_store, "call_soon_threadsafe", raise_cancel)  # noqa: SLF001
 
         async def noop():
             pass
@@ -307,14 +309,14 @@ class TestLooper:
         looper = asupp.Looper()
         called: dict[str, int] = {"count": 0}
 
-        # Patch the loop to count call_soon_threadsafe invocations
-        real_call_soon_threadsafe = looper._loop.call_soon_threadsafe  # noqa: SLF001
+        # Access .loop to trigger lazy initialization before patching
+        real_call_soon_threadsafe = looper._loop.call_soon_threadsafe
 
         def wrapper(callback, *args):
             called["count"] += 1
             return real_call_soon_threadsafe(callback, *args)
 
-        monkeypatch.setattr(looper._loop, "call_soon_threadsafe", wrapper)  # noqa: SLF001
+        monkeypatch.setattr(looper._loop_store, "call_soon_threadsafe", wrapper)  # noqa: SLF001
 
         done = asyncio.Event()
 
@@ -375,7 +377,10 @@ class TestLooper:
             await asyncio.sleep(0)
             return a + b
 
-        # Since Looper stores the current get_event_loop during init, use that loop
+        # Initialize the loop in the async context before using from another thread
+        _ = looper._loop
+
+        # Run run_coroutine from a thread, which schedules the coro on the main loop
         result = await asyncio.get_running_loop().run_in_executor(
             None, lambda: looper.run_coroutine(coro=add(1, 2), name="add")
         )

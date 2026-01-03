@@ -16,8 +16,10 @@ from aiohttp import ClientSession
 import pydevccu
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralUnit
-from aiohomematic.central.events import DeviceLifecycleEvent, DeviceTriggerEvent
+from aiohomematic.central.events import DeviceLifecycleEvent, DeviceTriggerEvent, EventBus
+from aiohomematic.client import CircuitBreaker
 from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import (
@@ -226,3 +228,49 @@ def event_capture() -> Generator[EventCapture]:
         yield capture
     finally:
         capture.cleanup()
+
+
+# Task scheduler and event bus fixtures
+
+
+class NoOpTaskScheduler:
+    """
+    Task scheduler that does nothing - for sync tests without event loop.
+
+    Use this in sync tests where you need a TaskSchedulerProtocol but don't
+    actually need to run async tasks. This avoids the Python 3.14+ issue where
+    asyncio.get_event_loop() raises RuntimeError outside async context.
+    """
+
+    def create_task(self, *, target: object, name: str) -> None:  # noqa: ARG002
+        """Close coroutine to avoid 'never awaited' warning."""
+        if hasattr(target, "close"):
+            target.close()  # type: ignore[union-attr]
+
+
+@pytest.fixture
+def no_op_task_scheduler() -> NoOpTaskScheduler:
+    """Provide a NoOpTaskScheduler for sync tests."""
+    return NoOpTaskScheduler()
+
+
+@pytest.fixture
+def looper() -> Looper:
+    """
+    Provide a Looper instance for task scheduling in tests.
+
+    Note: Only use in async tests. For sync tests, use no_op_task_scheduler.
+    """
+    return Looper()
+
+
+@pytest.fixture
+def event_bus(looper: Looper) -> EventBus:
+    """Provide an EventBus instance with task_scheduler for tests."""
+    return EventBus(task_scheduler=looper)
+
+
+@pytest.fixture
+def circuit_breaker(looper: Looper, event_bus: EventBus) -> CircuitBreaker:
+    """Provide a CircuitBreaker instance for tests."""
+    return CircuitBreaker(interface_id="test", event_bus=event_bus, task_scheduler=looper)

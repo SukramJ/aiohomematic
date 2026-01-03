@@ -239,7 +239,6 @@ class Storage:
         "_lock",
         "_migrate_func",
         "_pending_data_func",
-        "_pending_task",
         "_raw_mode",
         "_task_scheduler",
         "_version",
@@ -252,7 +251,7 @@ class Storage:
         base_directory: str,
         version: int = 1,
         sub_directory: str | None = None,
-        task_scheduler: TaskSchedulerProtocol | None = None,
+        task_scheduler: TaskSchedulerProtocol,
         migrate_func: MigrateFunc | None = None,
         raw_mode: bool = True,
         formatted: bool = False,
@@ -266,7 +265,7 @@ class Storage:
             base_directory: Root directory for storage files.
             version: Schema version.
             sub_directory: Optional subdirectory.
-            task_scheduler: Optional scheduler for executor jobs.
+            task_scheduler: Scheduler for executor jobs.
             migrate_func: Optional async function to migrate old data.
             raw_mode: If True, save data without metadata wrapper (_key, _version).
                 Useful for export files that don't need version tracking.
@@ -288,7 +287,6 @@ class Storage:
         # Delayed save state
         self._delay_handle: asyncio.TimerHandle | None = None
         self._pending_data_func: Callable[[], dict[str, Any]] | None = None
-        self._pending_task: asyncio.Task[None] | None = None
 
         # Build file path
         directory = base_directory
@@ -528,16 +526,11 @@ class Storage:
             raise StorageError(f"Failed to save storage '{self._key}': {exc}") from exc  # i18n-exc: ignore
 
     def _trigger_delayed_save(self) -> None:
-        """Trigger the delayed save task via task_scheduler or asyncio."""
-        if self._task_scheduler:
-            self._task_scheduler.create_task(
-                target=self._execute_delayed_save(),
-                name=f"storage-delayed-save-{self._key}",
-            )
-        else:
-            # Store task reference to prevent garbage collection (RUF006)
-            self._pending_task = asyncio.create_task(self._execute_delayed_save())
-            self._pending_task.add_done_callback(lambda _: setattr(self, "_pending_task", None))
+        """Trigger the delayed save task via task_scheduler."""
+        self._task_scheduler.create_task(
+            target=self._execute_delayed_save(),
+            name=f"storage-delayed-save-{self._key}",
+        )
 
     def _validate_serializable(self, *, data: dict[str, Any] | list[Any]) -> None:
         """
@@ -591,7 +584,7 @@ class LocalStorageFactory:
         *,
         base_directory: str,
         central_name: str,
-        task_scheduler: TaskSchedulerProtocol | None = None,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the factory.
@@ -599,7 +592,7 @@ class LocalStorageFactory:
         Args:
             base_directory: Root directory for all storage files.
             central_name: Name of the central unit (used in file names).
-            task_scheduler: Optional scheduler for async executor jobs.
+            task_scheduler: Scheduler for async executor jobs.
 
         """
         self._base_directory: Final = base_directory

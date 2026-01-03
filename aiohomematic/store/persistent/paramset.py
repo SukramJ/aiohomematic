@@ -184,5 +184,17 @@ class ParamsetDescriptionRegistry(
 
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
         """Rebuild indexes from loaded data."""
+        # Convert loaded regular dicts back to nested defaultdicts.
+        # After JSON deserialization, _content is updated with regular dicts,
+        # which breaks the defaultdict behavior for new keys.
+        # We need to rebuild the proper defaultdict structure.
+        self._content.clear()
+        self._content.update(self._create_empty_content())
+        for interface_id, channels in data.items():
+            for channel_address, paramsets in channels.items():
+                for paramset_key_str, paramset_desc in paramsets.items():
+                    paramset_key = ParamsetKey(paramset_key_str)
+                    self._content[interface_id][channel_address][paramset_key] = paramset_desc
+
         self._address_parameter_cache.clear()
         self._init_address_parameter_list()

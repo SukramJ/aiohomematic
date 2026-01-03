@@ -489,6 +489,82 @@ class TestParamsetDescriptionRegistry:
         assert set(by_key[ParamsetKey.VALUES]) == {ch1, ch2}
 
     @pytest.mark.asyncio
+    async def test_add_new_device_after_load(self, tmp_path) -> None:
+        """
+        Test that new devices can be added after loading from cache.
+
+        This tests the fix for a bug where adding new devices during runtime
+        would fail with KeyError because the nested defaultdict structure
+        was lost after loading from JSON.
+        """
+        central = _CentralStub("C", str(tmp_path))
+        pdr = ParamsetDescriptionRegistry(
+            storage=central.create_paramset_storage(),
+            config_provider=central,
+        )
+
+        # Add initial device and save
+        iface = "if1"
+        ch1 = "OLD_DEVICE:1"
+        pdr.add(
+            interface_id=iface,
+            channel_address=ch1,
+            paramset_key=ParamsetKey.VALUES,
+            paramset_description={"STATE": {"TYPE": "BOOL"}},
+        )
+        await pdr.save()
+
+        # Create new instance and load from cache
+        pdr2 = ParamsetDescriptionRegistry(
+            storage=central.create_paramset_storage(),
+            config_provider=central,
+        )
+        await pdr2.load()
+
+        # Verify old device is present
+        assert pdr2.has_parameter(
+            interface_id=iface,
+            channel_address=ch1,
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        # Now add a NEW device - this should NOT raise KeyError
+        # (Previously this would fail because the nested dicts were regular dicts, not defaultdicts)
+        new_ch = "NEW_DEVICE:1"
+        pdr2.add(
+            interface_id=iface,
+            channel_address=new_ch,
+            paramset_key=ParamsetKey.VALUES,
+            paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+        )
+
+        # Verify new device is accessible
+        assert pdr2.has_parameter(
+            interface_id=iface,
+            channel_address=new_ch,
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+        )
+
+        # Also test adding to a completely new interface
+        new_iface = "if2"
+        new_ch2 = "ANOTHER_DEVICE:0"
+        pdr2.add(
+            interface_id=new_iface,
+            channel_address=new_ch2,
+            paramset_key=ParamsetKey.MASTER,
+            paramset_description={"CONFIG_PARAM": {"TYPE": "INTEGER"}},
+        )
+
+        assert pdr2.has_parameter(
+            interface_id=new_iface,
+            channel_address=new_ch2,
+            paramset_key=ParamsetKey.MASTER,
+            parameter="CONFIG_PARAM",
+        )
+
+    @pytest.mark.asyncio
     async def test_get_channel_paramset_descriptions(self, tmp_path) -> None:
         """Test getting all paramsets for a channel."""
         central = _CentralStub("C", str(tmp_path))

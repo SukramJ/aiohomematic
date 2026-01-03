@@ -29,11 +29,13 @@ The circuit breaker has three states:
 
 Example Usage
 -------------
+    from aiohomematic.async_support import Looper
     from aiohomematic.client import (
         CircuitBreaker,
         CircuitBreakerConfig,
     )
 
+    looper = Looper()
     breaker = CircuitBreaker(
         config=CircuitBreakerConfig(
             failure_threshold=5,
@@ -41,6 +43,7 @@ Example Usage
             success_threshold=2,
         ),
         interface_id="BidCos-RF",
+        task_scheduler=looper,
     )
 
     # In request handler:
@@ -59,8 +62,6 @@ Example Usage
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -129,7 +130,7 @@ class CircuitBreaker:
         issuer: Any = None,
         event_bus: EventBus | None = None,
         incident_recorder: IncidentRecorderProtocol | None = None,
-        task_scheduler: TaskSchedulerProtocol | None = None,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the circuit breaker.
@@ -142,7 +143,7 @@ class CircuitBreaker:
             issuer: Optional issuer object for CentralConnectionState
             event_bus: Optional EventBus for emitting events (metrics and health records)
             incident_recorder: Optional IncidentRecorderProtocol for recording diagnostic incidents
-            task_scheduler: Optional TaskSchedulerProtocol for scheduling async incident recording
+            task_scheduler: TaskSchedulerProtocol for scheduling async incident recording
 
         """
         self._config: Final = config or CircuitBreakerConfig()
@@ -367,15 +368,11 @@ class CircuitBreaker:
                     err,
                 )
 
-        # Schedule the async recording via task scheduler or fallback
-        if self._task_scheduler:
-            self._task_scheduler.create_task(
-                target=_record(),
-                name=f"record_circuit_breaker_recovered_incident_{interface_id}",
-            )
-        else:
-            with contextlib.suppress(RuntimeError):
-                asyncio.get_running_loop().create_task(_record())
+        # Schedule the async recording via task scheduler
+        self._task_scheduler.create_task(
+            target=_record(),
+            name=f"record_circuit_breaker_recovered_incident_{interface_id}",
+        )
 
     def _record_tripped_incident(self, *, old_state: CircuitState) -> None:
         """Record an incident when circuit breaker opens."""
@@ -416,15 +413,11 @@ class CircuitBreaker:
                     err,
                 )
 
-        # Schedule the async recording via task scheduler or fallback
-        if self._task_scheduler:
-            self._task_scheduler.create_task(
-                target=_record(),
-                name=f"record_circuit_breaker_tripped_incident_{interface_id}",
-            )
-        else:
-            with contextlib.suppress(RuntimeError):
-                asyncio.get_running_loop().create_task(_record())
+        # Schedule the async recording via task scheduler
+        self._task_scheduler.create_task(
+            target=_record(),
+            name=f"record_circuit_breaker_tripped_incident_{interface_id}",
+        )
 
     def _transition_to(self, *, new_state: CircuitState) -> None:
         """

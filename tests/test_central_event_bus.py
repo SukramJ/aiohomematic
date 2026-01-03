@@ -10,6 +10,7 @@ from datetime import datetime
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central.events import (
     DataPointValueReceivedEvent,
     DeviceLifecycleEvent,
@@ -21,6 +22,8 @@ from aiohomematic.central.events import (
 )
 from aiohomematic.const import DataPointKey, DeviceTriggerEventType, ParamsetKey
 
+from tests.conftest import NoOpTaskScheduler
+
 
 class TestEventBus:
     """Test EventBus core functionality."""
@@ -28,7 +31,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_async_handler_exception_isolation(self) -> None:
         """Exception in async handler should not affect other handlers."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         calls = []
 
         async def failing_async_handler(event: DeviceLifecycleEvent) -> None:
@@ -54,7 +57,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_clear_all_subscriptions(self) -> None:
         """Clear all subscriptions."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         def handler1(event: DataPointValueReceivedEvent) -> None:
             pass
@@ -74,7 +77,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_clear_subscriptions_specific_type(self) -> None:
         """Clear subscriptions for specific event type."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         def handler1(event: DataPointValueReceivedEvent) -> None:
             pass
@@ -97,7 +100,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_concurrent_handler_execution(self) -> None:
         """Handlers should be executed concurrently."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         execution_order = []
 
         async def slow_handler(event: RpcParameterReceivedEvent) -> None:
@@ -140,21 +143,21 @@ class TestEventBus:
         assert "slow_end" in execution_order
         assert execution_order.index("fast_end") < execution_order.index("slow_end")
 
-    def test_event_bus_initialization(self) -> None:
+    def test_event_bus_initialization(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """EventBus should initialize with empty subscriptions."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
         assert bus.get_event_stats() == {}
 
-    def test_event_bus_initialization_with_logging(self) -> None:
+    def test_event_bus_initialization_with_logging(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """EventBus can be initialized with event logging enabled."""
-        bus = EventBus(enable_event_logging=True)
+        bus = EventBus(task_scheduler=no_op_task_scheduler, enable_event_logging=True)
         assert bus._enable_event_logging is True  # noqa: SLF001
 
     @pytest.mark.asyncio
     async def test_event_stats_tracking(self) -> None:
         """EventBus should track event statistics."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         def handler(event: DataPointValueReceivedEvent) -> None:
             pass
@@ -185,7 +188,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_handler_exception_isolation(self) -> None:
         """Exception in one handler should not affect other handlers."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         handler1_calls = []
         handler2_calls = []
 
@@ -221,7 +224,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_multiple_subscribers_same_event(self) -> None:
         """Multiple handlers can subscribe to the same event type."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         handler1_calls = []
         handler2_calls = []
 
@@ -259,7 +262,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_multiple_unsubscribe_calls_safe(self) -> None:
         """Calling unsubscribe multiple times should be safe."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         def handler(event: DataPointValueReceivedEvent) -> None:
             pass
@@ -281,7 +284,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_publish_with_no_subscribers(self) -> None:
         """Publishing with no subscribers should not raise errors."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         event = DeviceTriggerEvent(
             timestamp=datetime.now(),
@@ -300,7 +303,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_subscribe_and_publish_async_handler(self) -> None:
         """Subscribe with async handler and publish event."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         received_events: list[SysvarStateChangedEvent] = []
 
         async def async_handler(event: SysvarStateChangedEvent) -> None:
@@ -325,7 +328,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_subscribe_and_publish_sync_handler(self) -> None:
         """Subscribe with sync handler and publish event."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         received_events: list[DataPointValueReceivedEvent] = []
 
         def handler(event: DataPointValueReceivedEvent) -> None:
@@ -359,7 +362,7 @@ class TestEventBus:
     @pytest.mark.asyncio
     async def test_unsubscribe_removes_handler(self) -> None:
         """Unsubscribe callback should remove the handler."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         calls = []
 
         def handler(event: DataPointValueReceivedEvent) -> None:
@@ -507,7 +510,7 @@ class TestEventBusConcurrency:
     @pytest.mark.asyncio
     async def test_concurrent_subscribe_during_publish(self) -> None:
         """Test subscribing while events are being published."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         received_before: list[DataPointValueReceivedEvent] = []
         received_during: list[DataPointValueReceivedEvent] = []
 
@@ -552,7 +555,7 @@ class TestEventBusConcurrency:
     @pytest.mark.asyncio
     async def test_concurrent_unsubscribe_during_publish(self) -> None:
         """Test unsubscribing while events are being published - should not raise."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         received: list[DataPointValueReceivedEvent] = []
 
         def handler(event: DataPointValueReceivedEvent) -> None:
@@ -590,7 +593,7 @@ class TestEventBusConcurrency:
     @pytest.mark.asyncio
     async def test_handler_slow_does_not_block_other_handlers(self) -> None:
         """Test that a slow handler doesn't block other handlers from receiving events."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         fast_handler_times: list[float] = []
         slow_handler_done = False
 
@@ -628,7 +631,7 @@ class TestEventBusConcurrency:
     @pytest.mark.asyncio
     async def test_high_contention_concurrent_publish(self) -> None:
         """Test many concurrent publishes to the same event key."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         received_events: list[DataPointValueReceivedEvent] = []
         lock = asyncio.Lock()
 
@@ -664,7 +667,7 @@ class TestEventBusConcurrency:
     @pytest.mark.asyncio
     async def test_multiple_event_keys_concurrent(self) -> None:
         """Test concurrent publishes to different event keys."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         results: dict[str, list[int]] = {}
 
         def make_handler(key: str) -> Callable[[DataPointValueReceivedEvent], None]:
@@ -707,7 +710,7 @@ class TestEventBusConcurrency:
     @pytest.mark.asyncio
     async def test_rapid_subscribe_unsubscribe_cycles(self) -> None:
         """Test rapid subscribe/unsubscribe cycles don't corrupt state."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         def handler(event: DataPointValueReceivedEvent) -> None:
             pass
@@ -730,7 +733,7 @@ class TestEventBusConcurrency:
     @pytest.mark.asyncio
     async def test_stress_many_subscribers_same_key(self) -> None:
         """Stress test with many subscribers to the same event key."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         subscriber_count = 100
         call_counts: list[int] = [0] * subscriber_count
 
@@ -771,7 +774,7 @@ class TestEventBusIntegration:
     @pytest.mark.asyncio
     async def test_event_bus_real_world_scenario(self) -> None:
         """Simulate real-world usage with multiple subscribers and events."""
-        bus = EventBus(enable_event_logging=False)
+        bus = EventBus(task_scheduler=Looper(), enable_event_logging=False)
 
         # Simulate Home Assistant integration subscribing to events
         ha_datapoint_updates = []
@@ -843,7 +846,7 @@ class TestEventBusIntegration:
     @pytest.mark.asyncio
     async def test_multiple_event_types_independent(self) -> None:
         """Different event types should not interfere with each other."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         datapoint_calls = []
         sysvar_calls = []

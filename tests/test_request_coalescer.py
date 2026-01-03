@@ -8,6 +8,7 @@ import asyncio
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central.events import EventBus, RequestCoalescedEvent
 from aiohomematic.client import RequestCoalescer
 from aiohomematic.metrics import MetricKeys, MetricsObserver
@@ -50,7 +51,7 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_coalesced_requests(self, event_capture: EventCapture) -> None:
         """Test multiple concurrent requests are coalesced, verified via events."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(
@@ -92,7 +93,7 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_different_keys_not_coalesced(self, event_capture: EventCapture) -> None:
         """Test requests with different keys are not coalesced - no event emitted."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         observer = MetricsObserver(event_bus=event_bus)
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
@@ -122,7 +123,7 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_exception_propagated_to_all_waiters(self) -> None:
         """Test exceptions are propagated to all waiting callers."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         observer = MetricsObserver(event_bus=event_bus)
         coalescer = RequestCoalescer(name="test", event_bus=event_bus, interface_id="test-rf")
         execution_started = asyncio.Event()
@@ -167,7 +168,7 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_many_waiters(self, event_capture: EventCapture) -> None:
         """Test many concurrent waiters for same key, verified via events."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         observer = MetricsObserver(event_bus=event_bus)
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
@@ -238,7 +239,7 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_sequential_requests_same_key(self) -> None:
         """Test sequential requests with same key both execute."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         observer = MetricsObserver(event_bus=event_bus)
         coalescer = RequestCoalescer(name="test", event_bus=event_bus, interface_id="test-rf")
         execution_count = 0
@@ -264,7 +265,7 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_single_request(self) -> None:
         """Test single request execution."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         observer = MetricsObserver(event_bus=event_bus)
         coalescer = RequestCoalescer(name="test", event_bus=event_bus, interface_id="test-rf")
 
@@ -284,7 +285,7 @@ class TestRequestCoalescer:
     @pytest.mark.asyncio
     async def test_waiter_count_tracking(self, event_capture: EventCapture) -> None:
         """Test waiter count is tracked correctly via events."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(event_bus, RequestCoalescedEvent)
 
         coalescer = RequestCoalescer(

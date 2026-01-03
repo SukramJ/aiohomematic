@@ -43,6 +43,9 @@ class _FakeCentralInfo:
 class _FakeEventBus:
     """Minimal fake EventBus for testing."""
 
+    def __init__(self, *, task_scheduler: Any = None) -> None:  # noqa: ARG002
+        """Initialize fake event bus."""
+
     async def publish(self, *, event: Any) -> None:  # noqa: ARG002
         """Do nothing for publish in tests."""
 

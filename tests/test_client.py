@@ -20,6 +20,8 @@ from aiohomematic.client.handlers.device_ops import (
 from aiohomematic.const import DEFAULT_TIMEOUT_CONFIG, DataPointKey, Interface, ParamsetKey, ProductGroup
 from aiohomematic.exceptions import ClientException, NoConnectionException
 
+from tests.conftest import NoOpTaskScheduler
+
 
 class _FakeDP:
     """Minimal fake DataPoint that disables events to exercise early-return path."""
@@ -261,7 +263,7 @@ class _FakeCentral:
 
         from aiohomematic.central.events import EventBus
 
-        self._event_bus = EventBus()
+        self._event_bus = EventBus(task_scheduler=NoOpTaskScheduler())
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = _FakeJsonRpcClient()
         self.device_details = _FakeDeviceDetails()
@@ -437,7 +439,7 @@ class _FakeCentral2:
     def __init__(self, *, push_updates: bool = True) -> None:
         from aiohomematic.central.events import EventBus
 
-        self._event_bus = EventBus()
+        self._event_bus = EventBus(task_scheduler=NoOpTaskScheduler())
         self.connection_state = hmcu.CentralConnectionState(event_bus_provider=self)
         self.json_rpc_client = SimpleNamespace()  # not used in these tests
         self.device_details = SimpleNamespace(
@@ -478,7 +480,11 @@ class _FakeCentral2:
         if not push_updates:
             self.config.interfaces_requiring_periodic_refresh = {Interface.BIDCOS_RF}
 
-        self.looper = SimpleNamespace(create_task=lambda **kwargs: None)  # type: ignore[misc]
+        def _close_task(*, target: Any, name: str) -> None:  # noqa: ARG001
+            """Close coroutine to avoid 'never awaited' warning."""
+            target.close()
+
+        self.looper = SimpleNamespace(create_task=_close_task)  # type: ignore[misc]
 
     @property
     def cache_coordinator(self):  # noqa: D401,ANN201

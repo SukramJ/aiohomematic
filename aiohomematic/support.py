@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-from collections import defaultdict
 from collections.abc import Collection, Mapping
 import contextlib
 from dataclasses import dataclass
@@ -188,17 +187,6 @@ def check_password(*, password: str | None) -> bool:
         )
         return False
     return True
-
-
-def regular_to_default_dict_hook(origin: dict[str, Any], /) -> defaultdict[Any, Any]:  # kwonly: disable
-    """Use defaultdict in json.loads object_hook."""
-
-    def new_dict() -> defaultdict[Any, Any]:
-        return defaultdict(new_dict)
-
-    new_instance: defaultdict[Any, Any] = new_dict()
-    new_instance.update(origin)
-    return new_instance
 
 
 def _create_tls_context(*, verify_tls: bool) -> ssl.SSLContext:

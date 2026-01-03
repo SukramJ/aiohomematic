@@ -12,6 +12,8 @@ from aiohomematic.central.coordinators import ClientCoordinator
 from aiohomematic.central.events import EventBus
 from aiohomematic.const import Interface, ProxyInitState
 
+from tests.conftest import NoOpTaskScheduler
+
 
 class _FakeInterfaceConfig:
     """Minimal fake InterfaceConfig for testing."""
@@ -95,7 +97,7 @@ class _FakeCentral:
         self.system_information = MagicMock()
         self.system_information.available_interfaces = frozenset([Interface.BIDCOS_RF, Interface.HMIP_RF])
         self.health_tracker = _FakeHealthTracker()
-        self._event_bus = EventBus()
+        self._event_bus = EventBus(task_scheduler=NoOpTaskScheduler())
 
     @property
     def event_bus(self) -> EventBus:

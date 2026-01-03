@@ -52,6 +52,7 @@ import zipfile
 from aiohttp import ClientSession
 import orjson
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralUnit
 from aiohomematic.client import BaseRpcProxy, CircuitBreaker
 from aiohomematic.client.json_rpc import _JsonKey, _JsonRpcMethod
@@ -275,7 +276,7 @@ def get_xml_rpc_proxy(  # noqa: C901
             self._supported_methods: tuple[str, ...] = ()
             self._central: CentralUnit | None = None
             # Real CircuitBreaker to provide actual metrics for tests
-            self._circuit_breaker = CircuitBreaker(interface_id="mock-interface")
+            self._circuit_breaker = CircuitBreaker(interface_id="mock-interface", task_scheduler=Looper())
 
         def __getattr__(self, name: str) -> Any:
             # Start of method chain

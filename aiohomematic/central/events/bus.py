@@ -46,6 +46,7 @@ Public API
 
 Example Usage
 -------------
+    from aiohomematic.async_support import Looper
     from aiohomematic.central.events import (
         EventBus,
         EventBatch,
@@ -54,7 +55,8 @@ Example Usage
     )
     from aiohomematic.const import DataPointKey, ParamsetKey
 
-    bus = EventBus()
+    looper = Looper()
+    bus = EventBus(task_scheduler=looper)
 
     # Subscribe with default priority (note: event is keyword-only)
     async def on_data_point_updated(*, event: DataPointValueReceivedEvent) -> None:
@@ -935,7 +937,7 @@ class EventBus:
         self,
         *,
         enable_event_logging: bool = False,
-        task_scheduler: TaskSchedulerProtocol | None = None,
+        task_scheduler: TaskSchedulerProtocol,
     ) -> None:
         """
         Initialize the event bus.
@@ -943,8 +945,7 @@ class EventBus:
         Args:
         ----
             enable_event_logging: If True, log all published events (debug only)
-            task_scheduler: Optional task scheduler for proper task lifecycle management.
-                If provided, publish_sync() will use it instead of raw asyncio.
+            task_scheduler: Task scheduler for proper task lifecycle management.
 
         """
         self._subscriptions: Final[dict[type[Event], dict[Any, list[_PrioritizedHandler]]]] = defaultdict(
@@ -954,8 +955,6 @@ class EventBus:
         self._event_count: Final[dict[type[Event], int]] = defaultdict(int)
         self._handler_order_counter: int = 0  # For stable sorting within same priority
         self._task_scheduler: Final = task_scheduler
-        # Track pending tasks to prevent garbage collection (used only when no task_scheduler)
-        self._pending_tasks: Final[set[asyncio.Task[None]]] = set()
         # Handler execution statistics for metrics
         self._handler_stats: Final = HandlerStats()
 
@@ -1234,9 +1233,8 @@ class EventBus:
         running event loop. Use this when you need to publish events from
         synchronous callbacks or methods that cannot be made async.
 
-        If a TaskScheduler was provided during initialization, it will be used
-        for proper task lifecycle management (tracking, shutdown, exception logging).
-        Otherwise, falls back to raw asyncio.create_task().
+        The TaskScheduler is used for proper task lifecycle management
+        (tracking, shutdown, exception logging).
 
         Note: The event will be published asynchronously after this method returns.
         There is no guarantee about when handlers will be invoked.
@@ -1246,26 +1244,13 @@ class EventBus:
             event: The event instance to publish
 
         """
-        if self._task_scheduler is not None:
-            # Use TaskScheduler for proper lifecycle management
-            # Pass a factory (lambda) instead of a coroutine to defer creation
-            # until inside the event loop - avoids "was never awaited" warnings
-            self._task_scheduler.create_task(
-                target=lambda: self.publish(event=event),
-                name=f"event_bus_publish_{type(event).__name__}",
-            )
-            return
-
-        # Fallback to raw asyncio when no TaskScheduler is available
-        try:
-            loop = asyncio.get_running_loop()
-            # Store task reference to prevent garbage collection
-            task = loop.create_task(self.publish(event=event))
-            self._pending_tasks.add(task)
-            task.add_done_callback(self._pending_tasks.discard)
-        except RuntimeError:
-            # No running loop - this can happen during shutdown or in tests
-            _LOGGER.debug("Cannot publish event %s: no running event loop", type(event).__name__)
+        # Use TaskScheduler for proper lifecycle management
+        # Pass a factory (lambda) instead of a coroutine to defer creation
+        # until inside the event loop - avoids "was never awaited" warnings
+        self._task_scheduler.create_task(
+            target=lambda: self.publish(event=event),
+            name=f"event_bus_publish_{type(event).__name__}",
+        )
 
     def subscribe(
         self,

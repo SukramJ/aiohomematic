@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central.coordinators import CacheCoordinator
 from aiohomematic.central.events import CacheInvalidatedEvent, EventBus
 from aiohomematic.const import CacheInvalidationReason, CacheType
@@ -588,7 +589,7 @@ class TestCacheCoordinatorEvents:
     @pytest.mark.asyncio
     async def test_clear_emits_cache_invalidated_event(self, event_capture: EventCapture, tmp_path) -> None:
         """Clear should emit CacheInvalidatedEvent."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(event_bus, CacheInvalidatedEvent)
 
         central = _FakeCentral(tmp_dir=str(tmp_path))
@@ -628,7 +629,7 @@ class TestCacheCoordinatorEvents:
         """Clear on stop should emit CacheInvalidatedEvent with SHUTDOWN reason."""
         import asyncio
 
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         event_capture.subscribe_to(event_bus, CacheInvalidatedEvent)
 
         central = _FakeCentral(tmp_dir=str(tmp_path))

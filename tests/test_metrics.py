@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central.events import EventBus, HandlerStats
 from aiohomematic.metrics import (
     CacheMetrics,
@@ -21,6 +22,8 @@ from aiohomematic.metrics import (
     RpcMetrics,
     SizeOnlyStats,
 )
+
+from tests.conftest import NoOpTaskScheduler
 
 
 class TestLatencyStats:
@@ -272,9 +275,9 @@ class TestMetricsSnapshot:
 class TestEventBusHandlerStats:
     """Tests for EventBus handler statistics integration."""
 
-    def test_clear_event_stats_resets_handler_stats(self) -> None:
+    def test_clear_event_stats_resets_handler_stats(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """Test that clear_event_stats resets handler stats."""
-        bus = EventBus()
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
         bus._handler_stats.total_executions = 10
         bus._handler_stats.total_errors = 2
 
@@ -289,7 +292,7 @@ class TestEventBusHandlerStats:
         """Test that handler errors are tracked."""
         from aiohomematic.central.events import DeviceStateChangedEvent
 
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         async def failing_handler(*, event: DeviceStateChangedEvent) -> None:
             raise ValueError("Test error")
@@ -312,7 +315,7 @@ class TestEventBusHandlerStats:
         """Test that handler stats are tracked during event publishing."""
         from aiohomematic.central.events import DeviceStateChangedEvent
 
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
 
         async def dummy_handler(*, event: DeviceStateChangedEvent) -> None:
             pass

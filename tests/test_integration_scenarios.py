@@ -17,6 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central.events import DataPointValueReceivedEvent
 from aiohomematic.const import DataPointKey, ParamsetKey
 
@@ -155,7 +156,7 @@ class TestEventSubscriptionWorkflow:
         """Test multiple subscribers for different devices receive correct events."""
         from aiohomematic.central.events import EventBus
 
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         device1_events: list[DataPointValueReceivedEvent] = []
         device2_events: list[DataPointValueReceivedEvent] = []
 
@@ -210,7 +211,7 @@ class TestEventSubscriptionWorkflow:
         """Test complete subscribe -> receive -> unsubscribe workflow."""
         from aiohomematic.central.events import EventBus
 
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         received_events: list[DataPointValueReceivedEvent] = []
 
         # Create data point key
@@ -267,7 +268,7 @@ class TestConnectionStateWorkflow:
         from aiohomematic.client import AioJsonRpcAioHttpClient
 
         # Create event bus and mock provider
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
 
         class MockEventBusProvider:
             @property
@@ -360,7 +361,7 @@ class TestConcurrentOperations:
         """Test that concurrent event publishing works correctly."""
         from aiohomematic.central.events import EventBus
 
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         received_events: list[DataPointValueReceivedEvent] = []
         lock = asyncio.Lock()
 
@@ -399,7 +400,7 @@ class TestConcurrentOperations:
         """Test that concurrent subscribe/unsubscribe operations are thread-safe."""
         from aiohomematic.central.events import EventBus
 
-        bus = EventBus()
+        bus = EventBus(task_scheduler=Looper())
         dpk = DataPointKey(
             interface_id="BidCos-RF",
             channel_address="VCU0000001:1",

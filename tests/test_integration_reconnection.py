@@ -16,6 +16,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralConnectionState
 from aiohomematic.central.events import DataPointValueReceivedEvent, EventBus, SystemStatusChangedEvent
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
@@ -112,7 +113,7 @@ class TestConnectionStateEvents:
     @pytest.mark.asyncio
     async def test_event_published_on_issue_add(self) -> None:
         """Test that SystemStatusChangedEvent is published when issue is added."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         received_events: list[SystemStatusChangedEvent] = []
 
         class MockEventBusProvider:
@@ -146,7 +147,7 @@ class TestConnectionStateEvents:
     @pytest.mark.asyncio
     async def test_event_published_on_issue_remove(self) -> None:
         """Test that SystemStatusChangedEvent is published when issue is removed."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         received_events: list[SystemStatusChangedEvent] = []
 
         class MockEventBusProvider:
@@ -185,7 +186,7 @@ class TestConnectionStateEvents:
     @pytest.mark.asyncio
     async def test_events_published_on_clear_all(self) -> None:
         """Test that events are published for each cleared issue."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         received_events: list[SystemStatusChangedEvent] = []
 
         class MockEventBusProvider:
@@ -270,7 +271,7 @@ class TestConnectionStateTransitions:
     @pytest.mark.asyncio
     async def test_multiple_interfaces_state_transitions(self) -> None:
         """Test state transitions with multiple interfaces."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         state_history: list[tuple[str, bool]] = []
 
         class MockEventBusProvider:
@@ -316,7 +317,7 @@ class TestConnectionStateTransitions:
     @pytest.mark.asyncio
     async def test_state_transition_degraded_to_healthy(self) -> None:
         """Test transition from degraded back to healthy state."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         state_history: list[tuple[str, bool]] = []
 
         class MockEventBusProvider:
@@ -353,7 +354,7 @@ class TestConnectionStateTransitions:
     @pytest.mark.asyncio
     async def test_state_transition_healthy_to_degraded(self) -> None:
         """Test transition from healthy to degraded state."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         state_history: list[tuple[str, bool]] = []
 
         class MockEventBusProvider:
@@ -391,7 +392,7 @@ class TestEventSubscriptionPersistence:
     @pytest.mark.asyncio
     async def test_event_subscription_persists_through_state_changes(self) -> None:
         """Test that subscriptions remain active after connection state changes."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         connection_events: list[SystemStatusChangedEvent] = []
         data_events: list[DataPointValueReceivedEvent] = []
 
@@ -455,7 +456,7 @@ class TestEventSubscriptionPersistence:
     @pytest.mark.asyncio
     async def test_multiple_reconnection_cycles_preserve_subscriptions(self) -> None:
         """Test subscriptions survive multiple disconnect/reconnect cycles."""
-        event_bus = EventBus()
+        event_bus = EventBus(task_scheduler=Looper())
         events_received: list[SystemStatusChangedEvent] = []
 
         def on_event(event: SystemStatusChangedEvent) -> None:

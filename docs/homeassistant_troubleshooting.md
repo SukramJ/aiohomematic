@@ -378,7 +378,7 @@ aiohomematic caches device descriptions and parameter information for faster sta
 **Solutions:**
 
 1. **Clear the cache**: Use the `homematicip_local.clear_cache` service:
-   - Go to **Developer Tools** → **Services** in Home Assistant
+   - Go to **Developer Tools** → **Actions** in Home Assistant
    - Search for `homematicip_local.clear_cache`
    - Select your integration instance
    - Click **Call Service**

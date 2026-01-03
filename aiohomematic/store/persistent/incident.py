@@ -254,7 +254,11 @@ class IncidentStore(BasePersistentCache, IncidentRecorderProtocol):
         # Update content for persistence (flat list for storage compatibility)
         self._content["incidents"] = [i.to_dict() for i in self.incidents]
 
-        _LOGGER.info(  # i18n-log: ignore
+        # Always log at DEBUG level - the incident store's purpose is to RECORD
+        # incidents for later diagnosis, not to actively log them. Active logging
+        # (ERROR/WARNING level) is already handled at the source (e.g., log_boundary_error
+        # in rpc_proxy.py, @inspector decorator, etc.)
+        _LOGGER.debug(  # i18n-log: ignore
             "INCIDENT STORE: Recorded %s incident: %s (interface: %s)",
             severity.value.upper(),
             message,

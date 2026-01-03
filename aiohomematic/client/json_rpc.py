@@ -1953,8 +1953,20 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         method: str,
         error_type: str,
         error_message: str,
+        is_expected: bool = False,
     ) -> None:
-        """Record an RPC_ERROR incident for diagnostics."""
+        """
+        Record an RPC_ERROR incident for diagnostics.
+
+        Args:
+            method: RPC method that failed.
+            error_type: Type of error (e.g., JSONRPCError, HTTPError).
+            error_message: Error message from the exception.
+            is_expected: If True, use WARNING severity instead of ERROR.
+                Expected errors are common during data loading and should
+                not clutter logs.
+
+        """
         if (incident_recorder := self._incident_recorder) is None:
             return
 
@@ -1965,6 +1977,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         sanitized_message = sanitize_error_message(message=error_message)
 
         interface_id = self._interface_id or self._url
+
+        # Use WARNING for expected errors to reduce log noise
+        severity = IncidentSeverity.WARNING if is_expected else IncidentSeverity.ERROR
 
         context = {
             "protocol": "json-rpc",
@@ -1978,7 +1993,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             try:
                 await incident_recorder.record_incident(
                     incident_type=IncidentType.RPC_ERROR,
-                    severity=IncidentSeverity.ERROR,
+                    severity=severity,
                     message=f"RPC error on {interface_id}: {error_type} during {method}",
                     interface_id=interface_id,
                     context=context,

@@ -1,3 +1,18 @@
+# Version 2026.1.10 (2026-01-04)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix CUxD/CCU-Jack Recovery for JSON-RPC-only Interfaces**: Connection recovery now properly handles JSON-RPC-only interfaces (CUxD, CCU-Jack)
+
+  - **TCP Check**: For interfaces without an XML-RPC port (port=0), the recovery now checks the JSON-RPC port (80/443) instead of failing immediately
+  - **RPC Availability Check**: JSON-RPC-only interfaces now use `check_connection_availability()` (which calls `Interface.isPresent` via JSON-RPC) instead of attempting XML-RPC `system.listMethods`
+  - Previously, CUxD recovery would always fail at the TCP check stage because `_get_client_port` returned `None`
+  - This caused the central to enter FAILED state after max retries even when the CUxD service was available
+
+---
+
 # Version 2026.1.9 (2026-01-04)
 
 ## What's Changed

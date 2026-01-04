@@ -1,3 +1,16 @@
+# Version 2026.1.11 (2026-01-04)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix HmIP-MP3P LED Auto-Off After 10 Seconds**: The sound player LED (`light.turn_on`) now stays on permanently by default instead of turning off after 10 seconds
+  - Changed the default `on_time` from `10.0` to `0.0` (permanently on)
+  - Previously, calling `light.turn_on` without explicit `on_time` would send `DURATION_VALUE: 10`, causing the LED to turn off after 10 seconds even though `ON_TIME_LIST: PERMANENTLY_ON` was also sent
+  - Fixes #2706
+
+---
+
 # Version 2026.1.10 (2026-01-04)
 
 ## What's Changed

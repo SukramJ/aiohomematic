@@ -877,7 +877,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
         brightness_int = kwargs.get("brightness")
         brightness = self.brightness_to_level(brightness_int) if brightness_int is not None else 1.0
 
-        on_time = kwargs.get("on_time", 10.0)
+        on_time = kwargs.get("on_time", 0.0)
         ramp_time = kwargs.get("ramp_time", 0.0)
         repetitions_value = _convert_repetitions(repetitions=kwargs.get("repetitions"))
         flash_time_value = _convert_flash_time_to_on_time_list(flash_time_ms=kwargs.get("flash_time"))

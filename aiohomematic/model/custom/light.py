@@ -846,6 +846,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
         **kwargs: Unpack[LightOffArgs],
     ) -> None:
         """Turn off the LED."""
+        self.reset_timer_on_time()
         await self._dp_level.send_value(value=0.0, collector=collector)
         await self._dp_color.send_value(value=FixedColor.BLACK, collector=collector)
         await self._dp_on_time_value.send_value(value=0, collector=collector)
@@ -873,11 +874,16 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
                 flash_time: Flash duration in ms (converted to nearest ON_TIME_LIST value).
 
         """
+        # Handle timer like CustomDpDimmer: store if passed, then retrieve via get_and_start_timer
+        if (on_time_arg := kwargs.get("on_time")) is not None:
+            self.set_timer_on_time(on_time=on_time_arg)
+
         # Convert brightness from 0-255 to 0.0-1.0
         brightness_int = kwargs.get("brightness")
         brightness = self.brightness_to_level(brightness_int) if brightness_int is not None else 1.0
 
-        on_time = kwargs.get("on_time", 10.0)
+        # Use pre-set timer (from set_timer_on_time) or fall back to kwargs/default
+        on_time = self.get_and_start_timer() or kwargs.get("on_time", 0.0)
         ramp_time = kwargs.get("ramp_time", 0.0)
         repetitions_value = _convert_repetitions(repetitions=kwargs.get("repetitions"))
         flash_time_value = _convert_flash_time_to_on_time_list(flash_time_ms=kwargs.get("flash_time"))

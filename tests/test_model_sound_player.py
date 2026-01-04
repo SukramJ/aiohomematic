@@ -309,6 +309,117 @@ class TestSoundPlayer:
             await sound_player.play_sound(volume=1.1)
 
 
+class TestSoundPlayerLedTimer:
+    """Tests for CustomDpSoundPlayerLed timer functionality (like CustomDpDimmer)."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_led_player_turn_off_resets_timer(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that turn_off() resets the timer (like CustomDpDimmer)."""
+        central, _, _ = central_client_factory_with_homegear_client
+
+        led_player: CustomDpSoundPlayerLed = cast(
+            CustomDpSoundPlayerLed,
+            get_prepared_custom_data_point(central, "VCU1543608", 6),
+        )
+
+        # Set timer
+        led_player.set_timer_on_time(on_time=30.0)
+        assert led_player.timer_on_time == 30.0
+
+        # Turn on to start the timer
+        await led_player.turn_on(brightness=128)
+        assert led_player.timer_on_time_running is True
+
+        # Turn off should reset the timer
+        await led_player.turn_off()
+        assert led_player.timer_on_time is None
+        assert led_player.timer_on_time_running is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_led_player_turn_on_with_on_time_sets_timer(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that turn_on(on_time=...) sets and starts the timer."""
+        central, _, _ = central_client_factory_with_homegear_client
+
+        led_player: CustomDpSoundPlayerLed = cast(
+            CustomDpSoundPlayerLed,
+            get_prepared_custom_data_point(central, "VCU1543608", 6),
+        )
+
+        # No timer set initially
+        assert led_player.timer_on_time is None
+
+        # Call turn_on with on_time parameter
+        await led_player.turn_on(brightness=128, on_time=45.0)
+
+        # Timer should be set and running
+        assert led_player.timer_on_time_running is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_led_player_uses_preset_timer(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that set_timer_on_time() value is used by turn_on()."""
+        central, _, _ = central_client_factory_with_homegear_client
+
+        led_player: CustomDpSoundPlayerLed = cast(
+            CustomDpSoundPlayerLed,
+            get_prepared_custom_data_point(central, "VCU1543608", 6),
+        )
+
+        # Pre-set timer before turn_on (like CustomDpDimmer behavior)
+        led_player.set_timer_on_time(on_time=30.0)
+
+        # Verify timer is set
+        assert led_player.timer_on_time == 30.0
+        assert led_player.timer_on_time_running is False
+
+        # Call turn_on without on_time parameter - should use pre-set timer
+        await led_player.turn_on(brightness=128)
+
+        # Timer should now be running
+        assert led_player.timer_on_time_running is True
+
+
 class TestFlashTimeConversion:
     """Tests for flash_time to ON_TIME_LIST conversion."""
 

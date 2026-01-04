@@ -157,7 +157,6 @@ body:
         **DEBUG aktivieren**: Einstellungen → Geräte → Integration auswählen → Debug-Protokollierung aktivieren
 
         Dann Problem reproduzieren und herunterladen: Einstellungen → System → Protokolle → Unveränderte Protokolle laden
-      render: txt
   - type: textarea
     attributes:
       label: Weitere Informationen

@@ -157,7 +157,6 @@ body:
         **How to enable DEBUG**: Settings → Devices → Select integration → Enable debug logging
 
         Then reproduce the issue and download: Settings → System → Logs → Load unchanged logs
-      render: txt
   - type: textarea
     attributes:
       label: Additional information

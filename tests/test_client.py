@@ -231,6 +231,21 @@ class _FakeParamsetDescriptions:
         # Can be set by tests to provide custom paramset descriptions
         self._raw_paramset_descriptions: dict[str, Any] = {}
 
+    def add(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        paramset_description: dict[str, Any],
+    ) -> None:  # noqa: D401,ARG002
+        """Add a paramset description to the cache."""
+        if interface_id not in self._raw_paramset_descriptions:
+            self._raw_paramset_descriptions[interface_id] = {}
+        if channel_address not in self._raw_paramset_descriptions[interface_id]:
+            self._raw_paramset_descriptions[interface_id][channel_address] = {}
+        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
+
     def get_parameter_data(self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str):  # noqa: D401
         # First check _raw_paramset_descriptions if set
         if self._raw_paramset_descriptions:
@@ -255,6 +270,23 @@ class _FakeParamsetDescriptions:
         return ()
 
 
+class _FakeDeviceDescriptions:
+    """Minimal device descriptions exposing required methods."""
+
+    def __init__(self) -> None:
+        self._device_descriptions: dict[str, dict[str, Any]] = {}
+
+    def find_device_description(self, *, interface_id: str, device_address: str) -> dict[str, Any] | None:  # noqa: D401
+        """Find a device description by interface and address."""
+        if interface_id in self._device_descriptions:
+            return self._device_descriptions[interface_id].get(device_address)
+        return None
+
+    def get_device_descriptions(self, *, interface_id: str) -> dict[str, Any] | None:  # noqa: D401
+        """Return device descriptions for an interface."""
+        return self._device_descriptions.get(interface_id)
+
+
 class _FakeCentral:
     """Minimal CentralUnit-like object used by ClientConfig/ClientCCU without I/O."""
 
@@ -269,6 +301,7 @@ class _FakeCentral:
         self.device_details = _FakeDeviceDetails()
         self.data_cache = _FakeDataCache()
         self.paramset_descriptions = _FakeParamsetDescriptions()
+        self.device_descriptions = _FakeDeviceDescriptions()
         self.recorder = SimpleNamespace()  # not used by fakes
         self._clients: dict[str, object] = {}
         self.name = "central"
@@ -298,9 +331,7 @@ class _FakeCentral:
             device_details=self.device_details,
             paramset_descriptions=self.paramset_descriptions,
             data_cache=self.data_cache,
-            device_descriptions=SimpleNamespace(
-                get_device_descriptions=lambda **kwargs: [],
-            ),
+            device_descriptions=self.device_descriptions,
             incident_store=None,
         )
 
@@ -454,6 +485,7 @@ class _FakeCentral2:
             add=lambda **kwargs: None,  # type: ignore[misc]
             has_interface_id=lambda **kwargs: True,  # type: ignore[misc]
         )
+        self.device_descriptions = _FakeDeviceDescriptions()
         self.recorder = SimpleNamespace()
         self._devices: dict[str, Any] = {}
         self._channels: dict[str, Any] = {}
@@ -495,9 +527,7 @@ class _FakeCentral2:
             device_details=self.device_details,
             paramset_descriptions=self.paramset_descriptions,
             data_cache=self.data_cache,
-            device_descriptions=SimpleNamespace(
-                get_device_descriptions=lambda **kwargs: [],
-            ),
+            device_descriptions=self.device_descriptions,
             incident_store=None,
         )
 
@@ -829,6 +859,100 @@ class TestClientClasses:
         assert await client_ccu.check_connection_availability(handle_ping_pong=True) is False
 
     @pytest.mark.asyncio
+    async def test_clientjsonccu_paramset_methods_use_json_rpc(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """
+        Verify ClientJsonCCU paramset methods use JSON-RPC, not XML-RPC proxy.
+
+        The NullRpcProxy used by ClientJsonCCU would throw UnsupportedException if called.
+        These tests ensure all paramset-related methods properly use JSON-RPC.
+        """
+        central = _FakeCentral()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
+        from aiohomematic.client.rpc_proxy import NullRpcProxy
+
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
+        client_json = _ClientJsonCCU(client_config=ccfg)
+
+        # Initialize client with NullRpcProxy (like real CUxD setup)
+        from aiohomematic.const import SystemInformation
+
+        client_json._system_information = SystemInformation(  # type: ignore[attr-defined]
+            available_interfaces=(Interface.CUXD,),
+            serial="CUxD_TEST",
+        )
+        client_json._proxy = NullRpcProxy(  # type: ignore[attr-defined]
+            interface_id=client_json.interface_id,
+            connection_state=central.connection_state,
+            event_bus=central.event_bus,
+        )
+        client_json._proxy_read = client_json._proxy  # type: ignore[attr-defined]
+        client_json._init_handlers()
+
+        # Track JSON-RPC calls
+        json_rpc_calls: list[str] = []
+
+        async def mock_get_paramset_description(
+            *,
+            interface: Interface,
+            address: str,
+            paramset_key: ParamsetKey,  # noqa: ARG002
+        ) -> dict[str, Any]:
+            json_rpc_calls.append(f"get_paramset_description:{address}:{paramset_key}")
+            return {"LEVEL": {"TYPE": "FLOAT", "OPERATIONS": 7}}
+
+        async def mock_get_device_description(*, interface: Interface, address: str) -> dict[str, Any]:  # noqa: ARG002
+            json_rpc_calls.append(f"get_device_description:{address}")
+            return {
+                "ADDRESS": address,
+                "TYPE": "TEST_DEVICE",
+                "PARAMSETS": ["VALUES", "MASTER"],
+                "CHILDREN": [f"{address}:1", f"{address}:2"] if ":" not in address else [],
+            }
+
+        monkeypatch.setattr(central.json_rpc_client, "get_paramset_description", mock_get_paramset_description)
+        monkeypatch.setattr(central.json_rpc_client, "get_device_description", mock_get_device_description)
+
+        # Test get_paramset_descriptions - should use JSON-RPC
+        device_desc = {"ADDRESS": "dev1:1", "PARAMSETS": ["VALUES", "MASTER"]}
+        result = await client_json.get_paramset_descriptions(device_description=device_desc)  # type: ignore[arg-type]
+        assert "dev1:1" in result
+        assert "get_paramset_description:dev1:1:VALUES" in json_rpc_calls
+        assert "get_paramset_description:dev1:1:MASTER" in json_rpc_calls
+
+        # Test get_all_paramset_descriptions - should use JSON-RPC
+        json_rpc_calls.clear()
+        device_descs = (
+            {"ADDRESS": "dev2:1", "PARAMSETS": ["VALUES"]},
+            {"ADDRESS": "dev2:2", "PARAMSETS": ["VALUES"]},
+        )
+        result = await client_json.get_all_paramset_descriptions(device_descriptions=device_descs)  # type: ignore[arg-type]
+        assert "dev2:1" in result
+        assert "dev2:2" in result
+        assert "get_paramset_description:dev2:1:VALUES" in json_rpc_calls
+        assert "get_paramset_description:dev2:2:VALUES" in json_rpc_calls
+
+        # Test get_all_device_descriptions - should use JSON-RPC
+        json_rpc_calls.clear()
+        result = await client_json.get_all_device_descriptions(device_address="dev3")
+        assert len(result) == 3  # main device + 2 children
+        assert "get_device_description:dev3" in json_rpc_calls
+        assert "get_device_description:dev3:1" in json_rpc_calls
+        assert "get_device_description:dev3:2" in json_rpc_calls
+
+        # Test fetch_paramset_description - should use JSON-RPC and store in cache
+        json_rpc_calls.clear()
+        await client_json.fetch_paramset_description(channel_address="dev4:1", paramset_key=ParamsetKey.VALUES)
+        assert "get_paramset_description:dev4:1:VALUES" in json_rpc_calls
+
+        # Test fetch_paramset_descriptions - should use JSON-RPC
+        json_rpc_calls.clear()
+        device_desc = {"ADDRESS": "dev5:1", "PARAMSETS": ["VALUES", "MASTER"]}
+        await client_json.fetch_paramset_descriptions(device_description=device_desc)  # type: ignore[arg-type]
+        assert "get_paramset_description:dev5:1:VALUES" in json_rpc_calls
+        assert "get_paramset_description:dev5:1:MASTER" in json_rpc_calls
+
+    @pytest.mark.asyncio
     async def test_clientjsonccu_put_paramset_uses_json_rpc(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify ClientJsonCCU.put_paramset uses JSON-RPC client, not XML-RPC proxy."""
         central = _FakeCentral()
@@ -951,6 +1075,70 @@ class TestClientClasses:
         # Verify JSON-RPC was called
         assert len(json_rpc_calls) == 1
         assert json_rpc_calls[0] == "set_value:dev1:1:STATE:True"
+
+    @pytest.mark.asyncio
+    async def test_clientjsonccu_update_paramset_descriptions_uses_json_rpc(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify ClientJsonCCU.update_paramset_descriptions uses JSON-RPC."""
+        central = _FakeCentral()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
+        from aiohomematic.client.rpc_proxy import NullRpcProxy
+
+        ccfg = _ClientConfig(client_deps=central, interface_config=iface_cfg)
+        client_json = _ClientJsonCCU(client_config=ccfg)
+
+        from aiohomematic.const import SystemInformation
+
+        client_json._system_information = SystemInformation(  # type: ignore[attr-defined]
+            available_interfaces=(Interface.CUXD,),
+            serial="CUxD_TEST",
+        )
+        client_json._proxy = NullRpcProxy(  # type: ignore[attr-defined]
+            interface_id=client_json.interface_id,
+            connection_state=central.connection_state,
+            event_bus=central.event_bus,
+        )
+        client_json._proxy_read = client_json._proxy  # type: ignore[attr-defined]
+        client_json._init_handlers()
+
+        # Setup device descriptions in cache
+        central.cache_coordinator.device_descriptions._device_descriptions = {
+            "c-CUxD": {
+                "dev1": {"ADDRESS": "dev1", "TYPE": "TEST", "PARAMSETS": ["VALUES"], "CHILDREN": ["dev1:1"]},
+                "dev1:1": {"ADDRESS": "dev1:1", "TYPE": "TEST_CH", "PARAMSETS": ["VALUES"]},
+            }
+        }
+
+        # Track JSON-RPC calls
+        json_rpc_calls: list[str] = []
+
+        async def mock_get_paramset_description(
+            *,
+            interface: Interface,
+            address: str,
+            paramset_key: ParamsetKey,  # noqa: ARG002
+        ) -> dict[str, Any]:
+            json_rpc_calls.append(f"get_paramset_description:{address}:{paramset_key}")
+            return {"STATE": {"TYPE": "BOOL", "OPERATIONS": 7}}
+
+        monkeypatch.setattr(central.json_rpc_client, "get_paramset_description", mock_get_paramset_description)
+
+        # Mock save_files to avoid file I/O
+        save_called = []
+
+        async def mock_save_files(*, save_paramset_descriptions: bool = False) -> None:
+            save_called.append(save_paramset_descriptions)
+
+        monkeypatch.setattr(central, "save_files", mock_save_files)
+
+        # Call update_paramset_descriptions - should use JSON-RPC
+        await client_json.update_paramset_descriptions(device_address="dev1")
+
+        # Verify JSON-RPC was called (not XML-RPC which would raise UnsupportedException)
+        assert "get_paramset_description:dev1:VALUES" in json_rpc_calls
+        assert save_called == [True]
 
     @pytest.mark.asyncio
     async def test_clientjsonccu_value_and_description_error(self, monkeypatch: pytest.MonkeyPatch) -> None:

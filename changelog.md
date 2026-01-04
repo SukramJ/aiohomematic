@@ -2,6 +2,20 @@
 
 ## What's Changed
 
+### Bug Fixes
+
+- **Backend Detection Validates Interface Availability**: The backend detection now verifies that each interface process is actually running via `is_present()` check, not just installed
+
+  - Previously, interfaces like CUxD would be reported as "available" even when the daemon wasn't running
+  - This caused connection recovery loops and eventual "central failed" state when the integration tried to connect to non-running interfaces
+  - Now only interfaces that pass the `is_present()` check are included in the detection result
+  - Added warning logs when installed interfaces are not running
+
+- **Fix CUxD/CCU-Jack JSON-RPC Method Overrides**: `ClientJsonCCU` now properly uses JSON-RPC for all device operations
+  - Fixed `UnsupportedException` errors for `getParamsetDescription` and related methods
+  - Added missing method overrides: `fetch_paramset_description`, `fetch_paramset_descriptions`, `get_paramset_descriptions`, `get_all_paramset_descriptions`, `get_all_device_descriptions`, `update_paramset_descriptions`
+  - These methods were previously delegating to the handler which used XML-RPC (not available for CUxD/CCU-Jack interfaces)
+
 ### Improvements
 
 - **Dynamic Version Detection in Issue Analyzer**: The GitHub Issue Analyzer bot now fetches current integration versions dynamically from GitHub Releases instead of using outdated hardcoded values

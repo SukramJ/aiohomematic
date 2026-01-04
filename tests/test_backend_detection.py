@@ -207,6 +207,7 @@ class TestQueryCcuInterfaces:
                     auth_enabled=True,
                 )
             )
+            mock_client.is_present = AsyncMock(return_value=True)
             mock_client.logout = AsyncMock()
             return mock_client
 
@@ -227,6 +228,38 @@ class TestQueryCcuInterfaces:
         assert result == ((Interface.HMIP_RF,), True, None)
 
     @pytest.mark.asyncio
+    async def test_query_ccu_interfaces_not_present_skipped(self) -> None:
+        """Test that interfaces where is_present returns False are skipped."""
+        mock_system_info = SystemInformation(
+            available_interfaces=("HmIP-RF", "CUxD", "BidCos-RF"),
+            auth_enabled=True,
+        )
+
+        async def mock_is_present(*, interface: Interface) -> bool:
+            # CUxD is installed but not running
+            return interface != Interface.CUXD
+
+        mock_client = MagicMock()
+        mock_client.get_system_information = AsyncMock(return_value=mock_system_info)
+        mock_client.is_present = mock_is_present
+        mock_client.logout = AsyncMock()
+
+        with patch(
+            "aiohomematic.backend_detection.AioJsonRpcAioHttpClient",
+            return_value=mock_client,
+        ):
+            result = await _query_ccu_interfaces(
+                host="192.168.1.100",
+                username="admin",
+                password="secret",
+                verify_tls=False,
+                client_session=None,
+            )
+
+        # CUxD should be skipped because is_present returned False
+        assert result == ((Interface.HMIP_RF, Interface.BIDCOS_RF), True, None)
+
+    @pytest.mark.asyncio
     async def test_query_ccu_interfaces_success(self) -> None:
         """Test successful interface query using AioJsonRpcAioHttpClient."""
         mock_system_info = SystemInformation(
@@ -236,6 +269,7 @@ class TestQueryCcuInterfaces:
 
         mock_client = MagicMock()
         mock_client.get_system_information = AsyncMock(return_value=mock_system_info)
+        mock_client.is_present = AsyncMock(return_value=True)
         mock_client.logout = AsyncMock()
 
         with patch(
@@ -271,6 +305,7 @@ class TestQueryCcuInterfaces:
                     auth_enabled=True,
                 )
             )
+            mock_client.is_present = AsyncMock(return_value=True)
             mock_client.logout = AsyncMock()
             return mock_client
 
@@ -299,6 +334,7 @@ class TestQueryCcuInterfaces:
 
         mock_client = MagicMock()
         mock_client.get_system_information = AsyncMock(return_value=mock_system_info)
+        mock_client.is_present = AsyncMock(return_value=True)
         mock_client.logout = AsyncMock()
 
         with patch(

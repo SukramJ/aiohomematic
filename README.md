@@ -65,13 +65,13 @@ This project follows a **two-layer architecture** that separates concerns betwee
 
 ### Why Two Projects?
 
-| Aspect | aiohomematic | Homematic(IP) Local |
-| ------ | ------------ | ------------------- |
-| **Purpose** | Python library for Homematic protocol | Home Assistant integration |
-| **Scope** | Protocol, devices, data points | HA entities, UI, services |
-| **Dependencies** | Standalone (aiohttp, orjson) | Requires Home Assistant |
-| **Reusability** | Any Python project | Home Assistant only |
-| **Repository** | [aiohomematic](https://github.com/sukramj/aiohomematic) | [homematicip_local](https://github.com/sukramj/homematicip_local) |
+| Aspect           | aiohomematic                                            | Homematic(IP) Local                                               |
+| ---------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Purpose**      | Python library for Homematic protocol                   | Home Assistant integration                                        |
+| **Scope**        | Protocol, devices, data points                          | HA entities, UI, services                                         |
+| **Dependencies** | Standalone (aiohttp, orjson)                            | Requires Home Assistant                                           |
+| **Reusability**  | Any Python project                                      | Home Assistant only                                               |
+| **Repository**   | [aiohomematic](https://github.com/sukramj/aiohomematic) | [homematicip_local](https://github.com/sukramj/homematicip_local) |
 
 **Benefits of this separation:**
 

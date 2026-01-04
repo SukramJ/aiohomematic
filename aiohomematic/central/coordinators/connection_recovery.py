@@ -64,7 +64,14 @@ from aiohomematic.central.events import (
     RecoveryStageChangedEvent,
 )
 from aiohomematic.client import CircuitState
-from aiohomematic.const import CentralState, FailureReason, RecoveryStage
+from aiohomematic.const import (
+    INTERFACES_REQUIRING_JSON_RPC_CLIENT,
+    INTERFACES_REQUIRING_XML_RPC,
+    CentralState,
+    FailureReason,
+    RecoveryStage,
+    get_json_rpc_default_port,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -315,10 +322,16 @@ class ConnectionRecoveryCoordinator:
         _LOGGER.debug("CONNECTION_RECOVERY: Coordinator stopped for %s", self._central_info.name)
 
     async def _check_rpc_available(self, *, interface_id: str) -> bool:
-        """Check if RPC interface is available via system.listMethods."""
+        """Check if RPC interface is available."""
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
-            # Access proxy's system.listMethods via XML-RPC magic method
+
+            # For JSON-RPC-only interfaces (CUxD, CCU-Jack), use check_connection_availability
+            # which internally calls Interface.isPresent via JSON-RPC
+            if client.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC:
+                return await client.check_connection_availability(handle_ping_pong=False)
+
+            # For XML-RPC interfaces, use system.listMethods via proxy
             # pylint: disable=protected-access
             if hasattr(client, "_proxy") and hasattr(client._proxy, "system"):
                 result = await client._proxy.system.listMethods()
@@ -843,10 +856,30 @@ class ConnectionRecoveryCoordinator:
     async def _stage_tcp_check(self, *, interface_id: str) -> bool:
         """Stage: Check TCP port availability."""
         timeout_config = self._config_provider.config.timeout_config
-        host = self._config_provider.config.host
+        config = self._config_provider.config
+        host = config.host
 
-        if (port := self._get_client_port(interface_id=interface_id)) is None:
-            return False
+        # Get the port to check
+        port = self._get_client_port(interface_id=interface_id)
+
+        # For JSON-RPC-only interfaces (CUxD, CCU-Jack), use the JSON-RPC port instead
+        # These interfaces don't have their own XML-RPC port
+        if port is None or port == 0:
+            client = self._client_provider.get_client(interface_id=interface_id)
+            if client.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC:
+                port = get_json_rpc_default_port(tls=config.tls)
+                _LOGGER.debug(
+                    "CONNECTION_RECOVERY: Using JSON-RPC port %d for %s",
+                    port,
+                    interface_id,
+                )
+            else:
+                # Non-JSON-RPC interface without a port - can't check
+                _LOGGER.warning(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: No port configured for %s, skipping TCP check",
+                    interface_id,
+                )
+                return False
 
         start_time = time.perf_counter()
         while (time.perf_counter() - start_time) < timeout_config.reconnect_tcp_check_timeout:

@@ -1,3 +1,17 @@
+# Version 2026.1.9 (2026-01-04)
+
+## What's Changed
+
+### Improvements
+
+- **Dynamic Version Detection in Issue Analyzer**: The GitHub Issue Analyzer bot now fetches current integration versions dynamically from GitHub Releases instead of using outdated hardcoded values
+  - Fixes incorrect "outdated version" warnings when users report issues with the latest version
+  - Supports automatic version detection for stable and pre-release versions
+  - No longer requires manual updates to the analyzer script when new versions are released
+  - If version information cannot be retrieved, no version-related comments are made
+
+---
+
 # Version 2026.1.8 (2026-01-03)
 
 ## What's Changed

@@ -16,10 +16,63 @@ from typing import Any, cast
 from anthropic import Anthropic
 from github import Auth, Github, GithubException, Repository
 
-# Version constants for Homematic(IP) Local
-CURRENT_STABLE_VERSION = "1.90.2"
-CURRENT_PRERELEASE_VERSION = "1.91.0b32"
-VALID_MAJOR_VERSIONS = (1, 2)  # 1.x.x is current, 2.x.x is next major
+# Valid major version range for Homematic(IP) Local
+# Version 1.x.x was the original, 2.x.x is current, 3.x.x reserved for future
+VALID_MAJOR_VERSIONS = (1, 2, 3)
+
+# Integration repository for version lookups
+INTEGRATION_REPO = "SukramJ/homematicip_local"
+
+# Cached version info (populated on first use)
+_cached_versions: dict[str, str | None] = {}
+
+
+def fetch_latest_versions(gh: Github) -> tuple[str | None, str | None]:
+    """
+    Fetch the latest stable and pre-release versions from GitHub Releases.
+
+    Returns tuple of (stable_version, prerelease_version).
+    Uses caching to avoid repeated API calls.
+    """
+    if "stable" in _cached_versions:
+        return _cached_versions.get("stable"), _cached_versions.get("prerelease")
+
+    try:
+        repo = gh.get_repo(INTEGRATION_REPO)
+        releases = repo.get_releases()
+
+        stable_version: str | None = None
+        prerelease_version: str | None = None
+
+        for release in releases:
+            if release.draft:
+                continue
+
+            tag = release.tag_name.lstrip("v")  # Remove 'v' prefix if present
+
+            if release.prerelease:
+                if prerelease_version is None:
+                    prerelease_version = tag
+            elif stable_version is None:
+                stable_version = tag
+                # If we have both, we're done
+                if prerelease_version is not None:
+                    break
+
+            # Stop after checking first 20 releases
+            if stable_version is not None:
+                break
+
+        _cached_versions["stable"] = stable_version
+        _cached_versions["prerelease"] = prerelease_version
+
+    except GithubException as e:
+        print(f"Warning: Could not fetch versions from GitHub: {e}")  # noqa: T201
+        # Fallback to None - validation will still work but without version comparison
+        _cached_versions["stable"] = None
+        _cached_versions["prerelease"] = None
+
+    return _cached_versions.get("stable"), _cached_versions.get("prerelease")
 
 
 def parse_version(version_str: str) -> tuple[int, int, int, str] | None:
@@ -44,11 +97,22 @@ def parse_version(version_str: str) -> tuple[int, int, int, str] | None:
     return (major, minor, patch, prerelease)
 
 
-def validate_integration_version(version_str: str) -> dict[str, Any]:
+def validate_integration_version(
+    version_str: str,
+    *,
+    current_stable: str | None,
+    current_prerelease: str | None,
+) -> dict[str, Any]:
     """
     Validate if the reported version is a valid Homematic(IP) Local version.
 
+    Args:
+        version_str: The version string to validate.
+        current_stable: Current stable version from GitHub Releases.
+        current_prerelease: Current pre-release version from GitHub Releases.
+
     Returns a dict with validation results.
+
     """
     result: dict[str, Any] = {
         "reported_version": version_str,
@@ -56,8 +120,8 @@ def validate_integration_version(version_str: str) -> dict[str, Any]:
         "is_valid_homematicip_local": False,
         "is_prerelease": False,
         "needs_update": False,
-        "current_stable": CURRENT_STABLE_VERSION,
-        "current_prerelease": CURRENT_PRERELEASE_VERSION,
+        "current_stable": current_stable or "unknown",
+        "current_prerelease": current_prerelease or "none",
         "issue": None,
         "issue_description": None,
     }
@@ -65,21 +129,19 @@ def validate_integration_version(version_str: str) -> dict[str, Any]:
     parsed = parse_version(version_str)
     if not parsed:
         result["issue"] = "invalid_format"
-        result["issue_description"] = (
-            f"Version '{version_str}' does not match expected format (e.g., 1.90.2 or 1.91.0b32)"
-        )
+        result["issue_description"] = f"Version '{version_str}' does not match expected format (e.g., 2.0.3 or 2.1.0b1)"
         return result
 
     major, minor, patch, prerelease = parsed
     result["is_valid_format"] = True
     result["is_prerelease"] = bool(prerelease)
 
-    # Check for valid major version (1.x.x or 2.x.x)
+    # Check for valid major version (1.x.x, 2.x.x, or 3.x.x)
     if major not in VALID_MAJOR_VERSIONS:
         result["issue"] = "invalid_major_version"
         result["issue_description"] = (
             f"Version '{version_str}' is not a valid Homematic(IP) Local version. "
-            f"Valid versions start with 1.x.x (current) or 2.x.x (future). "
+            f"Valid versions use major versions 1, 2, or 3. "
             f"You may have reported the CCU firmware version instead of the integration version, "
             f"or you are using an old/different integration."
         )
@@ -87,21 +149,22 @@ def validate_integration_version(version_str: str) -> dict[str, Any]:
 
     result["is_valid_homematicip_local"] = True
 
-    # Compare with current stable version
-    current_parsed = parse_version(CURRENT_STABLE_VERSION)
-    if current_parsed:
-        current_major, current_minor, current_patch, _ = current_parsed
-        reported_tuple = (major, minor, patch)
-        current_tuple = (current_major, current_minor, current_patch)
+    # Compare with current stable version (only if we have version info)
+    if current_stable:
+        current_parsed = parse_version(current_stable)
+        if current_parsed:
+            current_major, current_minor, current_patch, _ = current_parsed
+            reported_tuple = (major, minor, patch)
+            current_tuple = (current_major, current_minor, current_patch)
 
-        if reported_tuple < current_tuple:
-            result["needs_update"] = True
-            result["issue"] = "outdated_version"
-            result["issue_description"] = (
-                f"Version '{version_str}' is outdated. "
-                f"Current stable version is {CURRENT_STABLE_VERSION}. "
-                f"Please update to the latest version before reporting issues."
-            )
+            if reported_tuple < current_tuple:
+                result["needs_update"] = True
+                result["issue"] = "outdated_version"
+                result["issue_description"] = (
+                    f"Version '{version_str}' is outdated. "
+                    f"Current stable version is {current_stable}. "
+                    f"Please update to the latest version before reporting issues."
+                )
 
     return result
 
@@ -257,16 +320,29 @@ Be helpful and constructive. Only flag missing information if it's genuinely req
 If the user uses incorrect terminology, gently suggest the correct terms and link to the glossary."""
 
 
-def get_claude_analysis(title: str, body: str, api_key: str) -> dict[str, Any]:
+def get_claude_analysis(
+    title: str,
+    body: str,
+    api_key: str,
+    *,
+    gh: Github,
+) -> dict[str, Any]:
     """Use Claude to analyze the issue."""
     client = Anthropic(api_key=api_key)
 
     docs_str = "\n".join([f"- {key}: {url}" for key, url in DOCS_LINKS.items()])
 
+    # Fetch current versions from GitHub Releases
+    current_stable, current_prerelease = fetch_latest_versions(gh)
+
     # Extract and validate version from issue body
     extracted_version = extract_version_from_issue(body or "")
     if extracted_version:
-        version_check = validate_integration_version(extracted_version)
+        version_check = validate_integration_version(
+            extracted_version,
+            current_stable=current_stable,
+            current_prerelease=current_prerelease,
+        )
     else:
         version_check = {
             "reported_version": None,
@@ -274,16 +350,16 @@ def get_claude_analysis(title: str, body: str, api_key: str) -> dict[str, Any]:
             "is_valid_homematicip_local": False,
             "issue": "no_version_found",
             "issue_description": "No version number found in issue body",
-            "current_stable": CURRENT_STABLE_VERSION,
-            "current_prerelease": CURRENT_PRERELEASE_VERSION,
+            "current_stable": current_stable or "unknown",
+            "current_prerelease": current_prerelease or "none",
         }
 
     prompt = CLAUDE_ANALYSIS_PROMPT.format(
         title=title,
         body=body or "(empty)",
         docs=docs_str,
-        current_stable=CURRENT_STABLE_VERSION,
-        current_prerelease=CURRENT_PRERELEASE_VERSION,
+        current_stable=current_stable or "unknown",
+        current_prerelease=current_prerelease or "none",
         version_check_json=json.dumps(version_check, indent=2),
     )
 
@@ -355,8 +431,18 @@ def has_bot_comment(issue: Any) -> bool:
     return False
 
 
-def _format_version_issue(analysis: dict[str, Any], is_german: bool) -> str:
+def _format_version_issue(
+    analysis: dict[str, Any],
+    is_german: bool,
+    *,
+    current_stable: str,
+    current_prerelease: str,
+) -> str:
     """Format version issue section of the comment."""
+    # If we couldn't determine current versions, don't comment on version issues
+    if current_stable == "unknown":
+        return ""
+
     version_issue = analysis.get("version_issue", {})
     if not version_issue.get("has_issue"):
         return ""
@@ -378,15 +464,15 @@ def _format_version_issue(analysis: dict[str, Any], is_german: bool) -> str:
 
     if is_german:
         result += (
-            f"**Aktuelle stabile Version:** {CURRENT_STABLE_VERSION}\n"
-            f"**Aktuelle Pre-Release:** {CURRENT_PRERELEASE_VERSION}\n\n"
+            f"**Aktuelle stabile Version:** {current_stable}\n"
+            f"**Aktuelle Pre-Release:** {current_prerelease}\n\n"
             f"Bitte stelle sicher, dass du die [aktuelle Version]({DOCS_LINKS['releases']}) verwendest, "
             f"bevor du ein Problem meldest. Support kann nur für die aktuelle Version geleistet werden.\n\n"
         )
     else:
         result += (
-            f"**Current stable version:** {CURRENT_STABLE_VERSION}\n"
-            f"**Current pre-release:** {CURRENT_PRERELEASE_VERSION}\n\n"
+            f"**Current stable version:** {current_stable}\n"
+            f"**Current pre-release:** {current_prerelease}\n\n"
             f"Please ensure you are using the [latest version]({DOCS_LINKS['releases']}) "
             f"before reporting issues. Support can only be provided for the current version.\n\n"
         )
@@ -394,7 +480,13 @@ def _format_version_issue(analysis: dict[str, Any], is_german: bool) -> str:
     return result
 
 
-def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]) -> str:
+def format_comment(
+    analysis: dict[str, Any],
+    similar_items: list[dict[str, Any]],
+    *,
+    current_stable: str,
+    current_prerelease: str,
+) -> str:
     """Format the comment to post on the issue."""
     lang = analysis.get("language", "en")
     is_german = lang == "de"
@@ -408,7 +500,12 @@ def format_comment(analysis: dict[str, Any], similar_items: list[dict[str, Any]]
         comment += f"**Summary:** {analysis.get('summary', 'Issue detected')}\n\n"
 
     # Version issue (highest priority - show first if critical)
-    comment += _format_version_issue(analysis, is_german)
+    comment += _format_version_issue(
+        analysis,
+        is_german,
+        current_stable=current_stable,
+        current_prerelease=current_prerelease,
+    )
 
     # Terminology issues
     terminology_issues = analysis.get("terminology_issues", [])
@@ -540,9 +637,13 @@ def main() -> None:
 
     print(f"Analyzing issue #{issue_number}: {issue_title}")  # noqa: T201
 
+    # Fetch latest versions from GitHub Releases
+    current_stable, current_prerelease = fetch_latest_versions(gh)
+    print(f"Current versions - stable: {current_stable}, prerelease: {current_prerelease}")  # noqa: T201
+
     # Get Claude's analysis
     try:
-        analysis = get_claude_analysis(issue_title, issue_body, anthropic_api_key)
+        analysis = get_claude_analysis(issue_title, issue_body, anthropic_api_key, gh=gh)
         print(f"Analysis complete: {json.dumps(analysis, indent=2)}")  # noqa: T201
     except Exception as e:
         print(f"Error getting Claude analysis: {e}")  # noqa: T201
@@ -567,7 +668,12 @@ def main() -> None:
         return
 
     # Format and post comment
-    comment_body = format_comment(analysis, similar_items)
+    comment_body = format_comment(
+        analysis,
+        similar_items,
+        current_stable=current_stable or "unknown",
+        current_prerelease=current_prerelease or "none",
+    )
 
     # Only post if there's something useful to say
     version_issue = analysis.get("version_issue", {})

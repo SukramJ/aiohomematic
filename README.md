@@ -26,6 +26,78 @@ Unlike pyhomematic, which required manual device mappings, aiohomematic automati
 - Provides hooks for custom entity classes where complex behavior is needed
 - Includes helpers for robust operation, such as automatic reconnection after CCU restarts
 
+## Relationship to Homematic(IP) Local
+
+This project follows a **two-layer architecture** that separates concerns between the library and the Home Assistant integration:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Home Assistant                        │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │           Homematic(IP) Local Integration          │ │
+│  │                                                    │ │
+│  │  • Home Assistant entities (climate, light, etc.)  │ │
+│  │  • UI configuration flows                          │ │
+│  │  • Services and automations                        │ │
+│  │  • Device/entity registry integration              │ │
+│  └────────────────────────┬───────────────────────────┘ │
+└───────────────────────────┼─────────────────────────────┘
+                            │
+                            │ uses
+                            ▼
+┌───────────────────────────────────────────────────────────┐
+│                      aiohomematic                         │
+│                                                           │
+│  • Protocol implementation (XML-RPC, JSON-RPC)            │
+│  • Device model and data point abstraction                │
+│  • Connection management and reconnection                 │
+│  • Event handling and callbacks                           │
+│  • Caching for fast startups                              │
+└───────────────────────────────────────────────────────────┘
+                            │
+                            │ communicates with
+                            ▼
+┌───────────────────────────────────────────────────────────┐
+│              CCU3 / OpenCCU / Homegear                    │
+└───────────────────────────────────────────────────────────┘
+```
+
+### Why Two Projects?
+
+| Aspect | aiohomematic | Homematic(IP) Local |
+| ------ | ------------ | ------------------- |
+| **Purpose** | Python library for Homematic protocol | Home Assistant integration |
+| **Scope** | Protocol, devices, data points | HA entities, UI, services |
+| **Dependencies** | Standalone (aiohttp, orjson) | Requires Home Assistant |
+| **Reusability** | Any Python project | Home Assistant only |
+| **Repository** | [aiohomematic](https://github.com/sukramj/aiohomematic) | [homematicip_local](https://github.com/sukramj/homematicip_local) |
+
+**Benefits of this separation:**
+
+- **Reusability**: aiohomematic can be used in any Python project, not just Home Assistant
+- **Testability**: The library can be tested independently without Home Assistant
+- **Maintainability**: Protocol changes don't affect HA-specific code and vice versa
+- **Clear boundaries**: Each project has a focused responsibility
+
+### How They Work Together
+
+1. **Homematic(IP) Local** creates a `CentralUnit` via aiohomematic's API
+2. **aiohomematic** connects to the CCU/Homegear and discovers devices
+3. **aiohomematic** creates `Device`, `Channel`, and `DataPoint` objects
+4. **Homematic(IP) Local** wraps these in Home Assistant entities
+5. **aiohomematic** receives events from the CCU and notifies subscribers
+6. **Homematic(IP) Local** translates events into Home Assistant state updates
+
+### For Developers
+
+If you want to:
+
+- **Use Homematic devices in Home Assistant** → Install [Homematic(IP) Local](https://github.com/sukramj/homematicip_local)
+- **Build a custom Python application** → Use aiohomematic directly
+- **Contribute to device support** → Most changes go into aiohomematic
+- **Fix HA-specific issues** → Changes go into Homematic(IP) Local
+
 ## Requirements
 
 ### Python

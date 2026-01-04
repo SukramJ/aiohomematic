@@ -2,6 +2,20 @@
 
 ## What's Changed
 
+### New Features
+
+- **New InterfaceClient with Backend Strategy Pattern**: Introduced a unified client implementation that replaces the three legacy clients (ClientCCU, ClientJsonCCU, ClientHomegear)
+
+  - **Architecture**: Single `InterfaceClient` class delegates transport operations to backend strategies (CcuBackend, JsonCcuBackend, HomegearBackend)
+  - **Benefits**: Cleaner separation of concerns, easier maintenance, consistent behavior across all backend types
+  - **Feature Flag**: Enable via `OptionalSettings.USE_INTERFACE_CLIENT` or environment variable `AIOHOMEMATIC_USE_INTERFACE_CLIENT=1`
+  - **Status**: Phase 2 complete - all business logic migrated, 24 comparison tests verify identical behavior to legacy clients
+  - **Documentation**: See `docs/adr/0013-implementation-status.md` for implementation details
+
+- **CI Tests Both Client Implementations**: The CI pipeline now runs the full test suite (1640 tests) with both legacy client and InterfaceClient implementations
+  - Test infrastructure updated to support InterfaceClient's `__slots__` architecture
+  - Coverage threshold temporarily lowered to 80% (will be restored to 85% after legacy client cleanup)
+
 ### Bug Fixes
 
 - **Fix VirtualDevices Init Timeout Causing Client Failure**: The `init()` RPC method is now excluded from automatic retry logic

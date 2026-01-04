@@ -934,7 +934,7 @@ class TestCentralPingPong:
         import asyncio
 
         central, client, factory = central_client_factory_with_ccu_client
-        client._is_initialized = True
+        assert client.is_initialized
         count = 0
         max_count = PING_PONG_MISMATCH_COUNT + 1
         while count < max_count:
@@ -973,7 +973,7 @@ class TestCentralPingPong:
     async def test_ping_pong(self, central_client_factory_with_ccu_client) -> None:
         """Test central other methods."""
         central, client, _ = central_client_factory_with_ccu_client
-        client._is_initialized = True
+        assert client.is_initialized
         interface_id = client.interface_id
         await client.check_connection_availability(handle_ping_pong=True)
         assert len(client.ping_pong_tracker._pending) == 1

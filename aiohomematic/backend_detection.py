@@ -371,6 +371,10 @@ async def _query_json_rpc_interfaces(
     """
     Query interfaces via JSON-RPC on a specific port using AioJsonRpcAioHttpClient.
 
+    This function performs two checks:
+    1. Queries available_interfaces from system information (installed interfaces)
+    2. Verifies each interface is actually running via is_present() check
+
     Returns:
         Tuple of (interfaces, auth_enabled, https_redirect_enabled) if successful, None if failed.
 
@@ -398,14 +402,42 @@ async def _query_json_rpc_interfaces(
         system_info = await json_rpc_client.get_system_information()
 
         # Convert interface strings to Interface enums
-        interfaces: list[Interface] = []
+        installed_interfaces: list[Interface] = []
         for iface_name in system_info.available_interfaces:
             try:
-                interfaces.append(Interface(iface_name))
+                installed_interfaces.append(Interface(iface_name))
             except ValueError:
                 _LOGGER.info(i18n.tr(key="log.backend_detection.json_rpc.unknown_interface", interface=iface_name))
 
-        return (tuple(interfaces), system_info.auth_enabled, system_info.https_redirect_enabled)  # noqa: TRY300
+        # Verify each interface is actually running via is_present check
+        present_interfaces: list[Interface] = []
+        for interface in installed_interfaces:
+            try:
+                if await json_rpc_client.is_present(interface=interface):
+                    present_interfaces.append(interface)
+                    _LOGGER.debug(
+                        i18n.tr(
+                            key="log.backend_detection.json_rpc.interface_present",
+                            interface=interface.value,
+                        )
+                    )
+                else:
+                    _LOGGER.warning(
+                        i18n.tr(
+                            key="log.backend_detection.json_rpc.interface_not_present",
+                            interface=interface.value,
+                        )
+                    )
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning(
+                    i18n.tr(
+                        key="log.backend_detection.json_rpc.is_present_failed",
+                        interface=interface.value,
+                        reason=str(exc),
+                    )
+                )
+
+        return tuple(present_interfaces), system_info.auth_enabled, system_info.https_redirect_enabled  # noqa: TRY300
 
     except AuthFailure:
         # Re-raise authentication failures so they can be handled by the caller

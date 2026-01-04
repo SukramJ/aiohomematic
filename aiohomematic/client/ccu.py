@@ -1253,6 +1253,64 @@ class ClientJsonCCU(ClientCCU):
         """Check if proxy is still initialized."""
         return await self._json_rpc_client.is_present(interface=self.interface)
 
+    async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
+        """Fetch a specific paramset and add it to the known ones."""
+        _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION for %s/%s", channel_address, paramset_key)
+        if paramset_description := await self._get_paramset_description(
+            address=channel_address, paramset_key=paramset_key
+        ):
+            self.central.cache_coordinator.paramset_descriptions.add(
+                interface_id=self.interface_id,
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                paramset_description=paramset_description,
+            )
+
+    async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
+        """Fetch paramsets for provided device description."""
+        data = await self.get_paramset_descriptions(device_description=device_description)
+        for address, paramsets in data.items():
+            _LOGGER.debug("FETCH_PARAMSET_DESCRIPTIONS for %s", address)
+            for paramset_key, paramset_description in paramsets.items():
+                self.central.cache_coordinator.paramset_descriptions.add(
+                    interface_id=self.interface_id,
+                    channel_address=address,
+                    paramset_key=paramset_key,
+                    paramset_description=paramset_description,
+                )
+
+    @inspector(re_raise=False)
+    async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
+        """Return device description and all child channel descriptions."""
+        all_device_description: list[DeviceDescription] = []
+        if main_dd := await self.get_device_description(address=device_address):
+            all_device_description.append(main_dd)
+        else:
+            _LOGGER.warning(  # i18n-log: ignore
+                "GET_ALL_DEVICE_DESCRIPTIONS: No device description for %s",
+                device_address,
+            )
+
+        if main_dd:
+            for channel_address in main_dd.get("CHILDREN", []):
+                if channel_dd := await self.get_device_description(address=channel_address):
+                    all_device_description.append(channel_dd)
+                else:
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "GET_ALL_DEVICE_DESCRIPTIONS: No channel description for %s",
+                        channel_address,
+                    )
+        return tuple(all_device_description)
+
+    async def get_all_paramset_descriptions(
+        self, *, device_descriptions: tuple[DeviceDescription, ...]
+    ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
+        """Get all paramset descriptions for provided device descriptions."""
+        all_paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
+        for device_description in device_descriptions:
+            all_paramsets.update(await self.get_paramset_descriptions(device_description=device_description))
+        return all_paramsets
+
     @inspector(re_raise=False)
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Get device descriptions from the backend."""
@@ -1298,6 +1356,21 @@ class ClientJsonCCU(ClientCCU):
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
+
+    @inspector(re_raise=False, no_raise_return={})
+    async def get_paramset_descriptions(
+        self, *, device_description: DeviceDescription
+    ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
+        """Get paramsets for provided device description."""
+        paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
+        address = device_description["ADDRESS"]
+        paramsets[address] = {}
+        _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS for %s", address)
+        for p_key in device_description["PARAMSETS"]:
+            paramset_key = ParamsetKey(p_key)
+            if paramset_description := await self._get_paramset_description(address=address, paramset_key=paramset_key):
+                paramsets[address][paramset_key] = paramset_description
+        return paramsets
 
     @inspector(log_level=logging.NOTSET)
     async def get_value(
@@ -1494,6 +1567,30 @@ class ClientJsonCCU(ClientCCU):
             ) from bhexc
         else:
             return dpk_values
+
+    @inspector(re_raise=False)
+    async def update_paramset_descriptions(self, *, device_address: str) -> None:
+        """Re-fetch and update paramset descriptions for a device."""
+        if not self.central.cache_coordinator.device_descriptions.get_device_descriptions(
+            interface_id=self.interface_id
+        ):
+            _LOGGER.warning(  # i18n-log: ignore
+                "UPDATE_PARAMSET_DESCRIPTIONS failed: Interface missing in central cache. Not updating paramsets for %s",
+                device_address,
+            )
+            return
+
+        if device_description := self.central.cache_coordinator.device_descriptions.find_device_description(
+            interface_id=self.interface_id, device_address=device_address
+        ):
+            await self.fetch_paramset_descriptions(device_description=device_description)
+        else:
+            _LOGGER.warning(  # i18n-log: ignore
+                "UPDATE_PARAMSET_DESCRIPTIONS failed: Channel missing in central.cache. Not updating paramsets for %s",
+                device_address,
+            )
+            return
+        await self.central.save_files(save_paramset_descriptions=True)
 
     async def _exec_put_paramset(
         self,

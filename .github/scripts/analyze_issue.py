@@ -218,6 +218,14 @@ Context:
 - Issues may relate to either the library itself or the Home Assistant integration "Homematic(IP) Local"
 - Issues should follow a specific template with required information
 
+CRITICAL - Required Information for Support:
+- **Meaningful support is ONLY possible if all required information is provided!**
+- The two MOST IMPORTANT pieces of information are:
+  1. **Integration diagnostics (.json file)** - Downloaded via Settings -> Devices -> Select integration -> Download diagnostics
+  2. **Log file** - The complete Home Assistant log file (not just excerpts)
+- Without these, the issue should be flagged as incomplete
+- Exception: For initial setup/installation issues, diagnostics may not be available yet
+
 CRITICAL - Version Validation:
 - Valid Homematic(IP) Local versions: 1.x.x (current) or 2.x.x (future major version)
 - Current stable version: {current_stable}
@@ -480,6 +488,43 @@ def _format_version_issue(
     return result
 
 
+def _format_missing_required_info(
+    has_diagnostics: bool,
+    has_logs: bool,
+    is_german: bool,
+) -> str:
+    """Format missing required information section."""
+    if has_diagnostics and has_logs:
+        return ""
+
+    if is_german:
+        result = "### ⚠️ Fehlende Pflichtinformationen\n\n"
+        result += (
+            "**Sinnvoller Support ist nur möglich, wenn alle erforderlichen Informationen bereitgestellt werden!**\n\n"
+            "Es fehlen:\n\n"
+        )
+        if not has_diagnostics:
+            result += "- ❌ **Integrationsdiagnose (.json-Datei)** - Herunterladen via: Einstellungen → Geräte → Integration auswählen → Diagnose herunterladen\n"
+        if not has_logs:
+            result += "- ❌ **Protokolldatei** - Am besten ein DEBUG-Log hochladen. Aktivieren via: Einstellungen → Geräte → Integration auswählen → Debug-Protokollierung aktivieren. Danach Problem reproduzieren und Log herunterladen (Einstellungen → System → Protokolle → Unveränderte Protokolle laden)\n"
+        result += "\n⚠️ **Issues ohne diese Informationen können nicht bearbeitet werden und werden ggf. geschlossen.**\n\n"
+        result += "_Ausnahme: Bei Problemen mit der Erstinstallation sind Diagnosedaten möglicherweise noch nicht verfügbar._\n\n"
+    else:
+        result = "### ⚠️ Missing Required Information\n\n"
+        result += (
+            "**Meaningful support is only possible if all required information is provided!**\n\n"
+            "Missing:\n\n"
+        )
+        if not has_diagnostics:
+            result += "- ❌ **Integration diagnostics (.json file)** - Download via: Settings → Devices → Select integration → Download diagnostics\n"
+        if not has_logs:
+            result += "- ❌ **Log file** - Preferably a DEBUG log. Enable via: Settings → Devices → Select integration → Enable debug logging. Then reproduce the issue and download log (Settings → System → Logs → Load unchanged logs)\n"
+        result += "\n⚠️ **Issues without this information cannot be processed and may be closed.**\n\n"
+        result += "_Exception: For initial setup issues, diagnostics may not be available yet._\n\n"
+
+    return result
+
+
 def format_comment(
     analysis: dict[str, Any],
     similar_items: list[dict[str, Any]],
@@ -526,22 +571,27 @@ def format_comment(
             comment += f"- **{item['term_used']}** → **{item['correct_term']}**: {item['explanation']}\n"
         comment += "\n"
 
-    # Missing information
+    # Check for missing diagnostics/logs (critical for support)
+    attachment_analysis = analysis.get("attachment_analysis", {})
+    has_diagnostics = attachment_analysis.get("has_diagnostics", False)
+    has_logs = attachment_analysis.get("has_logs", False)
+    comment += _format_missing_required_info(has_diagnostics, has_logs, is_german)
+
+    # Other missing information
     missing = analysis.get("missing_information", [])
+    # Filter out diagnostics/logs from missing list since we handle them separately
+    missing = [m for m in missing if m.get("field", "").lower() not in ("diagnostics", "logs", "log", "diagnostik", "protokoll")]
     if missing:
         if is_german:
-            comment += "### Fehlende Informationen\n\n"
-            comment += "Um dir besser helfen zu können, fehlen noch folgende Informationen:\n\n"
+            comment += "### Weitere fehlende Informationen\n\n"
         else:
-            comment += "### Missing Information\n\n"
-            comment += "To help you better, the following information is missing:\n\n"
+            comment += "### Additional Missing Information\n\n"
 
         for item in missing:
             comment += f"- **{item['field']}**: {item['description']}\n"
         comment += "\n"
 
     # Attachment analysis findings
-    attachment_analysis = analysis.get("attachment_analysis", {})
     findings = attachment_analysis.get("findings", [])
     if findings:
         if is_german:
@@ -681,11 +731,14 @@ def main() -> None:
         "critical",
         "warning",
     )
+    attachment_info = analysis.get("attachment_analysis", {})
+    missing_required_info = not attachment_info.get("has_diagnostics") or not attachment_info.get("has_logs")
     has_useful_feedback = (
         has_version_issue
+        or missing_required_info
         or analysis.get("missing_information")
         or analysis.get("terminology_issues")
-        or analysis.get("attachment_analysis", {}).get("findings")
+        or attachment_info.get("findings")
         or analysis.get("suggested_docs")
         or similar_items
     )

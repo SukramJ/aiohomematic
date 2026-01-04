@@ -7,7 +7,12 @@ body:
         Dieses Formular dient ausschließlich zur Meldung von Fehlern!
         Bei Fragen zur Installation nutze bitte die entsprechenden Foren, falls die Dokumentation nicht ausreicht.
         Nutze die Diskussionen für Funktions- und sonstige Anfragen.
-        Bitte vermeide unnötigen Aufwand, indem die folgenden Punkte aufmerksam gelesen werden. Andernfalls behalte ich mir das Recht vor, das Issue kommentarlos zu schließen.
+
+        ⚠️ **WICHTIG: Sinnvoller Support ist nur möglich, wenn alle erforderlichen Informationen bereitgestellt werden!**
+        Dazu gehören insbesondere: **Integrationsdiagnose (.json-Datei)** und **Protokolldatei**.
+        Issues ohne diese Informationen können kommentarlos geschlossen werden.
+
+        Bitte vermeide unnötigen Aufwand, indem die folgenden Punkte aufmerksam gelesen werden.
   - type: checkboxes
     attributes:
       label: Ich stimme dem Folgenden zu
@@ -34,11 +39,17 @@ body:
     attributes:
       label: Das Problem
       description: >-
-        Beschreiben hier das Problem. Erzähle was Du versucht hast, um das Problem selber zu lösen, und was dabei passiert ist. Zeige ggf. Codebeispiele.
+        Bitte beantworte die folgenden Fragen:
 
-        Keine Protokolle hier!
-        Beispielcode und Screenshots sind viel besser als lange Texte!!!
-        Beschreibe das Problem klar und eindeutig!
+        1. **Was passiert?** (Beschreibe das tatsächliche Verhalten)
+
+        2. **Wann/Wie tritt es auf?** (Nach Neustart, zu bestimmten Zeiten, bei bestimmten Geräten, ...)
+
+        3. **Was hast Du erwartet?** (Beschreibe das erwartete Verhalten)
+
+        4. **Was hast Du bereits versucht?** (Neustart, Neuladen, Neu-Anlernen, ...)
+
+        Keine Protokolle hier! Screenshots sind willkommen.
   - type: markdown
     attributes:
       value: |
@@ -49,13 +60,13 @@ body:
       required: true
     attributes:
       label: Bei welcher Version von HomematicIP (lokal) tritt das Problem auf?
-      placeholder: 1.8x.x
+      placeholder: 2.x.x
       description: >
         Zu finden unter: HACS -> Integrationen
   - type: input
     attributes:
       label: Welche war die letzte funktionierende Version von Homematic(IP) Local for OpenCCU?
-      placeholder: 1.8x.x
+      placeholder: 2.x.x
       description: >
         Falls bekannt, andernfalls leer lassen.
   - type: dropdown
@@ -87,7 +98,7 @@ body:
   - type: input
     attributes:
       label: Welche Version des Homematic-Backends verwendest Du?
-      placeholder: 3.81.x
+      placeholder: 3.85.x
       description: >
         Falls bekannt, andernfalls leer lassen.
   - type: input
@@ -127,18 +138,25 @@ body:
 
   - type: textarea
     attributes:
-      label: Diagnoseinformationen (sehr hilfreich!) (keine Protokolle hier)
-      placeholder: "Ziehe die Diagnosedatendatei per Drag-and-Drop hierher (kopiere nicht den Inhalt)"
+      label: Diagnoseinformationen (keine Protokolle hier!)
+      placeholder: "Ziehe die .json-Diagnosedatei per Drag-and-Drop hierher. KEINE Log-Inhalte einfügen!"
       description: >-
-        Diese Integration bieten die Möglichkeit [Diagnosedaten herunterzuladen](https://www.home-assistant.io/docs/configuration/troubleshooting/#debug-logs-and-diagnostics).
+        ⚠️ **WICHTIG**: Nur die `.json`-Diagnosedatei per Drag-and-Drop hochladen!
+        NICHT Log-Inhalte hier einfügen - die gehören in das Log-Feld unten.
 
-        **Es ist sehr hilfreich, wenn Du die Diagnosedaten für das Gerät, mit dem das Probleme besteht, herunterladen und die Datei per <ins>Drag-and-Drop</ins> in das Textfeld unten ziehen könntest.**
+        **So erhältst Du Diagnosedaten**: [Einstellungen -> Geräte -> Integration auswählen -> Diagnose herunterladen](https://www.home-assistant.io/docs/configuration/troubleshooting/#debug-logs-and-diagnostics)
 
-        Dadurch können im Allgemeinen Fehler genauer lokalisiert und Probleme schneller gelöst werden.
+        Überspringe dieses Feld nur, wenn Du ein Problem bei der Erstinstallation meldest.
   - type: textarea
     attributes:
-      label: Die vollständige Protokolldatei (sehr hilfreich) als Datei hier anhängen. Das Protokoll (Einstellungen/System/Protokolle -> Unveränderte Protokolle laden) ist die beste Quelle zur Fehlerbehebung!
-      description: Protokoll als Datei !!! Wechsele nicht zum DEBUG, wenn das nicht angefordert wurde.
+      label: Protokolldatei (am besten DEBUG-Log)
+      placeholder: "Ziehe die Protokolldatei per Drag-and-Drop hierher."
+      description: >-
+        **Empfohlen**: DEBUG-Protokollierung aktivieren, bevor das Problem reproduziert wird!
+
+        **DEBUG aktivieren**: Einstellungen → Geräte → Integration auswählen → Debug-Protokollierung aktivieren
+
+        Dann Problem reproduzieren und herunterladen: Einstellungen → System → Protokolle → Unveränderte Protokolle laden
       render: txt
   - type: textarea
     attributes:

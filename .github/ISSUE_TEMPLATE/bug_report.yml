@@ -7,7 +7,12 @@ body:
         This issue form is for reporting bugs only!
         For installation support, use the relevant forums if the documentation is insufficient.
         Use the discussions for feature requests and other stuff.
-        Please avoid unnecessary effort by reading the points below, otherwise I reserve the right to close the issue without comment.
+
+        ⚠️ **IMPORTANT: Meaningful support is only possible if all required information is provided!**
+        This includes in particular: **Integration diagnostics (.json file)** and **log file**.
+        Issues without this information may be closed without comment.
+
+        Please avoid unnecessary effort by reading the points below.
   - type: checkboxes
     attributes:
       label: I agree to the following
@@ -34,12 +39,17 @@ body:
     attributes:
       label: The problem
       description: >-
-        Describe the issue you are experiencing here, to communicate to the
-        maintainers. Tell us what you were trying to do and what happened, and show code samples if used.
+        Please answer the following questions:
 
-        NO logs here!
-        Sample code and screenshots are much better then long texts!!!
-        Provide a clear and concise description of what the problem is.
+        1. **What is happening?** (Describe the actual behavior)
+
+        2. **When/How does it occur?** (After restart, at specific times, with specific devices, ...)
+
+        3. **What did you expect?** (Describe the expected behavior)
+
+        4. **What have you tried?** (Restart, reload, re-pairing, ...)
+
+        NO logs here! Screenshots are welcome.
   - type: markdown
     attributes:
       value: |
@@ -50,13 +60,13 @@ body:
       required: true
     attributes:
       label: What version of Homematic(IP) Local for OpenCCU has the issue?
-      placeholder: 1.8x.x
+      placeholder: 2.x.x
       description: >
         Can be found in: HACS -> Integrations
   - type: input
     attributes:
       label: What was the last working version of Homematic(IP) Local for OpenCCU?
-      placeholder: 1.8x.x
+      placeholder: 2.x.x
       description: >
         If known, otherwise leave blank.
   - type: dropdown
@@ -88,7 +98,7 @@ body:
   - type: input
     attributes:
       label: Which version of your Homematic backend are you running?
-      placeholder: 3.67.x
+      placeholder: 3.85.x
       description: >
         If known, otherwise leave blank.
   - type: input
@@ -128,19 +138,25 @@ body:
 
   - type: textarea
     attributes:
-      label: Diagnostics information (very helpful) (no logs here)
-      placeholder: "drag-and-drop the diagnostics data file here (do not copy-and-paste the content)"
+      label: Diagnostics information (no logs here!)
+      placeholder: "Drag-and-drop the .json diagnostics file here. DO NOT paste log content!"
       description: >-
-        This integrations provides the ability to [download diagnostic data](https://www.home-assistant.io/docs/configuration/troubleshooting/#debug-logs-and-diagnostics).
+        ⚠️ **IMPORTANT**: Only upload the `.json` diagnostics file via drag-and-drop!
+        Do NOT copy-paste log content here - that belongs in the log field below.
 
-        **It would really help if you could download the diagnostics data for the device you are having issues with,
-        and <ins>drag-and-drop that file into the textbox below.</ins>**
+        **How to get diagnostics**: [Settings -> Devices -> Select integration -> Download diagnostics](https://www.home-assistant.io/docs/configuration/troubleshooting/#debug-logs-and-diagnostics)
 
-        It generally allows pinpointing defects and thus resolving issues faster.
+        Skip this field only if you report an issue with initial setup/installation.
   - type: textarea
     attributes:
-      label: Attach the complete Protocol file (very helpful) here. The log (Setting/System/Protocols -> load unchanged protocol) is the best source to support trouble shooting!
-      description: Log as file!!!. Don't switch to DEBUG level if not requested.
+      label: Log file (preferably DEBUG log)
+      placeholder: "Drag-and-drop the log file here."
+      description: >-
+        **Recommended**: Enable DEBUG logging before reproducing the issue!
+
+        **How to enable DEBUG**: Settings → Devices → Select integration → Enable debug logging
+
+        Then reproduce the issue and download: Settings → System → Logs → Load unchanged logs
       render: txt
   - type: textarea
     attributes:

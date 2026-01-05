@@ -1523,7 +1523,7 @@ class TestCentralDeviceCreation:
                 self.address = device_address
                 self.channels = {}
                 self.client = type("C", (), {})()  # minimal stub
-                self.client.supports_ping_pong = False
+                self.client.capabilities.supports_ping_pong = False
                 self.is_updatable = False
 
             async def load_value_cache(self) -> None:

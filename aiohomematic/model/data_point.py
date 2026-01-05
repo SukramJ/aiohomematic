@@ -871,7 +871,7 @@ class BaseParameterDataPoint[
     @hm_property(cached=True)
     def requires_polling(self) -> bool:
         """Return whether the data_point requires polling."""
-        return not self._channel.device.client.supports_push_updates or (
+        return not self._channel.device.client.capabilities.supports_push_updates or (
             self._channel.device.product_group in (ProductGroup.HM, ProductGroup.HMW)
             and self._paramset_key == ParamsetKey.MASTER
         )

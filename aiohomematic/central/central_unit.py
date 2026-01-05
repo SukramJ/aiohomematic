@@ -315,7 +315,7 @@ class CentralUnit(
     def supports_ping_pong(self) -> bool:
         """Return the backend supports ping pong."""
         if primary_client := self._client_coordinator.primary_client:
-            return primary_client.supports_ping_pong
+            return primary_client.capabilities.supports_ping_pong
         return False
 
     @property
@@ -594,7 +594,10 @@ class CentralUnit(
         """Return the data point paths."""
         data_point_paths: list[str] = []
         for device in self._device_registry.devices:
-            if rpc_callback_supported is None or device.client.supports_rpc_callback == rpc_callback_supported:
+            if (
+                rpc_callback_supported is None
+                or device.client.capabilities.supports_rpc_callback == rpc_callback_supported
+            ):
                 data_point_paths.extend(device.data_point_paths)
         data_point_paths.extend(self.hub_coordinator.data_point_paths)
         return tuple(data_point_paths)

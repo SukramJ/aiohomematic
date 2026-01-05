@@ -36,7 +36,8 @@ class _FakeDataPoint(GenericDataPoint):  # type: ignore[type-arg]
         self.channel = MagicMock()
         self.channel.device = MagicMock()
         self.channel.device.client = MagicMock()
-        self.channel.device.client.supports_rpc_callback = False
+        self.channel.device.client.capabilities = MagicMock()
+        self.channel.device.client.capabilities.supports_rpc_callback = False
         self.event_calls: list[dict[str, Any]] = []
 
     @property  # type: ignore[override]
@@ -76,7 +77,8 @@ class _FakeClient:
 
     def __init__(self, *, supports_ping_pong: bool = True) -> None:
         """Initialize a fake client."""
-        self.supports_ping_pong = supports_ping_pong
+        self.capabilities = MagicMock()
+        self.capabilities.supports_ping_pong = supports_ping_pong
         self.ping_pong_tracker = MagicMock()
         self.ping_pong_tracker.handle_received_pong = MagicMock()
 

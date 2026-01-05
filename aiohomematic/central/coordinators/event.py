@@ -185,7 +185,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                 if (
                     v_interface_id == interface_id
                     and (client := self._client_provider.get_client(interface_id=interface_id))
-                    and client.supports_ping_pong
+                    and client.capabilities.supports_ping_pong
                 ):
                     client.ping_pong_tracker.handle_received_pong(pong_token=token)
             return

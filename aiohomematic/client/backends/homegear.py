@@ -12,6 +12,7 @@ Public API
 
 from __future__ import annotations
 
+from dataclasses import replace
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
@@ -62,12 +63,18 @@ class HomegearBackend(BaseBackend):
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
         version: str,
+        supports_push_updates: bool,
     ) -> None:
         """Initialize the Homegear backend."""
+        # Build capabilities based on config
+        capabilities = replace(
+            HOMEGEAR_CAPABILITIES,
+            supports_push_updates=supports_push_updates,
+        )
         super().__init__(
             interface=interface,
             interface_id=interface_id,
-            capabilities=HOMEGEAR_CAPABILITIES,
+            capabilities=capabilities,
         )
         self._proxy: Final = proxy
         self._proxy_read: Final = proxy_read

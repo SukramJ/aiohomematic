@@ -51,7 +51,6 @@ Protocol Categories
         - `ClientIdentityProtocol`: Basic identification (interface, interface_id, model)
         - `ClientConnectionProtocol`: Connection state management
         - `ClientLifecycleProtocol`: Lifecycle operations (init, stop, proxy)
-        - `ClientCapabilitiesProtocol`: Feature support flags (supports_*)
         - `DeviceDiscoveryOperationsProtocol`: Device discovery operations
         - `ParamsetOperationsProtocol`: Paramset operations
         - `ValueOperationsProtocol`: Value read/write operations
@@ -189,7 +188,6 @@ from aiohomematic.interfaces.client import (
     BackupOperationsProtocol,
     # Client utilities
     CallbackAddressProviderProtocol,
-    ClientCapabilitiesProtocol,
     ClientConnectionProtocol,
     ClientCoordinationProtocol,
     ClientDependenciesProtocol,
@@ -305,7 +303,6 @@ __all__ = [
     "ClientProtocol",
     # Client operations
     "BackupOperationsProtocol",
-    "ClientCapabilitiesProtocol",
     "ClientConnectionProtocol",
     "ClientIdentityProtocol",
     "ClientLifecycleProtocol",

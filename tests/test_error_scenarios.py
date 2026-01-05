@@ -265,7 +265,7 @@ class TestClientErrorScenarios:
         for client in central.client_coordinator.clients:
             # Check if client supports ping pong
             if hasattr(client, "supports_ping_pong"):
-                supports = client.supports_ping_pong
+                supports = client.capabilities.supports_ping_pong
                 assert isinstance(supports, bool)
 
 

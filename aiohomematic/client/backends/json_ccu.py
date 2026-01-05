@@ -12,6 +12,7 @@ Public API
 
 from __future__ import annotations
 
+from dataclasses import replace
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
@@ -68,12 +69,18 @@ class JsonCcuBackend(BaseBackend):
         interface_id: str,
         json_rpc: AioJsonRpcAioHttpClient,
         paramset_provider: ParamsetDescriptionProviderProtocol,
+        supports_push_updates: bool,
     ) -> None:
         """Initialize the JSON CCU backend."""
+        # Build capabilities based on config
+        capabilities = replace(
+            JSON_CCU_CAPABILITIES,
+            supports_push_updates=supports_push_updates,
+        )
         super().__init__(
             interface=interface,
             interface_id=interface_id,
-            capabilities=JSON_CCU_CAPABILITIES,
+            capabilities=capabilities,
         )
         self._json_rpc: Final = json_rpc
         self._paramset_provider: Final = paramset_provider

@@ -16,7 +16,6 @@ Client protocols are organized following the Interface Segregation Principle:
     - `ClientIdentityProtocol`: Basic identification (interface, interface_id, model, version)
     - `ClientConnectionProtocol`: Connection state management (available, is_connected, reconnect)
     - `ClientLifecycleProtocol`: Lifecycle operations (init_client, stop, proxy management)
-    - `ClientCapabilitiesProtocol`: Feature support flags (all supports_* properties)
 
 **Handler-Based Protocols (9):**
     - `DeviceDiscoveryOperationsProtocol`: Device discovery (list_devices, get_device_description)
@@ -65,6 +64,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.coordinators import CacheCoordinator, DeviceCoordinator, EventCoordinator
     from aiohomematic.central.events import EventBus
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
+    from aiohomematic.client.backends.capabilities import BackendCapabilities
     from aiohomematic.interfaces.model import DeviceProtocol
     from aiohomematic.store.persistent import SessionRecorder
 
@@ -213,92 +213,6 @@ class ClientLifecycleProtocol(Protocol):
 
     async def stop(self) -> None:
         """Stop depending services."""
-
-
-class ClientCapabilitiesProtocol(Protocol):
-    """
-    Protocol for client capability flags.
-
-    Provides access to feature support flags indicating backend capabilities.
-    """
-
-    __slots__ = ()
-
-    @property
-    def supports_backup(self) -> bool:
-        """Return if the backend supports backup creation and download."""
-
-    @property
-    def supports_device_firmware_update(self) -> bool:
-        """Return if the backend supports device firmware updates."""
-
-    @property
-    def supports_firmware_update_trigger(self) -> bool:
-        """Return if the backend supports triggering system firmware updates."""
-
-    @property
-    def supports_firmware_updates(self) -> bool:
-        """Return the supports_firmware_updates info of the backend."""
-
-    @property
-    def supports_functions(self) -> bool:
-        """Return if interface supports functions."""
-
-    @property
-    def supports_inbox_devices(self) -> bool:
-        """Return if the backend supports inbox device queries."""
-
-    @property
-    def supports_install_mode(self) -> bool:
-        """Return if the backend supports install mode operations."""
-
-    @property
-    def supports_linking(self) -> bool:
-        """Return if the backend supports device linking operations."""
-
-    @property
-    def supports_metadata(self) -> bool:
-        """Return if the backend supports metadata operations."""
-
-    @property
-    def supports_ping_pong(self) -> bool:
-        """Return the supports_ping_pong info of the backend."""
-
-    @property
-    def supports_programs(self) -> bool:
-        """Return if interface supports programs."""
-
-    @property
-    def supports_push_updates(self) -> bool:
-        """Return if the client supports push updates."""
-
-    @property
-    def supports_rega_id_lookup(self) -> bool:
-        """Return if the backend supports ReGa ID lookups."""
-
-    @property
-    def supports_rename(self) -> bool:
-        """Return if the backend supports renaming devices and channels."""
-
-    @property
-    def supports_rooms(self) -> bool:
-        """Return if interface supports rooms."""
-
-    @property
-    def supports_rpc_callback(self) -> bool:
-        """Return if interface supports rpc callback."""
-
-    @property
-    def supports_service_messages(self) -> bool:
-        """Return if the backend supports service messages."""
-
-    @property
-    def supports_system_update_info(self) -> bool:
-        """Return if the backend supports system update information."""
-
-    @property
-    def supports_value_usage_reporting(self) -> bool:
-        """Return if the backend supports value usage reporting."""
 
 
 class DeviceDiscoveryOperationsProtocol(Protocol):
@@ -663,7 +577,6 @@ class ClientProtocol(
     ClientIdentityProtocol,
     ClientConnectionProtocol,
     ClientLifecycleProtocol,
-    ClientCapabilitiesProtocol,
     DeviceDiscoveryOperationsProtocol,
     ParamsetOperationsProtocol,
     ValueOperationsProtocol,
@@ -687,7 +600,6 @@ class ClientProtocol(
         - ClientIdentityProtocol: Basic identification
         - ClientConnectionProtocol: Connection state management
         - ClientLifecycleProtocol: Lifecycle operations
-        - ClientCapabilitiesProtocol: Feature support flags
         - DeviceDiscoveryOperationsProtocol: Device discovery
         - ParamsetOperationsProtocol: Paramset operations
         - ValueOperationsProtocol: Value read/write
@@ -701,6 +613,10 @@ class ClientProtocol(
     """
 
     __slots__ = ()
+
+    @property
+    def capabilities(self) -> BackendCapabilities:
+        """Return the capability flags for this backend."""
 
 
 # =============================================================================

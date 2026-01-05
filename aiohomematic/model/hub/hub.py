@@ -420,7 +420,11 @@ class Hub(HubProtocol):
 
         # Check if a client exists for this specific interface and supports install mode
         client = next(
-            (c for c in self._client_provider.clients if c.interface == interface and c.supports_install_mode),
+            (
+                c
+                for c in self._client_provider.clients
+                if c.interface == interface and c.capabilities.supports_install_mode
+            ),
             None,
         )
         if not client:

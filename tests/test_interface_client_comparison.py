@@ -963,9 +963,9 @@ class TestInterfaceClientProperties:
         assert client.interface == Interface.BIDCOS_RF
         assert client.model == "CCU"
         assert client.version == "2.0"
-        assert client.supports_ping_pong is True
-        assert client.supports_linking is True
-        assert client.supports_programs is True
+        assert client.capabilities.supports_ping_pong is True
+        assert client.capabilities.supports_linking is True
+        assert client.capabilities.supports_programs is True
 
     def test_capability_properties(self) -> None:
         """Test capability properties from backend."""
@@ -973,12 +973,12 @@ class TestInterfaceClientProperties:
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
-        assert client.supports_backup is True
-        assert client.supports_device_firmware_update is True
-        assert client.supports_firmware_updates is True
-        assert client.supports_functions is True
-        assert client.supports_rooms is True
-        assert client.supports_rpc_callback is True
+        assert client.capabilities.supports_backup is True
+        assert client.capabilities.supports_device_firmware_update is True
+        assert client.capabilities.supports_firmware_updates is True
+        assert client.capabilities.supports_functions is True
+        assert client.capabilities.supports_rooms is True
+        assert client.capabilities.supports_rpc_callback is True
 
     def test_str_representation(self) -> None:
         """Test string representation."""

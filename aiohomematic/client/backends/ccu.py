@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic.client.backends.base import BaseBackend
 from aiohomematic.client.backends.capabilities import CCU_CAPABILITIES
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitState
 from aiohomematic.const import (
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
@@ -92,6 +93,21 @@ class CcuBackend(BaseBackend):
         self._proxy_read: Final = proxy_read
         self._json_rpc: Final = json_rpc
         self._device_details_provider: Final = device_details_provider
+
+    @property
+    def all_circuit_breakers_closed(self) -> bool:
+        """Return True if all circuit breakers are in closed state."""
+        if self._proxy.circuit_breaker.state != CircuitState.CLOSED:
+            return False
+        # Check proxy_read only if it's a different object
+        if self._proxy_read is not self._proxy and self._proxy_read.circuit_breaker.state != CircuitState.CLOSED:
+            return False
+        return self._json_rpc.circuit_breaker.state == CircuitState.CLOSED
+
+    @property
+    def circuit_breaker(self) -> CircuitBreaker:
+        """Return the primary circuit breaker for metrics access."""
+        return self._proxy.circuit_breaker
 
     @property
     def model(self) -> str:
@@ -369,6 +385,14 @@ class CcuBackend(BaseBackend):
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage to the backend."""
         return bool(await self._proxy.reportValueUsage(address, value_id, ref_counter))
+
+    def reset_circuit_breakers(self) -> None:
+        """Reset all circuit breakers to closed state."""
+        self._proxy.circuit_breaker.reset()
+        # Reset proxy_read only if it's a different object
+        if self._proxy_read is not self._proxy:
+            self._proxy_read.circuit_breaker.reset()
+        self._json_rpc.circuit_breaker.reset()
 
     async def set_install_mode(
         self,

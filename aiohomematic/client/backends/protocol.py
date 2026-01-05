@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from aiohomematic.client.backends.capabilities import BackendCapabilities
+    from aiohomematic.client.circuit_breaker import CircuitBreaker
     from aiohomematic.const import (
         BackupData,
         CommandRxMode,
@@ -56,8 +57,18 @@ class BackendOperationsProtocol(Protocol):
     # =========================================================================
 
     @property
+    def all_circuit_breakers_closed(self) -> bool:
+        """Return True if all circuit breakers are in closed state."""
+        ...
+
+    @property
     def capabilities(self) -> BackendCapabilities:
         """Return the capability flags for this backend."""
+        ...
+
+    @property
+    def circuit_breaker(self) -> CircuitBreaker | None:
+        """Return the primary circuit breaker for metrics access."""
         ...
 
     @property
@@ -243,6 +254,10 @@ class BackendOperationsProtocol(Protocol):
 
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage to the backend."""
+        ...
+
+    def reset_circuit_breakers(self) -> None:
+        """Reset all circuit breakers."""
         ...
 
     async def set_install_mode(

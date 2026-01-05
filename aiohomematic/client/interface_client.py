@@ -174,13 +174,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     @property
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
-        # Backend handles circuit breaker states
-        return True
+        return self._backend.all_circuit_breakers_closed
 
     @property
     def circuit_breaker(self) -> CircuitBreaker | None:
         """Return the primary circuit breaker for metrics access."""
-        return None
+        return self._backend.circuit_breaker
 
     @property
     def interface(self) -> Interface:
@@ -377,6 +376,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     def clear_json_rpc_session(self) -> None:
         """Clear the JSON-RPC session."""
         self._central.json_rpc_client.clear_session()
+        _LOGGER.debug(
+            "CLEAR_JSON_RPC_SESSION: Session cleared for %s",
+            self.interface_id,
+        )
 
     async def create_backup_and_download(
         self,
@@ -399,7 +402,9 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return ProxyInitState.DE_INIT_SKIPPED
 
         try:
-            await self._backend.deinit_proxy(init_url=self._get_init_url())
+            init_url = self._get_init_url()
+            _LOGGER.debug("PROXY_DE_INIT: init('%s')", init_url)
+            await self._backend.deinit_proxy(init_url=init_url)
             self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="proxy de-initialized")
         except BaseHomematicException as bhexc:
             _LOGGER.warning(  # i18n-log: ignore
@@ -693,9 +698,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
         try:
             self._ping_pong_tracker.clear()
-            await self._backend.init_proxy(init_url=self._get_init_url(), interface_id=self.interface_id)
+            init_url = self._get_init_url()
+            _LOGGER.debug("PROXY_INIT: init('%s', '%s')", init_url, self.interface_id)
+            await self._backend.init_proxy(init_url=init_url, interface_id=self.interface_id)
             self._state_machine.transition_to(target=ClientState.CONNECTED, reason="proxy initialized")
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
+            _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
         except BaseHomematicException as bhexc:
             _LOGGER.error(  # i18n-log: ignore
                 "PROXY_INIT failed: %s [%s] Unable to initialize proxy for %s",
@@ -738,6 +746,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                         )
                     )
                     self._is_callback_alive = False
+                    self._record_callback_timeout_incident(
+                        seconds_since_last_event=seconds_since_last_event,
+                        callback_warn_interval=callback_warn,
+                        last_event_time=last_events_dt,
+                    )
                 _LOGGER.error(
                     i18n.tr(
                         key="log.client.is_callback_alive.no_events",
@@ -886,6 +899,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 timeout_cfg.reconnect_initial_delay * (timeout_cfg.reconnect_backoff_factor**self._reconnect_attempts),
                 timeout_cfg.reconnect_max_delay,
             )
+            _LOGGER.debug(
+                "RECONNECT: waiting to re-connect client %s for %.1fs (attempt %d)",
+                self.interface_id,
+                delay,
+                self._reconnect_attempts + 1,
+            )
             await asyncio.sleep(delay)
 
             if await self.reinitialize_proxy() == ProxyInitState.INIT_SUCCESS:
@@ -933,7 +952,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     def reset_circuit_breakers(self) -> None:
         """Reset all circuit breakers to closed state."""
-        self._central.json_rpc_client.circuit_breaker.reset()
+        self._backend.reset_circuit_breakers()
 
     async def set_install_mode(
         self,
@@ -1227,6 +1246,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             for device in self._central.device_registry.devices:
                 if device.interface_id == self.interface_id:
                     device.set_forced_availability(forced_availability=forced_availability)
+            _LOGGER.debug(
+                "MARK_ALL_DEVICES_FORCED_AVAILABILITY: marked all devices %s for %s",
+                "available" if available else "unavailable",
+                self.interface_id,
+            )
 
     def _on_client_state_changed_event(self, *, event: ClientStateChangedEvent) -> None:
         """Handle client state machine transitions."""
@@ -1241,6 +1265,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """Handle system status events."""
         if event.connection_state and event.connection_state[0] == self.interface_id and event.connection_state[1]:
             self._ping_pong_tracker.clear()
+            _LOGGER.debug(
+                "PING PONG CACHE: Cleared on connection restored: %s",
+                self.interface_id,
+            )
 
     async def _poll_master_values(self, *, channel: ChannelProtocol, paramset_key: ParamsetKey) -> None:
         """Poll master paramset values after write for BidCos devices."""
@@ -1253,6 +1281,48 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
         self._central.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
+
+    def _record_callback_timeout_incident(
+        self,
+        *,
+        seconds_since_last_event: float,
+        callback_warn_interval: float,
+        last_event_time: datetime,
+    ) -> None:
+        """Record a CALLBACK_TIMEOUT incident for diagnostics."""
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        incident_recorder = self._central.cache_coordinator.incident_store
+
+        # Get circuit breaker state safely
+        circuit_breaker_state: str | None = None
+        if (cb := self._backend.circuit_breaker) is not None:
+            circuit_breaker_state = cb.state.value
+
+        context = {
+            "seconds_since_last_event": round(seconds_since_last_event, 2),
+            "callback_warn_interval": callback_warn_interval,
+            "last_event_time": last_event_time.strftime(DATETIME_FORMAT_MILLIS),
+            "client_state": self._state_machine.state.value,
+            "circuit_breaker_state": circuit_breaker_state,
+        }
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.CALLBACK_TIMEOUT,
+                    severity=IncidentSeverity.WARNING,
+                    message=f"No callback received for {self.interface_id} in {int(seconds_since_last_event)} seconds",
+                    interface_id=self.interface_id,
+                    context=context,
+                )
+            except Exception as err:
+                _LOGGER.debug("Failed to record CALLBACK_TIMEOUT incident: %s", err)
+
+        self._central.looper.create_task(
+            target=_record(),
+            name=f"record_callback_timeout_incident_{self.interface_id}",
+        )
 
     async def _wait_for_state_change(
         self, *, device: DeviceProtocol, dpk_values: set[DP_KEY_VALUE], wait_for_callback: int

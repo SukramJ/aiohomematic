@@ -37,7 +37,7 @@ from aiohomematic.const import (
 )
 
 if TYPE_CHECKING:
-    pass
+    from aiohomematic.client.circuit_breaker import CircuitBreaker
 
 __all__ = ["BaseBackend"]
 
@@ -74,9 +74,19 @@ class BaseBackend(ABC):
         self._system_information: SystemInformation
 
     @property
+    def all_circuit_breakers_closed(self) -> bool:
+        """Return True if all circuit breakers are in closed state."""
+        return True
+
+    @property
     def capabilities(self) -> BackendCapabilities:
         """Return the capability flags for this backend."""
         return self._capabilities
+
+    @property
+    def circuit_breaker(self) -> CircuitBreaker | None:
+        """Return the primary circuit breaker for metrics access."""
+        return None
 
     @property
     def interface(self) -> Interface:
@@ -271,6 +281,9 @@ class BaseBackend(ABC):
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage (unsupported by default)."""
         return False
+
+    def reset_circuit_breakers(self) -> None:
+        """Reset all circuit breakers to closed state."""
 
     async def set_install_mode(
         self,

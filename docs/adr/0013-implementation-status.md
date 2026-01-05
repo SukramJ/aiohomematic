@@ -103,6 +103,43 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 
 ## Progress Log
 
+### 2026-01-05 (Debug Logging Parity)
+
+**Debug Logging - COMPLETE**
+
+- [x] Added debug logging to `clear_json_rpc_session()`
+- [x] Added debug logging to `initialize_proxy()` (before and after init)
+- [x] Added debug logging to `deinitialize_proxy()`
+- [x] Added debug logging to `reconnect()` (wait period)
+- [x] Added debug logging to `_mark_all_devices_forced_availability()`
+- [x] Added debug logging to `_on_system_status_event()` (ping pong cache clear)
+- [x] All 1640 tests passing with both legacy and InterfaceClient
+- [x] All pre-commit hooks passing
+
+### 2026-01-05 (Incident Recording)
+
+**Callback Timeout Incident Recording - COMPLETE**
+
+- [x] Added `_record_callback_timeout_incident()` method to InterfaceClient
+- [x] Records diagnostic information when callback timeout occurs
+- [x] Includes circuit breaker state from backend in incident context
+- [x] All 1640 tests passing with both legacy and InterfaceClient
+- [x] All pre-commit hooks passing
+
+### 2026-01-05 (Circuit Breaker Integration)
+
+**Circuit Breaker Delegation - COMPLETE**
+
+- [x] Added `circuit_breaker` property and `all_circuit_breakers_closed` property to `BackendOperationsProtocol`
+- [x] Added `reset_circuit_breakers()` method to `BackendOperationsProtocol`
+- [x] Implemented in `BaseBackend` with default values (None/True/no-op)
+- [x] Implemented in `CcuBackend` (checks proxy, proxy_read, json_rpc)
+- [x] Implemented in `HomegearBackend` (checks proxy, proxy_read)
+- [x] Implemented in `JsonCcuBackend` (checks json_rpc)
+- [x] Updated `InterfaceClient` to delegate to backend (instead of hard-coded values)
+- [x] All 1640 tests passing with both legacy and InterfaceClient
+- [x] All pre-commit hooks passing
+
 ### 2026-01-05 (CI Testing Infrastructure)
 
 **Full Test Suite Compatibility - COMPLETE**

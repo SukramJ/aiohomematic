@@ -13,7 +13,7 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.client import ClientCCU, ClientConfig, InterfaceConfig, get_client as get_client_by_id
-from aiohomematic.client.backends.capabilities import CCU_CAPABILITIES
+from aiohomematic.client.backends.capabilities import CCU_CAPABILITIES, BackendCapabilities
 from aiohomematic.client.handlers.device_ops import (
     _isclose as client_isclose,
     _track_single_data_point_state_change_or_timeout,
@@ -621,6 +621,11 @@ class _EventDevice:
 
 class _TestClient(ClientCCU):
     """Minimal concrete Client for testing property/helper behavior without I/O."""
+
+    @property
+    def capabilities(self) -> BackendCapabilities:
+        """Return the capability flags."""
+        return self._capabilities  # type: ignore[attr-defined]
 
     @property
     def model(self) -> str:  # pragma: no cover - not relevant to tested logic
@@ -1365,14 +1370,14 @@ class TestClientSupportFlags:
     def test_support_flags_from_config(self) -> None:
         """supports_ping_pong/push/firmware reflect the derived values from config."""
         c1 = _make_client_with_interface(Interface.BIDCOS_RF, push=True, fw=True)
-        assert c1.supports_ping_pong is True
-        assert c1.supports_push_updates is True
-        assert c1.supports_firmware_updates is True
+        assert c1.capabilities.supports_ping_pong is True
+        assert c1.capabilities.supports_push_updates is True
+        assert c1.capabilities.supports_firmware_updates is True
 
         c2 = _make_client_with_interface(Interface.CUXD, push=False, fw=False)
-        assert c2.supports_ping_pong is False
-        assert c2.supports_push_updates is False
-        assert c2.supports_firmware_updates is False
+        assert c2.capabilities.supports_ping_pong is False
+        assert c2.capabilities.supports_push_updates is False
+        assert c2.capabilities.supports_firmware_updates is False
 
 
 class TestClientProxyLifecycle:
@@ -1692,7 +1697,7 @@ class TestClientHomegear:
         # Default version is "0" -> does not contain pydevccu -> HOMEGEAR
         client_hg._config.version = "Homegear 0.8"  # type: ignore[attr-defined]
         assert client_hg.model == Backend.HOMEGEAR
-        assert client_hg.supports_ping_pong is False
+        assert client_hg.capabilities.supports_ping_pong is False
 
         # If version contains pydevccu -> PYDEVCCU
         client_hg._config.version = "pydevccu 1.0"  # type: ignore[attr-defined]

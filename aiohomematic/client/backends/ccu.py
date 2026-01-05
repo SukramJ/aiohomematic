@@ -74,14 +74,16 @@ class CcuBackend(BaseBackend):
         proxy_read: BaseRpcProxy,
         json_rpc: AioJsonRpcAioHttpClient,
         device_details_provider: Mapping[str, int],
+        supports_push_updates: bool,
     ) -> None:
         """Initialize the CCU backend."""
-        # Build capabilities based on interface
+        # Build capabilities based on interface and config
         capabilities = replace(
             CCU_CAPABILITIES,
             supports_firmware_updates=interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
             supports_linking=interface in LINKABLE_INTERFACES,
             supports_ping_pong=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
+            supports_push_updates=supports_push_updates,
             supports_rpc_callback=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
         )
         super().__init__(

@@ -40,6 +40,7 @@ async def create_backend(
     json_rpc: AioJsonRpcAioHttpClient,
     paramset_provider: ParamsetDescriptionProviderProtocol,
     device_details_provider: Mapping[str, int],
+    supports_push_updates: bool,
 ) -> BackendOperationsProtocol:
     """
     Create the appropriate backend based on interface and version.
@@ -53,6 +54,7 @@ async def create_backend(
         json_rpc: JSON-RPC client
         paramset_provider: Provider for paramset descriptions
         device_details_provider: Mapping of address to rega_id for room/function lookup
+        supports_push_updates: Whether interface supports push updates (from config)
 
     Returns:
         Appropriate backend implementation.
@@ -71,6 +73,7 @@ async def create_backend(
             interface_id=interface_id,
             json_rpc=json_rpc,
             paramset_provider=paramset_provider,
+            supports_push_updates=supports_push_updates,
         )
 
     # Homegear/pydevccu: XML-RPC with Homegear extensions
@@ -88,6 +91,7 @@ async def create_backend(
             proxy=proxy,
             proxy_read=proxy_read,
             version=version,
+            supports_push_updates=supports_push_updates,
         )
 
     # CCU: XML-RPC + JSON-RPC
@@ -105,6 +109,7 @@ async def create_backend(
             proxy_read=proxy_read,
             json_rpc=json_rpc,
             device_details_provider=device_details_provider,
+            supports_push_updates=supports_push_updates,
         )
 
     await backend.initialize()

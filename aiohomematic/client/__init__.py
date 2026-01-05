@@ -169,6 +169,7 @@ async def _create_interface_client(
         json_rpc=client_deps.json_rpc_client,
         paramset_provider=client_deps.cache_coordinator.paramset_descriptions,
         device_details_provider=client_deps.cache_coordinator.device_details.device_channel_rega_ids,
+        supports_push_updates=client_config.supports_push_updates,
     )
 
     _LOGGER.debug(

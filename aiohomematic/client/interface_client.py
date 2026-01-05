@@ -69,6 +69,7 @@ from aiohomematic.support import (
 )
 
 if TYPE_CHECKING:
+    from aiohomematic.client.backends.capabilities import BackendCapabilities
     from aiohomematic.client.circuit_breaker import CircuitBreaker
     from aiohomematic.client.config import InterfaceConfig
     from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
@@ -175,6 +176,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
         return self._backend.all_circuit_breakers_closed
+
+    @property
+    def capabilities(self) -> BackendCapabilities:
+        """Return the capability flags for this backend."""
+        return self._backend.capabilities
 
     @property
     def circuit_breaker(self) -> CircuitBreaker | None:
@@ -327,7 +333,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
-        if not self.supports_inbox_devices:
+        if not self._backend.capabilities.supports_inbox_devices:
             return False
         return await self._backend.accept_device_in_inbox(device_address=device_address)
 
@@ -340,7 +346,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         description: str,
     ) -> None:
         """Add a link between two devices."""
-        if not self.supports_linking:
+        if not self._backend.capabilities.supports_linking:
             return
         await self._backend.add_link(
             sender_address=sender_address,
@@ -355,7 +361,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         try:
             dt_now = datetime.now()
             caller_id: str | None = None
-            if handle_ping_pong and self.supports_ping_pong and self.is_initialized:
+            if handle_ping_pong and self._backend.capabilities.supports_ping_pong and self.is_initialized:
                 token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
                 caller_id = f"{self.interface_id}#{token}"
                 # Register token BEFORE sending ping to avoid race condition:
@@ -388,13 +394,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         poll_interval: float = 5.0,
     ) -> BackupData | None:
         """Create a backup on the CCU and download it."""
-        if not self.supports_backup:
+        if not self._backend.capabilities.supports_backup:
             return None
         return await self._backend.create_backup_and_download(max_wait_time=max_wait_time, poll_interval=poll_interval)
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-initialize the proxy."""
-        if not self.supports_rpc_callback:
+        if not self._backend.capabilities.supports_rpc_callback:
             self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="no callback support")
             return ProxyInitState.DE_INIT_SUCCESS
 
@@ -424,7 +430,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
-        if not self.supports_programs:
+        if not self._backend.capabilities.supports_programs:
             return False
         return await self._backend.execute_program(pid=pid)
 
@@ -485,7 +491,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from the backend."""
-        if not self.supports_functions:
+        if not self._backend.capabilities.supports_functions:
             return {}
         return await self._backend.get_all_functions()
 
@@ -504,13 +510,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         markers: tuple[DescriptionMarker | str, ...],
     ) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
-        if not self.supports_programs:
+        if not self._backend.capabilities.supports_programs:
             return ()
         return await self._backend.get_all_programs(markers=markers)
 
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Get all rooms from the backend."""
-        if not self.supports_rooms:
+        if not self._backend.capabilities.supports_rooms:
             return {}
         return await self._backend.get_all_rooms()
 
@@ -539,31 +545,31 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
         """Get all devices in the inbox (not yet configured)."""
-        if not self.supports_inbox_devices:
+        if not self._backend.capabilities.supports_inbox_devices:
             return ()
         return await self._backend.get_inbox_devices()
 
     async def get_install_mode(self) -> int:
         """Return the remaining time in install mode."""
-        if not self.supports_install_mode:
+        if not self._backend.capabilities.supports_install_mode:
             return 0
         return await self._backend.get_install_mode()
 
     async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
         """Return a list of link peers."""
-        if not self.supports_linking:
+        if not self._backend.capabilities.supports_linking:
             return ()
         return await self._backend.get_link_peers(address=address)
 
     async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
-        if not self.supports_linking:
+        if not self._backend.capabilities.supports_linking:
             return {}
         return await self._backend.get_links(address=address, flags=flags)
 
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
         """Return the metadata for an object."""
-        if not self.supports_metadata:
+        if not self._backend.capabilities.supports_metadata:
             return {}
         return await self._backend.get_metadata(address=address, data_id=data_id)
 
@@ -613,7 +619,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def get_rega_id_by_address(self, *, address: str) -> int | None:
         """Get the ReGa ID for a device or channel address."""
-        if not self.supports_rega_id_lookup:
+        if not self._backend.capabilities.supports_rega_id_lookup:
             return None
         return await self._backend.get_rega_id_by_address(address=address)
 
@@ -623,13 +629,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         message_type: ServiceMessageType | None = None,
     ) -> tuple[ServiceMessageData, ...]:
         """Get all active service messages from the backend."""
-        if not self.supports_service_messages:
+        if not self._backend.capabilities.supports_service_messages:
             return ()
         return await self._backend.get_service_messages(message_type=message_type)
 
     async def get_system_update_info(self) -> SystemUpdateData | None:
         """Get system update information from the backend."""
-        if not self.supports_system_update_info:
+        if not self._backend.capabilities.supports_system_update_info:
             return None
         return await self._backend.get_system_update_info()
 
@@ -658,7 +664,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def has_program_ids(self, *, rega_id: int) -> bool:
         """Return if a channel has program ids."""
-        if not self.supports_programs:
+        if not self._backend.capabilities.supports_programs:
             return False
         return await self._backend.has_program_ids(rega_id=rega_id)
 
@@ -679,7 +685,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     async def initialize_proxy(self) -> ProxyInitState:
         """Initialize the proxy."""
         self._state_machine.transition_to(target=ClientState.CONNECTING)
-        if not self.supports_rpc_callback:
+        if not self._backend.capabilities.supports_rpc_callback:
             if device_descriptions := await self.list_devices():
                 await self._central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
@@ -725,7 +731,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events."""
-        if not self.supports_ping_pong:
+        if not self._backend.capabilities.supports_ping_pong:
             return True
 
         if self._state_machine.is_failed or self._state_machine.state == ClientState.RECONNECTING:
@@ -785,7 +791,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     target=ClientState.DISCONNECTED, reason="connection check failed (>3 errors)"
                 )
             return False
-        if not self.supports_push_updates:
+        if not self._backend.capabilities.supports_push_updates:
             return True
 
         callback_warn = self._central.config.timeout_config.callback_warn_interval
@@ -928,25 +934,25 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Remove a link between two devices."""
-        if not self.supports_linking:
+        if not self._backend.capabilities.supports_linking:
             return
         await self._backend.remove_link(sender_address=sender_address, receiver_address=receiver_address)
 
     async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
         """Rename a channel on the CCU."""
-        if not self.supports_rename:
+        if not self._backend.capabilities.supports_rename:
             return False
         return await self._backend.rename_channel(rega_id=rega_id, new_name=new_name)
 
     async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
         """Rename a device on the CCU."""
-        if not self.supports_rename:
+        if not self._backend.capabilities.supports_rename:
             return False
         return await self._backend.rename_device(rega_id=rega_id, new_name=new_name)
 
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
-        if not self.supports_value_usage_reporting:
+        if not self._backend.capabilities.supports_value_usage_reporting:
             return False
         return await self._backend.report_value_usage(address=address, value_id=value_id, ref_counter=ref_counter)
 
@@ -963,19 +969,19 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         device_address: str | None = None,
     ) -> bool:
         """Set the install mode on the backend."""
-        if not self.supports_install_mode:
+        if not self._backend.capabilities.supports_install_mode:
             return False
         return await self._backend.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
 
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
-        if not self.supports_metadata:
+        if not self._backend.capabilities.supports_metadata:
             return {}
         return await self._backend.set_metadata(address=address, data_id=data_id, value=value)
 
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
-        if not self.supports_programs:
+        if not self._backend.capabilities.supports_programs:
             return False
         return await self._backend.set_program_state(pid=pid, state=state)
 
@@ -1065,13 +1071,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def trigger_firmware_update(self) -> bool:
         """Trigger the CCU firmware update process."""
-        if not self.supports_firmware_update_trigger:
+        if not self._backend.capabilities.supports_firmware_update_trigger:
             return False
         return await self._backend.trigger_firmware_update()
 
     async def update_device_firmware(self, *, device_address: str) -> bool:
         """Update the firmware of a Homematic device."""
-        if not self.supports_device_firmware_update:
+        if not self._backend.capabilities.supports_device_firmware_update:
             return False
         return await self._backend.update_device_firmware(device_address=device_address)
 

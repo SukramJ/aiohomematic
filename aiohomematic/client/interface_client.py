@@ -174,13 +174,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     @property
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
-        # Backend handles circuit breaker states
-        return True
+        return self._backend.all_circuit_breakers_closed
 
     @property
     def circuit_breaker(self) -> CircuitBreaker | None:
         """Return the primary circuit breaker for metrics access."""
-        return None
+        return self._backend.circuit_breaker
 
     @property
     def interface(self) -> Interface:
@@ -933,7 +932,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     def reset_circuit_breakers(self) -> None:
         """Reset all circuit breakers to closed state."""
-        self._central.json_rpc_client.circuit_breaker.reset()
+        self._backend.reset_circuit_breakers()
 
     async def set_install_mode(
         self,

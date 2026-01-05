@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Final, cast
 from aiohomematic import i18n
 from aiohomematic.client.backends.base import BaseBackend
 from aiohomematic.client.backends.capabilities import JSON_CCU_CAPABILITIES
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitState
 from aiohomematic.const import (
     DUMMY_SERIAL,
     Backend,
@@ -76,6 +77,16 @@ class JsonCcuBackend(BaseBackend):
         )
         self._json_rpc: Final = json_rpc
         self._paramset_provider: Final = paramset_provider
+
+    @property
+    def all_circuit_breakers_closed(self) -> bool:
+        """Return True if all circuit breakers are in closed state."""
+        return self._json_rpc.circuit_breaker.state == CircuitState.CLOSED
+
+    @property
+    def circuit_breaker(self) -> CircuitBreaker:
+        """Return the primary circuit breaker for metrics access."""
+        return self._json_rpc.circuit_breaker
 
     @property
     def model(self) -> str:
@@ -183,6 +194,10 @@ class JsonCcuBackend(BaseBackend):
                 value=value,
                 rx_mode=rx_mode,
             )
+
+    def reset_circuit_breakers(self) -> None:
+        """Reset all circuit breakers to closed state."""
+        self._json_rpc.circuit_breaker.reset()
 
     async def set_value(
         self,

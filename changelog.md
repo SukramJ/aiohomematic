@@ -36,6 +36,24 @@
   - **Problem**: Entities on channels `:1`, `:2`, etc. never received notification of availability changes and continued showing cached "available" state
   - **Fix**: Now notifies all data points on the device via `publish_data_point_updated_event()` when availability changes, similar to `set_forced_availability()`
 
+- **Fix InterfaceClient Ping-Pong Token Handling**: The new InterfaceClient now correctly passes the ping-pong token through backend strategies
+  - Token is now passed from `InterfaceClient.ping()` to the backend's `ping()` method
+  - Ensures proper connection health monitoring with the new client implementation
+
+### Internal
+
+- **Replace `supports_*` Methods with `capabilities` Object**: Consolidated 10 boolean `supports_*` properties into a single `ClientCapabilities` dataclass
+
+  - **Before**: `client.supports_ping`, `client.supports_programs`, `client.supports_install_mode`, etc.
+  - **After**: `client.capabilities.supports_ping`, `client.capabilities.supports_programs`, etc.
+  - Capabilities are determined once at client creation based on backend type
+  - Removes ~300 lines of redundant property definitions across client classes
+  - Both legacy clients and InterfaceClient now use the same capabilities system
+
+- **InterfaceClient Feature Parity**: Added missing methods to achieve full feature parity with legacy clients
+  - Added `is_callback_alive()`, `check_connection_availability()`, `execute_program()`, `set_system_variable()`, `get_system_variable()`, and 8 other methods
+  - InterfaceClient now implements all 45+ methods from the client protocol
+
 ---
 
 # Version 2026.1.10 (2026-01-04)

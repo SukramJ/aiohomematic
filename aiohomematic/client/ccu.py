@@ -299,101 +299,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             return self._device_ops_handler.paramset_description_coalescer
         return None
 
-    @property
-    def supports_backup(self) -> bool:
-        """Return if the backend supports backup creation and download."""
-        return self._capabilities.supports_backup
-
-    @property
-    def supports_device_firmware_update(self) -> bool:
-        """Return if the backend supports device firmware updates."""
-        return self._capabilities.supports_device_firmware_update
-
-    @property
-    def supports_firmware_update_trigger(self) -> bool:
-        """Return if the backend supports triggering system firmware updates."""
-        return self._capabilities.supports_firmware_update_trigger
-
-    @property
-    def supports_firmware_updates(self) -> bool:
-        """Return if the backend supports firmware updates."""
-        return self._capabilities.supports_firmware_updates
-
-    @property
-    def supports_functions(self) -> bool:
-        """Return if interface supports functions."""
-        return self._capabilities.supports_functions
-
-    @property
-    def supports_inbox_devices(self) -> bool:
-        """Return if the backend supports inbox devices."""
-        return self._capabilities.supports_inbox_devices
-
-    @property
-    def supports_install_mode(self) -> bool:
-        """Return if the backend supports install mode operations."""
-        return self._capabilities.supports_install_mode
-
-    @property
-    def supports_linking(self) -> bool:
-        """Return if the backend supports device linking operations."""
-        return self._capabilities.supports_linking
-
-    @property
-    def supports_metadata(self) -> bool:
-        """Return if the backend supports metadata operations."""
-        return self._capabilities.supports_metadata
-
-    @property
-    def supports_ping_pong(self) -> bool:
-        """Return if the backend supports ping pong."""
-        return self._capabilities.supports_ping_pong
-
-    @property
-    def supports_programs(self) -> bool:
-        """Return if interface supports programs."""
-        return self._capabilities.supports_programs
-
-    @property
-    def supports_push_updates(self) -> bool:
-        """Return if the backend supports push updates."""
-        return self._capabilities.supports_push_updates
-
-    @property
-    def supports_rega_id_lookup(self) -> bool:
-        """Return if the backend supports ReGa ID lookups."""
-        return self._capabilities.supports_rega_id_lookup
-
-    @property
-    def supports_rename(self) -> bool:
-        """Return if the backend supports renaming devices and channels."""
-        return self._capabilities.supports_rename
-
-    @property
-    def supports_rooms(self) -> bool:
-        """Return if interface supports rooms."""
-        return self._capabilities.supports_rooms
-
-    @property
-    def supports_rpc_callback(self) -> bool:
-        """Return if the backend supports RPC callbacks."""
-        return self._capabilities.supports_rpc_callback
-
-    @property
-    def supports_service_messages(self) -> bool:
-        """Return if the backend supports service messages."""
-        return self._capabilities.supports_service_messages
-
-    @property
-    def supports_system_update_info(self) -> bool:
-        """Return if the backend supports system update information."""
-        return self._capabilities.supports_system_update_info
-
-    @property
-    def supports_value_usage_reporting(self) -> bool:
-        """Return if the backend supports value usage reporting."""
-        return self._capabilities.supports_value_usage_reporting
-
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
         return await self._metadata_handler.accept_device_in_inbox(device_address=device_address)
@@ -419,7 +324,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Check if _proxy is still initialized."""
         try:
             dt_now = datetime.now()
-            if handle_ping_pong and self.supports_ping_pong and self.is_initialized:
+            if handle_ping_pong and self._capabilities.supports_ping_pong and self.is_initialized:
                 token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
                 callerId = f"{self.interface_id}#{token}"
                 # Register token BEFORE sending ping to avoid race condition:
@@ -462,7 +367,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""
-        if not self.supports_rpc_callback:
+        if not self._capabilities.supports_rpc_callback:
             self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="no callback support")
             return ProxyInitState.DE_INIT_SUCCESS
 
@@ -694,7 +599,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     async def initialize_proxy(self) -> ProxyInitState:
         """Initialize the proxy has to tell the backend where to send the events."""
         self._state_machine.transition_to(target=ClientState.CONNECTING)
-        if not self.supports_rpc_callback:
+        if not self._capabilities.supports_rpc_callback:
             if device_descriptions := await self.list_devices():
                 await self.central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
@@ -770,7 +675,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
-        if not self.supports_ping_pong:
+        if not self._capabilities.supports_ping_pong:
             return True
 
         # If client is in RECONNECTING or FAILED state, callback is definitely not alive
@@ -839,7 +744,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                     target=ClientState.DISCONNECTED, reason="connection check failed (>3 errors)"
                 )
             return False
-        if not self.supports_push_updates:
+        if not self._capabilities.supports_push_updates:
             return True
 
         callback_warn = self._config.client_deps.config.timeout_config.callback_warn_interval
@@ -932,7 +837,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             address=address,
             value_id=value_id,
             ref_counter=ref_counter,
-            supports=self.supports_value_usage_reporting,
+            supports=self._capabilities.supports_value_usage_reporting,
         )
 
     def reset_circuit_breakers(self) -> None:
@@ -1001,7 +906,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         # Unsubscribe from state change events before stopping
         self._unsubscribe_state_change()
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")
-        if self.supports_rpc_callback:
+        if self._capabilities.supports_rpc_callback:
             await self._proxy.stop()
             await self._proxy_read.stop()
         self._state_machine.transition_to(target=ClientState.STOPPED, reason="services stopped")
@@ -1041,7 +946,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_linking=self.supports_linking,
+            supports_linking=self._capabilities.supports_linking,
         )
 
         self._firmware_handler = FirmwareHandler(
@@ -1051,8 +956,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_device_firmware_update=self.supports_device_firmware_update,
-            supports_firmware_update_trigger=self.supports_firmware_update_trigger,
+            supports_device_firmware_update=self._capabilities.supports_device_firmware_update,
+            supports_firmware_update_trigger=self._capabilities.supports_firmware_update_trigger,
         )
 
         self._sysvar_handler = SystemVariableHandler(
@@ -1071,7 +976,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_programs=self.supports_programs,
+            supports_programs=self._capabilities.supports_programs,
         )
 
         self._backup_handler = BackupHandler(
@@ -1081,7 +986,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_backup=self.supports_backup,
+            supports_backup=self._capabilities.supports_backup,
             system_information=self._system_information,
         )
 
@@ -1092,15 +997,15 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_functions=self.supports_functions,
-            supports_inbox_devices=self.supports_inbox_devices,
-            supports_install_mode=self.supports_install_mode,
-            supports_metadata=self.supports_metadata,
-            supports_rega_id_lookup=self.supports_rega_id_lookup,
-            supports_rename=self.supports_rename,
-            supports_rooms=self.supports_rooms,
-            supports_service_messages=self.supports_service_messages,
-            supports_system_update_info=self.supports_system_update_info,
+            supports_functions=self._capabilities.supports_functions,
+            supports_inbox_devices=self._capabilities.supports_inbox_devices,
+            supports_install_mode=self._capabilities.supports_install_mode,
+            supports_metadata=self._capabilities.supports_metadata,
+            supports_rega_id_lookup=self._capabilities.supports_rega_id_lookup,
+            supports_rename=self._capabilities.supports_rename,
+            supports_rooms=self._capabilities.supports_rooms,
+            supports_service_messages=self._capabilities.supports_service_messages,
+            supports_system_update_info=self._capabilities.supports_system_update_info,
         )
 
     def _mark_all_devices_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:

@@ -769,9 +769,23 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self.publish_device_updated_event()
 
     @loop_check
-    def publish_device_updated_event(self) -> None:
-        """Do what is needed when the state of the device has been updated."""
+    def publish_device_updated_event(self, *, notify_data_points: bool = False) -> None:
+        """
+        Do what is needed when the state of the device has been updated.
+
+        Args:
+            notify_data_points: If True, also notify all data points so entities
+                refresh their state. This is needed for availability changes where
+                UN_REACH on channel :0 affects entities on other channels.
+
+        """
         self._set_modified_at()
+
+        # Notify all data points so entities refresh their availability state.
+        # Entities subscribe to their own data point's updated event, not to device events.
+        if notify_data_points:
+            for dp in self.generic_data_points:
+                dp.publish_data_point_updated_event()
 
         # Publish to EventBus asynchronously
         async def _publish_device_updated() -> None:

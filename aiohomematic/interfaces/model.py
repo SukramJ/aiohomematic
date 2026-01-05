@@ -1710,7 +1710,7 @@ class DeviceLifecycleProtocol(Protocol):
         """Handle config changed event."""
 
     @abstractmethod
-    def publish_device_updated_event(self) -> None:
+    def publish_device_updated_event(self, *, notify_data_points: bool = False) -> None:
         """Publish device updated event."""
 
     @abstractmethod

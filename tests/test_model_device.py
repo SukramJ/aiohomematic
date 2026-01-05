@@ -264,6 +264,82 @@ class TestDeviceAvailability:
         remover = remove
         remover()
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [(TEST_DEVICES, True, None, None)],
+    )
+    async def test_unreach_notifies_all_data_points(self, central_client_factory_with_homegear_client) -> None:
+        """
+        Test that UN_REACH changes notify all data points so entities on other channels refresh.
+
+        This test verifies the fix for issue #2711 where entities on channels other than :0
+        were not updating their availability state when UN_REACH changed on channel :0.
+
+        The fix ensures that when UN_REACH/STICKY_UN_REACH changes, all data points on the
+        device receive a publish_data_point_updated_event() call via the notify_data_points
+        parameter on publish_device_updated_event().
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        # Collect data point update events for data points on channels other than :0
+        dp_update_events: list[str] = []
+
+        # Subscribe to a data point on channel :4 (not :0 where UN_REACH lives)
+        channel_4_dps = [dp for dp in device.generic_data_points if ":4" in dp.channel.address]
+        assert len(channel_4_dps) > 0, "Test requires data points on channel :4"
+
+        test_dp = channel_4_dps[0]
+
+        def on_dp_update(**kwargs: Any) -> None:
+            dp_update_events.append(test_dp.channel.address)
+
+        unsubscribe = test_dp.subscribe_to_data_point_updated(handler=on_dp_update, custom_id="test")
+
+        # Initially device is available
+        assert device.available is True
+        assert test_dp.available is True
+        initial_event_count = len(dp_update_events)
+
+        # Trigger UN_REACH event on channel :0
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address=f"{device.address}:0",
+            parameter="UNREACH",
+            value=1,
+        )
+
+        # Device should now be unavailable
+        assert device.available is False
+        assert test_dp.available is False
+
+        # The data point on channel :4 should have received an update event
+        # because publish_device_updated_event(notify_data_points=True) was called
+        assert len(dp_update_events) > initial_event_count, (
+            "Data point on channel :4 should have received update event when UN_REACH changed on :0"
+        )
+
+        # Reset and verify the reverse works too
+        dp_update_events.clear()
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address=f"{device.address}:0",
+            parameter="UNREACH",
+            value=0,
+        )
+
+        assert device.available is True
+        assert test_dp.available is True
+        assert len(dp_update_events) > 0, "Data point should receive update event when UN_REACH clears"
+
+        unsubscribe()
+
 
 class TestDeviceFirmware:
     """Tests for device firmware properties and update operations."""

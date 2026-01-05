@@ -481,6 +481,11 @@ class ConnectionRecoveryCoordinator:
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
             # Access internal config to get port - pylint: disable=protected-access
+            # InterfaceClient stores config in _interface_config directly
+            if hasattr(client, "_interface_config"):
+                port = client._interface_config.port
+                return port if isinstance(port, int) else None
+            # ClientCCU stores config in _config.interface_config
             if hasattr(client, "_config") and hasattr(client._config, "interface_config"):
                 port = client._config.interface_config.port
                 return port if isinstance(port, int) else None

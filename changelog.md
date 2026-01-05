@@ -1,3 +1,14 @@
+# Version 2026.1.12 (2026-01-05)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix Connection Recovery Port Detection for InterfaceClient**: The `_get_client_port()` method now correctly retrieves the port for both client implementations
+  - **Root Cause**: The method only checked `client._config.interface_config.port` (ClientCCU path), but InterfaceClient stores config directly in `client._interface_config.port`
+  - **Symptom**: Warning logged: `CONNECTION_RECOVERY: No port configured for <interface>, skipping TCP check`
+  - **Fix**: Added check for `_interface_config` attribute first (InterfaceClient), then falls back to `_config.interface_config` (ClientCCU)
+
 # Version 2026.1.11 (2026-01-05)
 
 ## What's Changed

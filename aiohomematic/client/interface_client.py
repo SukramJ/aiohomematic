@@ -376,6 +376,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     def clear_json_rpc_session(self) -> None:
         """Clear the JSON-RPC session."""
         self._central.json_rpc_client.clear_session()
+        _LOGGER.debug(
+            "CLEAR_JSON_RPC_SESSION: Session cleared for %s",
+            self.interface_id,
+        )
 
     async def create_backup_and_download(
         self,
@@ -398,7 +402,9 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return ProxyInitState.DE_INIT_SKIPPED
 
         try:
-            await self._backend.deinit_proxy(init_url=self._get_init_url())
+            init_url = self._get_init_url()
+            _LOGGER.debug("PROXY_DE_INIT: init('%s')", init_url)
+            await self._backend.deinit_proxy(init_url=init_url)
             self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="proxy de-initialized")
         except BaseHomematicException as bhexc:
             _LOGGER.warning(  # i18n-log: ignore
@@ -692,9 +698,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
         try:
             self._ping_pong_tracker.clear()
-            await self._backend.init_proxy(init_url=self._get_init_url(), interface_id=self.interface_id)
+            init_url = self._get_init_url()
+            _LOGGER.debug("PROXY_INIT: init('%s', '%s')", init_url, self.interface_id)
+            await self._backend.init_proxy(init_url=init_url, interface_id=self.interface_id)
             self._state_machine.transition_to(target=ClientState.CONNECTED, reason="proxy initialized")
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
+            _LOGGER.debug("PROXY_INIT: Proxy for %s initialized", self.interface_id)
         except BaseHomematicException as bhexc:
             _LOGGER.error(  # i18n-log: ignore
                 "PROXY_INIT failed: %s [%s] Unable to initialize proxy for %s",
@@ -889,6 +898,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             delay = min(
                 timeout_cfg.reconnect_initial_delay * (timeout_cfg.reconnect_backoff_factor**self._reconnect_attempts),
                 timeout_cfg.reconnect_max_delay,
+            )
+            _LOGGER.debug(
+                "RECONNECT: waiting to re-connect client %s for %.1fs (attempt %d)",
+                self.interface_id,
+                delay,
+                self._reconnect_attempts + 1,
             )
             await asyncio.sleep(delay)
 
@@ -1231,6 +1246,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             for device in self._central.device_registry.devices:
                 if device.interface_id == self.interface_id:
                     device.set_forced_availability(forced_availability=forced_availability)
+            _LOGGER.debug(
+                "MARK_ALL_DEVICES_FORCED_AVAILABILITY: marked all devices %s for %s",
+                "available" if available else "unavailable",
+                self.interface_id,
+            )
 
     def _on_client_state_changed_event(self, *, event: ClientStateChangedEvent) -> None:
         """Handle client state machine transitions."""
@@ -1245,6 +1265,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """Handle system status events."""
         if event.connection_state and event.connection_state[0] == self.interface_id and event.connection_state[1]:
             self._ping_pong_tracker.clear()
+            _LOGGER.debug(
+                "PING PONG CACHE: Cleared on connection restored: %s",
+                self.interface_id,
+            )
 
     async def _poll_master_values(self, *, channel: ChannelProtocol, paramset_key: ParamsetKey) -> None:
         """Poll master paramset values after write for BidCos devices."""

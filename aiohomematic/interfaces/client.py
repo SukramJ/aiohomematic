@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.coordinators import CacheCoordinator, DeviceCoordinator, EventCoordinator
     from aiohomematic.central.events import EventBus
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
+    from aiohomematic.client.backends.capabilities import BackendCapabilities
     from aiohomematic.interfaces.model import DeviceProtocol
     from aiohomematic.store.persistent import SessionRecorder
 
@@ -701,6 +702,10 @@ class ClientProtocol(
     """
 
     __slots__ = ()
+
+    @property
+    def capabilities(self) -> BackendCapabilities:
+        """Return the capability flags for this backend."""
 
 
 # =============================================================================

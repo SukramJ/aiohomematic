@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -12,6 +13,7 @@ import pytest
 
 from aiohomematic import central as hmcu
 from aiohomematic.client import ClientCCU, ClientConfig, InterfaceConfig, get_client as get_client_by_id
+from aiohomematic.client.backends.capabilities import CCU_CAPABILITIES
 from aiohomematic.client.handlers.device_ops import (
     _isclose as client_isclose,
     _track_single_data_point_state_change_or_timeout,
@@ -671,17 +673,29 @@ def _make_client_with_interface(iface: Interface, *, push: bool = True, fw: bool
     provide the attributes used by the tested properties/methods.
     """
     c = object.__new__(_TestClient)
+    supports_linking = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
+    supports_ping_pong = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
+    supports_rpc_callback = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
     fake_cfg = SimpleNamespace(
         interface=iface,
-        supports_linking=(iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}),
+        supports_linking=supports_linking,
         supports_push_updates=push,
         supports_firmware_updates=fw,
-        supports_ping_pong=(iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}),
-        supports_rpc_callback=(iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}),
+        supports_ping_pong=supports_ping_pong,
+        supports_rpc_callback=supports_rpc_callback,
         version="0",
     )
     # Attach minimal config needed by Client properties
     c._config = fake_cfg  # type: ignore[attr-defined]
+    # Attach capabilities used by supports_* properties
+    c._capabilities = replace(  # type: ignore[attr-defined]
+        CCU_CAPABILITIES,
+        supports_firmware_updates=fw,
+        supports_linking=supports_linking,
+        supports_ping_pong=supports_ping_pong,
+        supports_push_updates=push,
+        supports_rpc_callback=supports_rpc_callback,
+    )
     return c
 
 
@@ -1442,15 +1456,15 @@ class TestClientProxyLifecycle:
         assert state in {ProxyInitState.DE_INIT_SUCCESS, ProxyInitState.DE_INIT_FAILED}
         assert client._state_machine.state == ClientState.DISCONNECTED  # type: ignore[attr-defined]
 
-        client._config.supports_rpc_callback = False  # type: ignore[attr-defined]
+        client._capabilities = replace(client._capabilities, supports_rpc_callback=False)  # type: ignore[attr-defined]
         state = await client.deinitialize_proxy()
         assert state is ProxyInitState.DE_INIT_SUCCESS
 
-        client._config.supports_rpc_callback = False  # type: ignore[attr-defined]
+        # supports_rpc_callback is already False from above
         state = await client.initialize_proxy()
         assert state in {ProxyInitState.INIT_FAILED, ProxyInitState.INIT_SUCCESS}
 
-        client._config.supports_rpc_callback = True  # type: ignore[attr-defined]
+        client._capabilities = replace(client._capabilities, supports_rpc_callback=True)  # type: ignore[attr-defined]
         client._proxy = _XmlProxy2(fail_init=True)  # type: ignore[attr-defined]
         state = await client.initialize_proxy()
         assert state is ProxyInitState.INIT_FAILED

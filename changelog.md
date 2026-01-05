@@ -36,10 +36,6 @@
   - **Problem**: Entities on channels `:1`, `:2`, etc. never received notification of availability changes and continued showing cached "available" state
   - **Fix**: Now notifies all data points on the device via `publish_data_point_updated_event()` when availability changes, similar to `set_forced_availability()`
 
-- **Fix InterfaceClient Ping-Pong Token Handling**: The InterfaceClient now correctly includes the ping token in the caller_id when sending pings to the CCU
-  - **Root Cause**: Backend's `check_connection()` was sending `ping(interface_id)` without the token, but the CCU requires `ping(interface_id#token)` to include the token in the PONG response
-  - **Fix**: Added `caller_id` parameter to `BackendOperationsProtocol.check_connection()` and pass the full `interface_id#token` from InterfaceClient
-
 ---
 
 # Version 2026.1.10 (2026-01-04)

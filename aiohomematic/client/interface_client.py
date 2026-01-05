@@ -355,10 +355,14 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """Check if proxy is still initialized."""
         try:
             dt_now = datetime.now()
+            caller_id: str | None = None
             if handle_ping_pong and self.supports_ping_pong and self.is_initialized:
                 token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
+                caller_id = f"{self.interface_id}#{token}"
+                # Register token BEFORE sending ping to avoid race condition:
+                # CCU may respond with PONG before await returns
                 self._ping_pong_tracker.handle_send_ping(ping_token=token)
-            if await self._backend.check_connection(handle_ping_pong=handle_ping_pong):
+            if await self._backend.check_connection(handle_ping_pong=handle_ping_pong, caller_id=caller_id):
                 self.modified_at = dt_now
                 return True
         except BaseHomematicException as bhexc:

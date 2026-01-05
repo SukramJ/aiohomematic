@@ -113,10 +113,11 @@ class CcuBackend(BaseBackend):
         """Add a link."""
         await self._proxy.addLink(sender_address, receiver_address, name, description)
 
-    async def check_connection(self, *, handle_ping_pong: bool) -> bool:
+    async def check_connection(self, *, handle_ping_pong: bool, caller_id: str | None = None) -> bool:
         """Check if connection is alive via ping."""
         try:
-            await self._proxy.ping(self._interface_id)
+            # Use caller_id with token for ping-pong tracking, or interface_id for simple ping
+            await self._proxy.ping(caller_id or self._interface_id)
         except BaseHomematicException:
             return False
         return True

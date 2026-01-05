@@ -79,9 +79,10 @@ class HomegearBackend(BaseBackend):
             return Backend.PYDEVCCU
         return Backend.HOMEGEAR
 
-    async def check_connection(self, *, handle_ping_pong: bool) -> bool:
+    async def check_connection(self, *, handle_ping_pong: bool, caller_id: str | None = None) -> bool:
         """Check connection via clientServerInitialized."""
         try:
+            # Homegear uses clientServerInitialized instead of ping
             await self._proxy.clientServerInitialized(self._interface_id)
         except BaseHomematicException:
             return False

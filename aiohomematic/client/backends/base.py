@@ -114,7 +114,7 @@ class BaseBackend(ABC):
         """Add link (unsupported by default)."""
 
     @abstractmethod
-    async def check_connection(self, *, handle_ping_pong: bool) -> bool:
+    async def check_connection(self, *, handle_ping_pong: bool, caller_id: str | None = None) -> bool:
         """Check if connection is alive."""
         ...
 

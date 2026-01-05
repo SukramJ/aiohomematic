@@ -737,6 +737,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                         )
                     )
                     self._is_callback_alive = False
+                    self._record_callback_timeout_incident(
+                        seconds_since_last_event=seconds_since_last_event,
+                        callback_warn_interval=callback_warn,
+                        last_event_time=last_events_dt,
+                    )
                 _LOGGER.error(
                     i18n.tr(
                         key="log.client.is_callback_alive.no_events",
@@ -1252,6 +1257,48 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     await dp.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
         self._central.looper.create_task(target=poll_master_dp_values(), name="poll_master_dp_values")
+
+    def _record_callback_timeout_incident(
+        self,
+        *,
+        seconds_since_last_event: float,
+        callback_warn_interval: float,
+        last_event_time: datetime,
+    ) -> None:
+        """Record a CALLBACK_TIMEOUT incident for diagnostics."""
+        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
+
+        incident_recorder = self._central.cache_coordinator.incident_store
+
+        # Get circuit breaker state safely
+        circuit_breaker_state: str | None = None
+        if (cb := self._backend.circuit_breaker) is not None:
+            circuit_breaker_state = cb.state.value
+
+        context = {
+            "seconds_since_last_event": round(seconds_since_last_event, 2),
+            "callback_warn_interval": callback_warn_interval,
+            "last_event_time": last_event_time.strftime(DATETIME_FORMAT_MILLIS),
+            "client_state": self._state_machine.state.value,
+            "circuit_breaker_state": circuit_breaker_state,
+        }
+
+        async def _record() -> None:
+            try:
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.CALLBACK_TIMEOUT,
+                    severity=IncidentSeverity.WARNING,
+                    message=f"No callback received for {self.interface_id} in {int(seconds_since_last_event)} seconds",
+                    interface_id=self.interface_id,
+                    context=context,
+                )
+            except Exception as err:
+                _LOGGER.debug("Failed to record CALLBACK_TIMEOUT incident: %s", err)
+
+        self._central.looper.create_task(
+            target=_record(),
+            name=f"record_callback_timeout_incident_{self.interface_id}",
+        )
 
     async def _wait_for_state_change(
         self, *, device: DeviceProtocol, dpk_values: set[DP_KEY_VALUE], wait_for_callback: int

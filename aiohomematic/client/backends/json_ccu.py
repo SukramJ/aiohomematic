@@ -82,8 +82,9 @@ class JsonCcuBackend(BaseBackend):
         """Return the backend model name."""
         return Backend.CCU
 
-    async def check_connection(self, *, handle_ping_pong: bool) -> bool:
+    async def check_connection(self, *, handle_ping_pong: bool, caller_id: str | None = None) -> bool:
         """Check connection via JSON-RPC isPresent."""
+        # JSON-RPC backend doesn't support ping-pong, uses isPresent instead
         return await self._json_rpc.is_present(interface=self._interface)
 
     async def deinit_proxy(self, *, init_url: str) -> None:

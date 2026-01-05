@@ -95,7 +95,7 @@ class BackendOperationsProtocol(Protocol):
         """Add a link between two devices."""
         ...
 
-    async def check_connection(self, *, handle_ping_pong: bool) -> bool:
+    async def check_connection(self, *, handle_ping_pong: bool, caller_id: str | None = None) -> bool:
         """Check if the connection to the backend is alive."""
         ...
 

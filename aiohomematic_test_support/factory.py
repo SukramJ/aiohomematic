@@ -50,7 +50,7 @@ from aiohomematic.central.events import (
     DeviceTriggerEvent,
     SystemStatusChangedEvent,
 )
-from aiohomematic.client import ClientConfig, InterfaceConfig
+from aiohomematic.client import InterfaceConfig, create_client as create_client_func
 from aiohomematic.const import LOCAL_HOST, Interface, OptionalSettings
 from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
@@ -118,10 +118,17 @@ class FactoryWithClient:
 
         # Optionally patch client creation to return a mocked client
         if self._do_mock_client:
-            _orig_create_client = ClientConfig.create_client
+            _orig_create_client = create_client_func
 
-            async def _mocked_create_client(config: ClientConfig) -> ClientProtocol | Mock:
-                real_client = await _orig_create_client(config)
+            async def _mocked_create_client(
+                *,
+                client_deps: Any,
+                interface_config: InterfaceConfig,
+            ) -> ClientProtocol | Mock:
+                real_client = await _orig_create_client(
+                    client_deps=client_deps,
+                    interface_config=interface_config,
+                )
                 return cast(
                     Mock,
                     get_mock(
@@ -131,7 +138,7 @@ class FactoryWithClient:
                     ),
                 )
 
-            p3 = patch("aiohomematic.client.ClientConfig.create_client", _mocked_create_client)
+            p3 = patch("aiohomematic.client.create_client", _mocked_create_client)
             p3.start()
             self._patches.append(p3)
 

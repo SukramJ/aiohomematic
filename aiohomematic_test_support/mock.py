@@ -191,6 +191,16 @@ def get_client_session(  # noqa: C901
                             }
                         )
 
+                    if "fetch_all_device_data" in params[_JsonKey.SCRIPT]:
+                        # Return empty device data dict for InterfaceClient
+                        return _MockResponse(
+                            json_data={
+                                _JsonKey.ID: 0,
+                                _JsonKey.RESULT: {},
+                                _JsonKey.ERROR: None,
+                            }
+                        )
+
                 if method == _JsonRpcMethod.INTERFACE_SET_VALUE:
                     await self._central.event_coordinator.data_point_event(
                         interface_id=params[_JsonKey.INTERFACE],

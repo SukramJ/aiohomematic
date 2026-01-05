@@ -10,8 +10,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.13", "3.14"]
+    name: Python ${{ matrix.python-version }}
     steps:
       - name: Set Timezone
         uses: szenius/set-timezone@v2.0
@@ -28,7 +30,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_test.txt
-      - name: Run tests and collect coverage
+      - name: Run tests (legacy client)
         run: pytest --cov=aiohomematic tests --asyncio-mode=legacy
+      - name: Run tests (InterfaceClient)
+        env:
+          AIOHOMEMATIC_USE_INTERFACE_CLIENT: "1"
+        run: |
+          echo "Testing with InterfaceClient enabled"
+          pytest tests/ --asyncio-mode=legacy
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

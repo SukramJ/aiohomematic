@@ -81,7 +81,8 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             Parameter.UN_REACH,
             Parameter.STICKY_UN_REACH,
         ):
-            self._device.publish_device_updated_event()
+            # notify_data_points=True ensures entities on all channels refresh their availability
+            self._device.publish_device_updated_event(notify_data_points=True)
             await self._event_bus_provider.event_bus.publish(
                 event=DeviceLifecycleEvent(
                     timestamp=datetime.now(),

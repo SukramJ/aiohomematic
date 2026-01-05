@@ -1,8 +1,15 @@
-# Version 2026.1.11 (2026-01-04)
+# Version 2026.1.11 (2026-01-05)
 
 ## What's Changed
 
 ### Bug Fixes
+
+- **Fix VirtualDevices Init Timeout Causing Client Failure**: The `init()` RPC method is now excluded from automatic retry logic
+
+  - **Root Cause**: In version 2025.12.8, `@with_retry` was added to XML-RPC requests, causing `init()` failures to trigger 3 retry attempts before marking the client as FAILED
+  - **Problem**: VirtualDevices interface on some CCUs doesn't respond to `init()` within the timeout, but sends the `listDevices` callback correctly. The retry mechanism amplified single timeouts into complete client failure
+  - **Fix**: Added `_RETRY_BYPASS_METHODS` constant excluding `init` from retry logic. The client state machine handles `init` failures via its own reconnection logic
+  - **Impact**: VirtualDevices (heating groups) connections are more resilient on slow-responding CCUs
 
 - **Fix HmIP-MP3P LED Auto-Off After 10 Seconds**: The sound player LED (`light.turn_on`) now stays on permanently by default instead of turning off after 10 seconds
   - Changed the default `on_time` from `10.0` to `0.0` (permanently on)

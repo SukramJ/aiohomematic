@@ -448,47 +448,6 @@ class TestConcurrentOperations:
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
 
 
-class TestRetryIntegration:
-    """Test retry logic integration with operations."""
-
-    @pytest.mark.asyncio
-    async def test_retry_strategy_permanent_error_no_retry(self) -> None:
-        """Test that permanent errors are not retried."""
-        from aiohomematic.exceptions import AuthFailure
-        from aiohomematic.retry import with_retry
-
-        attempts = []
-
-        @with_retry(max_attempts=3, initial_backoff=0.01)
-        async def auth_operation() -> str:
-            attempts.append(1)
-            raise AuthFailure("Invalid credentials")
-
-        with pytest.raises(AuthFailure):
-            await auth_operation()
-
-        # Should only attempt once (no retry for auth failure)
-        assert len(attempts) == 1
-
-    @pytest.mark.asyncio
-    async def test_retry_strategy_with_transient_error(self) -> None:
-        """Test that retry strategy handles transient errors."""
-        from aiohomematic.retry import with_retry
-
-        attempts = []
-
-        @with_retry(max_attempts=3, initial_backoff=0.01)
-        async def flaky_operation() -> str:
-            attempts.append(1)
-            if len(attempts) < 3:
-                raise TimeoutError("Transient error")
-            return "success"
-
-        result = await flaky_operation()
-        assert result == "success"
-        assert len(attempts) == 3
-
-
 class TestValidationIntegration:
     """Test parameter validation integration."""
 

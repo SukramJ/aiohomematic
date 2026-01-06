@@ -48,7 +48,6 @@ from aiohomematic.exceptions import (
     UnsupportedException,
 )
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.retry import RetryStrategy
 from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 from aiohomematic.type_aliases import CallableAny
@@ -81,13 +80,6 @@ _CIRCUIT_BREAKER_BYPASS_METHODS: Final[tuple[str, ...]] = (
     _RpcMethod.PING,
     _RpcMethod.SYSTEM_LIST_METHODS,
 )
-
-# Methods that should NOT be retried automatically.
-# init() is excluded because:
-# 1. It's a one-time registration call that the CCU may not respond to immediately
-# 2. The client state machine handles init failures via reconnection logic
-# 3. Retrying init can cause cascading failures and circuit breaker trips
-_RETRY_BYPASS_METHODS: Final[tuple[str, ...]] = (_RpcMethod.INIT,)
 
 _SSL_ERROR_CODES: Final[dict[int, str]] = {
     errno.ENOEXEC: "EOF occurred in violation of protocol",
@@ -357,20 +349,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             self._supported_methods = tuple(supported_methods)
 
     async def _async_request(self, *args: Any, **kwargs: Any) -> Any:
-        """Call method on server side, with retry for most methods."""
-        # Skip retry for methods that handle their own retry logic (e.g., init)
-        if (args[0] if args else None) in _RETRY_BYPASS_METHODS:
-            return await self._execute_request(*args, **kwargs)
-
-        # Use retry for all other methods
-        strategy = RetryStrategy()
-        return await strategy.execute(
-            operation=lambda: self._execute_request(*args, **kwargs),
-            operation_name="_async_request",
-        )
-
-    async def _execute_request(self, *args: Any, **kwargs: Any) -> Any:
-        """Execute a single RPC request without retry."""
+        """Call method on server side."""
         parent = xmlrpc.client.ServerProxy
         try:
             method = args[0]

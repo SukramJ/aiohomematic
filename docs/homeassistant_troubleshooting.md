@@ -28,6 +28,9 @@ This section provides a quick overview of common symptoms and their most likely 
 | Writing values doesn't work                            | Permissions/auth problem, invalid parameter, validation error, wrong channel/parameter, or device unavailable           | [3D](#d-writing-fails-service-call-fails)                            |
 | HmIP devices missing                                   | HmIP service on CCU not active, wrong ports, or session/token issue                                                     | [3E](#e-hmip-devices-missing-or-not-updating)                        |
 | After CCU/Home Assistant restart no updates arrive     | Callback not re-registered, port blocked, or reverse proxy/SSL terminator blocking internal connection                  | [3F](#f-no-events-after-restart)                                     |
+| Ping-Pong mismatch / events going to wrong instance    | Multiple HA instances with same `instance_name`, callback registration conflict                                         | [3J](#j-ping-pong-mismatch-multiple-home-assistant-instances)        |
+| Auto-discovery notification keeps appearing            | SSDP serial mismatch, integration created before discovery                                                              | [3K](#k-auto-discovery-keeps-appearing)                              |
+| "Error fetching initial data" warning                  | CCU REGA script returned invalid data, CCU overloaded                                                                   | [3L](#l-error-fetching-initial-data)                                 |
 
 ---
 
@@ -419,6 +422,100 @@ This is a **false positive**. The Unifi Firewall uses Suricata IDS (Intrusion De
    - This prevents the IDS from inspecting the payload content
 
 **Note:** This alert is harmless for legitimate CCU communication and can be safely suppressed.
+
+### J) Ping-Pong mismatch (multiple Home Assistant instances)
+
+**Symptoms:**
+
+- Repair notification: "Pending Pong mismatch" or "Ping-pong mismatch"
+- Devices stop updating or update intermittently
+- Some events seem to be "lost"
+
+**Understanding the Ping-Pong mechanism:**
+
+The integration uses a heartbeat mechanism to verify communication:
+
+1. Home Assistant sends a PING to the CCU every 15 seconds
+2. The CCU responds with a PONG back to Home Assistant
+3. If the number of PINGs and PONGs don't match, there's a communication issue
+
+**Scenario 1: Fewer PONGs received than PINGs sent**
+
+- **Cause:** Another Home Assistant instance with the **same `instance_name`** started after this one
+- **Effect:** The newer instance "stole" the callback registration - it now receives all events
+- **Alternative cause:** Network issue or CCU communication problem
+
+**Scenario 2: More PONGs received than PINGs sent**
+
+- **Cause:** Another Home Assistant instance with the **same `instance_name`** started before this one
+- **Effect:** This instance receives PONGs from both registrations
+
+**Solutions:**
+
+1. **Ensure unique instance names**: Each Home Assistant installation connecting to the same CCU must have a unique `instance_name`
+2. **Check for duplicate integrations**: Remove duplicate integration entries
+3. **Restart the affected instance**: This re-registers the callback correctly
+4. **Network issues**: If only one HA instance exists, check firewall and network connectivity
+
+**Important:** The `instance_name` is set during initial setup and should never be changed afterward (entities would be recreated). Choose unique names from the start.
+
+### K) Auto-discovery keeps appearing
+
+**Symptoms:**
+
+- SSDP discovery notification keeps appearing even though the CCU is already configured
+- After clicking "Ignore", the discovery reappears after Home Assistant restart
+- Multiple discovery entries for the same CCU
+
+**Possible causes:**
+
+1. The CCU's serial number in SSDP doesn't match the configured entry
+2. The integration entry was created manually before discovery
+3. SSDP response contains different identifiers than expected
+
+**Solutions:**
+
+1. **Click "Ignore"** on the discovery notification
+2. **Or reconfigure** the existing integration entry to link it with the discovery
+3. **Restart Home Assistant** after ignoring
+4. If the problem persists, check if the CCU's network configuration changed (IP, hostname)
+
+**Note:** This is a cosmetic issue - your existing integration continues to work normally.
+
+### L) Error fetching initial data
+
+**Symptoms:**
+
+- Warning in logs: "Error fetching initial data" or "GET_ALL_DEVICE_DATA failed"
+- Integration loads but startup is slower
+- Higher CCU load during startup
+
+**Understanding this issue:**
+
+The integration uses optimized REGA scripts to fetch device data in bulk. If this fails, it falls back to individual requests (slower but functional).
+
+**This is typically NOT an integration bug** - it's usually a CCU data issue.
+
+**Possible causes:**
+
+1. CCU's REGA script returned invalid or malformed data
+2. Specific device has corrupted data in the CCU
+3. CCU is overloaded or REGA engine is stuck
+4. Very large device count causing timeout
+
+**Diagnostic steps:**
+
+1. Get the [REGA script](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/rega_scripts/fetch_all_device_data.fn)
+2. Replace `##interface##` (line 17) with the interface from the error message (e.g., `HmIP-RF`)
+3. Run the script in CCU web interface: **Settings** → **Control panel** → **Execute script**
+4. Check if the output is valid JSON
+5. Look for malformed entries or unexpected characters
+
+**Solutions:**
+
+- **Restart the CCU** to clear any stuck REGA processes
+- **Check for problematic devices** in the script output
+- **Post in [Discussions](https://github.com/sukramj/aiohomematic/discussions)** with the script output for help
 
 ---
 

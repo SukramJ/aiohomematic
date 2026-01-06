@@ -60,7 +60,6 @@ from aiohomematic.central.events import DataPointValueReceivedEvent
 from aiohomematic.const import ParamsetKey
 from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.retry import with_retry
 from aiohomematic.support import get_device_address
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -180,13 +179,11 @@ class HomematicAPI:
         return cls(config=config)
 
     @staticmethod
-    @with_retry
     async def _do_fetch_all_device_data(*, client: Any) -> None:
-        """Fetch all device data for a single client with retry."""
+        """Fetch all device data for a single client."""
         await client.fetch_all_device_data()
 
     @staticmethod
-    @with_retry
     async def _do_get_value(
         *,
         client: Any,
@@ -194,7 +191,7 @@ class HomematicAPI:
         paramset_key: ParamsetKey,
         parameter: str,
     ) -> Any:
-        """Get a value from a client with retry."""
+        """Get a value from a client."""
         return await client.get_value(
             channel_address=channel_address,
             paramset_key=paramset_key,
@@ -202,7 +199,6 @@ class HomematicAPI:
         )
 
     @staticmethod
-    @with_retry
     async def _do_set_value(
         *,
         client: Any,
@@ -211,7 +207,7 @@ class HomematicAPI:
         parameter: str,
         value: Any,
     ) -> None:
-        """Set a value on a client with retry."""
+        """Set a value on a client."""
         await client.set_value(
             channel_address=channel_address,
             paramset_key=paramset_key,

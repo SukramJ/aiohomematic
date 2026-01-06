@@ -1,3 +1,31 @@
+# Version 2026.1.14 (2026-01-06)
+
+## What's Changed
+
+### Breaking Changes
+
+- **Remove Retry Logic for RPC Operations** (#2731): Completely removed the `@with_retry` decorator and `RetryStrategy` class from the codebase
+
+  - **Rationale**: The retry mechanism (added in 2025.12.8) conflicted with the CircuitBreaker pattern, causing cascading failures. Each retry counted as a separate failure toward the circuit breaker threshold. On slow backends like VirtualDevices on Pi4/OpenCCU, this caused the circuit breaker to trip during initialization.
+
+  - **What was removed**:
+
+    - `aiohomematic/retry.py` module (RetryStrategy, with_retry, is_retryable_exception)
+    - `@with_retry` decorator from `AioXmlRpcProxy`, `AioJsonRpcAioHttpClient`, and `HomematicAPI`
+    - `RETRY_*` constants from `const.py`
+    - `_RETRY_BYPASS_METHODS` constant from `rpc_proxy.py`
+
+  - **Error handling preserved**: The existing mechanisms are sufficient:
+
+    - `CircuitBreaker`: Fast-fail on backend outage (per-proxy)
+    - `CentralConnectionState`: Aggregate health tracking (central)
+    - `ClientStateMachine`: Connection lifecycle (per-client)
+    - `ConnectionRecoveryCoordinator`: Automatic reconnection (central)
+
+  - **Impact**: Network errors now fail immediately instead of retrying. This provides more predictable behavior and prevents retry-induced failures. The ConnectionRecoveryCoordinator handles reconnection at the appropriate connection level.
+
+  - **ADR**: See [ADR 0014](docs/adr/0014-retry-logic-removal.md) for detailed rationale
+
 # Version 2026.1.13 (2026-01-06)
 
 ## What's Changed

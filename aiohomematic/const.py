@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.13"
+VERSION: Final = "2026.1.14"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -204,12 +204,6 @@ LOGIN_MAX_FAILED_ATTEMPTS: Final = 10
 LOGIN_INITIAL_BACKOFF_SECONDS: Final = 1.0
 LOGIN_MAX_BACKOFF_SECONDS: Final = 60.0
 LOGIN_BACKOFF_MULTIPLIER: Final = 2.0
-
-# Retry logic constants for transient network errors
-RETRY_MAX_ATTEMPTS: Final = 3
-RETRY_INITIAL_BACKOFF_SECONDS: Final = 0.5
-RETRY_MAX_BACKOFF_SECONDS: Final = 30.0
-RETRY_BACKOFF_MULTIPLIER: Final = 2.0
 
 KWARGS_ARG_CUSTOM_ID: Final = "custom_id"
 KWARGS_ARG_DATA_POINT: Final = "data_point"

@@ -319,7 +319,9 @@ class Hub(HubProtocol):
                 self._central_info.name,
             )
             async with self._sema_fetch_programs:
-                if self._central_info.available:
+                # Check primary client availability instead of central availability
+                # to allow hub operations when secondary clients (e.g., CUxD) fail
+                if (client := self._primary_client_provider.primary_client) and client.available:
                     await self._update_program_data_points()
 
     @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
@@ -346,7 +348,9 @@ class Hub(HubProtocol):
                 self._central_info.name,
             )
             async with self._sema_fetch_sysvars:
-                if self._central_info.available:
+                # Check primary client availability instead of central availability
+                # to allow hub operations when secondary clients (e.g., CUxD) fail
+                if (client := self._primary_client_provider.primary_client) and client.available:
                     await self._update_sysvar_data_points()
 
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:

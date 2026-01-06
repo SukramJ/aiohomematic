@@ -223,6 +223,11 @@ class BackgroundScheduler:
     )
 
     @property
+    def _primary_client_avaliable(self) -> bool:
+        """Return True if the primary client is available."""
+        return self._client_coordinator.primary_client is not None and self._client_coordinator.primary_client.available
+
+    @property
     def devices_created(self) -> bool:
         """Return True if devices have been created."""
         return self._devices_created_event.is_set()
@@ -501,7 +506,9 @@ class BackgroundScheduler:
 
     async def _refresh_inbox_data(self) -> None:
         """Refresh inbox data."""
-        if not self._central_info.available or not self.devices_created:
+        # Check primary client availability instead of central availability
+        # to allow hub operations when secondary clients (e.g., CUxD) fail
+        if not self._primary_client_avaliable or not self.devices_created:
             return
 
         _LOGGER.debug("REFRESH_INBOX_DATA: For %s", self._central_info.name)
@@ -565,9 +572,11 @@ class BackgroundScheduler:
 
     async def _refresh_program_data(self) -> None:
         """Refresh system programs data."""
+        # Check primary client availability instead of central availability
+        # to allow hub operations when secondary clients (e.g., CUxD) fail
         if (
-            not self._config_provider.config.enable_program_scan
-            or not self._central_info.available
+            not self._primary_client_avaliable
+            or not self._config_provider.config.enable_program_scan
             or not self.devices_created
         ):
             return
@@ -601,7 +610,9 @@ class BackgroundScheduler:
 
     async def _refresh_system_update_data(self) -> None:
         """Refresh system update data."""
-        if not self._central_info.available or not self.devices_created:
+        # Check primary client availability instead of central availability
+        # to allow hub operations when secondary clients (e.g., CUxD) fail
+        if not self._primary_client_avaliable or not self.devices_created:
             return
 
         _LOGGER.debug("REFRESH_SYSTEM_UPDATE_DATA: For %s", self._central_info.name)
@@ -633,9 +644,11 @@ class BackgroundScheduler:
 
     async def _refresh_sysvar_data(self) -> None:
         """Refresh system variables data."""
+        # Check primary client availability instead of central availability
+        # to allow hub operations when secondary clients (e.g., CUxD) fail
         if (
-            not self._config_provider.config.enable_sysvar_scan
-            or not self._central_info.available
+            not self._primary_client_avaliable
+            or not self._config_provider.config.enable_sysvar_scan
             or not self.devices_created
         ):
             return

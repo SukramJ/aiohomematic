@@ -32,6 +32,7 @@ from aiohomematic.const import (
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,
+    DeviceDetail,
     InboxDeviceData,
     Interface,
     ParameterData,
@@ -202,13 +203,9 @@ class CcuBackend(BaseBackend):
         """Execute a program."""
         return await self._json_rpc.execute_program(pid=pid)
 
-    async def fetch_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
-        """Fetch all device data via JSON-RPC."""
+    async def get_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
+        """Return all device data via JSON-RPC."""
         return dict(await self._json_rpc.get_all_device_data(interface=interface))
-
-    async def fetch_device_details(self) -> list[dict[str, Any]] | None:
-        """Fetch device names, interfaces, and rega IDs via JSON-RPC."""
-        return list(await self._json_rpc.get_device_details())
 
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Return all functions with their assigned channel addresses."""
@@ -256,6 +253,10 @@ class CcuBackend(BaseBackend):
                 extract_exc_args(exc=bhexc),
             )
             return None
+
+    async def get_device_details(self) -> list[DeviceDetail] | None:
+        """Return device names, interfaces, and rega IDs via JSON-RPC."""
+        return list(await self._json_rpc.get_device_details())
 
     async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
         """Return inbox devices."""

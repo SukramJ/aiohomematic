@@ -24,6 +24,7 @@ from aiohomematic.const import (
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,
+    DeviceDetail,
     InboxDeviceData,
     Interface,
     ParameterData,
@@ -150,12 +151,8 @@ class BaseBackend(ABC):
         """Execute program (unsupported by default)."""
         return False
 
-    async def fetch_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
-        """Fetch all device data (unsupported by default)."""
-        return None
-
-    async def fetch_device_details(self) -> list[dict[str, Any]] | None:
-        """Fetch device details (unsupported by default)."""
+    async def get_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
+        """Return all device data (unsupported by default)."""
         return None
 
     async def get_all_functions(self) -> dict[str, set[str]]:
@@ -180,6 +177,10 @@ class BaseBackend(ABC):
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Return device description for address."""
         ...
+
+    async def get_device_details(self) -> list[DeviceDetail] | None:
+        """Return device details (unsupported by default)."""
+        return None
 
     async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:
         """Return inbox devices (unsupported by default)."""

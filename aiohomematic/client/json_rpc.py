@@ -86,6 +86,7 @@ from aiohomematic.const import (
     CCUType,
     DescriptionMarker,
     DeviceDescription,
+    DeviceDetail,
     HubValueType,
     InboxDeviceData,
     Interface,
@@ -833,9 +834,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return device_description
 
-    async def get_device_details(self) -> tuple[dict[str, Any], ...]:
+    async def get_device_details(self) -> tuple[DeviceDetail, ...]:
         """Get the device details of the backend."""
-        device_details: tuple[dict[str, Any], ...] = ()
+        device_details: tuple[DeviceDetail, ...] = ()
 
         response = await self._post(
             method=_JsonRpcMethod.DEVICE_LIST_ALL_DETAIL,
@@ -945,12 +946,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         details = await self.get_device_details()
         for detail in details:
             if is_dev:
-                if detail[_JsonKey.ADDRESS] == address:
-                    return int(detail[_JsonKey.ID])
+                if detail["address"] == address:
+                    return detail["id"]
             else:
-                for channel in detail[_JsonKey.CHANNELS]:
-                    if channel[_JsonKey.ADDRESS] == address:
-                        return int(channel[_JsonKey.ID])
+                for channel in detail["channels"]:
+                    if channel["address"] == address:
+                        return channel["id"]
 
         return None
 

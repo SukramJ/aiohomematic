@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CommandRxMode,
         DescriptionMarker,
         DeviceDescription,
+        DeviceDetail,
         InboxDeviceData,
         Interface,
         ParameterData,
@@ -131,12 +132,8 @@ class BackendOperationsProtocol(Protocol):
         """Execute a program by ID."""
         ...
 
-    async def fetch_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
-        """Fetch all current values for devices on an interface."""
-        ...
-
-    async def fetch_device_details(self) -> list[dict[str, Any]] | None:
-        """Fetch device names, interfaces, and rega IDs."""
+    async def get_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
+        """Return all current values for devices on an interface."""
         ...
 
     async def get_all_functions(self) -> dict[str, set[str]]:
@@ -159,6 +156,10 @@ class BackendOperationsProtocol(Protocol):
 
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Return device description for a single address."""
+        ...
+
+    async def get_device_details(self) -> list[DeviceDetail] | None:
+        """Return device names, interfaces, and rega IDs."""
         ...
 
     async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:

@@ -23,6 +23,7 @@ from aiohttp import web
 import orjson
 
 from aiohomematic import client as hmcl, i18n
+from aiohomematic.central.rpc_server import _normalize_device_description
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
@@ -318,7 +319,7 @@ class AsyncRPCFunctions:
         """Return existing devices to the backend."""
         if entry := self._get_central_entry(interface_id=interface_id):
             return [
-                dict(device_description)
+                _normalize_device_description(device_description=dict(device_description))
                 for device_description in entry.central.device_coordinator.list_devices(interface_id=interface_id)
             ]
         return []

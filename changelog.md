@@ -1,3 +1,22 @@
+# Version 2026.1.15 (2026-01-06)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix VirtualDevices Connection Failure** (#2731): Fixed a critical bug where VirtualDevices connections would fail with a 3-second timeout
+
+  - **Root cause**: The CCU's Java `DeviceDescription.children` field expects `String[]` (array), but some backends (notably VirtualDevices) send `CHILDREN` as an empty string or omit it, causing the CCU's XML-RPC parser to crash with `IllegalArgumentException: Can not set String[] field to String`
+
+  - **Fix**: Added `_normalize_device_description()` function that ensures `CHILDREN` is always a list before sending to the CCU via `listDevices` callback
+
+  - **Affected files**:
+
+    - `aiohomematic/central/rpc_server.py`: Added normalization for legacy XML-RPC server
+    - `aiohomematic/central/async_rpc_server.py`: Added normalization for async XML-RPC server
+
+  - **Impact**: VirtualDevices (heating groups) should now connect reliably on OpenCCU/RaspberryMatic systems
+
 # Version 2026.1.14 (2026-01-06)
 
 ## What's Changed

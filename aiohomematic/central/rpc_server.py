@@ -25,6 +25,30 @@ from aiohomematic.support import get_device_address, log_boundary_error
 _LOGGER: Final = logging.getLogger(__name__)
 
 
+def _normalize_device_description(*, device_description: dict[str, Any]) -> dict[str, Any]:
+    """
+    Normalize device description for XML-RPC response.
+
+    Ensures CHILDREN field is always an array (list) to satisfy the
+    CCU's Java DeviceDescription.children field which expects String[].
+
+    Some backends (e.g., VirtualDevices) may send CHILDREN as an empty
+    string or omit it entirely, causing the CCU's XML-RPC parser to fail
+    with: "Can not set String[] field to String".
+
+    Args:
+        device_description: Raw device description dict.
+
+    Returns:
+        Normalized device description with CHILDREN as list.
+
+    """
+    children = device_description.get("CHILDREN")
+    if children is None or isinstance(children, str):
+        device_description["CHILDREN"] = []
+    return device_description
+
+
 # pylint: disable=invalid-name
 class RPCFunctions:
     """The RPC functions the backend will expect."""
@@ -91,7 +115,7 @@ class RPCFunctions:
         """Return already existing devices to the backend."""
         if entry := self.get_central_entry(interface_id=interface_id):
             return [
-                dict(device_description)
+                _normalize_device_description(device_description=dict(device_description))
                 for device_description in entry.central.device_coordinator.list_devices(interface_id=interface_id)
             ]
         return []

@@ -12,6 +12,8 @@ body:
         Dazu gehören insbesondere: **Integrationsdiagnose (.json-Datei)** und **Protokolldatei**.
         Issues ohne diese Informationen können kommentarlos geschlossen werden.
 
+        📖 **[Warum sind Diagnosedaten und Logs so wichtig?](https://github.com/SukramJ/aiohomematic/blob/devel/docs/debug_data_importance.md)** - Bitte lies dies, um zu verstehen, was wir benötigen und warum.
+
         Bitte vermeide unnötigen Aufwand, indem die folgenden Punkte aufmerksam gelesen werden.
   - type: checkboxes
     attributes:

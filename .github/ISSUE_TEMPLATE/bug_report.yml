@@ -12,6 +12,8 @@ body:
         This includes in particular: **Integration diagnostics (.json file)** and **log file**.
         Issues without this information may be closed without comment.
 
+        📖 **[Why are diagnostics and logs so important?](https://github.com/SukramJ/aiohomematic/blob/devel/docs/debug_data_importance.md)** - Please read this to understand what we need and why.
+
         Please avoid unnecessary effort by reading the points below.
   - type: checkboxes
     attributes:

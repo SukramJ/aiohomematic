@@ -48,11 +48,13 @@ This approach allows us to thoroughly test new architectures in real-world envir
 **Why it exists**: The original RPC server uses a separate thread to receive events from your CCU. While this works reliably, it doesn't integrate optimally with Home Assistant's async architecture. The new async server runs entirely within Home Assistant's event loop, potentially improving resource usage and event handling.
 
 **What to expect**:
+
 - Similar functionality to the current implementation
 - A new health check endpoint for diagnostics
 - Built-in metrics collection
 
 **Potential issues**:
+
 - Under very high event load, some events might be delayed
 - If you notice devices not updating, disable this setting
 
@@ -67,11 +69,13 @@ This approach allows us to thoroughly test new architectures in real-world envir
 **Why it exists**: The original code has three separate client implementations (one for CCU, one for Homegear, one for JSON-based CCU). This led to code duplication and made maintenance difficult. The new "Interface Client" uses a single, unified client with interchangeable backends—cleaner code that's easier to test and extend.
 
 **What to expect**:
+
 - Identical functionality from a user perspective
 - Better error messages when things go wrong
 - Foundation for future improvements
 
 **Potential issues**:
+
 - Some edge cases in paramset operations might behave differently
 - If device configuration fails, disable this setting
 
@@ -88,16 +92,19 @@ This approach allows us to thoroughly test new architectures in real-world envir
 When enabled, the integration looks at devices linked to your thermostat and uses their activity state to determine whether the thermostat is actively heating or idle.
 
 **Who needs this**:
+
 - Users with HmIP-STHD wall thermostats controlling floor heating actuators
 - Users who see "Unknown" or missing activity state on their climate entities
 - Anyone with thermostats that control heating through linked actuators rather than built-in valves
 
 **What to expect**:
+
 - Climate entities show correct "Heating" or "Idle" status
 - Activity state updates when linked actuators change state
 - No changes for thermostats that already report activity directly
 
 **Potential issues**:
+
 - Slightly increased processing when link peers change
 - If activity state appears incorrect, verify your device links in the CCU
 
@@ -107,10 +114,10 @@ When enabled, the integration looks at devices linked to your thermostat and use
 
 The following settings are **not intended for regular users**. They exist solely for debugging purposes and should only be enabled when specifically requested by a developer to help diagnose an issue.
 
-| Setting | Purpose |
-|---------|---------|
-| **SR_RECORD_SYSTEM_INIT** | Records all communication during startup for debugging |
-| **SR_DISABLE_RANDOMIZE_OUTPUT** | Makes recorded data deterministic for test creation |
+| Setting                         | Purpose                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| **SR_RECORD_SYSTEM_INIT**       | Records all communication during startup for debugging |
+| **SR_DISABLE_RANDOMIZE_OUTPUT** | Makes recorded data deterministic for test creation    |
 
 **Do not enable these settings unless a developer asks you to.** They generate additional data, may impact performance, and provide no benefit during normal operation.
 
@@ -118,11 +125,11 @@ The following settings are **not intended for regular users**. They exist solely
 
 ## Who Should Use These Settings?
 
-| If you are... | Recommendation |
-|---------------|----------------|
-| A regular user who just wants things to work | ❌ Leave all settings at default |
-| Curious about new features but need stability | ❌ Wait for general release |
-| Willing to test and report issues | ✅ Try one setting at a time |
+| If you are...                                                | Recommendation                       |
+| ------------------------------------------------------------ | ------------------------------------ |
+| A regular user who just wants things to work                 | ❌ Leave all settings at default     |
+| Curious about new features but need stability                | ❌ Wait for general release          |
+| Willing to test and report issues                            | ✅ Try one setting at a time         |
 | Experiencing a specific issue a developer asked you to debug | ✅ Enable only the requested setting |
 
 ---
@@ -130,6 +137,8 @@ The following settings are **not intended for regular users**. They exist solely
 ## How to Provide Feedback
 
 If you test an experimental feature, your feedback is invaluable. Here's what helps us most:
+
+📖 **[Why are diagnostics and logs so important?](debug_data_importance.md)** - Detailed explanation of what data we need and why.
 
 ### What Worked
 
@@ -139,6 +148,7 @@ If you test an experimental feature, your feedback is invaluable. Here's what he
 ### What Didn't Work
 
 Please include:
+
 1. **Which setting** you enabled
 2. **Your backend type** (CCU3, OpenCCU, Homegear, etc.)
 3. **What happened** (error messages, unexpected behavior)
@@ -147,6 +157,7 @@ Please include:
 ### How to Enable Debug Logging
 
 **Option 1: Via Home Assistant UI**
+
 1. Go to **Settings** → **Devices & Services**
 2. Find **Homematic(IP) Local** and click on it
 3. Click **Enable debug logging**
@@ -154,11 +165,13 @@ Please include:
 5. Click **Disable debug logging** - this will download the log file automatically
 
 **Option 2: Via configuration.yaml**
+
 ```yaml
 logger:
   logs:
     aiohomematic: debug
 ```
+
 After adding this, restart Home Assistant and check the logs under **Settings** → **System** → **Logs**.
 
 ### Where to Report
@@ -194,12 +207,12 @@ The beauty of feature flags is that reverting is always just a toggle away.
 
 ## Roadmap
 
-| Setting | Current Status | Future |
-|---------|----------------|--------|
-| Async RPC Server | Testing | Will become default if testing is successful |
-| Interface Client | Testing | Will become default if testing is successful |
-| Linked Entity Climate Activity | Testing | Will become default if testing is successful |
-| Debugging settings (SR_*) | Developer tools | Will remain opt-in permanently |
+| Setting                        | Current Status  | Future                                       |
+| ------------------------------ | --------------- | -------------------------------------------- |
+| Async RPC Server               | Testing         | Will become default if testing is successful |
+| Interface Client               | Testing         | Will become default if testing is successful |
+| Linked Entity Climate Activity | Testing         | Will become default if testing is successful |
+| Debugging settings (SR\_\*)    | Developer tools | Will remain opt-in permanently               |
 
 Once an experimental feature has been thoroughly tested across different backend types and receives positive feedback, it will be promoted to the default implementation. At that point, the old implementation will be deprecated and eventually removed.
 

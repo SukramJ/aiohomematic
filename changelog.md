@@ -4,6 +4,13 @@
 
 ### Bug Fixes
 
+- **Fix Hub Entities Not Created When Secondary Clients Fail** (#2718): System variables, programs, and other hub entities are now created even when secondary clients (e.g., CUxD) fail to initialize
+
+  - **Root Cause**: The `fetch_program_data()` and `fetch_sysvar_data()` methods checked `central.available`, which returns `False` if **any** client is unavailable
+  - **Symptom**: When CUxD fails to connect, no programs or system variables appear in Home Assistant, showing "Entity no longer provided by integration"
+  - **Fix**: Changed availability checks to use `primary_client.available` instead of `central.available`, since hub data is only fetched from the primary client (HmIP-RF/BidCoS-RF)
+  - **Affected files**: `aiohomematic/model/hub/hub.py`, `aiohomematic/central/scheduler.py`
+
 - **Fix Connection Recovery Port Detection for InterfaceClient**: The `_get_client_port()` method now correctly retrieves the port for both client implementations
   - **Root Cause**: The method only checked `client._config.interface_config.port` (ClientCCU path), but InterfaceClient stores config directly in `client._interface_config.port`
   - **Symptom**: Warning logged: `CONNECTION_RECOVERY: No port configured for <interface>, skipping TCP check`

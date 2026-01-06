@@ -681,6 +681,8 @@ When reporting issues on GitHub, include the following information to help with 
 
 ### Logs and diagnostics
 
+📖 **[Why are diagnostics and logs so important?](debug_data_importance.md)** - Understand what we need and why complete data matters.
+
 - **Debug logs**: From Home Assistant startup to the first error (at debug level)
 - **Diagnostics file**: Download from the integration
 - **Affected devices**: List of device types and addresses that are affected
@@ -690,6 +692,7 @@ When reporting issues on GitHub, include the following information to help with 
 
 ## 7) References
 
+- [Why diagnostics and logs matter](debug_data_importance.md) - What data we need for issue analysis and why
 - [Lifecycle documentation](../docs/homeassistant_lifecycle.md) - Understand how devices and data points are managed
 - [README](../README.md) - Quickstart guide and configuration notes
 - [Integration repository](https://github.com/SukramJ/homematicip_local) - Homematic(IP) Local integration for Home Assistant

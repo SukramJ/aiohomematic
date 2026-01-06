@@ -23,10 +23,10 @@ from aiohttp import web
 import orjson
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType
+from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
-from aiohomematic.support import log_boundary_error
+from aiohomematic.support import get_device_address, log_boundary_error
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -346,13 +346,29 @@ class AsyncRPCFunctions:
         addresses: list[str],
         /,
     ) -> None:
-        """Handle re-added device notification."""
+        """
+        Handle re-added device after re-pairing in learn mode.
+
+        Gets called when a known device is put into learn-mode while installation
+        mode is active. The device parameters may have changed, so we refresh
+        the device data.
+        """
         _LOGGER.debug(
             "READDEDDEVICES: interface_id = %s, addresses = %s",
             interface_id,
             str(addresses),
         )
-        self._publish_system_event(interface_id=interface_id, system_event=SystemEventType.RE_ADDED_DEVICE)
+
+        # Filter to device addresses only (exclude channel addresses)
+        if (entry := self._get_central_entry(interface_id=interface_id)) and (
+            device_addresses := tuple(addr for addr in addresses if ":" not in addr)
+        ):
+            self._create_background_task(
+                entry.central.device_coordinator.readd_device(
+                    interface_id=interface_id, device_addresses=device_addresses
+                ),
+                name=f"readdedDevice-{interface_id}",
+            )
 
     async def replaceDevice(
         self,
@@ -361,14 +377,29 @@ class AsyncRPCFunctions:
         new_device_address: str,
         /,
     ) -> None:
-        """Handle device replacement notification."""
+        """
+        Handle device replacement from CCU.
+
+        Gets called when a user replaces a broken device with a new one using the
+        CCU's "Replace device" function. The old device is removed and the new
+        device is created with fresh descriptions.
+        """
         _LOGGER.debug(
             "REPLACEDEVICE: interface_id = %s, oldDeviceAddress = %s, newDeviceAddress = %s",
             interface_id,
             old_device_address,
             new_device_address,
         )
-        self._publish_system_event(interface_id=interface_id, system_event=SystemEventType.REPLACE_DEVICE)
+
+        if entry := self._get_central_entry(interface_id=interface_id):
+            self._create_background_task(
+                entry.central.device_coordinator.replace_device(
+                    interface_id=interface_id,
+                    old_device_address=old_device_address,
+                    new_device_address=new_device_address,
+                ),
+                name=f"replaceDevice-{interface_id}-{old_device_address}-{new_device_address}",
+            )
 
     async def updateDevice(
         self,
@@ -377,14 +408,36 @@ class AsyncRPCFunctions:
         hint: int,
         /,
     ) -> None:
-        """Handle device update notification."""
+        """
+        Handle device update notification after firmware update or link partner change.
+
+        When hint=0 (firmware update), this method triggers cache invalidation
+        and reloading of device/paramset descriptions. When hint=1 (link partner
+        change), it refreshes the link peer information for all channels.
+        """
         _LOGGER.debug(
             "UPDATEDEVICE: interface_id = %s, address = %s, hint = %s",
             interface_id,
             address,
             str(hint),
         )
-        self._publish_system_event(interface_id=interface_id, system_event=SystemEventType.UPDATE_DEVICE)
+
+        if entry := self._get_central_entry(interface_id=interface_id):
+            device_address = get_device_address(address=address)
+            if hint == UpdateDeviceHint.FIRMWARE:
+                # Firmware update: invalidate cache and reload device
+                self._create_background_task(
+                    entry.central.device_coordinator.update_device(
+                        interface_id=interface_id, device_address=device_address
+                    ),
+                    name=f"updateDevice-firmware-{interface_id}-{device_address}",
+                )
+            elif hint == UpdateDeviceHint.LINKS:
+                # Link partner change: refresh link peer information
+                self._create_background_task(
+                    entry.central.device_coordinator.refresh_device_link_peers(device_address=device_address),
+                    name=f"updateDevice-links-{interface_id}-{device_address}",
+                )
 
     def _create_background_task(self, coro: Any, /, *, name: str) -> None:
         """Create a background task and track it to prevent garbage collection."""

@@ -1218,6 +1218,10 @@ class ChannelLifecycleProtocol(Protocol):
         """Finalize the channel init action after model setup."""
 
     @abstractmethod
+    async def init_link_peer(self) -> None:
+        """Initialize the link partners."""
+
+    @abstractmethod
     async def on_config_changed(self) -> None:
         """Handle config changed event."""
 

@@ -28,3 +28,4 @@ venv
 /docs/_build/doctrees
 *.zip
 *.log
+*.pdf

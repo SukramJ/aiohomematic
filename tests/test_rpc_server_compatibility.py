@@ -950,3 +950,95 @@ class TestFullIntegrationCompatibility:
 
         assert len(central2.calls) == 1
         assert central2.calls[0].kwargs["channel_address"] == "DEV002:1"
+
+
+# ============================================================================
+# Device Description Normalization Tests
+# ============================================================================
+
+
+class TestDeviceDescriptionNormalization:
+    """
+    Test device description normalization for XML-RPC responses.
+
+    These tests verify fix for GitHub issue #2731: VirtualDevices connection
+    failure caused by CCU's Java DeviceDescription.children expecting String[]
+    but receiving String. The _normalize_device_description function ensures
+    CHILDREN is always a list.
+    """
+
+    def test_children_as_empty_list_unchanged(self) -> None:
+        """Verify empty CHILDREN list is unchanged."""
+        from aiohomematic.central.rpc_server import _normalize_device_description
+
+        desc = {"ADDRESS": "ABC:0", "CHILDREN": []}
+        result = _normalize_device_description(device_description=desc)
+        assert result["CHILDREN"] == []
+
+    def test_children_as_list_unchanged(self) -> None:
+        """Verify CHILDREN as list is unchanged."""
+        from aiohomematic.central.rpc_server import _normalize_device_description
+
+        desc = {"ADDRESS": "ABC:0", "CHILDREN": ["ABC:1", "ABC:2"]}
+        result = _normalize_device_description(device_description=desc)
+        assert result["CHILDREN"] == ["ABC:1", "ABC:2"]
+
+    def test_children_as_nonempty_string_converted_to_list(self) -> None:
+        """Verify non-empty string CHILDREN is also converted."""
+        from aiohomematic.central.rpc_server import _normalize_device_description
+
+        desc = {"ADDRESS": "ABC:0", "CHILDREN": "ABC:1"}
+        result = _normalize_device_description(device_description=desc)
+        assert result["CHILDREN"] == []
+
+    def test_children_as_string_converted_to_list(self) -> None:
+        """
+        Verify CHILDREN as string is converted to empty list.
+
+        This is the core fix for issue #2731: VirtualDevices may send
+        CHILDREN as empty string which causes CCU's Java parser to crash.
+        """
+        from aiohomematic.central.rpc_server import _normalize_device_description
+
+        desc = {"ADDRESS": "ABC:0", "CHILDREN": ""}
+        result = _normalize_device_description(device_description=desc)
+        assert result["CHILDREN"] == []
+
+    def test_children_none_converted_to_list(self) -> None:
+        """Verify CHILDREN=None is converted to empty list."""
+        from aiohomematic.central.rpc_server import _normalize_device_description
+
+        desc = {"ADDRESS": "ABC:0", "CHILDREN": None}
+        result = _normalize_device_description(device_description=desc)
+        assert result["CHILDREN"] == []
+
+    def test_missing_children_converted_to_list(self) -> None:
+        """Verify missing CHILDREN is converted to empty list."""
+        from aiohomematic.central.rpc_server import _normalize_device_description
+
+        desc = {"ADDRESS": "ABC:0", "TYPE": "HM-Test"}
+        result = _normalize_device_description(device_description=desc)
+        assert result["CHILDREN"] == []
+
+    def test_other_fields_preserved(self) -> None:
+        """Verify other fields in description are preserved."""
+        from aiohomematic.central.rpc_server import _normalize_device_description
+
+        desc = {
+            "ADDRESS": "ABC:0",
+            "TYPE": "HmIP-SWSD",
+            "FIRMWARE": "1.0.0",
+            "PARENT": "ABC",
+            "CHILDREN": "",  # String that should be fixed
+            "PARAMSETS": ["VALUES"],
+        }
+        result = _normalize_device_description(device_description=desc)
+
+        # CHILDREN normalized
+        assert result["CHILDREN"] == []
+        # Other fields preserved
+        assert result["ADDRESS"] == "ABC:0"
+        assert result["TYPE"] == "HmIP-SWSD"
+        assert result["FIRMWARE"] == "1.0.0"
+        assert result["PARENT"] == "ABC"
+        assert result["PARAMSETS"] == ["VALUES"]

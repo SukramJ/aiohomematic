@@ -635,8 +635,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             # and called back listDevices. Common with VirtualDevices service bug.
             if self.modified_at > modified_at_before_init:
                 _LOGGER.info(  # i18n-log: ignore
-                    "PROXY_INIT: init() failed but callback received for %s - treating as success "
-                    "(VirtualDevices service may not return init response)",
+                    "PROXY_INIT: init() failed but callback received for %s - treating as success",
                     self.interface_id,
                 )
                 init_success = True

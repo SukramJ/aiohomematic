@@ -1,4 +1,4 @@
-# Version 2026.1.13 (2026-01-06)
+# Version 2026.1.12 (2026-01-06)
 
 ## What's Changed
 
@@ -41,12 +41,6 @@
     2. Fetches fresh device descriptions from the CCU
     3. Recreates the Device object with updated parameters
   - **New Method**: `DeviceCoordinator.readd_device()`
-
-# Version 2026.1.12 (2026-01-05)
-
-## What's Changed
-
-### Bug Fixes
 
 - **Fix Hub Entities Not Created When Secondary Clients Fail** (#2718): System variables, programs, and other hub entities are now created even when secondary clients (e.g., CUxD) fail to initialize
 

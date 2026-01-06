@@ -921,7 +921,7 @@ class TestJsonRpcClientOperations:
         # Prepare a fake response with one system variable entry
         fake_result = [
             {
-                _JsonKey.ID: "1",
+                _JsonKey.ID: 1,
                 _JsonKey.NAME: "Var1",
                 _JsonKey.IS_INTERNAL: False,
                 _JsonKey.TYPE: HubValueType.NUMBER,
@@ -1065,10 +1065,10 @@ class TestServiceMessagesAndSystemUpdate:
             return (
                 {
                     _JsonKey.ADDRESS: "VCU0000001",
-                    _JsonKey.ID: "12345",
+                    _JsonKey.ID: 12345,
                     _JsonKey.CHANNELS: [
-                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: "12346"},
-                        {_JsonKey.ADDRESS: "VCU0000001:1", _JsonKey.ID: "12347"},
+                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: 12346},
+                        {_JsonKey.ADDRESS: "VCU0000001:1", _JsonKey.ID: 12347},
                     ],
                 },
             )
@@ -1100,9 +1100,9 @@ class TestServiceMessagesAndSystemUpdate:
             return (
                 {
                     _JsonKey.ADDRESS: "VCU0000001",
-                    _JsonKey.ID: "12345",
+                    _JsonKey.ID: 12345,
                     _JsonKey.CHANNELS: [
-                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: "12346"},
+                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: 12346},
                     ],
                 },
             )
@@ -1134,9 +1134,9 @@ class TestServiceMessagesAndSystemUpdate:
             return (
                 {
                     _JsonKey.ADDRESS: "VCU0000001",
-                    _JsonKey.ID: "12345",
+                    _JsonKey.ID: 12345,
                     _JsonKey.CHANNELS: [
-                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: "12346"},
+                        {_JsonKey.ADDRESS: "VCU0000001:0", _JsonKey.ID: 12346},
                     ],
                 },
             )

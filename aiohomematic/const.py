@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.12"
+VERSION: Final = "2026.1.13"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1816,6 +1816,24 @@ class DeviceDescription(TypedDict, total=False):
     # TEAM_TAG: str | None
     # TEAM_CHANNELS: list
     # ROAMING: int | None
+
+
+class ChannelDetail(TypedDict):
+    """Typed dict for channel details from JSON-RPC Device.listAllDetail."""
+
+    address: str
+    name: str
+    id: int
+
+
+class DeviceDetail(TypedDict):
+    """Typed dict for device details from JSON-RPC Device.listAllDetail."""
+
+    address: str
+    name: str
+    id: int
+    interface: str
+    channels: list[ChannelDetail]
 
 
 # Interface default ports mapping

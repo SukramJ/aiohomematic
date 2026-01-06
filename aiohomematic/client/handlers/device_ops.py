@@ -165,45 +165,33 @@ class DeviceHandler(
         Fetch device details (names, interfaces, rega IDs) via JSON-RPC.
 
         Retrieves metadata for all devices and channels from the CCU's ReGaHSS
-        scripting engine. The JSON response contains:
-        - address: Device/channel address (e.g., "VCU0000001" or "VCU0000001:1")
-        - name: User-defined name from the CCU interface
-        - id: ReGaHSS internal ID for scripting
-        - interface: Interface type (HmIP-RF, BidCos-RF, etc.)
-        - channels: Array of child channel objects
+        scripting engine. The JSON response contains typed DeviceDetail objects
+        with address, name, id, interface, and nested channels.
 
         Data is stored in the central's device_details cache for later use
         during device/channel creation.
         """
-        _JSON_ADDRESS: Final = "address"
-        _JSON_CHANNELS: Final = "channels"
-        _JSON_ID: Final = "id"
-        _JSON_INTERFACE: Final = "interface"
-        _JSON_NAME: Final = "name"
-
         if json_result := await self._json_rpc_client.get_device_details():
             for device in json_result:
                 # ignore unknown interfaces
-                if (interface := device[_JSON_INTERFACE]) and interface not in Interface:
+                if (interface := device["interface"]) and interface not in Interface:
                     continue
 
-                device_address = device[_JSON_ADDRESS]
+                device_address = device["address"]
                 self._client_deps.cache_coordinator.device_details.add_interface(
                     address=device_address, interface=Interface(interface)
                 )
-                self._client_deps.cache_coordinator.device_details.add_name(
-                    address=device_address, name=device[_JSON_NAME]
-                )
+                self._client_deps.cache_coordinator.device_details.add_name(address=device_address, name=device["name"])
                 self._client_deps.cache_coordinator.device_details.add_address_rega_id(
-                    address=device_address, rega_id=int(device[_JSON_ID])
+                    address=device_address, rega_id=device["id"]
                 )
-                for channel in device.get(_JSON_CHANNELS, []):
-                    channel_address = channel[_JSON_ADDRESS]
+                for channel in device["channels"]:
+                    channel_address = channel["address"]
                     self._client_deps.cache_coordinator.device_details.add_name(
-                        address=channel_address, name=channel[_JSON_NAME]
+                        address=channel_address, name=channel["name"]
                     )
                     self._client_deps.cache_coordinator.device_details.add_address_rega_id(
-                        address=channel_address, rega_id=int(channel[_JSON_ID])
+                        address=channel_address, rega_id=channel["id"]
                     )
         else:
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")

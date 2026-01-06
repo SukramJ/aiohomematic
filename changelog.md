@@ -1,3 +1,24 @@
+# Version 2026.1.13 (2026-01-06)
+
+## What's Changed
+
+### Improvements
+
+- **Add TypedDict for Device Details**: Introduced `DeviceDetail` and `ChannelDetail` TypedDicts for type-safe handling of JSON-RPC device details response
+
+  - Provides static type checking via mypy
+  - Better IDE autocomplete support
+  - Documents the data structure in code
+
+- **Rename Backend Methods for Consistency**: Renamed backend methods to follow consistent naming convention
+  - `fetch_device_details()` → `get_device_details()` (returns data)
+  - `fetch_all_device_data()` → `get_all_device_data()` (returns data)
+  - Convention: `get_*` in BackendOperationsProtocol returns data, `fetch_*` in ClientProtocol fetches AND caches
+
+### Bug Fixes
+
+- **Fix InterfaceClient Not Loading Channel Names**: The `fetch_device_details()` method in InterfaceClient was not processing the nested `channels` array from the JSON-RPC response, causing channel names to be missing when using InterfaceClient instead of the legacy client
+
 # Version 2026.1.12 (2026-01-06)
 
 ## What's Changed

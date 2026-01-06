@@ -341,21 +341,32 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def fetch_all_device_data(self) -> None:
         """Fetch all device data from the backend."""
-        if all_device_data := await self._backend.fetch_all_device_data(interface=self.interface):
+        if all_device_data := await self._backend.get_all_device_data(interface=self.interface):
             self._central.cache_coordinator.data_cache.add_data(
                 interface=self.interface, all_device_data=all_device_data
             )
 
     async def fetch_device_details(self) -> None:
         """Get all names via JSON-RPC."""
-        if device_details := await self._backend.fetch_device_details():
-            for detail in device_details:
-                address = detail.get("address", "")
-                if name := detail.get("name"):
-                    self._central.cache_coordinator.device_details.add_name(address=address, name=name)
-                if (rega_id := detail.get("id")) is not None:
-                    self._central.cache_coordinator.device_details.add_address_rega_id(address=address, rega_id=rega_id)
-                self._central.cache_coordinator.device_details.add_interface(address=address, interface=self.interface)
+        if device_details := await self._backend.get_device_details():
+            for device in device_details:
+                device_address = device["address"]
+                self._central.cache_coordinator.device_details.add_name(address=device_address, name=device["name"])
+                self._central.cache_coordinator.device_details.add_address_rega_id(
+                    address=device_address, rega_id=device["id"]
+                )
+                self._central.cache_coordinator.device_details.add_interface(
+                    address=device_address, interface=self.interface
+                )
+                # Process nested channels array
+                for channel in device["channels"]:
+                    channel_address = channel["address"]
+                    self._central.cache_coordinator.device_details.add_name(
+                        address=channel_address, name=channel["name"]
+                    )
+                    self._central.cache_coordinator.device_details.add_address_rega_id(
+                        address=channel_address, rega_id=channel["id"]
+                    )
 
     async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
         """Fetch a specific paramset and add it to the known ones."""

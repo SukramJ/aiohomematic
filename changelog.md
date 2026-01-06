@@ -1,8 +1,46 @@
-# Version 2026.1.12 (2026-01-05)
+# Version 2026.1.12 (2026-01-06)
 
 ## What's Changed
 
 ### Bug Fixes
+
+- **Fix Device Cache Not Reloading After Firmware Update**: The `updateDevice` callback now properly handles both firmware updates (hint=0) and link partner changes (hint=1)
+
+  - **Root Cause**: The `updateDevice` callback was a NO-OP that only logged the event. The `hint` parameter (which indicates the type of update) was completely ignored
+  - **Problem**: After a firmware update that changed a device's channel structure (e.g., HmIP-BRC2 removing channel 3), the cached descriptions still contained the old channel structure, causing errors like "Non-existent Channel 3". Link partner changes were also not propagated to the device model
+  - **Fix**:
+    - When `hint=0` (firmware update), the handler now:
+      1. Removes cached device and paramset descriptions for the device
+      2. Removes the Device object from the registry
+      3. Fetches fresh device descriptions from the CCU
+      4. Recreates the Device object with the new structure
+    - When `hint=1` (link partner change), the handler now:
+      1. Refreshes link peer information for all channels of the device
+      2. Triggers `LinkPeerChangedEvent` if link peers have changed
+  - **New Constant**: Added `UpdateDeviceHint` enum with `FIRMWARE=0` and `LINKS=1` values
+  - **New Methods**:
+    - `DeviceCoordinator.update_device()`: Handles firmware update cache invalidation
+    - `DeviceCoordinator.refresh_device_link_peers()`: Handles link partner refresh
+
+- **Implement Device Replacement Handler**: The `replaceDevice` callback now properly handles CCU device replacement
+
+  - **Use Case**: When a broken device is replaced using the CCU's "Replace device" function, the CCU transfers configuration from the old to the new device and notifies listeners
+  - **Previous Behavior**: Was a NO-OP that only logged the event
+  - **New Behavior**:
+    1. Removes the old device from registry and caches
+    2. Fetches fresh device descriptions for the new device
+    3. Creates the new Device object with all data points
+  - **New Method**: `DeviceCoordinator.replace_device()`
+
+- **Implement Re-Added Device Handler**: The `readdedDevice` callback now properly handles device re-pairing
+
+  - **Use Case**: When a known device is put into learn-mode while installation mode is active (re-pairing), device parameters may have changed
+  - **Previous Behavior**: Was a NO-OP that only logged the event
+  - **New Behavior**:
+    1. Removes cached descriptions to force refresh
+    2. Fetches fresh device descriptions from the CCU
+    3. Recreates the Device object with updated parameters
+  - **New Method**: `DeviceCoordinator.readd_device()`
 
 - **Fix Hub Entities Not Created When Secondary Clients Fail** (#2718): System variables, programs, and other hub entities are now created even when secondary clients (e.g., CUxD) fail to initialize
 

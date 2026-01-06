@@ -530,6 +530,56 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         _LOGGER.debug("LIST_DEVICES: interface_id = %s, channel_count = %i", interface_id, len(result))
         return result
 
+    @callback_backend_system(system_event=SystemEventType.RE_ADDED_DEVICE)
+    async def readd_device(self, *, interface_id: str, device_addresses: tuple[str, ...]) -> None:
+        """
+        Handle re-added device after re-pairing in learn mode.
+
+        This method is called when the CCU sends a readdedDevice callback, which
+        occurs when a known device is put into learn-mode while installation mode
+        is active (re-pairing). The device parameters may have changed, so we
+        refresh the device data.
+
+        Args:
+        ----
+            interface_id: Interface identifier
+            device_addresses: Addresses of the re-added devices
+
+        """
+        _LOGGER.debug(
+            "READD_DEVICE: interface_id = %s, device_addresses = %s",
+            interface_id,
+            str(device_addresses),
+        )
+
+        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
+            _LOGGER.error(  # i18n-log: ignore
+                "READD_DEVICE failed: Missing client for interface_id %s",
+                interface_id,
+            )
+            return
+
+        client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+
+        for device_address in device_addresses:
+            # Get existing device
+            if device := self.device_registry.get_device(address=device_address):
+                # Remove from caches to force refresh
+                self._coordinator_provider.cache_coordinator.device_descriptions.remove_device(device=device)
+                self._coordinator_provider.cache_coordinator.paramset_descriptions.remove_device(device=device)
+                await self.remove_device(device=device)
+
+            # Fetch fresh device descriptions and recreate
+            await self.refresh_device_descriptions_and_create_missing_devices(
+                client=client, refresh_only_existing=False, device_address=device_address
+            )
+
+        # Save updated caches
+        await self._coordinator_provider.cache_coordinator.save_all(
+            save_device_descriptions=True,
+            save_paramset_descriptions=True,
+        )
+
     async def refresh_device_descriptions_and_create_missing_devices(
         self,
         *,
@@ -579,6 +629,35 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 device_descriptions=device_descriptions,
                 source=SourceOfDeviceCreation.REFRESH,
             )
+
+    async def refresh_device_link_peers(self, *, device_address: str) -> None:
+        """
+        Refresh link peer information for a device after link partner change.
+
+        This method is called when the CCU sends an updateDevice callback with
+        hint=1 (link partner change). It refreshes the link peer addresses for
+        all channels of the device.
+
+        Args:
+        ----
+            device_address: Device address to refresh link peers for
+
+        """
+        _LOGGER.debug(
+            "REFRESH_DEVICE_LINK_PEERS: device_address = %s",
+            device_address,
+        )
+
+        if (device := self.device_registry.get_device(address=device_address)) is None:
+            _LOGGER.debug(
+                "REFRESH_DEVICE_LINK_PEERS: Device %s not found in registry",
+                device_address,
+            )
+            return
+
+        # Refresh link peers for all channels
+        for channel in device.channels.values():
+            await channel.init_link_peer()
 
     @inspector(re_raise=False)
     async def refresh_firmware_data(self, *, device_address: str | None = None) -> None:
@@ -658,6 +737,104 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         )
 
         await self.device_registry.remove_device(device_address=device_address)
+
+    @callback_backend_system(system_event=SystemEventType.REPLACE_DEVICE)
+    async def replace_device(self, *, interface_id: str, old_device_address: str, new_device_address: str) -> None:
+        """
+        Replace an old device with a new device after CCU device replacement.
+
+        This method is called when the CCU sends a replaceDevice callback, which
+        occurs when a user replaces a broken device with a new one using the CCU's
+        "Replace device" function. The CCU transfers configuration from the old
+        device to the new one.
+
+        Args:
+        ----
+            interface_id: Interface identifier
+            old_device_address: Address of the device being replaced
+            new_device_address: Address of the replacement device
+
+        """
+        _LOGGER.debug(
+            "REPLACE_DEVICE: interface_id = %s, old_device_address = %s, new_device_address = %s",
+            interface_id,
+            old_device_address,
+            new_device_address,
+        )
+
+        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
+            _LOGGER.error(  # i18n-log: ignore
+                "REPLACE_DEVICE failed: Missing client for interface_id %s",
+                interface_id,
+            )
+            return
+
+        # Remove old device from registry and caches
+        if old_device := self.device_registry.get_device(address=old_device_address):
+            self._coordinator_provider.cache_coordinator.device_descriptions.remove_device(device=old_device)
+            self._coordinator_provider.cache_coordinator.paramset_descriptions.remove_device(device=old_device)
+            await self.remove_device(device=old_device)
+
+        # Fetch and create new device
+        client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+        await self.refresh_device_descriptions_and_create_missing_devices(
+            client=client, refresh_only_existing=False, device_address=new_device_address
+        )
+
+        # Save updated caches
+        await self._coordinator_provider.cache_coordinator.save_all(
+            save_device_descriptions=True,
+            save_paramset_descriptions=True,
+        )
+
+    @callback_backend_system(system_event=SystemEventType.UPDATE_DEVICE)
+    async def update_device(self, *, interface_id: str, device_address: str) -> None:
+        """
+        Update device after firmware update by invalidating cache and reloading.
+
+        This method is called when the CCU sends an updateDevice callback with
+        hint=0 (firmware update). It invalidates the cached device and paramset
+        descriptions, fetches fresh data from the backend, and recreates the
+        Device object.
+
+        Args:
+        ----
+            interface_id: Interface identifier
+            device_address: Device address to update
+
+        """
+        _LOGGER.debug(
+            "UPDATE_DEVICE: interface_id = %s, device_address = %s",
+            interface_id,
+            device_address,
+        )
+
+        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
+            _LOGGER.error(  # i18n-log: ignore
+                "UPDATE_DEVICE failed: Missing client for interface_id %s",
+                interface_id,
+            )
+            return
+
+        # Get existing device to collect all channel addresses for cache invalidation
+        if device := self.device_registry.get_device(address=device_address):
+            # Remove device from caches using the device's channel information
+            self._coordinator_provider.cache_coordinator.device_descriptions.remove_device(device=device)
+            self._coordinator_provider.cache_coordinator.paramset_descriptions.remove_device(device=device)
+            # Remove the Device object from registry
+            await self.remove_device(device=device)
+
+        # Fetch fresh device descriptions from backend
+        client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+        await self.refresh_device_descriptions_and_create_missing_devices(
+            client=client, refresh_only_existing=False, device_address=device_address
+        )
+
+        # Save updated caches
+        await self._coordinator_provider.cache_coordinator.save_all(
+            save_device_descriptions=True,
+            save_paramset_descriptions=True,
+        )
 
     @inspector(measure_performance=True)
     async def _add_new_devices(

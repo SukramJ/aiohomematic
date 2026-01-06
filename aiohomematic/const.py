@@ -543,6 +543,22 @@ class FailureReason(StrEnum):
     """Unknown or unclassified error."""
 
 
+class UpdateDeviceHint(IntEnum):
+    """
+    Hint values for updateDevice callback from Homematic backend.
+
+    The CCU sends these hint values to indicate the type of device update:
+    - FIRMWARE: Device firmware was updated, requires cache invalidation
+    - LINKS: Only link partners changed, no cache invalidation needed
+    """
+
+    FIRMWARE = 0
+    """Device firmware was updated - requires cache invalidation and reload."""
+
+    LINKS = 1
+    """Link partners changed - no cache invalidation needed."""
+
+
 class ConnectionStage(IntEnum):
     """
     Reconnection stage progression.

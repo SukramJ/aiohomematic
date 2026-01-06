@@ -310,6 +310,10 @@ def _create_mock_central_entry():
     mock_entry.central.device_coordinator.delete_devices = AsyncMock()
     mock_entry.central.device_coordinator.add_new_devices = AsyncMock()
     mock_entry.central.device_coordinator.list_devices = MagicMock(return_value=[])
+    mock_entry.central.device_coordinator.readd_device = AsyncMock()
+    mock_entry.central.device_coordinator.replace_device = AsyncMock()
+    mock_entry.central.device_coordinator.update_device = AsyncMock()
+    mock_entry.central.device_coordinator.refresh_device_link_peers = AsyncMock()
     mock_entry.central.event_coordinator = MagicMock()
     mock_entry.central.event_coordinator.data_point_event = AsyncMock()
     mock_entry.central.event_coordinator.publish_system_event = MagicMock()
@@ -424,46 +428,191 @@ async def test_rpc_functions_new_devices():
 @pytest.mark.asyncio
 async def test_rpc_functions_readded_device():
     """Test readdedDevice callback."""
-    rpc_functions, _ = _create_mock_server()
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
 
-    with patch("aiohomematic.central.async_rpc_server.hmcl") as mock_hmcl:
-        mock_client = MagicMock()
-        mock_client.central.event_coordinator.publish_system_event = MagicMock()
-        mock_hmcl.get_client.return_value = mock_client
+    await rpc_functions.readdedDevice("test-interface", ["ADDR1", "ADDR2"])
 
-        await rpc_functions.readdedDevice("test-interface", ["ADDR1", "ADDR2"])
-
-        mock_hmcl.get_client.assert_called_with(interface_id="test-interface")
+    mock_server.get_central_entry.assert_called_with(interface_id="test-interface")
+    mock_entry.central.device_coordinator.readd_device.assert_called_once()
+    call_args = mock_entry.central.device_coordinator.readd_device.call_args
+    assert call_args.kwargs["interface_id"] == "test-interface"
+    assert call_args.kwargs["device_addresses"] == ("ADDR1", "ADDR2")
 
 
 @pytest.mark.asyncio
 async def test_rpc_functions_replace_device():
     """Test replaceDevice callback."""
-    rpc_functions, _ = _create_mock_server()
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
 
-    with patch("aiohomematic.central.async_rpc_server.hmcl") as mock_hmcl:
-        mock_client = MagicMock()
-        mock_client.central.event_coordinator.publish_system_event = MagicMock()
-        mock_hmcl.get_client.return_value = mock_client
+    await rpc_functions.replaceDevice("test-interface", "OLD_ADDR", "NEW_ADDR")
 
-        await rpc_functions.replaceDevice("test-interface", "OLD_ADDR", "NEW_ADDR")
-
-        mock_hmcl.get_client.assert_called_with(interface_id="test-interface")
+    mock_server.get_central_entry.assert_called_with(interface_id="test-interface")
+    mock_entry.central.device_coordinator.replace_device.assert_called_once()
+    call_args = mock_entry.central.device_coordinator.replace_device.call_args
+    assert call_args.kwargs["interface_id"] == "test-interface"
+    assert call_args.kwargs["old_device_address"] == "OLD_ADDR"
+    assert call_args.kwargs["new_device_address"] == "NEW_ADDR"
 
 
 @pytest.mark.asyncio
-async def test_rpc_functions_update_device():
-    """Test updateDevice callback."""
-    rpc_functions, _ = _create_mock_server()
+async def test_rpc_functions_update_device_links():
+    """Test updateDevice callback with hint=1 (link partner change)."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
 
-    with patch("aiohomematic.central.async_rpc_server.hmcl") as mock_hmcl:
-        mock_client = MagicMock()
-        mock_client.central.event_coordinator.publish_system_event = MagicMock()
-        mock_hmcl.get_client.return_value = mock_client
+    await rpc_functions.updateDevice("test-interface", "ADDR1:0", 1)
 
-        await rpc_functions.updateDevice("test-interface", "ADDR1", 1)
+    mock_server.get_central_entry.assert_called_with(interface_id="test-interface")
+    mock_entry.central.device_coordinator.refresh_device_link_peers.assert_called_once()
+    call_args = mock_entry.central.device_coordinator.refresh_device_link_peers.call_args
+    assert call_args.kwargs["device_address"] == "ADDR1"
 
-        mock_hmcl.get_client.assert_called_with(interface_id="test-interface")
+
+@pytest.mark.asyncio
+async def test_rpc_functions_update_device_firmware():
+    """Test updateDevice callback with hint=0 (firmware update)."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
+
+    await rpc_functions.updateDevice("test-interface", "ADDR1", 0)
+
+    mock_server.get_central_entry.assert_called_with(interface_id="test-interface")
+    mock_entry.central.device_coordinator.update_device.assert_called_once()
+    call_args = mock_entry.central.device_coordinator.update_device.call_args
+    assert call_args.kwargs["interface_id"] == "test-interface"
+    assert call_args.kwargs["device_address"] == "ADDR1"
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_readded_device_filters_channel_addresses():
+    """Test readdedDevice filters out channel addresses."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
+
+    # Mix of device and channel addresses
+    await rpc_functions.readdedDevice("test-interface", ["ADDR1", "ADDR1:0", "ADDR2", "ADDR2:1"])
+
+    mock_entry.central.device_coordinator.readd_device.assert_called_once()
+    call_args = mock_entry.central.device_coordinator.readd_device.call_args
+    # Only device addresses should be passed
+    assert call_args.kwargs["device_addresses"] == ("ADDR1", "ADDR2")
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_readded_device_only_channel_addresses():
+    """Test readdedDevice does nothing when only channel addresses provided."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
+
+    # Only channel addresses (all contain ":")
+    await rpc_functions.readdedDevice("test-interface", ["ADDR1:0", "ADDR1:1", "ADDR2:0"])
+
+    # Should not call readd_device since no device addresses remain
+    mock_entry.central.device_coordinator.readd_device.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_readded_device_no_central_entry():
+    """Test readdedDevice does nothing when no central entry found."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_server.get_central_entry.return_value = None
+
+    await rpc_functions.readdedDevice("unknown-interface", ["ADDR1", "ADDR2"])
+
+    mock_server.get_central_entry.assert_called_with(interface_id="unknown-interface")
+    # No exception should be raised
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_readded_device_empty_addresses():
+    """Test readdedDevice handles empty address list."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
+
+    await rpc_functions.readdedDevice("test-interface", [])
+
+    # Should not call readd_device with empty list
+    mock_entry.central.device_coordinator.readd_device.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_replace_device_no_central_entry():
+    """Test replaceDevice does nothing when no central entry found."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_server.get_central_entry.return_value = None
+
+    await rpc_functions.replaceDevice("unknown-interface", "OLD_ADDR", "NEW_ADDR")
+
+    mock_server.get_central_entry.assert_called_with(interface_id="unknown-interface")
+    # No exception should be raised
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_update_device_no_central_entry():
+    """Test updateDevice does nothing when no central entry found."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_server.get_central_entry.return_value = None
+
+    await rpc_functions.updateDevice("unknown-interface", "ADDR1", 0)
+
+    mock_server.get_central_entry.assert_called_with(interface_id="unknown-interface")
+    # No exception should be raised
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_update_device_unknown_hint():
+    """Test updateDevice ignores unknown hint values."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
+
+    # Unknown hint value (not 0 or 1)
+    await rpc_functions.updateDevice("test-interface", "ADDR1", 99)
+
+    mock_server.get_central_entry.assert_called_with(interface_id="test-interface")
+    # Neither update_device nor refresh_device_link_peers should be called
+    mock_entry.central.device_coordinator.update_device.assert_not_called()
+    mock_entry.central.device_coordinator.refresh_device_link_peers.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_update_device_firmware_with_channel_address():
+    """Test updateDevice extracts device address from channel address for firmware updates."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
+
+    # Channel address with hint=0 (firmware)
+    await rpc_functions.updateDevice("test-interface", "ADDR1:5", 0)
+
+    mock_entry.central.device_coordinator.update_device.assert_called_once()
+    call_args = mock_entry.central.device_coordinator.update_device.call_args
+    # Device address should be extracted from channel address
+    assert call_args.kwargs["device_address"] == "ADDR1"
+
+
+@pytest.mark.asyncio
+async def test_rpc_functions_update_device_links_with_device_address():
+    """Test updateDevice works with device address for link updates."""
+    rpc_functions, mock_server = _create_mock_server()
+    mock_entry = _create_mock_central_entry()
+    mock_server.get_central_entry.return_value = mock_entry
+
+    # Device address (no colon) with hint=1 (links)
+    await rpc_functions.updateDevice("test-interface", "ADDR1", 1)
+
+    mock_entry.central.device_coordinator.refresh_device_link_peers.assert_called_once()
+    call_args = mock_entry.central.device_coordinator.refresh_device_link_peers.call_args
+    assert call_args.kwargs["device_address"] == "ADDR1"
 
 
 # --- AsyncXmlRpcServer Tests ---

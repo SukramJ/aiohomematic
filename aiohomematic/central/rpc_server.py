@@ -17,10 +17,10 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler, SimpleXMLRPCServer
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
-from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType
+from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol, RpcServerTaskSchedulerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.support import log_boundary_error
+from aiohomematic.support import get_device_address, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -106,14 +106,13 @@ class RPCFunctions:
                 name=f"newDevices-{interface_id}",
             )
 
-    @callback_backend_system(system_event=SystemEventType.RE_ADDED_DEVICE)
     def readdedDevice(self, interface_id: str, addresses: list[str], /) -> None:
         """
-        Re-Add device from the backend.
+        Handle re-added device after re-pairing in learn mode.
 
-        Probably irrelevant for us.
-        Gets called when a known devices is put into learn-mode
-        while installation mode is active.
+        Gets called when a known device is put into learn-mode while installation
+        mode is active. The device parameters may have changed, so we refresh
+        the device data.
         """
         _LOGGER.debug(
             "READDEDDEVICES: interface_id = %s, addresses = %s",
@@ -121,9 +120,25 @@ class RPCFunctions:
             str(addresses),
         )
 
-    @callback_backend_system(system_event=SystemEventType.REPLACE_DEVICE)
+        # Filter to device addresses only (exclude channel addresses)
+        if (entry := self.get_central_entry(interface_id=interface_id)) and (
+            device_addresses := tuple(addr for addr in addresses if ":" not in addr)
+        ):
+            entry.looper.create_task(
+                target=lambda: entry.central.device_coordinator.readd_device(
+                    interface_id=interface_id, device_addresses=device_addresses
+                ),
+                name=f"readdedDevice-{interface_id}",
+            )
+
     def replaceDevice(self, interface_id: str, old_device_address: str, new_device_address: str, /) -> None:
-        """Replace a device. Probably irrelevant for us."""
+        """
+        Handle device replacement from CCU.
+
+        Gets called when a user replaces a broken device with a new one using the
+        CCU's "Replace device" function. The old device is removed and the new
+        device is created with fresh descriptions.
+        """
         _LOGGER.debug(
             "REPLACEDEVICE: interface_id = %s, oldDeviceAddress = %s, newDeviceAddress = %s",
             interface_id,
@@ -131,13 +146,23 @@ class RPCFunctions:
             new_device_address,
         )
 
-    @callback_backend_system(system_event=SystemEventType.UPDATE_DEVICE)
+        if entry := self.get_central_entry(interface_id=interface_id):
+            entry.looper.create_task(
+                target=lambda: entry.central.device_coordinator.replace_device(
+                    interface_id=interface_id,
+                    old_device_address=old_device_address,
+                    new_device_address=new_device_address,
+                ),
+                name=f"replaceDevice-{interface_id}-{old_device_address}-{new_device_address}",
+            )
+
     def updateDevice(self, interface_id: str, address: str, hint: int, /) -> None:
         """
-        Update a device.
+        Update a device after firmware update or link partner change.
 
-        Irrelevant, as currently only changes to link
-        partners are reported.
+        When hint=0 (firmware update), this method triggers cache invalidation
+        and reloading of device/paramset descriptions. When hint=1 (link partner
+        change), it refreshes the link peer information for all channels.
         """
         _LOGGER.debug(
             "UPDATEDEVICE: interface_id = %s, address = %s, hint = %s",
@@ -145,6 +170,25 @@ class RPCFunctions:
             address,
             str(hint),
         )
+
+        if entry := self.get_central_entry(interface_id=interface_id):
+            device_address = get_device_address(address=address)
+            if hint == UpdateDeviceHint.FIRMWARE:
+                # Firmware update: invalidate cache and reload device
+                entry.looper.create_task(
+                    target=lambda: entry.central.device_coordinator.update_device(
+                        interface_id=interface_id, device_address=device_address
+                    ),
+                    name=f"updateDevice-firmware-{interface_id}-{device_address}",
+                )
+            elif hint == UpdateDeviceHint.LINKS:
+                # Link partner change: refresh link peer information
+                entry.looper.create_task(
+                    target=lambda: entry.central.device_coordinator.refresh_device_link_peers(
+                        device_address=device_address
+                    ),
+                    name=f"updateDevice-links-{interface_id}-{device_address}",
+                )
 
 
 # Restrict to specific paths.

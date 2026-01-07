@@ -25,6 +25,7 @@ from aiohomematic.const import (
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,
+    DeviceDetail,
     Interface,
     ParameterData,
     ParamsetKey,
@@ -144,6 +145,41 @@ class HomegearBackend(BaseBackend):
                 extract_exc_args(exc=bhexc),
             )
             return None
+
+    async def get_device_details(self, *, addresses: tuple[str, ...] | None = None) -> list[DeviceDetail] | None:
+        """
+        Return device names from metadata (Homegear-specific).
+
+        Homegear stores device names in metadata under the "NAME" key.
+        This fetches names for all provided addresses.
+        """
+        if not addresses:
+            return None
+
+        _LOGGER.debug("GET_DEVICE_DETAILS: Fetching names via Metadata for %d addresses", len(addresses))
+        details: list[DeviceDetail] = []
+        for address in addresses:
+            try:
+                name = await self._proxy_read.getMetadata(address, _NAME)
+                # Homegear doesn't have rega IDs or channels in the same way as CCU
+                # Create a minimal DeviceDetail with just the name
+                details.append(
+                    DeviceDetail(
+                        address=address,
+                        name=name if isinstance(name, str) else str(name) if name else "",
+                        id=0,  # Homegear doesn't use rega IDs
+                        interface=self._interface_id,
+                        channels=[],  # Homegear doesn't provide channel details this way
+                    )
+                )
+            except BaseHomematicException as bhexc:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "GET_DEVICE_DETAILS: %s [%s] Failed to fetch name for %s",
+                    bhexc.name,
+                    extract_exc_args(exc=bhexc),
+                    address,
+                )
+        return details if details else None
 
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
         """Return metadata (Homegear stores device names here)."""

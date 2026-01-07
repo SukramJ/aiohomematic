@@ -254,8 +254,13 @@ class CcuBackend(BaseBackend):
             )
             return None
 
-    async def get_device_details(self) -> list[DeviceDetail] | None:
-        """Return device names, interfaces, and rega IDs via JSON-RPC."""
+    async def get_device_details(self, *, addresses: tuple[str, ...] | None = None) -> list[DeviceDetail] | None:
+        """
+        Return device names, interfaces, and rega IDs via JSON-RPC.
+
+        Note: The addresses parameter is ignored for CCU backend as JSON-RPC
+        returns all device details in a single call.
+        """
         return list(await self._json_rpc.get_device_details())
 
     async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:

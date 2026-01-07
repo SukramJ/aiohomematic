@@ -1,3 +1,31 @@
+# Version 2026.1.17 (2026-01-07)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix Homegear device details fetching in InterfaceClient**: The new `InterfaceClient` backend architecture was missing the `get_device_details()` implementation for Homegear
+
+  - **Root cause**: The `HomegearBackend` inherited the default `get_device_details()` from `BaseBackend` which returns `None`. The legacy `ClientHomegear` fetched device names via `getMetadata(address, "NAME")` for each device, but this logic was not migrated to the new backend.
+
+  - **Symptom**: When using `InterfaceClient` with Homegear/pydevccu, device names were not loaded because `fetch_device_details()` silently did nothing.
+
+  - **Fix**:
+
+    - Extended `BackendOperationsProtocol.get_device_details()` to accept optional `addresses` parameter
+    - Implemented `HomegearBackend.get_device_details()` that fetches names via `getMetadata(address, "NAME")` for each provided address
+    - Updated `InterfaceClient.fetch_device_details()` to pass known addresses from the device description cache
+
+  - **Affected files**:
+
+    - `aiohomematic/client/backends/protocol.py`: Added `addresses` parameter to protocol
+    - `aiohomematic/client/backends/base.py`: Updated default implementation signature
+    - `aiohomematic/client/backends/ccu.py`: Updated signature (parameter ignored for CCU)
+    - `aiohomematic/client/backends/homegear.py`: New implementation using `getMetadata`
+    - `aiohomematic/client/interface_client.py`: Pass addresses from cache to backend
+
+  - **Impact**: Device names now load correctly for Homegear/pydevccu when using the new InterfaceClient
+
 # Version 2026.1.16 (2026-01-06)
 
 ## What's Changed

@@ -9,7 +9,7 @@ abstracting transport-layer differences between CCU, CCU-Jack, and Homegear.
 
 Public API
 ----------
-- BackendOperationsProtocol: Protocol for backend implementations
+-  : Protocol for backend implementations
 """
 
 from __future__ import annotations
@@ -158,8 +158,16 @@ class BackendOperationsProtocol(Protocol):
         """Return device description for a single address."""
         ...
 
-    async def get_device_details(self) -> list[DeviceDetail] | None:
-        """Return device names, interfaces, and rega IDs."""
+    async def get_device_details(self, *, addresses: tuple[str, ...] | None = None) -> list[DeviceDetail] | None:
+        """
+        Return device names, interfaces, and rega IDs.
+
+        Args:
+            addresses: Optional tuple of device addresses to fetch details for.
+                       Used by Homegear backend which requires explicit addresses.
+                       CCU backend ignores this parameter (uses JSON-RPC).
+
+        """
         ...
 
     async def get_inbox_devices(self) -> tuple[InboxDeviceData, ...]:

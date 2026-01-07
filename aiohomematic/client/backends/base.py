@@ -178,7 +178,7 @@ class BaseBackend(ABC):
         """Return device description for address."""
         ...
 
-    async def get_device_details(self) -> list[DeviceDetail] | None:
+    async def get_device_details(self, *, addresses: tuple[str, ...] | None = None) -> list[DeviceDetail] | None:
         """Return device details (unsupported by default)."""
         return None
 

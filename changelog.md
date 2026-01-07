@@ -19,36 +19,13 @@
 - **Implement ADR 0015: Description Data Normalization and Validation**: Establish comprehensive data normalization layer using voluptuous for device and parameter descriptions
 
   - **Problem**: Device descriptions and paramset descriptions were normalized at output points (e.g., `listDevices()` XML-RPC response), addressing symptoms rather than root causes. This violated DRY principle and created multiple validation points.
-
   - **Solution**: Normalize data at all ingestion points following "Parse, don't validate" pattern
-
-  - **Implementation**:
-
-    - Created `aiohomematic/schemas.py` with voluptuous validation schemas for `DeviceDescription` and `ParameterData`
-    - Added schema versioning support to `BasePersistentCache` with `SCHEMA_VERSION` and `_migrate_schema()`
-    - Updated `DeviceDescriptionRegistry` with `SCHEMA_VERSION = 2` and ingestion-time normalization
-    - Updated `ParamsetDescriptionRegistry` with `SCHEMA_VERSION = 2` and ingestion-time normalization
-    - Updated all backend handlers (`list_devices()`, `get_device_description()`, `_get_paramset_description()`) to normalize data
-    - Updated XML-RPC callbacks (`newDevices()`) to normalize incoming device descriptions
-    - Removed output normalization from `listDevices()` - data is already normalized in cache
-
   - **Benefits**: Single source of truth for data correctness, defense in depth with multiple validation points, cache efficiency through schema versioning, reduced complexity by eliminating output normalization
 
 ### Bug Fixes
 
 - **Fix Homegear device details fetching in InterfaceClient**: The new `InterfaceClient` backend architecture was missing the `get_device_details()` implementation for Homegear
-
-  - **Root cause**: The `HomegearBackend` inherited the default `get_device_details()` from `BaseBackend` which returns `None`. The legacy `ClientHomegear` fetched device names via `getMetadata(address, "NAME")` for each device, but this logic was not migrated to the new backend.
-
-  - **Symptom**: When using `InterfaceClient` with Homegear/pydevccu, device names were not loaded because `fetch_device_details()` silently did nothing.
-
-  - **Fix**:
-
-    - Extended `BackendOperationsProtocol.get_device_details()` to accept optional `addresses` parameter
-    - Implemented `HomegearBackend.get_device_details()` that fetches names via `getMetadata(address, "NAME")` for each provided address
-    - Updated `InterfaceClient.fetch_device_details()` to pass known addresses from the device description cache
-
-  - **Impact**: Device names now load correctly for Homegear/pydevccu when using the new InterfaceClient
+- **Fix excessive getValue calls during startup**: Fixed a bug where the data cache was expiring during device creation, causing hundreds of unnecessary getValue RPC calls
 
 # Version 2026.1.16 (2026-01-06)
 

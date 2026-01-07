@@ -37,6 +37,7 @@ class CentralDataCache(DataCacheWriterProtocol, CacheWithStatisticsProtocol):
         "_client_provider",
         "_data_point_provider",
         "_device_provider",
+        "_is_initializing",
         "_refreshed_at",
         "_stats",
         "_value_cache",
@@ -59,6 +60,9 @@ class CentralDataCache(DataCacheWriterProtocol, CacheWithStatisticsProtocol):
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
+        # During initialization, cache expiration is disabled to prevent
+        # getValue calls when device creation takes longer than MAX_CACHE_AGE
+        self._is_initializing: bool = True
 
     @property
     def name(self) -> CacheName:
@@ -133,6 +137,21 @@ class CentralDataCache(DataCacheWriterProtocol, CacheWithStatisticsProtocol):
         ):
             await dp.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
 
+    def set_initialization_complete(self) -> None:
+        """
+        Mark initialization as complete, enabling cache expiration.
+
+        Call this after device creation is finished to enable normal cache
+        expiration behavior. During initialization, cache entries are kept
+        regardless of age to avoid triggering getValue calls when device
+        creation takes longer than MAX_CACHE_AGE.
+        """
+        self._is_initializing = False
+        _LOGGER.debug(
+            "SET_INITIALIZATION_COMPLETE: Cache expiration enabled for %s",
+            self._central_info.name,
+        )
+
     def _get_refreshed_at(self, *, interface: Interface) -> datetime:
         """Return when cache has been refreshed."""
         return self._refreshed_at.get(interface, INIT_DATETIME)
@@ -142,6 +161,10 @@ class CentralDataCache(DataCacheWriterProtocol, CacheWithStatisticsProtocol):
         # If there is no data stored for the requested interface, treat as empty.
         if not self._value_cache.get(interface):
             return True
+        # Skip cache expiration during initialization to prevent getValue calls
+        # when device creation takes longer than MAX_CACHE_AGE (10 seconds).
+        if self._is_initializing:
+            return False
         # Auto-expire stale cache by interface.
         if not changed_within_seconds(last_change=self._get_refreshed_at(interface=interface)):
             # Track eviction before clearing

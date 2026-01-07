@@ -616,10 +616,45 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             # Mark devices as unavailable when device listing fails
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             return ProxyInitState.INIT_FAILED
+        # Record modified_at before init to detect callback during init
+        # This is used to work around VirtualDevices service bug where init()
+        # times out but listDevices callback was successfully received
+        modified_at_before_init = self.modified_at
+        init_success = False
         try:
             _LOGGER.debug("PROXY_INIT: init('%s', '%s')", self._config.init_url, self.interface_id)
             self._ping_pong_tracker.clear()
             await self._proxy.init(self._config.init_url, self.interface_id)
+            init_success = True
+        except BaseHomematicException as bhexc:
+            # Check if we received a callback during init (modified_at was updated)
+            # This happens when init() times out but the CCU successfully processed it
+            # and called back listDevices. Common with VirtualDevices service bug.
+            if self.modified_at > modified_at_before_init:
+                _LOGGER.info(  # i18n-log: ignore
+                    "PROXY_INIT: init() failed but callback received for %s - treating as success",
+                    self.interface_id,
+                )
+                init_success = True
+            else:
+                _LOGGER.error(  # i18n-log: ignore
+                    "PROXY_INIT failed: %s [%s] Unable to initialize proxy for %s",
+                    bhexc.name,
+                    extract_exc_args(exc=bhexc),
+                    self.interface_id,
+                )
+                self.modified_at = INIT_DATETIME
+                self._state_machine.transition_to(
+                    target=ClientState.FAILED,
+                    reason="proxy init failed",
+                    failure_reason=exception_to_failure_reason(exc=bhexc),
+                )
+                # Mark devices as unavailable when proxy init fails
+                # This ensures data points show unavailable during CCU restart/recovery
+                self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+                return ProxyInitState.INIT_FAILED
+
+        if init_success:
             self._state_machine.transition_to(target=ClientState.CONNECTED, reason="proxy initialized")
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
             # Clear any stale connection issues from failed attempts during reconnection
@@ -653,23 +688,6 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                     self.interface_id,
                     exc,
                 )
-        except BaseHomematicException as bhexc:
-            _LOGGER.error(  # i18n-log: ignore
-                "PROXY_INIT failed: %s [%s] Unable to initialize proxy for %s",
-                bhexc.name,
-                extract_exc_args(exc=bhexc),
-                self.interface_id,
-            )
-            self.modified_at = INIT_DATETIME
-            self._state_machine.transition_to(
-                target=ClientState.FAILED,
-                reason="proxy init failed",
-                failure_reason=exception_to_failure_reason(exc=bhexc),
-            )
-            # Mark devices as unavailable when proxy init fails
-            # This ensures data points show unavailable during CCU restart/recovery
-            self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
-            return ProxyInitState.INIT_FAILED
         self.modified_at = datetime.now()
         return ProxyInitState.INIT_SUCCESS
 

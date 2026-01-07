@@ -1,3 +1,24 @@
+# Version 2026.1.16 (2026-01-06)
+
+## What's Changed
+
+### Bug Fixes
+
+- **Fix VirtualDevices init() Timeout** (#2731): Fixed a bug where VirtualDevices init() times out even though the CCU successfully processed the request
+
+  - **Root cause**: The VirtualDevices service on some CCU backends (OpenCCU, RaspberryMatic) processes the init() request correctly, calls back listDevices/newDevices, but fails to send the init() response. This causes a 3-second timeout even though the initialization was successful.
+
+  - **Symptom**: `PROXY_INIT failed: NoConnectionException [OSError: timed out]` for VirtualDevices while BidCos-RF and HmIP-RF work fine. The CCU does call back `listDevices` successfully, but init() still times out.
+
+  - **Fix**: Added detection of successful callback during init() timeout. If init() times out but a listDevices callback was received (indicated by `modified_at` timestamp update), the init() is treated as successful.
+
+  - **Affected files**:
+
+    - `aiohomematic/client/ccu.py`: Added callback detection in `initialize_proxy()`
+    - `aiohomematic/client/interface_client.py`: Added callback detection in `initialize_proxy()`
+
+  - **Impact**: VirtualDevices (heating groups) should now initialize reliably on OpenCCU/RaspberryMatic systems
+
 # Version 2026.1.15 (2026-01-06)
 
 ## What's Changed

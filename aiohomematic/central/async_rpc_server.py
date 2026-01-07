@@ -23,10 +23,10 @@ from aiohttp import web
 import orjson
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.central.rpc_server import _normalize_device_description
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
+from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import get_device_address, log_boundary_error
 
 if TYPE_CHECKING:
@@ -317,9 +317,10 @@ class AsyncRPCFunctions:
         /,
     ) -> list[dict[str, Any]]:
         """Return existing devices to the backend."""
+        # No normalization needed here - data is already normalized in cache
         if entry := self._get_central_entry(interface_id=interface_id):
             return [
-                _normalize_device_description(device_description=dict(device_description))
+                dict(device_description)
                 for device_description in entry.central.device_coordinator.list_devices(interface_id=interface_id)
             ]
         return []
@@ -330,13 +331,15 @@ class AsyncRPCFunctions:
         device_descriptions: list[dict[str, Any]],
         /,
     ) -> None:
-        """Handle new devices from backend."""
+        """Handle new devices from backend (normalized)."""
         if entry := self._get_central_entry(interface_id=interface_id):
+            # Normalize at callback entry point
+            normalized = tuple(normalize_device_description(device_description=desc) for desc in device_descriptions)
             # Fire-and-forget: schedule task and return immediately
             self._create_background_task(
                 entry.central.device_coordinator.add_new_devices(
                     interface_id=interface_id,
-                    device_descriptions=tuple(device_descriptions),
+                    device_descriptions=normalized,
                 ),
                 name=f"newDevices-{interface_id}",
             )

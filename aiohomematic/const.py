@@ -1777,39 +1777,50 @@ class ParameterData(TypedDict, total=False):
     SPECIAL: Mapping[str, Any]
     TYPE: ParameterType
     UNIT: str
-    VALUE_LIST: Iterable[Any]
+    VALUE_LIST: Iterable[str]
 
 
 class DeviceDescription(TypedDict, total=False):
-    """Typed dict for device descriptions."""
+    """
+    Typed dict for device descriptions.
 
+    Based on HM_XmlRpc_API.pdf V2.16 and HMIP_XmlRpc_API_Addendum.pdf V2.10.
+    """
+
+    # Required fields per API spec
     TYPE: Required[str]
     ADDRESS: Required[str]
     PARAMSETS: Required[list[str]]
-    SUBTYPE: str | None
+    # Optional fields - Common
     CHILDREN: list[str]
     PARENT: str | None
+    PARENT_TYPE: str | None
+    SUBTYPE: str | None
+    # Optional fields - Firmware
     FIRMWARE: str | None
     AVAILABLE_FIRMWARE: str | None
     UPDATABLE: bool
     FIRMWARE_UPDATE_STATE: str | None
     FIRMWARE_UPDATABLE: bool | None
+    # Optional fields - Interface/Connectivity
     INTERFACE: str | None
     RX_MODE: int | None
+    # Optional fields - Links
     LINK_SOURCE_ROLES: str | None
     LINK_TARGET_ROLES: str | None
-    # RF_ADDRESS: int | None
-    # PARENT_TYPE: str | None
-    # INDEX: int | None
-    # AES_ACTIVE: int | None
-    # VERSION: Required[int]
-    # FLAGS: Required[int]
-    # DIRECTION: int | None
-    # GROUP: str | None
-    # TEAM: str | None
-    # TEAM_TAG: str | None
-    # TEAM_CHANNELS: list
-    # ROAMING: int | None
+    # Optional fields - Device metadata
+    RF_ADDRESS: int | None
+    INDEX: int | None
+    AES_ACTIVE: int | None
+    VERSION: int | None
+    FLAGS: int | None
+    DIRECTION: int | None
+    # Optional fields - Groups/Teams
+    GROUP: str | None
+    TEAM: str | None
+    TEAM_TAG: str | None
+    TEAM_CHANNELS: list[str] | None
+    ROAMING: int | None
 
 
 class ChannelDetail(TypedDict):

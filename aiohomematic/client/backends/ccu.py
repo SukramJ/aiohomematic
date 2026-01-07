@@ -44,6 +44,7 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.exceptions import BaseHomematicException
+from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -353,9 +354,10 @@ class CcuBackend(BaseBackend):
             self._capabilities = replace(self._capabilities, supports_backup=False)
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """Return all device descriptions."""
+        """Return all device descriptions (normalized)."""
         try:
-            return tuple(await self._proxy_read.listDevices())
+            raw_descriptions = await self._proxy_read.listDevices()
+            return tuple(normalize_device_description(device_description=desc) for desc in raw_descriptions)
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "LIST_DEVICES failed: %s [%s]",

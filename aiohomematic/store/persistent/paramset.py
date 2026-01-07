@@ -19,6 +19,7 @@ from aiohomematic.const import ADDRESS_SEPARATOR, ParameterData, ParamsetKey
 from aiohomematic.interfaces import ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.property_decorators import DelegatedProperty
+from aiohomematic.schemas import normalize_paramset_description
 from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.store.types import InterfaceParamsetMap
 from aiohomematic.support import get_split_channel_address
@@ -34,6 +35,9 @@ class ParamsetDescriptionRegistry(
     BasePersistentCache, ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
 ):
     """Registry for paramset descriptions."""
+
+    # Bump version when normalization logic changes
+    SCHEMA_VERSION: int = 2
 
     __slots__ = ("_address_parameter_cache",)
 
@@ -57,6 +61,20 @@ class ParamsetDescriptionRegistry(
             storage=storage,
             config_provider=config_provider,
         )
+
+    @staticmethod
+    def _normalize_param_data_v1(*, param_data: dict[str, Any]) -> None:
+        """Normalize parameter data from v1 schema (ensure OPERATIONS and FLAGS are integers)."""
+        if "OPERATIONS" in param_data:
+            try:
+                param_data["OPERATIONS"] = int(param_data["OPERATIONS"] or 0)
+            except (ValueError, TypeError):
+                param_data["OPERATIONS"] = 0
+        if "FLAGS" in param_data:
+            try:
+                param_data["FLAGS"] = int(param_data["FLAGS"] or 0)
+            except (ValueError, TypeError):
+                param_data["FLAGS"] = 0
 
     raw_paramset_descriptions: Final = DelegatedProperty[
         Mapping[str, Mapping[str, Mapping[ParamsetKey, Mapping[str, ParameterData]]]]
@@ -84,9 +102,11 @@ class ParamsetDescriptionRegistry(
         paramset_key: ParamsetKey,
         paramset_description: dict[str, ParameterData],
     ) -> None:
-        """Add paramset description to cache."""
-        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
-        self._add_address_parameter(channel_address=channel_address, paramsets=[paramset_description])
+        """Add paramset description to cache (normalized)."""
+        # Normalize at ingestion
+        normalized = normalize_paramset_description(paramset=paramset_description)
+        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = normalized
+        self._add_address_parameter(channel_address=channel_address, paramsets=[normalized])
 
     def get_channel_addresses_by_paramset_key(
         self, *, interface_id: str, device_address: str
@@ -182,6 +202,23 @@ class ParamsetDescriptionRegistry(
             for channel_address, paramsets in channel_paramsets.items():
                 self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
 
+    def _migrate_schema(self, *, data: dict[str, Any], from_version: int) -> dict[str, Any]:
+        """Migrate paramset descriptions from older schema."""
+        if from_version < 2:
+            # Migration from v1: normalize all parameter data
+            self._migrate_v1_to_v2(data=data)
+        return data
+
+    def _migrate_v1_to_v2(self, *, data: dict[str, Any]) -> None:
+        """Migrate paramset descriptions from v1 to v2 schema."""
+        for interface_id, channels in data.items():
+            if interface_id.startswith("_"):
+                continue
+            for paramsets in channels.values():
+                for params in paramsets.values():
+                    for param_data in params.values():
+                        self._normalize_param_data_v1(param_data=param_data)
+
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
         """Rebuild indexes from loaded data."""
         # Convert loaded regular dicts back to nested defaultdicts.
@@ -191,10 +228,14 @@ class ParamsetDescriptionRegistry(
         self._content.clear()
         self._content.update(self._create_empty_content())
         for interface_id, channels in data.items():
+            if interface_id.startswith("_"):  # Skip metadata keys
+                continue
             for channel_address, paramsets in channels.items():
                 for paramset_key_str, paramset_desc in paramsets.items():
                     paramset_key = ParamsetKey(paramset_key_str)
-                    self._content[interface_id][channel_address][paramset_key] = paramset_desc
+                    # Normalize each paramset description when loading
+                    normalized = normalize_paramset_description(paramset=paramset_desc)
+                    self._content[interface_id][channel_address][paramset_key] = normalized
 
         self._address_parameter_cache.clear()
         self._init_address_parameter_list()

@@ -2,6 +2,38 @@
 
 ## What's Changed
 
+### Internal
+
+- **Extend DeviceDescription TypedDict to cover full API specification**: Activated all optional fields from HM_XmlRpc_API.pdf V2.16 and HMIP_XmlRpc_API_Addendum.pdf V2.10
+
+  - **Added fields**: `PARENT_TYPE`, `RF_ADDRESS`, `INDEX`, `AES_ACTIVE`, `VERSION`, `FLAGS`, `DIRECTION`, `GROUP`, `TEAM`, `TEAM_TAG`, `TEAM_CHANNELS`, `ROAMING`
+  - **Improved documentation**: Grouped fields by category (Common, Firmware, Interface/Connectivity, Links, Device metadata, Groups/Teams)
+  - **Type safety**: Full type coverage for all fields defined in API specification
+
+- **Improve ParameterData validation and type safety**:
+
+  - **VALUE_LIST**: Changed from `Iterable[Any]` to `Iterable[str]` with validation ensuring all elements are converted to strings
+  - **SPECIAL**: Documented actual usage pattern - API spec defines `Array<Struct>`, but CCU/pydevccu/Homegear return `Mapping[str, Any]` with special value IDs as keys (e.g., `{"NOT_USED": 111600.0, "PERMANENT": 255}`)
+  - **Debug logging**: All validation failures now logged at DEBUG level with context (address, parameter name, validation error) for easier troubleshooting and backend compatibility monitoring
+
+- **Implement ADR 0015: Description Data Normalization and Validation**: Establish comprehensive data normalization layer using voluptuous for device and parameter descriptions
+
+  - **Problem**: Device descriptions and paramset descriptions were normalized at output points (e.g., `listDevices()` XML-RPC response), addressing symptoms rather than root causes. This violated DRY principle and created multiple validation points.
+
+  - **Solution**: Normalize data at all ingestion points following "Parse, don't validate" pattern
+
+  - **Implementation**:
+
+    - Created `aiohomematic/schemas.py` with voluptuous validation schemas for `DeviceDescription` and `ParameterData`
+    - Added schema versioning support to `BasePersistentCache` with `SCHEMA_VERSION` and `_migrate_schema()`
+    - Updated `DeviceDescriptionRegistry` with `SCHEMA_VERSION = 2` and ingestion-time normalization
+    - Updated `ParamsetDescriptionRegistry` with `SCHEMA_VERSION = 2` and ingestion-time normalization
+    - Updated all backend handlers (`list_devices()`, `get_device_description()`, `_get_paramset_description()`) to normalize data
+    - Updated XML-RPC callbacks (`newDevices()`) to normalize incoming device descriptions
+    - Removed output normalization from `listDevices()` - data is already normalized in cache
+
+  - **Benefits**: Single source of truth for data correctness, defense in depth with multiple validation points, cache efficiency through schema versioning, reduced complexity by eliminating output normalization
+
 ### Bug Fixes
 
 - **Fix Homegear device details fetching in InterfaceClient**: The new `InterfaceClient` backend architecture was missing the `get_device_details()` implementation for Homegear
@@ -15,14 +47,6 @@
     - Extended `BackendOperationsProtocol.get_device_details()` to accept optional `addresses` parameter
     - Implemented `HomegearBackend.get_device_details()` that fetches names via `getMetadata(address, "NAME")` for each provided address
     - Updated `InterfaceClient.fetch_device_details()` to pass known addresses from the device description cache
-
-  - **Affected files**:
-
-    - `aiohomematic/client/backends/protocol.py`: Added `addresses` parameter to protocol
-    - `aiohomematic/client/backends/base.py`: Updated default implementation signature
-    - `aiohomematic/client/backends/ccu.py`: Updated signature (parameter ignored for CCU)
-    - `aiohomematic/client/backends/homegear.py`: New implementation using `getMetadata`
-    - `aiohomematic/client/interface_client.py`: Pass addresses from cache to backend
 
   - **Impact**: Device names now load correctly for Homegear/pydevccu when using the new InterfaceClient
 

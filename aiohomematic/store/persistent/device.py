@@ -19,6 +19,7 @@ from aiohomematic.const import ADDRESS_SEPARATOR, DeviceDescription
 from aiohomematic.exceptions import DescriptionNotFoundException
 from aiohomematic.interfaces import DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
+from aiohomematic.schemas import normalize_device_description
 from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.support import get_device_address
 
@@ -33,6 +34,9 @@ class DeviceDescriptionRegistry(
     BasePersistentCache, DeviceDescriptionProviderProtocol, DeviceDescriptionsAccessProtocol
 ):
     """Registry for device/channel descriptions."""
+
+    # Bump version when normalization logic changes
+    SCHEMA_VERSION: int = 2
 
     __slots__ = (
         "_addresses",
@@ -73,19 +77,33 @@ class DeviceDescriptionRegistry(
         return sum(len(descriptions) for descriptions in self._raw_device_descriptions.values())
 
     def add_device(self, *, interface_id: str, device_description: DeviceDescription) -> None:
-        """Add a device to the cache."""
+        """Add a device to the cache (normalized)."""
+        # Normalize at ingestion
+        normalized = normalize_device_description(device_description=device_description)
         # Fast-path: If the address is not yet known, skip costly removal operations.
-        if (address := device_description["ADDRESS"]) not in self._device_descriptions[interface_id]:
-            self._raw_device_descriptions[interface_id].append(device_description)
-            self._process_device_description(interface_id=interface_id, device_description=device_description)
+        if (address := normalized["ADDRESS"]) not in self._device_descriptions[interface_id]:
+            self._raw_device_descriptions[interface_id].append(normalized)
+            _LOGGER.debug(
+                "DEVICE_REGISTRY_ADD: Added device %s to %s (total: %s)",
+                address,
+                interface_id,
+                len(self._raw_device_descriptions[interface_id]),
+            )
+            self._process_device_description(interface_id=interface_id, device_description=normalized)
             return
         # Address exists: remove old entries before adding the new description.
         self._remove_device(
             interface_id=interface_id,
             addresses_to_remove=[address],
         )
-        self._raw_device_descriptions[interface_id].append(device_description)
-        self._process_device_description(interface_id=interface_id, device_description=device_description)
+        self._raw_device_descriptions[interface_id].append(normalized)
+        _LOGGER.debug(
+            "DEVICE_REGISTRY_UPDATE: Updated device %s in %s (total: %s)",
+            address,
+            interface_id,
+            len(self._raw_device_descriptions[interface_id]),
+        )
+        self._process_device_description(interface_id=interface_id, device_description=normalized)
 
     def find_device_description(self, *, interface_id: str, device_address: str) -> DeviceDescription | None:
         """Return the device description by interface and device_address."""
@@ -153,13 +171,28 @@ class DeviceDescriptionRegistry(
         )
 
     def _convert_device_descriptions(self, *, interface_id: str, device_descriptions: list[DeviceDescription]) -> None:
-        """Convert provided list of device descriptions."""
+        """Convert provided list of device descriptions (normalized)."""
         for device_description in device_descriptions:
-            self._process_device_description(interface_id=interface_id, device_description=device_description)
+            # Normalize each description when loading
+            normalized = normalize_device_description(device_description=device_description)
+            self._process_device_description(interface_id=interface_id, device_description=normalized)
 
     def _create_empty_content(self) -> dict[str, Any]:
         """Create empty content structure."""
         return defaultdict(list)
+
+    def _migrate_schema(self, *, data: dict[str, Any], from_version: int) -> dict[str, Any]:
+        """Migrate device descriptions from older schema."""
+        if from_version < 2:
+            # Migration from v1: normalize all CHILDREN fields
+            for interface_id, descriptions in data.items():
+                if interface_id.startswith("_"):
+                    continue
+                for desc in descriptions:
+                    children = desc.get("CHILDREN")
+                    if children is None or isinstance(children, str):
+                        desc["CHILDREN"] = []
+        return data
 
     def _process_device_description(self, *, interface_id: str, device_description: DeviceDescription) -> None:
         """Convert provided dict of device descriptions."""
@@ -177,6 +210,8 @@ class DeviceDescriptionRegistry(
         self._addresses.clear()
         self._device_descriptions.clear()
         for interface_id, device_descriptions in data.items():
+            if interface_id.startswith("_"):  # Skip metadata keys
+                continue
             self._convert_device_descriptions(
                 interface_id=interface_id,
                 device_descriptions=device_descriptions,

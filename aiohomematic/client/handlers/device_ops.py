@@ -38,6 +38,7 @@ from aiohomematic.interfaces import (
     ValueOperationsProtocol,
 )
 from aiohomematic.model.support import convert_value
+from aiohomematic.schemas import normalize_device_description, normalize_paramset_description
 from aiohomematic.support import (
     extract_exc_args,
     get_device_address,
@@ -305,7 +306,7 @@ class DeviceHandler(
     @inspector(re_raise=False)
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """
-        Return device description for a single address.
+        Return device description for a single address (normalized).
 
         Uses request coalescing to deduplicate concurrent requests for the same
         address. This is beneficial during device discovery when multiple callers
@@ -315,7 +316,7 @@ class DeviceHandler(
             address: Device or channel address (e.g., "VCU0000001" or "VCU0000001:1").
 
         Returns:
-            DeviceDescription dict with TYPE, ADDRESS, CHILDREN, PARAMSETS, etc.
+            Normalized DeviceDescription dict with TYPE, ADDRESS, CHILDREN, PARAMSETS, etc.
             None if the address is not found or the RPC call fails.
 
         """
@@ -323,11 +324,8 @@ class DeviceHandler(
 
         async def _fetch() -> DeviceDescription | None:
             try:
-                if device_description := cast(
-                    DeviceDescription | None,
-                    await self._proxy_read.getDeviceDescription(address),
-                ):
-                    return device_description
+                if raw := await self._proxy_read.getDeviceDescription(address):
+                    return normalize_device_description(device_description=raw)
             except BaseHomematicException as bhexc:
                 _LOGGER.warning(  # i18n-log: ignore
                     "GET_DEVICE_DESCRIPTION failed: %s [%s]", bhexc.name, extract_exc_args(exc=bhexc)
@@ -452,18 +450,19 @@ class DeviceHandler(
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """
-        Return all device descriptions from the backend.
+        Return all device descriptions from the backend (normalized).
 
         Calls the XML-RPC listDevices() method to retrieve descriptions for all
         devices and channels known to this interface.
 
         Returns:
-            Tuple of DeviceDescription dicts for all devices/channels.
+            Tuple of normalized DeviceDescription dicts for all devices/channels.
             None if the RPC call fails (e.g., connection error).
 
         """
         try:
-            return tuple(await self._proxy_read.listDevices())
+            raw_descriptions = await self._proxy_read.listDevices()
+            return tuple(normalize_device_description(device_description=desc) for desc in raw_descriptions)
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "LIST_DEVICES failed: %s [%s]",
@@ -968,7 +967,7 @@ class DeviceHandler(
         self, *, address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """
-        Fetch a paramset description via XML-RPC, returning None on failure.
+        Fetch and normalize paramset description via XML-RPC.
 
         Uses request coalescing to deduplicate concurrent requests for the same
         address and paramset_key combination. This is particularly beneficial
@@ -978,10 +977,8 @@ class DeviceHandler(
 
         async def _fetch() -> dict[str, ParameterData] | None:
             try:
-                return cast(
-                    dict[str, ParameterData],
-                    await self._proxy_read.getParamsetDescription(address, paramset_key),
-                )
+                raw = await self._proxy_read.getParamsetDescription(address, paramset_key)
+                return normalize_paramset_description(paramset=raw)
             except BaseHomematicException as bhexc:
                 _LOGGER.debug(
                     "GET_PARAMSET_DESCRIPTIONS failed with %s [%s] for %s address %s",

@@ -20,33 +20,10 @@ from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol, RpcServerTaskSchedulerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
+from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import get_device_address, log_boundary_error
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-
-def _normalize_device_description(*, device_description: dict[str, Any]) -> dict[str, Any]:
-    """
-    Normalize device description for XML-RPC response.
-
-    Ensures CHILDREN field is always an array (list) to satisfy the
-    CCU's Java DeviceDescription.children field which expects String[].
-
-    Some backends (e.g., VirtualDevices) may send CHILDREN as an empty
-    string or omit it entirely, causing the CCU's XML-RPC parser to fail
-    with: "Can not set String[] field to String".
-
-    Args:
-        device_description: Raw device description dict.
-
-    Returns:
-        Normalized device description with CHILDREN as list.
-
-    """
-    children = device_description.get("CHILDREN")
-    if children is None or isinstance(children, str):
-        device_description["CHILDREN"] = []
-    return device_description
 
 
 # pylint: disable=invalid-name
@@ -113,19 +90,22 @@ class RPCFunctions:
 
     def listDevices(self, interface_id: str, /) -> list[dict[str, Any]]:
         """Return already existing devices to the backend."""
+        # No normalization needed here - data is already normalized in cache
         if entry := self.get_central_entry(interface_id=interface_id):
             return [
-                _normalize_device_description(device_description=dict(device_description))
+                dict(device_description)
                 for device_description in entry.central.device_coordinator.list_devices(interface_id=interface_id)
             ]
         return []
 
     def newDevices(self, interface_id: str, device_descriptions: list[dict[str, Any]], /) -> None:
-        """Add new devices send from the backend."""
+        """Add new devices send from the backend (normalized)."""
         if entry := self.get_central_entry(interface_id=interface_id):
+            # Normalize at callback entry point
+            normalized = tuple(normalize_device_description(device_description=desc) for desc in device_descriptions)
             entry.looper.create_task(
                 target=entry.central.device_coordinator.add_new_devices(
-                    interface_id=interface_id, device_descriptions=tuple(device_descriptions)
+                    interface_id=interface_id, device_descriptions=normalized
                 ),
                 name=f"newDevices-{interface_id}",
             )

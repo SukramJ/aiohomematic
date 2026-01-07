@@ -363,6 +363,17 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
         if save_paramset_descriptions:
             await self._paramset_descriptions_registry.save()
 
+    def set_data_cache_initialization_complete(self) -> None:
+        """
+        Mark data cache initialization as complete.
+
+        Call this after device creation is finished to enable normal cache
+        expiration behavior. During initialization, cache entries are kept
+        regardless of age to avoid triggering getValue calls when device
+        creation takes longer than MAX_CACHE_AGE.
+        """
+        self._data_cache.set_initialization_complete()
+
     def stop(self) -> None:
         """Stop the coordinator and unsubscribe from events."""
         for unsub in self._unsubscribers:

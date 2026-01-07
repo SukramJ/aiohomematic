@@ -279,6 +279,11 @@ class ClientCoordinator(ClientProviderProtocol):
         # Create devices from cache BEFORE hub init - required for sysvar-to-channel association
         await self._coordinator_provider.device_coordinator.check_and_create_devices_from_cache()
 
+        # Enable cache expiration now that device creation is complete.
+        # During device creation, cache expiration was disabled to prevent getValue
+        # calls when device creation takes longer than MAX_CACHE_AGE (10 seconds).
+        self._coordinator_provider.cache_coordinator.set_data_cache_initialization_complete()
+
         # Initialize hub (requires connected clients and devices to fetch programs/sysvars)
         await self._coordinator_provider.hub_coordinator.init_hub()
 

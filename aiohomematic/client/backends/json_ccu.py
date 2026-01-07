@@ -32,6 +32,7 @@ from aiohomematic.const import (
     SystemInformation,
 )
 from aiohomematic.exceptions import BaseHomematicException, ClientException
+from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -174,9 +175,10 @@ class JsonCcuBackend(BaseBackend):
         )
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
-        """Return all device descriptions via JSON-RPC."""
+        """Return all device descriptions via JSON-RPC (normalized)."""
         try:
-            return await self._json_rpc.list_devices(interface=self._interface)
+            raw_descriptions = await self._json_rpc.list_devices(interface=self._interface)
+            return tuple(normalize_device_description(device_description=desc) for desc in raw_descriptions)
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "LIST_DEVICES failed: %s [%s]",

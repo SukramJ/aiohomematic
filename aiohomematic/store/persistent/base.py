@@ -58,7 +58,14 @@ class BasePersistentCache(ABC):
     Subclasses must implement:
         - _create_empty_content(): Define initial data structure
         - _process_loaded_content(): Rebuild indexes after load
+
+    Schema Versioning:
+        - SCHEMA_VERSION: Subclasses override to define their schema version
+        - _migrate_schema(): Subclasses override to implement migrations
     """
+
+    # Subclasses override to define their schema version
+    SCHEMA_VERSION: int = 1
 
     __slots__ = (
         "_config_provider",
@@ -92,7 +99,16 @@ class BasePersistentCache(ABC):
     def _should_save(self) -> bool:
         """Determine if save operation should proceed."""
         self.last_save_triggered = datetime.now()
-        return self._config_provider.config.use_caches and self.has_unsaved_changes
+        use_caches = self._config_provider.config.use_caches
+        has_changes = self.has_unsaved_changes
+        _LOGGER.debug(
+            "CACHE_SHOULD_SAVE: %s - use_caches=%s, has_unsaved_changes=%s, result=%s",
+            self.storage_key,
+            use_caches,
+            has_changes,
+            use_caches and has_changes,
+        )
+        return use_caches and has_changes
 
     @property
     def content_hash(self) -> str:
@@ -125,12 +141,14 @@ class BasePersistentCache(ABC):
         Load content from storage.
 
         After loading, calls _process_loaded_content to rebuild any
-        derived structures or indexes.
+        derived structures or indexes. If the loaded schema version is
+        older than the current SCHEMA_VERSION, _migrate_schema is called.
 
         Returns:
             DataOperationResult indicating success/skip/failure.
 
         """
+        _LOGGER.debug("CACHE_LOAD: Starting load for %s", self.storage_key)
         try:
             data = await self._storage.load()
         except Exception:
@@ -138,7 +156,14 @@ class BasePersistentCache(ABC):
             return DataOperationResult.LOAD_FAIL
 
         if data is None:
+            _LOGGER.debug("CACHE_LOAD: No data found for %s", self.storage_key)
             return DataOperationResult.NO_LOAD
+
+        _LOGGER.debug("CACHE_LOAD: Loaded data for %s (keys: %s)", self.storage_key, list(data.keys()))
+
+        # Check and migrate schema version
+        if (loaded_version := data.pop("_schema_version", 1)) < self.SCHEMA_VERSION:
+            data = self._migrate_schema(data=data, from_version=loaded_version)
 
         if (loaded_hash := hash_sha256(value=data)) == self._last_hash_saved:
             return DataOperationResult.NO_LOAD
@@ -154,17 +179,29 @@ class BasePersistentCache(ABC):
         Save content to storage if changed.
 
         Only saves if caching is enabled and content has changed since last save.
+        Adds _schema_version to saved data for migration support.
 
         Returns:
             DataOperationResult indicating success/skip/failure.
 
         """
         if not self._should_save:
+            _LOGGER.debug("CACHE_SAVE: Skipping save for %s (no changes or caching disabled)", self.storage_key)
             return DataOperationResult.NO_SAVE
 
+        # Add schema version before saving
+        save_data = {"_schema_version": self.SCHEMA_VERSION, **self._content}
+
         try:
-            await self._storage.save(data=self._content)
+            _LOGGER.debug(
+                "CACHE_SAVE: Saving %s to storage (content keys: %s, sizes: %s)",
+                self.storage_key,
+                list(self._content.keys()),
+                {k: len(v) if isinstance(v, (list, dict)) else "?" for k, v in self._content.items()},
+            )
+            await self._storage.save(data=save_data)
             self._last_hash_saved = self.content_hash
+            _LOGGER.debug("CACHE_SAVE: Successfully saved %s", self.storage_key)
         except Exception:
             _LOGGER.exception("CACHE: Failed to save %s", self.storage_key)  # i18n-log: ignore
             return DataOperationResult.SAVE_FAIL
@@ -201,6 +238,23 @@ class BasePersistentCache(ABC):
             Empty dict structure for this cache type.
 
         """
+
+    def _migrate_schema(self, *, data: dict[str, Any], from_version: int) -> dict[str, Any]:
+        """
+        Migrate data from older schema version.
+
+        Subclasses override to implement version-specific migrations.
+        Default implementation returns data unchanged.
+
+        Args:
+            data: Raw data loaded from storage.
+            from_version: Schema version of loaded data.
+
+        Returns:
+            Migrated data dict.
+
+        """
+        return data
 
     @abstractmethod
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:

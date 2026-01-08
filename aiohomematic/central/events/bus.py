@@ -416,10 +416,16 @@ class DataPointStateChangedEvent(Event):
     consumers (like Home Assistant data points) need to be notified.
     Unlike DataPointValueReceivedEvent which handles internal backend updates,
     this event is for external integration points.
+
+    The old_value and new_value fields allow consumers to track what changed
+    without having to maintain their own previous state. These may be None
+    if the values are unknown (e.g., during initial load or for non-value updates).
     """
 
     unique_id: str
     custom_id: str
+    old_value: Any = None
+    new_value: Any = None
 
     @property
     def key(self) -> Any:

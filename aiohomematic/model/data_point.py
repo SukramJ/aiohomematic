@@ -361,6 +361,8 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         *,
         data_point: CallbackDataPointProtocol | None = None,
         custom_id: str | None = None,
+        old_value: Any = None,
+        new_value: Any = None,
     ) -> None:
         """Do what is needed when the value of the data_point has been updated/refreshed."""
         if not self._should_publish_data_point_updated_callback:
@@ -374,6 +376,9 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         # Capture current custom_ids as tuple to prevent issues if set is modified
         # during async iteration (e.g., if a handler unsubscribes during callback)
         custom_ids = tuple(self._registered_custom_ids)
+        # Capture values for closure
+        _old_value = old_value
+        _new_value = new_value
 
         async def _publish_all_events() -> None:
             """
@@ -393,6 +398,8 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
                         timestamp=datetime.now(),
                         unique_id=self._unique_id,
                         custom_id=cid,
+                        old_value=_old_value,
+                        new_value=_new_value,
                     )
                 )
                 for cid in custom_ids
@@ -1014,14 +1021,15 @@ class BaseParameterDataPoint[
         """Update the temporary value of the data_point."""
         self._reset_temporary_value()
 
+        old_value = self._value
         temp_value = self._convert_value(value=value)
-        if self._value == temp_value:
+        if old_value == temp_value:
             self._set_temporary_refreshed_at(refreshed_at=write_at)
         else:
             self._set_temporary_modified_at(modified_at=write_at)
             self._temporary_value = temp_value
             self._state_uncertain = True
-        self.publish_data_point_updated_event()
+        self.publish_data_point_updated_event(old_value=old_value, new_value=temp_value)
 
     def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT | None, ParameterT | None]:
         """Update value of the data_point."""
@@ -1031,7 +1039,7 @@ class BaseParameterDataPoint[
         if value == NO_CACHE_ENTRY:
             if self.refreshed_at != INIT_DATETIME:
                 self._state_uncertain = True
-                self.publish_data_point_updated_event()
+                self.publish_data_point_updated_event(old_value=old_value, new_value=None)
             return (old_value, None)
 
         new_value = self._convert_value(value=value)
@@ -1045,7 +1053,7 @@ class BaseParameterDataPoint[
             if new_value != self._default:
                 self._last_non_default_value = new_value
         self._state_uncertain = False
-        self.publish_data_point_updated_event()
+        self.publish_data_point_updated_event(old_value=old_value, new_value=new_value)
         return (old_value, new_value)
 
     def _assign_parameter_data(self, *, parameter_data: ParameterData) -> None:

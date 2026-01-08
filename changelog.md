@@ -1,3 +1,31 @@
+# Version 2026.1.18 (2026-01-08)
+
+## What's Changed
+
+### Added
+
+- **Add `old_value` and `new_value` fields to `DataPointStateChangedEvent`**: External consumers can now track what changed without maintaining their own previous state. The fields are populated when values change and may be `None` during initial load or for non-value updates.
+
+- **Add `AvailabilityInfo` dataclass**: New unified view of device availability bundling reachability, battery, and signal information:
+
+  - `is_reachable`: Device reachability status (inverse of UNREACH)
+  - `last_updated`: Most recent data point modification time
+  - `battery_level`: Battery percentage (0-100) from OperatingVoltageLevel or BATTERY_STATE
+  - `low_battery`: LOW_BAT indicator
+  - `signal_strength`: RSSI in dBm from RSSI_DEVICE
+  - Helper properties: `has_battery`, `has_signal_info`
+
+- **Add `Device.availability` property**: Returns `AvailabilityInfo` providing a unified view of device connectivity and health status.
+
+- **Add Consumer API documentation**: New `docs/consumer_api.md` guide explaining the three API layers (HomematicAPI, CentralUnit, Protocols), event subscription patterns, and common operations for external consumers like Matter bridges.
+
+### Internal
+
+- **Update `DeviceAvailabilityProtocol`**: Added `availability` property to the protocol interface
+- **Update `CalculatedDataPointProtocol`**: Added missing `value` property to the protocol interface
+- **Update `CallbackDataPointProtocol`**: Added `old_value` and `new_value` parameters to `publish_data_point_updated_event()`
+- **Remove unnecessary delayed imports**: Moved `store.types` imports to top-level in 7 files and `metrics`/`central.events` imports in `request_coalescer.py`. These imports had `# noqa: PLC0415` markers but no actual circular dependency. Remaining delayed imports in `circuit_breaker.py` are necessary due to genuine circular dependency chains.
+
 # Version 2026.1.17 (2026-01-07)
 
 ## What's Changed

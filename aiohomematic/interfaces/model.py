@@ -82,6 +82,7 @@ if TYPE_CHECKING:
         EventSubscriptionManagerProtocol,
     )
     from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
+    from aiohomematic.model.availability import AvailabilityInfo
     from aiohomematic.model.custom import DeviceConfig
     from aiohomematic.model.custom.mixins import StateChangeArgs
     from aiohomematic.model.support import DataPointNameData
@@ -223,6 +224,8 @@ class CallbackDataPointProtocol(Protocol):
         *,
         data_point: CallbackDataPointProtocol | None = None,
         custom_id: str | None = None,
+        old_value: Any = None,
+        new_value: Any = None,
     ) -> None:
         """Publish a data point updated event."""
 
@@ -943,6 +946,11 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def value(self) -> Any:
+        """Return the calculated value."""
+
+    @property
+    @abstractmethod
     def values(self) -> tuple[str, ...] | None:
         """Return the values."""
 
@@ -1405,6 +1413,11 @@ class DeviceAvailabilityProtocol(Protocol):
     """
 
     __slots__ = ()
+
+    @property
+    @abstractmethod
+    def availability(self) -> AvailabilityInfo:
+        """Return bundled availability information for the device."""
 
     @property
     @abstractmethod

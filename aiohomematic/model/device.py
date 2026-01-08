@@ -70,6 +70,7 @@ from aiohomematic.const import (
     REPORT_VALUE_USAGE_VALUE_ID,
     VIRTUAL_REMOTE_MODELS,
     WEEK_PROFILE_PATTERN,
+    CalculatedParameter,
     CallSource,
     DataPointCategory,
     DataPointKey,
@@ -127,6 +128,7 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
 from aiohomematic.model import week_profile as wp
+from aiohomematic.model.availability import AvailabilityInfo
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.support import (
@@ -425,6 +427,26 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
     @property
+    def availability(self) -> AvailabilityInfo:
+        """
+        Return bundled availability information for the device.
+
+        Provides a unified view of:
+        - Reachability (from UNREACH/STICKY_UNREACH)
+        - Last updated timestamp (from most recent data point)
+        - Battery level (from OperatingVoltageLevel or BATTERY_STATE)
+        - Low battery indicator (from LOW_BAT)
+        - Signal strength (from RSSI_DEVICE)
+        """
+        return AvailabilityInfo(
+            is_reachable=self._get_is_reachable(),
+            last_updated=self._get_last_updated(),
+            battery_level=self._get_battery_level(),
+            low_battery=self._get_low_battery(),
+            signal_strength=self._get_signal_strength(),
+        )
+
+    @property
     def available_firmware(self) -> str | None:
         """Return the available firmware of the device."""
         return str(self._device_description.get("AVAILABLE_FIRMWARE", ""))
@@ -519,13 +541,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
-            return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
-        if (un_reach := self._dp_un_reach) is None:
-            un_reach = self._dp_sticky_un_reach
-        if un_reach is not None and un_reach.value is not None:
-            return not un_reach.value
-        return True
+        return self._get_is_reachable()
 
     @info_property
     def firmware(self) -> str:
@@ -898,6 +914,77 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             self._task_scheduler.create_task(target=refresh_data, name="refresh_firmware_data")
 
         return update_result
+
+    def _get_battery_level(self) -> int | None:
+        """Return battery level percentage (0-100)."""
+        # First try OperatingVoltageLevel calculated data point on channel 0
+        if (
+            ovl := self.get_calculated_data_point(
+                channel_address=f"{self._address}:0",
+                parameter=CalculatedParameter.OPERATING_VOLTAGE_LEVEL,
+            )
+        ) is not None and ovl.value is not None:
+            return int(ovl.value)
+
+        # Fallback to BATTERY_STATE if available (channel 0)
+        # BATTERY_STATE is typically 0-100 percentage or voltage
+        # If value > 10, assume it's already a percentage
+        # If value <= 10, assume it's voltage and can't be converted without battery info
+        if (
+            (
+                dp := self.get_generic_data_point(
+                    channel_address=f"{self._address}:0",
+                    parameter=Parameter.BATTERY_STATE,
+                )
+            )
+            is not None
+            and dp.value is not None
+            and (value := float(dp.value)) > 10
+        ):
+            return int(value)
+        return None
+
+    def _get_is_reachable(self) -> bool:
+        """Return if device is reachable."""
+        if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
+            return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
+        if (un_reach := self._dp_un_reach) is None:
+            un_reach = self._dp_sticky_un_reach
+        if un_reach is not None and un_reach.value is not None:
+            return not un_reach.value
+        return True
+
+    def _get_last_updated(self) -> datetime | None:
+        """Return the most recent data point modification time."""
+        latest = INIT_DATETIME
+        for channel in self._channels.values():
+            for dp in channel.get_data_points(exclude_no_create=False):
+                latest = max(latest, dp.modified_at)
+        return latest if latest > INIT_DATETIME else None
+
+    def _get_low_battery(self) -> bool | None:
+        """Return low battery indicator from LOW_BAT parameter."""
+        # Check channels 0, 1, 2 for LOW_BAT (different devices use different channels)
+        for channel_no in (0, 1, 2):
+            if (
+                dp := self.get_generic_data_point(
+                    channel_address=f"{self._address}:{channel_no}",
+                    parameter=Parameter.LOW_BAT,
+                )
+            ) is not None and dp.value is not None:
+                return dp.value is True
+        return None
+
+    def _get_signal_strength(self) -> int | None:
+        """Return signal strength in dBm from RSSI_DEVICE."""
+        if (
+            dp := self.get_generic_data_point(
+                channel_address=f"{self._address}:0",
+                parameter=Parameter.RSSI_DEVICE,
+            )
+        ) is not None and dp.value is not None:
+            return int(dp.value)
+        return None
 
     def _identify_manufacturer(self) -> Manufacturer:
         """Identify the manufacturer of a device."""

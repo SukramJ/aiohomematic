@@ -73,11 +73,14 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
+from aiohomematic.model.availability import AvailabilityInfo
 from aiohomematic.model.calculated import create_calculated_data_points
 from aiohomematic.model.event import create_event_and_append_to_channel
 from aiohomematic.model.generic import create_data_point_and_append_to_channel
 
 __all__ = [
+    # Data classes
+    "AvailabilityInfo",
     # Factory
     "create_data_points_and_events",
 ]

@@ -152,7 +152,7 @@ class TestI18nLocalizedExceptions:
         i18n.set_locale(locale=locale)
         cfg = self._make_invalid_config()
         with pytest.raises(Exception) as excinfo:
-            cfg.check_config()
+            await cfg.check_config()
         msg = str(excinfo.value)
         assert expected_substr in msg
         # It should include at least one original failure detail joined in

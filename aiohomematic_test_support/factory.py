@@ -151,7 +151,7 @@ class FactoryWithClient:
     async def get_raw_central(self) -> CentralUnit:
         """Return a central based on give address_device_translation."""
         interface_configs = self._interface_configs if self._interface_configs else set()
-        central = CentralConfig(
+        central = await CentralConfig(
             name=const.CENTRAL_NAME,
             host=const.CCU_HOST,
             username=const.CCU_USERNAME,
@@ -302,7 +302,7 @@ async def get_pydev_ccu_central_unit_full(
         )
     }
 
-    central = CentralConfig(
+    central = await CentralConfig(
         name=const.CENTRAL_NAME,
         host=const.CCU_HOST,
         username=const.CCU_USERNAME,

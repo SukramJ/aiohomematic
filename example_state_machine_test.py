@@ -305,7 +305,7 @@ class StateMachineTestMonitor:
         }
 
         # Create central
-        self.central = CentralConfig(
+        self.central = await CentralConfig(
             name=central_name,
             host=CCU_HOST,
             username=CCU_USERNAME,

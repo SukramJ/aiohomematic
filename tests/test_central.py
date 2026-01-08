@@ -1126,7 +1126,7 @@ class TestCentralConfig:
         def fail_create_dir(*, directory: str) -> bool:  # type: ignore[override]
             raise AioHomematicException("dir error")
 
-        monkeypatch.setattr("aiohomematic.central.config.check_or_create_directory", fail_create_dir)
+        monkeypatch.setattr("aiohomematic.central.config._check_or_create_directory_sync", fail_create_dir)
 
         cfg = CentralConfig(
             central_id="c1",
@@ -1138,7 +1138,7 @@ class TestCentralConfig:
         )
 
         with pytest.raises(AioHomematicConfigException):
-            cfg.check_config()
+            await cfg.check_config()
 
     @pytest.mark.asyncio
     async def test_central_config_create_central_url_variants(self) -> None:
@@ -1177,9 +1177,9 @@ class TestCentralConfig:
             """Return False to force directory creation failure."""
             raise AioHomematicException("failed to create dir")
 
-        monkeypatch.setattr("aiohomematic.central.config.check_or_create_directory", fail_create_dir)
+        monkeypatch.setattr("aiohomematic.central.config._check_or_create_directory_sync", fail_create_dir)
 
-        errors = central_check_config(
+        errors = await central_check_config(
             central_name="bad@name",  # contains IDENTIFIER_SEPARATOR
             host="not_a_host",  # invalid host
             username="",  # empty username
@@ -1207,7 +1207,7 @@ class TestCentralConfig:
 
         # Note: primary interface check only happens when "interface_configs" is truthy (not empty)
         ic_non_primary = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
-        errors2 = central_check_config(
+        errors2 = await central_check_config(
             central_name="ok",
             host="127.0.0.1",
             username="u",

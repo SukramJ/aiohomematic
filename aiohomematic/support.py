@@ -119,8 +119,8 @@ def cleanup_script_for_session_recorder(*, script: str) -> str:
     return "\n".join(result)
 
 
-def check_or_create_directory(*, directory: str) -> bool:
-    """Check / create directory."""
+def _check_or_create_directory_sync(*, directory: str) -> bool:
+    """Check / create directory (internal sync implementation)."""
     if not directory:
         return False
     if not os.path.exists(directory):
@@ -135,6 +135,11 @@ def check_or_create_directory(*, directory: str) -> bool:
                 )
             ) from oserr
     return True
+
+
+async def check_or_create_directory(*, directory: str) -> bool:
+    """Check / create directory asynchronously."""
+    return await asyncio.to_thread(_check_or_create_directory_sync, directory=directory)
 
 
 def extract_device_addresses_from_device_descriptions(

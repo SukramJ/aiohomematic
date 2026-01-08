@@ -41,10 +41,10 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.support import (
     CacheEntry,
+    _check_or_create_directory_sync,
     build_xml_rpc_headers,
     build_xml_rpc_uri,
     changed_within_seconds,
-    check_or_create_directory,
     check_password,
     cleanup_text_from_html_tags,
     delete_file,
@@ -132,14 +132,14 @@ class TestXmlRpcHelpers:
 class TestDirectoryHelpers:
     """Tests for directory helper functions."""
 
-    def test_check_or_create_directory(self) -> None:
-        """Test check_or_create_directory."""
-        assert check_or_create_directory(directory="") is False
+    def test_check_or_create_directory_sync(self) -> None:
+        """Test _check_or_create_directory_sync."""
+        assert _check_or_create_directory_sync(directory="") is False
         with patch(
             "os.path.exists",
             return_value=True,
         ):
-            assert check_or_create_directory(directory="tmpdir_1") is True
+            assert _check_or_create_directory_sync(directory="tmpdir_1") is True
 
         with (
             patch(
@@ -151,7 +151,7 @@ class TestDirectoryHelpers:
                 return_value=None,
             ),
         ):
-            assert check_or_create_directory(directory="tmpdir_1") is True
+            assert _check_or_create_directory_sync(directory="tmpdir_1") is True
 
         with (
             patch(
@@ -161,7 +161,7 @@ class TestDirectoryHelpers:
             patch("os.makedirs", side_effect=OSError("bla bla")),
         ):
             with pytest.raises(AioHomematicException) as exc:
-                check_or_create_directory(directory="tmpdir_ex")
+                _check_or_create_directory_sync(directory="tmpdir_ex")
             assert exc
 
 

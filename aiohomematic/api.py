@@ -323,7 +323,7 @@ class HomematicAPI:
         This creates the central unit, initializes clients, and starts
         the background scheduler for connection health checks.
         """
-        self._central = self._config.create_central()
+        self._central = await self._config.create_central()
         await self._central.start()
 
     async def stop(self) -> None:

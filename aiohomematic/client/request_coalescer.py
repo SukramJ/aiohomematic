@@ -55,6 +55,9 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
+from aiohomematic.central.events import RequestCoalescedEvent
+from aiohomematic.metrics import MetricKeys, emit_counter
+
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
 
@@ -217,9 +220,6 @@ class RequestCoalescer:
         if self._event_bus is None:
             return
 
-        # Import here to avoid circular dependency
-        from aiohomematic.central.events import RequestCoalescedEvent  # noqa: PLC0415
-
         self._event_bus.publish_sync(
             event=RequestCoalescedEvent(
                 timestamp=datetime.now(),
@@ -233,7 +233,6 @@ class RequestCoalescer:
         """Emit a counter for coalesced requests (significant event)."""
         if self._event_bus is None:
             return
-        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
 
         emit_counter(
             event_bus=self._event_bus,
@@ -244,7 +243,6 @@ class RequestCoalescer:
         """Emit a counter for failed requests (significant event)."""
         if self._event_bus is None:
             return
-        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
 
         emit_counter(
             event_bus=self._event_bus,

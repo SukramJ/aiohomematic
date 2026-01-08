@@ -70,6 +70,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.property_decorators import DelegatedProperty
+from aiohomematic.store.types import IncidentSeverity, IncidentType
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState
@@ -341,9 +342,6 @@ class CircuitBreaker:
         if (incident_recorder := self._incident_recorder) is None:
             return
 
-        # Lazy import to avoid circular dependency
-        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
-
         # Capture values for the async closure
         interface_id = self._interface_id
         success_count = self._success_count
@@ -378,9 +376,6 @@ class CircuitBreaker:
         """Record an incident when circuit breaker opens."""
         if (incident_recorder := self._incident_recorder) is None:
             return
-
-        # Lazy import to avoid circular dependency
-        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
 
         # Capture values for the async closure
         interface_id = self._interface_id

@@ -49,6 +49,7 @@ from aiohomematic.exceptions import (
 )
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent import SessionRecorder
+from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 from aiohomematic.type_aliases import CallableAny
 
@@ -250,9 +251,6 @@ class BaseRpcProxy(ABC):
         """
         if (incident_recorder := self._incident_recorder) is None:
             return
-
-        # Lazy import to avoid circular dependency
-        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
 
         # Sanitize error message to remove sensitive information
         sanitized_message = sanitize_error_message(message=error_message)

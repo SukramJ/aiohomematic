@@ -112,6 +112,7 @@ from aiohomematic.exceptions import (
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent import SessionRecorder
+from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import (
     LogContextMixin,
     cleanup_script_for_session_recorder,
@@ -1968,9 +1969,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """
         if (incident_recorder := self._incident_recorder) is None:
             return
-
-        # Lazy import to avoid circular dependency
-        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
 
         # Sanitize error message to remove sensitive information
         sanitized_message = sanitize_error_message(message=error_message)

@@ -59,6 +59,7 @@ from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientPro
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
+from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import (
     LogContextMixin,
     extract_exc_args,
@@ -1245,8 +1246,6 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         last_event_time: datetime,
     ) -> None:
         """Record a CALLBACK_TIMEOUT incident for diagnostics."""
-        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
-
         incident_recorder = self._central.cache_coordinator.incident_store
 
         # Get circuit breaker state safely

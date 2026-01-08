@@ -302,7 +302,7 @@ async def get_pydev_ccu_central_unit_full(
         )
     }
 
-    config = CentralConfig(
+    central = await CentralConfig(
         name=const.CENTRAL_NAME,
         host=const.CCU_HOST,
         username=const.CCU_USERNAME,
@@ -312,9 +312,7 @@ async def get_pydev_ccu_central_unit_full(
         client_session=client_session,
         program_markers=(),
         sysvar_markers=(),
-    )
-
-    central = await config.create_central()
+    ).create_central()
     central.event_bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=device_lifecycle_event_handler)
     await central.start()
 

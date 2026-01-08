@@ -1,3 +1,25 @@
+# Version 2026.1.20 (2026-01-08)
+
+## What's Changed
+
+### Changed
+
+- **Eliminate dynamic import in `CentralConfig.create_central()`**: The circular import between `config.py` and `central_unit.py` has been resolved using Dependency Inversion with a new `CentralConfigProtocol`. This eliminates the Home Assistant warning: `Detected blocking call to import_module with args ('aiohomematic.central.central_unit',)`.
+
+### Added
+
+- **New `CentralConfigProtocol`**: A protocol interface in `interfaces/central.py` that defines the configuration contract, enabling `CentralUnit` to depend on the protocol rather than the concrete `CentralConfig` class.
+
+### Removed
+
+- **`CentralConfig.create_json_rpc_client()` method removed**: This method was moved inline into `CentralUnit.json_rpc_client` property. External consumers should not have been using this method as it required a `CentralUnit` instance as parameter.
+
+### Internal
+
+- `CentralUnit.__init__` now accepts `CentralConfigProtocol` instead of `CentralConfig`
+- `ConfigProviderProtocol.config` now returns `CentralConfigProtocol`
+- `ClientDependenciesProtocol.config` now returns `CentralConfigProtocol`
+
 # Version 2026.1.19 (2026-01-08)
 
 ## What's Changed

@@ -156,6 +156,7 @@ from __future__ import annotations
 
 from aiohomematic.interfaces.central import (
     BackupProviderProtocol,
+    CentralConfigProtocol,
     CentralHealthProtocol,
     CentralInfoProtocol,
     # Central composite protocol
@@ -286,6 +287,8 @@ __all__ = [
     "ParamsetDescriptionWriterProtocol",
     # Central composite
     "CentralProtocol",
+    # Central config
+    "CentralConfigProtocol",
     # Central health
     "CentralHealthProtocol",
     "ConnectionHealthProtocol",

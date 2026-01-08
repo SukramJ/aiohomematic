@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Final
 from aiohttp import ClientSession
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.client import AioJsonRpcAioHttpClient
+from aiohomematic.central.central_unit import CentralUnit
 from aiohomematic.const import (
     DEFAULT_DELAY_NEW_DEVICE_CREATION,
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
@@ -60,7 +60,6 @@ from aiohomematic.support import (
 )
 
 if TYPE_CHECKING:
-    from aiohomematic.central.central_unit import CentralUnit
     from aiohomematic.store import StorageFactoryProtocol
 
 
@@ -363,9 +362,6 @@ class CentralConfig:
 
     async def create_central(self) -> CentralUnit:
         """Create the central asynchronously."""
-        # Import here to avoid circular imports
-        from aiohomematic.central.central_unit import CentralUnit  # noqa: PLC0415
-
         try:
             await self.check_config()
             return CentralUnit(central_config=self)
@@ -384,27 +380,6 @@ class CentralConfig:
         if self.json_port:
             url = f"{url}:{self.json_port}"
         return f"{url}"
-
-    def create_json_rpc_client(
-        self,
-        *,
-        central: CentralUnit,
-        interface_id: str | None = None,
-    ) -> AioJsonRpcAioHttpClient:
-        """Create a json rpc client."""
-        return AioJsonRpcAioHttpClient(
-            username=self.username,
-            password=self.password,
-            device_url=central.url,
-            connection_state=central.connection_state,
-            interface_id=interface_id,
-            client_session=self.client_session,
-            tls=self.tls,
-            verify_tls=self.verify_tls,
-            session_recorder=central.cache_coordinator.recorder,
-            event_bus=central.event_bus,
-            incident_recorder=central.cache_coordinator.incident_store,
-        )
 
 
 def _check_config_sync(

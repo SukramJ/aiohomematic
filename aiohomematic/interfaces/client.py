@@ -60,11 +60,12 @@ from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 from aiohomematic.metrics._protocols import ClientProviderForMetricsProtocol
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralConfig, CentralConnectionState, DeviceRegistry
+    from aiohomematic.central import CentralConnectionState, DeviceRegistry
     from aiohomematic.central.coordinators import CacheCoordinator, DeviceCoordinator, EventCoordinator
     from aiohomematic.central.events import EventBus
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
     from aiohomematic.client.backends.capabilities import BackendCapabilities
+    from aiohomematic.interfaces.central import CentralConfigProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
     from aiohomematic.store.persistent import SessionRecorder
 
@@ -1012,7 +1013,7 @@ class ClientDependenciesProtocol(Protocol):
 
     @property
     @abstractmethod
-    def config(self) -> CentralConfig:
+    def config(self) -> CentralConfigProtocol:
         """Return central configuration."""
 
     @property

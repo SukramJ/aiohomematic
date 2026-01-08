@@ -72,6 +72,7 @@ from aiohomematic.const import (
     RecoveryStage,
     get_json_rpc_default_port,
 )
+from aiohomematic.store.types import IncidentSeverity, IncidentType
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -637,9 +638,6 @@ class ConnectionRecoveryCoordinator:
         if (incident_recorder := self._incident_recorder) is None:
             return
 
-        # Lazy import to avoid circular dependency
-        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
-
         interface_id = event.interface_id
         reason = event.reason
         detected_at = event.detected_at.isoformat() if event.detected_at else None
@@ -703,9 +701,6 @@ class ConnectionRecoveryCoordinator:
         """Record a CONNECTION_RESTORED incident for diagnostics."""
         if (incident_recorder := self._incident_recorder) is None:
             return
-
-        # Lazy import to avoid circular dependency
-        from aiohomematic.store.types import IncidentSeverity, IncidentType  # noqa: PLC0415
 
         # Calculate recovery duration
         duration_ms = (time.perf_counter() - state.recovery_start_time) * 1000 if state.recovery_start_time else 0.0

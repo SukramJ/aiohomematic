@@ -16,10 +16,6 @@ from __future__ import annotations
 
 from aiohomematic.central.events.bus import (
     CacheInvalidatedEvent,
-    CentralStateChangedEvent,
-    CircuitBreakerStateChangedEvent,
-    CircuitBreakerTrippedEvent,
-    ClientStateChangedEvent,
     ConnectionHealthChangedEvent,
     ConnectionLostEvent,
     ConnectionStageChangedEvent,
@@ -30,13 +26,10 @@ from aiohomematic.central.events.bus import (
     DataRefreshTriggeredEvent,
     DeviceRemovedEvent,
     DeviceStateChangedEvent,
-    Event,
     EventBatch,
     EventBus,
-    EventPriority,
     FirmwareStateChangedEvent,
     HandlerStats,
-    HealthRecordedEvent,
     HeartbeatTimerFiredEvent,
     LinkPeerChangedEvent,
     ProgramExecutedEvent,
@@ -55,6 +48,15 @@ from aiohomematic.central.events.integration import (
     DeviceTriggerEvent,
     IntegrationIssue,
     SystemStatusChangedEvent,
+)
+from aiohomematic.central.events.types import (
+    CentralStateChangedEvent,
+    CircuitBreakerStateChangedEvent,
+    CircuitBreakerTrippedEvent,
+    ClientStateChangedEvent,
+    Event,
+    EventPriority,
+    HealthRecordedEvent,
 )
 
 __all__ = [

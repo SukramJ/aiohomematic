@@ -1,3 +1,42 @@
+# Version 2026.1.20 (2026-01-08)
+
+## What's Changed
+
+### Changed
+
+- **Eliminate dynamic import in `CentralConfig.create_central()`**: The circular import between `config.py` and `central_unit.py` has been resolved using Dependency Inversion with a new `CentralConfigProtocol`. This eliminates the Home Assistant warning: `Detected blocking call to import_module with args ('aiohomematic.central.central_unit',)`.
+
+- **Eliminate all remaining lazy imports**: All `noqa: PLC0415` markers have been removed from production code. Circular imports have been resolved through module restructuring:
+  - Event types (`Event`, `EventPriority`, state change events) moved to `central/events/types.py`
+  - `LogContextProtocol` moved to `_log_context_protocol.py` in root package
+  - Handler utilities now imported at top-level
+  - Metrics imports now at top-level in `circuit_breaker.py`
+
+### Added
+
+- **New `CentralConfigProtocol`**: A protocol interface in `interfaces/central.py` that defines the configuration contract, enabling `CentralUnit` to depend on the protocol rather than the concrete `CentralConfig` class.
+
+- **New `central/events/types.py` module**: Contains foundational event types to break circular import chains:
+
+  - `Event` base class
+  - `EventPriority` enum
+  - `CircuitBreakerStateChangedEvent`, `CircuitBreakerTrippedEvent`
+  - `ClientStateChangedEvent`, `CentralStateChangedEvent`, `HealthRecordedEvent`
+
+- **New `_log_context_protocol.py` module**: Minimal leaf module containing `LogContextProtocol` to avoid triggering package initialization chains.
+
+### Removed
+
+- **`CentralConfig.create_json_rpc_client()` method removed**: This method was moved inline into `CentralUnit.json_rpc_client` property. External consumers should not have been using this method as it required a `CentralUnit` instance as parameter.
+
+### Internal
+
+- `CentralUnit.__init__` now accepts `CentralConfigProtocol` instead of `CentralConfig`
+- `ConfigProviderProtocol.config` now returns `CentralConfigProtocol`
+- `ClientDependenciesProtocol.config` now returns `CentralConfigProtocol`
+- Event consumer modules now import from `central/events/types.py` directly
+- `property_decorators.py` imports `LogContextProtocol` from root package module
+
 # Version 2026.1.19 (2026-01-08)
 
 ## What's Changed
@@ -67,7 +106,6 @@
   - **Debug logging**: All validation failures now logged at DEBUG level with context (address, parameter name, validation error) for easier troubleshooting and backend compatibility monitoring
 
 - **Implement ADR 0015: Description Data Normalization and Validation**: Establish comprehensive data normalization layer using voluptuous for device and parameter descriptions
-
   - **Problem**: Device descriptions and paramset descriptions were normalized at output points (e.g., `listDevices()` XML-RPC response), addressing symptoms rather than root causes. This violated DRY principle and created multiple validation points.
   - **Solution**: Normalize data at all ingestion points following "Parse, don't validate" pattern
   - **Benefits**: Single source of truth for data correctness, defense in depth with multiple validation points, cache efficiency through schema versioning, reduced complexity by eliminating output normalization
@@ -287,7 +325,6 @@
 ### Bug Fixes
 
 - **Fix CUxD/CCU-Jack Recovery for JSON-RPC-only Interfaces**: Connection recovery now properly handles JSON-RPC-only interfaces (CUxD, CCU-Jack)
-
   - **TCP Check**: For interfaces without an XML-RPC port (port=0), the recovery now checks the JSON-RPC port (80/443) instead of failing immediately
   - **RPC Availability Check**: JSON-RPC-only interfaces now use `check_connection_availability()` (which calls `Interface.isPresent` via JSON-RPC) instead of attempting XML-RPC `system.listMethods`
   - Previously, CUxD recovery would always fail at the TCP check stage because `_get_client_port` returned `None`
@@ -423,7 +460,6 @@
   - Context includes: seconds since last event, configured threshold, last event time, client/circuit breaker state
 
 - **Per-Type Incident Storage**: IncidentStore now uses per-IncidentType storage limits
-
   - Each incident type maintains its own history (max 20 per type, 7-day retention)
   - Prevents high-frequency incidents from crowding out rare but important events
   - Renamed `max_incidents` to `max_per_type` parameter
@@ -450,7 +486,6 @@
   - Added `IncidentRecorderProtocol` for decoupled incident recording
 
 - **PingPong Diagnostics Journal**: Enhanced diagnostic capabilities for connection monitoring
-
   - `PingPongJournal` ring buffer tracks PING/PONG events with timestamps
   - RTT (round-trip time) statistics available via `get_rtt_statistics()`
   - Journal excerpts attached to incidents for post-mortem analysis
@@ -481,7 +516,6 @@
   - Matches the existing behavior for pending PING mismatches
 
 - **Fix OperatingVoltageLevel Shows Unknown After Restart** (Issue #2674): Battery parameters now load from cache on startup
-
   - Previously, parameters with `ignore_on_initial_load=True` (e.g., `OPERATING_VOLTAGE`, `LOW_BAT`) would remain "Unknown" after HA restart until the device was triggered
   - Now these parameters load from the persistent data cache while still skipping RPC calls to avoid waking battery devices
   - Calculated data points like `OperatingVoltageLevel` now show their cached values immediately after restart
@@ -506,7 +540,6 @@
   - Added graceful fallback for unknown enum values in `AstroType`, `TimeBase`, and `ScheduleCondition`
 
 - **Fix ClientJsonCCU Handler Initialization**: `ClientJsonCCU` (used for CCU-Jack) now properly initializes handlers
-
   - Root cause: `init_client()` only initialized handlers when `supports_rpc_callback=True`, but CCU-Jack uses JSON-RPC exclusively
   - Added `NullRpcProxy` class - a lightweight proxy placeholder that doesn't create XML-RPC connections
   - `ClientJsonCCU.init_client()` now uses `NullRpcProxy` to satisfy handler initialization without wasting resources
@@ -630,7 +663,6 @@
   - Configurable storage options: `raw_mode` (no metadata wrapper), `formatted` (indented JSON), `as_zip` (ZIP compression)
 
 - **Device Definition Export**: Single ZIP file export for device definitions
-
   - `_DefinitionExporter` now creates `{model}.zip` containing subdirectories
   - `device_descriptions/{model}.json` and `paramset_descriptions/{model}.json` inside ZIP
   - Formatted JSON output with indentation for readability
@@ -705,7 +737,6 @@
 ### New Features
 
 - **Unified Connection Recovery Coordinator**: New event-driven coordinator handling all connection recovery
-
   - Located in `aiohomematic/central/connection_recovery.py`
   - Replaces `SelfHealingCoordinator`, `RecoveryCoordinator`, and `BackgroundScheduler` recovery logic
   - **Event-Driven Architecture**: Subscribes to `ConnectionLostEvent` and `CircuitBreakerTrippedEvent`
@@ -1063,7 +1094,6 @@
 ### New Features
 
 - **Add HmIP-WRCD (Wall-mount Remote Control with Display) support**: Implement `CustomDpTextDisplay` custom data point for devices with LCD displays
-
   - New `DataPointCategory.TEXT_DISPLAY` and `DeviceProfile.IP_TEXT_DISPLAY`
   - `send_text()` method to display text with configurable icon, colors, alignment, and optional sound
   - Expose display parameters as ActionSelects: `DISPLAY_DATA_ICON`, `DISPLAY_DATA_BACKGROUND_COLOR`, `DISPLAY_DATA_TEXT_COLOR`, `DISPLAY_DATA_ALIGNMENT`, `ACOUSTIC_NOTIFICATION_SELECTION`

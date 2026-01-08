@@ -64,11 +64,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import StrEnum
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
+from aiohomematic.central.events.types import CircuitBreakerStateChangedEvent, CircuitBreakerTrippedEvent
+from aiohomematic.const import CircuitState
+from aiohomematic.metrics import MetricKeys, emit_counter
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.types import IncidentSeverity, IncidentType
 
@@ -79,19 +81,6 @@ if TYPE_CHECKING:
 
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-
-class CircuitState(StrEnum):
-    """Circuit breaker states."""
-
-    CLOSED = "closed"
-    """Normal operation - requests are allowed through."""
-
-    OPEN = "open"
-    """Failure mode - requests are immediately rejected."""
-
-    HALF_OPEN = "half_open"
-    """Test mode - one request is allowed to test recovery."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,9 +259,6 @@ class CircuitBreaker:
         if self._event_bus is None:
             return
 
-        # Lazy import to avoid circular dependency with metrics module
-        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
-
         if metric == "failure":
             key = MetricKeys.circuit_failure(interface_id=self._interface_id)
         elif metric == "rejection":
@@ -292,9 +278,6 @@ class CircuitBreaker:
         if self._event_bus is None:
             return
 
-        # Import here to avoid circular dependency
-        from aiohomematic.central.events import CircuitBreakerStateChangedEvent  # noqa: PLC0415
-
         self._event_bus.publish_sync(
             event=CircuitBreakerStateChangedEvent(
                 timestamp=datetime.now(),
@@ -312,8 +295,6 @@ class CircuitBreaker:
         if self._event_bus is None:
             return
 
-        from aiohomematic.metrics import MetricKeys, emit_counter  # noqa: PLC0415
-
         emit_counter(
             event_bus=self._event_bus,
             key=MetricKeys.circuit_state_transition(interface_id=self._interface_id),
@@ -323,9 +304,6 @@ class CircuitBreaker:
         """Emit a circuit breaker tripped event."""
         if self._event_bus is None:
             return
-
-        # Import here to avoid circular dependency
-        from aiohomematic.central.events import CircuitBreakerTrippedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
             event=CircuitBreakerTrippedEvent(

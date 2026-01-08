@@ -61,7 +61,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
-from aiohomematic.central.events.bus import Event
+from aiohomematic.central.events.types import Event
 from aiohomematic.const import CentralState, ClientState, DataPointCategory, DeviceTriggerEventType, FailureReason
 
 if TYPE_CHECKING:

@@ -43,7 +43,7 @@ import math
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.events import EventPriority
+from aiohomematic.central.events.types import EventPriority
 from aiohomematic.metrics.events import (
     CounterMetricEvent,
     GaugeMetricEvent,

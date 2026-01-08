@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.19"
+VERSION: Final = "2026.1.20"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1320,6 +1320,19 @@ class ClientState(StrEnum):
     STOPPING = "stopping"
     STOPPED = "stopped"
     FAILED = "failed"
+
+
+class CircuitState(StrEnum):
+    """Circuit breaker states."""
+
+    CLOSED = "closed"
+    """Normal operation - requests are allowed through."""
+
+    OPEN = "open"
+    """Failure mode - requests are immediately rejected."""
+
+    HALF_OPEN = "half_open"
+    """Test mode - one request is allowed to test recovery."""
 
 
 class RpcServerType(StrEnum):

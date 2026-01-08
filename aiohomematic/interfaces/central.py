@@ -14,23 +14,28 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Protocol, Unpack, runtime_checkable
 
+from aiohttp import ClientSession
+
 from aiohomematic.const import (
     BackupData,
     CentralState,
     ClientState,
+    DescriptionMarker,
     DeviceFirmwareState,
     DeviceTriggerEventType,
     EventData,
     FailureReason,
     Interface,
+    OptionalSettings,
     ParamsetKey,
+    ScheduleTimerConfig,
     SystemEventType,
     SystemInformation,
+    TimeoutConfig,
 )
 from aiohomematic.metrics._protocols import DeviceProviderForMetricsProtocol, HubDataPointManagerForMetricsProtocol
 
 if TYPE_CHECKING:
-    from aiohomematic.central import CentralConfig
     from aiohomematic.central.coordinators import (
         ClientCoordinator,
         DeviceCoordinator,
@@ -38,6 +43,7 @@ if TYPE_CHECKING:
         SystemEventArgs,
     )
     from aiohomematic.central.events import EventBus
+    from aiohomematic.client import InterfaceConfig
     from aiohomematic.interfaces import (
         CallbackDataPointProtocol,
         ChannelProtocol,
@@ -46,6 +52,214 @@ if TYPE_CHECKING:
     )
     from aiohomematic.metrics import MetricsObserver
     from aiohomematic.model.hub import ProgramDpType
+    from aiohomematic.store import StorageFactoryProtocol
+
+
+@runtime_checkable
+class CentralConfigProtocol(Protocol):
+    """
+    Protocol for CentralConfig interface.
+
+    This protocol defines the configuration interface required by CentralUnit,
+    enabling dependency inversion to eliminate circular imports between
+    config.py and central_unit.py.
+
+    Implemented by CentralConfig.
+    """
+
+    @property
+    @abstractmethod
+    def callback_host(self) -> str | None:
+        """Return the callback host address."""
+
+    @property
+    @abstractmethod
+    def callback_port_xml_rpc(self) -> int | None:
+        """Return the callback port for XML-RPC."""
+
+    @property
+    @abstractmethod
+    def central_id(self) -> str:
+        """Return the central ID."""
+
+    @property
+    @abstractmethod
+    def client_session(self) -> ClientSession | None:
+        """Return the aiohttp client session."""
+
+    @property
+    @abstractmethod
+    def connection_check_port(self) -> int:
+        """Return the connection check port."""
+
+    @property
+    @abstractmethod
+    def default_callback_port_xml_rpc(self) -> int:
+        """Return the default callback port for XML-RPC."""
+
+    @property
+    @abstractmethod
+    def delay_new_device_creation(self) -> bool:
+        """Return if new device creation should be delayed."""
+
+    @property
+    @abstractmethod
+    def enable_device_firmware_check(self) -> bool:
+        """Return if device firmware check is enabled."""
+
+    @property
+    @abstractmethod
+    def enable_program_scan(self) -> bool:
+        """Return if program scanning is enabled."""
+
+    @property
+    @abstractmethod
+    def enable_sysvar_scan(self) -> bool:
+        """Return if system variable scanning is enabled."""
+
+    @property
+    @abstractmethod
+    def enable_xml_rpc_server(self) -> bool:
+        """Return if XML-RPC server should be enabled."""
+
+    @property
+    @abstractmethod
+    def enabled_interface_configs(self) -> frozenset[InterfaceConfig]:
+        """Return the enabled interface configurations."""
+
+    @property
+    @abstractmethod
+    def host(self) -> str:
+        """Return the host address."""
+
+    @property
+    @abstractmethod
+    def ignore_custom_device_definition_models(self) -> frozenset[str]:
+        """Return the set of device models to ignore for custom definitions."""
+
+    @property
+    @abstractmethod
+    def interfaces_requiring_periodic_refresh(self) -> frozenset[Interface]:
+        """Return the set of interfaces requiring periodic refresh."""
+
+    @property
+    @abstractmethod
+    def listen_ip_addr(self) -> str | None:
+        """Return the listen IP address."""
+
+    @property
+    @abstractmethod
+    def listen_port_xml_rpc(self) -> int | None:
+        """Return the listen port for XML-RPC."""
+
+    @property
+    @abstractmethod
+    def locale(self) -> str:
+        """Return the locale setting."""
+
+    @property
+    @abstractmethod
+    def max_read_workers(self) -> int:
+        """Return the maximum number of read workers."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the central name."""
+
+    @property
+    @abstractmethod
+    def optional_settings(self) -> frozenset[OptionalSettings | str]:
+        """Return the optional settings."""
+
+    @property
+    @abstractmethod
+    def password(self) -> str:
+        """Return the password."""
+
+    @property
+    @abstractmethod
+    def program_markers(self) -> tuple[DescriptionMarker | str, ...]:
+        """Return the program markers for filtering."""
+
+    @property
+    @abstractmethod
+    def schedule_timer_config(self) -> ScheduleTimerConfig:
+        """Return the schedule timer configuration."""
+
+    @property
+    @abstractmethod
+    def session_recorder_randomize_output(self) -> bool:
+        """Return if session recorder should randomize output."""
+
+    @property
+    @abstractmethod
+    def session_recorder_start(self) -> bool:
+        """Return if session recorder should start."""
+
+    @property
+    @abstractmethod
+    def session_recorder_start_for_seconds(self) -> int:
+        """Return the session recorder start duration in seconds."""
+
+    @property
+    @abstractmethod
+    def start_direct(self) -> bool:
+        """Return if direct start mode is enabled."""
+
+    @property
+    @abstractmethod
+    def storage_directory(self) -> str:
+        """Return the storage directory path."""
+
+    @property
+    @abstractmethod
+    def storage_factory(self) -> StorageFactoryProtocol | None:
+        """Return the storage factory."""
+
+    @property
+    @abstractmethod
+    def sysvar_markers(self) -> tuple[DescriptionMarker | str, ...]:
+        """Return the system variable markers for filtering."""
+
+    @property
+    @abstractmethod
+    def timeout_config(self) -> TimeoutConfig:
+        """Return the timeout configuration."""
+
+    @property
+    @abstractmethod
+    def tls(self) -> bool:
+        """Return if TLS is enabled."""
+
+    @property
+    @abstractmethod
+    def un_ignore_list(self) -> frozenset[str]:
+        """Return the un-ignore list."""
+
+    @property
+    @abstractmethod
+    def use_caches(self) -> bool:
+        """Return if caches should be used."""
+
+    @property
+    @abstractmethod
+    def use_group_channel_for_cover_state(self) -> bool:
+        """Return if group channel should be used for cover state."""
+
+    @property
+    @abstractmethod
+    def username(self) -> str:
+        """Return the username."""
+
+    @property
+    @abstractmethod
+    def verify_tls(self) -> bool:
+        """Return if TLS verification is enabled."""
+
+    @abstractmethod
+    def create_central_url(self) -> str:
+        """Create and return the central URL."""
 
 
 @runtime_checkable
@@ -106,7 +320,7 @@ class ConfigProviderProtocol(Protocol):
 
     @property
     @abstractmethod
-    def config(self) -> CentralConfig:
+    def config(self) -> CentralConfigProtocol:
         """Get central configuration."""
 
 

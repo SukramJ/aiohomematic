@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper
@@ -56,7 +56,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, NoClientsException
-from aiohomematic.interfaces.central import CentralProtocol
+from aiohomematic.interfaces.central import CentralConfigProtocol, CentralProtocol
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
@@ -79,9 +79,6 @@ from aiohomematic.support import (
     get_ip_addr,
 )
 
-if TYPE_CHECKING:
-    from aiohomematic.central.config import CentralConfig
-
 _LOGGER: Final = logging.getLogger(__name__)
 
 # {central_name, central}
@@ -95,10 +92,10 @@ class CentralUnit(
 ):
     """Central unit that collects everything to handle communication from/to the backend."""
 
-    def __init__(self, *, central_config: CentralConfig) -> None:
+    def __init__(self, *, central_config: CentralConfigProtocol) -> None:
         """Initialize the central unit."""
         # Keep the config for the central
-        self._config: Final = central_config
+        self._config: Final[CentralConfigProtocol] = central_config
         # Apply locale for translations
         try:
             i18n.set_locale(locale=self._config.locale)
@@ -261,7 +258,7 @@ class CentralUnit(
     callback_ip_addr: Final = DelegatedProperty[str](path="_rpc_callback_ip")
     central_state_machine: Final = DelegatedProperty[CentralStateMachine](path="_central_state_machine")
     client_coordinator: Final = DelegatedProperty[ClientCoordinator](path="_client_coordinator")
-    config: Final = DelegatedProperty["CentralConfig"](path="_config")
+    config: Final = DelegatedProperty[CentralConfigProtocol](path="_config")
     connection_recovery_coordinator: Final = DelegatedProperty[ConnectionRecoveryCoordinator](
         path="_connection_recovery_coordinator"
     )
@@ -305,9 +302,18 @@ class CentralUnit(
                 if self._client_coordinator.primary_client
                 else None
             )
-            self._json_rpc_client = self._config.create_json_rpc_client(
-                central=self,
+            self._json_rpc_client = AioJsonRpcAioHttpClient(
+                username=self._config.username,
+                password=self._config.password,
+                device_url=self._url,
+                connection_state=self._connection_state,
                 interface_id=primary_interface_id,
+                client_session=self._config.client_session,
+                tls=self._config.tls,
+                verify_tls=self._config.verify_tls,
+                session_recorder=self._cache_coordinator.recorder,
+                event_bus=self._event_bus,
+                incident_recorder=self._cache_coordinator.incident_store,
             )
         return self._json_rpc_client
 

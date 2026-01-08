@@ -47,16 +47,18 @@ import logging
 import os
 from typing import Final
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, i18n
+from aiohomematic.client.backends import create_backend
 from aiohomematic.client.ccu import ClientCCU, ClientConfig, ClientHomegear, ClientJsonCCU
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
+from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.interface_client import InterfaceClient
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.rpc_proxy import BaseRpcProxy
 from aiohomematic.client.state_machine import ClientStateMachine, InvalidStateTransitionError
-from aiohomematic.const import OptionalSettings
+from aiohomematic.const import CircuitState, OptionalSettings
+from aiohomematic.exceptions import NoConnectionException
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -139,8 +141,6 @@ async def _create_interface_client(
     interface_config: InterfaceConfig,
 ) -> ClientProtocol:
     """Create InterfaceClient using backend strategy pattern."""
-    from aiohomematic.client.backends import create_backend  # noqa: PLC0415
-
     # Get version first (needed for backend selection)
     client_config = ClientConfig(
         client_deps=client_deps,
@@ -189,9 +189,6 @@ async def _create_interface_client(
 
     if await client.check_connection_availability(handle_ping_pong=False):
         return client
-
-    from aiohomematic import i18n  # noqa: PLC0415
-    from aiohomematic.exceptions import NoConnectionException  # noqa: PLC0415
 
     raise NoConnectionException(
         i18n.tr(key="exception.client.client_config.no_connection", interface_id=interface_config.interface_id)

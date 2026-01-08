@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic.client.backends.base import BaseBackend
 from aiohomematic.client.backends.capabilities import CCU_CAPABILITIES
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitState
+from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.const import (
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
@@ -29,6 +29,7 @@ from aiohomematic.const import (
     Backend,
     BackupData,
     BackupStatus,
+    CircuitState,
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,

@@ -154,8 +154,10 @@ For explicit imports, use the submodules:
 
 from __future__ import annotations
 
+from aiohomematic._log_context_protocol import LogContextProtocol
 from aiohomematic.interfaces.central import (
     BackupProviderProtocol,
+    CentralConfigProtocol,
     CentralHealthProtocol,
     CentralInfoProtocol,
     # Central composite protocol
@@ -286,6 +288,8 @@ __all__ = [
     "ParamsetDescriptionWriterProtocol",
     # Central composite
     "CentralProtocol",
+    # Central config
+    "CentralConfigProtocol",
     # Central health
     "CentralHealthProtocol",
     "ConnectionHealthProtocol",
@@ -342,6 +346,8 @@ __all__ = [
     "HubFetchOperationsProtocol",
     # Incident recording
     "IncidentRecorderProtocol",
+    # Log context
+    "LogContextProtocol",
     # Metrics
     "MetricsProviderProtocol",
     # Model channel

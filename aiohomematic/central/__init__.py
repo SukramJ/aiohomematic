@@ -50,7 +50,7 @@ Example (simplified):
         },
     )
 
-    central = cfg.create_central()
+    central = await cfg.create_central()
     await central.start()     # start XML-RPC server, create/init clients, load store
     # ... interact with devices / data points via central ...
     await central.stop()

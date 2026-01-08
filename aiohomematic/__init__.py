@@ -53,7 +53,7 @@ Typical usage pattern:
         },
     )
 
-    central = config.create_central()
+    central = await config.create_central()
     await central.start()
 
     # Access devices and data points

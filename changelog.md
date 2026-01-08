@@ -1,3 +1,25 @@
+# Version 2026.1.19 (2026-01-08)
+
+## What's Changed
+
+### Breaking Changes
+
+- **`CentralConfig.create_central()` is now async**: Prevents "Detected blocking call" warnings in Home Assistant 2026.1.0+ by running all blocking I/O operations (`os.path.exists`, `os.makedirs`) in a thread pool executor.
+
+  ```python
+  # Before
+  central = config.create_central()
+
+  # After
+  central = await config.create_central()
+  ```
+
+- **`CentralConfig.check_config()` is now async**: Configuration validation now runs in executor to avoid blocking.
+
+- **`check_config()` function is now async**: Module-level config validation function now returns `Awaitable[list[str]]`.
+
+- **`check_or_create_directory()` is now async**: Directory creation utility now returns `Awaitable[bool]`.
+
 # Version 2026.1.18 (2026-01-08)
 
 ## What's Changed

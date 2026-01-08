@@ -8,6 +8,7 @@ This module provides CentralConfig for configuring and creating CentralUnit inst
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Set as AbstractSet
 from typing import TYPE_CHECKING, Any, Final
 
@@ -50,7 +51,7 @@ from aiohomematic.const import (
 from aiohomematic.exceptions import AioHomematicConfigException, AioHomematicException, BaseHomematicException
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import (
-    check_or_create_directory,
+    _check_or_create_directory_sync,
     check_password,
     extract_exc_args,
     is_host,
@@ -194,7 +195,7 @@ class CentralConfig:
                 username="Admin",
                 password="secret",
             )
-            central = config.create_central()
+            central = await config.create_central()
 
         """
         interface_configs: set[hmcl.InterfaceConfig] = set()
@@ -288,7 +289,7 @@ class CentralConfig:
                 username="homegear",
                 password="secret",
             )
-            central = config.create_central()
+            central = await config.create_central()
 
         """
         interface_port = port or get_interface_default_port(interface=Interface.BIDCOS_RF, tls=tls) or 2001
@@ -343,9 +344,9 @@ class CentralConfig:
         """Return if store should be used."""
         return self.start_direct is False
 
-    def check_config(self) -> None:
-        """Check config. Throws BaseHomematicException on failure."""
-        if config_failures := check_config(
+    async def check_config(self) -> None:
+        """Check central config asynchronously."""
+        if config_failures := await check_config(
             central_name=self.name,
             host=self.host,
             username=self.username,
@@ -357,17 +358,16 @@ class CentralConfig:
             interface_configs=self._interface_configs,
         ):
             failures = ", ".join(config_failures)
-            # Localized exception message
             msg = i18n.tr(key="exception.config.invalid", failures=failures)
             raise AioHomematicConfigException(msg)
 
-    def create_central(self) -> CentralUnit:
-        """Create the central. Throws BaseHomematicException on validation failure."""
+    async def create_central(self) -> CentralUnit:
+        """Create the central asynchronously."""
         # Import here to avoid circular imports
         from aiohomematic.central.central_unit import CentralUnit  # noqa: PLC0415
 
         try:
-            self.check_config()
+            await self.check_config()
             return CentralUnit(central_config=self)
         except BaseHomematicException as bhexc:  # pragma: no cover
             raise AioHomematicException(
@@ -407,7 +407,7 @@ class CentralConfig:
         )
 
 
-def check_config(
+def _check_config_sync(
     *,
     central_name: str,
     host: str,
@@ -419,7 +419,7 @@ def check_config(
     json_port: int | None,
     interface_configs: AbstractSet[hmcl.InterfaceConfig] | None = None,
 ) -> list[str]:
-    """Check config. Throws BaseHomematicException on failure."""
+    """Check config (internal sync implementation)."""
     config_failures: list[str] = []
     if central_name and IDENTIFIER_SEPARATOR in central_name:
         config_failures.append(i18n.tr(key="exception.config.check.instance_name.separator", sep=IDENTIFIER_SEPARATOR))
@@ -433,7 +433,7 @@ def check_config(
     if not check_password(password=password):
         config_failures.append(i18n.tr(key="exception.config.check.password.invalid"))
     try:
-        check_or_create_directory(directory=storage_directory)
+        _check_or_create_directory_sync(directory=storage_directory)
     except BaseHomematicException as bhexc:
         config_failures.append(extract_exc_args(exc=bhexc)[0])
     if callback_host and not (is_host(host=callback_host) or is_ipv4_address(address=callback_host)):
@@ -451,6 +451,33 @@ def check_config(
         )
 
     return config_failures
+
+
+async def check_config(
+    *,
+    central_name: str,
+    host: str,
+    username: str,
+    password: str,
+    storage_directory: str,
+    callback_host: str | None,
+    callback_port_xml_rpc: int | None,
+    json_port: int | None,
+    interface_configs: AbstractSet[hmcl.InterfaceConfig] | None = None,
+) -> list[str]:
+    """Check config asynchronously."""
+    return await asyncio.to_thread(
+        _check_config_sync,
+        central_name=central_name,
+        host=host,
+        username=username,
+        password=password,
+        storage_directory=storage_directory,
+        callback_host=callback_host,
+        callback_port_xml_rpc=callback_port_xml_rpc,
+        json_port=json_port,
+        interface_configs=interface_configs,
+    )
 
 
 def _has_primary_client(*, interface_configs: AbstractSet[hmcl.InterfaceConfig]) -> bool:

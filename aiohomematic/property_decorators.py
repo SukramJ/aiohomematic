@@ -28,6 +28,8 @@ from functools import singledispatch
 from typing import Any, Final, ParamSpec, Self, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
+from aiohomematic._log_context_protocol import LogContextProtocol
+
 __all__ = [
     "DelegatedProperty",
     "Kind",
@@ -603,8 +605,8 @@ def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = Fal
         data_object: The instance to inspect.
         kind: The decorator class to use for filtering.
         context: If True, only include properties where the descriptor has
-            log_context=True. When such a property's value is a LogContextMixin, its
-            items are flattened into the result using a short prefix of the property
+            log_context=True. When such a property's value implements LogContextProtocol,
+            its items are flattened into the result using a short prefix of the property
             name (e.g. "p.key").
 
     Returns:
@@ -618,9 +620,6 @@ def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = Fal
         remains robust and side-effect free.
 
     """
-    # Lazy import to avoid circular dependency
-    from aiohomematic.support import LogContextMixin  # noqa: PLC0415
-
     cls = data_object.__class__
 
     # Get or create the per-class cache dict
@@ -642,7 +641,7 @@ def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = Fal
             continue
         try:
             value = getattr(data_object, name)
-            if isinstance(value, LogContextMixin):
+            if isinstance(value, LogContextProtocol):
                 result.update({f"{name[:1]}.{k}": v for k, v in value.log_context.items()})
             else:
                 result[name] = _get_text_value(value)

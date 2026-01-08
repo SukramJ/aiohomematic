@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Final
 
-from aiohomematic.central.events import Event
+from aiohomematic.central.events.types import Event
 
 
 class MetricType(Enum):

@@ -1322,6 +1322,19 @@ class ClientState(StrEnum):
     FAILED = "failed"
 
 
+class CircuitState(StrEnum):
+    """Circuit breaker states."""
+
+    CLOSED = "closed"
+    """Normal operation - requests are allowed through."""
+
+    OPEN = "open"
+    """Failure mode - requests are immediately rejected."""
+
+    HALF_OPEN = "half_open"
+    """Test mode - one request is allowed to test recovery."""
+
+
 class RpcServerType(StrEnum):
     """Enum for Homematic rpc server types."""
 

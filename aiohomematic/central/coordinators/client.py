@@ -17,9 +17,10 @@ The ClientCoordinator provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 from aiohomematic import client as hmcl, i18n
+from aiohomematic.central.events.types import HealthRecordedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, FailureReason, Interface, ProxyInitState
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
@@ -36,9 +37,6 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
-
-if TYPE_CHECKING:
-    from aiohomematic.central.events import HealthRecordedEvent
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -105,9 +103,6 @@ class ClientCoordinator(ClientProviderProtocol):
         self._last_failure_interface_id: str | None = None
 
         # Subscribe to health record events from circuit breakers
-        # Import here to avoid circular dependency
-        from aiohomematic.central.events import HealthRecordedEvent  # noqa: PLC0415
-
         self._unsubscribe_health_record = self._event_bus_provider.event_bus.subscribe(
             event_type=HealthRecordedEvent,
             event_key=None,

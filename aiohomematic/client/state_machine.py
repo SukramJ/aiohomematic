@@ -18,6 +18,7 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
+from aiohomematic.central.events.types import ClientStateChangedEvent
 from aiohomematic.const import ClientState, FailureReason
 from aiohomematic.property_decorators import DelegatedProperty
 
@@ -304,9 +305,6 @@ class ClientStateMachine:
         """Emit a client state change event."""
         if self._event_bus is None:
             return
-
-        # Import here to avoid circular dependency
-        from aiohomematic.central.events import ClientStateChangedEvent  # noqa: PLC0415
 
         self._event_bus.publish_sync(
             event=ClientStateChangedEvent(

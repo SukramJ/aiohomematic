@@ -35,6 +35,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self
 
+from aiohomematic.central import CentralConfig
+from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import (
     DEFAULT_DELAY_NEW_DEVICE_CREATION,
     DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
@@ -66,9 +68,6 @@ from aiohomematic.const import (
 
 if TYPE_CHECKING:
     from aiohttp import ClientSession
-
-    from aiohomematic.central import CentralConfig
-    from aiohomematic.client import InterfaceConfig
 
 __all__ = ["CentralConfigBuilder", "ValidationError"]
 
@@ -379,10 +378,6 @@ class CentralConfigBuilder:
         if errors := self.validate():
             error_msgs = [f"{e.field}: {e.message}" for e in errors]
             raise ValueError(f"Invalid configuration: {', '.join(error_msgs)}")  # i18n-exc: ignore
-
-        # Import here to avoid circular imports
-        from aiohomematic.central import CentralConfig  # noqa: PLC0415
-        from aiohomematic.client import InterfaceConfig  # noqa: PLC0415
 
         # Build interface configs with resolved ports
         interface_configs: set[InterfaceConfig] = set()

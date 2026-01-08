@@ -52,7 +52,7 @@ from aiohomematic.client.backends.capabilities import (
     JSON_CCU_CAPABILITIES,
     BackendCapabilities,
 )
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitState
+from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.handlers import (
     BackupHandler,
@@ -82,6 +82,7 @@ from aiohomematic.const import (
     Backend,
     BackupData,
     CallSource,
+    CircuitState,
     ClientState,
     CommandRxMode,
     DescriptionMarker,

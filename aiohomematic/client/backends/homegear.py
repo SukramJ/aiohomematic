@@ -18,10 +18,11 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic.client.backends.base import BaseBackend
 from aiohomematic.client.backends.capabilities import HOMEGEAR_CAPABILITIES
-from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitState
+from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.const import (
     DUMMY_SERIAL,
     Backend,
+    CircuitState,
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,

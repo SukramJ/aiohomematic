@@ -102,19 +102,17 @@ Example Usage
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import asyncio
 from collections import defaultdict
 from collections.abc import Coroutine, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from enum import IntEnum
 import logging
 import time
 import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
-from aiohomematic.client.circuit_breaker import CircuitState
+from aiohomematic.central.events.types import Event, EventPriority
 from aiohomematic.const import (
     CacheInvalidationReason,
     CacheType,
@@ -136,31 +134,6 @@ _LOGGER = logging.getLogger(__name__)
 
 # Type variables for generic event handling
 T_Event = TypeVar("T_Event", bound="Event")
-
-
-class EventPriority(IntEnum):
-    """
-    Priority levels for event handlers.
-
-    Higher priority handlers are called before lower priority handlers.
-    Handlers with the same priority are called in subscription order.
-
-    Use priorities sparingly - most handlers should use NORMAL priority.
-    Reserve CRITICAL for handlers that must run before all others (e.g., logging, metrics).
-    Reserve LOW for handlers that should run after all others (e.g., cleanup, notifications).
-    """
-
-    LOW = 0
-    """Lowest priority - runs after all other handlers."""
-
-    NORMAL = 50
-    """Default priority for most handlers."""
-
-    HIGH = 100
-    """Higher priority - runs before NORMAL handlers."""
-
-    CRITICAL = 200
-    """Highest priority - runs before all other handlers (e.g., logging, metrics)."""
 
 
 # Event handler protocols - handlers receive event as keyword-only argument
@@ -244,24 +217,6 @@ class HandlerStats:
         self.total_errors = 0
         self.total_duration_ms = 0.0
         self.max_duration_ms = 0.0
-
-
-@dataclass(frozen=True, slots=True)
-class Event(ABC):
-    """
-    Base class for all events in the EventBus.
-
-    All events are immutable dataclasses with slots for memory efficiency.
-    The timestamp field is included in all events for debugging and auditing.
-    A key must be provided to uniquely identify the event.
-    """
-
-    timestamp: datetime
-
-    @property
-    @abstractmethod
-    def key(self) -> Any:
-        """Key identifier for this event."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -548,102 +503,16 @@ class CacheInvalidatedEvent(Event):
 
 # =============================================================================
 # Circuit Breaker Events (Phase 3)
+# - CircuitBreakerStateChangedEvent (from types.py)
+# - CircuitBreakerTrippedEvent (from types.py)
 # =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class CircuitBreakerStateChangedEvent(Event):
-    """
-    Circuit breaker state transition.
-
-    Key is interface_id.
-
-    Emitted when a circuit breaker transitions between states
-    (CLOSED, OPEN, HALF_OPEN).
-    """
-
-    interface_id: str
-    old_state: CircuitState
-    new_state: CircuitState
-    failure_count: int
-    success_count: int
-    last_failure_time: datetime | None
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-@dataclass(frozen=True, slots=True)
-class CircuitBreakerTrippedEvent(Event):
-    """
-    Circuit breaker tripped (opened due to failures).
-
-    Key is interface_id.
-
-    Emitted when a circuit breaker transitions to OPEN state,
-    indicating repeated failures.
-    """
-
-    interface_id: str
-    failure_count: int
-    last_failure_reason: str | None
-    cooldown_seconds: float
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
 
 
 # =============================================================================
 # State Machine Events (Phase 4)
+# - ClientStateChangedEvent (from types.py)
+# - CentralStateChangedEvent (from types.py)
 # =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class ClientStateChangedEvent(Event):
-    """
-    Client state machine transition.
-
-    Key is interface_id.
-
-    Emitted when a client transitions between states
-    (INIT, CONNECTED, DISCONNECTED, etc.).
-    """
-
-    interface_id: str
-    old_state: str  # ClientState value
-    new_state: str  # ClientState value
-    trigger: str | None
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-@dataclass(frozen=True, slots=True)
-class CentralStateChangedEvent(Event):
-    """
-    Central unit state machine transition.
-
-    Key is central_name.
-
-    Emitted when the central unit transitions between states
-    (STARTING, RUNNING, DEGRADED, etc.).
-    """
-
-    central_name: str
-    old_state: str  # CentralState value
-    new_state: str  # CentralState value
-    trigger: str | None
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.central_name
 
 
 # =============================================================================
@@ -747,27 +616,8 @@ class RequestCoalescedEvent(Event):
 
 # =============================================================================
 # Health Record Events (Phase 8)
+# - HealthRecordedEvent (from types.py)
 # =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class HealthRecordedEvent(Event):
-    """
-    Health status recorded for an interface.
-
-    Key is interface_id.
-
-    Emitted by CircuitBreaker when a request succeeds or fails,
-    enabling health tracking without direct callback coupling.
-    """
-
-    interface_id: str
-    success: bool
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
 
 
 # =============================================================================

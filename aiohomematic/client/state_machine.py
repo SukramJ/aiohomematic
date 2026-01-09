@@ -36,11 +36,11 @@ _LOGGER: Final = logging.getLogger(__name__)
 #                    │                               ▲              │
 #                    ▼                               │              ▼
 #                 FAILED ◄─────────────────────────┬┴─────── DISCONNECTED
-#                    │                             │              │
-#                    ├─────► INITIALIZING          │              ▼
+#                    │                             │              ▲
+#                    ├─────► INITIALIZING          │              │
 #                    ├─────► CONNECTING ◄──────────┴──────── RECONNECTING
-#                    │                                            ▲
-#                    └────────────────────────────────────────────┘
+#                    ├─────► DISCONNECTED (for graceful shutdown) ▲
+#                    └─────► RECONNECTING ────────────────────────┘
 #
 #   STOPPED ◄── STOPPING ◄─────────────────────────(from CONNECTED/DISCONNECTED/RECONNECTING)
 #
@@ -83,8 +83,15 @@ _VALID_TRANSITIONS: Final[dict[ClientState, frozenset[ClientState]]] = {
     ClientState.STOPPING: frozenset({ClientState.STOPPED}),
     # Terminal state - client is fully stopped, no transitions allowed
     ClientState.STOPPED: frozenset(),
-    # Error state - allows retry via re-initialization or reconnection
-    ClientState.FAILED: frozenset({ClientState.INITIALIZING, ClientState.CONNECTING, ClientState.RECONNECTING}),
+    # Error state - allows retry via re-initialization, reconnection, or graceful shutdown
+    ClientState.FAILED: frozenset(
+        {
+            ClientState.INITIALIZING,  # Retry initialization
+            ClientState.CONNECTING,  # Retry connection
+            ClientState.RECONNECTING,  # Automatic reconnection attempt
+            ClientState.DISCONNECTED,  # Graceful shutdown via deinitialize_proxy
+        }
+    ),
 }
 
 

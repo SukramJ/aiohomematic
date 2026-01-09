@@ -951,6 +951,9 @@ class ConnectionRecoveryCoordinator:
                 self._record_connection_restored_incident(interface_id=interface_id, state=state)
                 await self._emit_recovery_completed(interface_id=interface_id, state=state)
                 state.reset()
+                # Remove from active recoveries BEFORE checking transition state
+                # This ensures _transition_after_recovery() sees correct active_recoveries count
+                self._active_recoveries.discard(interface_id)
                 self._transition_after_recovery()
             else:
                 state.record_failure()
@@ -974,6 +977,7 @@ class ConnectionRecoveryCoordinator:
                         await self._start_recovery(interface_id=interface_id)
 
         finally:
+            # Ensure cleanup on failure/exception (safe to call twice, discard is idempotent)
             self._active_recoveries.discard(interface_id)
 
     def _stop_heartbeat_timer(self) -> None:

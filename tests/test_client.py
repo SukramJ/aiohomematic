@@ -19,7 +19,14 @@ from aiohomematic.client.handlers.device_ops import (
     _track_single_data_point_state_change_or_timeout,
     _wait_for_state_change_or_timeout,
 )
-from aiohomematic.const import DEFAULT_TIMEOUT_CONFIG, DataPointKey, Interface, ParamsetKey, ProductGroup
+from aiohomematic.const import (
+    DEFAULT_TIMEOUT_CONFIG,
+    DataPointKey,
+    IntegrationIssueType,
+    Interface,
+    ParamsetKey,
+    ProductGroup,
+)
 from aiohomematic.exceptions import ClientException, NoConnectionException
 
 from tests.conftest import NoOpTaskScheduler
@@ -1221,7 +1228,7 @@ class TestClientClasses:
         async def _capturing_publish(*, event: Any) -> None:
             if isinstance(event, SystemStatusChangedEvent) and event.issues:
                 for issue in event.issues:
-                    if issue.issue_id.startswith("fetch_data_failed_"):
+                    if issue.issue_type == IntegrationIssueType.FETCH_DATA_FAILED:
                         received_events.append(event)
                         break
             await original_publish(event=event)

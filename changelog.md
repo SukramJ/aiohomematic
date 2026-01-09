@@ -6,6 +6,15 @@
 
 - **Fix list_device() returning empty list treated as error**: The `initialize_proxy()` method now correctly handles empty device lists from interfaces that don't support RPC callbacks. Previously, an empty device list was incorrectly treated as a connection failure because the code used a truthy check (`if device_descriptions :=`) instead of a None check. Now uses `is not None` to properly distinguish between "no devices" (success) and "list_devices failed" (failure).
 
+### Breaking Changes
+
+- **Strongly typed IntegrationIssue**: The `IntegrationIssue` dataclass now uses typed enums instead of string comparisons. This prevents consumer errors from incorrect string matching:
+  - `issue.severity` is now `IntegrationIssueSeverity` enum (use `== IntegrationIssueSeverity.ERROR` instead of `== "error"`)
+  - New `issue.issue_type` field as `IntegrationIssueType` enum (use `== IntegrationIssueType.PING_PONG_MISMATCH` instead of `issue_id.startswith("ping_pong_mismatch_")`)
+  - `issue.mismatch_count` is now `int | None` (use `== 0` instead of `== "0"`)
+  - `issue.mismatch_type` is now `PingPongMismatchType | None`
+  - See migration guide: `docs/migrations/integration_issue_typed_2026_01.md`
+
 ---
 
 # Version 2026.1.22 (2026-01-09)

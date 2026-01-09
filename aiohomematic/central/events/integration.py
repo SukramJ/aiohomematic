@@ -59,10 +59,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from aiohomematic.central.events.types import Event
-from aiohomematic.const import CentralState, ClientState, DataPointCategory, DeviceTriggerEventType, FailureReason
+from aiohomematic.const import (
+    CentralState,
+    ClientState,
+    DataPointCategory,
+    DeviceTriggerEventType,
+    FailureReason,
+    IntegrationIssueSeverity,
+    IntegrationIssueType,
+    PingPongMismatchType,
+)
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import CallbackDataPointProtocol
@@ -85,19 +94,67 @@ class IntegrationIssue:
 
     Used to communicate problems that require user attention
     (e.g., connection failures, configuration errors).
+
+    Example:
+        ```python
+        # Creating a ping-pong mismatch issue
+        issue = IntegrationIssue(
+            issue_type=IntegrationIssueType.PING_PONG_MISMATCH,
+            severity=IntegrationIssueSeverity.WARNING,
+            interface_id="ccu-HmIP-RF",
+            mismatch_type=PingPongMismatchType.PENDING,
+            mismatch_count=5,
+        )
+
+        # Creating a fetch data failed issue
+        issue = IntegrationIssue(
+            issue_type=IntegrationIssueType.FETCH_DATA_FAILED,
+            severity=IntegrationIssueSeverity.WARNING,
+            interface_id="ccu-BidCos-RF",
+        )
+
+        # Accessing computed properties for HA integration
+        issue.issue_id  # "ping_pong_mismatch_ccu-HmIP-RF"
+        issue.translation_key  # "ping_pong_mismatch"
+        issue.translation_placeholders  # {"interface_id": "ccu-HmIP-RF", ...}
+        ```
+
     """
 
-    severity: Literal["error", "warning"]
+    issue_type: IntegrationIssueType
+    """Type of issue - determines translation_key and issue_id prefix."""
+
+    severity: IntegrationIssueSeverity
     """Issue severity level."""
 
-    issue_id: str
-    """Unique identifier for this issue (for tracking/deduplication)."""
+    interface_id: str
+    """Interface ID where the issue occurred."""
 
-    translation_key: str
-    """Translation key for issue message."""
+    mismatch_type: PingPongMismatchType | None = None
+    """Mismatch type (only for PING_PONG_MISMATCH issues)."""
 
-    translation_placeholders: tuple[tuple[str, str], ...] = ()
-    """Placeholders for translation interpolation as tuple of (key, value) pairs."""
+    mismatch_count: int | None = None
+    """Mismatch count (only for PING_PONG_MISMATCH issues)."""
+
+    @property
+    def issue_id(self) -> str:
+        """Generate unique issue ID from type and interface."""
+        return f"{self.issue_type.value}_{self.interface_id}"
+
+    @property
+    def translation_key(self) -> str:
+        """Return translation key (same as issue_type value)."""
+        return self.issue_type.value
+
+    @property
+    def translation_placeholders(self) -> dict[str, str]:
+        """Return all placeholders for translation interpolation."""
+        result: dict[str, str] = {"interface_id": self.interface_id}
+        if self.mismatch_type is not None:
+            result["mismatch_type"] = self.mismatch_type.value
+        if self.mismatch_count is not None:
+            result["mismatch_count"] = str(self.mismatch_count)
+        return result
 
 
 @dataclass(frozen=True, slots=True)

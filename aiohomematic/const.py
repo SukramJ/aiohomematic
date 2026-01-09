@@ -1245,6 +1245,26 @@ class PingPongMismatchType(StrEnum):
     UNKNOWN = "unknown"  # PONG received without matching PING
 
 
+class IntegrationIssueSeverity(StrEnum):
+    """Severity level for integration issues."""
+
+    ERROR = "error"
+    WARNING = "warning"
+
+
+class IntegrationIssueType(StrEnum):
+    """
+    Type of integration issue.
+
+    Each value serves as both:
+    - issue_id prefix (e.g., "ping_pong_mismatch_{interface_id}")
+    - translation_key (e.g., "ping_pong_mismatch")
+    """
+
+    PING_PONG_MISMATCH = "ping_pong_mismatch"
+    FETCH_DATA_FAILED = "fetch_data_failed"
+
+
 class ParameterType(StrEnum):
     """Enum for Homematic parameter types."""
 

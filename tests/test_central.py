@@ -23,6 +23,8 @@ from aiohomematic.const import (
     DataPointCategory,
     DataPointUsage,
     DeviceFirmwareState,
+    IntegrationIssueSeverity,
+    IntegrationIssueType,
     Interface,
     Operations,
     Parameter,
@@ -767,13 +769,13 @@ class TestCentralCallbacksAndServices:
         from datetime import datetime
 
         from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
+        from aiohomematic.const import IntegrationIssueSeverity, IntegrationIssueType
 
         central, _, factory = central_client_factory_with_homegear_client
         issue = IntegrationIssue(
-            severity="error",
-            issue_id="fetch_data_failed_SOME_ID",
-            translation_key="fetch_data_failed",
-            translation_placeholders=(("interface_id", "SOME_ID"),),
+            issue_type=IntegrationIssueType.FETCH_DATA_FAILED,
+            severity=IntegrationIssueSeverity.ERROR,
+            interface_id="SOME_ID",
         )
         central.event_bus.publish_sync(
             event=SystemStatusChangedEvent(
@@ -794,6 +796,8 @@ class TestCentralCallbacksAndServices:
         assert len(issue_events) >= 1
         event = issue_events[-1]
         assert len(event.issues) == 1
+        assert event.issues[0].issue_type == IntegrationIssueType.FETCH_DATA_FAILED
+        assert event.issues[0].interface_id == "SOME_ID"
         assert event.issues[0].issue_id == "fetch_data_failed_SOME_ID"
 
     @pytest.mark.asyncio
@@ -955,8 +959,9 @@ class TestCentralPingPong:
         event = issue_events[-1]
         assert len(event.issues) == 1
         issue = event.issues[0]
-        assert "ping_pong_mismatch" in issue.issue_id
-        assert issue.severity == "error"  # Not acceptable means error severity
+        assert issue.issue_type == IntegrationIssueType.PING_PONG_MISMATCH
+        assert issue.severity == IntegrationIssueSeverity.ERROR  # Not acceptable means error severity
+        assert issue.mismatch_count == max_count
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

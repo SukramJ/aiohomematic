@@ -21,11 +21,13 @@ import pytest
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
-from aiohomematic.const import ParamsetKey, PingPongMismatchType
+from aiohomematic.const import IntegrationIssueSeverity, IntegrationIssueType, ParamsetKey, PingPongMismatchType
 from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
 
 
-def get_ping_pong_info(event: SystemStatusChangedEvent) -> tuple[str | None, str | None, int | None, bool]:
+def get_ping_pong_info(
+    event: SystemStatusChangedEvent,
+) -> tuple[str | None, PingPongMismatchType | None, int | None, bool]:
     """
     Extract ping pong mismatch info from SystemStatusChangedEvent.
 
@@ -35,12 +37,11 @@ def get_ping_pong_info(event: SystemStatusChangedEvent) -> tuple[str | None, str
         return (None, None, None, True)
 
     for issue in event.issues:
-        if issue.issue_id.startswith("ping_pong_mismatch_"):
-            placeholders = dict(issue.translation_placeholders)
-            interface_id = placeholders.get("interface_id")
-            mismatch_type = placeholders.get("mismatch_type")
-            mismatch_count = int(placeholders.get("mismatch_count", "0"))
-            acceptable = issue.severity == "warning"
+        if issue.issue_type == IntegrationIssueType.PING_PONG_MISMATCH:
+            interface_id = issue.interface_id
+            mismatch_type = issue.mismatch_type
+            mismatch_count = issue.mismatch_count
+            acceptable = issue.severity == IntegrationIssueSeverity.WARNING
             return (interface_id, mismatch_type, mismatch_count, acceptable)
 
     return (None, None, None, True)

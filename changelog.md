@@ -1,10 +1,6 @@
-# Version 2026.1.23 (2026-01-09)
+# Version 2026.1.24 (2026-01-09)
 
 ## What's Changed
-
-### Fixed
-
-- **Fix list_device() returning empty list treated as error**: The `initialize_proxy()` method now correctly handles empty device lists from interfaces that don't support RPC callbacks. Previously, an empty device list was incorrectly treated as a connection failure because the code used a truthy check (`if device_descriptions :=`) instead of a None check. Now uses `is not None` to properly distinguish between "no devices" (success) and "list_devices failed" (failure).
 
 ### Breaking Changes
 
@@ -14,6 +10,16 @@
   - `issue.mismatch_count` is now `int | None` (use `== 0` instead of `== "0"`)
   - `issue.mismatch_type` is now `PingPongMismatchType | None`
   - See migration guide: `docs/migrations/integration_issue_typed_2026_01.md`
+
+---
+
+# Version 2026.1.23 (2026-01-09)
+
+## What's Changed
+
+### Fixed
+
+- **Fix list_device() returning empty list treated as error**: The `initialize_proxy()` method now correctly handles empty device lists from interfaces that don't support RPC callbacks. Previously, an empty device list was incorrectly treated as a connection failure because the code used a truthy check (`if device_descriptions :=`) instead of a None check. Now uses `is not None` to properly distinguish between "no devices" (success) and "list_devices failed" (failure).
 
 ---
 

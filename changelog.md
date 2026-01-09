@@ -1,4 +1,4 @@
-# Version 2026.1.26 (2026-01-09)
+# Version 2026.1.27 (2026-01-09)
 
 ## What's Changed
 
@@ -6,6 +6,7 @@
 
 - **Fix recovery stuck in infinite retry loop after CCU restart** (follow-up to GitHub #2757):
   - Reset XML-RPC proxy transport before RPC availability check during recovery. After CCU restart, the proxy's HTTP connection enters an inconsistent state (ResponseNotReady) which caused `system.listMethods` calls to fail silently
+  - Fix proxy lookup to handle both direct client proxy (`client._proxy`) and backend proxy (`client._backend._proxy`) for InterfaceClient architecture
   - Add logging when RPC check fails during recovery for better debugging
 
 ---

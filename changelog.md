@@ -6,6 +6,13 @@
 
 - **Fix state machine transition error on unload**: Allow transition from `FAILED` to `DISCONNECTED` state. This fixes `InvalidStateTransitionError` when unloading the Home Assistant integration while a client is in failed state. Previously, `deinitialize_proxy()` could not cleanly shut down a failed client.
 
+- **Fix leaked EventBus subscriptions on central stop**: Two internal subscription leaks have been fixed:
+
+  - `SysvarStateChangedEvent` subscriptions in `HubCoordinator` were not being cleaned up (72 subscriptions per central)
+  - `HealthRecordedEvent` subscription in `ClientCoordinator` was stored but never unsubscribed
+
+  The `HubCoordinator` now has a `clear()` method that is called during central shutdown. This reduces the number of leaked subscriptions logged at shutdown from ~7800 to only external subscriptions from the Home Assistant integration.
+
 ---
 
 # Version 2026.1.20 (2026-01-08)

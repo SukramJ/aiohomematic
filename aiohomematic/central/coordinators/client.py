@@ -288,6 +288,11 @@ class ClientCoordinator(ClientProviderProtocol):
     async def stop_clients(self) -> None:
         """Stop all clients."""
         _LOGGER.debug("STOP_CLIENTS: Stopping clients for %s", self._central_info.name)
+
+        # Unsubscribe from health record events
+        self._unsubscribe_health_record()
+        _LOGGER.debug("STOP_CLIENTS: Unsubscribed from health record events")
+
         await self._de_init_clients()
 
         # Unregister clients from health tracker before stopping

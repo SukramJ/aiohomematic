@@ -335,15 +335,27 @@ class ConnectionRecoveryCoordinator:
 
             # For XML-RPC interfaces, use system.listMethods via proxy
             # pylint: disable=protected-access
-            if hasattr(client, "_proxy") and hasattr(client._proxy, "system"):
+            # Get the proxy - it may be directly on the client or on the backend
+            proxy = None
+            if hasattr(client, "_proxy"):
+                proxy = client._proxy
+            elif hasattr(client, "_backend") and hasattr(client._backend, "_proxy"):
+                proxy = client._backend._proxy
+
+            if proxy is not None and hasattr(proxy, "system"):
                 # Reset the transport before checking - the HTTP connection may be
                 # in an inconsistent state (e.g., ResponseNotReady) after connection loss.
                 # This forces a fresh TCP connection for the RPC check.
-                if hasattr(client._proxy, "_reset_transport"):
-                    client._proxy._reset_transport()
+                if hasattr(proxy, "_reset_transport"):
+                    proxy._reset_transport()
 
-                result = await client._proxy.system.listMethods()
+                result = await proxy.system.listMethods()
                 return bool(result)
+
+            _LOGGER.debug(
+                "CONNECTION_RECOVERY: No suitable proxy found for RPC check on %s",
+                interface_id,
+            )
         except Exception as ex:  # noqa: BLE001
             _LOGGER.debug(
                 "CONNECTION_RECOVERY: RPC check failed for %s: %s",

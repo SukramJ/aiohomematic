@@ -620,7 +620,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """Initialize the proxy."""
         self._state_machine.transition_to(target=ClientState.CONNECTING)
         if not self._backend.capabilities.supports_rpc_callback:
-            if device_descriptions := await self.list_devices():
+            if (device_descriptions := await self.list_devices()) is not None:
                 await self._central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
                 )

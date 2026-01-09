@@ -171,6 +171,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         "_sysvar_handler",
         "_system_information",
         "_unsubscribe_state_change",
+        "_unsubscribe_system_status",
     )
 
     def __init__(self, *, client_config: ClientConfig) -> None:
@@ -217,7 +218,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         # Subscribe to connection state changes to clear ping/pong cache on reconnect.
         # This prevents stale pending pongs from causing false mismatch alarms
         # after CCU restart when PINGs sent during downtime cannot be answered.
-        client_config.client_deps.event_bus.subscribe(
+        self._unsubscribe_system_status = client_config.client_deps.event_bus.subscribe(
             event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=self._on_system_status_event,
@@ -925,6 +926,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Stop depending services."""
         # Unsubscribe from state change events before stopping
         self._unsubscribe_state_change()
+        self._unsubscribe_system_status()
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")
         if self._capabilities.supports_rpc_callback:
             await self._proxy.stop()

@@ -152,12 +152,13 @@ class EventCapture:
 
         """
         for event_type in event_types:
-            unsubscribe = event_bus.subscribe(
-                event_type=event_type,
-                event_key=None,
-                handler=self._capture_handler,
+            self._unsubscribers.append(
+                event_bus.subscribe(
+                    event_type=event_type,
+                    event_key=None,
+                    handler=self._capture_handler,
+                )
             )
-            self._unsubscribers.append(unsubscribe)
 
     def _capture_handler(self, *, event: Event) -> None:
         """Handle event by capturing it."""

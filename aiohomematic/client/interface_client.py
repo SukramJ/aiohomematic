@@ -105,6 +105,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         "_reconnect_attempts",
         "_state_machine",
         "_unsubscribe_state_change",
+        "_unsubscribe_system_status",
         "_version",
     )
 
@@ -157,7 +158,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         self._modified_at: datetime = INIT_DATETIME
 
         # Subscribe to connection state changes
-        central.event_bus.subscribe(
+        self._unsubscribe_system_status = central.event_bus.subscribe(
             event_type=SystemStatusChangedEvent,
             event_key=None,
             handler=self._on_system_status_event,
@@ -1016,6 +1017,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     async def stop(self) -> None:
         """Stop depending services."""
         self._unsubscribe_state_change()
+        self._unsubscribe_system_status()
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")
         await self._backend.stop()
         self._state_machine.transition_to(target=ClientState.STOPPED, reason="services stopped")

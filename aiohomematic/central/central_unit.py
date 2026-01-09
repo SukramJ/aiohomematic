@@ -238,7 +238,7 @@ class CentralUnit(
         )
 
         # Subscribe to system status events to update central state machine
-        self.event_bus.subscribe(
+        self._unsubscribe_system_status = self.event_bus.subscribe(
             event_type=SystemStatusChangedEvent,
             event_key=None,  # Subscribe to all system status events
             handler=self._on_system_status_event,
@@ -906,6 +906,24 @@ class CentralUnit(
         # Clear hub coordinator subscriptions (sysvar event subscriptions)
         self._hub_coordinator.clear()
         _LOGGER.debug("STOP: Hub coordinator subscriptions cleared")
+
+        # Clear cache coordinator subscriptions (device removed event subscription)
+        self._cache_coordinator.stop()
+        _LOGGER.debug("STOP: Cache coordinator subscriptions cleared")
+
+        # Clear event coordinator subscriptions (status event subscriptions)
+        self._event_coordinator.clear()
+        _LOGGER.debug("STOP: Event coordinator subscriptions cleared")
+
+        # Clear external subscriptions (from Home Assistant integration)
+        # These are subscriptions made via subscribe_to_device_removed(), subscribe_to_firmware_updated(), etc.
+        # The integration is responsible for unsubscribing, but we clean up as a fallback
+        self._event_coordinator.event_bus.clear_external_subscriptions()
+        _LOGGER.debug("STOP: External subscriptions cleared")
+
+        # Unsubscribe from system status events
+        self._unsubscribe_system_status()
+        _LOGGER.debug("STOP: Central system status subscription cleared")
 
         # Log any leaked subscriptions before clearing (only when debug logging is enabled)
         if _LOGGER.isEnabledFor(logging.DEBUG):

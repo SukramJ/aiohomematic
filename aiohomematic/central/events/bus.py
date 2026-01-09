@@ -820,6 +820,41 @@ class EventBus:
         self._handler_stats.reset()
         _LOGGER.debug("CLEAR_EVENT_STATS: Cleared all event statistics")
 
+    def clear_external_subscriptions(self) -> int:
+        """
+        Clear subscriptions for event types that are not cleaned up elsewhere.
+
+        This includes:
+        - External subscriptions made via public APIs (subscribe_to_device_removed(),
+          subscribe_to_firmware_updated(), subscribe_to_device_updated(), etc.)
+        - Internal subscriptions that are created dynamically and not tracked
+
+        This method provides a fallback cleanup during central shutdown.
+
+        Returns
+        -------
+            Total number of subscriptions cleared
+
+        """
+        external_event_types: tuple[type[Event], ...] = (
+            DataPointStateChangedEvent,
+            DeviceRemovedEvent,
+            DeviceStateChangedEvent,
+            FirmwareStateChangedEvent,
+            LinkPeerChangedEvent,
+        )
+        total_cleared = 0
+        for event_type in external_event_types:
+            if (count := self.get_subscription_count(event_type=event_type)) > 0:
+                self.clear_subscriptions(event_type=event_type)
+                total_cleared += count
+        if total_cleared > 0:
+            _LOGGER.debug(
+                "CLEAR_EXTERNAL_SUBSCRIPTIONS: Cleared %d external subscription(s)",
+                total_cleared,
+            )
+        return total_cleared
+
     def clear_subscriptions(self, *, event_type: type[Event] | None = None) -> None:
         """
         Clear subscriptions for a specific event type or all types.

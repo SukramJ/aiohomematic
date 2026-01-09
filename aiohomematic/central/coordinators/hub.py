@@ -187,10 +187,11 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
                 if event.state_path == sysvar_data_point.state_path:
                     await sysvar_data_point.event(value=event.value, received_at=event.received_at)
 
-            unsubscribe = self._event_bus_provider.event_bus.subscribe(
-                event_type=SysvarStateChangedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
+            self._sysvar_unsubscribes.append(
+                self._event_bus_provider.event_bus.subscribe(
+                    event_type=SysvarStateChangedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
+                )
             )
-            self._sysvar_unsubscribes.append(unsubscribe)
 
     def clear(self) -> None:
         """

@@ -903,6 +903,10 @@ class CentralUnit(
         if self.name in CENTRAL_INSTANCES:
             del CENTRAL_INSTANCES[self.name]
 
+        # Clear hub coordinator subscriptions (sysvar event subscriptions)
+        self._hub_coordinator.clear()
+        _LOGGER.debug("STOP: Hub coordinator subscriptions cleared")
+
         # Log any leaked subscriptions before clearing (only when debug logging is enabled)
         if _LOGGER.isEnabledFor(logging.DEBUG):
             self._event_coordinator.event_bus.log_leaked_subscriptions()

@@ -1,3 +1,13 @@
+# Version 2026.1.21 (2026-01-09)
+
+## What's Changed
+
+### Fixed
+
+- **Fix state machine transition error on unload**: Allow transition from `FAILED` to `DISCONNECTED` state. This fixes `InvalidStateTransitionError` when unloading the Home Assistant integration while a client is in failed state. Previously, `deinitialize_proxy()` could not cleanly shut down a failed client.
+
+---
+
 # Version 2026.1.20 (2026-01-08)
 
 ## What's Changed

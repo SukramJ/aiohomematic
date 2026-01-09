@@ -603,7 +603,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Initialize the proxy has to tell the backend where to send the events."""
         self._state_machine.transition_to(target=ClientState.CONNECTING)
         if not self._capabilities.supports_rpc_callback:
-            if device_descriptions := await self.list_devices():
+            if (device_descriptions := await self.list_devices()) is not None:
                 await self.central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
                 )

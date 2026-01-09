@@ -575,6 +575,14 @@ class _FakeCentral2:
     def add_device(self, addr: str, *, product_group: ProductGroup) -> None:
         self._devices[addr] = SimpleNamespace(product_group=product_group, interface_id="i")
 
+    async def add_new_devices(
+        self,
+        *,
+        interface_id: str,
+        device_descriptions: tuple[Any, ...],  # noqa: ARG002
+    ) -> None:
+        """Add new devices (mock implementation for testing)."""
+
     def get_channel(self, *, channel_address: str):  # noqa: D401,ANN001
         return self._channels.get(channel_address)
 
@@ -1466,8 +1474,14 @@ class TestClientProxyLifecycle:
         assert state is ProxyInitState.DE_INIT_SUCCESS
 
         # supports_rpc_callback is already False from above
+        # With the fix for empty device list handling (is not None check),
+        # initialize_proxy now succeeds even with empty device list
         state = await client.initialize_proxy()
-        assert state in {ProxyInitState.INIT_FAILED, ProxyInitState.INIT_SUCCESS}
+        assert state is ProxyInitState.INIT_SUCCESS
+
+        # Deinitialize before testing callback path with failure
+        state = await client.deinitialize_proxy()
+        assert state is ProxyInitState.DE_INIT_SUCCESS
 
         client._capabilities = replace(client._capabilities, supports_rpc_callback=True)  # type: ignore[attr-defined]
         client._proxy = _XmlProxy2(fail_init=True)  # type: ignore[attr-defined]

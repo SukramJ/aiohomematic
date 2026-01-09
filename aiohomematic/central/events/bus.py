@@ -118,8 +118,10 @@ from aiohomematic.const import (
     CacheType,
     ConnectionStage,
     DataPointKey,
+    DataRefreshType,
     FailureReason,
     ParamsetKey,
+    ProgramTrigger,
     RecoveryStage,
 )
 from aiohomematic.property_decorators import DelegatedProperty
@@ -530,7 +532,7 @@ class DataRefreshTriggeredEvent(Event):
     Emitted when a data refresh operation starts.
     """
 
-    refresh_type: str  # "client_data", "program", "sysvar", "inbox", "firmware"
+    refresh_type: DataRefreshType
     interface_id: str | None
     scheduled: bool
 
@@ -550,7 +552,7 @@ class DataRefreshCompletedEvent(Event):
     Emitted when a data refresh operation completes (success or failure).
     """
 
-    refresh_type: str
+    refresh_type: DataRefreshType
     interface_id: str | None
     success: bool
     duration_ms: float
@@ -580,7 +582,7 @@ class ProgramExecutedEvent(Event):
 
     program_id: str
     program_name: str
-    triggered_by: str  # "user", "scheduler", "automation"
+    triggered_by: ProgramTrigger
     success: bool
 
     @property

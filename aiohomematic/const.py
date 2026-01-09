@@ -1265,6 +1265,26 @@ class IntegrationIssueType(StrEnum):
     FETCH_DATA_FAILED = "fetch_data_failed"
 
 
+class DataRefreshType(StrEnum):
+    """Type of data refresh operation."""
+
+    CLIENT_DATA = "client_data"
+    INBOX = "inbox"
+    METRICS = "metrics"
+    PROGRAM = "program"
+    SYSTEM_UPDATE = "system_update"
+    SYSVAR = "sysvar"
+
+
+class ProgramTrigger(StrEnum):
+    """Trigger source for program execution."""
+
+    API = "api"
+    USER = "user"
+    SCHEDULER = "scheduler"
+    AUTOMATION = "automation"
+
+
 class ParameterType(StrEnum):
     """Enum for Homematic parameter types."""
 

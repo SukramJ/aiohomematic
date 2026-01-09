@@ -317,8 +317,8 @@ class ClientStateMachine:
             event=ClientStateChangedEvent(
                 timestamp=datetime.now(),
                 interface_id=self._interface_id,
-                old_state=old_state.value,
-                new_state=new_state.value,
+                old_state=old_state,
+                new_state=new_state,
                 trigger=trigger,
             )
         )

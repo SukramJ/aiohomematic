@@ -36,7 +36,13 @@ from aiohomematic.central.events import (
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
 )
-from aiohomematic.const import SCHEDULER_LOOP_SLEEP, SCHEDULER_NOT_STARTED_SLEEP, CentralState, DeviceFirmwareState
+from aiohomematic.const import (
+    SCHEDULER_LOOP_SLEEP,
+    SCHEDULER_NOT_STARTED_SLEEP,
+    CentralState,
+    DataRefreshType,
+    DeviceFirmwareState,
+)
 from aiohomematic.exceptions import NoConnectionException
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
@@ -343,7 +349,7 @@ class BackgroundScheduler:
     async def _emit_refresh_completed(
         self,
         *,
-        refresh_type: str,
+        refresh_type: DataRefreshType,
         interface_id: str | None,
         success: bool,
         duration_ms: float,
@@ -355,7 +361,7 @@ class BackgroundScheduler:
 
         Args:
         ----
-            refresh_type: Type of refresh (e.g., "client_data", "program")
+            refresh_type: Type of refresh operation
             interface_id: Interface ID or None for hub-level refreshes
             success: True if refresh completed successfully
             duration_ms: Duration of the refresh operation in milliseconds
@@ -378,7 +384,7 @@ class BackgroundScheduler:
     def _emit_refresh_triggered(
         self,
         *,
-        refresh_type: str,
+        refresh_type: DataRefreshType,
         interface_id: str | None,
         scheduled: bool,
     ) -> None:
@@ -387,7 +393,7 @@ class BackgroundScheduler:
 
         Args:
         ----
-            refresh_type: Type of refresh (e.g., "client_data", "program")
+            refresh_type: Type of refresh operation
             interface_id: Interface ID or None for hub-level refreshes
             scheduled: True if this is a scheduled refresh
 
@@ -479,7 +485,7 @@ class BackgroundScheduler:
             for client in poll_clients:
                 start_time = datetime.now()
                 self._emit_refresh_triggered(
-                    refresh_type="client_data",
+                    refresh_type=DataRefreshType.CLIENT_DATA,
                     interface_id=client.interface_id,
                     scheduled=True,
                 )
@@ -488,7 +494,7 @@ class BackgroundScheduler:
                     self._event_coordinator.set_last_event_seen_for_interface(interface_id=client.interface_id)
                     duration_ms = (datetime.now() - start_time).total_seconds() * 1000
                     await self._emit_refresh_completed(
-                        refresh_type="client_data",
+                        refresh_type=DataRefreshType.CLIENT_DATA,
                         interface_id=client.interface_id,
                         success=True,
                         duration_ms=duration_ms,
@@ -496,7 +502,7 @@ class BackgroundScheduler:
                 except Exception as exc:
                     duration_ms = (datetime.now() - start_time).total_seconds() * 1000
                     await self._emit_refresh_completed(
-                        refresh_type="client_data",
+                        refresh_type=DataRefreshType.CLIENT_DATA,
                         interface_id=client.interface_id,
                         success=False,
                         duration_ms=duration_ms,
@@ -514,7 +520,7 @@ class BackgroundScheduler:
         _LOGGER.debug("REFRESH_INBOX_DATA: For %s", self._central_info.name)
         start_time = datetime.now()
         self._emit_refresh_triggered(
-            refresh_type="inbox",
+            refresh_type=DataRefreshType.INBOX,
             interface_id=None,
             scheduled=True,
         )
@@ -522,7 +528,7 @@ class BackgroundScheduler:
             await self._hub_data_fetcher.fetch_inbox_data(scheduled=True)
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="inbox",
+                refresh_type=DataRefreshType.INBOX,
                 interface_id=None,
                 success=True,
                 duration_ms=duration_ms,
@@ -530,7 +536,7 @@ class BackgroundScheduler:
         except Exception as exc:
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="inbox",
+                refresh_type=DataRefreshType.INBOX,
                 interface_id=None,
                 success=False,
                 duration_ms=duration_ms,
@@ -546,7 +552,7 @@ class BackgroundScheduler:
         _LOGGER.debug("REFRESH_METRICS_DATA: For %s", self._central_info.name)
         start_time = datetime.now()
         self._emit_refresh_triggered(
-            refresh_type="metrics",
+            refresh_type=DataRefreshType.METRICS,
             interface_id=None,
             scheduled=True,
         )
@@ -554,7 +560,7 @@ class BackgroundScheduler:
             self._hub_data_fetcher.fetch_metrics_data(scheduled=True)
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="metrics",
+                refresh_type=DataRefreshType.METRICS,
                 interface_id=None,
                 success=True,
                 duration_ms=duration_ms,
@@ -562,7 +568,7 @@ class BackgroundScheduler:
         except Exception as exc:
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="metrics",
+                refresh_type=DataRefreshType.METRICS,
                 interface_id=None,
                 success=False,
                 duration_ms=duration_ms,
@@ -584,7 +590,7 @@ class BackgroundScheduler:
         _LOGGER.debug("REFRESH_PROGRAM_DATA: For %s", self._central_info.name)
         start_time = datetime.now()
         self._emit_refresh_triggered(
-            refresh_type="program",
+            refresh_type=DataRefreshType.PROGRAM,
             interface_id=None,
             scheduled=True,
         )
@@ -592,7 +598,7 @@ class BackgroundScheduler:
             await self._hub_data_fetcher.fetch_program_data(scheduled=True)
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="program",
+                refresh_type=DataRefreshType.PROGRAM,
                 interface_id=None,
                 success=True,
                 duration_ms=duration_ms,
@@ -600,7 +606,7 @@ class BackgroundScheduler:
         except Exception as exc:
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="program",
+                refresh_type=DataRefreshType.PROGRAM,
                 interface_id=None,
                 success=False,
                 duration_ms=duration_ms,
@@ -618,7 +624,7 @@ class BackgroundScheduler:
         _LOGGER.debug("REFRESH_SYSTEM_UPDATE_DATA: For %s", self._central_info.name)
         start_time = datetime.now()
         self._emit_refresh_triggered(
-            refresh_type="system_update",
+            refresh_type=DataRefreshType.SYSTEM_UPDATE,
             interface_id=None,
             scheduled=True,
         )
@@ -626,7 +632,7 @@ class BackgroundScheduler:
             await self._hub_data_fetcher.fetch_system_update_data(scheduled=True)
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="system_update",
+                refresh_type=DataRefreshType.SYSTEM_UPDATE,
                 interface_id=None,
                 success=True,
                 duration_ms=duration_ms,
@@ -634,7 +640,7 @@ class BackgroundScheduler:
         except Exception as exc:
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="system_update",
+                refresh_type=DataRefreshType.SYSTEM_UPDATE,
                 interface_id=None,
                 success=False,
                 duration_ms=duration_ms,
@@ -656,7 +662,7 @@ class BackgroundScheduler:
         _LOGGER.debug("REFRESH_SYSVAR_DATA: For %s", self._central_info.name)
         start_time = datetime.now()
         self._emit_refresh_triggered(
-            refresh_type="sysvar",
+            refresh_type=DataRefreshType.SYSVAR,
             interface_id=None,
             scheduled=True,
         )
@@ -664,7 +670,7 @@ class BackgroundScheduler:
             await self._hub_data_fetcher.fetch_sysvar_data(scheduled=True)
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="sysvar",
+                refresh_type=DataRefreshType.SYSVAR,
                 interface_id=None,
                 success=True,
                 duration_ms=duration_ms,
@@ -672,7 +678,7 @@ class BackgroundScheduler:
         except Exception as exc:
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
-                refresh_type="sysvar",
+                refresh_type=DataRefreshType.SYSVAR,
                 interface_id=None,
                 success=False,
                 duration_ms=duration_ms,

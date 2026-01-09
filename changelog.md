@@ -1,3 +1,15 @@
+# Version 2026.1.26 (2026-01-09)
+
+## What's Changed
+
+### Fixed
+
+- **Fix recovery stuck in infinite retry loop after CCU restart** (follow-up to GitHub #2757):
+  - Reset XML-RPC proxy transport before RPC availability check during recovery. After CCU restart, the proxy's HTTP connection enters an inconsistent state (ResponseNotReady) which caused `system.listMethods` calls to fail silently
+  - Add logging when RPC check fails during recovery for better debugging
+
+---
+
 # Version 2026.1.25 (2026-01-09)
 
 ## What's Changed
@@ -6,6 +18,8 @@
 
 - **Fix persistent ping_pong_mismatch repair issues after CCU restart** (GitHub #2757):
   - Fix central state stuck at "recovering" after successful recovery by correcting the order of operations in `ConnectionRecoveryCoordinator._start_recovery()` - now removes interface from active_recoveries before checking transition state
+  - Add immediate connection repair notification when recovery starts - emits `SystemStatusChangedEvent(connection_state=(interface_id, False))` so users see feedback immediately instead of waiting for recovery to fail
+  - Emit connection restored event when recovery succeeds to clear the repair notification
 
 ---
 

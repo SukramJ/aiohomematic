@@ -62,6 +62,7 @@ from aiohomematic.central.events import (
     RecoveryCompletedEvent,
     RecoveryFailedEvent,
     RecoveryStageChangedEvent,
+    SystemStatusChangedEvent,
 )
 from aiohomematic.client import CircuitState
 from aiohomematic.const import (
@@ -335,10 +336,20 @@ class ConnectionRecoveryCoordinator:
             # For XML-RPC interfaces, use system.listMethods via proxy
             # pylint: disable=protected-access
             if hasattr(client, "_proxy") and hasattr(client._proxy, "system"):
+                # Reset the transport before checking - the HTTP connection may be
+                # in an inconsistent state (e.g., ResponseNotReady) after connection loss.
+                # This forces a fresh TCP connection for the RPC check.
+                if hasattr(client._proxy, "_reset_transport"):
+                    client._proxy._reset_transport()
+
                 result = await client._proxy.system.listMethods()
                 return bool(result)
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.debug(
+                "CONNECTION_RECOVERY: RPC check failed for %s: %s",
+                interface_id,
+                ex,
+            )
         return False
 
     async def _check_tcp_port_available(self, *, host: str, port: int) -> bool:
@@ -836,6 +847,11 @@ class ConnectionRecoveryCoordinator:
                 interface_id,
             )
             return True
+
+        _LOGGER.warning(  # i18n-log: ignore
+            "CONNECTION_RECOVERY: RPC service not available for %s",
+            interface_id,
+        )
         return False
 
     async def _stage_stability_check(self, *, interface_id: str) -> bool:
@@ -936,6 +952,15 @@ class ConnectionRecoveryCoordinator:
         # Transition central to RECOVERING
         self._transition_to_recovering()
 
+        # Emit connection_state event to notify integration of connection issue
+        # This ensures users see a repair notification immediately when recovery starts
+        await self._event_bus.publish(
+            event=SystemStatusChangedEvent(
+                timestamp=datetime.now(),
+                connection_state=(interface_id, False),
+            )
+        )
+
         # Clear JSON-RPC session to force re-authentication
         # This prevents auth errors from stale sessions during recovery
         if client := self._client_provider.get_client(interface_id=interface_id):
@@ -951,6 +976,14 @@ class ConnectionRecoveryCoordinator:
                 self._record_connection_restored_incident(interface_id=interface_id, state=state)
                 await self._emit_recovery_completed(interface_id=interface_id, state=state)
                 state.reset()
+                # Emit connection_state event to notify integration of connection restored
+                # This clears the repair notification created when recovery started
+                await self._event_bus.publish(
+                    event=SystemStatusChangedEvent(
+                        timestamp=datetime.now(),
+                        connection_state=(interface_id, True),
+                    )
+                )
                 # Remove from active recoveries BEFORE checking transition state
                 # This ensures _transition_after_recovery() sees correct active_recoveries count
                 self._active_recoveries.discard(interface_id)

@@ -1,3 +1,14 @@
+# Version 2026.1.25 (2026-01-09)
+
+## What's Changed
+
+### Fixed
+
+- **Fix persistent ping_pong_mismatch repair issues after CCU restart** (GitHub #2757):
+  - Fix central state stuck at "recovering" after successful recovery by correcting the order of operations in `ConnectionRecoveryCoordinator._start_recovery()` - now removes interface from active_recoveries before checking transition state
+
+---
+
 # Version 2026.1.24 (2026-01-09)
 
 ## What's Changed

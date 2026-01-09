@@ -1,3 +1,26 @@
+# Version 2026.1.22 (2026-01-09)
+
+## What's Changed
+
+### Fixed
+
+- **Fix leaked EventBus subscriptions on central stop**: Six internal subscription leaks have been fixed:
+
+  - `SysvarStateChangedEvent` subscriptions in `HubCoordinator` were not being cleaned up (72 subscriptions per central)
+  - `HealthRecordedEvent` subscription in `ClientCoordinator` was stored but never unsubscribed
+  - `DeviceRemovedEvent` subscription in `CacheCoordinator` - the existing `stop()` method was not being called
+  - `DataPointValueReceivedEvent` subscriptions in `EventCoordinator` were not being cleaned up
+  - `DataPointStatusReceivedEvent` subscriptions in `EventCoordinator` were not being cleaned up
+  - `SystemStatusChangedEvent` subscriptions in `CentralUnit`, `InterfaceClient`, and `ClientCCU` were not being cleaned up
+
+  The `HubCoordinator` and `EventCoordinator` now have `clear()` methods, `CacheCoordinator.stop()` is called during central shutdown, and client `stop()` methods now properly unsubscribe from system status events.
+
+### Added
+
+- **New `EventBus.clear_external_subscriptions()` method**: Clears subscriptions for event types that are subscribed to by external consumers (like Home Assistant integration). This includes `DataPointStateChangedEvent`, `DeviceRemovedEvent`, `DeviceStateChangedEvent`, `FirmwareStateChangedEvent`, and `LinkPeerChangedEvent`. The method is called during central shutdown as a fallback cleanup for external subscriptions that were not properly unsubscribed.
+
+---
+
 # Version 2026.1.21 (2026-01-09)
 
 ## What's Changed
@@ -5,13 +28,6 @@
 ### Fixed
 
 - **Fix state machine transition error on unload**: Allow transition from `FAILED` to `DISCONNECTED` state. This fixes `InvalidStateTransitionError` when unloading the Home Assistant integration while a client is in failed state. Previously, `deinitialize_proxy()` could not cleanly shut down a failed client.
-
-- **Fix leaked EventBus subscriptions on central stop**: Two internal subscription leaks have been fixed:
-
-  - `SysvarStateChangedEvent` subscriptions in `HubCoordinator` were not being cleaned up (72 subscriptions per central)
-  - `HealthRecordedEvent` subscription in `ClientCoordinator` was stored but never unsubscribed
-
-  The `HubCoordinator` now has a `clear()` method that is called during central shutdown. This reduces the number of leaked subscriptions logged at shutdown from ~7800 to only external subscriptions from the Home Assistant integration.
 
 ---
 

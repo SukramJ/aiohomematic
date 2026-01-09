@@ -15,7 +15,7 @@ The EventCoordinator provides:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from functools import partial
 import logging
@@ -89,9 +89,11 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
 
     __slots__ = (
         "_client_provider",
+        "_data_point_unsubscribes",
         "_event_bus",
         "_health_tracker",
         "_last_event_seen_for_interface",
+        "_status_unsubscribes",
         "_task_scheduler",
     )
 
@@ -122,6 +124,12 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         # Store last event seen datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
 
+        # Store data point subscription unsubscribe callbacks for cleanup
+        self._data_point_unsubscribes: Final[list[Callable[[], None]]] = []
+
+        # Store status subscription unsubscribe callbacks for cleanup
+        self._status_unsubscribes: Final[list[Callable[[], None]]] = []
+
     event_bus: Final = DelegatedProperty[EventBus](path="_event_bus")
 
     def add_data_point_subscription(self, *, data_point: BaseParameterDataPointProtocolAny) -> None:
@@ -145,12 +153,26 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                 if event.dpk == data_point.dpk:
                     await data_point.event(value=event.value, received_at=event.received_at)
 
-            self._event_bus.subscribe(
-                event_type=DataPointValueReceivedEvent, event_key=data_point.dpk, handler=event_handler
+            self._data_point_unsubscribes.append(
+                self._event_bus.subscribe(
+                    event_type=DataPointValueReceivedEvent, event_key=data_point.dpk, handler=event_handler
+                )
             )
 
         # Also subscribe for status events if applicable
         self._add_status_subscription(data_point=data_point)
+
+    def clear(self) -> None:
+        """Clear all event subscriptions created by this coordinator."""
+        # Clear data point value event subscriptions
+        for unsubscribe in self._data_point_unsubscribes:
+            unsubscribe()
+        self._data_point_unsubscribes.clear()
+
+        # Clear status event subscriptions
+        for unsubscribe in self._status_unsubscribes:
+            unsubscribe()
+        self._status_unsubscribes.clear()
 
     @callback_event
     async def data_point_event(self, *, interface_id: str, channel_address: str, parameter: str, value: Any) -> None:
@@ -381,10 +403,12 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
             if event.dpk == data_point.dpk:
                 data_point.update_status(status_value=event.status_value)
 
-        self._event_bus.subscribe(
-            event_type=DataPointStatusReceivedEvent,
-            event_key=data_point.dpk,
-            handler=status_event_handler,
+        self._status_unsubscribes.append(
+            self._event_bus.subscribe(
+                event_type=DataPointStatusReceivedEvent,
+                event_key=data_point.dpk,
+                handler=status_event_handler,
+            )
         )
 
     def _emit_device_removed_event(self, *, timestamp: datetime, **kwargs: Unpack[DeviceRemovedEventArgs]) -> None:

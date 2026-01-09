@@ -21,6 +21,8 @@ from aiohomematic.const import (
     PING_PONG_CACHE_MAX_SIZE,
     PING_PONG_MISMATCH_COUNT,
     PING_PONG_MISMATCH_COUNT_TTL,
+    IntegrationIssueSeverity,
+    IntegrationIssueType,
     PingPongMismatchType,
 )
 from aiohomematic.interfaces import CentralInfoProtocol, EventBusProviderProtocol, IncidentRecorderProtocol
@@ -176,14 +178,11 @@ class PingPongTracker:
             """Publish event."""
             acceptable = mismatch_count <= self._allowed_delta
             issue = IntegrationIssue(
-                severity="warning" if acceptable else "error",
-                issue_id=f"ping_pong_mismatch_{self._interface_id}",
-                translation_key="ping_pong_mismatch",
-                translation_placeholders=(
-                    ("interface_id", self._interface_id),
-                    ("mismatch_type", mismatch_type.value),
-                    ("mismatch_count", str(mismatch_count)),
-                ),
+                issue_type=IntegrationIssueType.PING_PONG_MISMATCH,
+                severity=IntegrationIssueSeverity.WARNING if acceptable else IntegrationIssueSeverity.ERROR,
+                interface_id=self._interface_id,
+                mismatch_type=mismatch_type,
+                mismatch_count=mismatch_count,
             )
             self._event_bus_provider.event_bus.publish_sync(
                 event=SystemStatusChangedEvent(

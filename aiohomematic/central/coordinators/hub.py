@@ -22,7 +22,7 @@ from typing import Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.events import ProgramExecutedEvent, SysvarStateChangedEvent
-from aiohomematic.const import DataPointCategory, Interface
+from aiohomematic.const import DataPointCategory, Interface, ProgramTrigger
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
@@ -238,7 +238,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
                     timestamp=datetime.now(),
                     program_id=pid,
                     program_name=program_name,
-                    triggered_by="api",
+                    triggered_by=ProgramTrigger.API,
                     success=success,
                 )
             )

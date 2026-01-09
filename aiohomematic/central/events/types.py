@@ -23,7 +23,7 @@ from datetime import datetime
 from enum import IntEnum
 from typing import Any
 
-from aiohomematic.const import CircuitState
+from aiohomematic.const import CentralState, CircuitState, ClientState
 
 __all__ = [
     "CentralStateChangedEvent",
@@ -140,8 +140,8 @@ class ClientStateChangedEvent(Event):
 
     timestamp: datetime
     interface_id: str
-    old_state: str  # ClientState value
-    new_state: str  # ClientState value
+    old_state: ClientState
+    new_state: ClientState
     trigger: str | None
 
     @property
@@ -163,8 +163,8 @@ class CentralStateChangedEvent(Event):
 
     timestamp: datetime
     central_name: str
-    old_state: str  # CentralState value
-    new_state: str  # CentralState value
+    old_state: CentralState
+    new_state: CentralState
     trigger: str | None
 
     @property

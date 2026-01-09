@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.23"
+VERSION: Final = "2026.1.24"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1243,6 +1243,46 @@ class PingPongMismatchType(StrEnum):
 
     PENDING = "pending"  # PING sent but no PONG received
     UNKNOWN = "unknown"  # PONG received without matching PING
+
+
+class IntegrationIssueSeverity(StrEnum):
+    """Severity level for integration issues."""
+
+    ERROR = "error"
+    WARNING = "warning"
+
+
+class IntegrationIssueType(StrEnum):
+    """
+    Type of integration issue.
+
+    Each value serves as both:
+    - issue_id prefix (e.g., "ping_pong_mismatch_{interface_id}")
+    - translation_key (e.g., "ping_pong_mismatch")
+    """
+
+    PING_PONG_MISMATCH = "ping_pong_mismatch"
+    FETCH_DATA_FAILED = "fetch_data_failed"
+
+
+class DataRefreshType(StrEnum):
+    """Type of data refresh operation."""
+
+    CLIENT_DATA = "client_data"
+    INBOX = "inbox"
+    METRICS = "metrics"
+    PROGRAM = "program"
+    SYSTEM_UPDATE = "system_update"
+    SYSVAR = "sysvar"
+
+
+class ProgramTrigger(StrEnum):
+    """Trigger source for program execution."""
+
+    API = "api"
+    USER = "user"
+    SCHEDULER = "scheduler"
+    AUTOMATION = "automation"
 
 
 class ParameterType(StrEnum):

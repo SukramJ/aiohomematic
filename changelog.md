@@ -1,3 +1,34 @@
+# Version 2026.1.24 (2026-01-09)
+
+## What's Changed
+
+### Breaking Changes
+
+- **Strongly typed events and IntegrationIssue**: Multiple event classes now use typed enums instead of string comparisons. This prevents consumer errors from incorrect string matching and provides better IDE support:
+
+  - **IntegrationIssue**:
+
+    - `issue.severity` is now `IntegrationIssueSeverity` enum
+    - New `issue.issue_type` field as `IntegrationIssueType` enum
+    - `issue.mismatch_count` is now `int | None`
+    - `issue.mismatch_type` is now `PingPongMismatchType | None`
+
+  - **ClientStateChangedEvent**: `old_state` and `new_state` are now `ClientState` enum (previously `str`)
+
+  - **CentralStateChangedEvent**: `old_state` and `new_state` are now `CentralState` enum (previously `str`)
+
+  - **DataRefreshTriggeredEvent / DataRefreshCompletedEvent**: `refresh_type` is now `DataRefreshType` enum (previously `str`)
+
+  - **ProgramExecutedEvent**: `triggered_by` is now `ProgramTrigger` enum (previously `str`)
+
+  - See migration guide: `docs/migrations/strongly_typed_events_2026_01.md`
+
+### Added
+
+- **New enums**: `DataRefreshType` and `ProgramTrigger` for strongly typed event fields
+
+---
+
 # Version 2026.1.23 (2026-01-09)
 
 ## What's Changed

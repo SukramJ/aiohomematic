@@ -27,6 +27,7 @@ from aiohomematic.central.events import (
     RequestCoalescedEvent,
 )
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState, RequestCoalescer
+from aiohomematic.const import DataRefreshType
 from aiohomematic_test_support.event_capture import EventCapture, EventSequenceAssertion
 
 if TYPE_CHECKING:
@@ -200,7 +201,7 @@ class TestIntegrationEventPatterns:
         await event_bus.publish(
             event=DataRefreshTriggeredEvent(
                 timestamp=datetime.now(),
-                refresh_type="client_data",
+                refresh_type=DataRefreshType.CLIENT_DATA,
                 interface_id="test-rf",
                 scheduled=True,
             )
@@ -212,7 +213,7 @@ class TestIntegrationEventPatterns:
         await event_bus.publish(
             event=DataRefreshCompletedEvent(
                 timestamp=datetime.now(),
-                refresh_type="client_data",
+                refresh_type=DataRefreshType.CLIENT_DATA,
                 interface_id="test-rf",
                 success=True,
                 duration_ms=42.5,
@@ -224,7 +225,7 @@ class TestIntegrationEventPatterns:
         # Verify refresh triggered
         triggered_events = event_capture.get_events_of_type(event_type=DataRefreshTriggeredEvent)
         assert len(triggered_events) == 1
-        assert triggered_events[0].refresh_type == "client_data"
+        assert triggered_events[0].refresh_type == DataRefreshType.CLIENT_DATA
         assert triggered_events[0].scheduled is True
 
         # Verify refresh completed successfully

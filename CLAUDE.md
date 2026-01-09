@@ -377,6 +377,46 @@ if TYPE_CHECKING:
     from aiohomematic.central import CentralUnit
 ```
 
+#### No Lazy Imports in Production Code
+
+**MANDATORY**: Lazy imports (imports inside functions or methods) are **forbidden** in production code.
+
+```python
+# ❌ WRONG - Lazy import inside function
+def get_device(address: str) -> Device:
+    from aiohomematic.model import Device  # FORBIDDEN!
+    return Device(address=address)
+
+# ❌ WRONG - Lazy import to avoid circular dependency
+def create_central() -> CentralUnit:
+    from aiohomematic.central import CentralUnit  # FORBIDDEN!
+    return CentralUnit()
+
+# ✅ CORRECT - Import at module level
+from aiohomematic.model import Device
+
+def get_device(address: str) -> Device:
+    return Device(address=address)
+
+# ✅ CORRECT - Use TYPE_CHECKING for type hints only
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from aiohomematic.central import CentralUnit
+
+def get_central_name(central: CentralUnit) -> str:
+    return central.name
+```
+
+**Rationale**:
+
+- Lazy imports hide circular dependency issues that should be fixed architecturally
+- They make code harder to understand and maintain
+- They can cause subtle runtime errors and import order dependencies
+- Performance impact of repeated imports inside hot paths
+
+**Exception**: Test code (`tests/`) may use lazy imports where necessary for test isolation.
+
 #### Code Style Conventions
 
 ```python

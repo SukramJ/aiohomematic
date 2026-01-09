@@ -23,6 +23,8 @@ from aiohomematic.const import (
     CallSource,
     CommandRxMode,
     DeviceDescription,
+    IntegrationIssueSeverity,
+    IntegrationIssueType,
     Interface,
     InternalCustomID,
     Operations,
@@ -142,10 +144,9 @@ class DeviceHandler(
                 return
         except ClientException:
             issue = IntegrationIssue(
-                severity="error",
-                issue_id=f"fetch_data_failed_{self._interface_id}",
-                translation_key="fetch_data_failed",
-                translation_placeholders=(("interface_id", self._interface_id),),
+                issue_type=IntegrationIssueType.FETCH_DATA_FAILED,
+                severity=IntegrationIssueSeverity.ERROR,
+                interface_id=self._interface_id,
             )
             await self._client_deps.event_bus.publish(
                 event=SystemStatusChangedEvent(

@@ -384,8 +384,8 @@ class CentralStateMachine(CentralStateMachineProtocol):
             event=CentralStateChangedEvent(
                 timestamp=self._last_state_change,
                 central_name=self._central_name,
-                old_state=old_state.value,
-                new_state=new_state.value,
+                old_state=old_state,
+                new_state=new_state,
                 trigger=reason or None,
             )
         )

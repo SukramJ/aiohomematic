@@ -276,7 +276,7 @@ METRICS_SENSOR_SYSTEM_HEALTH_NAME: Final = "system_health"
 METRICS_SENSOR_CONNECTION_LATENCY_NAME: Final = "connection_latency"
 METRICS_SENSOR_LAST_EVENT_AGE_NAME: Final = "last_event_age"
 
-CONNECTIVITY_SENSOR_PREFIX: Final = "interface_connectivity"
+CONNECTIVITY_SENSOR_PREFIX: Final = "Connectivity"
 INBOX_SENSOR_NAME: Final = "inbox"
 
 

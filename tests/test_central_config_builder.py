@@ -238,21 +238,21 @@ class TestInterfaceConfiguration:
         assert Interface.BIDCOS_WIRED in interfaces
 
     def test_add_cuxd_interface(self) -> None:
-        """Test adding CUxD interface with explicit port (CUxD has no default)."""
+        """Test adding CUxD interface (JSON-RPC only, no XML-RPC port)."""
         config = (
             CentralConfigBuilder()
             .with_name(name="test")
             .with_host(host="192.168.1.100")
             .with_credentials(username="admin", password="secret")
-            .add_cuxd_interface(port=8701)
+            .add_cuxd_interface()
             .build()
         )
 
         interfaces = {ic.interface for ic in config.enabled_interface_configs}
         assert Interface.CUXD in interfaces
-        # Verify the port was set correctly
+        # Verify port is 0 (JSON-RPC only, no XML-RPC port)
         cuxd_config = next(ic for ic in config.enabled_interface_configs if ic.interface == Interface.CUXD)
-        assert cuxd_config.port == 8701
+        assert cuxd_config.port == 0
 
     def test_add_hmip_interface(self) -> None:
         """Test adding HMIP interface."""

@@ -901,7 +901,7 @@ class TestClientClasses:
         These tests ensure all paramset-related methods properly use JSON-RPC.
         """
         central = _FakeCentral()
-        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=0)
         from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
         from aiohomematic.client.rpc_proxy import NullRpcProxy
 
@@ -990,7 +990,7 @@ class TestClientClasses:
     async def test_clientjsonccu_put_paramset_uses_json_rpc(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify ClientJsonCCU.put_paramset uses JSON-RPC client, not XML-RPC proxy."""
         central = _FakeCentral()
-        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=0)
         from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
         from aiohomematic.client.rpc_proxy import NullRpcProxy
 
@@ -1056,7 +1056,7 @@ class TestClientClasses:
         The NullRpcProxy used by ClientJsonCCU would throw UnsupportedException if called.
         """
         central = _FakeCentral()
-        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=0)
         from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
         from aiohomematic.client.rpc_proxy import NullRpcProxy
 
@@ -1116,7 +1116,7 @@ class TestClientClasses:
     ) -> None:
         """Verify ClientJsonCCU.update_paramset_descriptions uses JSON-RPC."""
         central = _FakeCentral()
-        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=0)
         from aiohomematic.client import ClientConfig as _ClientConfig, ClientJsonCCU as _ClientJsonCCU
         from aiohomematic.client.rpc_proxy import NullRpcProxy
 
@@ -1278,7 +1278,7 @@ class TestClientConfig:
         assert isinstance(client, _ClientCCU)
 
         # JsonCCU selection for HMIP_RF (requires JSON-RPC client)
-        iface_js = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=8701)
+        iface_js = InterfaceConfig(central_name="c", interface=Interface.CUXD, port=0)
         ccfg_js = _ClientConfig(client_deps=central, interface_config=iface_js)
         client2 = await ccfg_js.create_client()
         assert isinstance(client2, _ClientJsonCCU)

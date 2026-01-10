@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Final
 
 from slugify import slugify
 
-from aiohomematic.const import HUB_ADDRESS, DataPointCategory, HubValueType, Interface
+from aiohomematic.const import CONNECTIVITY_SENSOR_PREFIX, HUB_ADDRESS, DataPointCategory, HubValueType, Interface
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
     ChannelProtocol,
@@ -42,8 +42,6 @@ if TYPE_CHECKING:
     pass
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-_CONNECTIVITY_SENSOR_PREFIX: Final = "Connectivity"
 
 
 class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointProtocol, PayloadMixin):
@@ -94,7 +92,7 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
         self._health_tracker: Final = health_tracker
 
         # Create unique ID and name
-        sensor_name = f"{_CONNECTIVITY_SENSOR_PREFIX} {interface.value}"
+        sensor_name = f"{CONNECTIVITY_SENSOR_PREFIX} {interface.value}"
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,

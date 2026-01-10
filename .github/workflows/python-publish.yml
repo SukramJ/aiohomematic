@@ -37,7 +37,7 @@ jobs:
   #    - Skips if the triggering tag already starts with "support-"
   # ==========================================================
   release-build:
-    if: ${{ (github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-')) }}
+    if: ${{ github.repository_owner == 'SukramJ' && ((github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-'))) }}
     runs-on: ubuntu-latest
     env:
       TAG_NAME: ${{ github.event.release.tag_name || github.event.client_payload.tag }}
@@ -70,7 +70,7 @@ jobs:
   #    - Publishes the built distributions to PyPI (Trusted Publishing)
   # ==========================================================
   pypi-publish:
-    if: ${{ (github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-')) }}
+    if: ${{ github.repository_owner == 'SukramJ' && ((github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-'))) }}
     runs-on: ubuntu-latest
     needs: [release-build]
     permissions:
@@ -97,7 +97,7 @@ jobs:
   #    - Zips only aiohomematic_test_support/ and also builds a real support package
   # ==========================================================
   support-release:
-    if: ${{ (github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-')) }}
+    if: ${{ github.repository_owner == 'SukramJ' && ((github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-'))) }}
     runs-on: ubuntu-latest
     needs: [release-build]
     permissions:

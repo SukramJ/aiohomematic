@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   create_release:
+    if: github.repository_owner == 'SukramJ'
     name: Create GitHub Release from changelog
     runs-on: ubuntu-latest
     steps:

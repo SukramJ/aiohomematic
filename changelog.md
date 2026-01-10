@@ -1,3 +1,20 @@
+# Version 2026.1.28 (2026-01-10)
+
+## What's Changed
+
+### Added
+
+- **Comprehensive test coverage for ConnectionRecoveryCoordinator** (90+ tests):
+  - Unit tests for `InterfaceRecoveryState` dataclass (retry logic, exponential backoff, state transitions)
+  - Tests for all recovery stages (TCP check, RPC check, stability check, reconnect, data load)
+  - Tests for event handlers (`_on_connection_lost`, `_on_circuit_breaker_tripped`, `_on_circuit_breaker_state_changed`)
+  - Tests for state machine transitions (RECOVERING, RUNNING, DEGRADED, FAILED)
+  - Tests for heartbeat timer and incident recording
+  - Tests for exception handling (CancelledError, generic exceptions)
+  - Tests for edge cases (shutdown during recovery, max retries, JSON-RPC port fallback)
+
+---
+
 # Version 2026.1.27 (2026-01-09)
 
 ## What's Changed

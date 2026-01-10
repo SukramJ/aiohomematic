@@ -77,17 +77,17 @@ class CcuBackend(BaseBackend):
         proxy_read: BaseRpcProxy,
         json_rpc: AioJsonRpcAioHttpClient,
         device_details_provider: Mapping[str, int],
-        supports_push_updates: bool,
+        has_push_updates: bool,
     ) -> None:
         """Initialize the CCU backend."""
         # Build capabilities based on interface and config
         capabilities = replace(
             CCU_CAPABILITIES,
-            supports_firmware_updates=interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
-            supports_linking=interface in LINKABLE_INTERFACES,
-            supports_ping_pong=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
-            supports_push_updates=supports_push_updates,
-            supports_rpc_callback=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
+            firmware_updates=interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
+            linking=interface in LINKABLE_INTERFACES,
+            ping_pong=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
+            push_updates=has_push_updates,
+            rpc_callback=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
         )
         super().__init__(
             interface=interface,
@@ -351,8 +351,8 @@ class CcuBackend(BaseBackend):
         """Initialize the backend by fetching system information."""
         self._system_information = await self._json_rpc.get_system_information()
         # Update backup capability based on system info
-        if not self._system_information.supports_backup:
-            self._capabilities = replace(self._capabilities, supports_backup=False)
+        if not self._system_information.has_backup:
+            self._capabilities = replace(self._capabilities, backup=False)
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """Return all device descriptions (normalized)."""

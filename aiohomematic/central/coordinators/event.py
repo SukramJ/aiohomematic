@@ -144,7 +144,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
 
         """
         if isinstance(data_point, GenericDataPointProtocol | GenericEventProtocol) and (
-            data_point.is_readable or data_point.supports_events
+            data_point.is_readable or data_point.has_events
         ):
             # Subscribe data point's event method to EventBus with filtering
 
@@ -207,7 +207,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
                 if (
                     v_interface_id == interface_id
                     and (client := self._client_provider.get_client(interface_id=interface_id))
-                    and client.capabilities.supports_ping_pong
+                    and client.capabilities.ping_pong
                 ):
                     client.ping_pong_tracker.handle_received_pong(pong_token=token)
             return

@@ -1870,6 +1870,30 @@ class TestPropertyAccessAndValidation:
             (TEST_DEVICES_SCHEDULE, True, None, None),
         ],
     )
+    async def test_has_schedule_property(self, central_client_factory_with_homegear_client):
+        """Test has_schedule property."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Check has_schedule property
+        if climate.device.week_profile:
+            supports = climate.device.week_profile.has_schedule
+            assert isinstance(supports, bool)
+            assert supports is True  # VCU0000341 supports schedules
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
     async def test_schedule_channel_address_property(self, central_client_factory_with_homegear_client):
         """Test schedule_channel_address property."""
         central, mock_client, _ = central_client_factory_with_homegear_client
@@ -1913,30 +1937,6 @@ class TestPropertyAccessAndValidation:
             for weekday_data in profile_data.values():
                 count_24_00 = sum(1 for slot in weekday_data.values() if slot.get("endtime") == "24:00")
                 assert count_24_00 <= 1  # At most one 24:00 slot
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_supports_schedule_property(self, central_client_factory_with_homegear_client):
-        """Test supports_schedule property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Check supports_schedule property
-        if climate.device.week_profile:
-            supports = climate.device.week_profile.supports_schedule
-            assert isinstance(supports, bool)
-            assert supports is True  # VCU0000341 supports schedules
 
 
 class TestSimpleScheduleConversionMethods:
@@ -3182,6 +3182,31 @@ class TestWeekProfileHelperMethods:
             (TEST_DEVICES_SCHEDULE, True, None, None),
         ],
     )
+    async def test_has_schedule_property(
+        self,
+        central_client_factory_with_homegear_client,
+    ):
+        """Test has_schedule property."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        if climate.device.week_profile:
+            # Should return True for devices with schedule support
+            assert climate.device.week_profile.has_schedule is True
+
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SCHEDULE, True, None, None),
+        ],
+    )
     async def test_schedule_channel_address_property(
         self,
         central_client_factory_with_homegear_client,
@@ -3240,31 +3265,6 @@ class TestWeekProfileHelperMethods:
                             for slot in weekday_data.values():
                                 assert "endtime" in slot
                                 assert "temperature" in slot
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_supports_schedule_property(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test supports_schedule property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Should return True for devices with schedule support
-            assert climate.device.week_profile.supports_schedule is True
 
     @pytest.mark.parametrize(
         (

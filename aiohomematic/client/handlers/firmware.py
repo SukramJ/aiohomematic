@@ -40,8 +40,8 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
     """
 
     __slots__ = (
-        "_supports_device_firmware_update",
-        "_supports_firmware_update_trigger",
+        "_has_device_firmware_update",
+        "_has_firmware_update_trigger",
     )
 
     def __init__(
@@ -53,8 +53,8 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
         json_rpc_client: AioJsonRpcAioHttpClient,
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
-        supports_device_firmware_update: bool,
-        supports_firmware_update_trigger: bool,
+        has_device_firmware_update: bool,
+        has_firmware_update_trigger: bool,
     ) -> None:
         """Initialize the firmware handler."""
         super().__init__(
@@ -65,11 +65,11 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
             proxy=proxy,
             proxy_read=proxy_read,
         )
-        self._supports_device_firmware_update: Final = supports_device_firmware_update
-        self._supports_firmware_update_trigger: Final = supports_firmware_update_trigger
+        self._has_device_firmware_update: Final = has_device_firmware_update
+        self._has_firmware_update_trigger: Final = has_firmware_update_trigger
 
-    supports_device_firmware_update: Final = DelegatedProperty[bool](path="_supports_device_firmware_update")
-    supports_firmware_update_trigger: Final = DelegatedProperty[bool](path="_supports_firmware_update_trigger")
+    has_device_firmware_update: Final = DelegatedProperty[bool](path="_has_device_firmware_update")
+    has_firmware_update_trigger: Final = DelegatedProperty[bool](path="_has_firmware_update_trigger")
 
     @inspector(re_raise=False)
     async def trigger_firmware_update(self) -> bool:
@@ -83,7 +83,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
             True if the update was triggered successfully, False if unsupported.
 
         """
-        if not self._supports_firmware_update_trigger:
+        if not self._has_firmware_update_trigger:
             _LOGGER.debug("TRIGGER_FIRMWARE_UPDATE: Not supported by client for %s", self._interface_id)
             return False
 
@@ -108,7 +108,7 @@ class FirmwareHandler(BaseHandler, FirmwareOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_device_firmware_update:
+        if not self._has_device_firmware_update:
             _LOGGER.debug("UPDATE_DEVICE_FIRMWARE: Not supported by client for %s", self._interface_id)
             return False
 

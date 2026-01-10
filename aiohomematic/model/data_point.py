@@ -804,6 +804,11 @@ class BaseParameterDataPoint[
         return DataPointCategory.SENSOR if self._is_forced_sensor else self._category
 
     @property
+    def has_events(self) -> bool:
+        """Return, if data_point is supports events."""
+        return bool(self._operations & Operations.EVENT)
+
+    @property
     def has_status_parameter(self) -> bool:
         """Return if this parameter has a paired STATUS parameter."""
         return self._status_parameter is not None
@@ -835,11 +840,6 @@ class BaseParameterDataPoint[
     def state_uncertain(self) -> bool:
         """Return the state uncertain status."""
         return self._state_uncertain
-
-    @property
-    def supports_events(self) -> bool:
-        """Return, if data_point is supports events."""
-        return bool(self._operations & Operations.EVENT)
 
     @property
     def unconfirmed_last_value_send(self) -> ParameterT:
@@ -878,7 +878,7 @@ class BaseParameterDataPoint[
     @hm_property(cached=True)
     def requires_polling(self) -> bool:
         """Return whether the data_point requires polling."""
-        return not self._channel.device.client.capabilities.supports_push_updates or (
+        return not self._channel.device.client.capabilities.push_updates or (
             self._channel.device.product_group in (ProductGroup.HM, ProductGroup.HMW)
             and self._paramset_key == ParamsetKey.MASTER
         )

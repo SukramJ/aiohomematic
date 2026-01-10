@@ -39,7 +39,7 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
     - Downloading backup files
     """
 
-    __slots__ = ("_supports_backup", "_system_information")
+    __slots__ = ("_has_backup", "_system_information")
 
     def __init__(
         self,
@@ -50,7 +50,7 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
         json_rpc_client: AioJsonRpcAioHttpClient,
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
-        supports_backup: bool,
+        has_backup: bool,
         system_information: SystemInformation,
     ) -> None:
         """Initialize the backup handler."""
@@ -62,10 +62,10 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
             proxy=proxy,
             proxy_read=proxy_read,
         )
-        self._supports_backup: Final = supports_backup
+        self._has_backup: Final = has_backup
         self._system_information: Final = system_information
 
-    supports_backup: Final = DelegatedProperty[bool](path="_supports_backup")
+    has_backup: Final = DelegatedProperty[bool](path="_has_backup")
 
     @inspector(re_raise=False)
     async def create_backup_and_download(
@@ -88,7 +88,7 @@ class BackupHandler(BaseHandler, BackupOperationsProtocol):
             BackupData with filename and content, or None if backup creation or download failed.
 
         """
-        if not self._supports_backup:
+        if not self._has_backup:
             _LOGGER.debug("CREATE_BACKUP_AND_DOWNLOAD: Not supported by client for %s", self._interface_id)
             return None
 

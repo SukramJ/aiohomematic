@@ -35,7 +35,7 @@ from tests.conftest import NoOpTaskScheduler
 class _FakeDP:
     """Minimal fake DataPoint that disables events to exercise early-return path."""
 
-    supports_events = False
+    has_events = False
 
 
 class _FakeDevice:
@@ -610,7 +610,7 @@ class _EventDP:
     """Fake DataPoint that supports events and provides a callback api for tracker timeout path."""
 
     def __init__(self, *, should_match: bool = False) -> None:
-        self.supports_events = True
+        self.has_events = True
         self._handler: Any | None = None
         self.value = 0.0 if should_match else 1.0
         self.unsub_called = False
@@ -693,28 +693,28 @@ def _make_client_with_interface(iface: Interface, *, push: bool = True, fw: bool
     provide the attributes used by the tested properties/methods.
     """
     c = object.__new__(_TestClient)
-    supports_linking = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
-    supports_ping_pong = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
-    supports_rpc_callback = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
+    has_linking = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
+    has_ping_pong = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
+    has_rpc_callback = iface in {Interface.HMIP_RF, Interface.BIDCOS_RF, Interface.BIDCOS_WIRED}
     fake_cfg = SimpleNamespace(
         interface=iface,
-        supports_linking=supports_linking,
-        supports_push_updates=push,
-        supports_firmware_updates=fw,
-        supports_ping_pong=supports_ping_pong,
-        supports_rpc_callback=supports_rpc_callback,
+        has_linking=has_linking,
+        has_push_updates=push,
+        has_firmware_updates=fw,
+        has_ping_pong=has_ping_pong,
+        has_rpc_callback=has_rpc_callback,
         version="0",
     )
     # Attach minimal config needed by Client properties
     c._config = fake_cfg  # type: ignore[attr-defined]
-    # Attach capabilities used by supports_* properties
+    # Attach capabilities used by capability properties
     c._capabilities = replace(  # type: ignore[attr-defined]
         CCU_CAPABILITIES,
-        supports_firmware_updates=fw,
-        supports_linking=supports_linking,
-        supports_ping_pong=supports_ping_pong,
-        supports_push_updates=push,
-        supports_rpc_callback=supports_rpc_callback,
+        firmware_updates=fw,
+        linking=has_linking,
+        ping_pong=has_ping_pong,
+        push_updates=push,
+        rpc_callback=has_rpc_callback,
     )
     return c
 
@@ -742,7 +742,7 @@ class TestClientEventTracking:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL",
         )
-        # Should not raise and should return quickly when dp.supports_events is False
+        # Should not raise and should return quickly when dp.has_events is False
         await _track_single_data_point_state_change_or_timeout(
             device=_FakeDevice(), dpk_value=(dpk, 0), wait_for_callback=1
         )
@@ -873,14 +873,14 @@ class TestClientClasses:
 
         client_ccu = _ClientCCU(client_config=ccfg)
 
-        # init_client should create proxies when supports_rpc_callback True
+        # init_client should create proxies when has_rpc_callback True
         await client_ccu.init_client()
 
         # Not initialized path: pings with interface_id
         client_ccu._is_initialized = False  # type: ignore[attr-defined]
         assert await client_ccu.check_connection_availability(handle_ping_pong=False) is True
 
-        # Initialized and supports_ping_pong path: pings with callerId including timestamp
+        # Initialized and has_ping_pong path: pings with callerId including timestamp
         client_ccu._is_initialized = True  # type: ignore[attr-defined]
         assert await client_ccu.check_connection_availability(handle_ping_pong=True) is True
 
@@ -1383,16 +1383,16 @@ class TestClientSupportFlags:
     """Test client support flags from configuration."""
 
     def test_support_flags_from_config(self) -> None:
-        """supports_ping_pong/push/firmware reflect the derived values from config."""
+        """has_ping_pong/push/firmware reflect the derived values from config."""
         c1 = _make_client_with_interface(Interface.BIDCOS_RF, push=True, fw=True)
-        assert c1.capabilities.supports_ping_pong is True
-        assert c1.capabilities.supports_push_updates is True
-        assert c1.capabilities.supports_firmware_updates is True
+        assert c1.capabilities.ping_pong is True
+        assert c1.capabilities.push_updates is True
+        assert c1.capabilities.firmware_updates is True
 
         c2 = _make_client_with_interface(Interface.CUXD, push=False, fw=False)
-        assert c2.capabilities.supports_ping_pong is False
-        assert c2.capabilities.supports_push_updates is False
-        assert c2.capabilities.supports_firmware_updates is False
+        assert c2.capabilities.ping_pong is False
+        assert c2.capabilities.push_updates is False
+        assert c2.capabilities.firmware_updates is False
 
 
 class TestClientProxyLifecycle:
@@ -1476,11 +1476,11 @@ class TestClientProxyLifecycle:
         assert state in {ProxyInitState.DE_INIT_SUCCESS, ProxyInitState.DE_INIT_FAILED}
         assert client._state_machine.state == ClientState.DISCONNECTED  # type: ignore[attr-defined]
 
-        client._capabilities = replace(client._capabilities, supports_rpc_callback=False)  # type: ignore[attr-defined]
+        client._capabilities = replace(client._capabilities, rpc_callback=False)  # type: ignore[attr-defined]
         state = await client.deinitialize_proxy()
         assert state is ProxyInitState.DE_INIT_SUCCESS
 
-        # supports_rpc_callback is already False from above
+        # rpc_callback is already False from above
         # With the fix for empty device list handling (is not None check),
         # initialize_proxy now succeeds even with empty device list
         state = await client.initialize_proxy()
@@ -1490,7 +1490,7 @@ class TestClientProxyLifecycle:
         state = await client.deinitialize_proxy()
         assert state is ProxyInitState.DE_INIT_SUCCESS
 
-        client._capabilities = replace(client._capabilities, supports_rpc_callback=True)  # type: ignore[attr-defined]
+        client._capabilities = replace(client._capabilities, rpc_callback=True)  # type: ignore[attr-defined]
         client._proxy = _XmlProxy2(fail_init=True)  # type: ignore[attr-defined]
         state = await client.initialize_proxy()
         assert state is ProxyInitState.INIT_FAILED
@@ -1706,8 +1706,8 @@ class TestClientVirtualRemote:
 class TestClientHomegear:
     """Test ClientHomegear specific functionality."""
 
-    def test_clienthomegear_model_and_supports_ping_pong(self) -> None:
-        """ClientHomegear.model should reflect version content and supports_ping_pong is always False."""
+    def test_clienthomegear_model_and_has_ping_pong(self) -> None:
+        """ClientHomegear.model should reflect version content and has_ping_pong is always False."""
         from aiohomematic.client import ClientHomegear
         from aiohomematic.const import Backend
 
@@ -1718,7 +1718,7 @@ class TestClientHomegear:
         # Default version is "0" -> does not contain pydevccu -> HOMEGEAR
         client_hg._config.version = "Homegear 0.8"  # type: ignore[attr-defined]
         assert client_hg.model == Backend.HOMEGEAR
-        assert client_hg.capabilities.supports_ping_pong is False
+        assert client_hg.capabilities.ping_pong is False
 
         # If version contains pydevccu -> PYDEVCCU
         client_hg._config.version = "pydevccu 1.0"  # type: ignore[attr-defined]

@@ -16,6 +16,7 @@ from typing import Final, TypedDict, Unpack
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
+from aiohomematic.model.custom.capabilities.siren import SMOKE_SENSOR_SIREN_CAPABILITIES, SirenCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import TimerUnitMixin
@@ -90,24 +91,17 @@ class PlaySoundArgs(TypedDict, total=False):
 class BaseCustomDpSiren(CustomDataPoint):
     """Class for Homematic siren data point."""
 
-    __slots__ = ()
+    __slots__ = ("_capabilities",)
 
     _category = DataPointCategory.SIREN
 
     @property
-    @abstractmethod
-    def supports_duration(self) -> bool:
-        """Flag if siren supports duration."""
-
-    @property
-    def supports_lights(self) -> bool:
-        """Flag if siren supports lights."""
-        return self.available_lights is not None
-
-    @property
-    def supports_tones(self) -> bool:
-        """Flag if siren supports tones."""
-        return self.available_tones is not None
+    def capabilities(self) -> SirenCapabilities:
+        """Return the siren capabilities."""
+        if (caps := getattr(self, "_capabilities", None)) is None:
+            caps = self._compute_capabilities()
+            object.__setattr__(self, "_capabilities", caps)
+        return caps
 
     @state_property
     @abstractmethod
@@ -139,6 +133,10 @@ class BaseCustomDpSiren(CustomDataPoint):
     ) -> None:
         """Turn the device on."""
 
+    @abstractmethod
+    def _compute_capabilities(self) -> SirenCapabilities:
+        """Compute static capabilities. Implemented by subclasses."""
+
 
 class CustomDpIpSiren(BaseCustomDpSiren):
     """Class for HomematicIP siren data point."""
@@ -159,11 +157,6 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     available_tones: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_acoustic_alarm_selection.values", kind=Kind.STATE
     )
-
-    @property
-    def supports_duration(self) -> bool:
-        """Flag if siren supports duration."""
-        return True
 
     @state_property
     def is_on(self) -> bool:
@@ -226,6 +219,14 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         duration = kwargs.get("duration") or self._dp_duration.default
         await self._dp_duration.send_value(value=duration, collector=collector)
 
+    def _compute_capabilities(self) -> SirenCapabilities:
+        """Compute static capabilities based on available DataPoints."""
+        return SirenCapabilities(
+            duration=True,
+            lights=self.available_lights is not None,
+            tones=self.available_tones is not None,
+        )
+
 
 class CustomDpIpSirenSmoke(BaseCustomDpSiren):
     """Class for HomematicIP siren smoke data point."""
@@ -237,11 +238,6 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         field=Field.SMOKE_DETECTOR_ALARM_STATUS, dpt=DpSensor[str | None]
     )
     _dp_smoke_detector_command: Final = DataPointField(field=Field.SMOKE_DETECTOR_COMMAND, dpt=DpActionSelect)
-
-    @property
-    def supports_duration(self) -> bool:
-        """Flag if siren supports duration."""
-        return False
 
     @state_property
     def available_lights(self) -> tuple[str, ...] | None:
@@ -275,6 +271,10 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         """Turn the device on."""
         await self._dp_smoke_detector_command.send_value(value=_SirenCommand.ON, collector=collector)
 
+    def _compute_capabilities(self) -> SirenCapabilities:
+        """Compute static capabilities. Smoke sensor siren has no configurable options."""
+        return SMOKE_SENSOR_SIREN_CAPABILITIES
+
 
 class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
     """Class for HomematicIP sound player data point (HmIP-MP3P channel 2)."""
@@ -304,11 +304,6 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         path="_dp_soundfile.values", kind=Kind.STATE
     )
 
-    @property
-    def supports_duration(self) -> bool:
-        """Flag if siren supports duration."""
-        return True
-
     @state_property
     def available_lights(self) -> tuple[str, ...] | None:
         """Return available lights (not supported for sound player)."""
@@ -331,11 +326,6 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         """Return true if sound is currently playing."""
         activity = self._dp_direction.value
         return activity is not None and activity in _ACTIVITY_STATES_ACTIVE
-
-    @state_property
-    def supports_soundfiles(self) -> bool:
-        """Return true if device supports soundfile selection."""
-        return self.available_soundfiles is not None
 
     @bind_collector
     async def play_sound(
@@ -430,6 +420,15 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
             with contextlib.suppress(ValueError, TypeError):
                 play_kwargs["on_time"] = float(kwargs["duration"])
         await self.play_sound(collector=collector, **play_kwargs)
+
+    def _compute_capabilities(self) -> SirenCapabilities:
+        """Compute static capabilities based on available DataPoints."""
+        return SirenCapabilities(
+            duration=True,
+            lights=False,
+            tones=False,
+            soundfiles=self.available_soundfiles is not None,
+        )
 
 
 # =============================================================================

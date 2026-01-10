@@ -155,6 +155,11 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         return len(self._data_points) > 0
 
     @property
+    def has_events(self) -> bool:
+        """Return, if data_point is supports events."""
+        return bool(self._operations & Operations.EVENT)
+
+    @property
     def is_readable(self) -> bool:
         """Return, if data_point is readable."""
         return bool(self._operations & Operations.READ)
@@ -183,11 +188,6 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return any(dp.state_uncertain for dp in self._relevant_data_points)
-
-    @property
-    def supports_events(self) -> bool:
-        """Return, if data_point is supports events."""
-        return bool(self._operations & Operations.EVENT)
 
     @state_property
     def modified_at(self) -> datetime:

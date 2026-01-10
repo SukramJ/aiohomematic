@@ -1753,7 +1753,7 @@ class SystemInformation:
     ccu_type: CCUType = CCUType.UNKNOWN
 
     @property
-    def supports_backup(self) -> bool:
+    def has_backup(self) -> bool:
         """Return True if backend supports online firmware update checks."""
         return self.ccu_type == CCUType.OPENCCU
 

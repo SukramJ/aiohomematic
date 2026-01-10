@@ -72,8 +72,8 @@ class TestTextDisplay:
         assert "CENTER" in display.available_alignments
 
         # Test support properties
-        assert display.supports_icons is True
-        assert display.supports_sounds is True
+        assert display.has_icons is True
+        assert display.has_sounds is True
 
 
 class TestTextDisplaySendText:

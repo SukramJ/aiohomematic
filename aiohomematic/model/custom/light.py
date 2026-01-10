@@ -14,6 +14,7 @@ import math
 from typing import Final, TypedDict, Unpack
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
+from aiohomematic.model.custom.capabilities.light import LightCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin, TimerUnitMixin
@@ -28,7 +29,7 @@ from aiohomematic.model.generic import (
     DpSensor,
     GenericDataPointAny,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 
 # Activity states indicating LED is active
 _ACTIVITY_STATES_ACTIVE: Final[frozenset[str]] = frozenset({"UP", "DOWN"})
@@ -223,10 +224,7 @@ class SoundPlayerLedOnArgs(LightOnArgs, total=False):
 class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     """Base class for Homematic light data point."""
 
-    __slots__ = (
-        "_cached_supports_brightness",
-        "_cached_supports_transition",
-    )
+    __slots__ = ("_capabilities",)
 
     _category = DataPointCategory.LIGHT
 
@@ -240,6 +238,14 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     def brightness_pct(self) -> int | None:
         """Return the brightness in percent of this light."""
         return self.level_to_brightness_pct(self._dp_level.value or _MIN_BRIGHTNESS)
+
+    @property
+    def capabilities(self) -> LightCapabilities:
+        """Return the light capabilities."""
+        if (caps := getattr(self, "_capabilities", None)) is None:
+            caps = self._compute_capabilities()
+            object.__setattr__(self, "_capabilities", caps)
+        return caps
 
     @property
     def group_brightness(self) -> int | None:
@@ -256,18 +262,18 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         return None
 
     @property
-    def supports_color_temperature(self) -> bool:
-        """Flag if light supports color temperature."""
+    def has_color_temperature(self) -> bool:
+        """Return True if light currently has color temperature."""
         return self.color_temp_kelvin is not None
 
     @property
-    def supports_effects(self) -> bool:
-        """Flag if light supports effects."""
+    def has_effects(self) -> bool:
+        """Return True if light currently has effects."""
         return self.effects is not None and len(self.effects) > 0
 
     @property
-    def supports_hs_color(self) -> bool:
-        """Flag if light supports color."""
+    def has_hs_color(self) -> bool:
+        """Return True if light currently has hs color."""
         return self.hs_color is not None
 
     @state_property
@@ -299,16 +305,6 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     def is_on(self) -> bool | None:
         """Return true if dimmer is on."""
         return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
-
-    @hm_property(cached=True)
-    def supports_brightness(self) -> bool:
-        """Flag if light supports brightness."""
-        return isinstance(self._dp_level, DpFloat)
-
-    @hm_property(cached=True)
-    def supports_transition(self) -> bool:
-        """Flag if light supports transition."""
-        return isinstance(self._dp_ramp_time_value, DpAction)
 
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
@@ -362,6 +358,13 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
             brightness = int(_MAX_BRIGHTNESS)
         level = self.brightness_to_level(brightness)
         await self._dp_level.send_value(value=level, collector=collector)
+
+    def _compute_capabilities(self) -> LightCapabilities:
+        """Compute static capabilities based on DataPoint types."""
+        return LightCapabilities(
+            brightness=isinstance(self._dp_level, DpFloat),
+            transition=isinstance(getattr(self, "_dp_ramp_time_value", None), DpAction),
+        )
 
     @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
@@ -450,11 +453,11 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
         if not self.is_state_change(on=True, **kwargs):
             return
 
-        if "effect" not in kwargs and self.supports_effects and self.effect != _EFFECT_OFF:
+        if "effect" not in kwargs and self.has_effects and self.effect != _EFFECT_OFF:
             await self._dp_effect.send_value(value=0, collector=collector, collector_order=5)
 
         if (
-            self.supports_effects
+            self.has_effects
             and (effect := kwargs.get("effect")) is not None
             and (effect_idx := self._effects.index(effect)) is not None
         ):
@@ -534,13 +537,13 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
         return (self._dp_level,)
 
     @property
-    def supports_color_temperature(self) -> bool:
-        """Flag if light supports color temperature."""
+    def has_color_temperature(self) -> bool:
+        """Return True if light currently has color temperature (mode-dependent)."""
         return self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE
 
     @property
-    def supports_effects(self) -> bool:
-        """Flag if light supports effects."""
+    def has_effects(self) -> bool:
+        """Return True if light currently has effects (mode-dependent)."""
         return (
             self._device_operation_mode != _DeviceOperationMode.PWM
             and self.effects is not None
@@ -548,8 +551,8 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
         )
 
     @property
-    def supports_hs_color(self) -> bool:
-        """Flag if light supports color."""
+    def has_hs_color(self) -> bool:
+        """Return True if light currently has hs color (mode-dependent)."""
         return self._device_operation_mode in (
             _DeviceOperationMode.RGBW,
             _DeviceOperationMode.RGB,
@@ -613,7 +616,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
             await self._dp_color_temperature_kelvin.send_value(value=color_temp_kelvin, collector=collector)
         if on_time is None and kwargs.get("ramp_time"):
             await self._set_on_time_value(on_time=_NOT_USED, collector=collector)
-        if self.supports_effects and (effect := kwargs.get("effect")) is not None:
+        if self.has_effects and (effect := kwargs.get("effect")) is not None:
             await self._dp_effect.send_value(value=effect, collector=collector)
 
         await super().turn_on(collector=collector, **kwargs)
@@ -695,7 +698,7 @@ class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
             await self._dp_color_temperature_kelvin.send_value(value=color_temp_kelvin, collector=collector)
         if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
             await self._set_on_time_value(on_time=_NOT_USED, collector=collector)
-        if self.supports_effects and (effect := kwargs.get("effect")) is not None:
+        if self.has_effects and (effect := kwargs.get("effect")) is not None:
             await self._dp_effect.send_value(value=effect, collector=collector)
 
         await super().turn_on(collector=collector, **kwargs)

@@ -255,7 +255,7 @@ class TestClientErrorScenarios:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_client_supports_ping_pong(
+    async def test_client_has_ping_pong(
         self,
         central_client_factory_with_ccu_client,
     ) -> None:
@@ -264,8 +264,8 @@ class TestClientErrorScenarios:
 
         for client in central.client_coordinator.clients:
             # Check if client supports ping pong
-            if hasattr(client, "supports_ping_pong"):
-                supports = client.capabilities.supports_ping_pong
+            if hasattr(client, "has_ping_pong"):
+                supports = client.capabilities.ping_pong
                 assert isinstance(supports, bool)
 
 

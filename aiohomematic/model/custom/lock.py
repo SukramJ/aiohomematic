@@ -13,6 +13,7 @@ from enum import StrEnum
 from typing import Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
+from aiohomematic.model.custom.capabilities.lock import BUTTON_LOCK_CAPABILITIES, IP_LOCK_CAPABILITIES, LockCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
@@ -55,15 +56,18 @@ class LockState(StrEnum):
 class BaseCustomDpLock(CustomDataPoint):
     """Class for HomematicIP lock data point."""
 
-    __slots__ = ()
+    __slots__ = ("_capabilities",)
 
     _category = DataPointCategory.LOCK
     _ignore_multiple_channels_for_name = True
 
     @property
-    @abstractmethod
-    def supports_open(self) -> bool:
-        """Flag if lock supports open."""
+    def capabilities(self) -> LockCapabilities:
+        """Return the lock capabilities."""
+        if (caps := getattr(self, "_capabilities", None)) is None:
+            caps = self._compute_capabilities()
+            object.__setattr__(self, "_capabilities", caps)
+        return caps
 
     @state_property
     def is_jammed(self) -> bool:
@@ -100,6 +104,10 @@ class BaseCustomDpLock(CustomDataPoint):
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
 
+    @abstractmethod
+    def _compute_capabilities(self) -> LockCapabilities:
+        """Compute static capabilities. Implemented by subclasses."""
+
 
 class CustomDpIpLock(BaseCustomDpLock):
     """Class for HomematicIP lock data point."""
@@ -110,11 +118,6 @@ class CustomDpIpLock(BaseCustomDpLock):
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
     _dp_lock_state: Final = DataPointField(field=Field.LOCK_STATE, dpt=DpSensor[str | None])
     _dp_lock_target_level: Final = DataPointField(field=Field.LOCK_TARGET_LEVEL, dpt=DpActionSelect)
-
-    @property
-    def supports_open(self) -> bool:
-        """Flag if lock supports open."""
-        return True
 
     @state_property
     def is_locked(self) -> bool:
@@ -150,6 +153,10 @@ class CustomDpIpLock(BaseCustomDpLock):
         """Unlock the lock."""
         await self._dp_lock_target_level.send_value(value=_LockTargetLevel.UNLOCKED, collector=collector)
 
+    def _compute_capabilities(self) -> LockCapabilities:
+        """Compute static capabilities. IP locks support open."""
+        return IP_LOCK_CAPABILITIES
+
 
 class CustomDpButtonLock(BaseCustomDpLock):
     """Class for HomematicIP button lock data point."""
@@ -163,11 +170,6 @@ class CustomDpButtonLock(BaseCustomDpLock):
     def data_point_name_postfix(self) -> str:
         """Return the data_point name postfix."""
         return "BUTTON_LOCK"
-
-    @property
-    def supports_open(self) -> bool:
-        """Flag if lock supports open."""
-        return False
 
     @state_property
     def is_locked(self) -> bool:
@@ -189,6 +191,10 @@ class CustomDpButtonLock(BaseCustomDpLock):
         """Unlock the lock."""
         await self._dp_button_lock.turn_off(collector=collector)
 
+    def _compute_capabilities(self) -> LockCapabilities:
+        """Compute static capabilities. Button locks do not support open."""
+        return BUTTON_LOCK_CAPABILITIES
+
 
 class CustomDpRfLock(BaseCustomDpLock):
     """Class for classic Homematic lock data point."""
@@ -200,11 +206,6 @@ class CustomDpRfLock(BaseCustomDpLock):
     _dp_error: Final = DataPointField(field=Field.ERROR, dpt=DpSensor[str | None])
     _dp_open: Final = DataPointField(field=Field.OPEN, dpt=DpAction)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
-
-    @property
-    def supports_open(self) -> bool:
-        """Flag if lock supports open."""
-        return True
 
     @state_property
     def is_jammed(self) -> bool:
@@ -244,6 +245,10 @@ class CustomDpRfLock(BaseCustomDpLock):
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
         await self._dp_state.send_value(value=True, collector=collector)
+
+    def _compute_capabilities(self) -> LockCapabilities:
+        """Compute static capabilities. RF locks support open."""
+        return IP_LOCK_CAPABILITIES
 
 
 # =============================================================================

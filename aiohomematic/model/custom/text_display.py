@@ -119,13 +119,13 @@ class CustomDpTextDisplay(CustomDataPoint):
     burst_limit_warning: Final = DelegatedProperty[bool](path="_dp_burst_limit_warning.value")
 
     @state_property
-    def supports_icons(self) -> bool:
-        """Return true if display supports icons."""
+    def has_icons(self) -> bool:
+        """Return true if display has icons."""
         return self.available_icons is not None
 
     @state_property
-    def supports_sounds(self) -> bool:
-        """Return true if display supports sounds."""
+    def has_sounds(self) -> bool:
+        """Return true if display has sounds."""
         return self.available_sounds is not None
 
     @bind_collector

@@ -99,28 +99,28 @@ class _FakeBackend:
         self.system_information = SimpleNamespace(
             available_interfaces=(Interface.BIDCOS_RF,),
             serial="TEST1234",
-            supports_backup=True,
+            has_backup=True,
         )
         self.capabilities = SimpleNamespace(
-            supports_backup=True,
-            supports_device_firmware_update=True,
-            supports_firmware_update_trigger=True,
-            supports_firmware_updates=True,
-            supports_functions=True,
-            supports_inbox_devices=True,
-            supports_install_mode=True,
-            supports_linking=True,
-            supports_metadata=True,
-            supports_ping_pong=True,
-            supports_programs=True,
-            supports_push_updates=True,
-            supports_rega_id_lookup=True,
-            supports_rename=True,
-            supports_rooms=True,
-            supports_rpc_callback=True,
-            supports_service_messages=True,
-            supports_system_update_info=True,
-            supports_value_usage_reporting=True,
+            backup=True,
+            device_firmware_update=True,
+            firmware_update_trigger=True,
+            firmware_updates=True,
+            functions=True,
+            inbox_devices=True,
+            install_mode=True,
+            linking=True,
+            metadata=True,
+            ping_pong=True,
+            programs=True,
+            push_updates=True,
+            rega_id_lookup=True,
+            rename=True,
+            rooms=True,
+            rpc_callback=True,
+            service_messages=True,
+            system_update_info=True,
+            value_usage_reporting=True,
         )
 
     async def check_connection(self, *, handle_ping_pong: bool) -> bool:
@@ -963,9 +963,9 @@ class TestInterfaceClientProperties:
         assert client.interface == Interface.BIDCOS_RF
         assert client.model == "CCU"
         assert client.version == "2.0"
-        assert client.capabilities.supports_ping_pong is True
-        assert client.capabilities.supports_linking is True
-        assert client.capabilities.supports_programs is True
+        assert client.capabilities.ping_pong is True
+        assert client.capabilities.linking is True
+        assert client.capabilities.programs is True
 
     def test_capability_properties(self) -> None:
         """Test capability properties from backend."""
@@ -973,12 +973,12 @@ class TestInterfaceClientProperties:
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
-        assert client.capabilities.supports_backup is True
-        assert client.capabilities.supports_device_firmware_update is True
-        assert client.capabilities.supports_firmware_updates is True
-        assert client.capabilities.supports_functions is True
-        assert client.capabilities.supports_rooms is True
-        assert client.capabilities.supports_rpc_callback is True
+        assert client.capabilities.backup is True
+        assert client.capabilities.device_firmware_update is True
+        assert client.capabilities.firmware_updates is True
+        assert client.capabilities.functions is True
+        assert client.capabilities.rooms is True
+        assert client.capabilities.rpc_callback is True
 
     def test_str_representation(self) -> None:
         """Test string representation."""

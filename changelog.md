@@ -2,7 +2,59 @@
 
 ## What's Changed
 
+### Breaking Changes
+
+- **Comprehensive Capabilities Pattern Migration**: All `supports_*` properties have been migrated to a unified Capabilities pattern. See [Migration Guide](docs/migrations/capabilities_migration_2026_01.md) for details.
+
+  - **Entity Capabilities** (frozen dataclasses):
+
+    - `LightCapabilities`: `brightness`, `transition`, `color_temperature`, `hs_color`, `effects`
+    - `SirenCapabilities`: `duration`, `lights`, `tones`, `soundfiles`
+    - `LockCapabilities`: `open`
+    - `ClimateCapabilities`: `profiles`
+
+  - **Static capabilities** now accessed via `entity.capabilities.<name>`:
+
+    - `light.supports_brightness` → `light.capabilities.brightness`
+    - `siren.supports_duration` → `siren.capabilities.duration`
+    - `lock.supports_open` → `lock.capabilities.open`
+    - `climate.supports_profiles` → `climate.capabilities.profiles`
+
+  - **Dynamic properties** renamed to `has_*`:
+
+    - `light.supports_color_temperature` → `light.has_color_temperature`
+    - `light.supports_effects` → `light.has_effects`
+    - `light.supports_hs_color` → `light.has_hs_color`
+    - `display.supports_icons` → `display.has_icons`
+    - `display.supports_sounds` → `display.has_sounds`
+    - `device.supports_week_profile` → `device.has_week_profile`
+    - `data_point.supports_events` → `data_point.has_events`
+    - `data_point.supports_schedule` → `data_point.has_schedule`
+    - `central.supports_ping_pong` → `central.has_ping_pong`
+
+  - **BackendCapabilities**: Removed `supports_*` prefix from all 19 fields:
+
+    - `capabilities.supports_ping_pong` → `capabilities.ping_pong`
+    - `capabilities.supports_backup` → `capabilities.backup`
+    - (and all other fields)
+
+  - **Handler classes**: All `supports_*` → `has_*`:
+
+    - `handler.supports_linking` → `handler.has_linking`
+    - `handler.supports_programs` → `handler.has_programs`
+    - (and all other handlers)
+
+  - **ClientConfig**: All `supports_*` → `has_*`:
+    - `config.supports_linking` → `config.has_linking`
+    - `config.supports_ping_pong` → `config.has_ping_pong`
+
 ### Added
+
+- **New Capabilities Dataclasses** in `aiohomematic/model/custom/capabilities/`:
+
+  - `LightCapabilities`, `SirenCapabilities`, `LockCapabilities`, `ClimateCapabilities`
+  - All use `@dataclass(frozen=True, slots=True)` for immutability and performance
+  - Predefined constants for common capability sets
 
 - **Comprehensive test coverage for ConnectionRecoveryCoordinator** (90+ tests):
   - Unit tests for `InterfaceRecoveryState` dataclass (retry logic, exponential backoff, state transitions)

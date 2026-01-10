@@ -1057,7 +1057,7 @@ async def _track_single_data_point_state_change_or_timeout(
         parameter=dpk.parameter,
         paramset_key=ParamsetKey(dpk.paramset_key),
     ):
-        if not dp.supports_events:
+        if not dp.has_events:
             _LOGGER.debug(
                 "TRACK_SINGLE_DATA_POINT_STATE_CHANGE_OR_TIMEOUT: DataPoint supports no events %s",
                 dpk,

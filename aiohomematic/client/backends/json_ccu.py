@@ -71,13 +71,13 @@ class JsonCcuBackend(BaseBackend):
         interface_id: str,
         json_rpc: AioJsonRpcAioHttpClient,
         paramset_provider: ParamsetDescriptionProviderProtocol,
-        supports_push_updates: bool,
+        has_push_updates: bool,
     ) -> None:
         """Initialize the JSON CCU backend."""
         # Build capabilities based on config
         capabilities = replace(
             JSON_CCU_CAPABILITIES,
-            supports_push_updates=supports_push_updates,
+            push_updates=has_push_updates,
         )
         super().__init__(
             interface=interface,

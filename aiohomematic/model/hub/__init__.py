@@ -50,8 +50,9 @@ from __future__ import annotations
 
 from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
+from aiohomematic.model.hub.connectivity import HmInterfaceConnectivitySensor
 from aiohomematic.model.hub.data_point import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
-from aiohomematic.model.hub.hub import Hub, MetricsDpType, ProgramDpType
+from aiohomematic.model.hub.hub import ConnectivityDpType, Hub, MetricsDpType, ProgramDpType
 from aiohomematic.model.hub.inbox import HmInboxSensor
 from aiohomematic.model.hub.install_mode import InstallModeDpButton, InstallModeDpSensor, InstallModeDpType
 from aiohomematic.model.hub.metrics import HmConnectionLatencySensor, HmLastEventAgeSensor, HmSystemHealthSensor
@@ -67,6 +68,9 @@ __all__ = [
     "GenericHubDataPoint",
     "GenericProgramDataPoint",
     "GenericSysvarDataPoint",
+    # Connectivity
+    "ConnectivityDpType",
+    "HmInterfaceConnectivitySensor",
     # Hub
     "Hub",
     # Inbox

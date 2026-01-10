@@ -50,6 +50,24 @@
 
 ### Added
 
+- **Faster Connectivity Detection** (#2767): Improved connection loss detection from ~240s to ~20s:
+
+  - Added `ping_timeout` (10s) for ping/connectivity check operations
+  - Added `connectivity_error_threshold` (1) - single failure marks interface as disconnected
+  - Reduced `callback_warn_interval` from 10 minutes to 3 minutes
+  - Immediate device unavailability marking when client state changes to DISCONNECTED/FAILED
+  - Fixed system health score defaulting to 100% before connections established (now shows 0%)
+
+- **Interface Connectivity Binary Sensors**: New hub-level binary sensors showing per-interface connectivity status:
+
+  - `HmInterfaceConnectivitySensor` class for each interface (HmIP-RF, BidCos-RF, etc.)
+  - Shows ON when interface is connected and operational
+  - Shows OFF when interface is disconnected, failed, or degraded
+  - Always available (never shows unavailable since its purpose is to show connection state)
+  - Refreshed automatically via scheduler at the same interval as metrics
+
+- **New protocol**: `HubBinarySensorDataPointProtocol` for hub-level binary sensor data points
+
 - **New Capabilities Dataclasses** in `aiohomematic/model/custom/capabilities/`:
 
   - `LightCapabilities`, `SirenCapabilities`, `LockCapabilities`, `ClimateCapabilities`

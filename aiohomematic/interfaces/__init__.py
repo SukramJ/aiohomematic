@@ -124,6 +124,7 @@ Protocol Categories
         - `GenericProgramDataPointProtocol`: Program data points
         - `GenericInstallModeDataPointProtocol`: Install mode data points
         - `HubSensorDataPointProtocol`: Hub sensor data points
+        - `HubBinarySensorDataPointProtocol`: Hub binary sensor data points
 
     *Other:*
         - `WeekProfileProtocol`: Weekly schedule management
@@ -258,6 +259,7 @@ from aiohomematic.interfaces.model import (
     GenericInstallModeDataPointProtocol,
     GenericProgramDataPointProtocol,
     GenericSysvarDataPointProtocol,
+    HubBinarySensorDataPointProtocol,
     HubProtocol,
     HubSensorDataPointProtocol,
     WeekProfileProtocol,
@@ -386,6 +388,7 @@ __all__ = [
     "GenericInstallModeDataPointProtocol",
     "GenericProgramDataPointProtocol",
     "GenericSysvarDataPointProtocol",
+    "HubBinarySensorDataPointProtocol",
     "HubProtocol",
     "HubSensorDataPointProtocol",
     # Model week profile

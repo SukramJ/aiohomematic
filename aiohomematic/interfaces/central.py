@@ -553,6 +553,10 @@ class HubFetchOperationsProtocol(Protocol):
     """
 
     @abstractmethod
+    def fetch_connectivity_data(self, *, scheduled: bool) -> None:
+        """Refresh connectivity binary sensors with current values."""
+
+    @abstractmethod
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
         """Fetch inbox data from the backend."""
 

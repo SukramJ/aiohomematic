@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   analyze-issue:
+    if: github.repository_owner == 'SukramJ'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

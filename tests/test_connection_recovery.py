@@ -1089,7 +1089,8 @@ class TestConnectionRecoveryCoordinatorHeartbeat:
         await asyncio.sleep(0.01)
         coordinator.stop()
 
-    def test_start_heartbeat_timer(self) -> None:
+    @pytest.mark.asyncio
+    async def test_start_heartbeat_timer(self) -> None:
         """Test _start_heartbeat_timer starts heartbeat task."""
         coordinator = self._create_coordinator()
         coordinator._in_failed_state = True
@@ -1098,6 +1099,7 @@ class TestConnectionRecoveryCoordinatorHeartbeat:
 
         # Heartbeat task should be created (via task scheduler)
         # We can't directly test the task, but we verify no exception
+        await asyncio.sleep(0.01)
         coordinator.stop()
 
     def test_stop_heartbeat_timer(self) -> None:
@@ -1848,7 +1850,8 @@ class TestConnectionRecoveryCoordinatorAdditionalCoverage:
         assert result is False
         coordinator.stop()
 
-    def test_start_heartbeat_timer_already_running(self) -> None:
+    @pytest.mark.asyncio
+    async def test_start_heartbeat_timer_already_running(self) -> None:
         """Test _start_heartbeat_timer does nothing if already running."""
         coordinator, _, _ = self._create_coordinator()
 

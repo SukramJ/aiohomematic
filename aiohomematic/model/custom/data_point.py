@@ -113,6 +113,13 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return len(self._data_points) > 0
 
     @property
+    def has_schedule(self) -> bool:
+        """Flag if device supports schedule."""
+        if self._device.week_profile:
+            return self._device.week_profile.has_schedule
+        return False
+
+    @property
     def is_refreshed(self) -> bool:
         """Return if all relevant data_point have been refreshed (received a value)."""
         return all(dp.is_refreshed for dp in self._relevant_data_points)
@@ -133,13 +140,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return any(dp.state_uncertain for dp in self._relevant_data_points)
-
-    @property
-    def supports_schedule(self) -> bool:
-        """Flag if device supports schedule."""
-        if self._device.week_profile:
-            return self._device.week_profile.supports_schedule
-        return False
 
     @property
     def unconfirmed_last_values_send(self) -> Mapping[Field, Any]:

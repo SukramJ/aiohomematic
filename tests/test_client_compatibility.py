@@ -928,13 +928,13 @@ class TestCapabilityCompatibility:
 
             interface_caps = client.capabilities
             interface_caps_dict = {
-                "supports_ping_pong": interface_caps.supports_ping_pong,
-                "supports_programs": interface_caps.supports_programs,
-                "supports_rooms": interface_caps.supports_rooms,
-                "supports_functions": interface_caps.supports_functions,
-                "supports_service_messages": interface_caps.supports_service_messages,
-                "supports_linking": interface_caps.supports_linking,
-                "supports_rename": interface_caps.supports_rename,
+                "ping_pong": interface_caps.ping_pong,
+                "programs": interface_caps.programs,
+                "rooms": interface_caps.rooms,
+                "functions": interface_caps.functions,
+                "service_messages": interface_caps.service_messages,
+                "linking": interface_caps.linking,
+                "rename": interface_caps.rename,
             }
         finally:
             await interface_central.stop()
@@ -953,13 +953,13 @@ class TestCapabilityCompatibility:
 
             legacy_caps = client.capabilities
             legacy_caps_dict = {
-                "supports_ping_pong": legacy_caps.supports_ping_pong,
-                "supports_programs": legacy_caps.supports_programs,
-                "supports_rooms": legacy_caps.supports_rooms,
-                "supports_functions": legacy_caps.supports_functions,
-                "supports_service_messages": legacy_caps.supports_service_messages,
-                "supports_linking": legacy_caps.supports_linking,
-                "supports_rename": legacy_caps.supports_rename,
+                "ping_pong": legacy_caps.ping_pong,
+                "programs": legacy_caps.programs,
+                "rooms": legacy_caps.rooms,
+                "functions": legacy_caps.functions,
+                "service_messages": legacy_caps.service_messages,
+                "linking": legacy_caps.linking,
+                "rename": legacy_caps.rename,
             }
         finally:
             await legacy_central.stop()

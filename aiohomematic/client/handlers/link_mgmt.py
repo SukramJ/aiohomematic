@@ -39,7 +39,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
     - Querying link information and peers
     """
 
-    __slots__ = ("_supports_linking",)
+    __slots__ = ("_has_linking",)
 
     def __init__(
         self,
@@ -50,7 +50,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
         json_rpc_client: AioJsonRpcAioHttpClient,
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
-        supports_linking: bool,
+        has_linking: bool,
     ) -> None:
         """Initialize the link management handler."""
         super().__init__(
@@ -61,9 +61,9 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
             proxy=proxy,
             proxy_read=proxy_read,
         )
-        self._supports_linking: Final = supports_linking
+        self._has_linking: Final = has_linking
 
-    supports_linking: Final = DelegatedProperty[bool](path="_supports_linking")
+    has_linking: Final = DelegatedProperty[bool](path="_has_linking")
 
     @inspector
     async def add_link(
@@ -90,7 +90,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_linking:
+        if not self._has_linking:
             _LOGGER.debug("ADD_LINK: Not supported by client for %s", self._interface_id)
             return
 
@@ -123,7 +123,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_linking:
+        if not self._has_linking:
             _LOGGER.debug("GET_LINK_PEERS: Not supported by client for %s", self._interface_id)
             return ()
 
@@ -154,7 +154,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_linking:
+        if not self._has_linking:
             _LOGGER.debug("GET_LINKS: Not supported by client for %s", self._interface_id)
             return {}
 
@@ -182,7 +182,7 @@ class LinkHandler(BaseHandler, LinkOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_linking:
+        if not self._has_linking:
             _LOGGER.debug("REMOVE_LINK: Not supported by client for %s", self._interface_id)
             return
 

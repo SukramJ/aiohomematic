@@ -118,7 +118,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
     def available(self) -> bool:
         """Return the availability of the device."""
         if client := self._primary_client_provider.primary_client:
-            return client.capabilities.supports_install_mode and self._central_info.available
+            return client.capabilities.install_mode and self._central_info.available
         return False
 
     def _get_path_data(self) -> HubPathData:

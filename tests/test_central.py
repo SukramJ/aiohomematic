@@ -104,7 +104,7 @@ class TestCentralBasics:
         assert central.url == f"http://{LOCAL_HOST}"
         assert central.client_coordinator.is_alive is True
         assert central.listen_ip_addr == LOCAL_HOST
-        assert central.supports_ping_pong is False
+        assert central.has_ping_pong is False
         assert central.system_information.serial == "BidCos-RF_SN0815"
         assert central.version == "pydevccu 0.1.17"
         system_information = await central.validate_config_and_get_system_information()
@@ -122,7 +122,7 @@ class TestCentralBasics:
 
         await central.stop()
         assert central._has_active_threads is False
-        assert central.supports_ping_pong is False
+        assert central.has_ping_pong is False
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -1528,7 +1528,7 @@ class TestCentralDeviceCreation:
                 self.address = device_address
                 self.channels = {}
                 self.client = type("C", (), {})()  # minimal stub
-                self.client.capabilities.supports_ping_pong = False
+                self.client.capabilities.ping_pong = False
                 self.is_updatable = False
 
             async def load_value_cache(self) -> None:

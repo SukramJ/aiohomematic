@@ -152,7 +152,7 @@ class ClientCoordinator(ClientProviderProtocol):
     @property
     def poll_clients(self) -> tuple[ClientProtocol, ...]:
         """Return clients that need to poll data."""
-        return tuple(client for client in self._clients.values() if not client.capabilities.supports_push_updates)
+        return tuple(client for client in self._clients.values() if not client.capabilities.push_updates)
 
     @property
     def primary_client(self) -> ClientProtocol | None:

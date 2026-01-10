@@ -177,14 +177,14 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     def __init__(self, *, client_config: ClientConfig) -> None:
         """Initialize the Client."""
         self._config: Final = client_config
-        # Initialize capabilities based on config (supports_backup updated in init_client)
+        # Initialize capabilities based on config (backup updated in init_client)
         self._capabilities: BackendCapabilities = replace(
             CCU_CAPABILITIES,
-            supports_firmware_updates=client_config.supports_firmware_updates,
-            supports_linking=client_config.supports_linking,
-            supports_ping_pong=client_config.supports_ping_pong,
-            supports_push_updates=client_config.supports_push_updates,
-            supports_rpc_callback=client_config.supports_rpc_callback,
+            firmware_updates=client_config.has_firmware_updates,
+            linking=client_config.has_linking,
+            ping_pong=client_config.has_ping_pong,
+            push_updates=client_config.has_push_updates,
+            rpc_callback=client_config.has_rpc_callback,
         )
         self._json_rpc_client: Final = client_config.client_deps.json_rpc_client
         self._last_value_send_tracker: Final = CommandTracker(
@@ -327,7 +327,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Check if _proxy is still initialized."""
         try:
             dt_now = datetime.now()
-            if handle_ping_pong and self._capabilities.supports_ping_pong and self.is_initialized:
+            if handle_ping_pong and self._capabilities.ping_pong and self.is_initialized:
                 token = dt_now.strftime(format=DATETIME_FORMAT_MILLIS)
                 callerId = f"{self.interface_id}#{token}"
                 # Register token BEFORE sending ping to avoid race condition:
@@ -370,7 +370,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     async def deinitialize_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""
-        if not self._capabilities.supports_rpc_callback:
+        if not self._capabilities.rpc_callback:
             self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="no callback support")
             return ProxyInitState.DE_INIT_SUCCESS
 
@@ -576,10 +576,10 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._state_machine.transition_to(target=ClientState.INITIALIZING)
         try:
             self._system_information = await self._get_system_information()
-            # Update capabilities with supports_backup from system information
-            if not self._system_information.supports_backup:
-                self._capabilities = replace(self._capabilities, supports_backup=False)
-            if self._capabilities.supports_rpc_callback:
+            # Update capabilities with backup from system information
+            if not self._system_information.has_backup:
+                self._capabilities = replace(self._capabilities, backup=False)
+            if self._capabilities.rpc_callback:
                 self._proxy = await self._config.create_rpc_proxy(
                     interface=self.interface,
                     auth_enabled=self.system_information.auth_enabled,
@@ -602,7 +602,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     async def initialize_proxy(self) -> ProxyInitState:
         """Initialize the proxy has to tell the backend where to send the events."""
         self._state_machine.transition_to(target=ClientState.CONNECTING)
-        if not self._capabilities.supports_rpc_callback:
+        if not self._capabilities.rpc_callback:
             if (device_descriptions := await self.list_devices()) is not None:
                 await self.central.device_coordinator.add_new_devices(
                     interface_id=self.interface_id, device_descriptions=device_descriptions
@@ -696,7 +696,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
 
     def is_callback_alive(self) -> bool:
         """Return if XmlRPC-Server is alive based on received events for this client."""
-        if not self._capabilities.supports_ping_pong:
+        if not self._capabilities.ping_pong:
             return True
 
         # If client is in RECONNECTING or FAILED state, callback is definitely not alive
@@ -765,7 +765,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                     target=ClientState.DISCONNECTED, reason="connection check failed (>3 errors)"
                 )
             return False
-        if not self._capabilities.supports_push_updates:
+        if not self._capabilities.push_updates:
             return True
 
         callback_warn = self._config.client_deps.config.timeout_config.callback_warn_interval
@@ -858,7 +858,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             address=address,
             value_id=value_id,
             ref_counter=ref_counter,
-            supports=self._capabilities.supports_value_usage_reporting,
+            supports=self._capabilities.value_usage_reporting,
         )
 
     def reset_circuit_breakers(self) -> None:
@@ -928,7 +928,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         self._unsubscribe_state_change()
         self._unsubscribe_system_status()
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")
-        if self._capabilities.supports_rpc_callback:
+        if self._capabilities.rpc_callback:
             await self._proxy.stop()
             await self._proxy_read.stop()
         self._state_machine.transition_to(target=ClientState.STOPPED, reason="services stopped")
@@ -968,7 +968,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_linking=self._capabilities.supports_linking,
+            has_linking=self._capabilities.linking,
         )
 
         self._firmware_handler = FirmwareHandler(
@@ -978,8 +978,8 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_device_firmware_update=self._capabilities.supports_device_firmware_update,
-            supports_firmware_update_trigger=self._capabilities.supports_firmware_update_trigger,
+            has_device_firmware_update=self._capabilities.device_firmware_update,
+            has_firmware_update_trigger=self._capabilities.firmware_update_trigger,
         )
 
         self._sysvar_handler = SystemVariableHandler(
@@ -998,7 +998,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_programs=self._capabilities.supports_programs,
+            has_programs=self._capabilities.programs,
         )
 
         self._backup_handler = BackupHandler(
@@ -1008,7 +1008,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_backup=self._capabilities.supports_backup,
+            has_backup=self._capabilities.backup,
             system_information=self._system_information,
         )
 
@@ -1019,15 +1019,15 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             json_rpc_client=self._json_rpc_client,
             proxy=self._proxy,
             proxy_read=self._proxy_read,
-            supports_functions=self._capabilities.supports_functions,
-            supports_inbox_devices=self._capabilities.supports_inbox_devices,
-            supports_install_mode=self._capabilities.supports_install_mode,
-            supports_metadata=self._capabilities.supports_metadata,
-            supports_rega_id_lookup=self._capabilities.supports_rega_id_lookup,
-            supports_rename=self._capabilities.supports_rename,
-            supports_rooms=self._capabilities.supports_rooms,
-            supports_service_messages=self._capabilities.supports_service_messages,
-            supports_system_update_info=self._capabilities.supports_system_update_info,
+            has_functions=self._capabilities.functions,
+            has_inbox_devices=self._capabilities.inbox_devices,
+            has_install_mode=self._capabilities.install_mode,
+            has_metadata=self._capabilities.metadata,
+            has_rega_id_lookup=self._capabilities.rega_id_lookup,
+            has_rename=self._capabilities.rename,
+            has_rooms=self._capabilities.rooms,
+            has_service_messages=self._capabilities.service_messages,
+            has_system_update_info=self._capabilities.system_update_info,
         )
 
     def _mark_all_devices_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
@@ -1137,7 +1137,7 @@ class ClientJsonCCU(ClientCCU):
         # Override capabilities with JSON_CCU_CAPABILITIES
         self._capabilities = replace(
             JSON_CCU_CAPABILITIES,
-            supports_push_updates=client_config.supports_push_updates,
+            push_updates=client_config.has_push_updates,
         )
 
     @inspector(re_raise=False, no_raise_return=False)
@@ -1604,7 +1604,7 @@ class ClientHomegear(ClientCCU):
         # Override capabilities with HOMEGEAR_CAPABILITIES
         self._capabilities = replace(
             HOMEGEAR_CAPABILITIES,
-            supports_push_updates=client_config.supports_push_updates,
+            push_updates=client_config.has_push_updates,
         )
 
     @property
@@ -1709,13 +1709,11 @@ class ClientConfig:
         self.has_credentials: Final[bool] = (
             client_deps.config.username is not None and client_deps.config.password is not None
         )
-        self.supports_linking: Final = self.interface in LINKABLE_INTERFACES
-        self.supports_firmware_updates: Final = self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
-        self.supports_ping_pong: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
-        self.supports_push_updates: Final = (
-            self.interface not in client_deps.config.interfaces_requiring_periodic_refresh
-        )
-        self.supports_rpc_callback: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
+        self.has_linking: Final = self.interface in LINKABLE_INTERFACES
+        self.has_firmware_updates: Final = self.interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES
+        self.has_ping_pong: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
+        self.has_push_updates: Final = self.interface not in client_deps.config.interfaces_requiring_periodic_refresh
+        self.has_rpc_callback: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
         callback_host: Final = (
             client_deps.config.callback_host if client_deps.config.callback_host else client_deps.callback_ip_addr
         )

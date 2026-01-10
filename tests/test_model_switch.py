@@ -161,7 +161,7 @@ class TestCustomSwitch:
         schedule = await switch.device.week_profile.get_schedule(force_load=True)
         assert schedule == expected_schedule
         assert switch.schedule == expected_schedule
-        assert switch.supports_schedule is True
+        assert switch.has_schedule is True
 
         await switch.set_schedule(schedule_data=expected_schedule)
         mock_client.put_paramset.assert_called_with(
@@ -196,7 +196,7 @@ class TestCustomSwitch:
         with pytest.raises(ValidationException):
             await switch.get_schedule(force_load=True)
 
-        assert switch.supports_schedule is False
+        assert switch.has_schedule is False
         assert mock_client.get_paramset.await_count == 0
 
 

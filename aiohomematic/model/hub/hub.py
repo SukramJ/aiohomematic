@@ -424,11 +424,7 @@ class Hub(HubProtocol):
 
         # Check if a client exists for this specific interface and supports install mode
         client = next(
-            (
-                c
-                for c in self._client_provider.clients
-                if c.interface == interface and c.capabilities.supports_install_mode
-            ),
+            (c for c in self._client_provider.clients if c.interface == interface and c.capabilities.install_mode),
             None,
         )
         if not client:
@@ -642,7 +638,7 @@ class Hub(HubProtocol):
             return
 
         # Only supported on OpenCCU
-        if not client.system_information.supports_backup:
+        if not client.system_information.has_backup:
             return
 
         if (update_data := await client.get_system_update_info()) is None:

@@ -109,7 +109,7 @@ class TestCustomDpSimpleRfThermostat:
         assert climate.temperature_unit == "°C"
         assert climate.min_temp == 6.0
         assert climate.max_temp == 30.0
-        assert climate.supports_profiles is False
+        assert climate.capabilities.profiles is False
         assert climate.target_temperature_step == 0.5
 
         assert climate.current_humidity is None
@@ -206,7 +206,7 @@ class TestCustomDpRfThermostat:
         )
         assert climate.min_temp == 5.0
         assert climate.max_temp == 30.5
-        assert climate.supports_profiles is True
+        assert climate.capabilities.profiles is True
         assert climate.target_temperature_step == 0.5
         assert climate.profile == ClimateProfile.NONE
         assert climate.activity is None
@@ -407,7 +407,7 @@ class TestCustomDpRfThermostat:
         )
         assert climate.min_temp == 5.0
         assert climate.max_temp == 30.5
-        assert climate.supports_profiles is True
+        assert climate.capabilities.profiles is True
         assert climate.target_temperature_step == 0.5
         assert climate.profile == ClimateProfile.NONE
         assert climate.activity is None
@@ -774,7 +774,7 @@ class TestCustomDpIpThermostat:
         )
         assert climate.min_temp == 5.0
         assert climate.max_temp == 30.0
-        assert climate.supports_profiles is True
+        assert climate.capabilities.profiles is True
         assert climate.target_temperature_step == 0.5
         assert climate.activity == ClimateActivity.IDLE
         await central.event_coordinator.data_point_event(
@@ -1063,7 +1063,7 @@ class TestCustomDpIpThermostat:
         )
         assert climate.min_temp == 5.0
         assert climate.max_temp == 30.0
-        assert climate.supports_profiles is True
+        assert climate.capabilities.profiles is True
         assert climate.target_temperature_step == 0.5
         assert climate.activity == ClimateActivity.IDLE
         await central.event_coordinator.data_point_event(

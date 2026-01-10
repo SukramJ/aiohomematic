@@ -68,11 +68,11 @@ class TestCustomDpDimmer:
         )
         assert light.color_temp_kelvin is None
         assert light.hs_color is None
-        assert light.supports_brightness is True
-        assert light.supports_color_temperature is False
-        assert light.supports_effects is False
-        assert light.supports_hs_color is False
-        assert light.supports_transition is True
+        assert light.capabilities.brightness is True
+        assert light.has_color_temperature is False
+        assert light.has_effects is False
+        assert light.has_hs_color is False
+        assert light.capabilities.transition is True
         assert light.effect is None
         assert light.effects is None
 
@@ -197,11 +197,11 @@ class TestCustomDpColorDimmerEffect:
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.color_temp_kelvin is None
         assert light.hs_color == (0.0, 0.0)
-        assert light.supports_brightness is True
-        assert light.supports_color_temperature is False
-        assert light.supports_effects is True
-        assert light.supports_hs_color is True
-        assert light.supports_transition is True
+        assert light.capabilities.brightness is True
+        assert light.has_color_temperature is False
+        assert light.has_effects is True
+        assert light.has_hs_color is True
+        assert light.capabilities.transition is True
         assert light.effect is None
         assert light.effects == (
             "Off",
@@ -359,11 +359,11 @@ class TestCustomDpColorTempDimmer:
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.color_temp_kelvin == 2000
         assert light.hs_color is None
-        assert light.supports_brightness is True
-        assert light.supports_color_temperature is True
-        assert light.supports_effects is False
-        assert light.supports_hs_color is False
-        assert light.supports_transition is True
+        assert light.capabilities.brightness is True
+        assert light.has_color_temperature is True
+        assert light.has_effects is False
+        assert light.has_hs_color is False
+        assert light.capabilities.transition is True
         assert light.effect is None
         assert light.effects is None
         assert light.brightness == 0
@@ -451,11 +451,11 @@ class TestCustomDpIpFixedColorLight:
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.color_temp_kelvin is None
         assert light.hs_color == (0.0, 0.0)
-        assert light.supports_brightness is True
-        assert light.supports_color_temperature is False
-        assert light.supports_effects is True
-        assert light.supports_hs_color is True
-        assert light.supports_transition is True
+        assert light.capabilities.brightness is True
+        assert light.has_color_temperature is False
+        assert light.has_effects is True
+        assert light.has_hs_color is True
+        assert light.capabilities.transition is True
         assert light.effect is None
         assert light.effects == (
             "ON",
@@ -697,11 +697,11 @@ class TestCustomDpIpFixedColorLight:
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.color_temp_kelvin is None
         assert light.hs_color == (0.0, 0.0)
-        assert light.supports_brightness is True
-        assert light.supports_color_temperature is False
-        assert light.supports_effects is True
-        assert light.supports_hs_color is True
-        assert light.supports_transition is True
+        assert light.capabilities.brightness is True
+        assert light.has_color_temperature is False
+        assert light.has_effects is True
+        assert light.has_hs_color is True
+        assert light.capabilities.transition is True
         assert light.effect is None
         assert light.effects == (
             _ColorBehaviour.ON,
@@ -1016,11 +1016,11 @@ class TestCustomDpIpRGBWLight:
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.color_temp_kelvin is None
         assert light.hs_color is None
-        assert light.supports_brightness is True
-        assert light.supports_color_temperature is False
-        assert light.supports_effects is True
-        assert light.supports_hs_color is True
-        assert light.supports_transition is True
+        assert light.capabilities.brightness is True
+        assert light.has_color_temperature is False
+        assert light.has_effects is True
+        assert light.has_hs_color is True
+        assert light.capabilities.transition is True
         assert light.effect is None
         assert light.effects == (
             "NO_EFFECT",
@@ -1197,11 +1197,11 @@ class TestCustomDpColorDimmer:
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.color_temp_kelvin is None
         assert light.hs_color == (0.0, 0.0)
-        assert light.supports_brightness is True
-        assert light.supports_color_temperature is False
-        assert light.supports_effects is False
-        assert light.supports_hs_color is True
-        assert light.supports_transition is True
+        assert light.capabilities.brightness is True
+        assert light.has_color_temperature is False
+        assert light.has_effects is False
+        assert light.has_hs_color is True
+        assert light.capabilities.transition is True
         assert light.effect is None
 
         assert light.brightness == 0

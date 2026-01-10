@@ -38,7 +38,7 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
     - Checking program IDs
     """
 
-    __slots__ = ("_supports_programs",)
+    __slots__ = ("_has_programs",)
 
     def __init__(
         self,
@@ -49,7 +49,7 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
         json_rpc_client: AioJsonRpcAioHttpClient,
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
-        supports_programs: bool,
+        has_programs: bool,
     ) -> None:
         """Initialize the program handler."""
         super().__init__(
@@ -60,9 +60,9 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
             proxy=proxy,
             proxy_read=proxy_read,
         )
-        self._supports_programs: Final = supports_programs
+        self._has_programs: Final = has_programs
 
-    supports_programs: Final = DelegatedProperty[bool](path="_supports_programs")
+    has_programs: Final = DelegatedProperty[bool](path="_has_programs")
 
     @inspector
     async def execute_program(self, *, pid: str) -> bool:
@@ -79,7 +79,7 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
             True if execution was triggered, False if unsupported.
 
         """
-        if not self._supports_programs:
+        if not self._has_programs:
             _LOGGER.debug("EXECUTE_PROGRAM: Not supported by client for %s", self._interface_id)
             return False
 
@@ -104,7 +104,7 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
             Tuple of ProgramData dicts containing id, name, description, etc.
 
         """
-        if not self._supports_programs:
+        if not self._has_programs:
             _LOGGER.debug("GET_ALL_PROGRAMS: Not supported by client for %s", self._interface_id)
             return ()
 
@@ -122,7 +122,7 @@ class ProgramHandler(BaseHandler, ProgramOperationsProtocol):
             True if the channel is referenced in at least one program.
 
         """
-        if not self._supports_programs:
+        if not self._has_programs:
             _LOGGER.debug("HAS_PROGRAM_IDS: Not supported by client for %s", self._interface_id)
             return False
 

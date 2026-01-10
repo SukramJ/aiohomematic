@@ -535,6 +535,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
+    def has_events(self) -> bool:
+        """Return if data point supports events."""
+
+    @property
+    @abstractmethod
     def hmtype(self) -> ParameterType:
         """Return the Homematic type."""
 
@@ -627,11 +632,6 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
     @abstractmethod
     def status_dpk(self) -> DataPointKey | None:
         """Return the DataPointKey for the STATUS parameter."""
-
-    @property
-    @abstractmethod
-    def supports_events(self) -> bool:
-        """Return if data point supports events."""
 
     @property
     @abstractmethod
@@ -809,6 +809,11 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def has_schedule(self) -> bool:
+        """Return if device supports schedule."""
+
+    @property
+    @abstractmethod
     def schedule(self) -> dict[Any, Any]:
         """Return cached schedule entries from device week profile."""
 
@@ -816,11 +821,6 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     def state_uncertain(self) -> bool:
         """Return if the state is uncertain."""
-
-    @property
-    @abstractmethod
-    def supports_schedule(self) -> bool:
-        """Return if device supports schedule."""
 
     @property
     @abstractmethod
@@ -886,6 +886,11 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def has_events(self) -> bool:
+        """Return if data point supports events."""
+
+    @property
+    @abstractmethod
     def hmtype(self) -> ParameterType:
         """Return the Homematic type."""
 
@@ -933,11 +938,6 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     def state_uncertain(self) -> bool:
         """Return if the state is uncertain."""
-
-    @property
-    @abstractmethod
-    def supports_events(self) -> bool:
-        """Return if data point supports events."""
 
     @property
     @abstractmethod
@@ -1602,7 +1602,7 @@ class DeviceWeekProfileProtocol(Protocol):
 
     @property
     @abstractmethod
-    def supports_week_profile(self) -> bool:
+    def has_week_profile(self) -> bool:
         """Return if the device supports week profile."""
 
     @property
@@ -1863,6 +1863,11 @@ class WeekProfileProtocol[SCHEDULE_DICT_T: dict[Any, Any]](Protocol):
 
     @property
     @abstractmethod
+    def has_schedule(self) -> bool:
+        """Return if climate supports schedule."""
+
+    @property
+    @abstractmethod
     def schedule(self) -> SCHEDULE_DICT_T:
         """Return the schedule cache."""
 
@@ -1870,11 +1875,6 @@ class WeekProfileProtocol[SCHEDULE_DICT_T: dict[Any, Any]](Protocol):
     @abstractmethod
     def schedule_channel_address(self) -> str | None:
         """Return schedule channel address."""
-
-    @property
-    @abstractmethod
-    def supports_schedule(self) -> bool:
-        """Return if climate supports schedule."""
 
     @abstractmethod
     async def get_schedule(self, *, force_load: bool = False) -> SCHEDULE_DICT_T:

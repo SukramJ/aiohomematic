@@ -163,7 +163,7 @@ class TestSoundPlayer:
         assert "BLUE" in led_player.available_colors
 
         # Test support property (hs_color always returns value, so supports_hs_color is True)
-        assert led_player.supports_hs_color is True
+        assert led_player.has_hs_color is True
 
         # Test initial state
         assert led_player.is_on is False
@@ -208,10 +208,10 @@ class TestSoundPlayer:
         assert "INTERNAL_SOUNDFILE" in sound_player.available_soundfiles
         assert "SOUNDFILE_001" in sound_player.available_soundfiles
 
-        # Test support properties (comparable to other sirens)
-        assert sound_player.supports_soundfiles == (sound_player.available_soundfiles is not None)
-        assert sound_player.supports_duration is True  # Inherited from siren base
-        assert sound_player.supports_tones is True  # available_tones maps to available_soundfiles
+        # Test capabilities (comparable to other sirens)
+        assert sound_player.capabilities.soundfiles == (sound_player.available_soundfiles is not None)
+        assert sound_player.capabilities.duration is True
+        assert sound_player.capabilities.tones is False  # Sound player uses soundfiles, not tones
 
         # Test initial state (is_on inherited from BaseCustomDpSiren)
         assert sound_player.is_on is False

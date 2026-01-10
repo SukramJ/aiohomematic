@@ -45,15 +45,15 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
     """
 
     __slots__ = (
-        "_supports_functions",
-        "_supports_inbox_devices",
-        "_supports_install_mode",
-        "_supports_metadata",
-        "_supports_rega_id_lookup",
-        "_supports_rename",
-        "_supports_rooms",
-        "_supports_service_messages",
-        "_supports_system_update_info",
+        "_has_functions",
+        "_has_inbox_devices",
+        "_has_install_mode",
+        "_has_metadata",
+        "_has_rega_id_lookup",
+        "_has_rename",
+        "_has_rooms",
+        "_has_service_messages",
+        "_has_system_update_info",
     )
 
     def __init__(
@@ -65,15 +65,15 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
         json_rpc_client: AioJsonRpcAioHttpClient,
         proxy: BaseRpcProxy,
         proxy_read: BaseRpcProxy,
-        supports_functions: bool,
-        supports_inbox_devices: bool,
-        supports_install_mode: bool,
-        supports_metadata: bool,
-        supports_rega_id_lookup: bool,
-        supports_rename: bool,
-        supports_rooms: bool,
-        supports_service_messages: bool,
-        supports_system_update_info: bool,
+        has_functions: bool,
+        has_inbox_devices: bool,
+        has_install_mode: bool,
+        has_metadata: bool,
+        has_rega_id_lookup: bool,
+        has_rename: bool,
+        has_rooms: bool,
+        has_service_messages: bool,
+        has_system_update_info: bool,
     ) -> None:
         """Initialize the metadata handler."""
         super().__init__(
@@ -84,15 +84,15 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             proxy=proxy,
             proxy_read=proxy_read,
         )
-        self._supports_functions: Final = supports_functions
-        self._supports_inbox_devices: Final = supports_inbox_devices
-        self._supports_install_mode: Final = supports_install_mode
-        self._supports_metadata: Final = supports_metadata
-        self._supports_rega_id_lookup: Final = supports_rega_id_lookup
-        self._supports_rename: Final = supports_rename
-        self._supports_rooms: Final = supports_rooms
-        self._supports_service_messages: Final = supports_service_messages
-        self._supports_system_update_info: Final = supports_system_update_info
+        self._has_functions: Final = has_functions
+        self._has_inbox_devices: Final = has_inbox_devices
+        self._has_install_mode: Final = has_install_mode
+        self._has_metadata: Final = has_metadata
+        self._has_rega_id_lookup: Final = has_rega_id_lookup
+        self._has_rename: Final = has_rename
+        self._has_rooms: Final = has_rooms
+        self._has_service_messages: Final = has_service_messages
+        self._has_system_update_info: Final = has_system_update_info
 
     @inspector(re_raise=False)
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
@@ -109,7 +109,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             True if accepted successfully, False if not supported or failed.
 
         """
-        if not self._supports_inbox_devices:
+        if not self._has_inbox_devices:
             _LOGGER.debug("ACCEPT_DEVICE_IN_INBOX: Not supported by client for %s", self._interface_id)
             return False
 
@@ -127,7 +127,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             Dict mapping channel address to set of function names.
 
         """
-        if not self._supports_functions:
+        if not self._has_functions:
             _LOGGER.debug("GET_ALL_FUNCTIONS: Not supported by client for %s", self._interface_id)
             return {}
 
@@ -152,7 +152,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             Dict mapping channel address to set of room names.
 
         """
-        if not self._supports_rooms:
+        if not self._has_rooms:
             _LOGGER.debug("GET_ALL_ROOMS: Not supported by client for %s", self._interface_id)
             return {}
 
@@ -177,7 +177,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             Tuple of InboxDeviceData dicts for pending devices.
 
         """
-        if not self._supports_inbox_devices:
+        if not self._has_inbox_devices:
             _LOGGER.debug("GET_INBOX_DEVICES: Not supported by client for %s", self._interface_id)
             return ()
 
@@ -198,7 +198,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_install_mode:
+        if not self._has_install_mode:
             _LOGGER.debug("GET_INSTALL_MODE: Not supported by client for %s", self._interface_id)
             return 0
 
@@ -238,7 +238,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_metadata:
+        if not self._has_metadata:
             _LOGGER.debug("GET_METADATA: Not supported by client for %s", self._interface_id)
             return {}
 
@@ -270,7 +270,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             ReGa ID integer, or None if not found or unsupported.
 
         """
-        if not self._supports_rega_id_lookup:
+        if not self._has_rega_id_lookup:
             _LOGGER.debug("GET_REGA_ID_BY_ADDRESS: Not supported by client for %s", self._interface_id)
             return None
 
@@ -289,7 +289,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             message_type: Filter by message type. If None, return all messages.
 
         """
-        if not self._supports_service_messages:
+        if not self._has_service_messages:
             _LOGGER.debug("GET_SERVICE_MESSAGES: Not supported by client for %s", self._interface_id)
             return ()
 
@@ -306,7 +306,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             SystemUpdateData with version info, or None if unsupported/unavailable.
 
         """
-        if not self._supports_system_update_info:
+        if not self._has_system_update_info:
             _LOGGER.debug("GET_SYSTEM_UPDATE_INFO: Not supported by client for %s", self._interface_id)
             return None
 
@@ -325,7 +325,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             True if renamed successfully, False if unsupported or failed.
 
         """
-        if not self._supports_rename:
+        if not self._has_rename:
             _LOGGER.debug("RENAME_CHANNEL: Not supported by client for %s", self._interface_id)
             return False
 
@@ -344,7 +344,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             True if renamed successfully, False if unsupported or failed.
 
         """
-        if not self._supports_rename:
+        if not self._has_rename:
             _LOGGER.debug("RENAME_DEVICE: Not supported by client for %s", self._interface_id)
             return False
 
@@ -372,7 +372,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             True if successful.
 
         """
-        if not self._supports_install_mode:
+        if not self._has_install_mode:
             _LOGGER.debug("SET_INSTALL_MODE: Not supported by client for %s", self._interface_id)
             return False
 
@@ -418,7 +418,7 @@ class MetadataHandler(BaseHandler, MetadataOperationsProtocol):
             ClientException: If the RPC call fails.
 
         """
-        if not self._supports_metadata:
+        if not self._has_metadata:
             _LOGGER.debug("SET_METADATA: Not supported by client for %s", self._interface_id)
             return {}
 

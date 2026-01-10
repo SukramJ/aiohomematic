@@ -518,6 +518,13 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return tuple(events)
 
     @property
+    def has_week_profile(self) -> bool:
+        """Return if the device supports week profiles."""
+        if self._week_profile is None:
+            return False
+        return self._week_profile.has_schedule
+
+    @property
     def info(self) -> Mapping[str, Any]:
         """Return the device info."""
         device_info = dict(self.info_payload)
@@ -530,13 +537,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return {
             channel: channel.link_peer_channels for channel in self._channels.values() if channel.link_peer_channels
         }
-
-    @property
-    def supports_week_profile(self) -> bool:
-        """Return if the device supports week profiles."""
-        if self._week_profile is None:
-            return False
-        return self._week_profile.supports_schedule
 
     @state_property
     def available(self) -> bool:
@@ -752,7 +752,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         if (
             self._week_profile is None
             and (week_profile := wp.create_week_profile(data_point=data_point)) is not None
-            and week_profile.supports_schedule
+            and week_profile.has_schedule
         ):
             self._week_profile = week_profile
 

@@ -231,7 +231,7 @@ class TestCalculatedDataPoint:
         # Ops flags from base: READ + EVENT, not WRITE
         assert calc.is_readable is True
         assert calc.is_writable is False
-        assert calc.supports_events is True
+        assert calc.has_events is True
 
         # DPK and paramset
         dpk = calc.dpk
@@ -281,7 +281,7 @@ class TestCalculatedDataPoint:
         assert hasattr(none_dp, "is_readable")
         # And the overall calc still exposes expected operation flags
         assert calc.is_readable is True
-        assert calc.supports_events is True
+        assert calc.has_events is True
         assert calc.is_writable is False
 
     def test_calculated_datapoint_misc_properties_and_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:

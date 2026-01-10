@@ -157,19 +157,19 @@ async def _create_interface_client(
             interface=interface_config.interface,
             auth_enabled=True,
         )
-        if client_config.supports_rpc_callback
+        if client_config.has_rpc_callback
         else None,
         proxy_read=await client_config.create_rpc_proxy(
             interface=interface_config.interface,
             auth_enabled=True,
             max_workers=client_config.max_read_workers,
         )
-        if client_config.supports_rpc_callback
+        if client_config.has_rpc_callback
         else None,
         json_rpc=client_deps.json_rpc_client,
         paramset_provider=client_deps.cache_coordinator.paramset_descriptions,
         device_details_provider=client_deps.cache_coordinator.device_details.device_channel_rega_ids,
-        supports_push_updates=client_config.supports_push_updates,
+        has_push_updates=client_config.has_push_updates,
     )
 
     _LOGGER.debug(

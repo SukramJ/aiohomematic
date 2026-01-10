@@ -43,7 +43,7 @@ class _FakeClient:
         self.available = available
         self.system_information = MagicMock()
         self.capabilities = MagicMock()
-        self.capabilities.supports_push_updates = True
+        self.capabilities.push_updates = True
         self.system_information.available_interfaces = frozenset([interface])
 
     async def deinitialize_proxy(self) -> bool:
@@ -358,10 +358,10 @@ class TestClientCoordinatorBasics:
         )  # type: ignore[arg-type]
 
         client1 = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
-        client1.capabilities.supports_push_updates = False  # This client needs polling
+        client1.capabilities.push_updates = False  # This client needs polling
 
         client2 = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
-        client2.capabilities.supports_push_updates = True  # This client doesn't need polling
+        client2.capabilities.push_updates = True  # This client doesn't need polling
 
         coordinator._clients["BidCos-RF"] = client1  # type: ignore[assignment]
         coordinator._clients["HmIP-RF"] = client2  # type: ignore[assignment]

@@ -38,6 +38,11 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
 from aiohomematic.model import week_profile as wp
+from aiohomematic.model.custom.capabilities.climate import (
+    BASIC_CLIMATE_CAPABILITIES,
+    IP_THERMOSTAT_CAPABILITIES,
+    ClimateCapabilities,
+)
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import StateChangeArgs
@@ -140,6 +145,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     """Base Homematic climate data_point."""
 
     __slots__ = (
+        "_capabilities",
         "_old_manu_setpoint",
         "_peer_level_dp",
         "_peer_state_dp",
@@ -147,6 +153,18 @@ class BaseCustomDpClimate(CustomDataPoint):
     )
 
     _category = DataPointCategory.CLIMATE
+
+    @property
+    def capabilities(self) -> ClimateCapabilities:
+        """Return the climate capabilities."""
+        if (caps := getattr(self, "_capabilities", None)) is None:
+            caps = self._compute_capabilities()
+            object.__setattr__(self, "_capabilities", caps)
+        return caps
+
+    def _compute_capabilities(self) -> ClimateCapabilities:
+        """Compute static capabilities. Base implementation returns no profiles."""
+        return BASIC_CLIMATE_CAPABILITIES
 
     # Declarative data point field definitions
     _dp_humidity: Final = DataPointField(field=Field.HUMIDITY, dpt=DpSensor[int | None])
@@ -232,11 +250,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return self._device.week_profile.simple_schedule
         return {}
-
-    @property
-    def supports_profiles(self) -> bool:
-        """Flag if climate supports profiles."""
-        return False
 
     @config_property
     def target_temperature_step(self) -> float:
@@ -625,11 +638,6 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
 
         return profiles
 
-    @property
-    def supports_profiles(self) -> bool:
-        """Flag if climate supports profiles."""
-        return True
-
     @state_property
     def activity(self) -> ClimateActivity | None:
         """Return the current activity."""
@@ -747,6 +755,10 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                     value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector
                 )
 
+    def _compute_capabilities(self) -> ClimateCapabilities:
+        """Compute static capabilities. RF thermostats support profiles."""
+        return IP_THERMOSTAT_CAPABILITIES
+
     def _manu_temp_changed(
         self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
     ) -> None:
@@ -841,11 +853,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     def schedule_profile_nos(self) -> int:
         """Return the number of supported profiles."""
         return len(self._profiles)
-
-    @property
-    def supports_profiles(self) -> bool:
-        """Flag if climate supports control modes."""
-        return True
 
     @state_property
     def activity(self) -> ClimateActivity | None:
@@ -998,6 +1005,10 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                 await self._dp_boost_mode.send_value(value=False, collector=collector)
             if profile_idx := self._profiles.get(profile):
                 await self._dp_active_profile.send_value(value=profile_idx, collector=collector)
+
+    def _compute_capabilities(self) -> ClimateCapabilities:
+        """Compute static capabilities. IP thermostats support profiles."""
+        return IP_THERMOSTAT_CAPABILITIES
 
     def _manu_temp_changed(
         self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None

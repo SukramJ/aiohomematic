@@ -18,26 +18,26 @@ from aiohomematic.model.generic import GenericDataPoint
 class _FakeDataPoint(GenericDataPoint):  # type: ignore[type-arg]
     """Minimal fake DataPoint for testing."""
 
-    __slots__ = ("_dpk", "_is_readable", "_supports_events", "state_path", "channel", "event_calls")
+    __slots__ = ("_dpk", "_is_readable", "_has_events", "state_path", "channel", "event_calls")
 
     def __init__(
         self,
         *,
         dpk: DataPointKey,
         is_readable: bool = True,
-        supports_events: bool = True,
+        has_events: bool = True,
     ) -> None:
         """Initialize a fake data point."""
         # Don't call super().__init__ to avoid complex initialization
         self._dpk = dpk
         self._is_readable = is_readable
-        self._supports_events = supports_events
+        self._has_events = has_events
         self.state_path = f"{dpk.interface_id}/{dpk.channel_address}/{dpk.parameter}"
         self.channel = MagicMock()
         self.channel.device = MagicMock()
         self.channel.device.client = MagicMock()
         self.channel.device.client.capabilities = MagicMock()
-        self.channel.device.client.capabilities.supports_rpc_callback = False
+        self.channel.device.client.capabilities.rpc_callback = False
         self.event_calls: list[dict[str, Any]] = []
 
     @property  # type: ignore[override]
@@ -46,14 +46,14 @@ class _FakeDataPoint(GenericDataPoint):  # type: ignore[type-arg]
         return self._dpk
 
     @property  # type: ignore[override]
+    def has_events(self) -> bool:
+        """Return if data point supports events."""
+        return self._has_events
+
+    @property  # type: ignore[override]
     def is_readable(self) -> bool:
         """Return if data point is readable."""
         return self._is_readable
-
-    @property  # type: ignore[override]
-    def supports_events(self) -> bool:
-        """Return if data point supports events."""
-        return self._supports_events
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Record event calls."""
@@ -75,10 +75,10 @@ class _FakeLooper:
 class _FakeClient:
     """Minimal fake Client for testing."""
 
-    def __init__(self, *, supports_ping_pong: bool = True) -> None:
+    def __init__(self, *, has_ping_pong: bool = True) -> None:
         """Initialize a fake client."""
         self.capabilities = MagicMock()
-        self.capabilities.supports_ping_pong = supports_ping_pong
+        self.capabilities.ping_pong = has_ping_pong
         self.ping_pong_tracker = MagicMock()
         self.ping_pong_tracker.handle_received_pong = MagicMock()
 
@@ -229,7 +229,7 @@ class TestEventCoordinatorDataPointEvent:
     async def test_data_point_event_pong_response(self) -> None:
         """Data point event should handle PONG responses."""
         central = _FakeCentral()
-        client = _FakeClient(supports_ping_pong=True)
+        client = _FakeClient(has_ping_pong=True)
         central._clients["BidCos-RF"] = client
 
         coordinator = EventCoordinator(

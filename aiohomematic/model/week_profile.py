@@ -422,6 +422,11 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC, WeekProfileProtocol[SCHE
         """Convert raw schedule to dictionary format."""
 
     @property
+    def has_schedule(self) -> bool:
+        """Flag if climate supports schedule."""
+        return self.schedule_channel_address is not None
+
+    @property
     def schedule(self) -> SCHEDULE_DICT_T:
         """Return the schedule cache."""
         return self._schedule_cache
@@ -439,11 +444,6 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC, WeekProfileProtocol[SCHE
         ):
             return dsca
         return None
-
-    @property
-    def supports_schedule(self) -> bool:
-        """Flag if climate supports schedule."""
-        return self.schedule_channel_address is not None
 
     @abstractmethod
     async def get_schedule(self, *, force_load: bool = False) -> SCHEDULE_DICT_T:
@@ -623,14 +623,14 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
 
     def empty_schedule_group(self) -> DEFAULT_SCHEDULE_GROUP:
         """Return an empty schedule dictionary."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             return create_empty_schedule_group(category=self._data_point.category)
         return {}
 
     @inspector
     async def get_schedule(self, *, force_load: bool = False) -> DEFAULT_SCHEDULE_DICT:
         """Return the raw schedule dictionary."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -642,7 +642,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
 
     async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
         """Reload schedule entries and update cache."""
-        if not force and not self.supports_schedule:
+        if not force and not self.has_schedule:
             return
 
         try:
@@ -839,7 +839,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
     ) -> None:
         """Copy schedule profile to target device."""
         same_device = False
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -861,7 +861,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                     source_profile=source_profile,
                 )
             )
-        if not target_climate_data_point.device.supports_week_profile:
+        if not target_climate_data_point.device.has_week_profile:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -885,7 +885,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if self._data_point.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
             raise ValidationException(i18n.tr(key="exception.model.week_profile.copy_schedule.profile_count_mismatch"))
         raw_schedule = await self._get_raw_schedule()
-        if not target_climate_data_point.device.supports_week_profile:
+        if not target_climate_data_point.device.has_week_profile:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -905,7 +905,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
     @inspector
     async def get_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> ClimateProfileSchedule:
         """Return a schedule by climate profile."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -919,7 +919,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
     @inspector
     async def get_schedule(self, *, force_load: bool = False) -> ClimateScheduleDict:
         """Return the complete schedule dictionary."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -933,7 +933,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
     @inspector
     async def get_simple_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> SimpleProfileSchedule:
         """Return a simple schedule by climate profile."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -947,7 +947,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
     @inspector
     async def get_simple_schedule(self, *, force_load: bool = False) -> SimpleScheduleDict:
         """Return the complete simple schedule dictionary."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -963,7 +963,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
     ) -> SimpleWeekdaySchedule:
         """Return a simple schedule by climate profile and weekday."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -981,7 +981,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
     ) -> ClimateWeekdaySchedule:
         """Return a schedule by climate profile."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
@@ -994,7 +994,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
     async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
         """Reload schedules from CCU and update cache, publish events if changed."""
-        if not self.supports_schedule:
+        if not self.has_schedule:
             return
 
         try:

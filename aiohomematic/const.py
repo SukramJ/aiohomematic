@@ -84,11 +84,17 @@ class TimeoutConfig(NamedTuple):
     init() is attempted.
     """
 
-    callback_warn_interval: float = (1 if _TEST_SPEEDUP else 15) * 40
-    """Interval before warning about missing callback events (default: 600s = 10min)."""
+    callback_warn_interval: float = (1 if _TEST_SPEEDUP else 15) * 12
+    """Interval before warning about missing callback events (default: 180s = 3min)."""
 
     rpc_timeout: float = 5 if _TEST_SPEEDUP else 60
     """Default timeout for RPC calls (default: 60s)."""
+
+    ping_timeout: float = 2 if _TEST_SPEEDUP else 10
+    """Timeout for ping/connectivity check operations (default: 10s)."""
+
+    connectivity_error_threshold: int = 1
+    """Number of consecutive connectivity failures before marking devices unavailable (default: 1)."""
 
 
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()
@@ -269,6 +275,8 @@ VIRTDEV_STATE_PATH_ROOT: Final = "virtdev/status"
 METRICS_SENSOR_SYSTEM_HEALTH_NAME: Final = "system_health"
 METRICS_SENSOR_CONNECTION_LATENCY_NAME: Final = "connection_latency"
 METRICS_SENSOR_LAST_EVENT_AGE_NAME: Final = "last_event_age"
+
+CONNECTIVITY_SENSOR_PREFIX: Final = "Connectivity"
 INBOX_SENSOR_NAME: Final = "inbox"
 
 
@@ -1269,6 +1277,7 @@ class DataRefreshType(StrEnum):
     """Type of data refresh operation."""
 
     CLIENT_DATA = "client_data"
+    CONNECTIVITY = "connectivity"
     INBOX = "inbox"
     METRICS = "metrics"
     PROGRAM = "program"

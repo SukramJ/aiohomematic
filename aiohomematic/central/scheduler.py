@@ -222,6 +222,10 @@ class BackgroundScheduler:
                 task=self._refresh_metrics_data,
                 run_interval=self._config_provider.config.schedule_timer_config.metrics_refresh_interval,
             ),
+            SchedulerJob(
+                task=self._refresh_connectivity_data,
+                run_interval=self._config_provider.config.schedule_timer_config.metrics_refresh_interval,
+            ),
         ]
 
     has_connection_issue: Final = DelegatedProperty[bool](
@@ -509,6 +513,38 @@ class BackgroundScheduler:
                         error_message=str(exc),
                     )
                     raise
+
+    async def _refresh_connectivity_data(self) -> None:
+        """Refresh connectivity binary sensors."""
+        if not self.devices_created:
+            return
+
+        _LOGGER.debug("REFRESH_CONNECTIVITY_DATA: For %s", self._central_info.name)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type=DataRefreshType.CONNECTIVITY,
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            self._hub_data_fetcher.fetch_connectivity_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.CONNECTIVITY,
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.CONNECTIVITY,
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
 
     async def _refresh_inbox_data(self) -> None:
         """Refresh inbox data."""

@@ -93,6 +93,10 @@ class _FakeHub:
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data."""
 
+    def init_connectivity(self) -> dict:
+        """Initialize connectivity sensors."""
+        return {}
+
     async def init_install_mode(self) -> dict:
         """Initialize install mode."""
         return {}
@@ -127,6 +131,17 @@ class _FakeMetricsAggregator:
         """Initialize fake metrics aggregator."""
 
 
+class _FakeHealthTracker:
+    """Minimal fake HealthTracker for testing."""
+
+    def __init__(self) -> None:
+        """Initialize fake health tracker."""
+
+    def get_client_health(self, *, interface_id: str) -> None:
+        """Get health for a specific client."""
+        return
+
+
 class _FakeCentral:
     """Minimal fake CentralUnit for testing."""
 
@@ -145,6 +160,7 @@ class _FakeCentral:
         self.paramset_descriptions = MagicMock()
         self.parameter_visibility = MagicMock()
         self.metrics = _FakeMetricsAggregator()
+        self.health_tracker = _FakeHealthTracker()
 
     @property
     def cache_coordinator(self):  # noqa: D401,ANN201
@@ -194,6 +210,7 @@ class TestHubCoordinatorBasics:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -215,6 +232,7 @@ class TestHubCoordinatorBasics:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -240,6 +258,7 @@ class TestHubCoordinatorBasics:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -268,6 +287,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -293,6 +313,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -316,6 +337,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -337,6 +359,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -361,6 +384,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -384,6 +408,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -407,6 +432,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -427,6 +453,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -460,6 +487,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -483,6 +511,7 @@ class TestHubCoordinatorProgramOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -507,6 +536,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -539,6 +569,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -564,6 +595,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -587,6 +619,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -607,6 +640,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -630,6 +664,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -653,6 +688,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -673,6 +709,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -705,6 +742,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -726,6 +764,7 @@ class TestHubCoordinatorSysvarOperations:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -756,6 +795,7 @@ class TestHubCoordinatorGetHubDataPoints:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -783,6 +823,7 @@ class TestHubCoordinatorGetHubDataPoints:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -816,6 +857,7 @@ class TestHubCoordinatorGetHubDataPoints:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -847,6 +889,7 @@ class TestHubCoordinatorInitHub:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -881,6 +924,7 @@ class TestHubCoordinatorIntegration:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
@@ -919,6 +963,7 @@ class TestHubCoordinatorIntegration:
             config_provider=central,
             event_bus_provider=central,
             event_publisher=central,
+            health_tracker=central.health_tracker,
             metrics_provider=central,
             parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,

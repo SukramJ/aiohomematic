@@ -33,6 +33,7 @@ from aiohomematic.interfaces import (
     EventPublisherProtocol,
     GenericProgramDataPointProtocol,
     GenericSysvarDataPointProtocol,
+    HealthTrackerProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
     MetricsProviderProtocol,
@@ -41,7 +42,7 @@ from aiohomematic.interfaces import (
     PrimaryClientProviderProtocol,
     TaskSchedulerProtocol,
 )
-from aiohomematic.model.hub import Hub, InstallModeDpType, MetricsDpType, ProgramDpType
+from aiohomematic.model.hub import ConnectivityDpType, Hub, InstallModeDpType, MetricsDpType, ProgramDpType
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -71,6 +72,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         config_provider: ConfigProviderProtocol,
         event_bus_provider: EventBusProviderProtocol,
         event_publisher: EventPublisherProtocol,
+        health_tracker: HealthTrackerProtocol,
         metrics_provider: MetricsProviderProtocol,
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
@@ -88,6 +90,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             config_provider: Provider for configuration access
             event_bus_provider: Provider for event bus access
             event_publisher: Provider for event emission
+            health_tracker: Provider for connection health tracking
             metrics_provider: Provider for metrics aggregator access
             parameter_visibility_provider: Provider for parameter visibility rules
             paramset_description_provider: Provider for paramset descriptions
@@ -115,6 +118,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             config_provider=config_provider,
             event_bus_provider=event_bus_provider,
             event_publisher=event_publisher,
+            health_tracker=health_tracker,
             hub_data_fetcher=self,
             hub_data_point_manager=self,
             metrics_provider=metrics_provider,
@@ -124,6 +128,7 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             task_scheduler=task_scheduler,
         )
 
+    connectivity_dps: Final = DelegatedProperty[Mapping[str, ConnectivityDpType]](path="_hub.connectivity_dps")
     install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_hub.install_mode_dps")
     metrics_dps: Final = DelegatedProperty[MetricsDpType | None](path="_hub.metrics_dps")
 
@@ -244,6 +249,17 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             )
             return success
         return False
+
+    def fetch_connectivity_data(self, *, scheduled: bool) -> None:
+        """
+        Refresh connectivity binary sensors with current values.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        self._hub.fetch_connectivity_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
@@ -412,13 +428,14 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         return None
 
     async def init_hub(self) -> None:
-        """Initialize the hub by fetching program, sysvar, inbox, install mode, and metrics data."""
+        """Initialize the hub by fetching program, sysvar, inbox, install mode, metrics, and connectivity data."""
         _LOGGER.debug("INIT_HUB: Initializing hub for %s", self._central_info.name)
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
         await self._hub.fetch_inbox_data(scheduled=False)
         await self._hub.init_install_mode()
         self._hub.init_metrics()
+        self._hub.init_connectivity()
 
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """

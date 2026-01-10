@@ -736,11 +736,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         else:
             self._connection_error_count += 1
 
-        if self._connection_error_count > 3:
+        error_threshold = self._central.config.timeout_config.connectivity_error_threshold
+        if self._connection_error_count > error_threshold:
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             if self._state_machine.state == ClientState.CONNECTED:
                 self._state_machine.transition_to(
-                    target=ClientState.DISCONNECTED, reason="connection check failed (>3 errors)"
+                    target=ClientState.DISCONNECTED,
+                    reason=f"connection check failed (>{error_threshold} errors)",
                 )
             return False
         if not self._backend.capabilities.push_updates:

@@ -406,6 +406,27 @@ class HubSensorDataPointProtocol(GenericHubDataPointProtocol, Protocol):
 
 
 @runtime_checkable
+class HubBinarySensorDataPointProtocol(GenericHubDataPointProtocol, Protocol):
+    """
+    Protocol for binary sensor hub data points.
+
+    Provides properties for boolean sensor values like connectivity status.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def data_type(self) -> HubValueType | None:
+        """Return the data type of the sensor."""
+
+    @property
+    @abstractmethod
+    def value(self) -> bool:
+        """Return the boolean value."""
+
+
+@runtime_checkable
 class GenericInstallModeDataPointProtocol(HubSensorDataPointProtocol, Protocol):
     """
     Protocol for install mode sensor data point.

@@ -48,6 +48,7 @@ from aiohomematic.const import (
     DataPointCategory,
     DeviceTriggerEventType,
     FailureReason,
+    ForcedDeviceAvailability,
     Interface,
     Operations,
     OptionalSettings,
@@ -187,6 +188,7 @@ class CentralUnit(
             config_provider=self,
             event_bus_provider=self,
             event_publisher=self._event_coordinator,
+            health_tracker=self._health_tracker,
             metrics_provider=self,
             parameter_visibility_provider=self._cache_coordinator.parameter_visibility,
             paramset_description_provider=self._cache_coordinator.paramset_descriptions,
@@ -1013,6 +1015,17 @@ class CentralUnit(
             old_state=old_state,
             new_state=new_state,
         )
+
+        # Immediately mark devices as unavailable when client disconnects or fails
+        if new_state in (ClientState.DISCONNECTED, ClientState.FAILED):
+            for device in self._device_registry.devices:
+                if device.interface_id == interface_id:
+                    device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+            _LOGGER.debug(
+                "CLIENT_STATE_CHANGE: Marked all devices unavailable for %s (state=%s)",
+                interface_id,
+                new_state.value,
+            )
 
         # Determine overall central state based on all client states
         clients = self._client_coordinator.clients

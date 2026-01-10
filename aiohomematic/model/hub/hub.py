@@ -62,6 +62,7 @@ from aiohomematic.interfaces.central import (
     ConfigProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
+    HealthTrackerProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
     MetricsProviderProtocol,
@@ -75,6 +76,7 @@ from aiohomematic.interfaces.operations import (
 )
 from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
+from aiohomematic.model.hub.connectivity import HmInterfaceConnectivitySensor
 from aiohomematic.model.hub.data_point import GenericProgramDataPoint, GenericSysvarDataPoint
 from aiohomematic.model.hub.inbox import HmInboxSensor
 from aiohomematic.model.hub.install_mode import InstallModeDpButton, InstallModeDpSensor, InstallModeDpType
@@ -111,6 +113,14 @@ class MetricsDpType(NamedTuple):
     last_event_age: HmLastEventAgeSensor
 
 
+class ConnectivityDpType(NamedTuple):
+    """Container for interface connectivity sensors."""
+
+    interface_id: str
+    interface: Interface
+    sensor: HmInterfaceConnectivitySensor
+
+
 class Hub(HubProtocol):
     """The Homematic hub."""
 
@@ -119,8 +129,10 @@ class Hub(HubProtocol):
         "_channel_lookup",
         "_client_provider",
         "_config_provider",
+        "_connectivity_dps",
         "_event_bus_provider",
         "_event_publisher",
+        "_health_tracker",
         "_hub_data_fetcher",
         "_hub_data_point_manager",
         "_inbox_dp",
@@ -154,6 +166,7 @@ class Hub(HubProtocol):
         channel_lookup: ChannelLookupProtocol,
         hub_data_fetcher: HubDataFetcherProtocol,
         metrics_provider: MetricsProviderProtocol,
+        health_tracker: HealthTrackerProtocol,
     ) -> None:
         """Initialize Homematic hub."""
         self._sema_fetch_sysvars: Final = asyncio.Semaphore()
@@ -173,15 +186,52 @@ class Hub(HubProtocol):
         self._channel_lookup: Final = channel_lookup
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._metrics_provider: Final = metrics_provider
+        self._health_tracker: Final = health_tracker
         self._update_dp: HmUpdate | None = None
         self._inbox_dp: HmInboxSensor | None = None
         self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
         self._metrics_dps: MetricsDpType | None = None
+        self._connectivity_dps: dict[str, ConnectivityDpType] = {}
 
+    connectivity_dps: Final = DelegatedProperty[Mapping[str, ConnectivityDpType]](path="_connectivity_dps")
     inbox_dp: Final = DelegatedProperty[HmInboxSensor | None](path="_inbox_dp")
     install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_install_mode_dps")
     metrics_dps: Final = DelegatedProperty[MetricsDpType | None](path="_metrics_dps")
     update_dp: Final = DelegatedProperty[HmUpdate | None](path="_update_dp")
+
+    def create_connectivity_dps(self) -> Mapping[str, ConnectivityDpType]:
+        """
+        Create connectivity binary sensors for all interfaces.
+
+        Returns a dict of ConnectivityDpType by interface_id.
+        """
+        if self._connectivity_dps:
+            return self._connectivity_dps
+
+        for client in self._client_provider.clients:
+            connectivity_dp = ConnectivityDpType(
+                interface_id=client.interface_id,
+                interface=client.interface,
+                sensor=HmInterfaceConnectivitySensor(
+                    interface_id=client.interface_id,
+                    interface=client.interface,
+                    health_tracker=self._health_tracker,
+                    config_provider=self._config_provider,
+                    central_info=self._central_info,
+                    event_bus_provider=self._event_bus_provider,
+                    event_publisher=self._event_publisher,
+                    task_scheduler=self._task_scheduler,
+                    paramset_description_provider=self._paramset_description_provider,
+                    parameter_visibility_provider=self._parameter_visibility_provider,
+                ),
+            )
+            self._connectivity_dps[client.interface_id] = connectivity_dp
+            _LOGGER.debug(
+                "CREATE_CONNECTIVITY_DPS: Created connectivity sensor for %s",
+                client.interface_id,
+            )
+
+        return self._connectivity_dps
 
     def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """
@@ -250,6 +300,24 @@ class Hub(HubProtocol):
         )
 
         return self._metrics_dps
+
+    def fetch_connectivity_data(self, *, scheduled: bool) -> None:
+        """
+        Refresh connectivity binary sensors with current values.
+
+        This is a synchronous method as connectivity is read directly from the
+        HealthTracker without backend calls.
+        """
+        if not self._connectivity_dps:
+            return
+        _LOGGER.debug(
+            "FETCH_CONNECTIVITY_DATA: %s refreshing of connectivity for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        write_at = datetime.now()
+        for connectivity_dp in self._connectivity_dps.values():
+            connectivity_dp.sensor.refresh(write_at=write_at)
 
     @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
@@ -353,6 +421,24 @@ class Hub(HubProtocol):
                 if (client := self._primary_client_provider.primary_client) and client.available:
                     await self._update_sysvar_data_points()
 
+    def init_connectivity(self) -> Mapping[str, ConnectivityDpType]:
+        """
+        Initialize connectivity binary sensors.
+
+        Creates sensors, fetches initial values, and publishes refresh event.
+        Returns dict of ConnectivityDpType by interface_id.
+        """
+        if not (connectivity_dps := self.create_connectivity_dps()):
+            return {}
+
+        # Fetch initial values
+        self.fetch_connectivity_data(scheduled=False)
+
+        # Publish refresh event to notify consumers
+        self.publish_connectivity_refreshed()
+
+        return connectivity_dps
+
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
         Initialize install mode data points for all supported interfaces.
@@ -388,6 +474,18 @@ class Hub(HubProtocol):
         self.publish_metrics_refreshed()
 
         return metrics_dps
+
+    def publish_connectivity_refreshed(self) -> None:
+        """Publish HUB_REFRESHED event for connectivity binary sensors."""
+        if not self._connectivity_dps:
+            return
+        data_points: list[GenericHubDataPointProtocol] = [
+            connectivity_dp.sensor for connectivity_dp in self._connectivity_dps.values()
+        ]
+        self._event_publisher.publish_system_event(
+            system_event=SystemEventType.HUB_REFRESHED,
+            new_data_points=_get_new_hub_data_points(data_points=data_points),
+        )
 
     def publish_install_mode_refreshed(self) -> None:
         """Publish HUB_REFRESHED event for install mode data points."""

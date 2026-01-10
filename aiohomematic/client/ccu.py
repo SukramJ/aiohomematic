@@ -325,6 +325,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if _proxy is still initialized."""
+        ping_timeout = self._config.client_deps.config.timeout_config.ping_timeout
         try:
             dt_now = datetime.now()
             if handle_ping_pong and self._capabilities.ping_pong and self.is_initialized:
@@ -333,10 +334,18 @@ class ClientCCU(ClientProtocol, LogContextMixin):
                 # Register token BEFORE sending ping to avoid race condition:
                 # CCU may respond with PONG before await returns
                 self._ping_pong_tracker.handle_send_ping(ping_token=token)
-                await self._proxy.ping(callerId)
+                async with asyncio.timeout(ping_timeout):
+                    await self._proxy.ping(callerId)
             elif not self.is_initialized:
-                await self._proxy.ping(self.interface_id)
+                async with asyncio.timeout(ping_timeout):
+                    await self._proxy.ping(self.interface_id)
             self.modified_at = dt_now
+        except TimeoutError:
+            _LOGGER.debug(
+                "CHECK_CONNECTION_AVAILABILITY: Ping timeout after %.1fs for %s",
+                ping_timeout,
+                self.interface_id,
+            )
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "CHECK_CONNECTION_AVAILABILITY failed: %s [%s]",
@@ -749,7 +758,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """
         Perform actions required for connectivity check.
 
-        Connection is not connected, if three consecutive checks fail.
+        Connection is not connected if consecutive checks exceed threshold.
         Return connectivity state.
         """
         if await self.check_connection_availability(handle_ping_pong=True) is True:
@@ -757,12 +766,14 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         else:
             self._connection_error_count += 1
 
-        if self._connection_error_count > 3:
+        error_threshold = self._config.client_deps.config.timeout_config.connectivity_error_threshold
+        if self._connection_error_count > error_threshold:
             self._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
             # Update state machine to reflect connection loss
             if self._state_machine.state == ClientState.CONNECTED:
                 self._state_machine.transition_to(
-                    target=ClientState.DISCONNECTED, reason="connection check failed (>3 errors)"
+                    target=ClientState.DISCONNECTED,
+                    reason=f"connection check failed (>{error_threshold} errors)",
                 )
             return False
         if not self._capabilities.push_updates:
@@ -1143,7 +1154,17 @@ class ClientJsonCCU(ClientCCU):
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
-        return await self._json_rpc_client.is_present(interface=self.interface)
+        ping_timeout = self._config.client_deps.config.timeout_config.ping_timeout
+        try:
+            async with asyncio.timeout(ping_timeout):
+                return await self._json_rpc_client.is_present(interface=self.interface)
+        except TimeoutError:
+            _LOGGER.debug(
+                "CHECK_CONNECTION_AVAILABILITY: Timeout after %.1fs for %s",
+                ping_timeout,
+                self.interface_id,
+            )
+            return False
 
     async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
         """Fetch a specific paramset and add it to the known ones."""
@@ -1617,9 +1638,17 @@ class ClientHomegear(ClientCCU):
     @inspector(re_raise=False, no_raise_return=False)
     async def check_connection_availability(self, *, handle_ping_pong: bool) -> bool:
         """Check if proxy is still initialized."""
+        ping_timeout = self._config.client_deps.config.timeout_config.ping_timeout
         try:
-            await self._proxy.clientServerInitialized(self.interface_id)
+            async with asyncio.timeout(ping_timeout):
+                await self._proxy.clientServerInitialized(self.interface_id)
             self.modified_at = datetime.now()
+        except TimeoutError:
+            _LOGGER.debug(
+                "CHECK_CONNECTION_AVAILABILITY: Timeout after %.1fs for %s",
+                ping_timeout,
+                self.interface_id,
+            )
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "CHECK_CONNECTION_AVAILABILITY failed: %s [%s]",

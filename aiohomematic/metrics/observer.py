@@ -447,18 +447,18 @@ class MetricsObserver:
         # MetricType.HEALTH
         if health := self._health.get(key_str):
             return 100.0 if health.healthy else 0.0
-        return 100.0  # Default to healthy
+        return 0.0  # No health data yet
 
     def get_overall_health_score(self) -> float:
         """
         Compute overall health score from all tracked health states.
 
         Returns:
-            Health score as a value between 0.0 and 1.0
+            Health score as a value between 0.0 and 1.0 (0.0 if no health data yet)
 
         """
         if not self._health:
-            return 1.0  # Default to healthy if no health data
+            return 0.0  # No health data yet - report 0% until connections are established
 
         healthy_count = sum(1 for h in self._health.values() if h.healthy)
         return healthy_count / len(self._health)

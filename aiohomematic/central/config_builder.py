@@ -296,20 +296,17 @@ class CentralConfigBuilder:
         """
         return self.add_interface(interface=Interface.BIDCOS_WIRED, port=port)
 
-    def add_cuxd_interface(self, *, port: int | None = None) -> Self:
+    def add_cuxd_interface(self) -> Self:
         """
         Add CUxD interface.
 
-        Default port: 8701.
-
-        Args:
-            port: Custom port. Uses default if not specified.
+        CUxD uses JSON-RPC only and does not require an XML-RPC port.
 
         Returns:
             Self for method chaining.
 
         """
-        return self.add_interface(interface=Interface.CUXD, port=port)
+        return self.add_interface(interface=Interface.CUXD, port=0)
 
     def add_hmip_interface(self, *, port: int | None = None) -> Self:
         """
@@ -382,7 +379,10 @@ class CentralConfigBuilder:
         # Build interface configs with resolved ports
         interface_configs: set[InterfaceConfig] = set()
         for interface, port, remote_path in self._interfaces:
-            if resolved_port := port or get_interface_default_port(interface=interface, tls=self._tls):
+            # Use explicit port if provided, otherwise get default
+            # port=0 is valid for JSON-RPC-only interfaces (CUxD, CCU-Jack)
+            resolved_port = port if port is not None else get_interface_default_port(interface=interface, tls=self._tls)
+            if resolved_port is not None:
                 config_kwargs: dict[str, Any] = {
                     "central_name": self._name,
                     "interface": interface,

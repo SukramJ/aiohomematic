@@ -1,14 +1,22 @@
+# Version 2026.1.30 (2026-01-11)
+
+## What's Changed
+
+### Fixed
+
+- **Device availability not reset after CCU restart**: The state transition sequence during reconnect is `reconnecting → disconnected → connecting → connected`. The availability reset only triggered when `old_state` was in `(DISCONNECTED, FAILED, RECONNECTING)`, but the final transition has `old_state=CONNECTING`. Added `CONNECTING` to the list of states that trigger availability reset.
+
+---
+
 # Version 2026.1.29 (2026-01-11)
 
 ## What's Changed
 
 ### Fixed
 
-- **Device availability not restored after CCU restart** Devices remained "unavailable" after successful reconnection because `forced_availability` was not reset when client state changed back to CONNECTED. Now properly resets device availability when client reconnects successfully.
-
 - **Connectivity sensors not updating during CCU restart**: Interface connectivity binary sensors now subscribe to `ClientStateChangedEvent` for immediate reactive updates instead of only updating during scheduled refresh cycles.
 
-- **CuXD devices not created when paramset_descriptions missing** When device_descriptions were already cached but paramset_descriptions were missing (e.g., from a previous interrupted run), devices were skipped with "Nothing to add/update". Now properly detects missing paramset_descriptions by comparing expected PARAMSETS from device_description against cached paramsets, ensuring both caches stay synchronized.
+- **CuXD devices not created when paramset_descriptions missing**: When device_descriptions were already cached but paramset_descriptions were missing (e.g., from a previous interrupted run), devices were skipped with "Nothing to add/update". Now properly detects missing paramset_descriptions by comparing expected PARAMSETS from device_description against cached paramsets, ensuring both caches stay synchronized.
 
 ---
 

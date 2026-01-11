@@ -1028,7 +1028,10 @@ class CentralUnit(
             )
 
         # Reset forced availability when client reconnects successfully
+        # Include CONNECTING because the sequence is often:
+        # reconnecting -> disconnected -> connecting -> connected
         if new_state == ClientState.CONNECTED and old_state in (
+            ClientState.CONNECTING,
             ClientState.DISCONNECTED,
             ClientState.FAILED,
             ClientState.RECONNECTING,

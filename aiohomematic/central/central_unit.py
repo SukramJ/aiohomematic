@@ -1027,6 +1027,20 @@ class CentralUnit(
                 new_state.value,
             )
 
+        # Reset forced availability when client reconnects successfully
+        if new_state == ClientState.CONNECTED and old_state in (
+            ClientState.DISCONNECTED,
+            ClientState.FAILED,
+            ClientState.RECONNECTING,
+        ):
+            for device in self._device_registry.devices:
+                if device.interface_id == interface_id:
+                    device.set_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
+            _LOGGER.debug(
+                "CLIENT_STATE_CHANGE: Reset device availability for %s (reconnected)",
+                interface_id,
+            )
+
         # Determine overall central state based on all client states
         clients = self._client_coordinator.clients
         # Note: all() returns True for empty iterables, so we must check clients exist

@@ -1,3 +1,15 @@
+# Version 2026.1.29 (2026-01-11)
+
+## What's Changed
+
+### Fixed
+
+- **Device availability not restored after CCU restart** (#2767): Devices remained "unavailable" after successful reconnection because `forced_availability` was not reset when client state changed back to CONNECTED. Now properly resets device availability when client reconnects successfully.
+
+- **Connectivity sensors not updating during CCU restart**: Interface connectivity binary sensors now subscribe to `ClientStateChangedEvent` for immediate reactive updates instead of only updating during scheduled refresh cycles.
+
+---
+
 # Version 2026.1.28 (2026-01-10)
 
 ## What's Changed

@@ -38,11 +38,12 @@ of the same data category.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Collection, Mapping, Set as AbstractSet
+from collections.abc import Callable, Collection, Mapping, Set as AbstractSet
 from datetime import datetime
 import logging
 from typing import Final, NamedTuple
 
+from aiohomematic.central.events.types import ClientStateChangedEvent
 from aiohomematic.const import (
     HUB_CATEGORIES,
     Backend,
@@ -147,6 +148,7 @@ class Hub(HubProtocol):
         "_sema_fetch_sysvars",
         "_sema_fetch_update",
         "_task_scheduler",
+        "_unsubscribers",
         "_update_dp",
     )
 
@@ -192,6 +194,7 @@ class Hub(HubProtocol):
         self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
         self._metrics_dps: MetricsDpType | None = None
         self._connectivity_dps: dict[str, ConnectivityDpType] = {}
+        self._unsubscribers: list[Callable[[], None]] = []
 
     connectivity_dps: Final = DelegatedProperty[Mapping[str, ConnectivityDpType]](path="_connectivity_dps")
     inbox_dp: Final = DelegatedProperty[HmInboxSensor | None](path="_inbox_dp")
@@ -425,11 +428,20 @@ class Hub(HubProtocol):
         """
         Initialize connectivity binary sensors.
 
-        Creates sensors, fetches initial values, and publishes refresh event.
+        Creates sensors, fetches initial values, subscribes to client state events,
+        and publishes refresh event.
         Returns dict of ConnectivityDpType by interface_id.
         """
         if not (connectivity_dps := self.create_connectivity_dps()):
             return {}
+
+        # Subscribe to client state changes for reactive updates
+        unsub = self._event_bus_provider.event_bus.subscribe(
+            event_type=ClientStateChangedEvent,
+            event_key=None,  # Subscribe to all interfaces
+            handler=self._on_client_state_changed,
+        )
+        self._unsubscribers.append(unsub)
 
         # Fetch initial values
         self.fetch_connectivity_data(scheduled=False)
@@ -653,6 +665,24 @@ class Hub(HubProtocol):
             ):
                 missing_variable_ids.append(vid)
         return set(missing_variable_ids)
+
+    async def _on_client_state_changed(self, *, event: ClientStateChangedEvent) -> None:
+        """Handle client state change event for reactive connectivity updates."""
+        if not self._connectivity_dps:
+            return
+
+        # Find the connectivity sensor for this interface
+        if (connectivity_dp := self._connectivity_dps.get(event.interface_id)) is None:
+            return
+
+        # Refresh the sensor to reflect the new state
+        connectivity_dp.sensor.refresh(write_at=event.timestamp)
+        _LOGGER.debug(
+            "ON_CLIENT_STATE_CHANGED: Updated connectivity sensor for %s (%s -> %s)",
+            event.interface_id,
+            event.old_state.name,
+            event.new_state.name,
+        )
 
     def _remove_program_data_point(self, *, ids: set[str]) -> None:
         """Remove sysvar data_point from hub."""

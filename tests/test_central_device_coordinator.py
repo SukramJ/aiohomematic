@@ -1172,3 +1172,147 @@ class TestDeviceCoordinatorIntegration:
         # Verify device is removed
         assert coordinator.get_device(address="VCU0000001") is None
         assert len(coordinator.devices) == 0
+
+
+class TestIdentifyDevicesMissingParamsets:
+    """Tests for _identify_devices_missing_paramsets method."""
+
+    def test_all_paramsets_missing(self) -> None:
+        """Test that device is returned when all paramsets are missing."""
+        # Cache is empty for this address
+        paramset_cache_data: dict[str, dict[str, dict]] = {}
+        coordinator = self._make_coordinator(paramset_cache_data=paramset_cache_data)
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "CUX0000001:1", "PARAMSETS": ["VALUES", "MASTER"]},
+        )
+
+        result = coordinator._identify_devices_missing_paramsets(
+            interface_id="test-CUxD", device_descriptions=device_descriptions
+        )
+
+        assert len(result) == 1
+        assert result[0]["ADDRESS"] == "CUX0000001:1"
+
+    def test_all_paramsets_present(self) -> None:
+        """Test that no devices are returned when all paramsets are present."""
+        # Cache has both VALUES and MASTER for the channel
+        paramset_cache_data = {
+            "CUX0000001:1": {"VALUES": {"STATE": {}}, "MASTER": {"CONFIG": {}}},
+        }
+        coordinator = self._make_coordinator(paramset_cache_data=paramset_cache_data)
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "CUX0000001:1", "PARAMSETS": ["VALUES", "MASTER"]},
+        )
+
+        result = coordinator._identify_devices_missing_paramsets(
+            interface_id="test-CUxD", device_descriptions=device_descriptions
+        )
+
+        assert result == ()
+
+    def test_device_with_empty_paramsets(self) -> None:
+        """Test that devices with empty PARAMSETS list are skipped."""
+        paramset_cache_data: dict[str, dict[str, dict]] = {}
+        coordinator = self._make_coordinator(paramset_cache_data=paramset_cache_data)
+
+        device_descriptions: tuple[DeviceDescription, ...] = ({"ADDRESS": "CUX0000001", "PARAMSETS": []},)
+
+        result = coordinator._identify_devices_missing_paramsets(
+            interface_id="test-CUxD", device_descriptions=device_descriptions
+        )
+
+        # Should be empty since device has no expected paramsets
+        assert result == ()
+
+    def test_device_without_paramsets_field(self) -> None:
+        """Test that devices without PARAMSETS field are skipped."""
+        paramset_cache_data: dict[str, dict[str, dict]] = {}
+        coordinator = self._make_coordinator(paramset_cache_data=paramset_cache_data)
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "CUX0000001"},  # No PARAMSETS field
+        )
+
+        result = coordinator._identify_devices_missing_paramsets(
+            interface_id="test-CUxD", device_descriptions=device_descriptions
+        )
+
+        # Should be empty since device has no expected paramsets
+        assert result == ()
+
+    def test_missing_one_paramset(self) -> None:
+        """Test that device is returned when one paramset is missing."""
+        # Cache only has VALUES, but device expects VALUES and MASTER
+        paramset_cache_data = {
+            "CUX0000001:1": {"VALUES": {"STATE": {}}},
+        }
+        coordinator = self._make_coordinator(paramset_cache_data=paramset_cache_data)
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "CUX0000001:1", "PARAMSETS": ["VALUES", "MASTER"]},
+        )
+
+        result = coordinator._identify_devices_missing_paramsets(
+            interface_id="test-CUxD", device_descriptions=device_descriptions
+        )
+
+        assert len(result) == 1
+        assert result[0]["ADDRESS"] == "CUX0000001:1"
+
+    def test_multiple_devices_mixed(self) -> None:
+        """Test with multiple devices where some have missing paramsets."""
+        paramset_cache_data = {
+            # Device 1: has all paramsets
+            "CUX0000001:1": {"VALUES": {"STATE": {}}, "MASTER": {"CONFIG": {}}},
+            # Device 2: missing MASTER
+            "CUX0000002:1": {"VALUES": {"STATE": {}}},
+            # Device 3: has all paramsets
+            "CUX0000003:1": {"VALUES": {"STATE": {}}, "MASTER": {"CONFIG": {}}},
+        }
+        coordinator = self._make_coordinator(paramset_cache_data=paramset_cache_data)
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "CUX0000001:1", "PARAMSETS": ["VALUES", "MASTER"]},
+            {"ADDRESS": "CUX0000002:1", "PARAMSETS": ["VALUES", "MASTER"]},
+            {"ADDRESS": "CUX0000003:1", "PARAMSETS": ["VALUES", "MASTER"]},
+        )
+
+        result = coordinator._identify_devices_missing_paramsets(
+            interface_id="test-CUxD", device_descriptions=device_descriptions
+        )
+
+        # Only device 2 should be in the result
+        assert len(result) == 1
+        assert result[0]["ADDRESS"] == "CUX0000002:1"
+
+    def _make_coordinator(self, *, paramset_cache_data: dict[str, dict[str, dict]]) -> DeviceCoordinator:
+        """Create a DeviceCoordinator with mocked paramset cache."""
+        central = _FakeCentral()
+
+        # Configure paramset_descriptions mock to return data based on address
+        def get_channel_paramset_descriptions(*, interface_id: str, channel_address: str) -> dict:
+            return paramset_cache_data.get(channel_address, {})
+
+        central.cache_coordinator.paramset_descriptions.get_channel_paramset_descriptions = (
+            get_channel_paramset_descriptions
+        )
+
+        return DeviceCoordinator(
+            central_info=central,
+            client_provider=central,
+            config_provider=central,
+            coordinator_provider=central,
+            data_cache_provider=central.cache_coordinator.data_cache,
+            data_point_provider=central,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
+            event_bus_provider=central,
+            event_publisher=central,
+            event_subscription_manager=central,
+            file_operations=central,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]

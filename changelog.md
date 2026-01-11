@@ -4,9 +4,11 @@
 
 ### Fixed
 
-- **Device availability not restored after CCU restart** (#2767): Devices remained "unavailable" after successful reconnection because `forced_availability` was not reset when client state changed back to CONNECTED. Now properly resets device availability when client reconnects successfully.
+- **Device availability not restored after CCU restart** Devices remained "unavailable" after successful reconnection because `forced_availability` was not reset when client state changed back to CONNECTED. Now properly resets device availability when client reconnects successfully.
 
 - **Connectivity sensors not updating during CCU restart**: Interface connectivity binary sensors now subscribe to `ClientStateChangedEvent` for immediate reactive updates instead of only updating during scheduled refresh cycles.
+
+- **CuXD devices not created when paramset_descriptions missing** When device_descriptions were already cached but paramset_descriptions were missing (e.g., from a previous interrupted run), devices were skipped with "Nothing to add/update". Now properly detects missing paramset_descriptions by comparing expected PARAMSETS from device_description against cached paramsets, ensuring both caches stay synchronized.
 
 ---
 

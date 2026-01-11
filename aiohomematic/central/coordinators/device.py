@@ -32,6 +32,7 @@ from aiohomematic.const import (
     DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
+    ParamsetKey,
     SourceOfDeviceCreation,
     SystemEventType,
 )
@@ -906,7 +907,33 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             )
 
             if not descriptions_to_cache:
-                _LOGGER.debug("ADD_NEW_DEVICES: Nothing to add/update for interface_id %s", interface_id)
+                # Check if there are devices with missing paramset descriptions
+                # This can happen when device_descriptions were cached but paramsets weren't
+                # (e.g., previous run was interrupted after saving device_descriptions)
+                devices_missing_paramsets = self._identify_devices_missing_paramsets(
+                    interface_id=interface_id, device_descriptions=device_descriptions
+                )
+                if not devices_missing_paramsets:
+                    _LOGGER.debug("ADD_NEW_DEVICES: Nothing to add/update for interface_id %s", interface_id)
+                    return
+
+                # Fetch missing paramset descriptions
+                _LOGGER.debug(
+                    "ADD_NEW_DEVICES: Fetching missing paramsets for %s devices on interface_id %s",
+                    len(devices_missing_paramsets),
+                    interface_id,
+                )
+                client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+                for dev_desc in devices_missing_paramsets:
+                    await client.fetch_paramset_descriptions(device_description=dev_desc)
+
+                await self._coordinator_provider.cache_coordinator.save_all(save_paramset_descriptions=True)
+
+                # Now check if we can create devices
+                if new_device_addresses := self.check_for_new_device_addresses(interface_id=interface_id):
+                    await self._coordinator_provider.cache_coordinator.device_details.load()
+                    await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
+                    await self.create_devices(new_device_addresses=new_device_addresses, source=source)
                 return
 
             # Here we block the automatic creation of new devices, if required
@@ -951,6 +978,54 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 await self._coordinator_provider.cache_coordinator.device_details.load()
                 await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
                 await self.create_devices(new_device_addresses=new_device_addresses, source=source)
+
+    def _identify_devices_missing_paramsets(
+        self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
+    ) -> tuple[DeviceDescription, ...]:
+        """
+        Identify devices that have device_descriptions but missing paramset_descriptions.
+
+        This handles the case where device_descriptions were persisted but paramset_descriptions
+        weren't (e.g., previous run was interrupted, or paramset fetch failed).
+
+        Synchronization check:
+            For each device_description, we verify that ALL expected paramsets (from the
+            PARAMSETS field) are present in the paramset_descriptions cache. This ensures
+            both caches are synchronized - not just that "some" paramset exists.
+
+        Args:
+        ----
+            interface_id: Interface identifier
+            device_descriptions: Tuple of device descriptions to check
+
+        Returns:
+        -------
+            Tuple of device descriptions that need paramset fetching
+
+        """
+        paramset_cache = self._coordinator_provider.cache_coordinator.paramset_descriptions
+        missing: list[DeviceDescription] = []
+
+        for dev_desc in device_descriptions:
+            address = dev_desc["ADDRESS"]
+
+            # Skip if no paramsets expected (shouldn't happen, but be safe)
+            if not (expected_paramsets := dev_desc.get("PARAMSETS", [])):
+                continue
+
+            # Get cached paramsets for this address
+            cached_paramsets = paramset_cache.get_channel_paramset_descriptions(
+                interface_id=interface_id, channel_address=address
+            )
+
+            # Check if ALL expected paramsets are present in cache
+            cached_keys = set(cached_paramsets.keys())
+            expected_keys = {ParamsetKey(p) for p in expected_paramsets}
+
+            if not expected_keys.issubset(cached_keys):
+                missing.append(dev_desc)
+
+        return tuple(missing)
 
     def _identify_new_device_descriptions(
         self, *, device_descriptions: tuple[DeviceDescription, ...], interface_id: str | None = None

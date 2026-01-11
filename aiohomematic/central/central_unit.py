@@ -1016,16 +1016,35 @@ class CentralUnit(
             new_state=new_state,
         )
 
+        # Get the current client state to handle race conditions where events
+        # may be processed out of order (e.g., disconnected event processed after connected event)
+        try:
+            client = self._client_coordinator.get_client(interface_id=interface_id)
+            current_client_state = client.state
+        except AioHomematicException:
+            # Client not found, use event state
+            current_client_state = new_state
+
         # Immediately mark devices as unavailable when client disconnects or fails
+        # Only if the current state is still disconnected/failed (to handle race conditions)
         if new_state in (ClientState.DISCONNECTED, ClientState.FAILED):
-            for device in self._device_registry.devices:
-                if device.interface_id == interface_id:
-                    device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
-            _LOGGER.debug(
-                "CLIENT_STATE_CHANGE: Marked all devices unavailable for %s (state=%s)",
-                interface_id,
-                new_state.value,
-            )
+            if current_client_state in (ClientState.DISCONNECTED, ClientState.FAILED):
+                for device in self._device_registry.devices:
+                    if device.interface_id == interface_id:
+                        device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+                _LOGGER.debug(
+                    "CLIENT_STATE_CHANGE: Marked all devices unavailable for %s (state=%s)",
+                    interface_id,
+                    new_state.value,
+                )
+            else:
+                _LOGGER.debug(
+                    "CLIENT_STATE_CHANGE: Skipped marking devices unavailable for %s "
+                    "(event_state=%s, current_state=%s - already recovered)",
+                    interface_id,
+                    new_state.value,
+                    current_client_state.value,
+                )
 
         # Reset forced availability when client reconnects successfully
         # Include CONNECTING because the sequence is often:

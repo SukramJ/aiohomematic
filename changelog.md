@@ -6,6 +6,8 @@
 
 - **Device availability not reset after CCU restart**: The state transition sequence during reconnect is `reconnecting → disconnected → connecting → connected`. The availability reset only triggered when `old_state` was in `(DISCONNECTED, FAILED, RECONNECTING)`, but the final transition has `old_state=CONNECTING`. Added `CONNECTING` to the list of states that trigger availability reset.
 
+- **Race condition in client state event processing**: Events from the EventBus may be processed out of order (e.g., `disconnected` event processed after `connected` event). Now checks the current client state before marking devices unavailable, preventing incorrect availability changes when the client has already recovered.
+
 ---
 
 # Version 2026.1.29 (2026-01-11)

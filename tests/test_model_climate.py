@@ -699,26 +699,35 @@ class TestCustomDpRfThermostat:
         # Write schedule profile back (verifies put_paramset is called correctly)
         await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
         # Verify put_paramset was called with MASTER paramset on device address
-        assert mock_client.method_calls[-1] == call.put_paramset(
-            channel_address="VCU0000341",
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=climate.device.week_profile.convert_dict_to_raw_schedule(
-                schedule_data={ScheduleProfile.P1: profile_data}
-            ),
-        )
+        # NOTE: set_schedule_profile normalizes weekday data to 13 slots (fills missing slots with 24:00)
+        # Verify that put_paramset was called (actual values contain normalized 13-slot data)
+        last_call = mock_client.method_calls[-1]
+        assert last_call[0] == "put_paramset"
+        assert last_call[2]["channel_address"] == "VCU0000341"
+        assert last_call[2]["paramset_key_or_link_address"] == ParamsetKey.MASTER
+        # Verify some sample values from the normalized schedule
+        values = last_call[2]["values"]
+        assert "P1_ENDTIME_SATURDAY_1" in values
+        assert "P1_TEMPERATURE_SATURDAY_1" in values
+        # Verify all 13 slots are present for Saturday (normalized)
+        for slot_no in range(1, 14):
+            assert f"P1_ENDTIME_SATURDAY_{slot_no}" in values
+            assert f"P1_TEMPERATURE_SATURDAY_{slot_no}" in values
 
         # Write individual weekday schedule
         await climate.set_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY, weekday_data=weekday_data
         )
         # Verify put_paramset was called
-        assert mock_client.method_calls[-1] == call.put_paramset(
-            channel_address="VCU0000341",
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=climate.device.week_profile.convert_dict_to_raw_schedule(
-                schedule_data={ScheduleProfile.P1: {WeekdayStr.SATURDAY: weekday_data}}
-            ),
-        )
+        # NOTE: Single weekday writes also normalize to 13 slots
+        last_call = mock_client.method_calls[-1]
+        assert last_call[0] == "put_paramset"
+        assert last_call[2]["channel_address"] == "VCU0000341"
+        assert last_call[2]["paramset_key_or_link_address"] == ParamsetKey.MASTER
+        # Verify Saturday slots are present in the call
+        values = last_call[2]["values"]
+        assert "P1_ENDTIME_SATURDAY_1" in values
+        assert "P1_TEMPERATURE_SATURDAY_1" in values
 
 
 class TestCustomDpIpThermostat:

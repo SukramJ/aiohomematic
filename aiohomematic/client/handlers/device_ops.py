@@ -894,6 +894,11 @@ class DeviceHandler(
             if pd_type in (ParameterType.INTEGER, ParameterType.FLOAT) and converted_value is not None:
                 pd_min = parameter_data.get("MIN")
                 pd_max = parameter_data.get("MAX")
+                # Some devices (e.g., HM-CC-VG-1) return MIN/MAX as strings instead of numbers
+                if pd_min is not None:
+                    pd_min = float(pd_min) if pd_type == ParameterType.FLOAT else int(pd_min)
+                if pd_max is not None:
+                    pd_max = float(pd_max) if pd_type == ParameterType.FLOAT else int(pd_max)
                 if pd_min is not None and converted_value < pd_min:
                     raise ValidationException(
                         i18n.tr(

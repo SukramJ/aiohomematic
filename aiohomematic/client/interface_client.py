@@ -388,9 +388,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
         """Fetch a specific paramset and add it to the known ones."""
-        if paramset_description := await self._get_paramset_description(
-            address=channel_address, paramset_key=paramset_key
-        ):
+        # Note: paramset_description can be an empty dict {} which is valid
+        # (e.g., HmIP base device MASTER paramsets have no parameters)
+        paramset_description = await self._get_paramset_description(address=channel_address, paramset_key=paramset_key)
+        if paramset_description is not None:
             self._central.cache_coordinator.paramset_descriptions.add(
                 interface_id=self.interface_id,
                 channel_address=channel_address,
@@ -520,13 +521,24 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     async def get_paramset_descriptions(
         self, *, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:
-        """Get paramsets for provided device description."""
+        """
+        Get paramsets for provided device description.
+
+        LINK paramsets are skipped as they are only relevant for device linking
+        and are fetched dynamically when links are configured.
+        """
         paramsets: dict[str, dict[ParamsetKey, dict[str, ParameterData]]] = {}
         address = device_description["ADDRESS"]
         paramsets[address] = {}
         for p_key in device_description["PARAMSETS"]:
-            paramset_key = ParamsetKey(p_key)
-            if paramset_description := await self._get_paramset_description(address=address, paramset_key=paramset_key):
+            # Skip LINK paramsets - they are only relevant for device linking
+            if (paramset_key := ParamsetKey(p_key)) == ParamsetKey.LINK:
+                continue
+            # Note: paramset_description can be an empty dict {} which is valid
+            # (e.g., HmIP base device MASTER paramsets have no parameters)
+            if (
+                paramset_description := await self._get_paramset_description(address=address, paramset_key=paramset_key)
+            ) is not None:
                 paramsets[address][paramset_key] = paramset_description
         return paramsets
 

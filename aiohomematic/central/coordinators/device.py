@@ -927,7 +927,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
 
                 # Fetch missing paramset descriptions
                 _LOGGER.debug(
-                    "ADD_NEW_DEVICES: Fetching missing paramsets for %s devices on interface_id %s",
+                    "ADD_NEW_DEVICES: Fetching missing paramsets for %s device/channel descriptions on interface_id %s",
                     len(devices_missing_paramsets),
                     interface_id,
                 )
@@ -952,7 +952,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 )
                 if still_missing:
                     _LOGGER.warning(  # i18n-log: ignore
-                        "ADD_NEW_DEVICES: %d devices still missing paramsets after fetch on interface_id %s - aborting device creation",
+                        "ADD_NEW_DEVICES: %d device/channel addresses still missing paramsets after fetch on interface_id %s - aborting device creation",
                         len(still_missing),
                         interface_id,
                     )
@@ -1075,9 +1075,13 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 interface_id=interface_id, channel_address=address
             )
 
-            # Check if ALL expected paramsets are present in cache
+            # Check if required paramsets are present in cache
+            # LINK paramsets are excluded because:
+            # - They only exist when device linking is configured
+            # - They are fetched dynamically when links are created
+            # - They are not required for device creation
             cached_keys = set(cached_paramsets.keys())
-            expected_keys = {ParamsetKey(p) for p in expected_paramsets}
+            expected_keys = {ParamsetKey(p) for p in expected_paramsets} - {ParamsetKey.LINK}
 
             if not expected_keys.issubset(cached_keys):
                 missing_keys = expected_keys - cached_keys

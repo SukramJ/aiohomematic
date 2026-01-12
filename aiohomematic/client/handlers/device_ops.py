@@ -210,9 +210,10 @@ class DeviceHandler(
         """
         _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION: %s for %s", paramset_key, channel_address)
 
-        if paramset_description := await self._get_paramset_description(
-            address=channel_address, paramset_key=paramset_key
-        ):
+        # Note: paramset_description can be an empty dict {} which is valid
+        # (e.g., HmIP base device MASTER paramsets have no parameters)
+        paramset_description = await self._get_paramset_description(address=channel_address, paramset_key=paramset_key)
+        if paramset_description is not None:
             self._client_deps.cache_coordinator.paramset_descriptions.add(
                 interface_id=self._interface_id,
                 channel_address=channel_address,
@@ -225,9 +226,9 @@ class DeviceHandler(
         """
         Fetch all paramset descriptions for a device and store in cache.
 
-        Iterates through all available paramsets (VALUES, MASTER, LINK) for the
+        Iterates through all available paramsets (VALUES, MASTER, SERVICE) for the
         device/channel specified in the device_description and adds each to the
-        central's paramset_descriptions cache.
+        central's paramset_descriptions cache. LINK paramsets are skipped.
 
         Note:
             This method does NOT trigger automatic cache persistence. The caller
@@ -380,7 +381,9 @@ class DeviceHandler(
         Return paramset descriptions for a single device/channel.
 
         Iterates through the PARAMSETS field of the device_description to fetch
-        each available paramset (VALUES, MASTER, LINK) from the backend.
+        each available paramset (VALUES, MASTER, SERVICE) from the backend.
+        LINK paramsets are skipped as they are only relevant for device linking
+        and are fetched dynamically when links are configured.
 
         Args:
             device_description: DeviceDescription dict containing ADDRESS and
@@ -396,8 +399,14 @@ class DeviceHandler(
         paramsets[address] = {}
         _LOGGER.debug("GET_PARAMSET_DESCRIPTIONS for %s", address)
         for p_key in device_description["PARAMSETS"]:
-            paramset_key = ParamsetKey(p_key)
-            if paramset_description := await self._get_paramset_description(address=address, paramset_key=paramset_key):
+            # Skip LINK paramsets - they are only relevant for device linking
+            # and are fetched dynamically when links are configured
+            if (paramset_key := ParamsetKey(p_key)) == ParamsetKey.LINK:
+                continue
+            # Note: paramset_description can be an empty dict {} which is valid
+            # (e.g., HmIP base device MASTER paramsets have no parameters)
+            paramset_description = await self._get_paramset_description(address=address, paramset_key=paramset_key)
+            if paramset_description is not None:
                 paramsets[address][paramset_key] = paramset_description
         return paramsets
 

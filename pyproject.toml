@@ -413,7 +413,11 @@ log_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
-filterwarnings = []
+filterwarnings = [
+    # pydevccu's _askDevices thread may try to contact central after it's stopped
+    # This is a known race condition in pydevccu that doesn't affect test results
+    "ignore:Exception in thread _askDevices:pytest.PytestUnhandledThreadExceptionWarning",
+]
 
 [tool.ruff]
 target-version = "py313" # Target Python version for Ruff

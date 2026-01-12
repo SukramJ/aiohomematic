@@ -134,6 +134,9 @@ async def central_unit_pydevccu_mini(pydevccu_mini: pydevccu.Server) -> CentralU
     try:
         yield central
     finally:
+        # Clear pydevccu's remotes BEFORE stopping central to prevent
+        # _askDevices thread from trying to contact stopped XML-RPC server
+        pydevccu_mini._rpcfunctions.remotes.clear()
         await central.stop()
         await central.cache_coordinator.clear_all()
 
@@ -176,6 +179,9 @@ async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralU
     finally:
         unsubscribe_device_trigger_callback()
         unsubscribe_device_lifecycle_callback()
+        # Clear pydevccu's remotes BEFORE stopping central to prevent
+        # _askDevices thread from trying to contact stopped XML-RPC server
+        pydevccu_full._rpcfunctions.remotes.clear()
         await central.stop()
         await central.cache_coordinator.clear_all()
 

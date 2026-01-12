@@ -6,6 +6,12 @@
 
 - **O(N²) performance issue during device creation**: Fixed severe performance regression introduced in 2026.1.31 where `DataFetchCompletedEvent` was published after each individual device's paramset fetch, causing N cache saves for N devices. The event is now published once after the entire batch completes, reducing startup time from ~210 seconds to ~17 seconds for 397 devices (13x improvement).
 
+- **put_paramset fails on HM-CC-VG-1**: Fixed `TypeError: '<' not supported between instances of 'int' and 'str'` when calling `put_paramset` on HM-CC-VG-1. This device returns `MIN`/`MAX` values as strings instead of numbers in paramset descriptions. Now converts these values to the correct numeric type before comparison.
+
+### Changed
+
+- Enable schedule for HM-CC-VG-1
+
 ---
 
 # Version 2026.1.31 (2026-01-12)

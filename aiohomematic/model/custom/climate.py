@@ -1081,6 +1081,7 @@ DeviceProfileRegistry.register(
     models="HM-CC-VG-1",
     data_point_class=CustomDpRfThermostat,
     profile_type=DeviceProfile.RF_THERMOSTAT_GROUP,
+    schedule_channel_no=BIDCOS_DEVICE_CHANNEL_DUMMY,
 )
 
 # IP Thermostat

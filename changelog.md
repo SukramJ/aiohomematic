@@ -1,3 +1,13 @@
+# Version 2026.1.32 (2026-01-12)
+
+## What's Changed
+
+### Fixed
+
+- **O(N²) performance issue during device creation**: Fixed severe performance regression introduced in 2026.1.31 where `DataFetchCompletedEvent` was published after each individual device's paramset fetch, causing N cache saves for N devices. The event is now published once after the entire batch completes, reducing startup time from ~210 seconds to ~17 seconds for 397 devices (13x improvement).
+
+---
+
 # Version 2026.1.31 (2026-01-12)
 
 ## What's Changed

@@ -25,7 +25,13 @@ from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
-from aiohomematic.central.events import DeviceRemovedEvent, IntegrationIssue, SystemStatusChangedEvent
+from aiohomematic.central.events import (
+    DataFetchCompletedEvent,
+    DataFetchOperation,
+    DeviceRemovedEvent,
+    IntegrationIssue,
+    SystemStatusChangedEvent,
+)
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
@@ -929,6 +935,15 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 for dev_desc in devices_missing_paramsets:
                     await client.fetch_paramset_descriptions(device_description=dev_desc)
 
+                # Emit event ONCE after batch to trigger automatic cache persistence
+                await self._event_bus_provider.event_bus.publish(
+                    event=DataFetchCompletedEvent(
+                        timestamp=datetime.now(),
+                        interface_id=interface_id,
+                        operation=DataFetchOperation.FETCH_PARAMSET_DESCRIPTIONS,
+                    )
+                )
+
                 # CRITICAL: Verify all paramsets are now in cache before proceeding
                 # This ensures device creation only starts with complete paramset data
                 still_missing = self._identify_devices_missing_paramsets(
@@ -997,6 +1012,16 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                         type(exc).__name__,
                         extract_exc_args(exc=exc),
                     )
+
+            # Emit event ONCE after batch to trigger automatic cache persistence
+            if save_descriptions:
+                await self._event_bus_provider.event_bus.publish(
+                    event=DataFetchCompletedEvent(
+                        timestamp=datetime.now(),
+                        interface_id=interface_id,
+                        operation=DataFetchOperation.FETCH_PARAMSET_DESCRIPTIONS,
+                    )
+                )
 
             await self._coordinator_provider.cache_coordinator.save_all(
                 save_device_descriptions=save_descriptions,

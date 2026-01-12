@@ -312,6 +312,7 @@ async def get_pydev_ccu_central_unit_full(
         client_session=client_session,
         program_markers=(),
         sysvar_markers=(),
+        start_direct=True,
     ).create_central()
     central.event_bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=device_lifecycle_event_handler)
     await central.start()

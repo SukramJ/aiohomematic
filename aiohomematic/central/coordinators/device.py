@@ -25,13 +25,15 @@ from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
-from aiohomematic.central.events import DeviceRemovedEvent
+from aiohomematic.central.events import DeviceRemovedEvent, IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
     DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
+    IntegrationIssueSeverity,
+    IntegrationIssueType,
     ParamsetKey,
     SourceOfDeviceCreation,
     SystemEventType,
@@ -927,9 +929,39 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 for dev_desc in devices_missing_paramsets:
                     await client.fetch_paramset_descriptions(device_description=dev_desc)
 
-                await self._coordinator_provider.cache_coordinator.save_all(save_paramset_descriptions=True)
+                # CRITICAL: Verify all paramsets are now in cache before proceeding
+                # This ensures device creation only starts with complete paramset data
+                still_missing = self._identify_devices_missing_paramsets(
+                    device_descriptions=devices_missing_paramsets,
+                    interface_id=interface_id,
+                )
+                if still_missing:
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "ADD_NEW_DEVICES: %d devices still missing paramsets after fetch on interface_id %s - aborting device creation",
+                        len(still_missing),
+                        interface_id,
+                    )
+                    # Persist what we have fetched so far
+                    await self._coordinator_provider.cache_coordinator.save_if_changed(save_paramset_descriptions=True)
 
-                # Now check if we can create devices
+                    # Publish integration issue for Home Assistant repair
+                    issue = IntegrationIssue(
+                        issue_type=IntegrationIssueType.INCOMPLETE_DEVICE_DATA,
+                        severity=IntegrationIssueSeverity.ERROR,
+                        interface_id=interface_id,
+                        device_addresses=tuple(desc["ADDRESS"] for desc in still_missing),
+                    )
+                    await self._event_bus_provider.event_bus.publish(
+                        event=SystemStatusChangedEvent(timestamp=datetime.now(), issues=(issue,))
+                    )
+
+                    return
+
+                # All paramsets fetched successfully - persist before device creation
+                # (Event-based auto-save should have already handled this, but we ensure it's complete)
+                await self._coordinator_provider.cache_coordinator.save_if_changed(save_paramset_descriptions=True)
+
+                # Now safe to create devices - all paramsets are guaranteed to be in cache
                 if new_device_addresses := self.check_for_new_device_addresses(interface_id=interface_id):
                     await self._coordinator_provider.cache_coordinator.device_details.load()
                     await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
@@ -1023,6 +1055,15 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             expected_keys = {ParamsetKey(p) for p in expected_paramsets}
 
             if not expected_keys.issubset(cached_keys):
+                missing_keys = expected_keys - cached_keys
+                _LOGGER.debug(
+                    "ADD_NEW_DEVICES: Device %s on interface %s is missing paramsets: %s (expected: %s, cached: %s)",
+                    address,
+                    interface_id,
+                    sorted(str(k) for k in missing_keys),
+                    sorted(str(k) for k in expected_keys),
+                    sorted(str(k) for k in cached_keys),
+                )
                 missing.append(dev_desc)
 
         return tuple(missing)

@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.30"
+VERSION: Final = "2026.1.31"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1271,6 +1271,7 @@ class IntegrationIssueType(StrEnum):
 
     PING_PONG_MISMATCH = "ping_pong_mismatch"
     FETCH_DATA_FAILED = "fetch_data_failed"
+    INCOMPLETE_DEVICE_DATA = "incomplete_device_data"
 
 
 class DataRefreshType(StrEnum):

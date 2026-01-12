@@ -31,6 +31,7 @@ This section provides a quick overview of common symptoms and their most likely 
 | Ping-Pong mismatch / events going to wrong instance    | Multiple HA instances with same `instance_name`, callback registration conflict                                         | [3J](#j-ping-pong-mismatch-multiple-home-assistant-instances)        |
 | Auto-discovery notification keeps appearing            | SSDP serial mismatch, integration created before discovery                                                              | [3K](#k-auto-discovery-keeps-appearing)                              |
 | "Error fetching initial data" warning                  | CCU REGA script returned invalid data, CCU overloaded                                                                   | [3L](#l-error-fetching-initial-data)                                 |
+| "Incomplete device data" repair issue                  | Paramset descriptions missing for devices, CCU data corruption or communication issue                                   | [3M](#m-incomplete-device-data)                                      |
 
 ---
 
@@ -516,6 +517,77 @@ The integration uses optimized REGA scripts to fetch device data in bulk. If thi
 - **Restart the CCU** to clear any stuck REGA processes
 - **Check for problematic devices** in the script output
 - **Post in [Discussions](https://github.com/sukramj/aiohomematic/discussions)** with the script output for help
+
+### M) Incomplete device data
+
+**Symptoms:**
+
+- Home Assistant shows a repair issue: "Incomplete device data"
+- New devices paired with the CCU don't appear in Home Assistant
+- Some devices are missing entities or show incomplete functionality
+- Log messages mention "devices still missing paramsets after fetch"
+
+**Understanding this issue:**
+
+When new devices are discovered, aiohomematic fetches their paramset descriptions from the CCU. These descriptions define the device's parameters, channels, and capabilities. Without them, devices cannot be created in Home Assistant.
+
+This issue occurs when:
+
+1. The CCU reports new devices, but
+2. The paramset descriptions for these devices cannot be fetched, even after multiple attempts
+
+**Possible causes:**
+
+1. **CCU data corruption**: The device data in the CCU's internal database is corrupted
+2. **Communication issues**: Intermittent network problems between Home Assistant and CCU
+3. **CCU overload**: The CCU is overloaded and cannot respond to paramset queries
+4. **Incomplete pairing**: The device pairing process didn't complete correctly
+5. **CUxD/Add-on issues**: For virtual devices (CUxD), the add-on may have configuration problems
+
+**Diagnostic steps:**
+
+1. **Check the repair issue details**: The repair notification includes the affected device addresses (e.g., `NEQ1234567`, `CUX2800001`)
+2. **Verify devices in CCU WebUI**: Check if the affected devices appear correctly in the CCU's device list
+3. **Check CCU system diagnostics**: Look for high CPU/memory usage or service errors
+4. **Review Home Assistant logs**: Enable debug logging and look for errors related to `fetch_paramsets` or the specific device addresses
+
+**Solutions:**
+
+1. **Restart the CCU**: This often resolves temporary communication or service issues
+   - Restart the CCU from its WebUI or physically
+   - Wait for all services to start completely (this can take several minutes)
+   - Restart the Home Assistant integration
+
+2. **Re-pair the affected devices**:
+   - Remove the device from the CCU
+   - Factory reset the device (refer to device manual)
+   - Re-pair the device with the CCU
+   - Wait for `CONFIG_PENDING` to become `false`
+   - Clear the cache in Home Assistant and restart
+
+3. **Clear the integration cache**:
+   - Use the `homematicip_local.clear_cache` service
+   - Restart Home Assistant
+   - This forces a complete re-fetch of all device data
+
+4. **For CUxD/virtual devices**:
+   - Check the CUxD add-on status in the CCU
+   - Restart the CUxD add-on
+   - Verify the virtual device configuration is complete
+
+5. **Check for CCU firmware issues**:
+   - Ensure the CCU firmware is up to date
+   - Some firmware versions have known issues with paramset queries
+   - Consider updating or rolling back if problems started after a firmware update
+
+**If the problem persists:**
+
+- Download diagnostics from the integration and check for error patterns
+- Post in [Discussions](https://github.com/sukramj/aiohomematic/discussions) with:
+  - The affected device addresses from the repair issue
+  - Device types (model numbers)
+  - CCU type and firmware version
+  - Debug logs showing the fetch attempts
 
 ---
 

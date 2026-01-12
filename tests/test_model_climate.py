@@ -652,6 +652,83 @@ class TestCustomDpRfThermostat:
         climate._dp_week_program_pointer._current_value = 0
         assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_rf_thermostat_schedule_read_write(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test schedule read/write for HM-TC-IT-WM-W-EU (classic Homematic RF thermostat)."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Verify schedule is supported for this device
+        assert climate.device.week_profile is not None
+        assert climate.device.week_profile.has_schedule is True
+        # HM-TC-IT-WM-W-EU uses device address (not channel) for schedule
+        assert climate.device.week_profile.schedule_channel_address == "VCU0000341"
+
+        # Read schedule profile P1 - should return data from session
+        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        assert len(profile_data) == 7  # 7 weekdays
+        assert WeekdayStr.MONDAY in profile_data
+        assert WeekdayStr.SATURDAY in profile_data
+
+        # Read individual weekday schedule
+        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY)
+        # HM-TC-IT-WM-W-EU supports 13 slots per weekday, but only non-redundant entries returned
+        assert len(weekday_data) >= 1
+        # Verify slot structure (should have temperature and endtime)
+        slot_1 = weekday_data.get(1)
+        assert slot_1 is not None
+        assert "temperature" in slot_1
+        assert "endtime" in slot_1
+
+        # Write schedule profile back (verifies put_paramset is called correctly)
+        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
+        # Verify put_paramset was called with MASTER paramset on device address
+        # NOTE: set_schedule_profile normalizes weekday data to 13 slots (fills missing slots with 24:00)
+        # Verify that put_paramset was called (actual values contain normalized 13-slot data)
+        last_call = mock_client.method_calls[-1]
+        assert last_call[0] == "put_paramset"
+        assert last_call[2]["channel_address"] == "VCU0000341"
+        assert last_call[2]["paramset_key_or_link_address"] == ParamsetKey.MASTER
+        # Verify some sample values from the normalized schedule
+        values = last_call[2]["values"]
+        assert "P1_ENDTIME_SATURDAY_1" in values
+        assert "P1_TEMPERATURE_SATURDAY_1" in values
+        # Verify all 13 slots are present for Saturday (normalized)
+        for slot_no in range(1, 14):
+            assert f"P1_ENDTIME_SATURDAY_{slot_no}" in values
+            assert f"P1_TEMPERATURE_SATURDAY_{slot_no}" in values
+
+        # Write individual weekday schedule
+        await climate.set_schedule_weekday(
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY, weekday_data=weekday_data
+        )
+        # Verify put_paramset was called
+        # NOTE: Single weekday writes also normalize to 13 slots
+        last_call = mock_client.method_calls[-1]
+        assert last_call[0] == "put_paramset"
+        assert last_call[2]["channel_address"] == "VCU0000341"
+        assert last_call[2]["paramset_key_or_link_address"] == ParamsetKey.MASTER
+        # Verify Saturday slots are present in the call
+        values = last_call[2]["values"]
+        assert "P1_ENDTIME_SATURDAY_1" in values
+        assert "P1_TEMPERATURE_SATURDAY_1" in values
+
 
 class TestCustomDpIpThermostat:
     """Tests for CustomDpIpThermostat data points."""

@@ -1,3 +1,29 @@
+# Version 2026.1.31 (2026-01-12)
+
+## What's Changed
+
+### Fixed
+
+- **Event-based cache persistence for paramset descriptions**: Implemented automatic cache persistence using `DataFetchCompletedEvent` to prevent race conditions where paramsets were fetched but not saved before shutdown. The `CacheCoordinator` now subscribes to data fetch completion events and automatically persists caches when changes are detected.
+
+- **Paramset completeness validation before device creation**: Added validation after paramset fetch operations to ensure all required paramsets are in cache before starting device creation. If paramsets are still missing after fetch attempts, creation of the new devices in this batch is aborted (existing devices remain unaffected), the partial cache is persisted for diagnostics, and an `INCOMPLETE_DEVICE_DATA` integration issue event is published to allow the Home Assistant integration to create a repair issue.
+
+### Changed
+
+- **DataFetchCompletedEvent operation is now enum-based**: Changed `DataFetchCompletedEvent.operation` from `str` to `DataFetchOperation` enum for type safety. Use `DataFetchOperation.FETCH_PARAMSET_DESCRIPTIONS` or `DataFetchOperation.FETCH_DEVICE_DESCRIPTIONS` instead of string literals.
+
+- **Optimized cache save operations**: Introduced `save_if_changed()` method that only writes to disk when `has_unsaved_changes=True`, avoiding unnecessary disk I/O during shutdown when event-based auto-save has already persisted changes.
+
+- **Improved cache save logging**: Added detailed debug logging for cache save operations showing content keys and sizes to aid in troubleshooting cache-related issues.
+
+### Added
+
+- **Integration issue for incomplete device data**: Added new `IntegrationIssueType.INCOMPLETE_DEVICE_DATA` that is published via `SystemStatusChangedEvent` when devices cannot be created due to missing paramset descriptions after fetch attempts. The issue includes the affected device addresses and can be used by the Home Assistant integration to create repair issues alerting users to potential CCU data corruption or communication problems.
+
+- **Schedule test for HM-TC-IT-WM-W-EU** (#2785): Added test coverage for weekly program schedule operations on RF thermostats.
+
+---
+
 # Version 2026.1.30 (2026-01-11)
 
 ## What's Changed

@@ -21,7 +21,12 @@ from datetime import datetime
 import logging
 from typing import Final
 
-from aiohomematic.central.events import CacheInvalidatedEvent, DeviceRemovedEvent
+from aiohomematic.central.events import (
+    CacheInvalidatedEvent,
+    DataFetchCompletedEvent,
+    DataFetchOperation,
+    DeviceRemovedEvent,
+)
 from aiohomematic.const import (
     FILE_DEVICES,
     FILE_INCIDENTS,
@@ -182,13 +187,24 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
             active=session_recorder_active,
         )
 
-        # Subscribe to device removal events for decoupled cache invalidation
+        # Subscribe to events for decoupled cache management
         self._unsubscribers: list[Callable[[], None]] = []
+
+        # Subscribe to device removal events for cache invalidation
         self._unsubscribers.append(
             event_bus_provider.event_bus.subscribe(
                 event_type=DeviceRemovedEvent,
                 event_key=None,
                 handler=self._on_device_removed,
+            )
+        )
+
+        # Subscribe to data fetch completion events for automatic cache persistence
+        self._unsubscribers.append(
+            event_bus_provider.event_bus.subscribe(
+                event_type=DataFetchCompletedEvent,
+                event_key=None,
+                handler=self._on_data_fetch_completed,
             )
         )
 
@@ -363,6 +379,38 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
         if save_paramset_descriptions:
             await self._paramset_descriptions_registry.save()
 
+    async def save_if_changed(
+        self,
+        *,
+        save_device_descriptions: bool = False,
+        save_paramset_descriptions: bool = False,
+    ) -> None:
+        """
+        Save caches only if they have unsaved changes.
+
+        This is the preferred method for automatic cache persistence,
+        as it avoids unnecessary disk writes.
+
+        Args:
+        ----
+            save_device_descriptions: Whether to check and save device descriptions
+            save_paramset_descriptions: Whether to check and save paramset descriptions
+
+        """
+        if save_device_descriptions and self._device_descriptions_registry.has_unsaved_changes:
+            _LOGGER.debug(
+                "SAVE_IF_CHANGED: Saving device descriptions for %s",
+                self._central_info.name,
+            )
+            await self._device_descriptions_registry.save()
+
+        if save_paramset_descriptions and self._paramset_descriptions_registry.has_unsaved_changes:
+            _LOGGER.debug(
+                "SAVE_IF_CHANGED: Saving paramset descriptions for %s",
+                self._central_info.name,
+            )
+            await self._paramset_descriptions_registry.save()
+
     def set_data_cache_initialization_complete(self) -> None:
         """
         Mark data cache initialization as complete.
@@ -379,6 +427,31 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
         for unsub in self._unsubscribers:
             unsub()
         self._unsubscribers.clear()
+
+    async def _on_data_fetch_completed(self, *, event: DataFetchCompletedEvent) -> None:
+        """
+        Handle DataFetchCompletedEvent for automatic cache persistence.
+
+        This handler is triggered when paramset or device descriptions have been
+        fetched and added to the cache. It automatically persists the cache if
+        changes are detected.
+
+        Args:
+        ----
+            event: The data fetch completed event
+
+        """
+        _LOGGER.debug(
+            "CACHE_COORDINATOR: Received DataFetchCompletedEvent for %s operation=%s",
+            event.interface_id,
+            event.operation,
+        )
+
+        # Save caches if there are unsaved changes
+        if event.operation == DataFetchOperation.FETCH_PARAMSET_DESCRIPTIONS:
+            await self.save_if_changed(save_paramset_descriptions=True)
+        elif event.operation == DataFetchOperation.FETCH_DEVICE_DESCRIPTIONS:
+            await self.save_if_changed(save_device_descriptions=True)
 
     def _on_device_removed(self, *, event: DeviceRemovedEvent) -> None:
         """

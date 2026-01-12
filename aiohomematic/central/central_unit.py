@@ -704,8 +704,17 @@ class CentralUnit(
         save_device_descriptions: bool = False,
         save_paramset_descriptions: bool = False,
     ) -> None:
-        """Save files (internal use - use cache_coordinator for external access)."""
-        await self._cache_coordinator.save_all(
+        """
+        Save files if they have unsaved changes.
+
+        This method uses save_if_changed() to avoid unnecessary disk writes
+        when caches have no unsaved changes. This is particularly important
+        during shutdown or reconnection scenarios where event-based auto-save
+        may have already persisted the changes.
+
+        For internal use only - external code should use cache_coordinator directly.
+        """
+        await self._cache_coordinator.save_if_changed(
             save_device_descriptions=save_device_descriptions,
             save_paramset_descriptions=save_paramset_descriptions,
         )

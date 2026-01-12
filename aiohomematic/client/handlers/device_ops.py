@@ -14,7 +14,12 @@ import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
-from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
+from aiohomematic.central.events import (
+    DataFetchCompletedEvent,
+    DataFetchOperation,
+    IntegrationIssue,
+    SystemStatusChangedEvent,
+)
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.const import (
@@ -229,6 +234,9 @@ class DeviceHandler(
         device/channel specified in the device_description and adds each to the
         central's paramset_descriptions cache.
 
+        After all paramsets are added, emits a DataFetchCompletedEvent to trigger
+        automatic cache persistence.
+
         Args:
             device_description: Device description from listDevices() containing
                 ADDRESS and PARAMSETS fields.
@@ -244,6 +252,15 @@ class DeviceHandler(
                     paramset_key=paramset_key,
                     paramset_description=paramset_description,
                 )
+
+        # Emit event to trigger automatic cache persistence
+        await self._client_deps.event_bus.publish(
+            event=DataFetchCompletedEvent(
+                timestamp=datetime.now(),
+                interface_id=self._interface_id,
+                operation=DataFetchOperation.FETCH_PARAMSET_DESCRIPTIONS,
+            )
+        )
 
     @inspector(re_raise=False)
     async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:

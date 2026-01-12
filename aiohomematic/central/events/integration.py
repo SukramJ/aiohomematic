@@ -113,6 +113,14 @@ class IntegrationIssue:
             interface_id="ccu-BidCos-RF",
         )
 
+        # Creating an incomplete device data issue
+        issue = IntegrationIssue(
+            issue_type=IntegrationIssueType.INCOMPLETE_DEVICE_DATA,
+            severity=IntegrationIssueSeverity.ERROR,
+            interface_id="ccu-CUxD",
+            device_addresses=("CUX2800001", "CUX2800002"),
+        )
+
         # Accessing computed properties for HA integration
         issue.issue_id  # "ping_pong_mismatch_ccu-HmIP-RF"
         issue.translation_key  # "ping_pong_mismatch"
@@ -136,6 +144,9 @@ class IntegrationIssue:
     mismatch_count: int | None = None
     """Mismatch count (only for PING_PONG_MISMATCH issues)."""
 
+    device_addresses: tuple[str, ...] | None = None
+    """Affected device addresses (only for INCOMPLETE_DEVICE_DATA issues)."""
+
     @property
     def issue_id(self) -> str:
         """Generate unique issue ID from type and interface."""
@@ -154,6 +165,9 @@ class IntegrationIssue:
             result["mismatch_type"] = self.mismatch_type.value
         if self.mismatch_count is not None:
             result["mismatch_count"] = str(self.mismatch_count)
+        if self.device_addresses is not None:
+            result["device_count"] = str(len(self.device_addresses))
+            result["device_addresses"] = ", ".join(self.device_addresses)
         return result
 
 

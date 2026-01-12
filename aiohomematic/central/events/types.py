@@ -20,7 +20,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any
 
 from aiohomematic.const import CentralState, CircuitState, ClientState
@@ -30,6 +30,8 @@ __all__ = [
     "CircuitBreakerStateChangedEvent",
     "CircuitBreakerTrippedEvent",
     "ClientStateChangedEvent",
+    "DataFetchCompletedEvent",
+    "DataFetchOperation",
     "Event",
     "EventPriority",
     "HealthRecordedEvent",
@@ -59,6 +61,16 @@ class EventPriority(IntEnum):
 
     CRITICAL = 200
     """Highest priority - runs before all other handlers (e.g., logging, metrics)."""
+
+
+class DataFetchOperation(StrEnum):
+    """Type of data fetch operation that completed."""
+
+    FETCH_DEVICE_DESCRIPTIONS = "fetch_device_descriptions"
+    """Device descriptions were fetched and added to cache."""
+
+    FETCH_PARAMSET_DESCRIPTIONS = "fetch_paramset_descriptions"
+    """Paramset descriptions were fetched and added to cache."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +183,28 @@ class CentralStateChangedEvent(Event):
     def key(self) -> Any:
         """Key identifier for this event."""
         return self.central_name
+
+
+@dataclass(frozen=True, slots=True)
+class DataFetchCompletedEvent(Event):
+    """
+    Data fetch operation completed.
+
+    Key is interface_id.
+
+    Emitted when paramset descriptions or device descriptions have been
+    fetched and added to the cache. This triggers automatic cache persistence
+    if changes were detected.
+    """
+
+    timestamp: datetime
+    interface_id: str
+    operation: DataFetchOperation
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.interface_id
 
 
 @dataclass(frozen=True, slots=True)

@@ -755,6 +755,9 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                         raw_value: float | int = cast(float | int, slot_value)
                         if slot_type == "endtime" and isinstance(slot_value, str):
                             raw_value = _convert_time_str_to_minutes(time_str=slot_value)
+                        elif slot_type == "temperature":
+                            # Ensure temperature is always sent as float (CCU requires float)
+                            raw_value = float(cast(float | int, slot_value))
                         raw_paramset[raw_profile_name] = raw_value
         return raw_paramset
 
@@ -1265,13 +1268,13 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             ):
                 weekday_data[slot_no] = {
                     "endtime": starttime,
-                    "temperature": base_temperature,
+                    "temperature": float(base_temperature),
                 }
                 slot_no += 1
 
             weekday_data[slot_no] = {
                 "endtime": endtime,
-                "temperature": temperature,
+                "temperature": float(temperature),
             }
             previous_endtime = str(endtime)
             slot_no += 1
@@ -1769,7 +1772,7 @@ def _fillup_weekday_data(*, base_temperature: float, weekday_data: ClimateWeekda
         if slot_no not in weekday_data:
             weekday_data[slot_no] = {
                 "endtime": CLIMATE_MAX_SCHEDULER_TIME,
-                "temperature": base_temperature,
+                "temperature": float(base_temperature),
             }
 
     return weekday_data

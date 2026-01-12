@@ -35,6 +35,7 @@ from aiohomematic.model.custom import (
 from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy
 from aiohomematic.model.week_profile import (
+    SimpleWeekdaySchedule,
     _convert_time_str_to_minutes,
     _filter_profile_entries,
     _filter_schedule_entries,
@@ -728,6 +729,81 @@ class TestCustomDpRfThermostat:
         values = last_call[2]["values"]
         assert "P1_ENDTIME_SATURDAY_1" in values
         assert "P1_TEMPERATURE_SATURDAY_1" in values
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_rf_thermostat_simple_schedule_integer_temperature_conversion(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Test that integer temperatures are converted to floats (Issue #2789).
+
+        When users provide temperatures as integers in YAML (e.g., temperature: 17
+        instead of temperature: 17.0), the CCU requires them to be floats.
+        This test verifies the conversion happens correctly.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpRfThermostat = cast(
+            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
+        )
+
+        # Create simple schedule with INTEGER temperatures (as user would in YAML)
+        # Note: We intentionally use integers to test the conversion (mypy: ignore type)
+        simple_weekday_data: SimpleWeekdaySchedule = {  # type: ignore[typeddict-item]
+            "base_temperature": 16,  # Integer
+            "periods": [
+                {"starttime": "05:00", "endtime": "06:00", "temperature": 17},  # Integer
+                {"starttime": "09:00", "endtime": "15:00", "temperature": 17},  # Integer
+                {"starttime": "19:00", "endtime": "22:00", "temperature": 22},  # Integer
+            ],
+        }
+
+        # Write schedule with integer temperatures
+        await climate.set_simple_schedule_weekday(
+            profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY, simple_weekday_data=simple_weekday_data
+        )
+
+        # Verify put_paramset was called
+        last_call = mock_client.method_calls[-1]
+        assert last_call[0] == "put_paramset"
+        assert last_call[2]["channel_address"] == "VCU0000341"
+        assert last_call[2]["paramset_key_or_link_address"] == ParamsetKey.MASTER
+
+        # CRITICAL: Verify ALL temperature values are FLOATS (not integers)
+        values = last_call[2]["values"]
+
+        # Check base temperatures (should be float even though input was integer)
+        assert values["P1_TEMPERATURE_SATURDAY_1"] == 16.0  # Base temp
+        assert isinstance(values["P1_TEMPERATURE_SATURDAY_1"], float)
+
+        # Check period temperatures (should be float even though input was integer)
+        assert values["P1_TEMPERATURE_SATURDAY_2"] == 17.0  # First period
+        assert isinstance(values["P1_TEMPERATURE_SATURDAY_2"], float)
+
+        assert values["P1_TEMPERATURE_SATURDAY_4"] == 17.0  # Second period
+        assert isinstance(values["P1_TEMPERATURE_SATURDAY_4"], float)
+
+        assert values["P1_TEMPERATURE_SATURDAY_6"] == 22.0  # Third period
+        assert isinstance(values["P1_TEMPERATURE_SATURDAY_6"], float)
+
+        # Verify all 13 temperature slots are floats
+        for slot_no in range(1, 14):
+            temp_key = f"P1_TEMPERATURE_SATURDAY_{slot_no}"
+            assert temp_key in values, f"Missing temperature slot {slot_no}"
+            assert isinstance(values[temp_key], float), (
+                f"Temperature slot {slot_no} is not float: {type(values[temp_key])}"
+            )
 
 
 class TestCustomDpIpThermostat:

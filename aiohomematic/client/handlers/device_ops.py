@@ -14,12 +14,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic import i18n
-from aiohomematic.central.events import (
-    DataFetchCompletedEvent,
-    DataFetchOperation,
-    IntegrationIssue,
-    SystemStatusChangedEvent,
-)
+from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.client.handlers.base import BaseHandler
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.const import (
@@ -234,8 +229,10 @@ class DeviceHandler(
         device/channel specified in the device_description and adds each to the
         central's paramset_descriptions cache.
 
-        After all paramsets are added, emits a DataFetchCompletedEvent to trigger
-        automatic cache persistence.
+        Note:
+            This method does NOT trigger automatic cache persistence. The caller
+            is responsible for calling save_if_changed() after batch operations
+            to avoid O(N²) disk I/O when fetching descriptions for many devices.
 
         Args:
             device_description: Device description from listDevices() containing
@@ -252,15 +249,6 @@ class DeviceHandler(
                     paramset_key=paramset_key,
                     paramset_description=paramset_description,
                 )
-
-        # Emit event to trigger automatic cache persistence
-        await self._client_deps.event_bus.publish(
-            event=DataFetchCompletedEvent(
-                timestamp=datetime.now(),
-                interface_id=self._interface_id,
-                operation=DataFetchOperation.FETCH_PARAMSET_DESCRIPTIONS,
-            )
-        )
 
     @inspector(re_raise=False)
     async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
@@ -906,6 +894,11 @@ class DeviceHandler(
             if pd_type in (ParameterType.INTEGER, ParameterType.FLOAT) and converted_value is not None:
                 pd_min = parameter_data.get("MIN")
                 pd_max = parameter_data.get("MAX")
+                # Some devices (e.g., HM-CC-VG-1) return MIN/MAX as strings instead of numbers
+                if pd_min is not None:
+                    pd_min = float(pd_min) if pd_type == ParameterType.FLOAT else int(pd_min)
+                if pd_max is not None:
+                    pd_max = float(pd_max) if pd_type == ParameterType.FLOAT else int(pd_max)
                 if pd_min is not None and converted_value < pd_min:
                     raise ValidationException(
                         i18n.tr(

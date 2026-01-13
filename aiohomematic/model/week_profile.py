@@ -1328,7 +1328,11 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
         for no in sorted(normalized.keys()):
             slot = normalized[no]
-            endtime_str = str(slot["endtime"])
+            # Handle both integer (raw from CCU) and string (formatted) endtime values
+            if isinstance(slot["endtime"], int):
+                endtime_str = _convert_minutes_to_time_str(minutes=slot["endtime"])
+            else:
+                endtime_str = str(slot["endtime"])
             temp = float(slot["temperature"])
 
             # If time decreases from previous, the weekday is invalid

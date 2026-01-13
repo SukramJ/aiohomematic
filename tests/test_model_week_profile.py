@@ -3206,6 +3206,33 @@ class TestWeekProfileHelperMethods:
             # Should return True for devices with schedule support
             assert climate.device.week_profile.has_schedule is True
 
+    def test_identify_base_temperature_with_integer_endtimes(self):
+        """
+        Test identify_base_temperature handles integer endtime values from CCU (fixes #2797).
+
+        The CCU always returns endtime values as integers (minutes since midnight).
+        This test verifies that identify_base_temperature correctly handles this format
+        without raising ValidationException: "Time 360 is invalid".
+        """
+        # Raw schedule data from CCU with integer endtime values (minutes since midnight)
+        weekday_data = {
+            1: {"endtime": 360, "temperature": 18.0},  # 06:00 - base temperature
+            2: {"endtime": 480, "temperature": 21.0},  # 08:00 - comfort temperature
+            3: {"endtime": 1200, "temperature": 18.0},  # 20:00 - back to base
+            4: {"endtime": 1440, "temperature": 18.0},  # 24:00 - end of day
+        }
+
+        # Should handle integer endtime values without raising ValidationException
+        base_temp = identify_base_temperature(weekday_data=weekday_data)
+
+        # Base temperature should be 18.0 (most minutes used):
+        # Slot 1: 00:00-06:00 = 360 min at 18.0°C
+        # Slot 2: 06:00-08:00 = 120 min at 21.0°C
+        # Slot 3: 08:00-20:00 = 720 min at 18.0°C
+        # Slot 4: 20:00-24:00 = 240 min at 18.0°C
+        # Total: 18.0°C = 1320 min, 21.0°C = 120 min
+        assert base_temp == 18.0
+
     @pytest.mark.parametrize(
         (
             "address_device_translation",

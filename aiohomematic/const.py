@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.34"
+VERSION: Final = "2026.1.35"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -2108,15 +2108,18 @@ class ScheduleSlot(TypedDict):
     Climate devices use 13 slots per weekday, with unused slots filled with "24:00".
 
     Attributes:
-        endtime: End time in "HH:MM" format (e.g., "06:00", "24:00")
+        endtime: End time as string in "HH:MM" format (e.g., "06:00", "24:00")
+                 or as integer minutes since midnight (e.g., 360 for "06:00").
+                 The CCU always returns integers, but internal conversion may use strings.
         temperature: Target temperature in degrees Celsius
 
     Example:
         {"endtime": "06:00", "temperature": 18.0}
+        {"endtime": 360, "temperature": 18.0}
 
     """
 
-    endtime: str
+    endtime: str | int
     temperature: float
 
 

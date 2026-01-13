@@ -1719,7 +1719,11 @@ def identify_base_temperature(*, weekday_data: ClimateWeekdaySchedule) -> float:
     # Iterate through slots in order
     for slot_no in sorted(weekday_data.keys()):
         slot = weekday_data[slot_no]
-        endtime_minutes = _convert_time_str_to_minutes(time_str=str(slot["endtime"]))
+        # Handle both integer (raw from CCU) and string (formatted) endtime values
+        if isinstance(slot["endtime"], int):
+            endtime_minutes = slot["endtime"]
+        else:
+            endtime_minutes = _convert_time_str_to_minutes(time_str=str(slot["endtime"]))
         temperature = float(slot["temperature"])
 
         # Calculate duration for this slot (from previous endtime to current endtime)

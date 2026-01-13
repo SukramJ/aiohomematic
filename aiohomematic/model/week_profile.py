@@ -809,15 +809,11 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             if _slot_no not in schedule_data[_profile][_weekday]:
                 schedule_data[_profile][_weekday][_slot_no] = {}
 
-            # Convert ENDTIME from minutes to time string if needed
-            # Handle both int (normal) and str (some devices like HM-CC-VG-1)
+            # Convert ENDTIME from minutes (int) to time string format
+            # With convert_from_pd=True, ENDTIME is always int from client layer
             final_value: str | float = slot_value
-            if _slot_type == "endtime":
-                if isinstance(slot_value, int):
-                    final_value = _convert_minutes_to_time_str(minutes=slot_value)
-                elif str(slot_value).isdigit():
-                    # Some devices return ENDTIME as string "360" instead of int 360
-                    final_value = _convert_minutes_to_time_str(minutes=int(slot_value))
+            if _slot_type == "endtime" and isinstance(slot_value, int):
+                final_value = _convert_minutes_to_time_str(minutes=slot_value)
 
             schedule_data[_profile][_weekday][_slot_no][_slot_type] = final_value
 
@@ -1335,11 +1331,8 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
         for no in sorted(normalized.keys()):
             slot = normalized[no]
-            # Handle both integer (raw from CCU) and string (formatted) endtime values
-            if isinstance(slot["endtime"], int):
-                endtime_str = _convert_minutes_to_time_str(minutes=slot["endtime"])
-            else:
-                endtime_str = str(slot["endtime"])
+            # ENDTIME is always string format "HH:MM" from cache (converted in convert_raw_to_dict_schedule)
+            endtime_str = str(slot["endtime"])
             temp = float(slot["temperature"])
 
             # If time decreases from previous, the weekday is invalid
@@ -1730,11 +1723,8 @@ def identify_base_temperature(*, weekday_data: ClimateWeekdaySchedule) -> float:
     # Iterate through slots in order
     for slot_no in sorted(weekday_data.keys()):
         slot = weekday_data[slot_no]
-        # Handle both integer (raw from CCU) and string (formatted) endtime values
-        if isinstance(slot["endtime"], int):
-            endtime_minutes = slot["endtime"]
-        else:
-            endtime_minutes = _convert_time_str_to_minutes(time_str=str(slot["endtime"]))
+        # ENDTIME is always string format "HH:MM" from cache (converted in convert_raw_to_dict_schedule)
+        endtime_minutes = _convert_time_str_to_minutes(time_str=str(slot["endtime"]))
         temperature = float(slot["temperature"])
 
         # Calculate duration for this slot (from previous endtime to current endtime)

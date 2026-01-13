@@ -11,8 +11,19 @@
 - **WeekProfile now uses automatic type conversion**: Both `ClimateWeekProfile` and `DefaultWeekProfile` now call `get_paramset()` with `convert_from_pd=True` in their `_get_raw_schedule()` methods. This ensures ENDTIME values are returned as integers and TEMPERATURE values as floats directly from the client layer, eliminating the need for manual type handling in schedule parsing code. This is particularly important for HM-CC-VG-1 virtual heating groups where the CCU returns values as strings.
 
 - **Renamed write conversion methods for consistency**: Renamed `_convert_value()` to `_convert_write_value()` in InterfaceClient and DeviceHandler to clearly distinguish write operations from the new read conversion methods. The naming now follows a consistent pattern:
+
   - Read: `_convert_read_value()`, `_check_get_paramset()`
   - Write: `_convert_write_value()`, `_check_put_paramset()`
+
+- **Simplified type handling in week_profile.py**: Removed redundant string-to-int fallback code in `ClimateWeekProfile.convert_raw_to_dict_schedule()`, `identify_base_temperature()`, and `_validate_and_convert_weekday_to_simple()`. With `convert_from_pd=True`, ENDTIME values are now always integers from the client layer, eliminating the need for manual string detection and conversion.
+
+### Tests
+
+- **New tests for convert_from_pd functionality**: Added `TestClientConvertFromPd` test class with 4 tests covering the HM-CC-VG-1 string-to-int conversion scenario:
+  - `test_get_paramset_converts_string_to_int`: Verifies ENDTIME "360" → 360 and TEMPERATURE "17.5" → 17.5
+  - `test_get_value_converts_string_to_int`: Verifies single value conversion
+  - `test_convert_from_pd_preserves_correct_types`: Verifies already-correct types remain unchanged
+  - `test_convert_from_pd_unknown_parameter_unchanged`: Verifies unknown parameters pass through unchanged
 
 ---
 

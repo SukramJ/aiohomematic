@@ -961,6 +961,115 @@ await central.stop()
 - **Dynamic**: CentralDataCache, CommandCache, PingPongTracker (memory)
 - **Visibility**: ParameterVisibilityRegistry (filtering rules)
 
+### Schedule Cache Management
+
+Schedule data for climate devices (thermostats) is managed through a **pessimistic cache update** strategy to ensure consistency between the local cache and the CCU state.
+
+#### Cache Update Flow
+
+```
+1. User calls set_schedule_*() method
+   ↓
+2. Data sent to CCU via put_paramset (NO local cache update)
+   ↓
+3. CCU processes and stores the data
+   ↓
+4. CCU sends CONFIG_PENDING = False event
+   ↓
+5. reload_and_cache_schedule() fetches data from CCU
+   ↓
+6. Cache updated with CCU-confirmed data
+   ↓
+7. data_point_updated event published
+```
+
+#### Key Characteristics
+
+**Pessimistic Update Strategy:**
+
+- Cache is **NOT** updated optimistically during `set_schedule()`, `set_profile()`, or `set_weekday()`
+- Cache is **ONLY** updated after receiving CONFIG_PENDING = False from CCU
+- This ensures cache always reflects the actual CCU state
+
+**Why Pessimistic?**
+
+- ✅ Cache consistency: Cache always matches CCU state
+- ✅ Error handling: If `put_paramset` fails, cache remains correct
+- ✅ CCU modifications: Any CCU-side validation/rounding is captured
+- ✅ No race conditions: Single source of truth (CCU)
+- ⚠️ Slightly delayed feedback: ~0.5-2 seconds for CONFIG_PENDING
+
+**Cache Still Essential:**
+
+- Performance: Avoids RPC call on every `get_schedule()` read
+- Event optimization: Only publishes events when data actually changes
+- UI efficiency: Climate Schedule Card benefits from cached data
+
+#### Implementation Details
+
+```python
+# In aiohomematic/model/week_profile.py
+
+async def set_schedule(self, *, schedule_data: ClimateScheduleDict) -> None:
+    """
+    Set the complete schedule dictionary to device.
+
+    Note:
+        The cache is NOT updated optimistically. The cache will be refreshed
+        from CCU when CONFIG_PENDING = False is received, ensuring consistency
+        between cache and CCU state.
+    """
+    sca = self._validate_and_get_schedule_channel_address()
+
+    # Write to device - cache will be updated via CONFIG_PENDING event
+    await self._client.put_paramset(
+        channel_address=sca,
+        paramset_key_or_link_address=ParamsetKey.MASTER,
+        values=self.convert_dict_to_raw_schedule(schedule_data=schedule_data),
+    )
+
+async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
+    """Reload schedules from CCU and update cache, publish events if changed."""
+    new_schedule = await self._get_schedule_profile()
+    old_schedule = self._schedule_cache
+
+    # Update cache with CCU data
+    self._schedule_cache = new_schedule
+
+    # Only publish event if data actually changed
+    if old_schedule != new_schedule:
+        self._data_point.publish_data_point_updated_event()
+```
+
+#### Integration with Home Assistant Climate Schedule Card
+
+The Climate Schedule Card (TypeScript UI component) is designed to work perfectly with pessimistic cache updates:
+
+1. **Loading State**: Card shows loading indicator (10s timeout)
+2. **Optimistic UI Update**: Card updates its own state immediately for instant feedback
+3. **Backend Refresh**: Card calls `_updateFromEntity()` to refresh from backend
+4. **Cache Benefits**: When refresh happens, cache provides fast response
+
+**Timeline:**
+
+```
+T=0ms:    User clicks "Save" in UI
+T=10ms:   Card shows loading state
+T=15ms:   set_schedule() called, put_paramset sent to CCU
+T=20ms:   Card makes optimistic UI update (instant feedback)
+T=500ms:  CCU sends CONFIG_PENDING = False
+T=510ms:  reload_and_cache_schedule() updates cache
+T=520ms:  data_point_updated event published
+T=530ms:  Card's _updateFromEntity() retrieves cached data
+T=540ms:  Card displays confirmed data, loading cleared
+```
+
+**For Manual Service Calls:**
+
+- Automations/scripts should wait for data_point_updated event before reading schedule
+- Alternatively, use `reload_and_cache_schedule(force=True)` to explicitly refresh
+- Cache ensures consistent reads without repeated RPC calls
+
 ### Design Patterns Used
 
 #### 1. Factory Pattern

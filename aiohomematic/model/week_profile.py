@@ -659,14 +659,18 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
 
     @inspector
     async def set_schedule(self, *, schedule_data: DEFAULT_SCHEDULE_DICT) -> None:
-        """Persist the provided raw schedule dictionary."""
+        """
+        Persist the provided raw schedule dictionary.
+
+        Note:
+            The cache is NOT updated optimistically. The cache will be refreshed
+            from CCU when CONFIG_PENDING = False is received, ensuring consistency
+            between cache and CCU state.
+
+        """
         sca = self._validate_and_get_schedule_channel_address()
 
-        old_schedule = self._schedule_cache
-        self._schedule_cache.update(schedule_data)
-        if old_schedule != self._schedule_cache:
-            self._data_point.publish_data_point_updated_event()
-
+        # Write to device - cache will be updated via CONFIG_PENDING event
         await self._client.put_paramset(
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
@@ -1033,16 +1037,18 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
     @inspector
     async def set_schedule(self, *, schedule_data: ClimateScheduleDict) -> None:
-        """Set the complete schedule dictionary to device."""
+        """
+        Set the complete schedule dictionary to device.
+
+        Note:
+            The cache is NOT updated optimistically. The cache will be refreshed
+            from CCU when CONFIG_PENDING = False is received, ensuring consistency
+            between cache and CCU state.
+
+        """
         sca = self._validate_and_get_schedule_channel_address()
 
-        # Update cache and publish event
-        old_schedule = self._schedule_cache
-        self._schedule_cache.update(schedule_data)
-        if old_schedule != self._schedule_cache:
-            self._data_point.publish_data_point_updated_event()
-
-        # Write to device
+        # Write to device - cache will be updated via CONFIG_PENDING event
         await self._client.put_paramset(
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
@@ -1088,19 +1094,22 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         weekday_data: ClimateWeekdaySchedule,
         do_validate: bool = True,
     ) -> None:
-        """Store a profile to device."""
+        """
+        Store a profile to device.
+
+        Note:
+            The cache is NOT updated optimistically. The cache will be refreshed
+            from CCU when CONFIG_PENDING = False is received, ensuring consistency
+            between cache and CCU state.
+
+        """
         # Normalize weekday_data: convert string keys to int and sort by ENDTIME
         weekday_data = _normalize_weekday_data(weekday_data=weekday_data)
 
         if do_validate:
             self._validate_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
-        if weekday_data != self._schedule_cache.get(profile, {}).get(weekday, {}):
-            if profile not in self._schedule_cache:
-                self._schedule_cache[profile] = {}
-            self._schedule_cache[profile][weekday] = weekday_data
-            self._data_point.publish_data_point_updated_event()
-
+        # Write to device - cache will be updated via CONFIG_PENDING event
         sca = self._validate_and_get_schedule_channel_address()
         await self._client.put_paramset(
             channel_address=sca,
@@ -1141,7 +1150,15 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         profile_data: ClimateProfileSchedule,
         do_validate: bool,
     ) -> None:
-        """Set a profile to device."""
+        """
+        Set a profile to device.
+
+        Note:
+            The cache is NOT updated optimistically. The cache will be refreshed
+            from CCU when CONFIG_PENDING = False is received, ensuring consistency
+            between cache and CCU state.
+
+        """
         # Normalize weekday_data: convert string keys to int and sort by ENDTIME
         profile_data = {
             weekday: _normalize_weekday_data(weekday_data=weekday_data)
@@ -1149,10 +1166,8 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         }
         if do_validate:
             self._validate_profile(profile=profile, profile_data=profile_data)
-        if profile_data != self._schedule_cache.get(profile, {}):
-            self._schedule_cache[profile] = profile_data
-            self._data_point.publish_data_point_updated_event()
 
+        # Write to device - cache will be updated via CONFIG_PENDING event
         await self._client.put_paramset(
             channel_address=target_channel_address,
             paramset_key_or_link_address=ParamsetKey.MASTER,

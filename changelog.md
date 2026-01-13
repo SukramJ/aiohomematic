@@ -10,11 +10,15 @@
 
 ### Changed
 
+- **Schedule cache now uses pessimistic update strategy**: Climate schedule cache (`ClimateWeekProfile` and `DefaultWeekProfile`) is no longer updated optimistically when calling `set_schedule()`, `set_profile()`, or `set_weekday()`. The cache is now updated only after receiving `CONFIG_PENDING = False` from the CCU via `reload_and_cache_schedule()`. This ensures the cache always reflects the actual CCU state, eliminating race conditions and inconsistencies. The cache remains essential for performance (avoiding RPC calls on reads) and event optimization (publishing events only when data changes). UI components like the Climate Schedule Card work seamlessly with this approach due to their built-in loading states and optimistic local updates.
+
 - **Enhanced schedule temperature tests**: Extended tests for `set_simple_schedule_weekday` and `set_simple_schedule_profile` to verify correct behavior when integer temperatures are provided. Tests now explicitly verify that integer-to-float conversion happens in `_convert_value` (inside `put_paramset`) based on paramset descriptions, rather than in `week_profile.py`. This ensures type conversion follows the established pattern where the client layer handles all type conversions based on CCU parameter definitions.
 
 ### Documentation
 
-- **CLAUDE.md**: Added comprehensive section on "Integration with Homematic(IP) Local" explaining MQTT-based event flow for CUxD/CCU-Jack, capability-based callback health checks, and debugging guidance for MQTT integration issues.
+- **CLAUDE.md - Schedule Cache Management**: Added comprehensive section documenting the pessimistic schedule cache update strategy, including cache update flow diagram, implementation details, and integration guidelines for Home Assistant Climate Schedule Card. Includes timeline diagrams showing the ~0.5-2 second delay between `set_schedule()` calls and cache updates via `CONFIG_PENDING`.
+
+- **CLAUDE.md - Homematic(IP) Local Integration**: Added comprehensive section on "Integration with Homematic(IP) Local" explaining MQTT-based event flow for CUxD/CCU-Jack, capability-based callback health checks, and debugging guidance for MQTT integration issues.
 
 ---
 

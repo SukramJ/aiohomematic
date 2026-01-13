@@ -1,3 +1,15 @@
+# Version 2026.1.35 (2026-01-13)
+
+## What's Changed
+
+### Fixed
+
+- **Schedule validation error on device initialization**: Fixed `ValidationException: Time 360 is invalid` error occurring when heating group devices (VirtualDevices interface) are initialized. The `identify_base_temperature()` function in `week_profile.py` incorrectly assumed all endtime values in the schedule cache are formatted strings ("06:00"), but during initial cache loading they can be raw integers (360 minutes) directly from the CCU. The function now handles both integer and string formats by checking the type before conversion. This fixes climate entity creation failures and recurring errors on Home Assistant startup. (Fixes #2797)
+
+- **Type safety for ScheduleSlot**: Updated `ScheduleSlot` TypedDict to correctly declare `endtime: str | int` instead of `endtime: str`. This reflects the actual behavior where the CCU always returns integers (minutes since midnight) while internal conversion may use string format. Fixes mypy type checking errors in `week_profile.py`.
+
+---
+
 # Version 2026.1.34 (2026-01-13)
 
 ## What's Changed

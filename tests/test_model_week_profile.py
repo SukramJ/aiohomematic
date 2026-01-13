@@ -2338,13 +2338,13 @@ class TestComplexScheduleScenarios:
 
         # Set and verify
         await climate.set_simple_schedule_weekday(
-            profile=ScheduleProfile.P6,
+            profile=ScheduleProfile.P3,
             weekday=WeekdayStr.WEDNESDAY,
             simple_weekday_data=simple_weekday_data,
         )
 
         # Verify it was set correctly
-        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P6, weekday=WeekdayStr.WEDNESDAY)
+        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P3, weekday=WeekdayStr.WEDNESDAY)
         assert len(weekday_data) >= 6  # Should have at least the periods we set
 
 
@@ -2432,7 +2432,7 @@ class TestEdgeCasesAndErrorPaths:
         if climate.device.week_profile:
             climate.device.week_profile._schedule_cache = {}
 
-        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P6)
+        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P3)
         # Should return empty or valid dict
         assert isinstance(profile_data, dict)
 
@@ -2458,7 +2458,7 @@ class TestEdgeCasesAndErrorPaths:
         if climate.device.week_profile:
             climate.device.week_profile._schedule_cache = {}
 
-        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P6, weekday=WeekdayStr.SUNDAY)
+        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P3, weekday=WeekdayStr.SUNDAY)
         # Should return empty dict
         assert isinstance(weekday_data, dict)
 
@@ -2488,13 +2488,13 @@ class TestEdgeCasesAndErrorPaths:
 
         # Set for a profile (P6)
         await climate.set_schedule_weekday(
-            profile=ScheduleProfile.P6, weekday=WeekdayStr.SATURDAY, weekday_data=weekday_data
+            profile=ScheduleProfile.P3, weekday=WeekdayStr.SATURDAY, weekday_data=weekday_data
         )
 
         # Verify it was created
         if climate.device.week_profile:
-            assert ScheduleProfile.P6 in climate.device.week_profile._schedule_cache
-            assert WeekdayStr.SATURDAY in climate.device.week_profile._schedule_cache[ScheduleProfile.P6]
+            assert ScheduleProfile.P3 in climate.device.week_profile._schedule_cache
+            assert WeekdayStr.SATURDAY in climate.device.week_profile._schedule_cache[ScheduleProfile.P3]
 
 
 class TestInverseScheduleConverters:

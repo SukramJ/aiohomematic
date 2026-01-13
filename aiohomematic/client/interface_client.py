@@ -760,6 +760,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         if not self._backend.capabilities.push_updates:
             return True
 
+        # For interfaces without ping/pong (CUxD, CCU-Jack via MQTT), skip callback_warn check
+        # These interfaces are event-driven via Homematic(IP) Local but don't support ping/pong
+        if not self._backend.capabilities.ping_pong:
+            return True
+
         callback_warn = self._central.config.timeout_config.callback_warn_interval
         return (datetime.now() - self.modified_at).total_seconds() < callback_warn
 
@@ -1126,8 +1131,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             parameter=parameter,
         ):
             pd_type = parameter_data["TYPE"]
+            pd_op = int(parameter_data["OPERATIONS"])
             op_mask = int(operation)
-            if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
+            # Some MASTER parameter_data have operations set to 0, so these can not be used for validation
+            if pd_op > 0 and ((pd_op & op_mask) != op_mask):
                 raise ClientException(
                     i18n.tr(
                         key="exception.client.parameter.operation_unsupported",

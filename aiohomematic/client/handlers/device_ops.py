@@ -886,8 +886,10 @@ class DeviceHandler(
             parameter=parameter,
         ):
             pd_type = parameter_data["TYPE"]
+            pd_op = int(parameter_data["OPERATIONS"])
             op_mask = int(operation)
-            if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
+            # Some MASTER parameter_data have operations set to 0, so these can not be used for validation
+            if pd_op > 0 and ((pd_op & op_mask) != op_mask):
                 raise ClientException(
                     i18n.tr(
                         key="exception.client.parameter.operation_unsupported",
@@ -895,6 +897,8 @@ class DeviceHandler(
                         operation=operation.value,
                     )
                 )
+
+            # Convert value to correct type
             # Only build a tuple if a value list exists
             pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
             converted_value = convert_value(value=value, target_type=pd_type, value_list=pd_value_list)

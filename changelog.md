@@ -15,7 +15,7 @@
   - Read: `_convert_read_value()`, `_check_get_paramset()`
   - Write: `_convert_write_value()`, `_check_put_paramset()`
 
-- **Simplified type handling in week_profile.py**: Removed redundant string-to-int fallback code in `ClimateWeekProfile.convert_raw_to_dict_schedule()`, `identify_base_temperature()`, and `_validate_and_convert_weekday_to_simple()`. With `convert_from_pd=True`, ENDTIME values are now always integers from the client layer, eliminating the need for manual string detection and conversion.
+- **Simplified type handling in week_profile.py**: Removed redundant string fallback code in `ClimateWeekProfile.convert_raw_to_dict_schedule()`. With `convert_from_pd=True`, ENDTIME values are now always integers from the client layer. Helper functions `identify_base_temperature()` and `_validate_and_convert_weekday_to_simple()` retain int/string dual support since they may receive raw CCU data directly.
 
 ### Tests
 

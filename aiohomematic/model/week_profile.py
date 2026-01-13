@@ -1331,8 +1331,9 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
         for no in sorted(normalized.keys()):
             slot = normalized[no]
-            # ENDTIME is always string format "HH:MM" from cache (converted in convert_raw_to_dict_schedule)
-            endtime_str = str(slot["endtime"])
+            # Handle both int (raw from CCU) and string (from cache) endtime formats
+            endtime = slot["endtime"]
+            endtime_str = _convert_minutes_to_time_str(minutes=endtime) if isinstance(endtime, int) else str(endtime)
             temp = float(slot["temperature"])
 
             # If time decreases from previous, the weekday is invalid
@@ -1723,8 +1724,9 @@ def identify_base_temperature(*, weekday_data: ClimateWeekdaySchedule) -> float:
     # Iterate through slots in order
     for slot_no in sorted(weekday_data.keys()):
         slot = weekday_data[slot_no]
-        # ENDTIME is always string format "HH:MM" from cache (converted in convert_raw_to_dict_schedule)
-        endtime_minutes = _convert_time_str_to_minutes(time_str=str(slot["endtime"]))
+        # Handle both int (raw from CCU) and string (from cache) endtime formats
+        endtime = slot["endtime"]
+        endtime_minutes = endtime if isinstance(endtime, int) else _convert_time_str_to_minutes(time_str=str(endtime))
         temperature = float(slot["temperature"])
 
         # Calculate duration for this slot (from previous endtime to current endtime)

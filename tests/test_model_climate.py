@@ -2348,32 +2348,28 @@ class TestScheduleNormalization:
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=normalized_input
         )
 
-        # Verify normalization worked correctly
-        cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
+        # Note: With pessimistic cache updates, the cache won't contain the written data.
+        # Instead, we verify that put_paramset was called with normalized/sorted data.
 
-        # All keys should be integers 1-13
-        assert list(cached_data.keys()) == list(range(1, 14))
+        # Verify put_paramset was called
+        assert mock_client.put_paramset.called
 
-        # Verify sorted order
-        expected_order = [
-            ("10:00", 15.0),  # Original slot 1
-            ("11:00", 16.0),  # Original slot 2
-            ("12:00", 22.0),  # Original slot 3
-            ("15:00", 15.0),  # Original slot 4
-            ("18:00", 14.0),  # Original slot 6 (moved before 19:00)
-            ("19:00", 12.0),  # Original slot 5
-            ("24:00", 16.0),  # Original slots 7-13
-            ("24:00", 16.0),
-            ("24:00", 16.0),
-            ("24:00", 16.0),
-            ("24:00", 16.0),
-            ("24:00", 16.0),
-            ("24:00", 16.0),
-        ]
+        # Get the values that were sent to put_paramset
+        call_args = mock_client.put_paramset.call_args
+        sent_values = call_args.kwargs["values"]
 
-        for slot_no, (expected_time, expected_temp) in enumerate(expected_order, start=1):
-            assert cached_data[slot_no]["endtime"] == expected_time
-            assert cached_data[slot_no]["temperature"] == expected_temp
+        # Verify the sent data contains properly sorted entries
+        # The normalization converts to raw format with P1_ENDTIME_MONDAY_X and P1_TEMPERATURE_MONDAY_X
+        # We verify the order is correct by checking the endtimes
+        endtimes = []
+        for slot in range(1, 14):
+            endtime_key = f"P1_ENDTIME_MONDAY_{slot}"
+            if endtime_key in sent_values:
+                endtimes.append(sent_values[endtime_key])
+
+        # Verify endtimes are sorted (converted from HH:MM to minutes)
+        expected_endtimes_minutes = [600, 660, 720, 900, 1080, 1140, 1440, 1440, 1440, 1440, 1440, 1440, 1440]
+        assert endtimes == expected_endtimes_minutes
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -2470,29 +2466,38 @@ class TestScheduleNormalization:
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=unsorted_weekday_data
         )
 
-        # Verify data was sorted correctly in cache
-        cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
+        # Note: With pessimistic cache updates, we verify put_paramset was called with sorted data
+        assert mock_client.put_paramset.called
 
-        # Check that slot numbers are 1-13
-        assert list(cached_data.keys()) == list(range(1, 14))
+        # Get the values that were sent to put_paramset
+        call_args = mock_client.put_paramset.call_args
+        sent_values = call_args.kwargs["values"]
 
-        # Check that times are in ascending order
-        previous_endtime_minutes = 0
-        for slot_no in range(1, 14):
-            endtime_str = cached_data[slot_no]["endtime"]
-            h, m = endtime_str.split(":")
-            endtime_minutes = int(h) * 60 + int(m)
-            assert endtime_minutes >= previous_endtime_minutes, f"Slot {slot_no} has non-ascending ENDTIME"
-            previous_endtime_minutes = endtime_minutes
+        # Verify the sent data has times in ascending order
+        endtimes = []
+        temperatures = []
+        for slot in range(1, 14):
+            endtime_key = f"P1_ENDTIME_MONDAY_{slot}"
+            temp_key = f"P1_TEMPERATURE_MONDAY_{slot}"
+            if endtime_key in sent_values:
+                endtimes.append(sent_values[endtime_key])
+            if temp_key in sent_values:
+                temperatures.append(sent_values[temp_key])
 
-        # Verify specific slot contents after sorting
-        # Original slot 6 (18:00, 14.0) should now be slot 5 (after 15:00, before 19:00)
-        assert cached_data[5]["endtime"] == "18:00"
-        assert cached_data[5]["temperature"] == 14.0
+        # Verify endtimes are in ascending order (minutes since midnight)
+        previous_endtime = 0
+        for slot_no, endtime_minutes in enumerate(endtimes, start=1):
+            assert endtime_minutes >= previous_endtime, f"Slot {slot_no} has non-ascending ENDTIME"
+            previous_endtime = endtime_minutes
 
-        # Original slot 5 (19:00, 12.0) should now be slot 6
-        assert cached_data[6]["endtime"] == "19:00"
-        assert cached_data[6]["temperature"] == 12.0
+        # Verify specific slots after sorting
+        # Slot 5 should be 18:00 (1080 minutes) with temp 14.0 (after 15:00, before 19:00)
+        assert endtimes[4] == 1080  # 18:00 = 18*60 = 1080
+        assert temperatures[4] == 14.0
+
+        # Slot 6 should be 19:00 (1140 minutes) with temp 12.0
+        assert endtimes[5] == 1140  # 19:00 = 19*60 = 1140
+        assert temperatures[5] == 12.0
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -3200,15 +3205,9 @@ class TestClimateSimpleScheduleMethods:
         for slot_no in range(6, 14):
             assert values[f"P1_ENDTIME_MONDAY_{slot_no}"] == 1440
 
-        # Verify data was converted and cached correctly
-        cached_data = climate.device.week_profile._schedule_cache[ScheduleProfile.P1][WeekdayStr.MONDAY]
-        assert len(cached_data) == 13  # Should be normalized to 13 slots
-        # First slot should be base temp until 06:00
-        assert cached_data[1]["endtime"] == "06:00"
-        assert cached_data[1]["temperature"] == 18.0
-        # Second slot should be heated period 06:00-08:00
-        assert cached_data[2]["endtime"] == "08:00"
-        assert cached_data[2]["temperature"] == 21.0
+        # Note: With pessimistic cache updates, the cache won't contain the written data
+        # until CONFIG_PENDING = False is received. The put_paramset call above already
+        # validates that the data was sent correctly to the CCU.
 
         # Verify that _check_put_paramset converts integer values to floats
         # (Only for InterfaceClient which has this method)

@@ -809,9 +809,14 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                 schedule_data[_profile][_weekday][_slot_no] = {}
 
             # Convert ENDTIME from minutes to time string if needed
+            # Handle both int (normal) and str (some devices like HM-CC-VG-1)
             final_value: str | float = slot_value
-            if _slot_type == "endtime" and isinstance(slot_value, int):
-                final_value = _convert_minutes_to_time_str(minutes=slot_value)
+            if _slot_type == "endtime":
+                if isinstance(slot_value, int):
+                    final_value = _convert_minutes_to_time_str(minutes=slot_value)
+                elif str(slot_value).isdigit():
+                    # Some devices return ENDTIME as string "360" instead of int 360
+                    final_value = _convert_minutes_to_time_str(minutes=int(slot_value))
 
             schedule_data[_profile][_weekday][_slot_no][_slot_type] = final_value
 

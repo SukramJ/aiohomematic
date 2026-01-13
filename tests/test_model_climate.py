@@ -793,21 +793,21 @@ class TestCustomDpRfThermostat:
         assert values["P1_TEMPERATURE_SATURDAY_4"] in (17, 17.0)  # Second period
         assert values["P1_TEMPERATURE_SATURDAY_6"] in (22, 22.0)  # Third period
 
-        # Verify that _convert_value would convert integer to float in real implementation
-        if hasattr(mock_client, "_mock_wraps"):
-            from aiohomematic.client.handlers.device_ops import Operations
-
-            real_client = mock_client._mock_wraps
-            # Test that _convert_value converts integer temperature to float
-            converted_value = real_client._device_ops_handler._convert_value(
+        # Verify that _check_put_paramset converts integer values to floats
+        # (Only for InterfaceClient which has this method)
+        client = central.client_coordinator.primary_client
+        assert client is not None
+        real_client = client._mock_wraps if hasattr(client, "_mock_wraps") else client
+        if hasattr(real_client, "_check_put_paramset"):
+            # Test that _check_put_paramset converts integer temperatures to float
+            test_values = {"P1_TEMPERATURE_SATURDAY_1": 16}  # Integer input
+            checked_values = real_client._check_put_paramset(
                 channel_address="VCU0000341",
                 paramset_key=ParamsetKey.MASTER,
-                parameter="P1_TEMPERATURE_SATURDAY_1",
-                value=16,  # Integer input
-                operation=Operations.WRITE,
+                values=test_values,
             )
-            assert isinstance(converted_value, float)
-            assert converted_value == 16.0
+            assert isinstance(checked_values["P1_TEMPERATURE_SATURDAY_1"], float)
+            assert checked_values["P1_TEMPERATURE_SATURDAY_1"] == 16.0
 
         # Verify all 13 temperature slots are present
         # Note: Values may be int or float before _convert_value processes them
@@ -3172,19 +3172,18 @@ class TestClimateSimpleScheduleMethods:
         assert cached_data[2]["endtime"] == "08:00"
         assert cached_data[2]["temperature"] == 21.0
 
-        # Verify that _convert_value would convert integer to float in real implementation
-        # Access the real client through the mock's _mock_wraps attribute
-        if hasattr(mock_client, "_mock_wraps"):
-            from aiohomematic.client.handlers.device_ops import Operations
-
-            real_client = mock_client._mock_wraps
-            # Test that _convert_value converts integer temperature to float
-            converted_value = real_client._device_ops_handler._convert_value(
+        # Verify that _check_put_paramset converts integer values to floats
+        # (Only for InterfaceClient which has this method)
+        client = central.client_coordinator.primary_client
+        assert client is not None
+        real_client = client._mock_wraps if hasattr(client, "_mock_wraps") else client
+        if hasattr(real_client, "_check_put_paramset"):
+            # Test that _check_put_paramset converts integer temperatures to float
+            test_values = {"P1_TEMPERATURE_MONDAY_2": 21}  # Integer input
+            checked_values = real_client._check_put_paramset(
                 channel_address="VCU0000341",
                 paramset_key=ParamsetKey.MASTER,
-                parameter="P1_TEMPERATURE_MONDAY_2",
-                value=21,  # Integer input
-                operation=Operations.WRITE,
+                values=test_values,
             )
-            assert isinstance(converted_value, float)
-            assert converted_value == 21.0
+            assert isinstance(checked_values["P1_TEMPERATURE_MONDAY_2"], float)
+            assert checked_values["P1_TEMPERATURE_MONDAY_2"] == 21.0

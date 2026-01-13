@@ -1,3 +1,13 @@
+# Version 2026.1.36 (2026-01-13)
+
+## What's Changed
+
+### Fixed
+
+- **Schedule validation error for HM-CC-VG-1 heating groups**: Fixed `ValidationException: Time 360 is invalid` error when adding climate entities for virtual heating groups (HM-CC-VG-1). The CCU sometimes returns ENDTIME values as strings ("360") instead of integers (360) in the raw paramset. The `convert_raw_to_dict_schedule()` function in `ClimateWeekProfile` now handles both formats by checking if string values are numeric before conversion. This complements the fix in 2026.1.35 which addressed integer handling in `identify_base_temperature()`.
+
+---
+
 # Version 2026.1.35 (2026-01-13)
 
 ## What's Changed

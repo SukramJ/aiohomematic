@@ -1,3 +1,13 @@
+# Version 2026.1.34 (2026-01-13)
+
+## What's Changed
+
+### Changed
+
+- **Enhanced schedule temperature tests**: Extended tests for `set_simple_schedule_weekday` and `set_simple_schedule_profile` to verify correct behavior when integer temperatures are provided. Tests now explicitly verify that integer-to-float conversion happens in `_convert_value` (inside `put_paramset`) based on paramset descriptions, rather than in `week_profile.py`. This ensures type conversion follows the established pattern where the client layer handles all type conversions based on CCU parameter definitions.
+
+---
+
 # Version 2026.1.33 (2026-01-12)
 
 ## What's Changed

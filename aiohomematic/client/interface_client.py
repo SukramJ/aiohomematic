@@ -1126,8 +1126,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             parameter=parameter,
         ):
             pd_type = parameter_data["TYPE"]
+            pd_op = int(parameter_data["OPERATIONS"])
             op_mask = int(operation)
-            if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
+            # Some MASTER parameter_data have operations set to 0, so these can not be used for validation
+            if pd_op > 0 and ((pd_op & op_mask) != op_mask):
                 raise ClientException(
                     i18n.tr(
                         key="exception.client.parameter.operation_unsupported",

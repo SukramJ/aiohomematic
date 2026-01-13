@@ -1874,3 +1874,206 @@ class TestClientInstallMode:
         assert len(calls) == 1
         # When device_address is provided, mode is not passed (per XML-RPC spec)
         assert calls[0] == (True, 120, "ABC123")
+
+
+class TestClientConvertFromPd:
+    """
+    Test convert_from_pd parameter for get_paramset and get_value.
+
+    These tests verify that string values returned by some devices (like HM-CC-VG-1)
+    are correctly converted to their proper types based on ParameterDescription.
+    """
+
+    @pytest.mark.asyncio
+    async def test_convert_from_pd_preserves_correct_types(self) -> None:
+        """Test that convert_from_pd doesn't change already correct types."""
+        from aiohomematic.const import ParameterType, SystemInformation
+
+        central = _FakeCentral2()
+
+        def get_parameter_data(
+            *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+        ) -> dict[str, Any] | None:
+            if parameter == "ENDTIME":
+                return {"TYPE": ParameterType.INTEGER, "OPERATIONS": 7}
+            if parameter == "TEMPERATURE":
+                return {"TYPE": ParameterType.FLOAT, "OPERATIONS": 7}
+            return None
+
+        central.paramset_descriptions.get_parameter_data = get_parameter_data
+
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.VIRTUAL_DEVICES, port=9292)
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
+
+        # Proxy returns correct types (normal behavior)
+        class _CorrectTypeProxy(_XmlProxy2):
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+                return {
+                    "ENDTIME": 360,  # Already int
+                    "TEMPERATURE": 17.5,  # Already float
+                }
+
+        client._proxy = _CorrectTypeProxy()
+        client._proxy_read = _CorrectTypeProxy()
+        client._system_information = SystemInformation()
+        client._init_handlers()
+
+        result = await client.get_paramset(
+            address="VCU0000001:1",
+            paramset_key=ParamsetKey.MASTER,
+            convert_from_pd=True,
+        )
+
+        # Types should remain correct
+        assert result["ENDTIME"] == 360
+        assert result["TEMPERATURE"] == 17.5
+        assert isinstance(result["ENDTIME"], int)
+        assert isinstance(result["TEMPERATURE"], float)
+
+    @pytest.mark.asyncio
+    async def test_convert_from_pd_unknown_parameter_unchanged(self) -> None:
+        """Test that unknown parameters (not in paramset description) remain unchanged."""
+        from aiohomematic.const import SystemInformation
+
+        central = _FakeCentral2()
+        # paramset_descriptions.get_parameter_data returns None for unknown parameters
+        central.paramset_descriptions.get_parameter_data = lambda **kwargs: None
+
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.VIRTUAL_DEVICES, port=9292)
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
+
+        class _MixedProxy(_XmlProxy2):
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+                return {
+                    "UNKNOWN_PARAM": "some_string_value",
+                    "ANOTHER_UNKNOWN": 12345,
+                }
+
+        client._proxy = _MixedProxy()
+        client._proxy_read = _MixedProxy()
+        client._system_information = SystemInformation()
+        client._init_handlers()
+
+        result = await client.get_paramset(
+            address="VCU0000001:1",
+            paramset_key=ParamsetKey.MASTER,
+            convert_from_pd=True,
+        )
+
+        # Unknown parameters should remain unchanged
+        assert result["UNKNOWN_PARAM"] == "some_string_value"
+        assert result["ANOTHER_UNKNOWN"] == 12345
+
+    @pytest.mark.asyncio
+    async def test_get_paramset_converts_string_to_int(self) -> None:
+        """
+        Test that get_paramset with convert_from_pd=True converts string ENDTIME to int.
+
+        HM-CC-VG-1 heating groups return ENDTIME as "360" (string) instead of 360 (int).
+        """
+        from aiohomematic.const import ParameterType, SystemInformation
+
+        # Create fake central with paramset descriptions
+        central = _FakeCentral2()
+
+        # Mock paramset_descriptions to return INTEGER type for P1_ENDTIME_*
+        def get_parameter_data(
+            *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+        ) -> dict[str, Any] | None:
+            if "ENDTIME" in parameter:
+                return {"TYPE": ParameterType.INTEGER, "OPERATIONS": 7}
+            if "TEMPERATURE" in parameter:
+                return {"TYPE": ParameterType.FLOAT, "OPERATIONS": 7}
+            return None
+
+        central.paramset_descriptions.get_parameter_data = get_parameter_data
+
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.VIRTUAL_DEVICES, port=9292)
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
+
+        # Mock proxy to return string values (simulating HM-CC-VG-1 behavior)
+        class _StringValueProxy(_XmlProxy2):
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+                return {
+                    "P1_ENDTIME_MONDAY_1": "360",  # String instead of int
+                    "P1_ENDTIME_MONDAY_2": "720",  # String instead of int
+                    "P1_TEMPERATURE_MONDAY_1": "17.5",  # String instead of float
+                    "P1_TEMPERATURE_MONDAY_2": "21.0",  # String instead of float
+                }
+
+        client._proxy = _StringValueProxy()
+        client._proxy_read = _StringValueProxy()
+        client._system_information = SystemInformation()
+        client._init_handlers()
+
+        # Test WITHOUT convert_from_pd - values should remain as strings
+        result_raw = await client.get_paramset(
+            address="VCU0000001:1",
+            paramset_key=ParamsetKey.MASTER,
+            convert_from_pd=False,
+        )
+        assert result_raw["P1_ENDTIME_MONDAY_1"] == "360"
+        assert result_raw["P1_TEMPERATURE_MONDAY_1"] == "17.5"
+        assert isinstance(result_raw["P1_ENDTIME_MONDAY_1"], str)
+        assert isinstance(result_raw["P1_TEMPERATURE_MONDAY_1"], str)
+
+        # Test WITH convert_from_pd - values should be converted to proper types
+        result_converted = await client.get_paramset(
+            address="VCU0000001:1",
+            paramset_key=ParamsetKey.MASTER,
+            convert_from_pd=True,
+        )
+        assert result_converted["P1_ENDTIME_MONDAY_1"] == 360
+        assert result_converted["P1_ENDTIME_MONDAY_2"] == 720
+        assert result_converted["P1_TEMPERATURE_MONDAY_1"] == 17.5
+        assert result_converted["P1_TEMPERATURE_MONDAY_2"] == 21.0
+        assert isinstance(result_converted["P1_ENDTIME_MONDAY_1"], int)
+        assert isinstance(result_converted["P1_TEMPERATURE_MONDAY_1"], float)
+
+    @pytest.mark.asyncio
+    async def test_get_value_converts_string_to_int(self) -> None:
+        """Test that get_value with convert_from_pd=True converts string to int."""
+        from aiohomematic.const import ParameterType, SystemInformation
+
+        central = _FakeCentral2()
+
+        def get_parameter_data(
+            *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str
+        ) -> dict[str, Any] | None:
+            if parameter == "P1_ENDTIME_MONDAY_1":
+                return {"TYPE": ParameterType.INTEGER, "OPERATIONS": 7}
+            return None
+
+        central.paramset_descriptions.get_parameter_data = get_parameter_data
+
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.VIRTUAL_DEVICES, port=9292)
+        client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
+
+        class _StringValueProxy(_XmlProxy2):
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+                return {"P1_ENDTIME_MONDAY_1": "360"}
+
+        client._proxy = _StringValueProxy()
+        client._proxy_read = _StringValueProxy()
+        client._system_information = SystemInformation()
+        client._init_handlers()
+
+        # Test WITHOUT convert_from_pd
+        result_raw = await client.get_value(
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.MASTER,
+            parameter="P1_ENDTIME_MONDAY_1",
+            convert_from_pd=False,
+        )
+        assert result_raw == "360"
+        assert isinstance(result_raw, str)
+
+        # Test WITH convert_from_pd
+        result_converted = await client.get_value(
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.MASTER,
+            parameter="P1_ENDTIME_MONDAY_1",
+            convert_from_pd=True,
+        )
+        assert result_converted == 360
+        assert isinstance(result_converted, int)

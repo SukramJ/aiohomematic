@@ -269,6 +269,7 @@ class ParamsetOperationsProtocol(Protocol):
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> dict[str, Any]:
         """Return a paramset from the backend."""
 
@@ -310,6 +311,7 @@ class ValueOperationsProtocol(Protocol):
         paramset_key: ParamsetKey,
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> Any:
         """Return a value from the backend."""
 

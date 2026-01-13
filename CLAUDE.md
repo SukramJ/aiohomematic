@@ -772,6 +772,115 @@ The codebase follows a layered architecture:
    └────────┘ └───────┘ └─────────┘
 ```
 
+### Integration with Homematic(IP) Local (Home Assistant)
+
+**aiohomematic** is designed to work seamlessly with the Home Assistant integration **Homematic(IP) Local**, which acts as a bridge between Home Assistant and the CCU.
+
+#### Standard Event Flow (XML-RPC Callback)
+
+For most interfaces (HmIP-RF, BidCos-RF, BidCos-Wired, VirtualDevices):
+
+1. **CCU** → **XML-RPC Callback** → **aiohomematic RPC Server** → **Event Processing**
+2. aiohomematic runs an XML-RPC server that receives push notifications from the CCU
+3. Connection health is monitored via **Ping/Pong** mechanism
+4. `callback_warn_interval` (180s default) tracks time since last event
+
+#### MQTT-Based Event Flow (CUxD and CCU-Jack)
+
+For **CUxD** and **CCU-Jack** interfaces:
+
+1. **CCU** → **MQTT Broker** → **Homematic(IP) Local** → **aiohomematic (JSON-RPC)**
+2. Events are forwarded via MQTT instead of direct XML-RPC callbacks
+3. **No Ping/Pong support** - these interfaces use JSON-RPC without callback functionality
+4. **Rare event frequency** - CUxD/CCU-Jack devices send updates infrequently
+
+#### Callback Alive Check - Capability-Based Handling
+
+The `is_callback_alive()` method in `aiohomematic/client/ccu.py` and `aiohomematic/client/interface_client.py` performs connection health checks:
+
+```python
+def is_callback_alive(self) -> bool:
+    """Return if XmlRPC-Server is alive based on received events."""
+    if not self._capabilities.ping_pong:
+        return True
+
+    # For interfaces with ping/pong: check if callback_warn_interval exceeded
+    ...
+```
+
+**How CUxD/CCU-Jack Avoid False Reconnects**:
+
+CUxD and CCU-Jack require **two** safeguards because they receive events via MQTT (through Homematic(IP) Local) but lack ping/pong support:
+
+1. **ClientJsonCCU** is used (determined by `INTERFACES_REQUIRING_JSON_RPC_CLIENT`)
+2. **JSON_CCU_CAPABILITIES** has `ping_pong=False` by design
+3. **Homematic(IP) Local override**: Since MQTT provides push updates, the integration may set `interfaces_requiring_periodic_refresh = frozenset()` (empty), causing `push_updates=True` for CUxD/CCU-Jack
+4. **Two methods check callback health**:
+   - `is_callback_alive()`: Returns `True` if `ping_pong=False` ✅
+   - `is_connected()`: **Also** checks `callback_warn` timeout if `push_updates=True` ⚠️
+
+**The Fix**: Both methods now check `if not self._capabilities.ping_pong: return True` to skip callback timeout validation for MQTT-based interfaces, regardless of the `push_updates` setting.
+
+**Key Configuration**:
+
+```python
+# In aiohomematic/const.py
+callback_warn_interval: float = 180  # 3 minutes without events triggers warning
+
+# Interfaces requiring JSON-RPC (no XML-RPC callback support)
+INTERFACES_REQUIRING_JSON_RPC_CLIENT: Final[frozenset[Interface]] = frozenset({
+    Interface.CUXD,
+    Interface.CCU_JACK,
+})
+```
+
+#### Connection Health Monitoring
+
+For standard interfaces with XML-RPC callbacks:
+
+1. **Scheduler** checks connection every 15s (`connection_checker_interval`)
+2. **Callback alive check** monitors last event timestamp
+3. **Ping/Pong** actively validates bidirectional communication
+4. **Recovery flow** triggers on connection loss: TCP check → RPC check → Reconnect
+
+For MQTT-based interfaces (CUxD/CCU-Jack):
+
+1. **Scheduler** checks connection every 15s
+2. **No callback alive check** - always returns `True`
+3. **No Ping/Pong** - not supported
+4. **Recovery flow** only triggers on actual TCP/RPC failures
+
+#### Debugging MQTT Integration Issues
+
+If you encounter reconnect loops or connection warnings for CUxD/CCU-Jack:
+
+1. **Verify client type**: Confirm `ClientJsonCCU` is being used for the interface
+
+   ```python
+   # Check logs for: "Interface Homematic-CCU-CUxD using ClientJsonCCU"
+   ```
+
+2. **Check capabilities**: Verify `ping_pong=False` in the client's capabilities
+
+   ```python
+   # In debug mode, check: client._capabilities.ping_pong == False
+   ```
+
+3. **Inspect logs**: Look for `is_callback_alive` errors or reconnect attempts
+
+   ```bash
+   grep "CONNECTION_RECOVERY.*CUxD\|is_callback_alive.*CUxD" logs/
+   ```
+
+4. **Verify factory logic**: Ensure the interface is in `INTERFACES_REQUIRING_JSON_RPC_CLIENT`
+
+   ```python
+   # In aiohomematic/const.py:
+   INTERFACES_REQUIRING_JSON_RPC_CLIENT = frozenset({Interface.CUXD, Interface.CCU_JACK})
+   ```
+
+5. **Test MQTT flow**: Confirm events from CUxD/CCU-Jack devices arrive via Homematic(IP) Local
+
 ### Key Components
 
 #### 1. Central (aiohomematic/central/)

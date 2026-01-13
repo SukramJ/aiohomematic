@@ -2,9 +2,19 @@
 
 ## What's Changed
 
+### Fixed
+
+- **CUxD/CCU-Jack unnecessary reconnects via MQTT**: Fixed false positive connection loss detection for CUxD and CCU-Jack interfaces when used with Homematic(IP) Local MQTT bridge. These interfaces use JSON-RPC without ping/pong support and receive events via MQTT, causing `callback_warn_interval` checks to incorrectly trigger reconnects every ~4 minutes. Both `is_callback_alive()` and `is_connected()` now check `ping_pong` capability to skip callback timeout validation for MQTT-based interfaces.
+
+- **Syntax error in device_ops.py**: Fixed IndentationError in `_validate_and_convert_value()` method that prevented module import. Restored missing value conversion and MIN/MAX validation code block.
+
 ### Changed
 
 - **Enhanced schedule temperature tests**: Extended tests for `set_simple_schedule_weekday` and `set_simple_schedule_profile` to verify correct behavior when integer temperatures are provided. Tests now explicitly verify that integer-to-float conversion happens in `_convert_value` (inside `put_paramset`) based on paramset descriptions, rather than in `week_profile.py`. This ensures type conversion follows the established pattern where the client layer handles all type conversions based on CCU parameter definitions.
+
+### Documentation
+
+- **CLAUDE.md**: Added comprehensive section on "Integration with Homematic(IP) Local" explaining MQTT-based event flow for CUxD/CCU-Jack, capability-based callback health checks, and debugging guidance for MQTT integration issues.
 
 ---
 

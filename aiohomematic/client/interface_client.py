@@ -760,6 +760,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         if not self._backend.capabilities.push_updates:
             return True
 
+        # For interfaces without ping/pong (CUxD, CCU-Jack via MQTT), skip callback_warn check
+        # These interfaces are event-driven via Homematic(IP) Local but don't support ping/pong
+        if not self._backend.capabilities.ping_pong:
+            return True
+
         callback_warn = self._central.config.timeout_config.callback_warn_interval
         return (datetime.now() - self.modified_at).total_seconds() < callback_warn
 

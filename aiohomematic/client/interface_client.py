@@ -514,9 +514,17 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> dict[str, Any]:
         """Return a paramset from the backend."""
-        return await self._backend.get_paramset(address=address, paramset_key=paramset_key)
+        result = await self._backend.get_paramset(address=address, paramset_key=paramset_key)
+        if convert_from_pd and is_paramset_key(paramset_key=paramset_key):
+            result = self._check_get_paramset(
+                channel_address=address,
+                paramset_key=ParamsetKey(paramset_key),
+                values=result,
+            )
+        return result
 
     async def get_paramset_descriptions(
         self, *, device_description: DeviceDescription
@@ -596,9 +604,18 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         paramset_key: ParamsetKey,
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> Any:
         """Return a value from the backend."""
-        return await self._backend.get_value(address=channel_address, parameter=parameter)
+        value = await self._backend.get_value(address=channel_address, parameter=parameter)
+        if convert_from_pd:
+            value = self._convert_read_value(
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=parameter,
+                value=value,
+            )
+        return value
 
     def get_virtual_remote(self) -> DeviceProtocol | None:
         """Get the virtual remote for the Client."""
@@ -1061,6 +1078,29 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             await self.fetch_paramset_descriptions(device_description=device_description)
             await self._central.save_files(save_paramset_descriptions=True)
 
+    def _check_get_paramset(
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Convert all values in a paramset to their correct types.
+
+        Iterates through each parameter in the values dict, converting types
+        based on the parameter description.
+
+        Returns:
+            Dict with type-converted values.
+
+        """
+        converted_values: dict[str, Any] = {}
+        for param, value in values.items():
+            converted_values[param] = self._convert_read_value(
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=param,
+                value=value,
+            )
+        return converted_values
+
     def _check_put_paramset(
         self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> dict[str, Any]:
@@ -1079,7 +1119,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """
         checked_values: dict[str, Any] = {}
         for param, value in values.items():
-            checked_values[param] = self._convert_value(
+            checked_values[param] = self._convert_write_value(
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 parameter=param,
@@ -1090,7 +1130,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     def _check_set_value(self, *, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any) -> Any:
         """Validate and convert a single value against its parameter description."""
-        return self._convert_value(
+        return self._convert_write_value(
             channel_address=channel_address,
             paramset_key=paramset_key,
             parameter=parameter,
@@ -1098,7 +1138,40 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             operation=Operations.WRITE,
         )
 
-    def _convert_value(
+    def _convert_read_value(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        value: Any,
+    ) -> Any:
+        """
+        Convert a read value to its correct type based on parameter description.
+
+        Unlike _convert_write_value (for writes), this method:
+        - Does NOT validate operations (READ is implicit)
+        - Does NOT validate MIN/MAX bounds (backend already enforced)
+        - Only performs type conversion
+
+        Returns:
+            Converted value matching the parameter's type definition,
+            or original value if parameter not found in description.
+
+        """
+        if parameter_data := self._central.cache_coordinator.paramset_descriptions.get_parameter_data(
+            interface_id=self.interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
+        ):
+            pd_type = parameter_data["TYPE"]
+            pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
+            return convert_value(value=value, target_type=pd_type, value_list=pd_value_list)
+        # Return original value if parameter not in description
+        return value
+
+    def _convert_write_value(
         self,
         *,
         channel_address: str,

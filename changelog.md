@@ -1,3 +1,21 @@
+# Version 2026.1.37 (2026-01-13)
+
+## What's Changed
+
+### Added
+
+- **Type conversion for read operations (`convert_from_pd`)**: Added optional `convert_from_pd: bool = False` parameter to `get_paramset()` and `get_value()` methods across all client implementations (InterfaceClient, ClientCCU, ClientJsonCCU, DeviceHandler). When enabled, values returned from the CCU are automatically converted to their correct types (INTEGER, FLOAT, BOOL, ENUM, STRING) based on the ParameterDescription. This mirrors the existing `check_against_pd` parameter for write operations but without MIN/MAX validation (backend already enforced bounds). New helper methods `_convert_read_value()` and `_check_get_paramset()` handle the conversion logic.
+
+### Changed
+
+- **WeekProfile now uses automatic type conversion**: Both `ClimateWeekProfile` and `DefaultWeekProfile` now call `get_paramset()` with `convert_from_pd=True` in their `_get_raw_schedule()` methods. This ensures ENDTIME values are returned as integers and TEMPERATURE values as floats directly from the client layer, eliminating the need for manual type handling in schedule parsing code. This is particularly important for HM-CC-VG-1 virtual heating groups where the CCU returns values as strings.
+
+- **Renamed write conversion methods for consistency**: Renamed `_convert_value()` to `_convert_write_value()` in InterfaceClient and DeviceHandler to clearly distinguish write operations from the new read conversion methods. The naming now follows a consistent pattern:
+  - Read: `_convert_read_value()`, `_check_get_paramset()`
+  - Write: `_convert_write_value()`, `_check_put_paramset()`
+
+---
+
 # Version 2026.1.36 (2026-01-13)
 
 ## What's Changed

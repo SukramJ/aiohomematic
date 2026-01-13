@@ -348,6 +348,7 @@ class DeviceHandler(
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> dict[str, Any]:
         """
         Return a paramset from the backend.
@@ -362,7 +363,13 @@ class DeviceHandler(
                 paramset_key,
                 call_source,
             )
-            return cast(dict[str, Any], await self._proxy_read.getParamset(address, paramset_key))
+            result = cast(dict[str, Any], await self._proxy_read.getParamset(address, paramset_key))
+            if convert_from_pd and is_paramset_key(paramset_key=paramset_key):
+                result = self._check_get_paramset(
+                    channel_address=address,
+                    paramset_key=ParamsetKey(paramset_key),
+                    values=result,
+                )
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
@@ -372,6 +379,8 @@ class DeviceHandler(
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
+        else:
+            return result
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_paramset_descriptions(
@@ -418,6 +427,7 @@ class DeviceHandler(
         paramset_key: ParamsetKey,
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> Any:
         """
         Return a single parameter value from the backend.
@@ -431,6 +441,7 @@ class DeviceHandler(
             paramset_key: VALUES or MASTER paramset key.
             parameter: Parameter name (e.g., "STATE", "LEVEL").
             call_source: Origin of the call for logging/metrics.
+            convert_from_pd: If True, convert the value to the correct type.
 
         Returns:
             Parameter value (type varies by parameter definition).
@@ -448,9 +459,17 @@ class DeviceHandler(
                 call_source,
             )
             if paramset_key == ParamsetKey.VALUES:
-                return await self._proxy_read.getValue(channel_address, parameter)
-            paramset = await self._proxy_read.getParamset(channel_address, ParamsetKey.MASTER) or {}
-            return paramset.get(parameter)
+                value = await self._proxy_read.getValue(channel_address, parameter)
+            else:
+                paramset = await self._proxy_read.getParamset(channel_address, ParamsetKey.MASTER) or {}
+                value = paramset.get(parameter)
+            if convert_from_pd:
+                value = self._convert_read_value(
+                    channel_address=channel_address,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
+                    value=value,
+                )
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
@@ -461,6 +480,8 @@ class DeviceHandler(
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
+        else:
+            return value
 
     @inspector(re_raise=False, measure_performance=True)
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
@@ -816,6 +837,29 @@ class DeviceHandler(
             return
         await self._client_deps.save_files(save_paramset_descriptions=True)
 
+    def _check_get_paramset(
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Convert all values in a paramset to their correct types.
+
+        Iterates through each parameter in the values dict, converting types
+        based on the parameter description.
+
+        Returns:
+            Dict with type-converted values.
+
+        """
+        converted_values: dict[str, Any] = {}
+        for param, value in values.items():
+            converted_values[param] = self._convert_read_value(
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=param,
+                value=value,
+            )
+        return converted_values
+
     def _check_put_paramset(
         self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
     ) -> dict[str, Any]:
@@ -834,7 +878,7 @@ class DeviceHandler(
         """
         checked_values: dict[str, Any] = {}
         for param, value in values.items():
-            checked_values[param] = self._convert_value(
+            checked_values[param] = self._convert_write_value(
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 parameter=param,
@@ -845,7 +889,7 @@ class DeviceHandler(
 
     def _check_set_value(self, *, channel_address: str, paramset_key: ParamsetKey, parameter: str, value: Any) -> Any:
         """Validate and convert a single value against its parameter description."""
-        return self._convert_value(
+        return self._convert_write_value(
             channel_address=channel_address,
             paramset_key=paramset_key,
             parameter=parameter,
@@ -853,7 +897,40 @@ class DeviceHandler(
             operation=Operations.WRITE,
         )
 
-    def _convert_value(
+    def _convert_read_value(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        value: Any,
+    ) -> Any:
+        """
+        Convert a read value to its correct type based on parameter description.
+
+        Unlike _convert_write_value (for writes), this method:
+        - Does NOT validate operations (READ is implicit)
+        - Does NOT validate MIN/MAX bounds (backend already enforced)
+        - Only performs type conversion
+
+        Returns:
+            Converted value matching the parameter's type definition,
+            or original value if parameter not found in description.
+
+        """
+        if parameter_data := self._client_deps.cache_coordinator.paramset_descriptions.get_parameter_data(
+            interface_id=self._interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
+        ):
+            pd_type = parameter_data["TYPE"]
+            pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
+            return convert_value(value=value, target_type=pd_type, value_list=pd_value_list)
+        # Return original value if parameter not in description
+        return value
+
+    def _convert_write_value(
         self,
         *,
         channel_address: str,

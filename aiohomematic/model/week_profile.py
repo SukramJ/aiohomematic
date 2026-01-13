@@ -686,6 +686,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
             raw_data = await self._client.get_paramset(
                 address=sca,
                 paramset_key=ParamsetKey.MASTER,
+                convert_from_pd=True,
             )
         except ClientException as cex:
             raise ValidationException(
@@ -1130,6 +1131,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             raw_data = await self._client.get_paramset(
                 address=sca,
                 paramset_key=ParamsetKey.MASTER,
+                convert_from_pd=True,
             )
             raw_schedule = {key: value for key, value in raw_data.items() if SCHEDULER_PROFILE_PATTERN.match(key)}
         except ClientException as cex:

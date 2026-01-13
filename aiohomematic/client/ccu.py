@@ -107,6 +107,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import BaseHomematicException, ClientException, NoConnectionException
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
 from aiohomematic.store.types import IncidentSeverity, IncidentType
@@ -116,6 +117,7 @@ from aiohomematic.support import (
     build_xml_rpc_uri,
     extract_exc_args,
     get_device_address,
+    is_paramset_key,
     supports_rx_mode,
 )
 
@@ -496,12 +498,14 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> dict[str, Any]:
         """Return a paramset from the backend."""
         return await self._device_ops_handler.get_paramset(
             address=address,
             paramset_key=paramset_key,
             call_source=call_source,
+            convert_from_pd=convert_from_pd,
         )
 
     async def get_paramset_descriptions(
@@ -558,6 +562,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         paramset_key: ParamsetKey,
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> Any:
         """Return a value from the backend."""
         return await self._device_ops_handler.get_value(
@@ -565,6 +570,7 @@ class ClientCCU(ClientProtocol, LogContextMixin):
             paramset_key=paramset_key,
             parameter=parameter,
             call_source=call_source,
+            convert_from_pd=convert_from_pd,
         )
 
     def get_virtual_remote(self) -> DeviceProtocol | None:
@@ -1254,6 +1260,7 @@ class ClientJsonCCU(ClientCCU):
         address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> dict[str, Any]:
         """Return a paramset from the backend."""
         try:
@@ -1263,12 +1270,18 @@ class ClientJsonCCU(ClientCCU):
                 paramset_key,
                 call_source,
             )
-            return (
+            result = (
                 await self._json_rpc_client.get_paramset(
                     interface=self.interface, address=address, paramset_key=paramset_key
                 )
                 or {}
             )
+            if convert_from_pd and is_paramset_key(paramset_key=paramset_key):
+                result = self._check_get_paramset(
+                    channel_address=address,
+                    paramset_key=ParamsetKey(paramset_key),
+                    values=result,
+                )
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
@@ -1278,6 +1291,8 @@ class ClientJsonCCU(ClientCCU):
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
+        else:
+            return result
 
     @inspector(re_raise=False, no_raise_return={})
     async def get_paramset_descriptions(
@@ -1313,6 +1328,7 @@ class ClientJsonCCU(ClientCCU):
         paramset_key: ParamsetKey,
         parameter: str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
+        convert_from_pd: bool = False,
     ) -> Any:
         """Return a value from the backend."""
         try:
@@ -1324,21 +1340,29 @@ class ClientJsonCCU(ClientCCU):
                 call_source,
             )
             if paramset_key == ParamsetKey.VALUES:
-                return await self._json_rpc_client.get_value(
+                value = await self._json_rpc_client.get_value(
                     interface=self.interface,
                     address=channel_address,
                     paramset_key=paramset_key,
                     parameter=parameter,
                 )
-            paramset = (
-                await self._json_rpc_client.get_paramset(
-                    interface=self.interface,
-                    address=channel_address,
-                    paramset_key=ParamsetKey.MASTER,
+            else:
+                paramset = (
+                    await self._json_rpc_client.get_paramset(
+                        interface=self.interface,
+                        address=channel_address,
+                        paramset_key=ParamsetKey.MASTER,
+                    )
+                    or {}
                 )
-                or {}
-            )
-            return paramset.get(parameter)
+                value = paramset.get(parameter)
+            if convert_from_pd:
+                value = self._convert_read_value(
+                    channel_address=channel_address,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
+                    value=value,
+                )
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
@@ -1349,6 +1373,8 @@ class ClientJsonCCU(ClientCCU):
                     reason=extract_exc_args(exc=bhexc),
                 )
             ) from bhexc
+        else:
+            return value
 
     @inspector
     async def init_client(self) -> None:
@@ -1524,6 +1550,62 @@ class ClientJsonCCU(ClientCCU):
             )
             return
         await self.central.save_files(save_paramset_descriptions=True)
+
+    def _check_get_paramset(
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Convert all values in a paramset to their correct types.
+
+        Iterates through each parameter in the values dict, converting types
+        based on the parameter description.
+
+        Returns:
+            Dict with type-converted values.
+
+        """
+        converted_values: dict[str, Any] = {}
+        for param, value in values.items():
+            converted_values[param] = self._convert_read_value(
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=param,
+                value=value,
+            )
+        return converted_values
+
+    def _convert_read_value(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+        value: Any,
+    ) -> Any:
+        """
+        Convert a read value to its correct type based on parameter description.
+
+        Unlike _convert_write_value (for writes), this method:
+        - Does NOT validate operations (READ is implicit)
+        - Does NOT validate MIN/MAX bounds (backend already enforced)
+        - Only performs type conversion
+
+        Returns:
+            Converted value matching the parameter's type definition,
+            or original value if parameter not found in description.
+
+        """
+        if parameter_data := self.central.cache_coordinator.paramset_descriptions.get_parameter_data(
+            interface_id=self.interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            parameter=parameter,
+        ):
+            pd_type = parameter_data["TYPE"]
+            pd_value_list = tuple(parameter_data["VALUE_LIST"]) if parameter_data.get("VALUE_LIST") else None
+            return convert_value(value=value, target_type=pd_type, value_list=pd_value_list)
+        # Return original value if parameter not in description
+        return value
 
     async def _exec_put_paramset(
         self,

@@ -1,3 +1,21 @@
+# Version 2026.1.33 (2026-01-12)
+
+## What's Changed
+
+### Fixed
+
+- **LINK paramsets causing false "incomplete device data" issues**: LINK paramsets are now excluded from paramset fetch operations and completeness checks. LINK paramsets are only relevant for device linking (direct associations) and are fetched dynamically when links are configured. Previously, failed LINK fetches (which occur when no links exist) caused devices to be incorrectly flagged as having incomplete data, triggering unnecessary repair issues in Home Assistant.
+
+- **Empty paramset descriptions not being cached**: Fixed issue where paramset descriptions that return an empty dict `{}` (valid response) were incorrectly treated as missing. HmIP base device addresses and some channel types return empty MASTER or VALUES paramsets which is valid behavior. The fix uses `is not None` check instead of truthy check in all paramset fetch code paths (`get_paramset_descriptions`, `fetch_paramset_descriptions`, and `fetch_paramset_description`), ensuring empty dicts are properly cached.
+
+### Changed
+
+- **Skip LINK paramsets during device initialization**: LINK paramset descriptions are no longer fetched during initial device creation or CONFIG_PENDING reload. This reduces startup time, eliminates spurious error messages for non-linked devices, and prevents false positive "incomplete device data" warnings. Link functionality remains fully supported - LINK paramsets are fetched on-demand when link operations are performed.
+
+- **Improved log message clarity**: Changed "devices" to "device/channel descriptions" in paramset fetch logging for accuracy, since the count includes both device and channel entries.
+
+---
+
 # Version 2026.1.32 (2026-01-12)
 
 ## What's Changed

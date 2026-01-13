@@ -1518,8 +1518,16 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def _reload_paramset_descriptions(self) -> None:
-        """Reload paramset for channel."""
+        """
+        Reload paramset for channel.
+
+        LINK paramsets are skipped as they are only relevant for device linking
+        and are fetched dynamically when links are configured.
+        """
         for paramset_key in self._paramset_keys:
+            # Skip LINK paramsets - they are only relevant for device linking
+            if paramset_key == ParamsetKey.LINK:
+                continue
             await self._device.client.fetch_paramset_description(
                 channel_address=self._address,
                 paramset_key=paramset_key,

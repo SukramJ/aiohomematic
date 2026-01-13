@@ -554,11 +554,13 @@ This issue occurs when:
 **Solutions:**
 
 1. **Restart the CCU**: This often resolves temporary communication or service issues
+
    - Restart the CCU from its WebUI or physically
    - Wait for all services to start completely (this can take several minutes)
    - Restart the Home Assistant integration
 
 2. **Re-pair the affected devices**:
+
    - Remove the device from the CCU
    - Factory reset the device (refer to device manual)
    - Re-pair the device with the CCU
@@ -566,11 +568,13 @@ This issue occurs when:
    - Clear the cache in Home Assistant and restart
 
 3. **Clear the integration cache**:
+
    - Use the `homematicip_local.clear_cache` service
    - Restart Home Assistant
    - This forces a complete re-fetch of all device data
 
 4. **For CUxD/virtual devices**:
+
    - Check the CUxD add-on status in the CCU
    - Restart the CUxD add-on
    - Verify the virtual device configuration is complete

@@ -84,9 +84,22 @@ class DetectionConfig:
     host: str                      # Required: Host address
     username: str = ""             # Optional: Username for authentication
     password: str = ""             # Optional: Password for authentication
-    request_timeout: float = 5.0   # Optional: Connection timeout in seconds
+    request_timeout: float = 5.0   # Optional: Timeout per request (default from TimeoutConfig)
+    total_timeout: float = 15.0    # Optional: Total detection timeout (default from TimeoutConfig)
     verify_tls: bool = False       # Optional: Verify TLS certificates
 ```
+
+**Timeout Configuration**:
+
+The default timeout values are taken from `TimeoutConfig`:
+
+- `request_timeout`: Individual request timeout (default: 5s, 1s in test mode)
+- `total_timeout`: Total detection timeout (default: 15s, 3s in test mode)
+
+You can override timeouts in two ways:
+
+1. Set them explicitly in `DetectionConfig`
+2. Pass a custom `TimeoutConfig` to `detect_backend()`
 
 ### Result Structure
 
@@ -114,6 +127,32 @@ async with aiohttp.ClientSession() as session:
     config = DetectionConfig(host="192.168.1.100")
     result = await detect_backend(config=config, client_session=session)
 ```
+
+### Using with Custom TimeoutConfig
+
+You can override timeout defaults using a custom `TimeoutConfig`:
+
+```python
+from aiohomematic.backend_detection import detect_backend, DetectionConfig
+from aiohomematic.const import TimeoutConfig
+
+# Create custom timeout configuration
+timeout_config = TimeoutConfig(
+    backend_detection_request=10.0,  # 10 seconds per request
+    backend_detection_total=30.0,    # 30 seconds total
+)
+
+# Create detection config (can still override individual timeouts)
+config = DetectionConfig(host="192.168.1.100")
+
+# Pass timeout_config to override defaults
+result = await detect_backend(
+    config=config,
+    timeout_config=timeout_config
+)
+```
+
+**Note**: If you pass `timeout_config`, it will override the timeout values in `DetectionConfig`. This is useful when you want to use a consistent timeout configuration across your application.
 
 ## Logging
 

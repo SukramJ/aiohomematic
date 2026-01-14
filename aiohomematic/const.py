@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.37"
+VERSION: Final = "2026.1.38"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -95,6 +95,12 @@ class TimeoutConfig(NamedTuple):
 
     connectivity_error_threshold: int = 1
     """Number of consecutive connectivity failures before marking devices unavailable (default: 1)."""
+
+    backend_detection_request: float = 1 if _TEST_SPEEDUP else 5
+    """Timeout for individual backend detection requests (XML-RPC/JSON-RPC) (default: 5s)."""
+
+    backend_detection_total: float = 3 if _TEST_SPEEDUP else 15
+    """Total timeout for complete backend detection process (default: 15s)."""
 
 
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()

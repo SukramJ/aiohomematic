@@ -23,12 +23,14 @@ from aiohomematic.central import CentralConnectionState
 from aiohomematic.client import AioJsonRpcAioHttpClient
 from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
 from aiohomematic.const import (
+    DEFAULT_TIMEOUT_CONFIG,
     DETECTION_PORT_BIDCOS_RF,
     DETECTION_PORT_BIDCOS_WIRED,
     DETECTION_PORT_HMIP_RF,
     DETECTION_PORT_JSON_RPC,
     Backend,
     Interface,
+    TimeoutConfig,
 )
 from aiohomematic.exceptions import AuthFailure, BaseHomematicException, NoConnectionException
 from aiohomematic.support import build_xml_rpc_headers, build_xml_rpc_uri, validate_host
@@ -41,12 +43,6 @@ __all__ = [
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-# Detection timeout per request (shorter than normal operation)
-_DETECTION_TIMEOUT: Final = 5.0
-
-# Total detection timeout (max time for entire detection process)
-_DETECTION_TOTAL_TIMEOUT: Final = 15.0
-
 # XML-RPC method names
 _XML_METHOD_GET_VERSION: Final = "getVersion"
 
@@ -58,8 +54,8 @@ class DetectionConfig:
     host: str
     username: str = ""
     password: str = ""
-    request_timeout: float = _DETECTION_TIMEOUT
-    total_timeout: float = _DETECTION_TOTAL_TIMEOUT
+    request_timeout: float = DEFAULT_TIMEOUT_CONFIG.backend_detection_request
+    total_timeout: float = DEFAULT_TIMEOUT_CONFIG.backend_detection_total
     verify_tls: bool = False
 
 
@@ -81,6 +77,7 @@ async def detect_backend(
     *,
     config: DetectionConfig,
     client_session: ClientSession | None = None,
+    timeout_config: TimeoutConfig | None = None,
 ) -> BackendDetectionResult | None:
     """
     Detect backend type and available interfaces.
@@ -91,6 +88,7 @@ async def detect_backend(
     Args:
         config: Detection configuration with host and credentials.
         client_session: Optional aiohttp ClientSession for JSON-RPC requests.
+        timeout_config: Optional timeout configuration. If provided, overrides config's timeouts.
 
     Returns:
         BackendDetectionResult if a backend was found, None otherwise.
@@ -100,26 +98,39 @@ async def detect_backend(
         AuthFailure: If authentication fails with the provided credentials.
 
     """
+    # Apply timeout_config if provided
+    if timeout_config is not None:
+        effective_config = DetectionConfig(
+            host=config.host,
+            username=config.username,
+            password=config.password,
+            request_timeout=timeout_config.backend_detection_request,
+            total_timeout=timeout_config.backend_detection_total,
+            verify_tls=config.verify_tls,
+        )
+    else:
+        effective_config = config
+
     # Validate input
-    validate_host(host=config.host)
+    validate_host(host=effective_config.host)
 
     _LOGGER.info(
         i18n.tr(
             key="log.backend_detection.detect_backend.starting",
-            host=config.host,
-            total_timeout=config.total_timeout,
+            host=effective_config.host,
+            total_timeout=effective_config.total_timeout,
         )
     )
 
     try:
-        async with asyncio.timeout(config.total_timeout):
-            return await _do_detect_backend(config=config, client_session=client_session)
+        async with asyncio.timeout(effective_config.total_timeout):
+            return await _do_detect_backend(config=effective_config, client_session=client_session)
     except TimeoutError:
         _LOGGER.warning(
             i18n.tr(
                 key="log.backend_detection.detect_backend.total_timeout",
-                host=config.host,
-                total_timeout=config.total_timeout,
+                host=effective_config.host,
+                total_timeout=effective_config.total_timeout,
             )
         )
         return None

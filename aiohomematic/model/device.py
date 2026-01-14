@@ -848,6 +848,24 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
                 name=f"firmware-updated-{self._address}",
             )
 
+    @inspector
+    async def reload_device_config(self) -> None:
+        """
+        Reload device configuration and master parameter values.
+
+        This method is intended for external/manual calls to force a reload of device
+        configuration data. It updates paramset descriptions, link peers, and reloads
+        all master parameter values from the backend.
+
+        Typical use cases:
+        - After changing master parameters on BidCos devices (CONFIG_PENDING unreliable)
+        - Manual refresh of device configuration
+        - Forcing cache updates for debugging
+
+        Internally calls on_config_changed() which handles the actual reload logic.
+        """
+        await self.on_config_changed()
+
     def remove(self) -> None:
         """Remove data points from collections and central."""
         for channel in self._channels.values():
@@ -1445,6 +1463,24 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             target=_publish_link_peer_changed,
             name=f"link-peer-changed-{self._address}",
         )
+
+    @inspector
+    async def reload_channel_config(self) -> None:
+        """
+        Reload channel configuration and master parameter values.
+
+        This method is intended for external/manual calls to force a reload of channel
+        configuration data. It updates paramset descriptions, link peers, and reloads
+        all master parameter values for this channel from the backend.
+
+        Typical use cases:
+        - After changing master parameters on BidCos channels (CONFIG_PENDING unreliable)
+        - Manual refresh of channel configuration
+        - Forcing cache updates for debugging
+
+        Internally calls on_config_changed() which handles the actual reload logic.
+        """
+        await self.on_config_changed()
 
     def remove(self) -> None:
         """Remove data points from collections and central."""

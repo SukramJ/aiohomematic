@@ -5,12 +5,12 @@
 - `aiohomematic/` hosts the async library (`central/`, `client/`, `model/`, `store/`) plus assets in `rega_scripts/` and `translations/`.
 - `aiohomematic_test_support/` supplies fixtures, playback data, and factories; prefer these over bespoke mocks.
 - `tests/` contains the pytest suite with `helpers/` and `fixtures/`; keep new tests adjacent to related code.
-- `docs/` collects architecture, migration, and naming references; automation scripts live in `script/` for pre-commit use.
+- `docs/` collects architecture, migration, and naming references; automation scripts live in `script/` for prek use.
 
 ## Build, Test, and Development Commands
 
 - `python -m pip install -r requirements.txt -r requirements_test.txt` installs runtime and tooling dependencies.
-- `pre-commit run --all-files` mirrors CI hooks (`sort-class-members`, `check-i18n`, `ruff`, `mypy`, `pylint`, `codespell`, `bandit`, `yamllint`).
+- `prek run --all-files` mirrors CI hooks (`sort-class-members`, `check-i18n`, `ruff`, `mypy`, `pylint`, `codespell`, `bandit`, `yamllint`).
 - `ruff format` then `ruff check --fix` applies the required formatting, import order, and alias rules.
 - `mypy aiohomematic aiohomematic_test_support` runs strict type checks; justify any `# type: ignore[code]`.
 - `pytest tests/` runs the suite; use `./cov.sh` for HTML coverage and `pytest -k pattern -vv` for focused runs.

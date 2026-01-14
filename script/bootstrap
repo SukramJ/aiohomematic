@@ -7,5 +7,5 @@ set -e
 cd "$(dirname "$0")/.."
 
 echo "Installing development dependencies..."
-pip install colorlog pre-commit uv
+pip install colorlog prek uv
 uv pip install --prerelease=allow -r requirements_test.txt

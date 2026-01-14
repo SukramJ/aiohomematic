@@ -138,9 +138,9 @@ Examples:
 - `log.client.circuit_breaker.state_transition`
 - `log.central.restart_clients.restarted`
 
-## Pre-commit Hooks
+## prek Hooks
 
-The i18n checks are automatically run as pre-commit hooks:
+The i18n checks are automatically run as prek hooks:
 
 ```yaml
 - id: check-i18n

@@ -128,7 +128,7 @@ raise ClientException(f"Failed to connect to {host}:{port}")
 All PRs must pass:
 
 1. `pytest tests/` - All tests pass
-2. `pre-commit run --all-files` - Linting, formatting, type checking
+2. `prek run --all-files` - Linting, formatting, type checking
 3. No mypy errors
 4. Update `changelog.md` for user-facing changes
 
@@ -198,5 +198,5 @@ unsubscribe = data_point.subscribe_to_data_point_updated(
 - Don't use `Any` without justification
 - Don't perform I/O in model classes
 - Don't use bare `except:` clauses
-- Don't skip pre-commit hooks
+- Don't skip prek hooks
 - Don't commit directly to `master` or `devel`

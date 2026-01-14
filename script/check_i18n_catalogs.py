@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Pre-commit hook to validate i18n catalogs and usage.
+prek hook to validate i18n catalogs and usage.
 
 Checks performed:
 1) Ensure that every translation key used in code via i18n.tr("key")/tr("key")
@@ -20,7 +20,7 @@ Exit code:
 - 0: All checks passed and no modifications were necessary.
 - 1: Any problems were found or files were modified (when --fix is used).
 
-Usage in pre-commit: run with `--fix` to allow auto-fixes (en.json sync + sorting).
+Usage in prek: run with `--fix` to allow auto-fixes (en.json sync + sorting).
 """
 
 from __future__ import annotations
@@ -137,7 +137,7 @@ def run(fix: bool, remove_unused: bool) -> int:
     Run the i18n catalogs check and return an appropriate exit code.
 
     When `fix` is True, the function will synchronize `en.json` to `strings.json`
-    and sort/pretty-print the catalogs, asking pre-commit to re-run by returning 1.
+    and sort/pretty-print the catalogs, asking prek to re-run by returning 1.
 
     When `remove_unused` is True, unused keys will be removed from all catalog files.
     """
@@ -229,7 +229,7 @@ def run(fix: bool, remove_unused: bool) -> int:
         for msg in problems:
             print(f"  {msg}")
 
-    # If anything modified, ask pre-commit to re-run (exit non-zero)
+    # If anything modified, ask prek to re-run (exit non-zero)
     if modified:
         return 1
 

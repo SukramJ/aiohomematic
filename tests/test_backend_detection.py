@@ -18,7 +18,7 @@ from aiohomematic.backend_detection import (
     _query_ccu_interfaces,
     detect_backend,
 )
-from aiohomematic.const import Backend, Interface, SystemInformation
+from aiohomematic.const import Backend, Interface, SystemInformation, TimeoutConfig
 
 
 class TestDetermineBackend:
@@ -590,13 +590,15 @@ class TestDetectionConfig:
 
     def test_config_defaults(self) -> None:
         """Test configuration defaults."""
+        from aiohomematic.const import DEFAULT_TIMEOUT_CONFIG
+
         config = DetectionConfig(host="192.168.1.100")
 
         assert config.host == "192.168.1.100"
         assert config.username == ""
         assert config.password == ""
-        assert config.request_timeout == 5.0
-        assert config.total_timeout == 15.0
+        assert config.request_timeout == DEFAULT_TIMEOUT_CONFIG.backend_detection_request
+        assert config.total_timeout == DEFAULT_TIMEOUT_CONFIG.backend_detection_total
         assert config.verify_tls is False
 
     def test_config_with_all_fields(self) -> None:
@@ -641,6 +643,34 @@ class TestDetectBackendTimeout:
         assert result.backend == Backend.PYDEVCCU
 
     @pytest.mark.asyncio
+    async def test_detect_backend_timeout_config_overrides_detection_config(self) -> None:
+        """Test that timeout_config parameter overrides DetectionConfig timeouts."""
+        # Create config with explicit timeouts
+        config = DetectionConfig(
+            host="192.168.1.100",
+            request_timeout=5.0,
+            total_timeout=15.0,
+        )
+
+        # Create custom timeout config that should override
+        custom_timeout_config = TimeoutConfig(
+            backend_detection_request=20.0,
+            backend_detection_total=60.0,
+        )
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            new_callable=AsyncMock,
+            return_value="pydevccu 2.1",
+        ) as mock_probe:
+            result = await detect_backend(config=config, timeout_config=custom_timeout_config)
+
+        assert result is not None
+        # Verify custom timeout was used
+        call_kwargs = mock_probe.call_args.kwargs
+        assert call_kwargs["request_timeout"] == 20.0
+
+    @pytest.mark.asyncio
     async def test_detect_backend_total_timeout(self) -> None:
         """Test that detection aborts after total_timeout is exceeded."""
         config = DetectionConfig(
@@ -660,3 +690,68 @@ class TestDetectBackendTimeout:
 
         # Should return None due to timeout, not raise an exception
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_detect_backend_total_timeout_cancels_multiple_probes(self) -> None:
+        """Test that total_timeout cancels detection even when multiple ports remain."""
+        config = DetectionConfig(
+            host="192.168.1.100",
+            total_timeout=0.3,  # Very short timeout
+        )
+
+        probe_count = 0
+
+        async def slow_probe(**kwargs: Any) -> str | None:
+            nonlocal probe_count
+            probe_count += 1
+            # Each probe takes longer than total_timeout
+            await asyncio.sleep(0.5)
+            return "3.61.345"
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            side_effect=slow_probe,
+        ):
+            result = await detect_backend(config=config)
+
+        # Should return None due to timeout
+        assert result is None
+
+        # Should have attempted only 1 probe before timeout (not all 6 ports)
+        # The first probe takes 0.5s, but total_timeout is 0.3s
+        assert probe_count == 1, f"Expected 1 probe attempt, got {probe_count}"
+
+    @pytest.mark.asyncio
+    async def test_detect_backend_with_custom_timeout_config(self) -> None:
+        """Test detection with custom TimeoutConfig overriding DetectionConfig."""
+        # Create config with default timeouts
+        config = DetectionConfig(host="192.168.1.100")
+
+        # Create custom timeout config with different values
+        custom_timeout_config = TimeoutConfig(
+            backend_detection_request=10.0,
+            backend_detection_total=30.0,
+        )
+
+        with (
+            patch(
+                "aiohomematic.backend_detection._probe_xml_rpc_port",
+                new_callable=AsyncMock,
+                return_value="3.61.345",
+            ) as mock_probe,
+            patch(
+                "aiohomematic.backend_detection._query_ccu_interfaces",
+                new_callable=AsyncMock,
+                return_value=((Interface.HMIP_RF,), True, None),
+            ),
+        ):
+            result = await detect_backend(config=config, timeout_config=custom_timeout_config)
+
+        # Should use timeouts from custom_timeout_config
+        assert result is not None
+        assert result.backend == Backend.CCU
+
+        # Verify that _probe_xml_rpc_port was called with custom request_timeout
+        assert mock_probe.called
+        call_kwargs = mock_probe.call_args.kwargs
+        assert call_kwargs["request_timeout"] == 10.0

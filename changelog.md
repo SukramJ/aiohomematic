@@ -1,3 +1,37 @@
+# Version 2026.1.38 (2026-01-14)
+
+## What's Changed
+
+### Added
+
+- **Configurable backend detection timeouts via TimeoutConfig**: Backend detection timeouts are now centrally managed through `TimeoutConfig` instead of hardcoded constants. Added two new fields to `TimeoutConfig`:
+
+  - `backend_detection_request: float = 5.0` - Timeout for individual XML-RPC/JSON-RPC requests (1s in test mode)
+  - `backend_detection_total: float = 15.0` - Total timeout for the complete detection process (3s in test mode)
+
+  The `detect_backend()` function now accepts an optional `timeout_config: TimeoutConfig | None` parameter to override the timeout values from `DetectionConfig`. This allows for consistent timeout configuration across the application and automatic `TEST_SPEEDUP` support. Timeouts can be configured in three ways:
+
+  1. Use defaults from `DEFAULT_TIMEOUT_CONFIG`
+  2. Set explicitly in `DetectionConfig(request_timeout=..., total_timeout=...)`
+  3. Pass a custom `TimeoutConfig` to `detect_backend(timeout_config=...)`
+
+### Changed
+
+- **Removed hardcoded detection timeout constants**: Removed `_DETECTION_TIMEOUT` and `_DETECTION_TOTAL_TIMEOUT` constants from `backend_detection.py`. Default values are now provided by `DEFAULT_TIMEOUT_CONFIG.backend_detection_request` and `DEFAULT_TIMEOUT_CONFIG.backend_detection_total`.
+
+### Tests
+
+- **New tests for timeout configuration**: Added three new test cases in `TestDetectBackendTimeout`:
+  - `test_detect_backend_with_custom_timeout_config`: Verifies that a custom `TimeoutConfig` is correctly used
+  - `test_detect_backend_timeout_config_overrides_detection_config`: Verifies that `timeout_config` parameter overrides `DetectionConfig` timeouts
+  - `test_detect_backend_total_timeout_cancels_multiple_probes`: Verifies that `total_timeout` cancels detection even when multiple ports remain to be probed, ensuring detection is always aborted within the timeout period
+
+### Documentation
+
+- **Updated backend_detection.md**: Added section explaining timeout configuration options and usage examples with custom `TimeoutConfig`.
+
+---
+
 # Version 2026.1.37 (2026-01-13)
 
 ## What's Changed

@@ -22,4 +22,4 @@ pytest-socket==0.7.0
 pytest-timeout==2.4.0
 pytest==9.0.2
 types-python-slugify==8.0.2.20240310
-uv==0.9.21
+uv==0.9.25

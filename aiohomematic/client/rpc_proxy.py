@@ -317,8 +317,25 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
         session_recorder: SessionRecorder | None = None,
         event_bus: EventBus | None = None,
         incident_recorder: IncidentRecorderProtocol | None = None,
+        timeout: float | None = None,
     ) -> None:
-        """Initialize new proxy for server and get local ip."""
+        """
+        Initialize new proxy for server and get local ip.
+
+        Args:
+            max_workers: Number of worker threads.
+            interface_id: Interface identifier.
+            connection_state: Connection state tracker.
+            uri: XML-RPC server URI.
+            headers: HTTP headers for authentication.
+            tls: Whether to use TLS.
+            verify_tls: Whether to verify TLS certificates.
+            session_recorder: Optional session recorder.
+            event_bus: Optional event bus.
+            incident_recorder: Optional incident recorder.
+            timeout: Socket timeout in seconds for HTTP connections. If None, uses Python's default (no timeout).
+
+        """
         super().__init__(
             max_workers=max_workers,
             interface_id=interface_id,
@@ -330,6 +347,10 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             event_bus=event_bus,
             incident_recorder=incident_recorder,
         )
+
+        # Add timeout to kwargs if provided
+        if timeout is not None:
+            self._kwargs["timeout"] = timeout
 
         xmlrpc.client.ServerProxy.__init__(
             self,

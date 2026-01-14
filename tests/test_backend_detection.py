@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from aiohomematic.backend_detection import (
+    _ABORT_DETECTION,
     BackendDetectionResult,
     DetectionConfig,
     _determine_backend,
@@ -139,7 +140,7 @@ class TestProbeXmlRpcPort:
 
     @pytest.mark.asyncio
     async def test_probe_xml_rpc_port_timeout(self) -> None:
-        """Test XML-RPC probe with timeout."""
+        """Test XML-RPC probe with timeout returns abort signal."""
         mock_proxy = MagicMock()
 
         async def slow_do_init() -> None:
@@ -159,7 +160,8 @@ class TestProbeXmlRpcPort:
                 request_timeout=0.1,
             )
 
-        assert result is None
+        # Timeout should signal abort detection (host likely unreachable)
+        assert result is _ABORT_DETECTION
         mock_proxy.stop.assert_called_once()
 
 
@@ -624,6 +626,32 @@ class TestDetectBackendTimeout:
     """Tests for detect_backend total timeout behavior."""
 
     @pytest.mark.asyncio
+    async def test_detect_backend_aborts_on_host_unreachable(self) -> None:
+        """Test that detection aborts early when host is unreachable (not just port closed)."""
+        config = DetectionConfig(host="192.168.1.100")
+
+        probe_count = 0
+
+        async def mock_probe_unreachable(**kwargs: Any) -> object:
+            nonlocal probe_count
+            probe_count += 1
+            # First probe returns ABORT signal (host unreachable)
+            return _ABORT_DETECTION
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            side_effect=mock_probe_unreachable,
+        ):
+            result = await detect_backend(config=config)
+
+        # Should return None (no backend found)
+        assert result is None
+
+        # Should have attempted only 1 probe, then aborted
+        # (not all 6 ports, because host is unreachable)
+        assert probe_count == 1, f"Expected 1 probe attempt before abort, got {probe_count}"
+
+    @pytest.mark.asyncio
     async def test_detect_backend_completes_before_timeout(self) -> None:
         """Test that detection completes successfully before timeout."""
         config = DetectionConfig(
@@ -641,6 +669,32 @@ class TestDetectBackendTimeout:
         # Should complete successfully
         assert result is not None
         assert result.backend == Backend.PYDEVCCU
+
+    @pytest.mark.slow
+    @pytest.mark.asyncio
+    async def test_detect_backend_socket_timeout_on_unreachable_host(self) -> None:
+        """Test that socket timeout prevents hanging on unreachable hosts."""
+        import time
+
+        # Use a non-routable IP address (RFC 5737 TEST-NET-1)
+        # This will cause TCP connect to timeout
+        config = DetectionConfig(
+            host="192.0.2.1",  # Non-routable test address
+            request_timeout=2.0,  # Short socket timeout
+            total_timeout=10.0,
+        )
+
+        start_time = time.monotonic()
+        result = await detect_backend(config=config)
+        elapsed_time = time.monotonic() - start_time
+
+        # Should return None (no backend found)
+        assert result is None
+
+        # Should complete within reasonable time (socket timeout + some overhead)
+        # With socket timeout of 2s and 6 ports to try, should be < 15s
+        # (much faster than OS default TCP timeout of 60-120s)
+        assert elapsed_time < 15.0, f"Detection took {elapsed_time:.1f}s, expected < 15s"
 
     @pytest.mark.asyncio
     async def test_detect_backend_timeout_config_overrides_detection_config(self) -> None:
@@ -720,6 +774,31 @@ class TestDetectBackendTimeout:
         # Should have attempted only 1 probe before timeout (not all 6 ports)
         # The first probe takes 0.5s, but total_timeout is 0.3s
         assert probe_count == 1, f"Expected 1 probe attempt, got {probe_count}"
+
+    @pytest.mark.asyncio
+    async def test_detect_backend_tries_all_ports_on_connection_refused(self) -> None:
+        """Test that detection tries all ports when getting connection refused (port closed)."""
+        config = DetectionConfig(host="192.168.1.100")
+
+        probe_count = 0
+
+        async def mock_probe_refused(**kwargs: Any) -> str | None:
+            nonlocal probe_count
+            probe_count += 1
+            # All probes return None (connection refused - port closed but host reachable)
+            return None
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            side_effect=mock_probe_refused,
+        ):
+            result = await detect_backend(config=config)
+
+        # Should return None (no backend found)
+        assert result is None
+
+        # Should have attempted all 6 ports (3 non-TLS + 3 TLS)
+        assert probe_count == 6, f"Expected 6 probe attempts (all ports), got {probe_count}"
 
     @pytest.mark.asyncio
     async def test_detect_backend_with_custom_timeout_config(self) -> None:

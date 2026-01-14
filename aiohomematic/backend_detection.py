@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+import errno
 import logging
 from typing import Final
 
@@ -45,6 +46,9 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 # XML-RPC method names
 _XML_METHOD_GET_VERSION: Final = "getVersion"
+
+# Sentinel value to signal that detection should abort (host unreachable)
+_ABORT_DETECTION: Final = object()
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -175,8 +179,21 @@ async def _do_detect_backend(
             request_timeout=config.request_timeout,
         )
 
+        # Check if detection should abort (host unreachable)
+        if version is _ABORT_DETECTION:
+            _LOGGER.info(
+                i18n.tr(
+                    key="log.backend_detection.detect_backend.aborting",
+                    host=config.host,
+                )
+            )
+            break
+
         if version is None:
             continue
+
+        # Type narrowing: version is now str (not _ABORT_DETECTION or None)
+        assert isinstance(version, str)
 
         _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.found_version", version=version, port=port))
 
@@ -247,14 +264,16 @@ async def _probe_xml_rpc_port(
     password: str,
     verify_tls: bool,
     request_timeout: float,
-) -> str | None:
+) -> str | None | object:
     """
     Probe a single XML-RPC port and return the version string if successful.
 
     Uses AioXmlRpcProxy for consistent error handling with the rest of the client.
 
     Returns:
-        Version string if connection successful, None otherwise.
+        - Version string if connection successful
+        - None if port probe failed but host might be reachable (try next port)
+        - _ABORT_DETECTION sentinel if host is unreachable (abort all further probes)
 
     Raises:
         AuthFailure: If authentication fails with the provided credentials.
@@ -274,6 +293,7 @@ async def _probe_xml_rpc_port(
             headers=headers,
             tls=tls,
             verify_tls=verify_tls,
+            timeout=request_timeout,
         )
 
         # Initialize proxy and get supported methods
@@ -302,7 +322,39 @@ async def _probe_xml_rpc_port(
         )
         return None
     except TimeoutError:
-        _LOGGER.info(i18n.tr(key="log.backend_detection.xml_rpc.probe_timeout", host=host, port=port))
+        # Timeout likely means host is unreachable - abort detection
+        _LOGGER.info(
+            i18n.tr(
+                key="log.backend_detection.xml_rpc.probe_timeout_abort",
+                host=host,
+                port=port,
+            )
+        )
+        return _ABORT_DETECTION
+    except OSError as oserr:
+        # Network-level errors - distinguish between "port closed" and "host unreachable"
+        if oserr.errno in (errno.ETIMEDOUT, errno.EHOSTUNREACH, errno.ENETUNREACH):
+            # Fatal error: host/network unreachable - abort detection
+            _LOGGER.info(
+                i18n.tr(
+                    key="log.backend_detection.xml_rpc.probe_unreachable",
+                    host=host,
+                    port=port,
+                    errno=oserr.errno,
+                    reason=oserr,
+                )
+            )
+            return _ABORT_DETECTION
+        # ECONNREFUSED or other - port closed, but host might be reachable
+        _LOGGER.info(
+            i18n.tr(
+                key="log.backend_detection.xml_rpc.probe_failed",
+                host=host,
+                port=port,
+                exc_type=type(oserr).__name__,
+                reason=oserr,
+            )
+        )
         return None
     except BaseHomematicException as exc:
         _LOGGER.info(
@@ -366,7 +418,7 @@ async def _query_ccu_interfaces(
         if result is not None:
             return result
 
-    return ((), None, None)
+    return (), None, None
 
 
 async def _query_json_rpc_interfaces(

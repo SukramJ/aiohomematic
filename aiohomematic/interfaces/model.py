@@ -1255,6 +1255,10 @@ class ChannelLifecycleProtocol(Protocol):
         """Handle config changed event."""
 
     @abstractmethod
+    async def reload_channel_config(self) -> None:
+        """Reload channel configuration and master parameter values."""
+
+    @abstractmethod
     def remove(self) -> None:
         """Remove data points from collections and central."""
 
@@ -1750,6 +1754,10 @@ class DeviceLifecycleProtocol(Protocol):
     @abstractmethod
     def publish_device_updated_event(self, *, notify_data_points: bool = False) -> None:
         """Publish device updated event."""
+
+    @abstractmethod
+    async def reload_device_config(self) -> None:
+        """Reload device configuration and master parameter values."""
 
     @abstractmethod
     def remove(self) -> None:

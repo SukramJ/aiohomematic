@@ -6,4 +6,4 @@ set -e
 
 cd "$(dirname "$0")/.."
 script/bootstrap
-pre-commit install
+prek install

@@ -27,11 +27,11 @@ Development Setup
     pip install -r requirements.txt
     pip install -r requirements_test.txt
 
-4. Install pre-commit hooks:
+4. Install prek hooks:
 
 .. code-block:: bash
 
-    pre-commit install
+    prek install
 
 Code Style
 ----------
@@ -47,7 +47,7 @@ Run all checks:
 
 .. code-block:: bash
 
-    pre-commit run --all-files
+    prek run --all-files
 
 Type Annotations
 ~~~~~~~~~~~~~~~~
@@ -125,7 +125,7 @@ Pull Request Process
 
 1. Create a feature branch from ``devel``
 2. Make changes with tests
-3. Run pre-commit hooks
+3. Run prek hooks
 4. Commit with descriptive messages
 5. Push and create PR to ``devel``
 6. Wait for CI to pass

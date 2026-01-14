@@ -608,12 +608,12 @@ ruff check --fix --select D aiohomematic/ aiohomematic_test_support/
 ruff check aiohomematic/ aiohomematic_test_support/
 ```
 
-### Pre-commit Hooks
+### prek Hooks
 
-Docstring validation is enforced via pre-commit hooks. Run:
+Docstring validation is enforced via prek hooks. Run:
 
 ```bash
-pre-commit run --all-files
+prek run --all-files
 ```
 
 This includes:

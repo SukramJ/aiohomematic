@@ -24,8 +24,8 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 pip install -r requirements_test.txt
 
-# Install pre-commit hooks
-pre-commit install
+# Install prek hooks
+prek install
 ```
 
 ## Code Standards
@@ -84,8 +84,8 @@ def fetch_data(self) -> dict[str, Any]:
 Before submitting, ensure all checks pass:
 
 ```bash
-# Run all pre-commit hooks
-pre-commit run --all-files
+# Run all prek hooks
+prek run --all-files
 
 # Run tests
 pytest tests/

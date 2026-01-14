@@ -212,7 +212,7 @@ voluptuous>=0.15.0      # Configuration/schema validation
 │
 └── [Configuration files]
     ├── pyproject.toml              # Main project configuration
-    ├── .pre-commit-config.yaml     # Pre-commit hooks
+    ├── .pre-commit-config.yaml     # prek hooks configuration
     ├── requirements.txt            # Base dependencies
     ├── requirements_test.txt       # Test dependencies
     ├── .yamllint                   # YAML linting rules
@@ -246,8 +246,8 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 pip install -r requirements_test.txt
 
-# Install pre-commit hooks
-pre-commit install
+# Install prek hooks
+prek install
 ```
 
 ### Running Tests
@@ -272,8 +272,8 @@ pytest -m "not slow" tests/
 ### Running Linters
 
 ```bash
-# Run all pre-commit hooks
-pre-commit run --all-files
+# Run all prek hooks
+prek run --all-files
 
 # Run specific tools
 ruff check --fix                    # Lint and auto-fix
@@ -1588,7 +1588,7 @@ Added retry logic with exponential backoff for RPC calls.
 
 1. **Create feature branch** from `devel`
 2. **Make changes** with tests
-3. **Run pre-commit hooks**: `pre-commit run --all-files`
+3. **Run prek hooks**: `prek run --all-files`
 4. **Commit changes** with descriptive messages
 5. **Push to remote**: `git push -u origin feature/branch-name`
 6. **Create Pull Request** to `devel` branch
@@ -1826,7 +1826,7 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 | File                      | Purpose                    | Key Settings                       |
 | ------------------------- | -------------------------- | ---------------------------------- |
 | `pyproject.toml`          | Main project configuration | Build, dependencies, tool configs  |
-| `.pre-commit-config.yaml` | Pre-commit hooks           | Linters, formatters, type checkers |
+| `.pre-commit-config.yaml` | prek hooks configuration   | Linters, formatters, type checkers |
 | `requirements.txt`        | Runtime dependencies       | aiohttp, orjson, voluptuous        |
 | `requirements_test.txt`   | Test dependencies          | pytest, mypy, pylint, ruff         |
 | `.yamllint`               | YAML linting rules         | YAML formatting standards          |
@@ -1956,7 +1956,7 @@ This section defines mandatory rules for all implementations in this project.
 □ 1. Clean Code    - No legacy compatibility layers, deprecated aliases, or shims
 □ 2. Migration     - Migration guide in docs/migrations/ (for breaking changes)
 □ 3. Tests         - pytest tests/ passes without errors
-□ 4. Linting       - pre-commit run --all-files passes without errors
+□ 4. Linting       - prek run --all-files passes without errors
 □ 5. Changelog     - changelog.md updated (check tags first: git tag --list '2025.12.*')
 □ 6. Version Sync  - aiohomematic/const.py:VERSION matches changelog version
 ```
@@ -2181,7 +2181,7 @@ from __future__ import annotations
 ### Quality Gates
 
 - [ ] pytest tests/ passes
-- [ ] pre-commit run --all-files passes
+- [ ] prek run --all-files passes
 - [ ] No mypy errors
 - [ ] Changelog updated
 
@@ -2220,8 +2220,8 @@ Run these commands before considering any implementation complete:
 # 1. Run all tests
 pytest tests/
 
-# 2. Run all pre-commit hooks (includes ruff, mypy, pylint, etc.)
-pre-commit run --all-files
+# 2. Run all prek hooks (includes ruff, mypy, pylint, etc.)
+prek run --all-files
 
 # 3. Verify no TODO/FIXME related to migration
 grep -r "TODO.*migration\|FIXME.*migration\|TODO.*remove\|TODO.*deprecated" aiohomematic/
@@ -2285,7 +2285,7 @@ This policy ensures:
 
 ✅ **Always** include `from __future__ import annotations` at the top of Python files
 ✅ **Always** provide complete type annotations for all functions and methods
-✅ **Always** run pre-commit hooks before committing
+✅ **Always** run prek hooks before committing
 ✅ **Always** write tests for new functionality
 ✅ **Always** update documentation when changing public APIs
 ✅ **Always** verify `docs/*.md` accuracy after refactoring (class names, method signatures, file paths, event types)
@@ -2300,7 +2300,7 @@ This policy ensures:
 ### Don'ts
 
 ❌ **Never** commit without type annotations
-❌ **Never** skip pre-commit hooks
+❌ **Never** skip prek hooks
 ❌ **Never** commit to `master` or `devel` directly
 ❌ **Never** use `Any` type without justification
 ❌ **Never** perform I/O operations in model classes
@@ -2319,7 +2319,7 @@ When performing a refactoring task, follow this workflow:
 3. **Implement**: Make all changes following the exact plan
 4. **Clean**: Remove all legacy code, aliases, and compatibility shims
 5. **Test**: Run `pytest tests/` - all tests must pass
-6. **Lint**: Run `pre-commit run --all-files` - no errors allowed
+6. **Lint**: Run `prek run --all-files` - no errors allowed
 7. **Document**: Update changelog.md and create migration guide if needed
 8. **Verify**: Check for leftover TODOs related to migration
 

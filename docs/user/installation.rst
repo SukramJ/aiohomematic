@@ -63,8 +63,8 @@ For development, install with test dependencies:
     pip install -r requirements.txt
     pip install -r requirements_test.txt
 
-Install pre-commit hooks:
+Install prek hooks:
 
 .. code-block:: bash
 
-    pre-commit install
+    prek install

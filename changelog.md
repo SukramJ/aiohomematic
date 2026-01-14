@@ -15,16 +15,23 @@
   2. Set explicitly in `DetectionConfig(request_timeout=..., total_timeout=...)`
   3. Pass a custom `TimeoutConfig` to `detect_backend(timeout_config=...)`
 
+- **Socket-level timeout for XML-RPC connections**: Added `timeout` parameter to `AioXmlRpcProxy.__init__()` that sets socket-level timeouts for TCP connections. This prevents backend detection from hanging indefinitely when connecting to unreachable hosts. The `request_timeout` is now passed as socket timeout during detection, ensuring TCP connection attempts fail quickly (default: 5s) instead of relying on OS-default timeouts (60-120s). Normal RPC operations continue to use no socket timeout (backward compatible).
+
+- **Smart early abort on fatal connection errors**: Backend detection now intelligently distinguishes between transient and fatal network errors. When encountering fatal errors (ETIMEDOUT, EHOSTUNREACH, ENETUNREACH, or TimeoutError), detection immediately aborts instead of trying all remaining ports. For transient errors (ECONNREFUSED - port closed but host reachable), detection continues to the next port. This reduces detection time on unreachable hosts from ~30s (6 ports × 5s) to ~5s (1 port × 5s), a 6× performance improvement.
+
 ### Changed
 
 - **Removed hardcoded detection timeout constants**: Removed `_DETECTION_TIMEOUT` and `_DETECTION_TOTAL_TIMEOUT` constants from `backend_detection.py`. Default values are now provided by `DEFAULT_TIMEOUT_CONFIG.backend_detection_request` and `DEFAULT_TIMEOUT_CONFIG.backend_detection_total`.
 
 ### Tests
 
-- **New tests for timeout configuration**: Added three new test cases in `TestDetectBackendTimeout`:
+- **New tests for timeout configuration**: Added six new test cases in `TestDetectBackendTimeout`:
   - `test_detect_backend_with_custom_timeout_config`: Verifies that a custom `TimeoutConfig` is correctly used
   - `test_detect_backend_timeout_config_overrides_detection_config`: Verifies that `timeout_config` parameter overrides `DetectionConfig` timeouts
   - `test_detect_backend_total_timeout_cancels_multiple_probes`: Verifies that `total_timeout` cancels detection even when multiple ports remain to be probed, ensuring detection is always aborted within the timeout period
+  - `test_detect_backend_socket_timeout_on_unreachable_host`: Verifies that socket-level timeout prevents hanging on unreachable hosts (marked as slow test)
+  - `test_detect_backend_aborts_on_host_unreachable`: Verifies that detection aborts after the first fatal error (EHOSTUNREACH) instead of trying all 6 ports
+  - `test_detect_backend_tries_all_ports_on_connection_refused`: Verifies that detection continues through all ports when encountering transient errors (ECONNREFUSED)
 
 ### Documentation
 

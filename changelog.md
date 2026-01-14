@@ -19,6 +19,14 @@
 
 - **Smart early abort on fatal connection errors**: Backend detection now intelligently distinguishes between transient and fatal network errors. When encountering fatal errors (ETIMEDOUT, EHOSTUNREACH, ENETUNREACH, or TimeoutError), detection immediately aborts instead of trying all remaining ports. For transient errors (ECONNREFUSED - port closed but host reachable), detection continues to the next port. This reduces detection time on unreachable hosts from ~30s (6 ports × 5s) to ~5s (1 port × 5s), a 6× performance improvement.
 
+- **Service methods for manual configuration reload**: Added `Device.reload_device_config()` and `Channel.reload_channel_config()` service methods (decorated with `@inspector`) for external/manual calls to force a reload of device/channel configuration data. These methods are intended for use cases where CONFIG_PENDING events are unreliable (classic BidCos devices) or when manual cache updates are needed. They internally call `on_config_changed()` which remains a callback method for internal system use. The methods reload paramset descriptions, link peers, and all master parameter values from the backend.
+
+  Typical use cases:
+
+  - After changing master parameters on BidCos devices (CONFIG_PENDING unreliable)
+  - Manual refresh of device/channel configuration
+  - Forcing cache updates for debugging
+
 ### Changed
 
 - **Removed hardcoded detection timeout constants**: Removed `_DETECTION_TIMEOUT` and `_DETECTION_TOTAL_TIMEOUT` constants from `backend_detection.py`. Default values are now provided by `DEFAULT_TIMEOUT_CONFIG.backend_detection_request` and `DEFAULT_TIMEOUT_CONFIG.backend_detection_total`.

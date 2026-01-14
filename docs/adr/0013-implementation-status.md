@@ -114,7 +114,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 - [x] Added debug logging to `_mark_all_devices_forced_availability()`
 - [x] Added debug logging to `_on_system_status_event()` (ping pong cache clear)
 - [x] All 1640 tests passing with both legacy and InterfaceClient
-- [x] All pre-commit hooks passing
+- [x] All prek hooks passing
 
 ### 2026-01-05 (Incident Recording)
 
@@ -124,7 +124,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 - [x] Records diagnostic information when callback timeout occurs
 - [x] Includes circuit breaker state from backend in incident context
 - [x] All 1640 tests passing with both legacy and InterfaceClient
-- [x] All pre-commit hooks passing
+- [x] All prek hooks passing
 
 ### 2026-01-05 (Circuit Breaker Integration)
 
@@ -138,7 +138,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 - [x] Implemented in `JsonCcuBackend` (checks json_rpc)
 - [x] Updated `InterfaceClient` to delegate to backend (instead of hard-coded values)
 - [x] All 1640 tests passing with both legacy and InterfaceClient
-- [x] All pre-commit hooks passing
+- [x] All prek hooks passing
 
 ### 2026-01-05 (CI Testing Infrastructure)
 
@@ -149,7 +149,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 - [x] Added `fetch_all_device_data` script support in mock client session
 - [x] Fixed `_is_initialized` attribute access in ping-pong tests (compatible with `__slots__`)
 - [x] CI now runs full test suite (1640 tests) with both legacy and InterfaceClient
-- [x] All pre-commit hooks passing
+- [x] All prek hooks passing
 
 ### 2026-01-05 (Phase 2 Complete)
 
@@ -164,7 +164,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 - [x] Tests for value conversion (float, bool, integer)
 - [x] Tests for property access and capabilities
 - [x] All 1640 tests passing (24 new comparison tests)
-- [x] All pre-commit hooks passing
+- [x] All prek hooks passing
 
 ### 2026-01-05 (continued)
 
@@ -180,7 +180,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 - [x] Updated `get_device_description()` with coalescing
 - [x] Added `_poll_master_values()` for BidCos MASTER paramsets
 - [x] All 1640 tests passing
-- [x] All pre-commit hooks passing
+- [x] All prek hooks passing
 
 ### 2026-01-05
 
@@ -200,7 +200,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 - [x] Added USE_INTERFACE_CLIENT feature flag
 - [x] Added create_client() factory with feature flag support
 - [x] All tests passing (1640 tests)
-- [x] All pre-commit hooks passing
+- [x] All prek hooks passing
 
 ---
 
@@ -209,7 +209,7 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 ### Phase 1 ✅ COMPLETE
 
 - [x] `pytest tests/` passes (1640 tests)
-- [x] `pre-commit run --all-files` passes (18/18 hooks)
+- [x] `prek run --all-files` passes (18/18 hooks)
 - [x] No mypy errors
 - [x] Feature flag OFF = legacy behavior unchanged
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Auto-fix pre-commit helper to reorder Python class members.
+Auto-fix prek helper to reorder Python class members.
 
 Order according to the requested convention:
 
@@ -38,7 +38,7 @@ Usage:
 
 Exit codes:
   0: no changes were necessary
-  1: files were modified (so pre-commit records changes)
+  1: files were modified (so prek records changes)
   2: error occurred.
 """
 

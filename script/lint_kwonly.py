@@ -250,7 +250,7 @@ def main(*, argv: list[str]) -> int:
 
     all_violations: list[Violation] = []
     for file in iter_python_files(paths=args.paths):
-        # Check all provided files; pre-commit 'files' filter controls scope.
+        # Check all provided files; prek 'files' filter controls scope.
         all_violations.extend(check_file(path=file))
 
     if all_violations:

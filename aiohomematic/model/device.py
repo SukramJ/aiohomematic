@@ -1567,6 +1567,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             await self._device.client.fetch_paramset_description(
                 channel_address=self._address,
                 paramset_key=paramset_key,
+                device_type=self._device.model,
             )
 
     def _remove_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:

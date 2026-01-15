@@ -252,7 +252,13 @@ class ParamsetOperationsProtocol(Protocol):
 
     __slots__ = ()
 
-    async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
+    async def fetch_paramset_description(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        device_type: str,
+    ) -> None:
         """Fetch a specific paramset and add it to the known ones."""
 
     async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
@@ -815,8 +821,19 @@ class ParamsetDescriptionWriterProtocol(Protocol):
         channel_address: str,
         paramset_key: ParamsetKey,
         paramset_description: dict[str, Any],
+        device_type: str,
     ) -> None:
-        """Add a paramset description."""
+        """
+        Add a paramset description.
+
+        Args:
+            interface_id: Interface identifier.
+            channel_address: Channel address.
+            paramset_key: Paramset key.
+            paramset_description: Paramset description data.
+            device_type: Device TYPE for patch matching.
+
+        """
 
 
 @runtime_checkable

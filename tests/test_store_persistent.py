@@ -460,18 +460,21 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch1,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+            device_type="TEST",
         )
         pdr.add(
             interface_id=iface,
             channel_address=ch2,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+            device_type="TEST",
         )
         pdr.add(
             interface_id=iface,
             channel_address=ch1,
             paramset_key=ParamsetKey.MASTER,
             paramset_description={"NORM": {"TYPE": "INTEGER"}},
+            device_type="TEST",
         )
 
         assert pdr.has_interface_id(interface_id=iface)
@@ -511,6 +514,7 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch1,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"STATE": {"TYPE": "BOOL"}},
+            device_type="TEST",
         )
         await pdr.save()
 
@@ -537,6 +541,7 @@ class TestParamsetDescriptionRegistry:
             channel_address=new_ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+            device_type="TEST",
         )
 
         # Verify new device is accessible
@@ -555,6 +560,7 @@ class TestParamsetDescriptionRegistry:
             channel_address=new_ch2,
             paramset_key=ParamsetKey.MASTER,
             paramset_description={"CONFIG_PARAM": {"TYPE": "INTEGER"}},
+            device_type="TEST",
         )
 
         assert pdr2.has_parameter(
@@ -580,12 +586,14 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+            device_type="TEST",
         )
         pdr.add(
             interface_id=iface,
             channel_address=ch,
             paramset_key=ParamsetKey.MASTER,
             paramset_description={"NORM": {"TYPE": "INTEGER"}},
+            device_type="TEST",
         )
 
         all_paramsets = pdr.get_channel_paramset_descriptions(interface_id=iface, channel_address=ch)
@@ -609,6 +617,7 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT", "MIN": 0.0, "MAX": 1.0}},
+            device_type="TEST",
         )
 
         param_data = pdr.get_parameter_data(
@@ -639,6 +648,7 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}, "STATE": {"TYPE": "BOOL"}},
+            device_type="TEST",
         )
 
         descs = pdr.get_paramset_descriptions(interface_id=iface, channel_address=ch, paramset_key=ParamsetKey.VALUES)
@@ -674,6 +684,7 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"UNIQUE_PARAM": {"TYPE": "STRING"}},
+            device_type="TEST",
         )
 
         assert pdr.is_in_multiple_channels(channel_address=ch, parameter="UNIQUE_PARAM") is False
@@ -709,12 +720,14 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch1,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+            device_type="TEST",
         )
         pdr.add(
             interface_id=iface,
             channel_address=ch2,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"STATE": {"TYPE": "BOOL"}},
+            device_type="TEST",
         )
 
         class _Dev:
@@ -745,6 +758,7 @@ class TestParamsetDescriptionRegistry:
             channel_address=ch1,
             paramset_key=ParamsetKey.VALUES,
             paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+            device_type="TEST",
         )
 
         # Save and reload

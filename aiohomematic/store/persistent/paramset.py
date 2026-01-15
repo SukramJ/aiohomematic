@@ -6,6 +6,18 @@ Paramset description registry for persisting parameter metadata.
 This module provides ParamsetDescriptionRegistry which persists paramset descriptions
 per interface and channel, and offers helpers to query parameters, paramset keys
 and related channel addresses.
+
+Patching System
+---------------
+Some devices return incorrect paramset descriptions from the CCU (e.g., wrong MIN/MAX
+values). This registry applies device-specific patches during ingestion to correct
+these values. Patches are defined in aiohomematic.store.patches.
+
+Cache Strategy
+--------------
+When the schema version is bumped (e.g., to add new patches), the cache is cleared
+and rebuilt from the CCU. This ensures all patches are applied without complex
+migration logic.
 """
 
 from __future__ import annotations
@@ -15,14 +27,16 @@ from collections.abc import Mapping
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from aiohomematic.const import ADDRESS_SEPARATOR, ParameterData, ParamsetKey
+from aiohomematic import i18n
+from aiohomematic.const import ADDRESS_SEPARATOR, DataOperationResult, ParameterData, ParamsetKey
 from aiohomematic.interfaces import ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.schemas import normalize_paramset_description
+from aiohomematic.store.patches import ParamsetPatchMatcher
 from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.store.types import InterfaceParamsetMap
-from aiohomematic.support import get_split_channel_address
+from aiohomematic.support import get_split_channel_address, hash_sha256
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import ConfigProviderProtocol
@@ -36,8 +50,13 @@ class ParamsetDescriptionRegistry(
 ):
     """Registry for paramset descriptions."""
 
-    # Bump version when normalization logic changes
-    SCHEMA_VERSION: int = 2
+    # Bump version when patching logic changes.
+    # When version increases, cache is cleared and rebuilt from CCU.
+    # Version history:
+    #   1: Initial schema
+    #   2: Normalized OPERATIONS and FLAGS to integers
+    #   3: Added paramset patching system for device-specific corrections
+    SCHEMA_VERSION: int = 3
 
     __slots__ = ("_address_parameter_cache",)
 
@@ -61,20 +80,6 @@ class ParamsetDescriptionRegistry(
             storage=storage,
             config_provider=config_provider,
         )
-
-    @staticmethod
-    def _normalize_param_data_v1(*, param_data: dict[str, Any]) -> None:
-        """Normalize parameter data from v1 schema (ensure OPERATIONS and FLAGS are integers)."""
-        if "OPERATIONS" in param_data:
-            try:
-                param_data["OPERATIONS"] = int(param_data["OPERATIONS"] or 0)
-            except (ValueError, TypeError):
-                param_data["OPERATIONS"] = 0
-        if "FLAGS" in param_data:
-            try:
-                param_data["FLAGS"] = int(param_data["FLAGS"] or 0)
-            except (ValueError, TypeError):
-                param_data["FLAGS"] = 0
 
     raw_paramset_descriptions: Final = DelegatedProperty[
         Mapping[str, Mapping[str, Mapping[ParamsetKey, Mapping[str, ParameterData]]]]
@@ -101,12 +106,36 @@ class ParamsetDescriptionRegistry(
         channel_address: str,
         paramset_key: ParamsetKey,
         paramset_description: dict[str, ParameterData],
+        device_type: str,
     ) -> None:
-        """Add paramset description to cache (normalized)."""
-        # Normalize at ingestion
+        """
+        Add paramset description to cache (normalized and patched).
+
+        The paramset description goes through two phases:
+        1. Type normalization (OPERATIONS, FLAGS to integers, etc.)
+        2. Device-specific patching for incorrect values (MIN/MAX fixes, etc.)
+
+        Args:
+            interface_id: Interface identifier.
+            channel_address: Channel address (e.g., "VCU0000001:1").
+            paramset_key: Paramset key (MASTER, VALUES, etc.).
+            paramset_description: Raw paramset description from CCU.
+            device_type: Device TYPE from DeviceDescription for patch matching.
+
+        """
+        # Phase 1: Type normalization
         normalized = normalize_paramset_description(paramset=paramset_description)
-        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = normalized
-        self._add_address_parameter(channel_address=channel_address, paramsets=[normalized])
+
+        # Phase 2: Apply device-specific patches
+        matcher = ParamsetPatchMatcher(device_type=device_type)
+        patched = matcher.apply_patches(
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            paramset_description=normalized,
+        )
+
+        self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = patched
+        self._add_address_parameter(channel_address=channel_address, paramsets=[patched])
 
     def get_channel_addresses_by_paramset_key(
         self, *, interface_id: str, device_address: str
@@ -171,6 +200,59 @@ class ParamsetDescriptionRegistry(
             return len(channels) > 1
         return False
 
+    async def load(self) -> DataOperationResult:
+        """
+        Load content from storage with schema version check.
+
+        If the loaded schema version is older than SCHEMA_VERSION, the cache
+        is cleared and NO_LOAD is returned. This triggers a fresh fetch from
+        the CCU, which will apply all current patches.
+
+        Returns:
+            DataOperationResult indicating success/skip/failure.
+
+        """
+        _LOGGER.debug("PARAMSET_CACHE_LOAD: Starting load for %s", self.storage_key)
+        try:
+            data = await self._storage.load()
+        except Exception:
+            _LOGGER.exception(i18n.tr(key="log.store.paramset.load.failed", storage_key=self.storage_key))
+            return DataOperationResult.LOAD_FAIL
+
+        if data is None:
+            _LOGGER.debug("PARAMSET_CACHE_LOAD: No data found for %s", self.storage_key)
+            return DataOperationResult.NO_LOAD
+
+        # Check schema version - if outdated, clear cache for rebuild from CCU
+        if (loaded_version := data.get("_schema_version", 1)) < self.SCHEMA_VERSION:
+            _LOGGER.info(
+                i18n.tr(
+                    key="log.store.paramset.schema_version_outdated",
+                    loaded_version=loaded_version,
+                    current_version=self.SCHEMA_VERSION,
+                )
+            )
+            await self.clear()
+            return DataOperationResult.NO_LOAD  # Force fresh fetch from CCU
+
+        # Remove schema version before processing
+        data.pop("_schema_version", None)
+
+        _LOGGER.debug(
+            "PARAMSET_CACHE_LOAD: Loaded data for %s (keys: %s)",
+            self.storage_key,
+            list(data.keys()),
+        )
+
+        if (loaded_hash := hash_sha256(value=data)) == self._last_hash_saved:
+            return DataOperationResult.NO_LOAD
+
+        self._content.clear()
+        self._content.update(data)
+        self._process_loaded_content(data=data)
+        self._last_hash_saved = loaded_hash
+        return DataOperationResult.LOAD_SUCCESS
+
     def remove_device(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """Remove device paramset descriptions from cache."""
         if interface := self._raw_paramset_descriptions.get(device.interface_id):
@@ -203,21 +285,14 @@ class ParamsetDescriptionRegistry(
                 self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
 
     def _migrate_schema(self, *, data: dict[str, Any], from_version: int) -> dict[str, Any]:
-        """Migrate paramset descriptions from older schema."""
-        if from_version < 2:
-            # Migration from v1: normalize all parameter data
-            self._migrate_v1_to_v2(data=data)
-        return data
+        """
+        Migrate paramset descriptions from older schema.
 
-    def _migrate_v1_to_v2(self, *, data: dict[str, Any]) -> None:
-        """Migrate paramset descriptions from v1 to v2 schema."""
-        for interface_id, channels in data.items():
-            if interface_id.startswith("_"):
-                continue
-            for paramsets in channels.values():
-                for params in paramsets.values():
-                    for param_data in params.values():
-                        self._normalize_param_data_v1(param_data=param_data)
+        Note: For version < 3, we clear the cache in load() instead of migrating.
+        This method is kept for potential future migrations within version 3+.
+        """
+        # No migrations needed - cache is cleared for version < 3
+        return data
 
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
         """Rebuild indexes from loaded data."""

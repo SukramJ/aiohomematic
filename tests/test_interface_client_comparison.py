@@ -55,6 +55,7 @@ class _FakeParamsetDescriptions:
         channel_address: str,
         paramset_key: ParamsetKey,
         paramset_description: dict[str, Any],
+        device_type: str,  # noqa: ARG002
     ) -> None:
         if interface_id not in self._raw_paramset_descriptions:
             self._raw_paramset_descriptions[interface_id] = {}
@@ -803,9 +804,15 @@ class TestInterfaceClientRequestCoalescing:
 
         # Make multiple concurrent requests for the same paramset
         await asyncio.gather(
-            client.fetch_paramset_description(channel_address="dev1:1", paramset_key=ParamsetKey.VALUES),
-            client.fetch_paramset_description(channel_address="dev1:1", paramset_key=ParamsetKey.VALUES),
-            client.fetch_paramset_description(channel_address="dev1:1", paramset_key=ParamsetKey.VALUES),
+            client.fetch_paramset_description(
+                channel_address="dev1:1", paramset_key=ParamsetKey.VALUES, device_type="TEST"
+            ),
+            client.fetch_paramset_description(
+                channel_address="dev1:1", paramset_key=ParamsetKey.VALUES, device_type="TEST"
+            ),
+            client.fetch_paramset_description(
+                channel_address="dev1:1", paramset_key=ParamsetKey.VALUES, device_type="TEST"
+            ),
         )
 
         # Backend should only be called once due to coalescing

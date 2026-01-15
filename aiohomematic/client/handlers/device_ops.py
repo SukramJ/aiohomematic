@@ -199,13 +199,20 @@ class DeviceHandler(
             _LOGGER.debug("FETCH_DEVICE_DETAILS: Unable to fetch device details via JSON-RPC")
 
     @inspector(re_raise=False)
-    async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
+    async def fetch_paramset_description(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        device_type: str,
+    ) -> None:
         """
         Fetch a single paramset description and add it to the cache.
 
         Args:
             channel_address: Channel address (e.g., "VCU0000001:1").
             paramset_key: Type of paramset (VALUES, MASTER, or LINK).
+            device_type: Device TYPE for patch matching.
 
         """
         _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION: %s for %s", paramset_key, channel_address)
@@ -219,6 +226,7 @@ class DeviceHandler(
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 paramset_description=paramset_description,
+                device_type=device_type,
             )
 
     @inspector(re_raise=False)
@@ -240,6 +248,10 @@ class DeviceHandler(
                 ADDRESS and PARAMSETS fields.
 
         """
+        # For channels, use PARENT_TYPE (root device TYPE) for patch matching.
+        # Root devices don't have PARENT_TYPE, so fall back to TYPE.
+        device_type = device_description.get("PARENT_TYPE") or device_description["TYPE"]
+
         data = await self.get_paramset_descriptions(device_description=device_description)
         for address, paramsets in data.items():
             _LOGGER.debug("FETCH_PARAMSET_DESCRIPTIONS for %s", address)
@@ -249,6 +261,7 @@ class DeviceHandler(
                     channel_address=address,
                     paramset_key=paramset_key,
                     paramset_description=paramset_description,
+                    device_type=device_type,
                 )
 
     @inspector(re_raise=False)

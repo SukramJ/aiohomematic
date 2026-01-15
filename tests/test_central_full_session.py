@@ -171,7 +171,7 @@ class TestCentralFullSession:
                 source_roles.update(ch._link_source_roles)
 
         for dev in central.device_registry.devices:
-            if dev.model == "HmIP-WRCD":
+            if dev.model == "HM-CC-VG-1":
                 pass
 
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 277

@@ -423,11 +423,18 @@ class ClientCCU(ClientProtocol, LogContextMixin):
         """Get all names via JSON-RPS and store in data.NAMES."""
         return await self._device_ops_handler.fetch_device_details()
 
-    async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
+    async def fetch_paramset_description(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        device_type: str,
+    ) -> None:
         """Fetch a specific paramset and add it to the known ones."""
         return await self._device_ops_handler.fetch_paramset_description(
             channel_address=channel_address,
             paramset_key=paramset_key,
+            device_type=device_type,
         )
 
     async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
@@ -1177,8 +1184,22 @@ class ClientJsonCCU(ClientCCU):
             )
             return False
 
-    async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
-        """Fetch a specific paramset and add it to the known ones."""
+    async def fetch_paramset_description(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        device_type: str,
+    ) -> None:
+        """
+        Fetch a specific paramset and add it to the known ones.
+
+        Args:
+            channel_address: Channel address (e.g., "VCU0000001:1").
+            paramset_key: Type of paramset (VALUES, MASTER, or LINK).
+            device_type: Device TYPE for patch matching.
+
+        """
         _LOGGER.debug("FETCH_PARAMSET_DESCRIPTION for %s/%s", channel_address, paramset_key)
         # Note: paramset_description can be an empty dict {} which is valid
         # (e.g., HmIP base device MASTER paramsets have no parameters)
@@ -1192,10 +1213,15 @@ class ClientJsonCCU(ClientCCU):
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 paramset_description=paramset_description,
+                device_type=device_type,
             )
 
     async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
+        # For channels, use PARENT_TYPE (root device TYPE) for patch matching.
+        # Root devices don't have PARENT_TYPE, so fall back to TYPE.
+        device_type = device_description.get("PARENT_TYPE") or device_description["TYPE"]
+
         data = await self.get_paramset_descriptions(device_description=device_description)
         for address, paramsets in data.items():
             _LOGGER.debug("FETCH_PARAMSET_DESCRIPTIONS for %s", address)
@@ -1205,6 +1231,7 @@ class ClientJsonCCU(ClientCCU):
                     channel_address=address,
                     paramset_key=paramset_key,
                     paramset_description=paramset_description,
+                    device_type=device_type,
                 )
 
     @inspector(re_raise=False)

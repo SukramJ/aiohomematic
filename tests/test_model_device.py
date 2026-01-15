@@ -615,7 +615,12 @@ class TestDeviceDataPoints:
         # reload paramset descriptions triggers client/central calls and dp updates
         called: dict[str, int] = {"fetch": 0, "save": 0}
 
-        async def fake_fetch_paramset_description(*, channel_address: str, paramset_key: ParamsetKey) -> None:
+        async def fake_fetch_paramset_description(
+            *,
+            channel_address: str,
+            paramset_key: ParamsetKey,
+            device_type: str,  # noqa: ARG002
+        ) -> None:
             called["fetch"] += 1
 
         async def fake_save_files(*, save_paramset_descriptions: bool) -> None:

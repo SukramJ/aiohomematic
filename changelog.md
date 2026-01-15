@@ -1,3 +1,34 @@
+# Version 2026.1.39 (2026-01-15)
+
+## What's Changed
+
+### Added
+
+- **Paramset description patching system**: Added a generic mechanism to patch incorrect `paramset_descriptions` returned by the CCU. Some devices return wrong parameter metadata (e.g., HM-CC-VG-1 with invalid MIN/MAX for SET_TEMPERATURE). The patching system:
+
+  - Applies device-specific corrections during data ingestion (not on cache load)
+  - Uses declarative patch definitions in `aiohomematic/store/patches/`
+  - Matches patches by device_type, channel_no, paramset_key, and parameter
+  - Automatically rebuilds cache when schema version changes (bumped to v3)
+
+  New modules:
+
+  - `ParamsetPatch`: Dataclass defining a patch (device_type, channel_no, paramset_key, parameter, patches, reason)
+  - `ParamsetPatchMatcher`: O(1) lookup matcher that applies patches to parameter data
+  - `PARAMSET_PATCHES`: Registry of all defined patches
+
+  Initial patch:
+
+  - **HM-CC-VG-1** channel 1 `SET_TEMPERATURE`: Fixes MIN/MAX from incorrect CCU values to 4.5/30.5
+
+### Fixed
+
+- **Paramset patching now works for channel paramsets**: Fixed two issues that prevented patches from being applied to channel paramset descriptions:
+  - Device type comparison is now case-insensitive (consistent with rest of codebase)
+  - Channel paramsets now use `PARENT_TYPE` (root device type) for patch matching instead of channel TYPE
+
+---
+
 # Version 2026.1.38 (2026-01-14)
 
 ## What's Changed

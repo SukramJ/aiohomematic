@@ -247,7 +247,8 @@ class _FakeParamsetDescriptions:
         channel_address: str,
         paramset_key: ParamsetKey,
         paramset_description: dict[str, Any],
-    ) -> None:  # noqa: D401,ARG002
+        device_type: str,  # noqa: ARG002
+    ) -> None:  # noqa: D401
         """Add a paramset description to the cache."""
         if interface_id not in self._raw_paramset_descriptions:
             self._raw_paramset_descriptions[interface_id] = {}
@@ -976,12 +977,14 @@ class TestClientClasses:
 
         # Test fetch_paramset_description - should use JSON-RPC and store in cache
         json_rpc_calls.clear()
-        await client_json.fetch_paramset_description(channel_address="dev4:1", paramset_key=ParamsetKey.VALUES)
+        await client_json.fetch_paramset_description(
+            channel_address="dev4:1", paramset_key=ParamsetKey.VALUES, device_type="TEST_DEVICE"
+        )
         assert "get_paramset_description:dev4:1:VALUES" in json_rpc_calls
 
         # Test fetch_paramset_descriptions - should use JSON-RPC
         json_rpc_calls.clear()
-        device_desc = {"ADDRESS": "dev5:1", "PARAMSETS": ["VALUES", "MASTER"]}
+        device_desc = {"ADDRESS": "dev5:1", "PARAMSETS": ["VALUES", "MASTER"], "TYPE": "TEST_DEVICE"}
         await client_json.fetch_paramset_descriptions(device_description=device_desc)  # type: ignore[arg-type]
         assert "get_paramset_description:dev5:1:VALUES" in json_rpc_calls
         assert "get_paramset_description:dev5:1:MASTER" in json_rpc_calls

@@ -386,8 +386,22 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                             address=channel_address, rega_id=channel["id"]
                         )
 
-    async def fetch_paramset_description(self, *, channel_address: str, paramset_key: ParamsetKey) -> None:
-        """Fetch a specific paramset and add it to the known ones."""
+    async def fetch_paramset_description(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        device_type: str,
+    ) -> None:
+        """
+        Fetch a specific paramset and add it to the known ones.
+
+        Args:
+            channel_address: Channel address (e.g., "VCU0000001:1").
+            paramset_key: Type of paramset (VALUES, MASTER, or LINK).
+            device_type: Device TYPE for patch matching.
+
+        """
         # Note: paramset_description can be an empty dict {} which is valid
         # (e.g., HmIP base device MASTER paramsets have no parameters)
         paramset_description = await self._get_paramset_description(address=channel_address, paramset_key=paramset_key)
@@ -397,10 +411,15 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 channel_address=channel_address,
                 paramset_key=paramset_key,
                 paramset_description=paramset_description,
+                device_type=device_type,
             )
 
     async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
+        # For channels, use PARENT_TYPE (root device TYPE) for patch matching.
+        # Root devices don't have PARENT_TYPE, so fall back to TYPE.
+        device_type = device_description.get("PARENT_TYPE") or device_description["TYPE"]
+
         data = await self.get_paramset_descriptions(device_description=device_description)
         for address, paramsets in data.items():
             for paramset_key, paramset_description in paramsets.items():
@@ -409,6 +428,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     channel_address=address,
                     paramset_key=paramset_key,
                     paramset_description=paramset_description,
+                    device_type=device_type,
                 )
 
     async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:

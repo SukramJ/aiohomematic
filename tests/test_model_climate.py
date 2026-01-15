@@ -157,6 +157,31 @@ class TestCustomDpSimpleRfThermostat:
         await climate.disable_away_mode()
         assert mock_client.method_calls[-1] == last_call
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cethermostatgroup(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test CustomDpSimpleRfThermostat."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpSimpleRfThermostat = cast(
+            CustomDpSimpleRfThermostat, get_prepared_custom_data_point(central, "INT0000001", 1)
+        )
+        assert climate.usage == DataPointUsage.CDP_PRIMARY
+        assert climate._dp_setpoint.min == 4.5
+        assert climate._dp_setpoint.max == 30.5
+
 
 class TestCustomDpRfThermostat:
     """Tests for CustomDpRfThermostat data points."""

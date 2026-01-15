@@ -1218,7 +1218,10 @@ class ClientJsonCCU(ClientCCU):
 
     async def fetch_paramset_descriptions(self, *, device_description: DeviceDescription) -> None:
         """Fetch paramsets for provided device description."""
-        device_type = device_description["TYPE"]
+        # For channels, use PARENT_TYPE (root device TYPE) for patch matching.
+        # Root devices don't have PARENT_TYPE, so fall back to TYPE.
+        device_type = device_description.get("PARENT_TYPE") or device_description["TYPE"]
+
         data = await self.get_paramset_descriptions(device_description=device_description)
         for address, paramsets in data.items():
             _LOGGER.debug("FETCH_PARAMSET_DESCRIPTIONS for %s", address)

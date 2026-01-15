@@ -21,6 +21,12 @@
 
   - **HM-CC-VG-1** channel 1 `SET_TEMPERATURE`: Fixes MIN/MAX from incorrect CCU values to 4.5/30.5
 
+### Fixed
+
+- **Paramset patching now works for channel paramsets**: Fixed two issues that prevented patches from being applied to channel paramset descriptions:
+  - Device type comparison is now case-insensitive (consistent with rest of codebase)
+  - Channel paramsets now use `PARENT_TYPE` (root device type) for patch matching instead of channel TYPE
+
 ---
 
 # Version 2026.1.38 (2026-01-14)

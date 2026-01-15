@@ -45,6 +45,7 @@ class ParamsetPatchMatcher:
         """
         self._device_type: Final = device_type
         # Pre-filter patches for this device type for O(1) lookup
+        # Note: Parameter is StrEnum, so it's compatible with str for dict lookup
         self._patches_by_key: Final[dict[tuple[int | None, ParamsetKey | None, str], ParamsetPatch]] = {
             (p.channel_no, p.paramset_key, p.parameter): p for p in PARAMSET_PATCHES if p.device_type == device_type
         }

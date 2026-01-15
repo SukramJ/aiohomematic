@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Final
 
-from aiohomematic.const import ParamsetKey
+from aiohomematic.const import Parameter, ParamsetKey
 
 __all__ = [
     "PARAMSET_PATCHES",
@@ -43,8 +43,8 @@ class ParamsetPatch:
     paramset_key: ParamsetKey | None
     """Paramset key to match. None matches all paramset keys."""
 
-    parameter: str
-    """Parameter name to match (e.g., "SET_TEMPERATURE")."""
+    parameter: Parameter
+    """Parameter to match (e.g., Parameter.SET_TEMPERATURE)."""
 
     # Fields to patch
     patches: dict[str, Any]
@@ -80,7 +80,7 @@ PARAMSET_PATCHES: Final[tuple[ParamsetPatch, ...]] = (
         device_type="HM-CC-VG-1",
         channel_no=1,
         paramset_key=ParamsetKey.VALUES,
-        parameter="SET_TEMPERATURE",
+        parameter=Parameter.SET_TEMPERATURE,
         patches={"MIN": 4.5, "MAX": 30.5},
         reason="CCU returns invalid MIN/MAX bounds for virtual heating groups",
         ticket=None,

@@ -350,7 +350,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
                 repetitions: 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST).
 
         """
-        soundfile = kwargs.get("soundfile", "INTERNAL_SOUNDFILE")
+        soundfile = kwargs.get("soundfile") or self._dp_soundfile.value or self._dp_soundfile.default
         volume = kwargs.get("volume", 0.5)
         on_time = kwargs.get("on_time", 10.0)
         ramp_time = kwargs.get("ramp_time", 0.0)

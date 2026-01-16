@@ -33,6 +33,8 @@
 
 - **Coordinated cache clearing on version mismatch**: Fixed an issue where only one cache (device or paramset descriptions) would be cleared when its schema version was incremented. Now when either `DeviceDescriptionRegistry` or `ParamsetDescriptionRegistry` detects a version mismatch, **both** caches are cleared together via `CacheCoordinator.load_all()`, which returns `False` to signal that both caches need to be rebuilt from CCU. Additionally, both registries now override `clear()` to also clear their internal index structures (`_addresses`, `_device_descriptions`, `_address_parameter_cache`), ensuring complete cache invalidation. This prevents scenarios where one cache's index data could remain in memory after clearing, causing incomplete rebuilds. Added new `DataOperationResult.VERSION_MISMATCH` enum value to signal version mismatches for coordinated handling.
 
+- **Sound player soundfile default handling**: Fixed `CustomDpSoundPlayer.turn_on()` to use the entity's current value or default as fallback when `soundfile` parameter is not explicitly provided, instead of always defaulting to `"INTERNAL_SOUNDFILE"`. Also moved `SOUNDFILE` to `visible_fields` in `IP_SOUND_PLAYER_CONFIG` profile configuration.
+
 ---
 
 # Version 2026.1.39 (2026-01-15)

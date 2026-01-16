@@ -660,6 +660,8 @@ IP_SOUND_PLAYER_CONFIG: Final = ProfileConfig(
             Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
             Field.REPETITIONS: Parameter.REPETITIONS,
+        },
+        visible_fields={
             Field.SOUNDFILE: Parameter.SOUNDFILE,
         },
     ),

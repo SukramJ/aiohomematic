@@ -142,10 +142,11 @@ class BasePersistentCache(ABC):
 
         After loading, calls _process_loaded_content to rebuild any
         derived structures or indexes. If the loaded schema version is
-        older than the current SCHEMA_VERSION, _migrate_schema is called.
+        older than the current SCHEMA_VERSION, VERSION_MISMATCH is returned
+        to signal that the cache should be rebuilt.
 
         Returns:
-            DataOperationResult indicating success/skip/failure.
+            DataOperationResult indicating success/skip/failure/version_mismatch.
 
         """
         _LOGGER.debug("CACHE_LOAD: Starting load for %s", self.storage_key)
@@ -161,9 +162,18 @@ class BasePersistentCache(ABC):
 
         _LOGGER.debug("CACHE_LOAD: Loaded data for %s (keys: %s)", self.storage_key, list(data.keys()))
 
-        # Check and migrate schema version
-        if (loaded_version := data.pop("_schema_version", 1)) < self.SCHEMA_VERSION:
-            data = self._migrate_schema(data=data, from_version=loaded_version)
+        # Check schema version - if outdated, return VERSION_MISMATCH for coordinated cache clearing
+        if (loaded_version := data.get("_schema_version", 1)) < self.SCHEMA_VERSION:
+            _LOGGER.info(  # i18n-log: ignore
+                "CACHE_LOAD: Schema version outdated for %s (loaded=%s, current=%s)",
+                self.storage_key,
+                loaded_version,
+                self.SCHEMA_VERSION,
+            )
+            return DataOperationResult.VERSION_MISMATCH
+
+        # Remove schema version before processing
+        data.pop("_schema_version", None)
 
         if (loaded_hash := hash_sha256(value=data)) == self._last_hash_saved:
             return DataOperationResult.NO_LOAD
@@ -243,8 +253,10 @@ class BasePersistentCache(ABC):
         """
         Migrate data from older schema version.
 
-        Subclasses override to implement version-specific migrations.
-        Default implementation returns data unchanged.
+        Note: This method is no longer called by the base load() implementation.
+        Schema version mismatches now trigger coordinated cache clearing via
+        VERSION_MISMATCH result. This method is kept for backward compatibility
+        but should not be relied upon.
 
         Args:
             data: Raw data loaded from storage.

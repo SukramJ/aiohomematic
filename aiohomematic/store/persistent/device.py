@@ -181,19 +181,6 @@ class DeviceDescriptionRegistry(
         """Create empty content structure."""
         return defaultdict(list)
 
-    def _migrate_schema(self, *, data: dict[str, Any], from_version: int) -> dict[str, Any]:
-        """Migrate device descriptions from older schema."""
-        if from_version < 2:
-            # Migration from v1: normalize all CHILDREN fields
-            for interface_id, descriptions in data.items():
-                if interface_id.startswith("_"):
-                    continue
-                for desc in descriptions:
-                    children = desc.get("CHILDREN")
-                    if children is None or isinstance(children, str):
-                        desc["CHILDREN"] = []
-        return data
-
     def _process_device_description(self, *, interface_id: str, device_description: DeviceDescription) -> None:
         """Convert provided dict of device descriptions."""
         address = device_description["ADDRESS"]

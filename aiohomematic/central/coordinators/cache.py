@@ -299,6 +299,10 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
         """
         Load all persistent caches from disk.
 
+        If either device or paramset cache has a version mismatch, both caches
+        are cleared to ensure consistency. This guarantees that both caches
+        are always rebuilt together when any schema version changes.
+
         Returns
         -------
             True if loading succeeded, False if any cache failed to load
@@ -306,16 +310,26 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
         """
         _LOGGER.debug("LOAD_ALL: Loading caches for %s", self._central_info.name)
 
-        if DataOperationResult.LOAD_FAIL in (
-            await self._device_descriptions_registry.load(),
-            await self._paramset_descriptions_registry.load(),
-        ):
+        device_result = await self._device_descriptions_registry.load()
+        paramset_result = await self._paramset_descriptions_registry.load()
+
+        # Check for load failures
+        if DataOperationResult.LOAD_FAIL in (device_result, paramset_result):
             _LOGGER.warning(  # i18n-log: ignore
                 "LOAD_ALL failed: Unable to load caches for %s. Clearing files",
                 self._central_info.name,
             )
             await self.clear_all()
             return False
+
+        # Check for version mismatch - clear BOTH caches if either has version mismatch
+        if DataOperationResult.VERSION_MISMATCH in (device_result, paramset_result):
+            _LOGGER.info(  # i18n-log: ignore
+                "LOAD_ALL: Schema version mismatch detected for %s. Clearing both caches for rebuild",
+                self._central_info.name,
+            )
+            await self.clear_all()
+            return True  # Not a failure, just needs rebuild
 
         await self._device_details_cache.load()
         await self._data_cache.load()

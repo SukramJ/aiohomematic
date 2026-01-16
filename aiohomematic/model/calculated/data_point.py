@@ -13,6 +13,8 @@ from datetime import datetime
 import logging
 from typing import Final, Unpack, cast
 
+from slugify import slugify
+
 from aiohomematic.const import (
     INIT_DATETIME,
     CalculatedParameter,
@@ -188,6 +190,11 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return any(dp.state_uncertain for dp in self._relevant_data_points)
+
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return slugify(self._calculated_parameter.replace(".", "_"))
 
     @state_property
     def modified_at(self) -> datetime:

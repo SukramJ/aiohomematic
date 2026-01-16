@@ -109,6 +109,11 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         """Return if the state is uncertain."""
         return False
 
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return "install_mode"
+
     @config_property
     def description(self) -> str | None:
         """Return description."""

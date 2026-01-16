@@ -275,6 +275,11 @@ class GenericHubDataPointProtocol(CallbackDataPointProtocol, Protocol):
     def state_uncertain(self) -> bool:
         """Return if the state is uncertain."""
 
+    @property
+    @abstractmethod
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+
 
 @runtime_checkable
 class GenericSysvarDataPointProtocol(GenericHubDataPointProtocol, Protocol):
@@ -1077,6 +1082,11 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     def state_uncertain(self) -> bool:
         """Return if the state is uncertain."""
+
+    @property
+    @abstractmethod
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
 
     @property
     @abstractmethod

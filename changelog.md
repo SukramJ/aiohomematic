@@ -2,6 +2,20 @@
 
 ## What's Changed
 
+### Added
+
+- **translation_key for data points**: Added `translation_key` property to enable translations for data points that previously lacked this feature. Now all data point types provide a consistent `translation_key`:
+  - `GenericHubDataPointProtocol` and `CalculatedDataPointProtocol` now require `translation_key`
+  - `BaseParameterDataPoint`: Derived from parameter name (existing, e.g., `set_point_temperature`)
+  - `GenericHubDataPoint`: Uses category value (e.g., `hub_sensor`, `hub_button`)
+  - `HmInboxSensor`: `"inbox"`
+  - `HmUpdate`: `"system_update"`
+  - `_BaseMetricsSensor`: Derived from sensor name (e.g., `system_health`, `connection_latency`, `last_event_age`)
+  - `HmInterfaceConnectivitySensor`: `"interface_connectivity"`
+  - `_BaseInstallModeDataPoint`: `"install_mode"`
+  - `DpUpdate`: `"device_update"`
+  - `CalculatedDataPoint`: Derived from calculated parameter name
+
 ### Changed
 
 - **ChannelEventGroup as virtual data point**: Refactored `ChannelEventGroup` from a helper class to a virtual data point bound to the Channel. Event groups are now created during `Channel.finalize_init()` and internally subscribe to all `GenericEvent`s on the channel. Key changes:

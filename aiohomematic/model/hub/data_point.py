@@ -109,6 +109,11 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
     name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
 
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return self._category.value
+
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""

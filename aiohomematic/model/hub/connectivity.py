@@ -159,6 +159,11 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
         """Return the original name."""
         return None
 
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return "interface_connectivity"
+
     @state_property
     def value(self) -> bool:
         """Return True if interface is connected."""

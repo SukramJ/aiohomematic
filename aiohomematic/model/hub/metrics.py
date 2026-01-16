@@ -129,6 +129,11 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         """Return the original name."""
         return None
 
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return slugify(self._sensor_name).replace("-", "_")
+
     @state_property
     def value(self) -> float:
         """Return the system health score as percentage (0-100)."""

@@ -30,7 +30,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install anthropic PyGithub
+          pip install anthropic PyGithub requests
 
       - name: Analyze issue and post comment
         env:

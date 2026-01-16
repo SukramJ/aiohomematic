@@ -105,6 +105,12 @@ class DeviceDescriptionRegistry(
         )
         self._process_device_description(interface_id=interface_id, device_description=normalized)
 
+    async def clear(self) -> None:
+        """Remove storage and clear all content including indexes."""
+        await super().clear()
+        self._addresses.clear()
+        self._device_descriptions.clear()
+
     def find_device_description(self, *, interface_id: str, device_address: str) -> DeviceDescription | None:
         """Return the device description by interface and device_address."""
         return self._device_descriptions[interface_id].get(device_address)

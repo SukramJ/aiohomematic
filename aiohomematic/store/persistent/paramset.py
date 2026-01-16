@@ -136,6 +136,11 @@ class ParamsetDescriptionRegistry(
         self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = patched
         self._add_address_parameter(channel_address=channel_address, paramsets=[patched])
 
+    async def clear(self) -> None:
+        """Remove storage and clear all content including indexes."""
+        await super().clear()
+        self._address_parameter_cache.clear()
+
     def get_channel_addresses_by_paramset_key(
         self, *, interface_id: str, device_address: str
     ) -> Mapping[ParamsetKey, list[str]]:

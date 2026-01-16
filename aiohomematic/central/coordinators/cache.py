@@ -305,7 +305,8 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
 
         Returns
         -------
-            True if loading succeeded, False if any cache failed to load
+            True if loading succeeded and data is available,
+            False if caches need to be rebuilt (load failure or version mismatch)
 
         """
         _LOGGER.debug("LOAD_ALL: Loading caches for %s", self._central_info.name)
@@ -329,7 +330,7 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
                 self._central_info.name,
             )
             await self.clear_all()
-            return True  # Not a failure, just needs rebuild
+            return False  # Signal that caches need to be rebuilt from CCU
 
         await self._device_details_cache.load()
         await self._data_cache.load()

@@ -412,6 +412,9 @@ log_format = "%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(name)s:%(
 log_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 filterwarnings = [
     # pydevccu's _askDevices thread may try to contact central after it's stopped

@@ -35,6 +35,18 @@ from tests.helpers.mock_xml_rpc import MockXmlRpcServer
 
 logging.basicConfig(level=logging.INFO)
 
+
+class _UnclosedSessionFilter(logging.Filter):
+    """Filter out 'Unclosed client session' messages from asyncio during test shutdown."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Return False to suppress the message."""
+        return "Unclosed client session" not in record.getMessage()
+
+
+# Suppress harmless asyncio warnings about unclosed sessions during xdist worker shutdown
+logging.getLogger("asyncio").addFilter(_UnclosedSessionFilter())
+
 # pylint: disable=protected-access, redefined-outer-name
 
 

@@ -713,6 +713,7 @@ class DataOperationResult(Enum):
 
     LOAD_FAIL = 0
     LOAD_SUCCESS = 1
+    VERSION_MISMATCH = 2
     SAVE_FAIL = 10
     SAVE_SUCCESS = 11
     NO_LOAD = 20

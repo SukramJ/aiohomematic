@@ -27,8 +27,7 @@ from collections.abc import Mapping
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from aiohomematic import i18n
-from aiohomematic.const import ADDRESS_SEPARATOR, DataOperationResult, ParameterData, ParamsetKey
+from aiohomematic.const import ADDRESS_SEPARATOR, ParameterData, ParamsetKey
 from aiohomematic.interfaces import ParamsetDescriptionProviderProtocol, ParamsetDescriptionWriterProtocol
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.property_decorators import DelegatedProperty
@@ -36,7 +35,7 @@ from aiohomematic.schemas import normalize_paramset_description
 from aiohomematic.store.patches import ParamsetPatchMatcher
 from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.store.types import InterfaceParamsetMap
-from aiohomematic.support import get_split_channel_address, hash_sha256
+from aiohomematic.support import get_split_channel_address
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import ConfigProviderProtocol
@@ -200,59 +199,6 @@ class ParamsetDescriptionRegistry(
             return len(channels) > 1
         return False
 
-    async def load(self) -> DataOperationResult:
-        """
-        Load content from storage with schema version check.
-
-        If the loaded schema version is older than SCHEMA_VERSION, the cache
-        is cleared and NO_LOAD is returned. This triggers a fresh fetch from
-        the CCU, which will apply all current patches.
-
-        Returns:
-            DataOperationResult indicating success/skip/failure.
-
-        """
-        _LOGGER.debug("PARAMSET_CACHE_LOAD: Starting load for %s", self.storage_key)
-        try:
-            data = await self._storage.load()
-        except Exception:
-            _LOGGER.exception(i18n.tr(key="log.store.paramset.load.failed", storage_key=self.storage_key))
-            return DataOperationResult.LOAD_FAIL
-
-        if data is None:
-            _LOGGER.debug("PARAMSET_CACHE_LOAD: No data found for %s", self.storage_key)
-            return DataOperationResult.NO_LOAD
-
-        # Check schema version - if outdated, clear cache for rebuild from CCU
-        if (loaded_version := data.get("_schema_version", 1)) < self.SCHEMA_VERSION:
-            _LOGGER.info(
-                i18n.tr(
-                    key="log.store.paramset.schema_version_outdated",
-                    loaded_version=loaded_version,
-                    current_version=self.SCHEMA_VERSION,
-                )
-            )
-            await self.clear()
-            return DataOperationResult.NO_LOAD  # Force fresh fetch from CCU
-
-        # Remove schema version before processing
-        data.pop("_schema_version", None)
-
-        _LOGGER.debug(
-            "PARAMSET_CACHE_LOAD: Loaded data for %s (keys: %s)",
-            self.storage_key,
-            list(data.keys()),
-        )
-
-        if (loaded_hash := hash_sha256(value=data)) == self._last_hash_saved:
-            return DataOperationResult.NO_LOAD
-
-        self._content.clear()
-        self._content.update(data)
-        self._process_loaded_content(data=data)
-        self._last_hash_saved = loaded_hash
-        return DataOperationResult.LOAD_SUCCESS
-
     def remove_device(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """Remove device paramset descriptions from cache."""
         if interface := self._raw_paramset_descriptions.get(device.interface_id):
@@ -283,16 +229,6 @@ class ParamsetDescriptionRegistry(
         for channel_paramsets in self._raw_paramset_descriptions.values():
             for channel_address, paramsets in channel_paramsets.items():
                 self._add_address_parameter(channel_address=channel_address, paramsets=list(paramsets.values()))
-
-    def _migrate_schema(self, *, data: dict[str, Any], from_version: int) -> dict[str, Any]:
-        """
-        Migrate paramset descriptions from older schema.
-
-        Note: For version < 3, we clear the cache in load() instead of migrating.
-        This method is kept for potential future migrations within version 3+.
-        """
-        # No migrations needed - cache is cleared for version < 3
-        return data
 
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:
         """Rebuild indexes from loaded data."""

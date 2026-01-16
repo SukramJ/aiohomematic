@@ -289,15 +289,16 @@ class TestDeviceDescriptionRegistry:
         cache_dir = tmp_path / SUB_DIRECTORY_CACHE
         cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create plain JSON content
+        # Create plain JSON content with current schema version
         plain_json = cache_dir / "plain.json"
         with open(plain_json, "w", encoding="utf-8") as fp:
             json.dump(
                 {
+                    "_schema_version": DeviceDescriptionRegistry.SCHEMA_VERSION,
                     iface: [
                         {"ADDRESS": dev_addr, "CHILDREN": [ch_addr], "TYPE": "HM-TEST"},
                         {"ADDRESS": ch_addr, "CHILDREN": [], "TYPE": "HM-TEST-CH"},
-                    ]
+                    ],
                 },
                 fp,
             )
@@ -333,6 +334,48 @@ class TestDeviceDescriptionRegistry:
         )
         # Storage returns None for missing file, cache returns NO_LOAD
         assert await ddr.load() == DataOperationResult.NO_LOAD
+
+    @pytest.mark.asyncio
+    async def test_load_version_mismatch(self, tmp_path) -> None:
+        """Test that load returns VERSION_MISMATCH when schema version is outdated."""
+        central = _CentralStub("Test Central", str(tmp_path))
+        iface = "if1"
+        dev_addr = "DEV123"
+        ch_addr = f"{dev_addr}{ADDRESS_SEPARATOR}1"
+
+        # Create cache directory and ZIP file with OLD schema version
+        cache_dir = tmp_path / SUB_DIRECTORY_CACHE
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create plain JSON content with old schema version (1 instead of current)
+        plain_json = cache_dir / "plain.json"
+        with open(plain_json, "w", encoding="utf-8") as fp:
+            json.dump(
+                {
+                    "_schema_version": 1,  # Old version
+                    iface: [
+                        {"ADDRESS": dev_addr, "CHILDREN": [ch_addr], "TYPE": "HM-TEST"},
+                        {"ADDRESS": ch_addr, "CHILDREN": [], "TYPE": "HM-TEST-CH"},
+                    ],
+                },
+                fp,
+            )
+
+        # Create ZIP at expected storage path
+        zip_path = cache_dir / "test-central_homematic_devices.json.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.write(plain_json, arcname="data.json")
+
+        ddr = DeviceDescriptionRegistry(
+            storage=central.create_device_storage(),
+            config_provider=central,
+        )
+        load_result = await ddr.load()
+        # Should return VERSION_MISMATCH, not load data with old schema
+        assert load_result == DataOperationResult.VERSION_MISMATCH
+
+        # Registry should be empty since data wasn't loaded
+        assert iface not in ddr.get_interface_ids()
 
     @pytest.mark.asyncio
     async def test_load_with_caches_disabled(self, tmp_path) -> None:

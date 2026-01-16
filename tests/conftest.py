@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator, Generator
 import logging
 from typing import TYPE_CHECKING
@@ -34,7 +35,24 @@ from tests.helpers.mock_xml_rpc import MockXmlRpcServer
 
 logging.basicConfig(level=logging.INFO)
 
+
+class _UnclosedSessionFilter(logging.Filter):
+    """Filter out 'Unclosed client session' messages from asyncio during test shutdown."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Return False to suppress the message."""
+        return "Unclosed client session" not in record.getMessage()
+
+
+# Suppress harmless asyncio warnings about unclosed sessions during xdist worker shutdown
+logging.getLogger("asyncio").addFilter(_UnclosedSessionFilter())
+
 # pylint: disable=protected-access, redefined-outer-name
+
+
+def _load_session_player_sync(file_name: str) -> SessionPlayer:
+    """Load SessionPlayer synchronously for session-scoped fixtures."""
+    return asyncio.run(get_session_player(file_name=file_name))
 
 
 @pytest.fixture(autouse=True)
@@ -43,18 +61,45 @@ def teardown():
     patch.stopall()
 
 
+# Session-scoped SessionPlayer fixtures
+# These are loaded once per test session and shared across all tests.
+# SessionPlayer uses a class-level cache, so sharing instances is safe.
+
+
+@pytest.fixture(scope="session")
+def session_player_ccu() -> SessionPlayer:
+    """
+    Provide a SessionPlayer preloaded from the CCU session file.
+
+    Session-scoped for performance: ZIP file is loaded once per test session.
+    SessionPlayer uses class-level caching, so data is shared safely.
+    """
+    return _load_session_player_sync(const.FULL_SESSION_RANDOMIZED_CCU)
+
+
+@pytest.fixture(scope="session")
+def session_player_pydevccu() -> SessionPlayer:
+    """
+    Provide a SessionPlayer preloaded from the pydevccu/Homegear session file.
+
+    Session-scoped for performance: ZIP file is loaded once per test session.
+    SessionPlayer uses class-level caching, so data is shared safely.
+    """
+    return _load_session_player_sync(const.FULL_SESSION_RANDOMIZED_PYDEVCCU)
+
+
 # CCU client fixtures
 
 
 @pytest.fixture
-async def factory_with_ccu_client(session_player_ccu) -> FactoryWithClient:
+async def factory_with_ccu_client(session_player_ccu: SessionPlayer) -> FactoryWithClient:
     """Return central factory."""
     return FactoryWithClient(player=session_player_ccu)
 
 
 @pytest.fixture
 async def central_client_factory_with_ccu_client(
-    session_player_ccu,
+    session_player_ccu: SessionPlayer,
     address_device_translation: set[str],
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
@@ -72,24 +117,18 @@ async def central_client_factory_with_ccu_client(
         yield result
 
 
-@pytest.fixture
-async def session_player_ccu() -> SessionPlayer:
-    """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
-    return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_CCU)
-
-
 # Homegear/pydevccu client fixtures
 
 
 @pytest.fixture
-async def factory_with_homegear_client(session_player_pydevccu) -> FactoryWithClient:
+async def factory_with_homegear_client(session_player_pydevccu: SessionPlayer) -> FactoryWithClient:
     """Return central factory."""
     return FactoryWithClient(player=session_player_pydevccu)
 
 
 @pytest.fixture
 async def central_client_factory_with_homegear_client(
-    session_player_pydevccu,
+    session_player_pydevccu: SessionPlayer,
     address_device_translation: set[str],
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
@@ -105,12 +144,6 @@ async def central_client_factory_with_homegear_client(
         un_ignore_list=un_ignore_list,
     ):
         yield result
-
-
-@pytest.fixture
-async def session_player_pydevccu() -> SessionPlayer:
-    """Provide a SessionPlayer preloaded from the randomized full session JSON file."""
-    return await get_session_player(file_name=const.FULL_SESSION_RANDOMIZED_PYDEVCCU)
 
 
 # homegear mini fixtures

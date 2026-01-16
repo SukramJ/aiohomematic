@@ -35,8 +35,8 @@ jobs:
           AIOHOMEMATIC_USE_INTERFACE_CLIENT: "1"
         run: |
           echo "Testing with InterfaceClient enabled"
-          time pytest tests/ --asyncio-mode=legacy
+          time pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy
       - name: Run tests (legacy client)
         env:
           AIOHOMEMATIC_USE_INTERFACE_CLIENT: "0"
-        run: time pytest tests/ --asyncio-mode=legacy
+        run: time pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy

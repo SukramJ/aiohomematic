@@ -35,6 +35,10 @@
 
 - **Sound player soundfile default handling**: Fixed `CustomDpSoundPlayer.turn_on()` to use the entity's current value or default as fallback when `soundfile` parameter is not explicitly provided, instead of always defaulting to `"INTERNAL_SOUNDFILE"`. Also moved `SOUNDFILE` to `visible_fields` in `IP_SOUND_PLAYER_CONFIG` profile configuration.
 
+### Developer
+
+- **Parallel test execution with pytest-xdist**: Added `pytest-xdist` for parallel test execution, providing ~3.5x speedup (from ~180s to ~51s). CI workflow updated to use `-n auto --dist loadscope`. Session-scoped `SessionPlayer` fixtures now load ZIP files once per test session and share across all tests.
+
 ---
 
 # Version 2026.1.39 (2026-01-15)

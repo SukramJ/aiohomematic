@@ -1196,19 +1196,20 @@ class TestCentralConfig:
             interface_configs=frozenset(),  # Not truthy -> no primary interface check here
         )
 
-        # We expect several distinct failures aggregated. Some implementations may
-        # format the directory error message slightly oddly (e.g., only the first
-        # character of the message), so we accept either the full message or a
-        # single-character placeholder.
-        assert any("Instance name must not contain" in e for e in errors)
-        assert "Invalid hostname or ipv4 address" in errors
-        assert "Username must not be empty" in errors
-        # Password-related errors may vary depending on policy; ensure at least one error exists for password/dir
-        assert ("Password is required" in errors) or ("Password is not valid" in errors) or errors.count("f") >= 1
-        assert any(("failed to create dir" in e) or (e == "f") for e in errors)
-        assert "Invalid callback hostname or ipv4 address" in errors
-        assert "Invalid xml rpc callback port" in errors
-        assert "Invalid json port" in errors
+        # We expect several distinct failures aggregated.
+        # check_config may return translation keys or translated strings depending on environment.
+        def has_error(errors: list[str], key: str, translated: str) -> bool:
+            """Check if error list contains either the key or translated string."""
+            return key in errors or any(translated in e for e in errors)
+
+        assert has_error(errors, "exception.config.check.instance_name.separator", "Instance name must not contain")
+        assert has_error(errors, "exception.config.check.host.invalid", "Invalid hostname or ipv4 address")
+        assert has_error(errors, "exception.config.check.username.empty", "Username must not be empty")
+        assert has_error(errors, "exception.config.check.callback_host.invalid", "Invalid callback hostname")
+        assert has_error(
+            errors, "exception.config.check.callback_port_xml_rpc.invalid", "Invalid xml rpc callback port"
+        )
+        assert has_error(errors, "exception.config.check.json_port.invalid", "Invalid json port")
 
         # Note: primary interface check only happens when "interface_configs" is truthy (not empty)
         ic_non_primary = _FakeInterfaceConfig(central_name="c1", interface=Interface.CUXD, port=0)
@@ -1223,7 +1224,7 @@ class TestCentralConfig:
             json_port=None,
             interface_configs=frozenset({ic_non_primary}),
         )
-        assert any("No primary interface" in e for e in errors2)
+        assert has_error(errors2, "exception.config.check.primary_interface.missing", "No primary interface")
 
     def test_for_ccu_creates_config_with_default_interfaces(self) -> None:
         """Test for_ccu factory method creates config with HmIP-RF and BidCos-RF by default."""

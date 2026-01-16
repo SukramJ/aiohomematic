@@ -42,7 +42,13 @@ from aiohomematic.interfaces import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.model.data_point import CallbackDataPoint
-from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
+from aiohomematic.model.support import (
+    HubPathData,
+    PathData,
+    generate_translation_key,
+    generate_unique_id,
+    get_hub_data_point_name_data,
+)
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 from aiohomematic.support import PayloadMixin
 
@@ -132,7 +138,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
     @property
     def translation_key(self) -> str:
         """Return translation key for Home Assistant."""
-        return slugify(self._sensor_name).replace("-", "_")
+        return generate_translation_key(name=self._sensor_name)
 
     @state_property
     def value(self) -> float:

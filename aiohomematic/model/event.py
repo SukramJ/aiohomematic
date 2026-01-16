@@ -51,7 +51,13 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol, GenericEventProtocolAny
 from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
-from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, get_event_name
+from aiohomematic.model.support import (
+    DataPointNameData,
+    DataPointPathData,
+    PathData,
+    generate_translation_key,
+    get_event_name,
+)
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeCallback
 
@@ -269,7 +275,7 @@ class ChannelEventGroup(CallbackDataPoint):
     @property
     def translation_key(self) -> str:
         """Return translation key for Home Assistant."""
-        return self.primary_event.event_type.value.replace(".", "_")
+        return generate_translation_key(name=self.primary_event.event_type)
 
     @property
     def usage(self) -> DataPointUsage:

@@ -34,8 +34,6 @@ from inspect import getfullargspec
 import logging
 from typing import Any, Final, TypeAlias, TypeVar, cast, overload
 
-from slugify import slugify
-
 from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent
@@ -81,7 +79,14 @@ from aiohomematic.interfaces import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.client import ValueAndParamsetOperationsProtocol
-from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, convert_value, generate_unique_id
+from aiohomematic.model.support import (
+    DataPointNameData,
+    DataPointPathData,
+    PathData,
+    convert_value,
+    generate_translation_key,
+    generate_unique_id,
+)
 from aiohomematic.property_decorators import (
     DelegatedProperty,
     Kind,
@@ -726,7 +731,7 @@ class BaseParameterDataPoint[
         self._paramset_key: Final = paramset_key
         # required for name in BaseDataPoint
         self._parameter: Final[str] = parameter
-        self._translation_key: Final[str] = slugify(parameter.replace(".", "_"))
+        self._translation_key: Final[str] = generate_translation_key(name=parameter)
         self._ignore_on_initial_load: Final[bool] = check_ignore_parameter_on_initial_load(parameter=parameter)
 
         super().__init__(

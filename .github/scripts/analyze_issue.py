@@ -3,18 +3,21 @@
 Issue analyzer script for AioHomematic and Homematic(IP) Local.
 
 This script uses Claude AI to analyze newly created issues and provide helpful feedback.
+It includes deep analysis of attached diagnostic files and log files.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import json
 import os
 import re
 import sys
-from typing import Any, cast
+from typing import Any, Final, cast
 
 from anthropic import Anthropic
 from github import Auth, Github, GithubException, Repository
+import requests
 
 # Valid major version range for Homematic(IP) Local
 # Version 1.x.x was the original, 2.x.x is current, 3.x.x reserved for future
@@ -25,6 +28,147 @@ INTEGRATION_REPO = "SukramJ/homematicip_local"
 
 # Cached version info (populated on first use)
 _cached_versions: dict[str, str | None] = {}
+
+# Maximum file size to download (5 MB)
+MAX_ATTACHMENT_SIZE: Final = 5 * 1024 * 1024
+
+# Log analysis patterns with priorities (lower = higher priority)
+# These patterns help identify the root cause of issues
+LOG_PATTERNS: Final[dict[str, dict[str, Any]]] = {
+    "no_subscribers": {
+        "pattern": r"No subscribers for (?:Rpc)?ParameterReceivedEvent.*?\[([A-Za-z0-9]+:\d+)\]",
+        "description_de": "Gerät sendet Events, aber keine HA-Entität ist registriert",
+        "description_en": "Device sends events but no HA entity is registered",
+        "priority": 1,
+        "category": "device_not_registered",
+        "severity": "error",
+        "supersedes": ["sticky_unreach", "unreach"],
+    },
+    "unreach_true": {
+        "pattern": r"parameter = UNREACH, value = True",
+        "description_de": "Gerät ist aktuell nicht erreichbar (Funkproblem)",
+        "description_en": "Device is currently unreachable (radio issue)",
+        "priority": 2,
+        "category": "device_issue",
+        "severity": "warning",
+        "supersedes": [],
+    },
+    "sticky_unreach": {
+        "pattern": r"STICKY_UN_REACH.*?(?:true|True)",
+        "description_de": "Vergangene Kommunikationsprobleme (Reset in CCU erforderlich)",
+        "description_en": "Past communication problems (reset required in CCU)",
+        "priority": 3,
+        "category": "device_issue",
+        "severity": "info",
+        "supersedes": [],
+    },
+    "xmlrpc_fault": {
+        "pattern": r"XMLRPCFault|XmlRpcException|XMLRPC Fault",
+        "description_de": "XML-RPC Kommunikationsfehler mit CCU",
+        "description_en": "XML-RPC communication error with CCU",
+        "priority": 2,
+        "category": "connection",
+        "severity": "error",
+        "supersedes": [],
+    },
+    "connection_refused": {
+        "pattern": r"Connection refused|ConnectionRefusedError|connect ECONNREFUSED",
+        "description_de": "Verbindung zur CCU wurde verweigert",
+        "description_en": "Connection to CCU was refused",
+        "priority": 1,
+        "category": "connection",
+        "severity": "error",
+        "supersedes": [],
+    },
+    "timeout": {
+        "pattern": r"TimeoutError|asyncio\.TimeoutError|timed out|timeout",
+        "description_de": "Zeitüberschreitung bei der Kommunikation",
+        "description_en": "Communication timeout",
+        "priority": 2,
+        "category": "connection",
+        "severity": "warning",
+        "supersedes": [],
+    },
+    "config_pending": {
+        "pattern": r"CONFIG_PENDING.*?(?:true|True)",
+        "description_de": "Gerätekonfiguration wird übertragen",
+        "description_en": "Device configuration is being transferred",
+        "priority": 4,
+        "category": "device_issue",
+        "severity": "info",
+        "supersedes": [],
+    },
+    "callback_failed": {
+        "pattern": r"callback.*?(?:failed|error|exception)|init.*?failed",
+        "description_de": "XML-RPC Callback-Registrierung fehlgeschlagen",
+        "description_en": "XML-RPC callback registration failed",
+        "priority": 1,
+        "category": "interface",
+        "severity": "error",
+        "supersedes": [],
+    },
+    "ping_pong_missing": {
+        "pattern": r"(?:PING|PONG).*?(?:missing|failed|timeout)|pending PING count",
+        "description_de": "Ping/Pong-Überwachung zeigt Verbindungsprobleme",
+        "description_en": "Ping/Pong monitoring shows connection issues",
+        "priority": 2,
+        "category": "connection",
+        "severity": "warning",
+        "supersedes": [],
+    },
+}
+
+
+@dataclass
+class AttachmentAnalysis:
+    """Structured analysis results from attached files."""
+
+    # From diagnostics JSON
+    registered_models: list[str] = field(default_factory=list)
+    registered_device_addresses: set[str] = field(default_factory=set)
+    interface_health: dict[str, Any] = field(default_factory=dict)
+    system_health: dict[str, Any] = field(default_factory=dict)
+    incident_store: dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
+
+    # From log analysis
+    no_subscriber_addresses: set[str] = field(default_factory=set)
+    event_sending_addresses: set[str] = field(default_factory=set)
+    log_pattern_matches: dict[str, list[str]] = field(default_factory=dict)
+
+    # Cross-reference results
+    unregistered_devices: set[str] = field(default_factory=set)
+    orphan_events: list[str] = field(default_factory=list)
+
+    # Prioritized findings
+    findings: list[dict[str, Any]] = field(default_factory=list)
+
+    # Raw data availability
+    has_diagnostics: bool = False
+    has_logs: bool = False
+    diagnostics_url: str = ""
+    log_url: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "registered_models": self.registered_models,
+            "registered_device_count": len(self.registered_device_addresses),
+            "interface_health": self.interface_health,
+            "system_health_summary": {
+                "central_state": self.system_health.get("central_state", "unknown"),
+                "all_clients_healthy": self.system_health.get("all_clients_healthy", False),
+                "overall_health_score": self.system_health.get("overall_health_score", 0),
+            },
+            "incidents_count": self.incident_store.get("total_incidents", 0),
+            "no_subscriber_count": len(self.no_subscriber_addresses),
+            "unregistered_devices": list(self.unregistered_devices),
+            "orphan_events_sample": self.orphan_events[:5],
+            "log_pattern_summary": {k: len(v) for k, v in self.log_pattern_matches.items()},
+            "prioritized_findings": self.findings,
+            "has_diagnostics": self.has_diagnostics,
+            "has_logs": self.has_logs,
+        }
 
 
 def fetch_latest_versions(gh: Github) -> tuple[str | None, str | None]:
@@ -186,6 +330,429 @@ def extract_version_from_issue(issue_body: str) -> str | None:
     return None
 
 
+# =============================================================================
+# Attachment Analysis Functions
+# =============================================================================
+
+
+def extract_attachment_urls(issue_body: str) -> tuple[list[str], list[str]]:
+    """
+    Extract URLs to attached diagnostic and log files from issue body.
+
+    Returns tuple of (json_urls, log_urls).
+    """
+    # GitHub user-attachments pattern for uploaded files
+    attachment_pattern = r"https://github\.com/user-attachments/files/\d+/[^\s\)\]\"']+"
+
+    # Also match direct links to .json and .log files
+    json_pattern = r"https://[^\s\)\]\"']+\.json(?:\?[^\s\)\]\"']*)?"
+    log_pattern = r"https://[^\s\)\]\"']+\.log(?:\?[^\s\)\]\"']*)?"
+
+    all_attachments = re.findall(attachment_pattern, issue_body)
+    json_direct = re.findall(json_pattern, issue_body)
+    log_direct = re.findall(log_pattern, issue_body)
+
+    json_urls: list[str] = []
+    log_urls: list[str] = []
+
+    # Categorize attachments by extension or content type hint
+    for url in all_attachments:
+        url_lower = url.lower()
+        if "config" in url_lower or "diagnostic" in url_lower or url_lower.endswith(".json"):
+            json_urls.append(url)
+        elif "log" in url_lower or "home-assistant" in url_lower or url_lower.endswith(".log"):
+            log_urls.append(url)
+        elif ".json" in url_lower:
+            json_urls.append(url)
+        elif ".log" in url_lower or ".txt" in url_lower:
+            log_urls.append(url)
+
+    # Add direct matches
+    json_urls.extend(json_direct)
+    log_urls.extend(log_direct)
+
+    # Remove duplicates while preserving order
+    json_urls = list(dict.fromkeys(json_urls))
+    log_urls = list(dict.fromkeys(log_urls))
+
+    return json_urls, log_urls
+
+
+def download_attachment(url: str, *, max_size: int = MAX_ATTACHMENT_SIZE) -> str | None:
+    """
+    Download an attachment from GitHub.
+
+    Returns the content as string, or None if download fails.
+    """
+    try:
+        # Use streaming to check size before downloading
+        with requests.get(url, stream=True, timeout=30, allow_redirects=True) as response:
+            response.raise_for_status()
+
+            # Check content length if available
+            content_length = response.headers.get("content-length")
+            if content_length and int(content_length) > max_size:
+                print(f"Attachment too large: {content_length} bytes")  # noqa: T201
+                return None
+
+            # Download with size limit
+            content_chunks: list[bytes] = []
+            total_size = 0
+            for chunk in response.iter_content(chunk_size=8192):
+                total_size += len(chunk)
+                if total_size > max_size:
+                    print("Attachment exceeded size limit during download")  # noqa: T201
+                    return None
+                content_chunks.append(chunk)
+
+            content = b"".join(content_chunks)
+
+            # Try to decode as UTF-8
+            try:
+                return content.decode("utf-8")
+            except UnicodeDecodeError:
+                return content.decode("latin-1")
+
+    except requests.RequestException as e:
+        print(f"Failed to download attachment from {url}: {e}")  # noqa: T201
+        return None
+
+
+def analyze_diagnostics_json(content: str) -> dict[str, Any]:
+    """
+    Parse and extract structured data from diagnostics JSON file.
+
+    Returns extracted data as a dictionary.
+    """
+    result: dict[str, Any] = {
+        "models": [],
+        "device_addresses": set(),
+        "system_health": {},
+        "client_health": {},
+        "incident_store": {},
+        "metrics": {},
+        "interfaces": [],
+    }
+
+    try:
+        data = json.loads(content)
+
+        # Handle nested structure: data -> data -> ...
+        inner_data = data.get("data", data)
+
+        # Extract models list
+        result["models"] = inner_data.get("models", [])
+
+        # Extract system health
+        result["system_health"] = inner_data.get("system_health", {})
+
+        # Extract client health per interface
+        if "system_health" in inner_data:
+            result["client_health"] = inner_data["system_health"].get("client_health", {})
+
+        # Extract incident store
+        result["incident_store"] = inner_data.get("incident_store", {})
+
+        # Extract metrics
+        result["metrics"] = inner_data.get("metrics", {})
+
+        # Extract interfaces from config
+        config = inner_data.get("config", {})
+        if isinstance(config, dict):
+            config_data = config.get("data", config)
+            interfaces = config_data.get("interface", {})
+            result["interfaces"] = list(interfaces.keys()) if isinstance(interfaces, dict) else []
+
+        # Try to extract device addresses from various sources
+        # This might be in device descriptions or other places
+        if "device_descriptions" in inner_data:
+            for addr in inner_data["device_descriptions"]:
+                if isinstance(addr, str) and ":" not in addr:
+                    result["device_addresses"].add(addr)
+
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse diagnostics JSON: {e}")  # noqa: T201
+
+    return result
+
+
+def analyze_log_file(content: str, *, max_lines: int = 50000) -> dict[str, Any]:
+    """
+    Analyze log file content for known patterns.
+
+    Returns analysis results including pattern matches and extracted addresses.
+    """
+    result: dict[str, Any] = {
+        "pattern_matches": {},
+        "no_subscriber_addresses": set(),
+        "event_addresses": set(),
+        "unreach_addresses": set(),
+        "sample_matches": {},
+    }
+
+    # Limit lines to prevent excessive processing
+    lines = content.split("\n")[:max_lines]
+    content_limited = "\n".join(lines)
+
+    for pattern_name, pattern_info in LOG_PATTERNS.items():
+        pattern = pattern_info["pattern"]
+        matches = re.findall(pattern, content_limited, re.IGNORECASE)
+
+        if matches:
+            result["pattern_matches"][pattern_name] = len(matches) if isinstance(matches[0], str) else len(matches)
+
+            # Store sample matches (up to 5)
+            if isinstance(matches[0], str):
+                result["sample_matches"][pattern_name] = matches[:5]
+            else:
+                result["sample_matches"][pattern_name] = [m[0] if isinstance(m, tuple) else m for m in matches[:5]]
+
+    # Extract specific addresses from "No subscribers" events
+    no_sub_pattern = r"No subscribers for (?:Rpc)?ParameterReceivedEvent.*?\[([A-Za-z0-9]+:\d+)\]"
+    no_sub_matches = re.findall(no_sub_pattern, content_limited)
+    for match in no_sub_matches:
+        # Extract device address (before the colon)
+        device_addr = match.split(":")[0] if ":" in match else match
+        result["no_subscriber_addresses"].add(device_addr)
+
+    # Extract addresses from EVENT lines
+    event_pattern = r"EVENT.*?channel_address\s*=\s*([A-Za-z0-9]+:\d+)"
+    event_matches = re.findall(event_pattern, content_limited)
+    for match in event_matches:
+        device_addr = match.split(":")[0] if ":" in match else match
+        result["event_addresses"].add(device_addr)
+
+    # Extract addresses from UNREACH events
+    unreach_pattern = r"channel_address\s*=\s*([A-Za-z0-9]+:\d+).*?UNREACH.*?True"
+    unreach_matches = re.findall(unreach_pattern, content_limited)
+    for match in unreach_matches:
+        device_addr = match.split(":")[0] if ":" in match else match
+        result["unreach_addresses"].add(device_addr)
+
+    return result
+
+
+def cross_reference_devices(
+    *,
+    registered_models: list[str],
+    no_subscriber_addresses: set[str],
+    event_addresses: set[str],
+) -> dict[str, Any]:
+    """
+    Cross-reference registered devices with event-sending devices.
+
+    Identifies devices that send events but are not registered in HA.
+    """
+    result: dict[str, Any] = {
+        "unregistered_sending_events": [],
+        "orphan_event_count": 0,
+        "analysis_notes": [],
+    }
+
+    # If we have no-subscriber events, these devices are definitely not registered
+    if no_subscriber_addresses:
+        result["unregistered_sending_events"] = list(no_subscriber_addresses)
+        result["orphan_event_count"] = len(no_subscriber_addresses)
+        result["analysis_notes"].append(
+            f"Found {len(no_subscriber_addresses)} device(s) sending events without registered entities"
+        )
+
+    # Check if event-sending devices match known model patterns
+    # Classic HM devices typically start with specific prefixes (JEQ, LEQ, etc.)
+    classic_hm_addresses = {
+        addr for addr in event_addresses if addr.startswith(("JEQ", "LEQ", "MEQ", "NEQ", "OEQ", "SEQ"))
+    }
+
+    if classic_hm_addresses and "BidCos-RF" not in str(registered_models):
+        result["analysis_notes"].append(
+            f"Classic HM devices detected ({len(classic_hm_addresses)}) but BidCos-RF interface may not be active"
+        )
+
+    return result
+
+
+def prioritize_findings(
+    *,
+    log_analysis: dict[str, Any],
+    cross_ref: dict[str, Any],
+    diagnostics: dict[str, Any],
+    is_german: bool,
+) -> list[dict[str, Any]]:
+    """
+    Prioritize and deduplicate findings based on root cause analysis.
+
+    Higher priority findings supersede lower priority ones for the same issue.
+    """
+    findings: list[dict[str, Any]] = []
+    suppressed_patterns: set[str] = set()
+
+    # Sort patterns by priority
+    sorted_patterns = sorted(LOG_PATTERNS.items(), key=lambda x: x[1]["priority"])
+
+    for pattern_name, pattern_info in sorted_patterns:
+        if pattern_name in suppressed_patterns:
+            continue
+
+        match_count = log_analysis.get("pattern_matches", {}).get(pattern_name, 0)
+        if match_count == 0:
+            continue
+
+        # This pattern matched - suppress lower priority patterns it supersedes
+        for superseded in pattern_info.get("supersedes", []):
+            suppressed_patterns.add(superseded)
+
+        description = pattern_info["description_de"] if is_german else pattern_info["description_en"]
+
+        finding: dict[str, Any] = {
+            "category": pattern_info["category"],
+            "severity": pattern_info["severity"],
+            "priority": pattern_info["priority"],
+            "pattern": pattern_name,
+            "count": match_count,
+            "description": description,
+        }
+
+        # Add specific details for certain patterns
+        if pattern_name == "no_subscribers":
+            addresses = list(log_analysis.get("no_subscriber_addresses", set()))[:5]
+            if addresses:
+                if is_german:
+                    finding["description"] += f". Betroffene Geräte: {', '.join(addresses)}"
+                    finding["recommendation"] = (
+                        "Diese Geräte sind nicht in Home Assistant registriert. "
+                        "Prüfen Sie, ob die Geräte in HA deaktiviert oder nie hinzugefügt wurden."
+                    )
+                else:
+                    finding["description"] += f". Affected devices: {', '.join(addresses)}"
+                    finding["recommendation"] = (
+                        "These devices are not registered in Home Assistant. "
+                        "Check if devices are disabled in HA or were never added."
+                    )
+
+        findings.append(finding)
+
+    # Add cross-reference findings
+    if cross_ref.get("unregistered_sending_events"):
+        # Check if we already have a no_subscribers finding
+        has_no_sub = any(f["pattern"] == "no_subscribers" for f in findings)
+        if not has_no_sub:
+            devices = cross_ref["unregistered_sending_events"][:5]
+            if is_german:
+                findings.insert(
+                    0,
+                    {
+                        "category": "device_not_registered",
+                        "severity": "error",
+                        "priority": 1,
+                        "pattern": "cross_reference",
+                        "count": len(cross_ref["unregistered_sending_events"]),
+                        "description": f"Geräte senden Events aber sind nicht in HA registriert: {', '.join(devices)}",
+                        "recommendation": "Prüfen Sie, ob diese Geräte in Home Assistant deaktiviert oder nie hinzugefügt wurden.",
+                    },
+                )
+            else:
+                findings.insert(
+                    0,
+                    {
+                        "category": "device_not_registered",
+                        "severity": "error",
+                        "priority": 1,
+                        "pattern": "cross_reference",
+                        "count": len(cross_ref["unregistered_sending_events"]),
+                        "description": f"Devices send events but are not registered in HA: {', '.join(devices)}",
+                        "recommendation": "Check if these devices are disabled in Home Assistant or were never added.",
+                    },
+                )
+
+    # Add incident store findings
+    incidents = diagnostics.get("incident_store", {})
+    if incidents.get("total_incidents", 0) > 0:
+        recent = incidents.get("recent_incidents", [])
+        if recent:
+            last_incident = recent[0]
+            if is_german:
+                findings.append(
+                    {
+                        "category": "connection",
+                        "severity": "warning",
+                        "priority": 3,
+                        "pattern": "incident_store",
+                        "count": incidents["total_incidents"],
+                        "description": f"Aufgezeichnete Vorfälle: {last_incident.get('message', 'Unbekannt')}",
+                    }
+                )
+            else:
+                findings.append(
+                    {
+                        "category": "connection",
+                        "severity": "warning",
+                        "priority": 3,
+                        "pattern": "incident_store",
+                        "count": incidents["total_incidents"],
+                        "description": f"Recorded incidents: {last_incident.get('message', 'Unknown')}",
+                    }
+                )
+
+    # Sort findings by priority (lower number = higher priority)
+    findings.sort(key=lambda x: (x.get("priority", 99), -x.get("count", 0)))
+
+    return findings
+
+
+def perform_deep_analysis(issue_body: str) -> AttachmentAnalysis:
+    """
+    Perform deep analysis of attached files.
+
+    Downloads and analyzes diagnostic JSON and log files.
+    """
+    analysis = AttachmentAnalysis()
+
+    # Extract attachment URLs
+    json_urls, log_urls = extract_attachment_urls(issue_body)
+
+    print(f"Found {len(json_urls)} JSON URLs and {len(log_urls)} log URLs")  # noqa: T201
+
+    # Analyze diagnostics JSON
+    if json_urls:
+        analysis.diagnostics_url = json_urls[0]
+        content = download_attachment(json_urls[0])
+        if content:
+            analysis.has_diagnostics = True
+            diag_data = analyze_diagnostics_json(content)
+            analysis.registered_models = diag_data.get("models", [])
+            analysis.registered_device_addresses = diag_data.get("device_addresses", set())
+            analysis.system_health = diag_data.get("system_health", {})
+            analysis.interface_health = diag_data.get("client_health", {})
+            analysis.incident_store = diag_data.get("incident_store", {})
+            analysis.metrics = diag_data.get("metrics", {})
+            print(f"Parsed diagnostics: {len(analysis.registered_models)} models")  # noqa: T201
+
+    # Analyze log file
+    if log_urls:
+        analysis.log_url = log_urls[0]
+        content = download_attachment(log_urls[0])
+        if content:
+            analysis.has_logs = True
+            log_data = analyze_log_file(content)
+            analysis.no_subscriber_addresses = log_data.get("no_subscriber_addresses", set())
+            analysis.event_sending_addresses = log_data.get("event_addresses", set())
+            analysis.log_pattern_matches = {
+                k: log_data.get("sample_matches", {}).get(k, []) for k in log_data.get("pattern_matches", {})
+            }
+            print(f"Analyzed log: {len(analysis.no_subscriber_addresses)} no-subscriber addresses")  # noqa: T201
+
+    # Cross-reference devices
+    cross_ref = cross_reference_devices(
+        registered_models=analysis.registered_models,
+        no_subscriber_addresses=analysis.no_subscriber_addresses,
+        event_addresses=analysis.event_sending_addresses,
+    )
+    analysis.unregistered_devices = set(cross_ref.get("unregistered_sending_events", []))
+    analysis.orphan_events = cross_ref.get("unregistered_sending_events", [])
+
+    return analysis
+
+
 # Documentation links
 DOCS_LINKS = {
     "main_readme": "https://github.com/SukramJ/aiohomematic/blob/devel/README.md",
@@ -251,24 +818,39 @@ Terminology (from our Glossary):
 - Parameter: Named value on a channel (VALUES for runtime, MASTER for config).
 - Data Point / Entity: Representation of a parameter in Home Assistant.
 
+=== DEEP ANALYSIS RESULTS (Pre-analyzed from attachments) ===
+{deep_analysis_json}
+
+CRITICAL - Root Cause Analysis Priority Rules:
+When analyzing device availability issues, you MUST follow these priority rules:
+
+1. **HIGHEST PRIORITY - "No subscribers" / "device_not_registered"**:
+   - If the deep analysis shows "no_subscriber_count" > 0 or "unregistered_devices" is not empty,
+     this means devices are SENDING events but NO Home Assistant entities are listening.
+   - This is NOT a radio/communication issue - the CCU communication works fine!
+   - The devices are simply not registered in Home Assistant (disabled or never added).
+   - DO NOT suggest STICKY_UN_REACH reset - that is the WRONG diagnosis!
+   - CORRECT recommendation: Check if devices are disabled in HA or need to be added.
+
+2. **LOWER PRIORITY - STICKY_UN_REACH**:
+   - Only relevant if devices ARE registered but had past communication issues.
+   - If "no_subscribers" findings exist, STICKY_UN_REACH is NOT the root cause.
+   - STICKY_UN_REACH means "past radio issues" - but if events are arriving, radio works!
+
+3. **Priority Hierarchy**:
+   - device_not_registered (priority 1) SUPERSEDES sticky_unreach (priority 3)
+   - connection_refused (priority 1) indicates backend not reachable
+   - xmlrpc_fault (priority 2) indicates communication errors
+   - If a higher priority issue exists, do NOT mention lower priority issues as the cause.
+
 Your task:
 1. Analyze the issue content and determine if it's complete and well-formed
 2. Check for terminology misuse (e.g., "Plugin" instead of "Integration", confusion between Integration and Add-on)
-3. Identify any missing required information:
-   - Version of Homematic(IP) Local integration
-   - Type of Home Assistant installation
-   - Type of Homematic backend (CCU3, OpenCCU, etc.)
-   - Clear problem description
-   - Diagnostics data (if applicable)
-   - Protocol/log file (if applicable)
-4. If diagnostics data, log files, or other attachments are mentioned or included, analyze them for:
-   - Homematic device issues (UN_REACH, STICKY_UN_REACH, CONFIG_PENDING)
-   - Connection errors or timeouts (XML-RPC, JSON-RPC)
-   - Interface problems (callback issues, registration failures)
-   - Version mismatches or compatibility issues
-   - Device-specific errors (device addresses, channel issues)
-   - Configuration problems (ports, TLS, authentication)
-5. Suggest relevant documentation links from the available docs (ALWAYS include glossary if terminology is misused)
+3. Identify any missing required information
+4. USE THE DEEP ANALYSIS RESULTS above - this is VERIFIED data from the actual files!
+   - The "prioritized_findings" list is already sorted by priority
+   - Trust this data over symptom-based guessing
+5. Suggest relevant documentation links from the available docs
 6. Identify key terms for searching similar issues
 
 Issue Title: {title}
@@ -306,9 +888,10 @@ Please respond in JSON format with the following structure:
     "has_logs": boolean,
     "findings": [
       {{
-        "category": "device_issue|connection|interface|config|other",
+        "category": "device_not_registered|device_issue|connection|interface|config|other",
         "description": "what was found",
-        "severity": "info|warning|error"
+        "severity": "info|warning|error",
+        "recommendation": "optional - specific action to take"
       }}
     ]
   }},
@@ -324,8 +907,12 @@ Please respond in JSON format with the following structure:
   "summary": "brief summary of the issue in the detected language"
 }}
 
-Be helpful and constructive. Only flag missing information if it's genuinely required to help solve the issue.
-If the user uses incorrect terminology, gently suggest the correct terms and link to the glossary."""
+IMPORTANT:
+- Use the prioritized_findings from deep analysis as the PRIMARY source for attachment_analysis.findings
+- If "device_not_registered" findings exist, this is the root cause - not STICKY_UN_REACH
+- Be helpful and constructive
+- Only flag missing information if it's genuinely required
+- If terminology is misused, gently suggest correct terms and link to glossary"""
 
 
 def get_claude_analysis(
@@ -334,8 +921,9 @@ def get_claude_analysis(
     api_key: str,
     *,
     gh: Github,
+    deep_analysis: AttachmentAnalysis | None = None,
 ) -> dict[str, Any]:
-    """Use Claude to analyze the issue."""
+    """Use Claude to analyze the issue with deep analysis results."""
     client = Anthropic(api_key=api_key)
 
     docs_str = "\n".join([f"- {key}: {url}" for key, url in DOCS_LINKS.items()])
@@ -362,6 +950,16 @@ def get_claude_analysis(
             "current_prerelease": current_prerelease or "none",
         }
 
+    # Prepare deep analysis JSON
+    if deep_analysis:
+        deep_analysis_dict = deep_analysis.to_dict()
+    else:
+        deep_analysis_dict = {
+            "has_diagnostics": False,
+            "has_logs": False,
+            "note": "No attachments could be downloaded or analyzed",
+        }
+
     prompt = CLAUDE_ANALYSIS_PROMPT.format(
         title=title,
         body=body or "(empty)",
@@ -369,6 +967,7 @@ def get_claude_analysis(
         current_stable=current_stable or "unknown",
         current_prerelease=current_prerelease or "none",
         version_check_json=json.dumps(version_check, indent=2),
+        deep_analysis_json=json.dumps(deep_analysis_dict, indent=2),
     )
 
     message = client.messages.create(
@@ -383,7 +982,48 @@ def get_claude_analysis(
     elif "```" in response_text:
         response_text = response_text.split("```")[1].split("```")[0].strip()
 
-    return cast(dict[str, Any], json.loads(response_text))
+    analysis = cast(dict[str, Any], json.loads(response_text))
+
+    # Merge deep analysis findings if Claude didn't include them
+    if deep_analysis and deep_analysis.findings:
+        attachment_analysis = analysis.get("attachment_analysis", {})
+        claude_findings = attachment_analysis.get("findings", [])
+
+        # If Claude returned fewer findings than our deep analysis, use ours
+        if len(claude_findings) < len(deep_analysis.findings):
+            # Determine language from analysis
+            is_german = analysis.get("language", "en") == "de"
+
+            # Prioritize findings
+            prioritized = prioritize_findings(
+                log_analysis={
+                    "pattern_matches": {k: len(v) for k, v in deep_analysis.log_pattern_matches.items()},
+                    "no_subscriber_addresses": deep_analysis.no_subscriber_addresses,
+                },
+                cross_ref={
+                    "unregistered_sending_events": list(deep_analysis.unregistered_devices),
+                },
+                diagnostics={
+                    "incident_store": deep_analysis.incident_store,
+                },
+                is_german=is_german,
+            )
+
+            # Convert to Claude's format
+            attachment_analysis["findings"] = [
+                {
+                    "category": f["category"],
+                    "description": f["description"],
+                    "severity": f["severity"],
+                    "recommendation": f.get("recommendation", ""),
+                }
+                for f in prioritized
+            ]
+            attachment_analysis["has_diagnostics"] = deep_analysis.has_diagnostics
+            attachment_analysis["has_logs"] = deep_analysis.has_logs
+            analysis["attachment_analysis"] = attachment_analysis
+
+    return analysis
 
 
 def search_similar_issues(
@@ -507,14 +1147,13 @@ def _format_missing_required_info(
             result += "- ❌ **Integrationsdiagnose (.json-Datei)** - Herunterladen via: Einstellungen → Geräte → Integration auswählen → Diagnose herunterladen\n"
         if not has_logs:
             result += "- ❌ **Protokolldatei** - Am besten ein DEBUG-Log hochladen. Aktivieren via: Einstellungen → Geräte → Integration auswählen → Debug-Protokollierung aktivieren. Danach Problem reproduzieren und Log herunterladen (Einstellungen → System → Protokolle → Unveränderte Protokolle laden)\n"
-        result += "\n⚠️ **Issues ohne diese Informationen können nicht bearbeitet werden und werden ggf. geschlossen.**\n\n"
+        result += (
+            "\n⚠️ **Issues ohne diese Informationen können nicht bearbeitet werden und werden ggf. geschlossen.**\n\n"
+        )
         result += "_Ausnahme: Bei Problemen mit der Erstinstallation sind Diagnosedaten möglicherweise noch nicht verfügbar._\n\n"
     else:
         result = "### ⚠️ Missing Required Information\n\n"
-        result += (
-            "**Meaningful support is only possible if all required information is provided!**\n\n"
-            "Missing:\n\n"
-        )
+        result += "**Meaningful support is only possible if all required information is provided!**\n\nMissing:\n\n"
         if not has_diagnostics:
             result += "- ❌ **Integration diagnostics (.json file)** - Download via: Settings → Devices → Select integration → Download diagnostics\n"
         if not has_logs:
@@ -580,7 +1219,11 @@ def format_comment(
     # Other missing information
     missing = analysis.get("missing_information", [])
     # Filter out diagnostics/logs from missing list since we handle them separately
-    missing = [m for m in missing if m.get("field", "").lower() not in ("diagnostics", "logs", "log", "diagnostik", "protokoll")]
+    missing = [
+        m
+        for m in missing
+        if m.get("field", "").lower() not in ("diagnostics", "logs", "log", "diagnostik", "protokoll")
+    ]
     if missing:
         if is_german:
             comment += "### Weitere fehlende Informationen\n\n"
@@ -597,24 +1240,44 @@ def format_comment(
         if is_german:
             comment += "### Analyse der angehängten Daten\n\n"
             if attachment_analysis.get("has_diagnostics"):
-                comment += "Diagnostik-Daten gefunden. "
+                comment += "✅ Diagnostik-Daten analysiert. "
             if attachment_analysis.get("has_logs"):
-                comment += "Protokoll-Daten gefunden. "
+                comment += "✅ Protokoll-Daten analysiert. "
             comment += "\n\n**Erkenntnisse:**\n\n"
         else:
             comment += "### Attachment Analysis\n\n"
             if attachment_analysis.get("has_diagnostics"):
-                comment += "Diagnostics data found. "
+                comment += "✅ Diagnostics data analyzed. "
             if attachment_analysis.get("has_logs"):
-                comment += "Log data found. "
+                comment += "✅ Log data analyzed. "
             comment += "\n\n**Findings:**\n\n"
 
         severity_emoji = {"info": "ℹ️", "warning": "⚠️", "error": "❌"}
+        category_labels = {
+            "device_not_registered": "Gerät nicht registriert" if is_german else "Device Not Registered",
+            "device_issue": "Geräteproblem" if is_german else "Device Issue",
+            "connection": "Verbindung" if is_german else "Connection",
+            "interface": "Schnittstelle" if is_german else "Interface",
+            "config": "Konfiguration" if is_german else "Configuration",
+            "other": "Sonstiges" if is_german else "Other",
+        }
+
         for finding in findings:
             emoji = severity_emoji.get(finding.get("severity", "info"), "ℹ️")
             category = finding.get("category", "other")
+            category_label = category_labels.get(category, category)
             description = finding.get("description", "")
-            comment += f"- {emoji} **[{category}]** {description}\n"
+            recommendation = finding.get("recommendation", "")
+
+            comment += f"- {emoji} **[{category_label}]** {description}\n"
+
+            # Add recommendation if present
+            if recommendation:
+                if is_german:
+                    comment += f"  - 💡 **Empfehlung:** {recommendation}\n"
+                else:
+                    comment += f"  - 💡 **Recommendation:** {recommendation}\n"
+
         comment += "\n"
 
     # Suggested documentation
@@ -691,9 +1354,29 @@ def main() -> None:
     current_stable, current_prerelease = fetch_latest_versions(gh)
     print(f"Current versions - stable: {current_stable}, prerelease: {current_prerelease}")  # noqa: T201
 
-    # Get Claude's analysis
+    # Perform deep analysis of attachments BEFORE Claude analysis
+    deep_analysis: AttachmentAnalysis | None = None
     try:
-        analysis = get_claude_analysis(issue_title, issue_body, anthropic_api_key, gh=gh)
+        print("Performing deep analysis of attachments...")  # noqa: T201
+        deep_analysis = perform_deep_analysis(issue_body)
+        print(f"Deep analysis complete: diagnostics={deep_analysis.has_diagnostics}, logs={deep_analysis.has_logs}")  # noqa: T201
+        if deep_analysis.no_subscriber_addresses:
+            print(f"Found {len(deep_analysis.no_subscriber_addresses)} devices with no subscribers")  # noqa: T201
+        if deep_analysis.unregistered_devices:
+            print(f"Found {len(deep_analysis.unregistered_devices)} unregistered devices sending events")  # noqa: T201
+    except Exception as e:
+        print(f"Warning: Deep analysis failed (continuing with basic analysis): {e}")  # noqa: T201
+        deep_analysis = None
+
+    # Get Claude's analysis with deep analysis results
+    try:
+        analysis = get_claude_analysis(
+            issue_title,
+            issue_body,
+            anthropic_api_key,
+            gh=gh,
+            deep_analysis=deep_analysis,
+        )
         print(f"Analysis complete: {json.dumps(analysis, indent=2)}")  # noqa: T201
     except Exception as e:
         print(f"Error getting Claude analysis: {e}")  # noqa: T201

@@ -176,9 +176,9 @@ class TestCentralFullSession:
 
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 277
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
-        assert usage_types[DataPointUsage.CDP_VISIBLE] == 150
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 151
         assert usage_types[DataPointUsage.DATA_POINT] == 3993
-        assert usage_types[DataPointUsage.NO_CREATE] == 4374
+        assert usage_types[DataPointUsage.NO_CREATE] == 4373
 
         assert len(ce_channels) == 133
         assert len(data_point_types) == 6

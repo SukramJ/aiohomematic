@@ -61,6 +61,7 @@ from aiohomematic.interfaces.central import CentralConfigProtocol, CentralProtoc
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
+    ChannelEventGroupProtocol,
     CustomDataPointProtocol,
     DeviceProtocol,
     GenericDataPointProtocol,
@@ -451,6 +452,40 @@ class CentralUnit(
         if device := self._device_coordinator.get_device(address=channel_address):
             return device.get_generic_event(channel_address=channel_address, parameter=parameter, state_path=state_path)
         return None
+
+    def get_event_groups(
+        self,
+        *,
+        event_type: DeviceTriggerEventType,
+        registered: bool | None = None,
+    ) -> tuple[ChannelEventGroupProtocol, ...]:
+        """
+        Return all channel event groups for the given event type.
+
+        Each ChannelEventGroup is a virtual data point bound to its channel,
+        providing unified access for Home Assistant entity creation.
+
+        Args:
+            event_type: The event type to filter by.
+            registered: Filter by registration status (None = all).
+
+        Returns:
+            Tuple of ChannelEventGroup instances.
+
+        """
+        groups: list[ChannelEventGroupProtocol] = []
+        for device in self._device_registry.devices:
+            for channel in device.channels.values():
+                if (event_group := channel.event_group) is None:
+                    continue
+                # Filter by event type
+                if event_group.primary_event.event_type != event_type:
+                    continue
+                # Filter by registration status
+                if registered is not None and event_group.is_registered != registered:
+                    continue
+                groups.append(event_group)
+        return tuple(groups)
 
     def get_events(
         self, *, event_type: DeviceTriggerEventType, registered: bool | None = None

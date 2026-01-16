@@ -40,6 +40,7 @@ from aiohomematic.model.support import (
     PathData,
     ProgramPathData,
     SysvarPathData,
+    generate_translation_key,
     generate_unique_id,
     get_hub_data_point_name_data,
 )
@@ -108,6 +109,11 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
     legacy_name: Final = DelegatedProperty[str | None](path="_legacy_name")
     name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
+
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return generate_translation_key(name=self._category.value)
 
     @state_property
     def available(self) -> bool:

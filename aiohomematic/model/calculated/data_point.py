@@ -33,6 +33,7 @@ from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
     PathData,
+    generate_translation_key,
     generate_unique_id,
     get_data_point_name_data,
 )
@@ -188,6 +189,11 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return any(dp.state_uncertain for dp in self._relevant_data_points)
+
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return generate_translation_key(name=self._calculated_parameter)
 
     @state_property
     def modified_at(self) -> datetime:

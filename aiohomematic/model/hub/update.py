@@ -120,6 +120,11 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         """Return the original name."""
         return None
 
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return "system_update"
+
     @inspector
     async def install(self) -> bool:
         """Trigger the firmware update process with progress monitoring."""

@@ -1,3 +1,38 @@
+# Version 2026.1.40 (2026-01-16)
+
+## What's Changed
+
+### Added
+
+- **translation_key for data points**: Added `translation_key` property to enable translations for data points that previously lacked this feature. Now all data point types provide a consistent `translation_key`:
+  - `GenericHubDataPointProtocol` and `CalculatedDataPointProtocol` now require `translation_key`
+  - `BaseParameterDataPoint`: Derived from parameter name (existing, e.g., `set_point_temperature`)
+  - `GenericHubDataPoint`: Uses category value (e.g., `hub_sensor`, `hub_button`)
+  - `HmInboxSensor`: `"inbox"`
+  - `HmUpdate`: `"system_update"`
+  - `_BaseMetricsSensor`: Derived from sensor name (e.g., `system_health`, `connection_latency`, `last_event_age`)
+  - `HmInterfaceConnectivitySensor`: `"interface_connectivity"`
+  - `_BaseInstallModeDataPoint`: `"install_mode"`
+  - `DpUpdate`: `"device_update"`
+  - `CalculatedDataPoint`: Derived from calculated parameter name
+
+### Changed
+
+- **ChannelEventGroup as virtual data point**: Refactored `ChannelEventGroup` from a helper class to a virtual data point bound to the Channel. Event groups are now created during `Channel.finalize_init()` and internally subscribe to all `GenericEvent`s on the channel. Key changes:
+  - `ChannelEventGroup` now extends `CallbackDataPoint` and follows the standard subscription pattern
+  - New `subscribe_to_data_point_updated()` method replaces `subscribe_to_events()`
+  - New `last_triggered_event` property tracks which event fired
+  - Event groups are accessible directly via `channel.event_group`
+  - `central.get_event_groups()` now returns channel-bound instances (reused, not created on-the-fly)
+  - Added `subscribe_to_internal_data_point_updated` to `GenericEventProtocol`
+  - Migration guide: `docs/migrations/channel_event_group_migration_2026_01.md`
+
+### Fixed
+
+- **Legacy cache migration for climate schedules**: Fixed `ValidationException: Time 360 is invalid` error that occurred when starting with aiohomematic 2026.1.39 if the paramset cache contained legacy schedule data. The issue was that old cached data stored `endtime` values as numeric strings (e.g., `"360"`) instead of integers (`360`) or time strings (`"06:00"`). Added a new helper function `_endtime_to_minutes()` that handles all three formats, ensuring smooth migration without requiring cache deletion.
+
+---
+
 # Version 2026.1.39 (2026-01-15)
 
 ## What's Changed

@@ -127,7 +127,7 @@ from aiohomematic.interfaces import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
-from aiohomematic.model import week_profile as wp
+from aiohomematic.model import event as hmev, week_profile as wp
 from aiohomematic.model.availability import AvailabilityInfo
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.generic import DpBinarySensor
@@ -1060,6 +1060,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_custom_data_point",
         "_channel_description",
         "_device",
+        "_event_group",
         "_function",
         "_generic_data_points",
         "_generic_events",
@@ -1103,6 +1104,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         )
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPointProtocol]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
+        self._event_group: hmev.ChannelEventGroup | None = None
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPointProtocolAny]] = {}
         self._generic_events: Final[dict[DataPointKey, GenericEventProtocolAny]] = {}
         self._state_path_to_dpk: Final[dict[str, DataPointKey]] = {}
@@ -1172,6 +1174,11 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
         return tuple(self._state_path_to_dpk.keys())
+
+    @property
+    def event_group(self) -> hmev.ChannelEventGroup | None:
+        """Return the event group for this channel, if it has events."""
+        return self._event_group
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
@@ -1288,6 +1295,13 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             await cdp.finalize_init()
         if self._custom_data_point:
             await self._custom_data_point.finalize_init()
+        # Create event group if channel has events
+        if self._generic_events:
+            self._event_group = hmev.ChannelEventGroup(
+                channel=self,
+                events=tuple(self._generic_events.values()),
+            )
+            await self._event_group.finalize_init()
 
     def get_calculated_data_point(self, *, parameter: str) -> CalculatedDataPointProtocol | None:
         """Return a calculated data_point from device."""
@@ -1484,6 +1498,12 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     def remove(self) -> None:
         """Remove data points from collections and central."""
+        # Clean up event group first
+        if self._event_group:
+            self._event_group.cleanup_subscriptions()
+            self._event_group.publish_device_removed_event()
+            self._event_group = None
+
         for event in self.generic_events:
             self._remove_data_point(data_point=event)
         self._generic_events.clear()

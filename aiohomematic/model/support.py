@@ -11,6 +11,8 @@ from functools import lru_cache
 import logging
 from typing import Any, Final
 
+from slugify import slugify
+
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     HUB_ADDRESS,
@@ -159,6 +161,11 @@ class HubNameData:
     def empty() -> HubNameData:
         """Return an empty HubNameData."""
         return HubNameData(name="")
+
+
+def generate_translation_key(*, name: str) -> str:
+    """Generate a translation key from a name."""
+    return slugify(name).replace(".", "_").replace("-", "_")
 
 
 def check_length_and_log(*, name: str | None, value: Any) -> Any:

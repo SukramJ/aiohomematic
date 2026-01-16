@@ -104,6 +104,11 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         """Return the original name."""
         return None
 
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return "inbox"
+
     @config_property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""

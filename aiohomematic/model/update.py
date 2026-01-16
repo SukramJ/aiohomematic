@@ -66,6 +66,11 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         """Return the full name of the data_point."""
         return f"{self._device.name} Update"
 
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return "device_update"
+
     @config_property
     def name(self) -> str:
         """Return the name of the data_point."""

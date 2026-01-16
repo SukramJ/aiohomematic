@@ -1331,9 +1331,9 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
         for no in sorted(normalized.keys()):
             slot = normalized[no]
-            # Handle both int (raw from CCU) and string (from cache) endtime formats
-            endtime = slot["endtime"]
-            endtime_str = _convert_minutes_to_time_str(minutes=endtime) if isinstance(endtime, int) else str(endtime)
+            # Handle int (raw from CCU), time string (from cache), and numeric string (legacy cache)
+            endtime_minutes = _endtime_to_minutes(endtime=slot["endtime"])
+            endtime_str = _convert_minutes_to_time_str(minutes=endtime_minutes)
             temp = float(slot["temperature"])
 
             # If time decreases from previous, the weekday is invalid
@@ -1724,9 +1724,8 @@ def identify_base_temperature(*, weekday_data: ClimateWeekdaySchedule) -> float:
     # Iterate through slots in order
     for slot_no in sorted(weekday_data.keys()):
         slot = weekday_data[slot_no]
-        # Handle both int (raw from CCU) and string (from cache) endtime formats
-        endtime = slot["endtime"]
-        endtime_minutes = endtime if isinstance(endtime, int) else _convert_time_str_to_minutes(time_str=str(endtime))
+        # Handle int (raw from CCU), time string (from cache), and numeric string (legacy cache)
+        endtime_minutes = _endtime_to_minutes(endtime=slot["endtime"])
         temperature = float(slot["temperature"])
 
         # Calculate duration for this slot (from previous endtime to current endtime)
@@ -1786,6 +1785,30 @@ def _convert_time_str_to_minutes(*, time_str: str) -> int:
         ) from exc
 
 
+def _endtime_to_minutes(*, endtime: int | str) -> int:
+    """
+    Convert endtime value to minutes, handling multiple formats.
+
+    Handles three input formats:
+    - int: Raw minutes from CCU (e.g., 360)
+    - str "hh:mm": Time string format (e.g., "06:00")
+    - str numeric: Legacy cached minutes as string (e.g., "360")
+
+    Args:
+        endtime: Endtime value in any supported format
+
+    Returns:
+        Minutes as integer
+
+    """
+    if isinstance(endtime, int):
+        return endtime
+    # String: check if it's numeric (legacy cache format) or time format
+    if endtime.isdigit():
+        return int(endtime)
+    return _convert_time_str_to_minutes(time_str=endtime)
+
+
 def _fillup_weekday_data(*, base_temperature: float, weekday_data: ClimateWeekdaySchedule) -> ClimateWeekdaySchedule:
     """Fillup weekday data."""
     for slot_no in CLIMATE_SCHEDULE_SLOT_IN_RANGE:
@@ -1824,9 +1847,10 @@ def _normalize_weekday_data(*, weekday_data: ClimateWeekdaySchedule | dict[str, 
         normalized_data[int_key] = value
 
     # Sort by ENDTIME and reassign slot numbers 1-13
+    # Handle int (raw from CCU), time string (from cache), and numeric string (legacy cache)
     sorted_slots = sorted(
         normalized_data.items(),
-        key=lambda item: _convert_time_str_to_minutes(time_str=str(item[1]["endtime"])),
+        key=lambda item: _endtime_to_minutes(endtime=item[1]["endtime"]),
     )
 
     # Reassign slot numbers from 1 to N (where N is number of existing slots)

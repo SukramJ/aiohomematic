@@ -1,3 +1,13 @@
+# Version 2026.1.40 (2026-01-16)
+
+## What's Changed
+
+### Fixed
+
+- **Legacy cache migration for climate schedules**: Fixed `ValidationException: Time 360 is invalid` error that occurred when starting with aiohomematic 2026.1.39 if the paramset cache contained legacy schedule data. The issue was that old cached data stored `endtime` values as numeric strings (e.g., `"360"`) instead of integers (`360`) or time strings (`"06:00"`). Added a new helper function `_endtime_to_minutes()` that handles all three formats, ensuring smooth migration without requiring cache deletion.
+
+---
+
 # Version 2026.1.39 (2026-01-15)
 
 ## What's Changed

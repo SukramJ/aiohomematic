@@ -3233,6 +3233,59 @@ class TestWeekProfileHelperMethods:
         # Total: 18.0°C = 1320 min, 21.0°C = 120 min
         assert base_temp == 18.0
 
+    def test_identify_base_temperature_with_numeric_string_endtimes(self):
+        """
+        Test identify_base_temperature handles numeric string endtime values from legacy cache.
+
+        Old cached data might store endtime as string representation of minutes (e.g., "360"
+        instead of integer 360 or time string "06:00"). This test verifies that the migration
+        fix correctly handles this legacy format without raising ValidationException.
+        """
+        # Legacy cache format with numeric string endtime values (minutes as strings)
+        weekday_data = {
+            1: {"endtime": "360", "temperature": 18.0},  # 06:00 - base temperature (as string)
+            2: {"endtime": "480", "temperature": 21.0},  # 08:00 - comfort temperature
+            3: {"endtime": "1200", "temperature": 18.0},  # 20:00 - back to base
+            4: {"endtime": "1440", "temperature": 18.0},  # 24:00 - end of day
+        }
+
+        # Should handle numeric string endtime values without raising ValidationException
+        base_temp = identify_base_temperature(weekday_data=weekday_data)
+
+        # Base temperature should be 18.0 (most minutes used):
+        # Slot 1: 00:00-06:00 = 360 min at 18.0°C
+        # Slot 2: 06:00-08:00 = 120 min at 21.0°C
+        # Slot 3: 08:00-20:00 = 720 min at 18.0°C
+        # Slot 4: 20:00-24:00 = 240 min at 18.0°C
+        # Total: 18.0°C = 1320 min, 21.0°C = 120 min
+        assert base_temp == 18.0
+
+    def test_normalize_weekday_data_with_numeric_string_endtimes(self):
+        """
+        Test _normalize_weekday_data handles numeric string endtime values from legacy cache.
+
+        The normalization function must handle the legacy cache format where endtime
+        is stored as a numeric string (e.g., "360") to avoid ValidationException during
+        sorting.
+        """
+        # Legacy cache format with numeric string endtime values and string slot keys
+        weekday_data = {
+            "2": {"endtime": "480", "temperature": 21.0},  # 08:00 - listed second but earlier slot
+            "1": {"endtime": "1440", "temperature": 18.0},  # 24:00 - listed first but later time
+        }
+
+        # Should handle numeric string endtime values and sort correctly
+        result = _normalize_weekday_data(weekday_data=weekday_data)
+
+        # Result should be sorted by endtime and have 13 slots
+        assert len(result) == 13
+        # First slot should be the one with earlier endtime (08:00/480)
+        assert result[1]["endtime"] == "480"
+        assert result[1]["temperature"] == 21.0
+        # Second slot should be the one with later endtime (24:00/1440)
+        assert result[2]["endtime"] == "1440"
+        assert result[2]["temperature"] == 18.0
+
     @pytest.mark.parametrize(
         (
             "address_device_translation",

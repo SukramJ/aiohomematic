@@ -656,6 +656,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
+    def translation_key(self) -> str:
+        """Return translation key for data point."""
+
+    @property
+    @abstractmethod
     def unconfirmed_last_value_send(self) -> ParameterT:
         """Return the unconfirmed value send for the data point."""
 

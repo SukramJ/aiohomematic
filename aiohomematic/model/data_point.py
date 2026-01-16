@@ -704,6 +704,7 @@ class BaseParameterDataPoint[
         "_status_value",
         "_status_value_list",
         "_temporary_value",
+        "_translation_key",
         "_type",
         "_unit",
         "_values",
@@ -723,6 +724,7 @@ class BaseParameterDataPoint[
         self._paramset_key: Final = paramset_key
         # required for name in BaseDataPoint
         self._parameter: Final[str] = parameter
+        self._translation_key: Final[str] = parameter.replace(".", "_").lower()
         self._ignore_on_initial_load: Final[bool] = check_ignore_parameter_on_initial_load(parameter=parameter)
 
         super().__init__(
@@ -789,6 +791,7 @@ class BaseParameterDataPoint[
     status: Final = DelegatedProperty[ParameterStatus | None](path="_status_value")
     status_dpk: Final = DelegatedProperty[DataPointKey | None](path="_status_dpk")
     status_parameter: Final = DelegatedProperty[str | None](path="_status_parameter")
+    translation_key: Final = DelegatedProperty[str](path="_translation_key")
     unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
     values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
     visible: Final = DelegatedProperty[bool](path="_visible")

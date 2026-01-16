@@ -91,6 +91,7 @@
   "exception.model.custom.text_display.invalid_text_color": "Ungültige Textfarbe für Datenpunkt {full_name}: {value}",
   "exception.model.data_point.subscribe_handler.already_registered": "REGISTER_DATA_POINT_UPDATED_CALLBACK fehlgeschlagen: hm_data_point: {full_name} ist bereits registriert von {custom_id}",
   "exception.model.device.export_device_definition.failed": "EXPORT_DEVICE_DEFINITION fehlgeschlagen: {reason}",
+  "exception.model.event.channel_event_group.no_events": "ChannelEventGroup benötigt mindestens ein Ereignis",
   "exception.model.event.create_event.failed": "CREATE_EVENT_AND_APPEND_TO_CHANNEL: Ereignis konnte nicht erstellt werden: {reason}",
   "exception.model.generic.create_data_point.failed": "CREATE_DATA_POINT_AND_APPEND_TO_CHANNEL: Datenpunkt konnte nicht erstellt werden: {reason}",
   "exception.model.hub.number.invalid_value": "SYSVAR.NUMBER fehlgeschlagen: Ungültiger Wert: {value} (min: {min}, max: {max})",

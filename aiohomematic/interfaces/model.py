@@ -34,7 +34,7 @@ Device protocols (DeviceProtocol composed of):
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, TypeAlias, Unpack, runtime_checkable
 
@@ -791,6 +791,119 @@ class GenericEventProtocol[ParameterT](BaseParameterDataPointProtocol[ParameterT
     def publish_event(self, *, value: Any) -> None:
         """Publish an event."""
 
+    @abstractmethod
+    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeCallback:
+        """Subscribe to internal data point updated event."""
+
+
+@runtime_checkable
+class ChannelEventGroupProtocol(Protocol):
+    """
+    Protocol for aggregated channel events as virtual data point.
+
+    Represents all events of a single channel grouped together as a
+    virtual data point, providing unified access and standard subscription
+    management via the CallbackDataPointProtocol pattern.
+
+    Created during Channel.finalize_init() if the channel has events.
+    Internally subscribes to all GenericEvents and forwards triggers
+    to external subscribers via the standard subscription API.
+
+    Used by Home Assistant integration to create one EventEntity per channel.
+    """
+
+    __slots__ = ()
+
+    # Identity
+    @property
+    @abstractmethod
+    def available(self) -> bool:
+        """Return if device is available."""
+
+    @property
+    @abstractmethod
+    def category(self) -> DataPointCategory:
+        """Return the category of this data point."""
+
+    @property
+    @abstractmethod
+    def channel(self) -> ChannelProtocol:
+        """Return the channel containing the events."""
+
+    @property
+    @abstractmethod
+    def custom_id(self) -> str | None:
+        """Return the custom id for external registration."""
+
+    @property
+    @abstractmethod
+    def device(self) -> DeviceProtocol:
+        """Return the device containing the channel."""
+
+    @property
+    @abstractmethod
+    def event_types(self) -> tuple[str, ...]:
+        """Return event type names (parameter names, lowercase)."""
+
+    @property
+    @abstractmethod
+    def events(self) -> tuple[GenericEventProtocolAny, ...]:
+        """Return all events in this group."""
+
+    @property
+    @abstractmethod
+    def full_name(self) -> str:
+        """Return the full name of the event group."""
+
+    @property
+    @abstractmethod
+    def is_registered(self) -> bool:
+        """Return if event group is registered externally."""
+
+    @property
+    @abstractmethod
+    def last_triggered_event(self) -> GenericEventProtocolAny | None:
+        """Return the last event that was triggered."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return display name from primary event."""
+
+    @property
+    @abstractmethod
+    def primary_event(self) -> GenericEventProtocolAny:
+        """Return the primary event used for naming."""
+
+    @property
+    @abstractmethod
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+
+    @property
+    @abstractmethod
+    def unique_id(self) -> str:
+        """Return unique identifier based on channel."""
+
+    @property
+    @abstractmethod
+    def usage(self) -> DataPointUsage:
+        """Return the data point usage."""
+
+    @abstractmethod
+    def subscribe_to_data_point_updated(
+        self, *, handler: DataPointUpdatedHandler, custom_id: str
+    ) -> UnsubscribeCallback:
+        """Subscribe to event group updates (standard CallbackDataPointProtocol pattern)."""
+
+    @abstractmethod
+    def subscribe_to_device_removed(
+        self,
+        *,
+        handler: Callable[[], None],
+    ) -> UnsubscribeCallback:
+        """Subscribe to device removal event."""
+
 
 @runtime_checkable
 class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
@@ -1070,6 +1183,11 @@ class ChannelDataPointAccessProtocol(Protocol):
     @abstractmethod
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
+
+    @property
+    @abstractmethod
+    def event_group(self) -> ChannelEventGroupProtocol | None:
+        """Return the event group for this channel, if it has events."""
 
     @property
     @abstractmethod

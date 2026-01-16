@@ -232,6 +232,7 @@ from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
     # Channel sub-protocols
     ChannelDataPointAccessProtocol,
+    ChannelEventGroupProtocol,
     ChannelGroupingProtocol,
     ChannelIdentityProtocol,
     ChannelLifecycleProtocol,
@@ -354,6 +355,7 @@ __all__ = [
     "MetricsProviderProtocol",
     # Model channel
     "ChannelDataPointAccessProtocol",
+    "ChannelEventGroupProtocol",
     "ChannelGroupingProtocol",
     "ChannelIdentityProtocol",
     "ChannelLifecycleProtocol",

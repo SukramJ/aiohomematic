@@ -412,7 +412,7 @@ log_format = "%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(name)s:%(
 log_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-#addopts = "-n auto --dist loadscope"
+addopts = "-n auto --dist loadscope"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]

@@ -439,7 +439,7 @@ class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEve
         device_addresses: set[str] = set()
 
         for category, data_points in new_data_points.items():
-            if category == DataPointCategory.EVENT:
+            if category in (DataPointCategory.EVENT, DataPointCategory.EVENT_GROUP):
                 continue
             for dp in data_points:
                 device_addresses.add(dp.device.address)

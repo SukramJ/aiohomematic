@@ -34,7 +34,6 @@ from aiohomematic.central.events import (
 )
 from aiohomematic.const import (
     CATEGORIES,
-    DATA_POINT_EVENTS,
     DataPointCategory,
     DeviceDescription,
     DeviceFirmwareState,
@@ -49,6 +48,7 @@ from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import (
     CallbackDataPointProtocol,
     CentralInfoProtocol,
+    ChannelEventGroupProtocol,
     ChannelProtocol,
     ClientProviderProtocol,
     ConfigProviderProtocol,
@@ -62,7 +62,6 @@ from aiohomematic.interfaces import (
     EventPublisherProtocol,
     EventSubscriptionManagerProtocol,
     FileOperationsProtocol,
-    GenericEventProtocolAny,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
@@ -416,7 +415,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             for device in new_devices:
                 await device.finalize_init()
             new_dps: dict[DataPointCategory, Any] = _get_new_data_points(new_devices=new_devices)
-            new_dps[DataPointCategory.EVENT] = _get_new_channel_events(new_devices=new_devices)
+            new_dps[DataPointCategory.EVENT_GROUP] = _get_new_event_groups(new_devices=new_devices)
             self._coordinator_provider.event_coordinator.publish_system_event(
                 system_event=SystemEventType.DEVICES_CREATED,
                 new_data_points=new_dps,
@@ -1184,9 +1183,9 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             self._delayed_device_descriptions[device_address].append(dev_desc)
 
 
-def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocolAny, ...], ...]:
+def _get_new_event_groups(*, new_devices: set[DeviceProtocol]) -> tuple[ChannelEventGroupProtocol, ...]:
     """
-    Return new channel events.
+    Return new channel event groups.
 
     Args:
     ----
@@ -1194,19 +1193,16 @@ def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[
 
     Returns:
     -------
-        Tuple of channel event tuples
+        Tuple of channel event groups
 
     """
-    channel_events: list[tuple[GenericEventProtocolAny, ...]] = []
-
-    for device in new_devices:
-        for event_type in DATA_POINT_EVENTS:
-            if (hm_channel_events := list(device.get_events(event_type=event_type, registered=False).values())) and len(
-                hm_channel_events
-            ) > 0:
-                channel_events.extend(hm_channel_events)  # noqa: PERF401
-
-    return tuple(channel_events)
+    return tuple(
+        event_group
+        for device in new_devices
+        for channel in device.channels.values()
+        for event_group in channel.event_groups.values()
+        if not event_group.is_registered
+    )
 
 
 def _get_new_data_points(
@@ -1226,7 +1222,9 @@ def _get_new_data_points(
 
     """
     data_points_by_category: dict[DataPointCategory, set[CallbackDataPointProtocol]] = {
-        category: set() for category in CATEGORIES if category != DataPointCategory.EVENT
+        category: set()
+        for category in CATEGORIES
+        if category not in (DataPointCategory.EVENT, DataPointCategory.EVENT_GROUP)
     }
 
     for device in new_devices:

@@ -811,15 +811,18 @@ class ChannelEventGroupProtocol(Protocol):
     """
     Protocol for aggregated channel events as virtual data point.
 
-    Represents all events of a single channel grouped together as a
-    virtual data point, providing unified access and standard subscription
-    management via the CallbackDataPointProtocol pattern.
+    Represents all events of the same DeviceTriggerEventType for a single
+    channel grouped together as a virtual data point, providing unified access
+    and standard subscription management via the CallbackDataPointProtocol pattern.
 
-    Created during Channel.finalize_init() if the channel has events.
-    Internally subscribes to all GenericEvents and forwards triggers
-    to external subscribers via the standard subscription API.
+    Created during Channel.finalize_init() for each DeviceTriggerEventType
+    present in the channel. A channel can have multiple event groups
+    (e.g., one for KEYPRESS, one for IMPULSE).
 
-    Used by Home Assistant integration to create one EventEntity per channel.
+    Internally subscribes to all GenericEvents of the same type and forwards
+    triggers to external subscribers via the standard subscription API.
+
+    Used by Home Assistant integration to create one EventEntity per event group.
     """
 
     __slots__ = ()
@@ -852,6 +855,11 @@ class ChannelEventGroupProtocol(Protocol):
 
     @property
     @abstractmethod
+    def device_trigger_event_type(self) -> DeviceTriggerEventType:
+        """Return the trigger event type for this group."""
+
+    @property
+    @abstractmethod
     def event_types(self) -> tuple[str, ...]:
         """Return event type names (parameter names, lowercase)."""
 
@@ -878,12 +886,7 @@ class ChannelEventGroupProtocol(Protocol):
     @property
     @abstractmethod
     def name(self) -> str:
-        """Return display name from primary event."""
-
-    @property
-    @abstractmethod
-    def primary_event(self) -> GenericEventProtocolAny:
-        """Return the primary event used for naming."""
+        """Return display name of the event group."""
 
     @property
     @abstractmethod
@@ -1201,8 +1204,8 @@ class ChannelDataPointAccessProtocol(Protocol):
 
     @property
     @abstractmethod
-    def event_group(self) -> ChannelEventGroupProtocol | None:
-        """Return the event group for this channel, if it has events."""
+    def event_groups(self) -> Mapping[DeviceTriggerEventType, ChannelEventGroupProtocol]:
+        """Return the event groups for this channel, keyed by DeviceTriggerEventType."""
 
     @property
     @abstractmethod

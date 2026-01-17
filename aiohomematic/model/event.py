@@ -50,6 +50,7 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol, GenericEventProtocolAny
+from aiohomematic.interfaces.model import ChannelEventGroupProtocol
 from aiohomematic.model.data_point import BaseParameterDataPointAny, CallbackDataPoint
 from aiohomematic.model.support import (
     DataPointNameData,
@@ -170,26 +171,30 @@ class ImpulseEvent(GenericEvent):
     _device_trigger_event_type = DeviceTriggerEventType.IMPULSE
 
 
-class ChannelEventGroup(CallbackDataPoint):
+class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
     """
-    Virtual data point aggregating all events for a single channel.
+    Virtual data point aggregating events of the same type for a single channel.
 
-    Created during Channel.finalize_init() if the channel has events.
-    Internally subscribes to all GenericEvents and forwards triggers
-    to external subscribers via the standard subscription API.
+    Created during Channel.finalize_init() for each DeviceTriggerEventType
+    present in the channel. A channel can have multiple event groups
+    (e.g., one for KEYPRESS, one for IMPULSE).
+
+    Internally subscribes to all GenericEvents of the same type and forwards
+    triggers to external subscribers via the standard subscription API.
 
     Provides unified access to channel events with:
-    - Pre-computed event_types list
-    - Primary event for naming
+    - Pre-computed event_types list (parameter names)
+    - Device trigger event type for the group
     - Last triggered event tracking
     - Standard CallbackDataPointProtocol subscription pattern
     - Translation key derivation
 
-    Used by Home Assistant to create one EventEntity per channel.
+    Used by Home Assistant to create one EventEntity per event group.
     """
 
     __slots__ = (
         "_channel",
+        "_device_trigger_event_type",
         "_events",
         "_event_types",
         "_last_triggered_event",
@@ -197,28 +202,41 @@ class ChannelEventGroup(CallbackDataPoint):
         "_internal_unsubscribe_callbacks",
     )
 
-    _category = DataPointCategory.EVENT
+    _category = DataPointCategory.EVENT_GROUP
 
     def __init__(
         self,
         *,
         channel: ChannelProtocol,
+        device_trigger_event_type: DeviceTriggerEventType,
         events: tuple[GenericEventProtocolAny, ...],
     ) -> None:
         """Initialize the channel event group."""
         if not events:
             raise ValueError(i18n.tr(key="exception.model.event.channel_event_group.no_events"))
 
+        # Validate all events have the same event_type
+        for event in events:
+            if event.event_type != device_trigger_event_type:
+                raise ValueError(
+                    i18n.tr(
+                        key="exception.model.event.channel_event_group.mixed_event_types",
+                        expected=device_trigger_event_type,
+                        actual=event.event_type,
+                    )
+                )
+
         self._channel: Final = channel
+        self._device_trigger_event_type: Final = device_trigger_event_type
         self._events: Final = events
         self._event_types: Final = tuple(event.parameter.lower() for event in events)
         self._last_triggered_event: GenericEventProtocolAny | None = None
         self._internal_unsubscribe_callbacks: list[UnsubscribeCallback] = []
-        self._name_data: Final = events[0].name_data
+        self._name_data: Final = get_event_name(channel=channel, parameter=device_trigger_event_type.short)
 
         # Initialize CallbackDataPoint - get providers from channel.device
         super().__init__(
-            unique_id=f"event_group_{channel.unique_id}",
+            unique_id=f"event_group_{device_trigger_event_type.short}_{channel.unique_id}",
             central_info=channel.device.central_info,
             event_bus_provider=channel.device.event_bus_provider,
             event_publisher=channel.device.event_publisher,
@@ -227,35 +245,14 @@ class ChannelEventGroup(CallbackDataPoint):
             parameter_visibility_provider=channel.device.parameter_visibility_provider,
         )
 
-    @property
-    def available(self) -> bool:
-        """Return if device is available."""
-        return self._channel.device.available
-
-    @property
-    def channel(self) -> ChannelProtocol:
-        """Return the channel containing the events."""
-        return self._channel
-
-    @property
-    def device(self) -> DeviceProtocol:
-        """Return the device containing the channel."""
-        return self._channel.device
-
-    @property
-    def event_types(self) -> tuple[str, ...]:
-        """Return event type names (parameter names, lowercase)."""
-        return self._event_types
-
-    @property
-    def events(self) -> tuple[GenericEventProtocolAny, ...]:
-        """Return all events in this group."""
-        return self._events
-
-    @property
-    def full_name(self) -> str:
-        """Return the full name of the event group."""
-        return self._name_data.full_name
+    available: Final = DelegatedProperty[bool](path="_channel.device.available")
+    channel: Final = DelegatedProperty[ChannelProtocol](path="_channel")
+    device: Final = DelegatedProperty[DeviceProtocol](path="_channel.device")
+    device_trigger_event_type: Final = DelegatedProperty[DeviceTriggerEventType](path="_device_trigger_event_type")
+    event_types: Final = DelegatedProperty[tuple[str, ...]](path="_event_types")
+    events: Final = DelegatedProperty[tuple[GenericEventProtocolAny, ...]](path="_events")
+    full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
+    name: Final = DelegatedProperty[str](path="_name_data.channel_name")
 
     @property
     def last_triggered_event(self) -> GenericEventProtocolAny | None:
@@ -263,19 +260,9 @@ class ChannelEventGroup(CallbackDataPoint):
         return self._last_triggered_event
 
     @property
-    def name(self) -> str:
-        """Return display name from primary event."""
-        return self._name_data.channel_name
-
-    @property
-    def primary_event(self) -> GenericEventProtocolAny:
-        """Return the primary event used for naming."""
-        return self._events[0]
-
-    @property
     def translation_key(self) -> str:
         """Return translation key for Home Assistant."""
-        return generate_translation_key(name=self.primary_event.event_type)
+        return generate_translation_key(name=self._device_trigger_event_type)
 
     @property
     def usage(self) -> DataPointUsage:

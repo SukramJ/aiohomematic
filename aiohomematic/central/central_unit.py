@@ -476,10 +476,7 @@ class CentralUnit(
         groups: list[ChannelEventGroupProtocol] = []
         for device in self._device_registry.devices:
             for channel in device.channels.values():
-                if (event_group := channel.event_group) is None:
-                    continue
-                # Filter by event type
-                if event_group.primary_event.event_type != event_type:
+                if (event_group := channel.event_groups.get(event_type)) is None:
                     continue
                 # Filter by registration status
                 if registered is not None and event_group.is_registered != registered:
@@ -1194,7 +1191,9 @@ def _get_new_data_points(
 ) -> Mapping[DataPointCategory, AbstractSet[CallbackDataPointProtocol]]:
     """Return new data points by category."""
     data_points_by_category: dict[DataPointCategory, set[CallbackDataPointProtocol]] = {
-        category: set() for category in CATEGORIES if category != DataPointCategory.EVENT
+        category: set()
+        for category in CATEGORIES
+        if category not in (DataPointCategory.EVENT, DataPointCategory.EVENT_GROUP)
     }
 
     for device in new_devices:

@@ -730,6 +730,7 @@ class DataPointCategory(StrEnum):
     CLIMATE = "climate"
     COVER = "cover"
     EVENT = "event"
+    EVENT_GROUP = "event_group"
     HUB_BINARY_SENSOR = "hub_binary_sensor"
     HUB_BUTTON = "hub_button"
     HUB_NUMBER = "hub_number"
@@ -876,6 +877,11 @@ class DeviceTriggerEventType(StrEnum):
     DEVICE_ERROR = "homematic.device_error"
     IMPULSE = "homematic.impulse"
     KEYPRESS = "homematic.keypress"
+
+    @property
+    def short(self) -> str:
+        """Return shortened event type."""
+        return self.value.rsplit(".", maxsplit=1)[-1]
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -1516,6 +1522,7 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.CLIMATE,
     DataPointCategory.COVER,
     DataPointCategory.EVENT,
+    DataPointCategory.EVENT_GROUP,
     DataPointCategory.LIGHT,
     DataPointCategory.LOCK,
     DataPointCategory.NUMBER,

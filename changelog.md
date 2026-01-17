@@ -18,13 +18,16 @@
 
 ### Changed
 
-- **ChannelEventGroup as virtual data point**: Refactored `ChannelEventGroup` from a helper class to a virtual data point bound to the Channel. Event groups are now created during `Channel.finalize_init()` and internally subscribe to all `GenericEvent`s on the channel. Key changes:
+- **ChannelEventGroup as virtual data point**: Refactored `ChannelEventGroup` from a helper class to a virtual data point bound to the Channel. Event groups are now created during `Channel.finalize_init()` for each `DeviceTriggerEventType` present in the channel. Key changes:
   - `ChannelEventGroup` now extends `CallbackDataPoint` and follows the standard subscription pattern
   - New `subscribe_to_data_point_updated()` method replaces `subscribe_to_events()`
   - New `last_triggered_event` property tracks which event fired
-  - Event groups are accessible directly via `channel.event_group`
+  - New `device_trigger_event_type` property identifies the event type of the group
+  - Event groups are accessible via `channel.event_groups` dict keyed by `DeviceTriggerEventType`
+  - A channel can have multiple event groups (one per `DeviceTriggerEventType`)
   - `central.get_event_groups()` now returns channel-bound instances (reused, not created on-the-fly)
   - Added `subscribe_to_internal_data_point_updated` to `GenericEventProtocol`
+  - `DataPointsCreatedEvent` now sends `ChannelEventGroupProtocol` for `EVENT` category instead of tuple of events
   - Migration guide: `docs/migrations/channel_event_group_migration_2026_01.md`
 
 ### Fixed

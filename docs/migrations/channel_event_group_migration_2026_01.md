@@ -59,18 +59,23 @@ if event_group.last_triggered_event:
     event_data = event_group.last_triggered_event.get_event_data()
 ```
 
-### 4. Direct channel access
+### 4. Direct channel access via event_groups dict
 
-Event groups can now be accessed directly from channels:
+Event groups are now stored in a dict keyed by `DeviceTriggerEventType`, allowing multiple event groups per channel:
 
 **New option:**
 
 ```python
-# Access event group directly from channel
+# Access event groups directly from channel
 for channel in device.channels.values():
-    if channel.event_group:
-        event_group = channel.event_group
-        # Use the event group
+    # Access all event groups
+    for event_type, event_group in channel.event_groups.items():
+        print(f"Event type: {event_type}, events: {event_group.event_types}")
+
+    # Access specific event type directly
+    if keypress_group := channel.event_groups.get(DeviceTriggerEventType.KEYPRESS):
+        # Use the KEYPRESS event group
+        pass
 ```
 
 ## Migration Steps
@@ -126,15 +131,20 @@ if (event := event_group.last_triggered_event):
 - `category` - Returns `DataPointCategory.EVENT`
 - `usage` - Returns `DataPointUsage.EVENT`
 
-### Direct channel access
+### Direct channel access via event_groups dict
 
-Event groups are now directly accessible from channels:
+Event groups are now stored in a dict keyed by `DeviceTriggerEventType`:
 
 ```python
 channel = device.get_channel(channel_address="VCU001:1")
-if channel.event_group:
-    # Event group is available
-    print(f"Events: {channel.event_group.event_types}")
+
+# Access all event groups
+for event_type, event_group in channel.event_groups.items():
+    print(f"{event_type}: {event_group.event_types}")
+
+# Access specific event type
+if keypress_group := channel.event_groups.get(DeviceTriggerEventType.KEYPRESS):
+    print(f"KEYPRESS events: {keypress_group.event_types}")
 ```
 
 ## Compatibility Notes
@@ -148,7 +158,7 @@ The `central.get_event_groups()` method continues to work:
 for event_type in DATA_POINT_EVENTS:
     groups = central.get_event_groups(event_type=event_type, registered=False)
     for group in groups:
-        # group is now channel.event_group (reused instance)
+        # group is now from channel.event_groups[event_type] (reused instance)
         group.subscribe_to_data_point_updated(handler=..., custom_id=entity_id)
 ```
 

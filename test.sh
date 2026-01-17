@@ -1,0 +1,1 @@
+pytest -n auto --dist loadscope

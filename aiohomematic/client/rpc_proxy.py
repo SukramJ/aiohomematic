@@ -147,6 +147,42 @@ _EXPECTED_XMLRPC_FAULT_CODES: Final[frozenset[int]] = frozenset(
 )
 
 
+class _TimeoutTransport(xmlrpc.client.Transport):
+    """HTTP Transport with configurable socket timeout."""
+
+    def __init__(self, *, timeout: float | None = None) -> None:
+        """Initialize transport with timeout."""
+        super().__init__()
+        self._timeout = timeout
+
+    def make_connection(  # kwonly: disable
+        self, host: tuple[str, dict[str, str]] | str
+    ) -> http.client.HTTPConnection:
+        """Create HTTP connection with timeout."""
+        conn = super().make_connection(host)
+        if self._timeout is not None:
+            conn.timeout = self._timeout
+        return conn
+
+
+class _TimeoutSafeTransport(xmlrpc.client.SafeTransport):
+    """HTTPS Transport with configurable socket timeout."""
+
+    def __init__(self, *, timeout: float | None = None, context: SSLContext | None = None) -> None:
+        """Initialize transport with timeout and optional SSL context."""
+        super().__init__(context=context)
+        self._timeout = timeout
+
+    def make_connection(  # kwonly: disable
+        self, host: tuple[str, dict[str, str]] | str
+    ) -> http.client.HTTPSConnection:
+        """Create HTTPS connection with timeout."""
+        conn = super().make_connection(host)
+        if self._timeout is not None:
+            conn.timeout = self._timeout
+        return conn
+
+
 # noinspection PyProtectedMember,PyUnresolvedReferences
 class BaseRpcProxy(ABC):
     """ServerProxy implementation with ThreadPoolExecutor when request is executing."""
@@ -348,16 +384,24 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             incident_recorder=incident_recorder,
         )
 
-        # Add timeout to kwargs if provided
-        if timeout is not None:
-            self._kwargs["timeout"] = timeout
+        # Create transport with timeout support
+        # ServerProxy doesn't accept timeout directly - it must be set on the transport
+        transport: xmlrpc.client.Transport | None = None
+        if timeout is not None or tls:
+            if tls:
+                # Use HTTPS transport with timeout and SSL context
+                ssl_context = self._kwargs.get(_CONTEXT)
+                transport = _TimeoutSafeTransport(timeout=timeout, context=ssl_context)
+            else:
+                # Use HTTP transport with timeout
+                transport = _TimeoutTransport(timeout=timeout)
 
         xmlrpc.client.ServerProxy.__init__(
             self,
             uri=uri,
+            transport=transport,
             encoding=ISO_8859_1,
             headers=headers,
-            **self._kwargs,
         )
 
     async def do_init(self) -> None:

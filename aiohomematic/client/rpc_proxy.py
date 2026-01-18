@@ -637,7 +637,7 @@ class NullRpcProxy(BaseRpcProxy):
     async def do_init(self) -> None:
         """No-op initialization."""
 
-    async def _async_request(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    async def _async_request(self, *args: Any, **kwargs: Any) -> None:
         """Raise UnsupportedException for any RPC request."""
         raise UnsupportedException(
             i18n.tr(key="exception.client.xmlrpc.null_proxy_unsupported", interface_id=self._interface_id)
@@ -645,13 +645,13 @@ class NullRpcProxy(BaseRpcProxy):
 
     def _null_method(
         self,
-        request_func: Any,  # noqa: ARG002
+        request_func: Any,
         *args: Any,
-        **kwargs: Any,  # noqa: ARG002
+        **kwargs: Any,
     ) -> Any:
         """Return a callable that raises UnsupportedException."""
 
-        async def _raise(*args: Any, **kwargs: Any) -> None:  # noqa: ARG001
+        async def _raise(*args: Any, **kwargs: Any) -> None:
             raise UnsupportedException(
                 i18n.tr(key="exception.client.xmlrpc.null_proxy_unsupported", interface_id=self._interface_id)
             )

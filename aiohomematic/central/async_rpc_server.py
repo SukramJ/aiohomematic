@@ -187,7 +187,7 @@ class AsyncXmlRpcDispatcher:
                 result = await handler(*params)
                 # XML-RPC multicall wraps each result in a list
                 results.append([result if result is not None else True])
-            except Exception as err:  # noqa: BLE001
+            except Exception as err:
                 _LOGGER.debug("Multicall method %s failed: %s", method_name, err)
                 results.append({"faultCode": -32603, "faultString": str(err)})
 
@@ -624,11 +624,7 @@ class AsyncXmlRpcServer:
 
         # Get actual port (important when PORT_ANY is used)
         # pylint: disable=protected-access
-        if (
-            self._site._server  # noqa: SLF001
-            and hasattr(self._site._server, "sockets")  # noqa: SLF001
-            and (sockets := self._site._server.sockets)  # noqa: SLF001
-        ):
+        if self._site._server and hasattr(self._site._server, "sockets") and (sockets := self._site._server.sockets):
             self._actual_port = sockets[0].getsockname()[1]
 
         self._started = True
@@ -670,7 +666,7 @@ class AsyncXmlRpcServer:
 
     async def _handle_health_check(
         self,
-        request: web.Request,  # noqa: ARG002
+        request: web.Request,
     ) -> web.Response:
         """Handle health check request."""
         health_data = {

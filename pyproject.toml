@@ -154,7 +154,6 @@ disable = [
     "wrong-import-order", # Enforced by Ruff/isort; allow non-standard ordering here
     #"consider-using-f-string",
     "consider-using-namedtuple-or-dataclass", # Too opinionated; dataclasses/namedtuples by dev choice
-    #"consider-using-assignment-expr",
 
     # Handled by ruff
     # Ref: <https://github.com/astral-sh/ruff/issues/970>
@@ -470,7 +469,7 @@ lint.select = [
     "RUF006", # Store a reference to the return value of asyncio.create_task
     "RUF013", # PEP 484 prohibits implicit Optional
     "RUF018", # Avoid assignment expressions in assert statements
-    # "RUF100", # Unused `noqa` directive; temporarily every now and then to clean them up
+    "RUF100", # Unused `noqa` directive
     "S102", # Use of exec detected
     "S103", # bad-file-permissions
     "S108", # hardcoded-temp-file
@@ -494,6 +493,8 @@ lint.select = [
     "T20", # flake8-print
     "TID251", # Banned imports
     "TRY", # tryceratops
+    "TC", # flake8-type-checking - optimize TYPE_CHECKING imports
+    "FURB", # refurb - modern Python patterns
     "UP", # pyupgrade
     "W", # pycodestyle
 ]
@@ -550,7 +551,13 @@ lint.ignore = [
     #"RET501",
     #"TRY002",
     "TRY301",
-    "PYI041"
+    "PYI041",
+
+    # TC rules - low benefit for this project
+    "TC001", # typing-only-first-party-import
+    "TC002", # typing-only-third-party-import
+    "TC003", # typing-only-standard-library-import
+    "TC006", # quote type expressions in cast() - minimal runtime benefit
 ]
 
 [tool.ruff.lint.flake8-pytest-style]

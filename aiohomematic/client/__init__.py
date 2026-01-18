@@ -146,7 +146,7 @@ async def _create_interface_client(
         client_deps=client_deps,
         interface_config=interface_config,
     )
-    version = await client_config._get_version()  # noqa: SLF001  # pylint: disable=protected-access
+    version = await client_config._get_version()  # pylint: disable=protected-access
 
     # Create appropriate backend
     backend = await create_backend(

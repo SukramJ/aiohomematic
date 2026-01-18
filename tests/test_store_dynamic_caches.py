@@ -50,7 +50,7 @@ def get_ping_pong_info(
 class _NoOpTaskScheduler:
     """Task scheduler that does nothing - for sync tests without event loop."""
 
-    def create_task(self, *, target: Any, name: str) -> None:  # noqa: ARG002
+    def create_task(self, *, target: Any, name: str) -> None:
         """Ignore task creation in sync tests."""
 
 

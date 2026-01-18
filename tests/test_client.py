@@ -41,7 +41,7 @@ class _FakeDP:
 class _FakeDevice:
     """Minimal fake Device exposing get_generic_data_point for event tracker helpers."""
 
-    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):  # noqa: ARG002
+    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):
         return _FakeDP()
 
 
@@ -54,15 +54,15 @@ class _FakeDeviceDetails:
         self._interfaces: dict[str, Interface] = {}
         self._addr_ids: dict[str, int] = {}
 
-    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:  # noqa: D401
+    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
         self._addr_ids[address] = rega_id
         # Simulate that channel addresses map to channel ids
         self.device_channel_rega_ids[address] = rega_id
 
-    def add_interface(self, *, address: str, interface: Interface) -> None:  # noqa: D401
+    def add_interface(self, *, address: str, interface: Interface) -> None:
         self._interfaces[address] = interface
 
-    def add_name(self, *, address: str, name: str) -> None:  # noqa: D401
+    def add_name(self, *, address: str, name: str) -> None:
         self._names[address] = name
 
 
@@ -72,7 +72,7 @@ class _FakeDataCache:
     def __init__(self) -> None:
         self.last_added: tuple[Interface, dict[str, str]] | None = None
 
-    def add_data(self, *, interface: Interface, all_device_data: dict[str, str]) -> None:  # noqa: D401
+    def add_data(self, *, interface: Interface, all_device_data: dict[str, str]) -> None:
         self.last_added = (interface, all_device_data)
 
 
@@ -82,16 +82,16 @@ class _FakeXmlRpcProxy:
     def __init__(self) -> None:
         self.supported_methods = {"getVersion"}
 
-    async def do_init(self) -> None:  # noqa: D401
+    async def do_init(self) -> None:
         return None
 
-    async def getVersion(self) -> str:  # noqa: D401,N802
+    async def getVersion(self) -> str:
         return "2.1"
 
-    async def ping(self, _callerId: str) -> None:  # noqa: D401,N803
+    async def ping(self, _callerId: str) -> None:
         return None
 
-    async def reportValueUsage(self, _address: str, _value_id: str, _ref_counter: int) -> bool:  # noqa: D401,N802
+    async def reportValueUsage(self, _address: str, _value_id: str, _ref_counter: int) -> bool:
         return True
 
 
@@ -101,43 +101,43 @@ class _FakeJsonRpcClient:
     def __init__(self) -> None:
         self.calls: list[str] = []
 
-    async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> bool:  # noqa: D401,ARG002,E501
+    async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> bool:
         self.calls.append("add_link")
         return True
 
-    async def delete_system_variable(self, *, name: str) -> bool:  # noqa: D401,ARG002
+    async def delete_system_variable(self, *, name: str) -> bool:
         self.calls.append(f"delete_system_variable:{name}")
         return True
 
-    async def execute_program(self, *, pid: str) -> bool:  # noqa: D401,ARG002
+    async def execute_program(self, *, pid: str) -> bool:
         self.calls.append(f"execute_program:{pid}")
         return True
 
-    async def get_all_channel_rega_ids_function(self):  # noqa: D401
+    async def get_all_channel_rega_ids_function(self):
         self.calls.append("get_all_channel_rega_ids_function")
         return {11: {"Func X"}, 12: {"Func Y"}}
 
-    async def get_all_channel_rega_ids_room(self):  # noqa: D401
+    async def get_all_channel_rega_ids_room(self):
         self.calls.append("get_all_channel_rega_ids_room")
         return {11: {"Room A"}, 12: {"Room B"}}
 
-    async def get_all_device_data(self, *, interface: Interface):  # noqa: D401,ARG002
+    async def get_all_device_data(self, *, interface: Interface):
         self.calls.append("get_all_device_data")
         return {"BidCos-RF.OEQ:1.STATE": "ON/OFF"}
 
-    async def get_all_programs(self, *, markers: tuple[str, ...]):  # noqa: D401,ARG002
+    async def get_all_programs(self, *, markers: tuple[str, ...]):
         self.calls.append("get_all_programs")
         return ()
 
-    async def get_all_system_variables(self, *, markers: tuple[str, ...]):  # noqa: D401,ARG002
+    async def get_all_system_variables(self, *, markers: tuple[str, ...]):
         self.calls.append("get_all_system_variables")
         return ()
 
-    async def get_device_description(self, *, interface: Interface, address: str):  # noqa: D401,ARG002
+    async def get_device_description(self, *, interface: Interface, address: str):
         self.calls.append("get_device_description")
         return {"address": address}
 
-    async def get_device_details(self):  # noqa: D401
+    async def get_device_details(self):
         self.calls.append("get_device_details")
         return [
             {
@@ -152,83 +152,83 @@ class _FakeJsonRpcClient:
             }
         ]
 
-    async def get_link_peers(self, *, address: str):  # noqa: D401,ARG002
+    async def get_link_peers(self, *, address: str):
         self.calls.append("get_link_peers")
         return ()
 
-    async def get_links(self, *, address: str, flags: int):  # noqa: D401,ARG002
+    async def get_links(self, *, address: str, flags: int):
         self.calls.append("get_links")
         return ()
 
-    async def get_metadata(self, *, address: str, data_id: str):  # noqa: D401,ARG002
+    async def get_metadata(self, *, address: str, data_id: str):
         self.calls.append("get_metadata")
         return {}
 
-    async def get_paramset(self, *, interface: Interface, address: str, paramset_key: ParamsetKey):  # noqa: D401,ARG002
+    async def get_paramset(self, *, interface: Interface, address: str, paramset_key: ParamsetKey):
         self.calls.append(f"get_paramset:{address}:{paramset_key}")
         if paramset_key == ParamsetKey.MASTER:
             return {"LEVEL": 99}
         return {"LEVEL": 1}
 
-    async def get_paramset_description(self, *, interface: Interface, address: str, paramset_key: ParamsetKey):  # noqa: D401,ARG002,E501
+    async def get_paramset_description(self, *, interface: Interface, address: str, paramset_key: ParamsetKey):
         self.calls.append("get_paramset_description")
         return {"LEVEL": {"TYPE": "FLOAT", "UNIT": "%"}}
 
-    async def get_system_information(self):  # noqa: D401
+    async def get_system_information(self):
         self.calls.append("get_system_information")
         from aiohomematic.const import SystemInformation
 
         return SystemInformation(available_interfaces=(Interface.BIDCOS_RF,), serial="BIDCOS_RF_1234")
 
-    async def get_system_variable(self, *, name: str) -> Any:  # noqa: D401,ARG002
+    async def get_system_variable(self, *, name: str) -> Any:
         self.calls.append(f"get_system_variable:{name}")
         return 42
 
-    async def get_value(self, *, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str):  # noqa: D401,ARG002
+    async def get_value(self, *, interface: Interface, address: str, paramset_key: ParamsetKey, parameter: str):
         self.calls.append(f"get_value:{address}:{parameter}")
         return 7
 
-    async def has_program_ids(self, *, rega_id: str) -> bool:  # noqa: D401,ARG002
+    async def has_program_ids(self, *, rega_id: str) -> bool:
         self.calls.append(f"has_program_ids:{rega_id}")
         return True
 
-    async def is_present(self, *, interface: Interface) -> bool:  # noqa: D401,ARG002
+    async def is_present(self, *, interface: Interface) -> bool:
         self.calls.append("is_present")
         return True
 
-    async def list_devices(self, *, interface: Interface):  # noqa: D401,ARG002
+    async def list_devices(self, *, interface: Interface):
         self.calls.append("list_devices")
         return ({"address": "dev1"},)
 
     async def put_paramset(
         self, *, interface: Interface, address: str, paramset_key: ParamsetKey | str, values: dict[str, Any]
-    ):  # noqa: D401,ARG002,E501
+    ):
         self.calls.append("put_paramset")
         return True
 
-    async def remove_link(self, *, sender_address: str, receiver_address: str) -> bool:  # noqa: D401,ARG002
+    async def remove_link(self, *, sender_address: str, receiver_address: str) -> bool:
         self.calls.append("remove_link")
         return True
 
-    async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]):  # noqa: D401,ARG002
+    async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]):
         self.calls.append("set_metadata")
         return True
 
-    async def set_program_state(self, *, pid: str, state: bool) -> bool:  # noqa: D401,ARG002
+    async def set_program_state(self, *, pid: str, state: bool) -> bool:
         self.calls.append(f"set_program_state:{pid}:{state}")
         return True
 
-    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:  # noqa: D401,ARG002
+    async def set_system_variable(self, *, legacy_name: str, value: Any) -> bool:
         self.calls.append(f"set_system_variable:{legacy_name}:{value}")
         return True
 
     async def set_value(
         self, *, interface: Interface, address: str, parameter: str, value_type: str | None = None, value: Any = None
-    ):  # noqa: D401,ARG002,E501
+    ):
         self.calls.append("set_value")
         return True
 
-    async def update_device_firmware(self, *, device_address: str):  # noqa: D401,ARG002
+    async def update_device_firmware(self, *, device_address: str):
         self.calls.append("update_device_firmware")
         return True
 
@@ -247,8 +247,8 @@ class _FakeParamsetDescriptions:
         channel_address: str,
         paramset_key: ParamsetKey,
         paramset_description: dict[str, Any],
-        device_type: str,  # noqa: ARG002
-    ) -> None:  # noqa: D401
+        device_type: str,
+    ) -> None:
         """Add a paramset description to the cache."""
         if interface_id not in self._raw_paramset_descriptions:
             self._raw_paramset_descriptions[interface_id] = {}
@@ -256,7 +256,7 @@ class _FakeParamsetDescriptions:
             self._raw_paramset_descriptions[interface_id][channel_address] = {}
         self._raw_paramset_descriptions[interface_id][channel_address][paramset_key] = paramset_description
 
-    def get_parameter_data(self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str):  # noqa: D401
+    def get_parameter_data(self, *, interface_id: str, channel_address: str, paramset_key: ParamsetKey, parameter: str):
         # First check _raw_paramset_descriptions if set
         if self._raw_paramset_descriptions:
             try:
@@ -276,7 +276,7 @@ class _FakeParamsetDescriptions:
         full_format: bool = False,
         un_ignore_candidates_only: bool = False,
         use_channel_wildcard: bool = False,
-    ):  # noqa: D401,ARG002
+    ):
         return ()
 
 
@@ -286,13 +286,13 @@ class _FakeDeviceDescriptions:
     def __init__(self) -> None:
         self._device_descriptions: dict[str, dict[str, Any]] = {}
 
-    def find_device_description(self, *, interface_id: str, device_address: str) -> dict[str, Any] | None:  # noqa: D401
+    def find_device_description(self, *, interface_id: str, device_address: str) -> dict[str, Any] | None:
         """Find a device description by interface and address."""
         if interface_id in self._device_descriptions:
             return self._device_descriptions[interface_id].get(device_address)
         return None
 
-    def get_device_descriptions(self, *, interface_id: str) -> dict[str, Any] | None:  # noqa: D401
+    def get_device_descriptions(self, *, interface_id: str) -> dict[str, Any] | None:
         """Return device descriptions for an interface."""
         return self._device_descriptions.get(interface_id)
 
@@ -333,7 +333,7 @@ class _FakeCentral:
         self._callback_ip_addr = "127.0.0.1"
 
     @property
-    def cache_coordinator(self):  # noqa: D401,ANN201
+    def cache_coordinator(self):
         """Return a mock cache coordinator."""
         from types import SimpleNamespace
 
@@ -346,44 +346,44 @@ class _FakeCentral:
         )
 
     @property
-    def callback_ip_addr(self) -> str:  # noqa: D401
+    def callback_ip_addr(self) -> str:
         return self._callback_ip_addr
 
     @property
-    def event_bus(self):  # noqa: D401,ANN001
+    def event_bus(self):
         """Return the event bus."""
         return self._event_bus
 
     @property
-    def event_coordinator(self) -> _FakeEventPublisher:  # noqa: D401
+    def event_coordinator(self) -> _FakeEventPublisher:
         """Return the event coordinator."""
         return _FakeEventPublisher()
 
     @property
-    def listen_port_xml_rpc(self) -> int:  # noqa: D401
+    def listen_port_xml_rpc(self) -> int:
         return self._listen_port_xml_rpc
 
-    def get_client(self, *, interface_id: str):  # noqa: D401,ARG002
+    def get_client(self, *, interface_id: str):
         return self._clients.get(interface_id)
 
-    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):  # noqa: D401,ARG002
+    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):
         """Return None - no data points in fake central."""
         return
 
-    def has_client(self, *, interface_id: str) -> bool:  # noqa: D401,ARG002
+    def has_client(self, *, interface_id: str) -> bool:
         return interface_id in self._clients
 
-    def save_files(self, *, save_paramset_descriptions: bool = False) -> None:  # noqa: ARG002,D401
+    def save_files(self, *, save_paramset_descriptions: bool = False) -> None:
         return None
 
 
 class _FakeEventPublisher:
     """Minimal fake EventPublisherProtocol for testing."""
 
-    def publish_device_trigger_event(self, **kwargs: Any) -> None:  # noqa: D401,ARG002,ANN401
+    def publish_device_trigger_event(self, **kwargs: Any) -> None:
         """Do nothing for publish in tests."""
 
-    def publish_system_event(self, **kwargs: Any) -> None:  # noqa: D401,ARG002,ANN401
+    def publish_system_event(self, **kwargs: Any) -> None:
         """Do nothing for publish in tests."""
 
 
@@ -401,72 +401,72 @@ class _XmlProxy2:
         self._stopped = False
         self._calls: list[tuple[Any, ...] | tuple[str, tuple[Any, ...]]] = []
 
-    async def addLink(self, *args: Any):  # noqa: D401,N802,ANN401
+    async def addLink(self, *args: Any):
         raise ClientException("addLink-fail")
 
-    def clear_connection_issue(self) -> None:  # noqa: D401
+    def clear_connection_issue(self) -> None:
         """Clear connection issue (no-op for test mock)."""
 
-    async def do_init(self) -> None:  # noqa: D401
+    async def do_init(self) -> None:
         return None
 
-    async def getDeviceDescription(self, *args: Any):  # noqa: D401,ANN401
+    async def getDeviceDescription(self, *args: Any):
         return None
 
-    async def getInstallMode(self) -> int:  # noqa: D401,N802
+    async def getInstallMode(self) -> int:
         return 60
 
-    async def getLinkPeers(self, *args: Any):  # noqa: D401,N802,ANN401
+    async def getLinkPeers(self, *args: Any):
         raise ClientException("getLinkPeers-fail")
 
-    async def getLinks(self, *args: Any):  # noqa: D401,N802,ANN401
+    async def getLinks(self, *args: Any):
         raise ClientException("getLinks-fail")
 
-    async def getMetadata(self, *args: Any):  # noqa: D401,ANN401
+    async def getMetadata(self, *args: Any):
         raise ClientException("getMetadata-fail")
 
-    async def getParamset(self, addr: str, key: Any):  # noqa: D401,N802,ANN401
+    async def getParamset(self, addr: str, key: Any):
         return {"LEVEL": 5}
 
-    async def getValue(self, addr: str, param: str):  # noqa: D401,N802
+    async def getValue(self, addr: str, param: str):
         return 123
 
-    async def init(self, *args: Any) -> None:  # noqa: D401
+    async def init(self, *args: Any) -> None:
         self._calls.append(("init", args))
         if self._fail_init:
             raise ClientException("init-fail")
         return
 
-    async def installFirmware(self, *args: Any):  # noqa: D401,ANN401
+    async def installFirmware(self, *args: Any):
         return True
 
-    async def listDevices(self):  # noqa: D401
+    async def listDevices(self):
         return []
 
-    async def ping(self, _callerId: str) -> None:  # noqa: N803,D401
+    async def ping(self, _callerId: str) -> None:
         return None
 
-    async def putParamset(self, addr: str, key: Any, values: dict[str, Any], *rest: Any):  # noqa: D401,N802,ANN401
+    async def putParamset(self, addr: str, key: Any, values: dict[str, Any], *rest: Any):
         self._calls.append(("putParamset", (addr, key, values, *rest)))
         return
 
-    async def removeLink(self, *args: Any):  # noqa: D401,N802,ANN401
+    async def removeLink(self, *args: Any):
         raise ClientException("removeLink-fail")
 
-    async def setInstallMode(self, *args: Any):  # noqa: D401,N802,ANN401
+    async def setInstallMode(self, *args: Any):
         return None
 
-    async def setMetadata(self, *args: Any):  # noqa: D401,ANN401
+    async def setMetadata(self, *args: Any):
         raise ClientException("setMetadata-fail")
 
-    async def setValue(self, addr: str, param: str, value: Any, *rest: Any):  # noqa: D401,N802
+    async def setValue(self, addr: str, param: str, value: Any, *rest: Any):
         self._calls.append(("setValue", (addr, param, value, *rest)))
         return
 
-    async def stop(self) -> None:  # noqa: D401
+    async def stop(self) -> None:
         self._stopped = True
 
-    async def updateFirmware(self, *args: Any):  # noqa: D401,ANN401
+    async def updateFirmware(self, *args: Any):
         return True
 
 
@@ -522,14 +522,14 @@ class _FakeCentral2:
         if not push_updates:
             self.config.interfaces_requiring_periodic_refresh = {Interface.BIDCOS_RF}
 
-        def _close_task(*, target: Any, name: str) -> None:  # noqa: ARG001
+        def _close_task(*, target: Any, name: str) -> None:
             """Close coroutine to avoid 'never awaited' warning."""
             target.close()
 
         self.looper = SimpleNamespace(create_task=_close_task)  # type: ignore[misc]
 
     @property
-    def cache_coordinator(self):  # noqa: D401,ANN201
+    def cache_coordinator(self):
         """Return a mock cache coordinator."""
         from types import SimpleNamespace
 
@@ -542,16 +542,16 @@ class _FakeCentral2:
         )
 
     @property
-    def callback_ip_addr(self) -> str:  # noqa: D401
+    def callback_ip_addr(self) -> str:
         return self._callback_ip_addr
 
     @property
-    def device_coordinator(self):  # noqa: D401,ANN001
+    def device_coordinator(self):
         """Return the device coordinator."""
         return self
 
     @property
-    def device_registry(self):  # noqa: D401,ANN001
+    def device_registry(self):
         """Return a mock device registry."""
         if not hasattr(self, "_device_registry"):
             from types import SimpleNamespace
@@ -562,17 +562,17 @@ class _FakeCentral2:
         return self._device_registry
 
     @property
-    def event_bus(self):  # noqa: D401,ANN001
+    def event_bus(self):
         """Return the event bus."""
         return self._event_bus
 
     @property
-    def event_coordinator(self):  # noqa: D401,ANN001
+    def event_coordinator(self):
         """Return the event coordinator."""
         return self
 
     @property
-    def listen_port_xml_rpc(self) -> int:  # noqa: D401
+    def listen_port_xml_rpc(self) -> int:
         return self._listen_port_xml_rpc
 
     def add_channel(self, channel_address: str) -> None:
@@ -587,23 +587,23 @@ class _FakeCentral2:
         self,
         *,
         interface_id: str,
-        device_descriptions: tuple[Any, ...],  # noqa: ARG002
+        device_descriptions: tuple[Any, ...],
     ) -> None:
         """Add new devices (mock implementation for testing)."""
 
-    def get_channel(self, *, channel_address: str):  # noqa: D401,ANN001
+    def get_channel(self, *, channel_address: str):
         return self._channels.get(channel_address)
 
-    def get_device(self, *, address: str):  # noqa: D401,ANN001
+    def get_device(self, *, address: str):
         return self._devices.get(address)
 
-    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):  # noqa: D401,ARG002
+    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):
         return None
 
-    def get_last_event_seen_for_interface(self, *, interface_id: str):  # noqa: D401,ARG002
+    def get_last_event_seen_for_interface(self, *, interface_id: str):
         return self._last_event
 
-    async def save_files(self, *, save_paramset_descriptions: bool = False):  # noqa: ARG002,D401
+    async def save_files(self, *, save_paramset_descriptions: bool = False):
         return None
 
 
@@ -631,7 +631,7 @@ class _EventDevice:
     def __init__(self) -> None:
         self.dp = _EventDP()
 
-    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):  # noqa: ARG002
+    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):
         return self.dp
 
 
@@ -887,7 +887,7 @@ class TestClientClasses:
 
         # Exception path: proxy ping raises -> method returns False
         class _ErrProxy(_FakeXmlRpcProxy):
-            async def ping(self, _callerId: str) -> None:  # noqa: N803
+            async def ping(self, _callerId: str) -> None:
                 raise ClientException("boom")
 
         client_ccu._proxy = _ErrProxy()  # type: ignore[attr-defined]
@@ -931,12 +931,12 @@ class TestClientClasses:
             *,
             interface: Interface,
             address: str,
-            paramset_key: ParamsetKey,  # noqa: ARG002
+            paramset_key: ParamsetKey,
         ) -> dict[str, Any]:
             json_rpc_calls.append(f"get_paramset_description:{address}:{paramset_key}")
             return {"LEVEL": {"TYPE": "FLOAT", "OPERATIONS": 7}}
 
-        async def mock_get_device_description(*, interface: Interface, address: str) -> dict[str, Any]:  # noqa: ARG002
+        async def mock_get_device_description(*, interface: Interface, address: str) -> dict[str, Any]:
             json_rpc_calls.append(f"get_device_description:{address}")
             return {
                 "ADDRESS": address,
@@ -1155,7 +1155,7 @@ class TestClientClasses:
             *,
             interface: Interface,
             address: str,
-            paramset_key: ParamsetKey,  # noqa: ARG002
+            paramset_key: ParamsetKey,
         ) -> dict[str, Any]:
             json_rpc_calls.append(f"get_paramset_description:{address}:{paramset_key}")
             return {"STATE": {"TYPE": "BOOL", "OPERATIONS": 7}}
@@ -1192,7 +1192,7 @@ class TestClientClasses:
         assert val == 99
 
         # get_device_description should catch BaseHomematicException and return None
-        async def raise_bhe(*, interface: Interface, address: str):  # noqa: ARG002
+        async def raise_bhe(*, interface: Interface, address: str):
             raise ClientException("fail")
 
         monkeypatch.setattr(central.json_rpc_client, "get_device_description", raise_bhe)
@@ -1219,7 +1219,7 @@ class TestClientClasses:
         client_ccu._init_handlers()
 
         # Patch json client to raise ClientException on get_all_device_data
-        async def raise_client_exc(*, interface: Interface):  # noqa: ARG002
+        async def raise_client_exc(*, interface: Interface):
             raise ClientException("x")
 
         central.json_rpc_client.get_all_device_data = raise_client_exc  # type: ignore[assignment]
@@ -1264,11 +1264,11 @@ class TestClientConfig:
         ccfg_hg = _ClientConfig(client_deps=central, interface_config=iface_hg)
 
         class _HGProxy(_FakeXmlRpcProxy):
-            async def clientServerInitialized(self, interface_id: str) -> bool:  # noqa: N802,ARG002
+            async def clientServerInitialized(self, interface_id: str) -> bool:
                 """Simulate Homegear proxy method to check initialization."""
                 return True
 
-            async def getVersion(self) -> str:  # noqa: N802
+            async def getVersion(self) -> str:
                 return "Homegear 0.8"
 
         async def _fake_proxy(self, **kwargs):  # type: ignore[no-untyped-def]
@@ -1524,16 +1524,16 @@ class TestClientReconnectAndConnection:
         iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
         client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
-        async def _cca_true(self, *, handle_ping_pong: bool) -> bool:  # noqa: ARG001
+        async def _cca_true(self, *, handle_ping_pong: bool) -> bool:
             return True
 
-        async def _cca_false(self, *, handle_ping_pong: bool) -> bool:  # noqa: ARG001
+        async def _cca_false(self, *, handle_ping_pong: bool) -> bool:
             return False
 
         # Use monkeypatch.setattr on the class to override decorated method
         monkeypatch.setattr(ClientCCU, "check_connection_availability", _cca_true)
 
-        async def _no_sleep(_):  # noqa: ANN001
+        async def _no_sleep(_):
             return None
 
         monkeypatch.setattr("asyncio.sleep", _no_sleep)
@@ -1670,7 +1670,7 @@ class TestClientFirmwareAndUpdates:
         assert await client.update_device_firmware(device_address="dev_hmip") is True
         assert await client.update_device_firmware(device_address="dev_hm") is True
 
-        def _find_device_description(interface_id: str, device_address: str):  # noqa: ARG002
+        def _find_device_description(interface_id: str, device_address: str):
             return None
 
         central.cache_coordinator.device_descriptions = SimpleNamespace(
@@ -1768,7 +1768,7 @@ class TestClientInstallMode:
         client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _ErrProxy(_XmlProxy2):
-            async def getInstallMode(self) -> int:  # noqa: N802
+            async def getInstallMode(self) -> int:
                 raise ClientException("getInstallMode-fail")
 
         client._proxy = _ErrProxy()
@@ -1789,7 +1789,7 @@ class TestClientInstallMode:
         client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _NoneProxy(_XmlProxy2):
-            async def getInstallMode(self) -> int | None:  # noqa: N802
+            async def getInstallMode(self) -> int | None:
                 return None
 
         client._proxy = _NoneProxy()
@@ -1826,7 +1826,7 @@ class TestClientInstallMode:
         client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _ErrProxy(_XmlProxy2):
-            async def setInstallMode(self, *args: Any) -> None:  # noqa: N802
+            async def setInstallMode(self, *args: Any) -> None:
                 raise ClientException("setInstallMode-fail")
 
         client._proxy = _ErrProxy()
@@ -1865,7 +1865,7 @@ class TestClientInstallMode:
         calls: list[tuple[Any, ...]] = []
 
         class _TrackingProxy(_XmlProxy2):
-            async def setInstallMode(self, *args: Any) -> None:  # noqa: N802
+            async def setInstallMode(self, *args: Any) -> None:
                 calls.append(args)
 
         client._proxy = _TrackingProxy()
@@ -1910,7 +1910,7 @@ class TestClientConvertFromPd:
 
         # Proxy returns correct types (normal behavior)
         class _CorrectTypeProxy(_XmlProxy2):
-            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:
                 return {
                     "ENDTIME": 360,  # Already int
                     "TEMPERATURE": 17.5,  # Already float
@@ -1946,7 +1946,7 @@ class TestClientConvertFromPd:
         client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _MixedProxy(_XmlProxy2):
-            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:
                 return {
                     "UNKNOWN_PARAM": "some_string_value",
                     "ANOTHER_UNKNOWN": 12345,
@@ -1996,7 +1996,7 @@ class TestClientConvertFromPd:
 
         # Mock proxy to return string values (simulating HM-CC-VG-1 behavior)
         class _StringValueProxy(_XmlProxy2):
-            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:
                 return {
                     "P1_ENDTIME_MONDAY_1": "360",  # String instead of int
                     "P1_ENDTIME_MONDAY_2": "720",  # String instead of int
@@ -2053,7 +2053,7 @@ class TestClientConvertFromPd:
         client = ClientCCU(client_config=ClientConfig(client_deps=central, interface_config=iface_cfg))
 
         class _StringValueProxy(_XmlProxy2):
-            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:  # noqa: N802
+            async def getParamset(self, address: str, paramset_key: str) -> dict[str, Any]:
                 return {"P1_ENDTIME_MONDAY_1": "360"}
 
         client._proxy = _StringValueProxy()

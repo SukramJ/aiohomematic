@@ -24,7 +24,7 @@ class _FakeCentral:
         self.name = "CentralTest"
         self.available = True
 
-    async def refresh_firmware_data(self, *, device_address: str) -> None:  # noqa: D401
+    async def refresh_firmware_data(self, *, device_address: str) -> None:
         """Record that refresh was invoked."""
         self._refreshed.append(device_address)
 
@@ -43,13 +43,13 @@ class _FakeCentralInfo:
 class _FakeEventBus:
     """Minimal fake EventBus for testing."""
 
-    def __init__(self, *, task_scheduler: Any = None) -> None:  # noqa: ARG002
+    def __init__(self, *, task_scheduler: Any = None) -> None:
         """Initialize fake event bus."""
 
-    async def publish(self, *, event: Any) -> None:  # noqa: ARG002
+    async def publish(self, *, event: Any) -> None:
         """Do nothing for publish in tests."""
 
-    def subscribe(self, *, event_type: type, event_key: Any, handler: Callable[..., Any]) -> Callable[[], None]:  # noqa: ARG002
+    def subscribe(self, *, event_type: type, event_key: Any, handler: Callable[..., Any]) -> Callable[[], None]:
         """Return a no-op unsubscribe function."""
         return lambda: None
 
@@ -113,7 +113,7 @@ class _FakeDevice:
         if handler in self._handlers:
             self._handlers.remove(handler)
 
-    async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:  # noqa: D401
+    async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Pretend to start an update and return success."""
         return True
 
@@ -150,7 +150,7 @@ class TestUpdateDataPoint:
 
         called: dict[str, Any] = {"count": 0}
 
-        def cb(**kwargs: Any) -> None:  # noqa: D401
+        def cb(**kwargs: Any) -> None:
             """Execute dummy callback."""
             called["count"] += 1
 

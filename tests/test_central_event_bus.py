@@ -152,7 +152,7 @@ class TestEventBus:
     def test_event_bus_initialization_with_logging(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """EventBus can be initialized with event logging enabled."""
         bus = EventBus(task_scheduler=no_op_task_scheduler, enable_event_logging=True)
-        assert bus._enable_event_logging is True  # noqa: SLF001
+        assert bus._enable_event_logging is True
 
     @pytest.mark.asyncio
     async def test_event_stats_tracking(self) -> None:

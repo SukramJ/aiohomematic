@@ -356,7 +356,7 @@ class ConnectionRecoveryCoordinator:
                 "CONNECTION_RECOVERY: No suitable proxy found for RPC check on %s",
                 interface_id,
             )
-        except Exception as ex:  # noqa: BLE001
+        except Exception as ex:
             _LOGGER.debug(
                 "CONNECTION_RECOVERY: RPC check failed for %s: %s",
                 interface_id,
@@ -513,7 +513,7 @@ class ConnectionRecoveryCoordinator:
             if hasattr(client, "_config") and hasattr(client._config, "interface_config"):
                 port = client._config.interface_config.port
                 return port if isinstance(port, int) else None
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return None
 
@@ -672,10 +672,10 @@ class ConnectionRecoveryCoordinator:
             if client := self._client_provider.get_client(interface_id=interface_id):
                 client_state = client.state.state.value if hasattr(client.state, "state") else None
                 # pylint: disable=protected-access
-                if hasattr(client, "_circuit_breaker") and client._circuit_breaker:  # noqa: SLF001
-                    circuit_breaker_state = client._circuit_breaker.state.value  # noqa: SLF001
+                if hasattr(client, "_circuit_breaker") and client._circuit_breaker:
+                    circuit_breaker_state = client._circuit_breaker.state.value
                 # pylint: enable=protected-access
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass  # Don't fail incident recording if client info unavailable
 
         # Get recovery state if available
@@ -735,10 +735,10 @@ class ConnectionRecoveryCoordinator:
             if client := self._client_provider.get_client(interface_id=interface_id):
                 client_state = client.state.state.value if hasattr(client.state, "state") else None
                 # pylint: disable=protected-access
-                if hasattr(client, "_circuit_breaker") and client._circuit_breaker:  # noqa: SLF001
-                    circuit_breaker_state = client._circuit_breaker.state.value  # noqa: SLF001
+                if hasattr(client, "_circuit_breaker") and client._circuit_breaker:
+                    circuit_breaker_state = client._circuit_breaker.state.value
                 # pylint: enable=protected-access
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass  # Don't fail incident recording if client info unavailable
 
         context = {

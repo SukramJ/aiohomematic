@@ -684,7 +684,7 @@ def scan_file(
     except SyntaxError as e:
         print(f"Syntax error in {file_path}: {e}", file=sys.stderr)
         return []
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         print(f"Error scanning {file_path}: {e}", file=sys.stderr)
         return []
     else:

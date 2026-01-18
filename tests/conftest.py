@@ -260,7 +260,7 @@ async def mock_json_rpc_server() -> AsyncGenerator[tuple[MockJsonRpc, str]]:
 @pytest.fixture
 def event_capture() -> Generator[EventCapture]:
     """Provide an EventCapture instance with automatic cleanup."""
-    from aiohomematic_test_support.event_capture import EventCapture  # noqa: PLC0415
+    from aiohomematic_test_support.event_capture import EventCapture
 
     capture = EventCapture()
     try:
@@ -281,7 +281,7 @@ class NoOpTaskScheduler:
     asyncio.get_event_loop() raises RuntimeError outside async context.
     """
 
-    def create_task(self, *, target: object, name: str) -> None:  # noqa: ARG002
+    def create_task(self, *, target: object, name: str) -> None:
         """Close coroutine to avoid 'never awaited' warning."""
         if hasattr(target, "close"):
             target.close()  # type: ignore[union-attr]

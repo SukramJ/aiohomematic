@@ -380,7 +380,7 @@ class TestDeviceFirmware:
 
         from aiohomematic.store.persistent import DeviceDescriptionRegistry
 
-        def _patched_get_device_description(self, *, interface_id: str, address: str) -> dict[str, Any]:  # noqa: D401
+        def _patched_get_device_description(self, *, interface_id: str, address: str) -> dict[str, Any]:
             return dict(current_desc)
 
         monkeypatch.setattr(
@@ -422,14 +422,14 @@ class TestDeviceFirmware:
         central, client, _ = central_client_factory_with_homegear_client
         device = central.device_coordinator.get_device(address="VCU2128127")
 
-        async def upd(*, device_address: str) -> bool:  # noqa: D401
+        async def upd(*, device_address: str) -> bool:
             return True
 
         monkeypatch.setattr(client, "update_device_firmware", upd)
 
         created: list[str] = []
 
-        def create_task(*, target: Any, name: str) -> None:  # noqa: D401
+        def create_task(*, target: Any, name: str) -> None:
             created.append(name)
 
         monkeypatch.setattr(central.looper, "create_task", create_task)
@@ -474,7 +474,7 @@ class TestDeviceChannelOperations:
         monkeypatch.setattr(client, "report_value_usage", report_value_usage)
 
         # 1) create_central_link should call client when no existing central link
-        async def get_metadata_none(*, address: str, data_id: str):  # noqa: D401
+        async def get_metadata_none(*, address: str, data_id: str):
             return {"something": 0}
 
         monkeypatch.setattr(client, "get_metadata", get_metadata_none)
@@ -482,14 +482,14 @@ class TestDeviceChannelOperations:
         assert (ch.address, 1) in reported
 
         # 2) _has_central_link returns True if metadata says so
-        async def get_metadata_true(*, address: str, data_id: str):  # noqa: D401
+        async def get_metadata_true(*, address: str, data_id: str):
             return {REPORT_VALUE_USAGE_VALUE_ID: 1}
 
         monkeypatch.setattr(client, "get_metadata", get_metadata_true)
         assert await ch._has_central_link() is True
 
         # 3) remove_central_link removes only if has central link and no program ids
-        async def has_program_ids_false(*, rega_id: int):  # noqa: D401
+        async def has_program_ids_false(*, rega_id: int):
             return False
 
         monkeypatch.setattr(client, "has_program_ids", has_program_ids_false)
@@ -497,14 +497,14 @@ class TestDeviceChannelOperations:
         assert (ch.address, 0) in reported
 
         # 4) _has_central_link handles backend exception gracefully
-        async def get_metadata_raises(*, address: str, data_id: str):  # noqa: D401
+        async def get_metadata_raises(*, address: str, data_id: str):
             raise BaseHomematicException("fail")
 
         monkeypatch.setattr(client, "get_metadata", get_metadata_raises)
         assert await ch._has_central_link() is False
 
         # 5) _has_program_ids truthy path
-        async def has_program_ids_true(*, rega_id: int):  # noqa: D401
+        async def has_program_ids_true(*, rega_id: int):
             return ["1"]
 
         monkeypatch.setattr(client, "has_program_ids", has_program_ids_true)
@@ -513,7 +513,7 @@ class TestDeviceChannelOperations:
         # 6) cleanup_central_link_metadata filters non-click keys
         called_set: dict[str, Any] = {"value": None}
 
-        async def get_metadata_with_noise(*, address: str, data_id: str):  # noqa: D401
+        async def get_metadata_with_noise(*, address: str, data_id: str):
             noisy = {"noise": 123, REPORT_VALUE_USAGE_VALUE_ID: 2}
             # add one valid click event key
             if CLICK_EVENTS:
@@ -522,7 +522,7 @@ class TestDeviceChannelOperations:
                     noisy[first] = 1
             return noisy
 
-        async def set_metadata(*, address: str, data_id: str, value: dict[str, Any]):  # noqa: D401
+        async def set_metadata(*, address: str, data_id: str, value: dict[str, Any]):
             called_set["value"] = value
 
         monkeypatch.setattr(client, "get_metadata", get_metadata_with_noise)
@@ -619,7 +619,7 @@ class TestDeviceDataPoints:
             *,
             channel_address: str,
             paramset_key: ParamsetKey,
-            device_type: str,  # noqa: ARG002
+            device_type: str,
         ) -> None:
             called["fetch"] += 1
 

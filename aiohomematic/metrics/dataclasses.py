@@ -23,13 +23,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from aiohomematic.const import INIT_DATETIME
 from aiohomematic.metrics.stats import CacheStats, ServiceStats, SizeOnlyStats
-
-if TYPE_CHECKING:
-    pass
 
 
 def _convert_value(*, value: Any) -> Any:

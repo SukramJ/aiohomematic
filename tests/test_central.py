@@ -1453,7 +1453,7 @@ class TestCentralValidation:
         class MyBHE(BaseHomematicException):
             name = "BHE"
 
-        async def raise_bhe(*args: Any, **kwargs: Any):  # noqa: ANN001
+        async def raise_bhe(*args: Any, **kwargs: Any):
             raise MyBHE("fail")
 
         monkeypatch.setattr(hmcl, "create_client", raise_bhe)
@@ -1510,7 +1510,7 @@ class TestCentralDeviceCreation:
 
         # First pass: make Device() raise to hit the first except path
         class BoomDevice:
-            def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN001
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
                 raise Exception("ctor")
 
         import aiohomematic.central.coordinators.device as hm_device_coordinator
@@ -1537,7 +1537,7 @@ class TestCentralDeviceCreation:
 
         monkeypatch.setattr(hm_device_coordinator, "Device", OkDevice)
 
-        def raise_on_create(*args: Any, **kwargs: Any) -> None:  # noqa: ANN001
+        def raise_on_create(*args: Any, **kwargs: Any) -> None:
             raise Exception("create")
 
         import aiohomematic.model as hm_model

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -33,9 +32,6 @@ from aiohomematic.central.events import (
 )
 from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, Interface, RecoveryStage
-
-if TYPE_CHECKING:
-    pass
 
 # pylint: disable=protected-access
 

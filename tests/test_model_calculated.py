@@ -47,11 +47,11 @@ class _FakeCentral:
 
         # Provide minimal parameter_visibility used by GenericDataPoint init
         class _PV:
-            def parameter_is_hidden(self, *, channel, paramset_key, parameter) -> bool:  # noqa: D401, ANN001
+            def parameter_is_hidden(self, *, channel, paramset_key, parameter) -> bool:
                 """In tests, nothing is hidden by default."""
                 return False
 
-            def parameter_is_un_ignored(self, *, channel, paramset_key, parameter, custom_only: bool) -> bool:  # noqa: D401, ANN001
+            def parameter_is_un_ignored(self, *, channel, paramset_key, parameter, custom_only: bool) -> bool:
                 """In tests, default to False (not un-ignored)."""
                 return False
 
@@ -59,12 +59,12 @@ class _FakeCentral:
 
         # Provide minimal event_bus for callback registration
         class _EventBus:
-            def __init__(self, *, task_scheduler: Any = None) -> None:  # noqa: ANN001
+            def __init__(self, *, task_scheduler: Any = None) -> None:
                 """Initialize fake event bus."""
 
             def subscribe(
                 self, *, event_type: Any, event_key: Any, handler: Callable[[Any], None]
-            ) -> Callable[[], None]:  # noqa: D401, ANN001
+            ) -> Callable[[], None]:
                 """Mock subscribe that returns a no-op unsubscribe."""
                 return lambda: None
 
@@ -260,7 +260,7 @@ class TestCalculatedDataPoint:
 
         # Unregister internal callbacks should invoke unregister callables
         # Use the public register to add and then remove a dummy callback
-        def dummy_cb(**kwargs: Any) -> None:  # noqa: D401
+        def dummy_cb(**kwargs: Any) -> None:
             """Execute dummy callback for unregister path."""
 
         unregister = calc.subscribe_to_internal_data_point_updated(handler=dummy_cb)
@@ -290,7 +290,7 @@ class TestCalculatedDataPoint:
         # Prepare a readable VALUES dp with async load method
         dp = _FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
 
-        async def _load_data_point_value(*_a, **_k) -> None:  # noqa: D401
+        async def _load_data_point_value(*_a, **_k) -> None:
             """Async stub to satisfy load_data_point_value loop."""
             return
 
@@ -319,7 +319,7 @@ class TestCalculatedDataPoint:
         assert calc.is_state_change() is True
 
         # load_data_point_value should iterate and call publish callback safely
-        def _noop(**_kwargs: Any) -> None:  # noqa: D401, ANN001
+        def _noop(**_kwargs: Any) -> None:
             """Do nothing. Synchronous no-op callback to satisfy the call inside load."""
             return
 
@@ -476,7 +476,7 @@ class TestVaporConcentration:
         """Test forcing a ValueError in vapor concentration to exercise the exception logging path and None return."""
         from aiohomematic.model.calculated import support as support_mod
 
-        def raise_value_error(x: float) -> float:  # noqa: ANN001
+        def raise_value_error(x: float) -> float:
             raise ValueError("forced")
 
         # Patch math.exp used inside the module

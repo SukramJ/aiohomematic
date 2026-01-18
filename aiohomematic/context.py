@@ -156,7 +156,7 @@ def get_request_id() -> str:
     return ctx.request_id if ctx else "anonymous"
 
 
-class request_context:  # noqa: N801
+class request_context:
     """
     Context manager for request tracking.
 

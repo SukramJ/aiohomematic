@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 from slugify import slugify
 
@@ -37,9 +37,6 @@ from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 from aiohomematic.support import PayloadMixin
-
-if TYPE_CHECKING:
-    pass
 
 _LOGGER: Final = logging.getLogger(__name__)
 

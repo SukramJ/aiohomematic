@@ -45,7 +45,7 @@ class _FakeResponse:
         self._json_value = json_value
         self._read_bytes = read_bytes or b"{}"
 
-    async def json(self, encoding: str = UTF_8) -> Any:  # noqa: ARG002
+    async def json(self, encoding: str = UTF_8) -> Any:
         if isinstance(self._json_value, Exception):
             raise self._json_value
         return self._json_value
@@ -159,7 +159,7 @@ class TestJsonRpcClientBasics:
         assert client.tls is True
 
         # Force _do_post to raise to hit exception return path of _get_supported_methods
-        async def raise_ce(**kwargs: Any):  # noqa: ANN001
+        async def raise_ce(**kwargs: Any):
             raise ClientException("x")
 
         monkeypatch.setattr(client, "_do_post", raise_ce)
@@ -213,7 +213,7 @@ class TestJsonRpcClientAuthentication:
         # Guard against network call during renew
         called = {"count": 0}
 
-        async def fail_do_post(**kwargs: Any):  # noqa: ANN001
+        async def fail_do_post(**kwargs: Any):
             called["count"] += 1
             raise AssertionError("_do_post should not be called when recently refreshed")
 
@@ -246,7 +246,7 @@ class TestJsonRpcClientAuthentication:
         # Set a dummy session and make _do_post raise to trigger finally: clear_session
         client._session_id = "s"  # type: ignore[attr-defined]
 
-        async def raise_exc(**kwargs: Any):  # noqa: ANN001
+        async def raise_exc(**kwargs: Any):
             raise ClientException("fail")
 
         monkeypatch.setattr(client, "_do_post", raise_exc)
@@ -415,7 +415,7 @@ class TestJsonRpcClientErrorHandling:
 
         # Helper to run _do_post with our patched post returning resp
         async def run_with_response(resp: _FakeResponse):
-            async def fake_post(*args, **kwargs):  # noqa: ANN001, ARG001
+            async def fake_post(*args, **kwargs):
                 return resp
 
             monkeypatch.setattr(client._client_session, "post", fake_post)
@@ -444,7 +444,7 @@ class TestJsonRpcClientErrorHandling:
             port = 80
             ssl = False
 
-        async def raise_post(*args, **kwargs):  # noqa: ANN001, ARG001
+        async def raise_post(*args, **kwargs):
             raise ClientConnectorError(_ConnKey(), OSError("boom"))
 
         monkeypatch.setattr(client._client_session, "post", raise_post)
@@ -460,7 +460,7 @@ class TestJsonRpcClientErrorHandling:
             ssl = True
             is_ssl = True
 
-        async def raise_cert(*args, **kwargs):  # noqa: ANN001, ARG001
+        async def raise_cert(*args, **kwargs):
             raise ClientConnectorCertificateError(_ConnKeyCert(), OSError("cert"))
 
         monkeypatch.setattr(client._client_session, "post", raise_cert)
@@ -472,7 +472,7 @@ class TestJsonRpcClientErrorHandling:
         client.circuit_breaker.reset()
 
         # ClientError/OSError -> NoConnectionException
-        async def raise_client_err(*args, **kwargs):  # noqa: ANN001, ARG001
+        async def raise_client_err(*args, **kwargs):
             raise ClientError("fail")
 
         monkeypatch.setattr(client._client_session, "post", raise_client_err)
@@ -482,7 +482,7 @@ class TestJsonRpcClientErrorHandling:
         client.circuit_breaker.reset()
 
         # Generic TypeError -> ClientException
-        async def raise_type_err(*args, **kwargs):  # noqa: ANN001, ARG001
+        async def raise_type_err(*args, **kwargs):
             raise TypeError("bad type")
 
         monkeypatch.setattr(client._client_session, "post", raise_type_err)
@@ -510,12 +510,12 @@ class TestJsonRpcClientErrorHandling:
 
         async def raise_json(
             *, script_name: str, extra_params: Mapping[_JsonKey, Any] | None = None, keep_session: bool = True
-        ):  # noqa: ARG001,E501
+        ):
             raise JSONDecodeError("bad", "{}", 0)
 
         async def raise_ct(
             *, script_name: str, extra_params: Mapping[_JsonKey, Any] | None = None, keep_session: bool = True
-        ):  # noqa: ARG001,E501
+        ):
             raise ContentTypeError(None, None)
 
         # JSONDecodeError
@@ -544,7 +544,7 @@ class TestJsonRpcClientErrorHandling:
             tls=False,
         )
 
-        async def raise_internal(*args, **kwargs):  # noqa: ANN001, ARG001
+        async def raise_internal(*args, **kwargs):
             raise InternalBackendException("internal")
 
         monkeypatch.setattr(client, "_post", raise_internal)
@@ -569,7 +569,7 @@ class TestJsonRpcClientRecording:
 
             def add_json_rpc_session(
                 self, *, method: str, params: dict[str, Any], response=None, session_exc=None
-            ) -> None:  # noqa: ANN001, D401
+            ) -> None:
                 recorded["method"] = method
                 recorded["params"] = params
                 recorded["response"] = response
@@ -618,7 +618,7 @@ class TestJsonRpcClientOperations:
         # Cause the helper to raise JSONDecodeError inside the method
         from json import JSONDecodeError
 
-        async def raise_json_decode(*args: Any, **kwargs: Any):  # noqa: ANN001
+        async def raise_json_decode(*args: Any, **kwargs: Any):
             raise JSONDecodeError("msg", doc="{}", pos=0)
 
         monkeypatch.setattr(client, "_post_script", raise_json_decode)
@@ -645,7 +645,7 @@ class TestJsonRpcClientOperations:
 
         from json import JSONDecodeError
 
-        async def raise_json_decode(*args: Any, **kwargs: Any):  # noqa: ANN001
+        async def raise_json_decode(*args: Any, **kwargs: Any):
             raise JSONDecodeError("msg", doc="{}", pos=0)
 
         monkeypatch.setattr(client, "_post_script", raise_json_decode)
@@ -763,12 +763,12 @@ class TestJsonRpcClientOperations:
             extra_params: Mapping[_JsonKey, Any] | None = None,
             use_default_params: bool = True,
             keep_session: bool = True,
-        ):  # noqa: ARG001,E501
+        ):
             return resp_for(method)
 
         async def fake_post_script(
             *, script_name: str, extra_params: Mapping[_JsonKey, Any] | None = None, keep_session: bool = True
-        ):  # noqa: ARG001,E501
+        ):
             # FETCH_ALL_DEVICE_DATA returns percent-encoded keys/values to test unquote
             if script_name == RegaScript.FETCH_ALL_DEVICE_DATA:
                 return {"result": {"BidCos-RF.OEQ%3A1.STATE": "ON%2FOFF"}, "error": None}
@@ -874,12 +874,12 @@ class TestJsonRpcClientOperations:
             extra_params: Mapping[_JsonKey, Any] | None = None,
             use_default_params: bool = True,
             keep_session: bool = True,
-        ):  # noqa: ARG001,E501
+        ):
             return {"result": True, "error": None}
 
         async def fake_post_script(
             *, script_name: str, extra_params: Mapping[_JsonKey, Any] | None = None, keep_session: bool = True
-        ):  # noqa: ARG001,E501
+        ):
             return {"result": {"ok": True}, "error": None}
 
         monkeypatch.setattr(client, "_post", fake_post)
@@ -947,7 +947,7 @@ class TestJsonRpcClientOperations:
         # Force parse_sys_var to raise a ValueError
         from aiohomematic import support as hms
 
-        def raise_value_error(*args: Any, **kwargs: Any):  # noqa: ANN001
+        def raise_value_error(*args: Any, **kwargs: Any):
             raise ValueError("bad value")
 
         monkeypatch.setattr(hms, "parse_sys_var", raise_value_error)

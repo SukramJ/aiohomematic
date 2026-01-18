@@ -28,33 +28,27 @@ class FakeServerProxy:
         self.put_calls: list[tuple[str, str, dict[str, Any]]] = []
         self.devices: list[dict[str, Any]] = []
 
-    def getParamset(  # noqa: N802
-        self, address: str, paramset_key: str
-    ) -> dict[str, Any] | None:
+    def getParamset(self, address: str, paramset_key: str) -> dict[str, Any] | None:
         """Return paramset for address."""
         return self.paramsets.get((address, paramset_key), None)
 
-    def getParamsetDescription(  # noqa: N802
-        self, address: str, paramset_key: str
-    ) -> dict[str, Any]:
+    def getParamsetDescription(self, address: str, paramset_key: str) -> dict[str, Any]:
         """Return paramset description for address."""
         return self.paramset_descriptions.get((address, paramset_key), {})
 
-    def getValue(self, address: str, param: str) -> Any:  # noqa: N802
+    def getValue(self, address: str, param: str) -> Any:
         """Return value for address/parameter."""
         return self.values.get((address, param), None)
 
-    def listDevices(self) -> list[dict[str, Any]]:  # noqa: N802
+    def listDevices(self) -> list[dict[str, Any]]:
         """Return list of devices."""
         return self.devices
 
-    def putParamset(  # noqa: N802
-        self, address: str, paramset_key: str, values: dict[str, Any]
-    ) -> None:
+    def putParamset(self, address: str, paramset_key: str, values: dict[str, Any]) -> None:
         """Record paramset put call."""
         self.put_calls.append((address, paramset_key, values))
 
-    def setValue(self, address: str, param: str, value: Any) -> None:  # noqa: N802
+    def setValue(self, address: str, param: str, value: Any) -> None:
         """Record value set call."""
         self.set_calls.append((address, param, value))
 
@@ -455,7 +449,7 @@ class TestHmcliErrorHandling:
         """Test that errors are printed and exit code is 1."""
 
         class Boom(FakeServerProxy):
-            def getValue(self, address: str, param: str) -> Any:  # noqa: N802
+            def getValue(self, address: str, param: str) -> Any:
                 raise RuntimeError("boom")
 
         monkeypatch.setattr(hmcli, "ServerProxy", lambda *a, **k: Boom("uri"))
@@ -587,7 +581,7 @@ class TestHmcliHmCliConnection:
         call_count = 0
 
         class CountingProxy(FakeServerProxy):
-            def listDevices(self) -> list[dict[str, Any]]:  # noqa: N802
+            def listDevices(self) -> list[dict[str, Any]]:
                 nonlocal call_count
                 call_count += 1
                 return [{"ADDRESS": "VCU0001"}]

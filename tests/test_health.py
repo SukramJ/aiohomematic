@@ -5,15 +5,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from aiohomematic.central import CentralHealth, ConnectionHealth, HealthTracker
 from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
-
-if TYPE_CHECKING:
-    pass
 
 
 class TestConnectionHealth:

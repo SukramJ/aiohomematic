@@ -163,7 +163,7 @@ class _FakeCentral:
         self.health_tracker = _FakeHealthTracker()
 
     @property
-    def cache_coordinator(self):  # noqa: D401,ANN201
+    def cache_coordinator(self):
         """Return a mock cache coordinator."""
         from types import SimpleNamespace
 

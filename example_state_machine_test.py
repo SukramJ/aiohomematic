@@ -27,16 +27,12 @@ import logging
 import os
 import signal
 import sys
-from typing import TYPE_CHECKING
 
 from aiohomematic import const
 from aiohomematic.central import CentralConfig, CentralUnit
 from aiohomematic.central.events import CentralStateChangedEvent, ClientStateChangedEvent, DeviceLifecycleEvent
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import CentralState, ClientState
-
-if TYPE_CHECKING:
-    pass
 
 # Configure logging - show INFO for our messages, DEBUG for aiohomematic internals
 logging.basicConfig(

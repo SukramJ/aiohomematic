@@ -256,7 +256,7 @@ class ResponseBuilder[T: "Event"]:
             handler: Function to call with the event
 
         """
-        self.mock_server._add_response(  # noqa: SLF001  # pylint: disable=protected-access
+        self.mock_server._add_response(  # pylint: disable=protected-access
             event_type=self.event_type,
             action=MockAction(
                 handler=handler,
@@ -277,7 +277,7 @@ class ResponseBuilder[T: "Event"]:
 
         def publish_handler(event: T) -> None:
             new_event = event_factory(event)
-            self.mock_server._event_bus.publish_sync(event=new_event)  # noqa: SLF001  # pylint: disable=protected-access
+            self.mock_server._event_bus.publish_sync(event=new_event)  # pylint: disable=protected-access
 
         self.then_call(handler=publish_handler)
 

@@ -55,7 +55,7 @@ class _FakeParamsetDescriptions:
         channel_address: str,
         paramset_key: ParamsetKey,
         paramset_description: dict[str, Any],
-        device_type: str,  # noqa: ARG002
+        device_type: str,
     ) -> None:
         if interface_id not in self._raw_paramset_descriptions:
             self._raw_paramset_descriptions[interface_id] = {}

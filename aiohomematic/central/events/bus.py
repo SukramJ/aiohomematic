@@ -1351,7 +1351,7 @@ class EventBatch:
 
         """
         if self._flushed:
-            raise RuntimeError("Cannot add events to a flushed batch")  # noqa: TRY003  # i18n-exc: ignore
+            raise RuntimeError("Cannot add events to a flushed batch")  # i18n-exc: ignore
         self._events.append(event)
 
     def add_all(self, *, events: Sequence[Event]) -> None:
@@ -1368,7 +1368,7 @@ class EventBatch:
 
         """
         if self._flushed:
-            raise RuntimeError("Cannot add events to a flushed batch")  # noqa: TRY003  # i18n-exc: ignore
+            raise RuntimeError("Cannot add events to a flushed batch")  # i18n-exc: ignore
         self._events.extend(events)
 
     async def flush(self) -> int:

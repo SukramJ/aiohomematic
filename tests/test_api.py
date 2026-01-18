@@ -203,7 +203,7 @@ class TestHomematicAPIOperations:
             username="Admin",
             password="secret",
         )
-        api._central = mock_central  # noqa: SLF001
+        api._central = mock_central
         return api
 
     @pytest.fixture
@@ -383,12 +383,12 @@ class TestHomematicAPILifecycle:
             username="Admin",
             password="secret",
         )
-        api._central = mock_central  # noqa: SLF001
+        api._central = mock_central
 
         await api.stop()
 
         mock_central.stop.assert_called_once()
-        assert api._central is None  # noqa: SLF001
+        assert api._central is None
 
     @pytest.mark.asyncio
     async def test_stop_without_start_does_nothing(self) -> None:

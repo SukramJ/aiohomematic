@@ -31,11 +31,11 @@ class TestLooper:
             return "ok"
 
         # Create task via internal helper to assert tracking
-        t = looper._async_create_task(do_work(), name="work")  # noqa: SLF001
-        assert t in looper._tasks  # noqa: SLF001
+        t = looper._async_create_task(do_work(), name="work")
+        assert t in looper._tasks
         assert await t == "ok"
         # After completion the done handler should have removed the task
-        assert t not in looper._tasks  # noqa: SLF001
+        assert t not in looper._tasks
 
     @pytest.mark.asyncio
     async def test__await_and_log_pending_deadline_crossed_during_loop(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -46,7 +46,7 @@ class TestLooper:
         async def never():
             await asyncio.sleep(10)
 
-        t = looper._async_create_task(never(), name="never")  # noqa: SLF001
+        t = looper._async_create_task(never(), name="never")
 
         # Prepare a controllable monotonic() that simulates time progression.
         times = [0.0, 0.5, 2.0]  # start, before wait (remaining ~1.5 -> timeout 1), after wait (>= deadline)
@@ -57,13 +57,13 @@ class TestLooper:
         monkeypatch.setattr(asupp, "monotonic", fake_monotonic)
 
         # Patch asyncio.wait to return immediately, leaving the task pending
-        async def fake_wait(pending: Iterable[asyncio.Future], timeout: float):  # noqa: ARG001
+        async def fake_wait(pending: Iterable[asyncio.Future], timeout: float):
             return set(), set(pending)
 
         monkeypatch.setattr(asyncio, "wait", fake_wait)
 
         deadline = asupp.monotonic() + 2.0
-        pending = await looper._await_and_log_pending(pending=[t], deadline=deadline)  # noqa: SLF001
+        pending = await looper._await_and_log_pending(pending=[t], deadline=deadline)
 
         # We should have returned the pending set when deadline crossed during the loop
         assert t in pending
@@ -84,11 +84,11 @@ class TestLooper:
         async def long():
             await asyncio.sleep(2)
 
-        t = looper._async_create_task(long(), name="long")  # noqa: SLF001
+        t = looper._async_create_task(long(), name="long")
 
         dl = monotonic() + 1.0
         with caplog.at_level(logging.DEBUG):
-            pending = await looper._await_and_log_pending(pending=[t], deadline=dl)  # noqa: SLF001
+            pending = await looper._await_and_log_pending(pending=[t], deadline=dl)
 
         # Deadline should have been reached during the wait, and task still pending
         assert t in pending
@@ -101,7 +101,7 @@ class TestLooper:
     async def test__await_and_log_pending_empty_pending_hits_final_return(self) -> None:
         """Calling _await_and_log_pending with no pending should hit the final return outside the loop."""
         looper = asupp.Looper()
-        out = await looper._await_and_log_pending(pending=[], deadline=asupp.monotonic() + 1.0)  # noqa: SLF001
+        out = await looper._await_and_log_pending(pending=[], deadline=asupp.monotonic() + 1.0)
         assert out == set()
 
     @pytest.mark.asyncio
@@ -114,10 +114,10 @@ class TestLooper:
 
         future = looper.async_add_executor_job(compute, 5, name="compute")
         # Should be tracked until done
-        assert future in looper._tasks  # noqa: SLF001
+        assert future in looper._tasks
         assert await future == 10
         # After completion the done handler should have removed it
-        assert future not in looper._tasks  # noqa: SLF001
+        assert future not in looper._tasks
 
     @pytest.mark.asyncio
     async def test_block_till_done_debug_logging_no_deadline(
@@ -137,7 +137,7 @@ class TestLooper:
         async def sleeper():
             await asyncio.sleep(0.2)
 
-        t = looper._async_create_task(sleeper(), name="sleeper")  # noqa: SLF001
+        t = looper._async_create_task(sleeper(), name="sleeper")
 
         with caplog.at_level(logging.DEBUG):
             await looper.block_till_done()
@@ -146,7 +146,7 @@ class TestLooper:
         assert any(("Waiting for task" in rec.message) or ("Waited" in rec.message) for rec in caplog.records)
         # Ensure task is done and no longer tracked
         assert t.done()
-        assert t not in looper._tasks  # noqa: SLF001
+        assert t not in looper._tasks
 
     @pytest.mark.asyncio
     async def test_block_till_done_logs_after_inner_wait(
@@ -158,7 +158,7 @@ class TestLooper:
         async def never():
             await asyncio.sleep(10)
 
-        t = looper._async_create_task(never(), name="never2")  # noqa: SLF001
+        t = looper._async_create_task(never(), name="never2")
 
         # Control time: initial now=0.0, later 1.0 (<deadline=2.0), after inner wait 2.0 (>=deadline)
         times = [0.0, 1.0, 2.0]
@@ -169,10 +169,10 @@ class TestLooper:
         monkeypatch.setattr(asupp, "monotonic", fake_monotonic)
 
         # Force inner awaiter to return the pending set immediately
-        async def fake_await_and_log_pending(*, pending, deadline):  # noqa: ARG001
+        async def fake_await_and_log_pending(*, pending, deadline):
             return set(pending)
 
-        monkeypatch.setattr(looper, "_await_and_log_pending", fake_await_and_log_pending)  # noqa: SLF001
+        monkeypatch.setattr(looper, "_await_and_log_pending", fake_await_and_log_pending)
 
         with caplog.at_level(logging.WARNING):
             await looper.block_till_done(wait_time=2.0)
@@ -199,7 +199,7 @@ class TestLooper:
         async def never():
             await asyncio.sleep(10)
 
-        t = looper._async_create_task(never(), name="never3")  # noqa: SLF001
+        t = looper._async_create_task(never(), name="never3")
 
         # Make BLOCK_LOG_TIMEOUT tiny
         monkeypatch.setattr(asupp, "BLOCK_LOG_TIMEOUT", 0.01)
@@ -218,7 +218,7 @@ class TestLooper:
         # On the fourth call, cancel the task and return empty to let the loop exit cleanly.
         call_count = 0
 
-        async def fake_waiter(*, pending, deadline):  # noqa: ARG001
+        async def fake_waiter(*, pending, deadline):
             nonlocal call_count
             call_count += 1
             if call_count < 4:
@@ -227,7 +227,7 @@ class TestLooper:
             t.cancel()
             return set()
 
-        monkeypatch.setattr(looper, "_await_and_log_pending", fake_waiter)  # noqa: SLF001
+        monkeypatch.setattr(looper, "_await_and_log_pending", fake_waiter)
 
         with caplog.at_level(logging.DEBUG):
             await looper.block_till_done()
@@ -254,7 +254,7 @@ class TestLooper:
                 cancelled.set()
                 raise
 
-        t = looper._async_create_task(never(), name="never")  # noqa: SLF001
+        t = looper._async_create_task(never(), name="never")
         await asyncio.wait_for(started.wait(), timeout=1)
         looper.cancel_tasks()
         with contextlib.suppress(asyncio.CancelledError):
@@ -269,7 +269,7 @@ class TestLooper:
         async def sleeper():
             await asyncio.sleep(10)
 
-        t = looper._async_create_task(sleeper(), name="sleep")  # noqa: SLF001
+        t = looper._async_create_task(sleeper(), name="sleep")
         # Cancel it before calling cancel_tasks
         t.cancel()
 
@@ -287,12 +287,12 @@ class TestLooper:
         """Looper.create_task should catch CancelledError from call_soon_threadsafe and only log debug."""
         looper = asupp.Looper()
 
-        def raise_cancel(*args, **kwargs):  # noqa: ARG001
+        def raise_cancel(*args, **kwargs):
             raise FutCancelledError
 
         # Access .loop to trigger lazy initialization before patching
         _ = looper._loop
-        monkeypatch.setattr(looper._loop_store, "call_soon_threadsafe", raise_cancel)  # noqa: SLF001
+        monkeypatch.setattr(looper._loop_store, "call_soon_threadsafe", raise_cancel)
 
         async def noop():
             pass
@@ -316,7 +316,7 @@ class TestLooper:
             called["count"] += 1
             return real_call_soon_threadsafe(callback, *args)
 
-        monkeypatch.setattr(looper._loop_store, "call_soon_threadsafe", wrapper)  # noqa: SLF001
+        monkeypatch.setattr(looper._loop_store, "call_soon_threadsafe", wrapper)
 
         done = asyncio.Event()
 
@@ -337,10 +337,10 @@ class TestLooper:
             return 1
 
         t = asyncio.create_task(done_soon(), name="soon")
-        looper._tasks.add(t)  # noqa: SLF001
+        looper._tasks.add(t)
 
         # No deadline; should wait and tasks finish; returns empty set
-        pending = await looper._await_and_log_pending(pending=[t], deadline=None)  # noqa: SLF001
+        pending = await looper._await_and_log_pending(pending=[t], deadline=None)
         assert pending == set()
 
     @pytest.mark.asyncio
@@ -355,7 +355,7 @@ class TestLooper:
 
         # Use internal method to add a task directly into tracking
         t = loop.create_task(never(), name="never")
-        looper._tasks.add(t)  # noqa: SLF001
+        looper._tasks.add(t)
 
         with caplog.at_level(logging.WARNING):
             # wait_time small to trigger deadline path quickly

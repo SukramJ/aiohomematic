@@ -651,7 +651,7 @@ class ParameterVisibilityRegistry(ParameterVisibilityProviderProtocol):
     def _process_complex_un_ignore_entry(self, *, parsed: ParsedUnIgnoreLine) -> None:
         """Process a complex un-ignore entry."""
         entry = parsed.entry
-        assert entry is not None  # noqa: S101
+        assert entry is not None
 
         # Track MASTER channels for paramset fetching
         if entry.paramset_key == ParamsetKey.MASTER and (isinstance(entry.channel_no, int) or entry.channel_no is None):

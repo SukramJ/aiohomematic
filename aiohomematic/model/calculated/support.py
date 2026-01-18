@@ -171,10 +171,10 @@ def calculate_dew_point(*, temperature: float, humidity: int) -> float | None:
     try:
         a0 = 373.15 / (273.15 + temperature)
         s = -7.90298 * (a0 - 1)
-        s += 5.02808 * math.log(a0, 10)
+        s += 5.02808 * math.log10(a0)
         s += -1.3816e-7 * (pow(10, (11.344 * (1 - 1 / a0))) - 1)
         s += 8.1328e-3 * (pow(10, (-3.49149 * (a0 - 1))) - 1)
-        s += math.log(1013.246, 10)
+        s += math.log10(1013.246)
         vp = pow(10, s - 3) * humidity
         td = math.log(vp / 0.61078)
 

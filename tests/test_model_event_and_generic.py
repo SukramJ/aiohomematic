@@ -92,7 +92,7 @@ class TestEventFactory:
         """Test that event creation errors are wrapped in AioHomematicException."""
 
         class _Boom(me.GenericEvent):  # type: ignore[misc]
-            def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
                 """Raise immediately without calling super to avoid deep init."""
                 raise RuntimeError("boom")
 

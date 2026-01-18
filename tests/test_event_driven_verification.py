@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 
 import pytest
 
@@ -29,10 +28,6 @@ from aiohomematic.central.events import (
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState, RequestCoalescer
 from aiohomematic.const import DataRefreshType
 from aiohomematic_test_support.event_capture import EventCapture, EventSequenceAssertion
-
-if TYPE_CHECKING:
-    pass
-
 
 # =============================================================================
 # Section 3.1: Replace Internal State Checks with Event Assertions

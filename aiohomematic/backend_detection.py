@@ -367,7 +367,7 @@ async def _probe_xml_rpc_port(
             )
         )
         return None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _LOGGER.info(
             i18n.tr(
                 key="log.backend_detection.xml_rpc.probe_error",
@@ -491,7 +491,7 @@ async def _query_json_rpc_interfaces(
                             interface=interface.value,
                         )
                     )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 _LOGGER.warning(
                     i18n.tr(
                         key="log.backend_detection.json_rpc.is_present_failed",
@@ -500,7 +500,7 @@ async def _query_json_rpc_interfaces(
                     )
                 )
 
-        return tuple(present_interfaces), system_info.auth_enabled, system_info.https_redirect_enabled  # noqa: TRY300
+        return tuple(present_interfaces), system_info.auth_enabled, system_info.https_redirect_enabled
 
     except AuthFailure:
         # Re-raise authentication failures so they can be handled by the caller
@@ -510,7 +510,7 @@ async def _query_json_rpc_interfaces(
         # Connection failed on this port - log and try next port
         _LOGGER.info(i18n.tr(key="log.backend_detection.json_rpc.connection_failed", url=device_url))
         return None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _LOGGER.info(
             i18n.tr(
                 key="log.backend_detection.json_rpc.query_failed",

@@ -298,7 +298,7 @@ class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
         for event in self._events:
 
             def make_handler(ev: GenericEventProtocolAny) -> DataPointUpdatedHandler:
-                def handler(*, data_point: Any, custom_id: str) -> None:  # noqa: ARG001
+                def handler(*, data_point: Any, custom_id: str) -> None:
                     self._last_triggered_event = ev
                     self._set_modified_at(modified_at=ev.modified_at)
                     self.publish_data_point_updated_event()

@@ -178,13 +178,13 @@ class KwOnlyChecker(ast.NodeVisitor):
             self.violations.append(Violation(self.path, func.lineno, func.col_offset + 1, msg))
 
     # Node visitor implementations (visitor interface requires positional args)
-    def visit_Module(self, node: ast.Module) -> None:  # noqa: N802 kwonly: disable
+    def visit_Module(self, node: ast.Module) -> None:
         """Visit a module, check for module-level disable, and process children."""
         # Check for module-level __kwonly_check__ = False
         self._module_disabled = self._has_disable_flag_in_body(node.body)
         self.generic_visit(node)
 
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:  # noqa: N802 kwonly: disable
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Visit a class, determine disable state, and check its methods."""
         # Determine if class-level disable applies
         class_disabled = self._line_has_disable_comment(lineno=node.lineno)
@@ -202,12 +202,12 @@ class KwOnlyChecker(ast.NodeVisitor):
         finally:
             self._class_disable_stack.pop()
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802 kwonly: disable
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Check module-level functions for keyword-only parameters."""
         # Only top-level functions reach here (class methods handled in visit_ClassDef)
         self._check_module_function_signature(func=node)
 
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802 kwonly: disable
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         """Check module-level async functions for keyword-only parameters."""
         self._check_module_function_signature(func=node)
 

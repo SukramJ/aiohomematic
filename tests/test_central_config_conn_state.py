@@ -21,7 +21,7 @@ from aiohomematic.const import Interface
 class _DummyJson(AioJsonRpcAioHttpClient):
     """Lightweight subclass used only for isinstance checks in tests."""
 
-    def __init__(self) -> None:  # noqa: D401 (docstring inherited)
+    def __init__(self) -> None:
         # Intentionally do not call super().__init__ to avoid heavy setup.
         pass
 
@@ -29,7 +29,7 @@ class _DummyJson(AioJsonRpcAioHttpClient):
 class _DummyRpc(BaseRpcProxy):
     """Lightweight subclass used only for isinstance checks in tests."""
 
-    def __init__(self, interface_id: str) -> None:  # noqa: D401 (docstring inherited)
+    def __init__(self, interface_id: str) -> None:
         # Intentionally do not call super().__init__ to avoid heavy setup.
         self.interface_id = interface_id
 

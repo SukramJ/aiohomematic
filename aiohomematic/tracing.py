@@ -138,7 +138,7 @@ def get_current_trace_id() -> str | None:
     return current.trace_id if current else None
 
 
-class span:  # noqa: N801
+class span:
     """
     Context manager for tracing spans.
 

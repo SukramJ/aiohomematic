@@ -1639,10 +1639,13 @@ The project defines standard import aliases (enforced by ruff):
 ```python
 import voluptuous as vol
 
-from aiohomematic.central import CentralUnit as hmcu
-from aiohomematic.client import Client as hmcl
+from aiohomematic import central as hmcu
+from aiohomematic.central import rpc_server as rpc
+from aiohomematic import client as hmcl
 from aiohomematic.model.custom import definition as hmed
-from aiohomematic.support import support as hms
+from aiohomematic.model.custom import data_point as hmce
+from aiohomematic.model import data_point as hme
+import aiohomematic.support as hms
 ```
 
 ### Naming Conventions

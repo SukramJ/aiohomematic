@@ -16,6 +16,7 @@ The ClientCoordinator provides:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Final
 
@@ -23,7 +24,7 @@ from aiohomematic import client as hmcl, i18n
 from aiohomematic.central.events.types import HealthRecordedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, FailureReason, Interface, ProxyInitState
-from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.exceptions import AioHomematicException, AuthFailure, BaseHomematicException
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
     ClientFactoryProtocol,
@@ -308,9 +309,31 @@ class ClientCoordinator(ClientProviderProtocol):
         self._clients.clear()
         self._clients_started = False
 
+    def _calculate_startup_retry_delay(self, *, attempt: int) -> float:
+        """
+        Calculate exponential backoff delay for startup retry attempts.
+
+        Args:
+        ----
+            attempt: Current attempt number (1-indexed)
+
+        Returns:
+        -------
+            Delay in seconds, capped at startup_max_init_retry_delay
+
+        """
+        timeout_config = self._config_provider.config.timeout_config
+        delay = timeout_config.startup_init_retry_delay * (timeout_config.reconnect_backoff_factor ** (attempt - 1))
+        return min(delay, timeout_config.startup_max_init_retry_delay)
+
     async def _create_client(self, *, interface_config: hmcl.InterfaceConfig) -> bool:
         """
-        Create a single client.
+        Create a single client with retry logic for startup resilience.
+
+        This method implements a 3-stage defensive validation approach:
+        1. TCP Pre-Flight Check (first attempt only): Wait for port availability
+        2. Client Creation & RPC Validation: Create client and verify backend communication
+        3. Retry with Exponential Backoff: Retry on transient errors before failing
 
         Args:
         ----
@@ -321,38 +344,98 @@ class ClientCoordinator(ClientProviderProtocol):
             True if client was created successfully, False otherwise
 
         """
-        try:
-            if client := await self._client_factory.create_client_instance(
-                interface_config=interface_config,
-            ):
-                _LOGGER.debug(
-                    "CREATE_CLIENT: Adding client %s to %s",
-                    client.interface_id,
-                    self._central_info.name,
-                )
-                self._clients[client.interface_id] = client
+        timeout_config = self._config_provider.config.timeout_config
+        max_attempts = timeout_config.startup_max_init_attempts
 
-                # Register client with health tracker
-                self._health_tracker.register_client(
-                    interface_id=client.interface_id,
-                    interface=client.interface,
+        for attempt in range(1, max_attempts + 1):
+            try:
+                # Stage 1: TCP Pre-Flight Check (first attempt only)
+                if attempt == 1:
+                    tcp_ready = await self._wait_for_tcp_ready(
+                        host=self._config_provider.config.host,
+                        port=interface_config.port,
+                        max_wait_seconds=timeout_config.reconnect_tcp_check_timeout,
+                        check_interval=timeout_config.reconnect_tcp_check_interval,
+                    )
+                    if not tcp_ready:
+                        _LOGGER.warning(
+                            i18n.tr(
+                                key="log.central.startup.tcp_not_ready",
+                                interface_id=interface_config.interface_id,
+                            )
+                        )
+                        # Don't retry if TCP never becomes available
+                        self._last_failure_reason = FailureReason.NETWORK
+                        self._last_failure_interface_id = interface_config.interface_id
+                        return False
+
+                # Stage 2: Client Creation & RPC Validation
+                if client := await self._client_factory.create_client_instance(
+                    interface_config=interface_config,
+                ):
+                    _LOGGER.debug(
+                        "CREATE_CLIENT: Adding client %s to %s (attempt %d/%d)",
+                        client.interface_id,
+                        self._central_info.name,
+                        attempt,
+                        max_attempts,
+                    )
+                    self._clients[client.interface_id] = client
+
+                    # Register client with health tracker
+                    self._health_tracker.register_client(
+                        interface_id=client.interface_id,
+                        interface=client.interface,
+                    )
+                    _LOGGER.debug(
+                        "CREATE_CLIENT: Registered client %s with health tracker",
+                        client.interface_id,
+                    )
+                    return True
+
+            except AuthFailure as auth_exc:
+                # Stage 3: Retry with Exponential Backoff
+                if attempt < max_attempts:
+                    retry_delay = self._calculate_startup_retry_delay(attempt=attempt)
+                    _LOGGER.warning(
+                        i18n.tr(
+                            key="log.central.startup.auth_retry",
+                            interface_id=interface_config.interface_id,
+                            attempt=attempt,
+                            max_attempts=max_attempts,
+                            delay=retry_delay,
+                            reason=extract_exc_args(exc=auth_exc),
+                        )
+                    )
+                    await asyncio.sleep(retry_delay)
+                    continue
+
+                # Last attempt exhausted - true auth error
+                _LOGGER.error(
+                    i18n.tr(
+                        key="log.central.startup.auth_failed",
+                        interface_id=interface_config.interface_id,
+                        max_attempts=max_attempts,
+                        reason=extract_exc_args(exc=auth_exc),
+                    )
                 )
-                _LOGGER.debug(
-                    "CREATE_CLIENT: Registered client %s with health tracker",
-                    client.interface_id,
+                self._last_failure_reason = FailureReason.AUTH
+                self._last_failure_interface_id = interface_config.interface_id
+                return False
+
+            except BaseHomematicException as bhexc:  # pragma: no cover
+                # Non-auth errors: fail immediately without retry
+                self._last_failure_reason = exception_to_failure_reason(exc=bhexc)
+                self._last_failure_interface_id = interface_config.interface_id
+                _LOGGER.error(
+                    i18n.tr(
+                        key="log.central.create_client.no_connection",
+                        interface_id=interface_config.interface_id,
+                        reason=extract_exc_args(exc=bhexc),
+                    )
                 )
-                return True
-        except BaseHomematicException as bhexc:  # pragma: no cover
-            # Track failure reason for propagation to central state machine
-            self._last_failure_reason = exception_to_failure_reason(exc=bhexc)
-            self._last_failure_interface_id = interface_config.interface_id
-            _LOGGER.error(
-                i18n.tr(
-                    key="log.central.create_client.no_connection",
-                    interface_id=interface_config.interface_id,
-                    reason=extract_exc_args(exc=bhexc),
-                )
-            )
+                return False
+
         return False
 
     async def _create_clients(self) -> bool:
@@ -478,3 +561,72 @@ class ClientCoordinator(ClientProviderProtocol):
             self._health_tracker.record_successful_request(interface_id=event.interface_id)
         else:
             self._health_tracker.record_failed_request(interface_id=event.interface_id)
+
+    async def _wait_for_tcp_ready(
+        self,
+        *,
+        host: str,
+        port: int,
+        max_wait_seconds: float,
+        check_interval: float,
+    ) -> bool:
+        """
+        Wait for TCP port to become available during startup.
+
+        Args:
+        ----
+            host: Host to check
+            port: Port to check
+            max_wait_seconds: Maximum time to wait (from TimeoutConfig.reconnect_tcp_check_timeout)
+            check_interval: Interval between checks (from TimeoutConfig.reconnect_tcp_check_interval)
+
+        Returns:
+        -------
+            True if port is available, False if timeout exceeded
+
+        """
+        start_time = asyncio.get_event_loop().time()
+        attempt = 0
+
+        while (asyncio.get_event_loop().time() - start_time) < max_wait_seconds:
+            attempt += 1
+            try:
+                # Attempt TCP connection
+                _, writer = await asyncio.wait_for(
+                    asyncio.open_connection(host, port),
+                    timeout=check_interval,
+                )
+                writer.close()
+                await writer.wait_closed()
+
+            except (OSError, TimeoutError) as exc:
+                _LOGGER.debug(
+                    i18n.tr(
+                        key="log.central.startup.tcp_check_failed",
+                        host=host,
+                        port=port,
+                        attempt=attempt,
+                        reason=str(exc),
+                    )
+                )
+                await asyncio.sleep(check_interval)
+            else:
+                _LOGGER.debug(
+                    i18n.tr(
+                        key="log.central.startup.tcp_ready",
+                        host=host,
+                        port=port,
+                        attempt=attempt,
+                    )
+                )
+                return True
+
+        _LOGGER.warning(
+            i18n.tr(
+                key="log.central.startup.tcp_timeout",
+                host=host,
+                port=port,
+                timeout=max_wait_seconds,
+            )
+        )
+        return False

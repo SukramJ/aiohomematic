@@ -677,3 +677,124 @@ class TestClientCoordinatorIntegration:
             await coordinator.stop_clients()
             assert coordinator.clients_started is False
             assert not coordinator.has_clients
+
+
+class TestStartupResilience:
+    """Test ClientCoordinator startup resilience features (ADR 0017)."""
+
+    def test_calculate_startup_retry_delay(self) -> None:
+        """Test exponential backoff calculation for startup retries."""
+        central = _FakeCentral()
+        central.config.timeout_config = MagicMock()
+        central.config.timeout_config.startup_init_retry_delay = 3
+        central.config.timeout_config.reconnect_backoff_factor = 2
+        central.config.timeout_config.startup_max_init_retry_delay = 30
+
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        # Test exponential backoff: 3, 6, 12, 24, 30 (capped)
+        assert coordinator._calculate_startup_retry_delay(attempt=1) == 3
+        assert coordinator._calculate_startup_retry_delay(attempt=2) == 6
+        assert coordinator._calculate_startup_retry_delay(attempt=3) == 12
+        assert coordinator._calculate_startup_retry_delay(attempt=4) == 24
+        assert coordinator._calculate_startup_retry_delay(attempt=5) == 30  # Capped at max
+
+    @pytest.mark.asyncio
+    async def test_wait_for_tcp_ready_connection_refused(self) -> None:
+        """Test TCP readiness check handles connection refused errors."""
+        central = _FakeCentral()
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        # First two attempts fail, third succeeds
+        mock_writer = MagicMock()
+        mock_writer.close = MagicMock()
+        mock_writer.wait_closed = AsyncMock()
+
+        attempts = [
+            ConnectionRefusedError("Connection refused"),
+            ConnectionRefusedError("Connection refused"),
+            (MagicMock(), mock_writer),
+        ]
+
+        with patch("asyncio.open_connection", new=AsyncMock(side_effect=attempts)):
+            result = await coordinator._wait_for_tcp_ready(
+                host="192.168.1.100",
+                port=2010,
+                max_wait_seconds=10,
+                check_interval=0.1,
+            )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_wait_for_tcp_ready_success(self) -> None:
+        """Test TCP readiness check succeeds when port is available."""
+        central = _FakeCentral()
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        # Mock asyncio.open_connection to succeed
+        mock_writer = MagicMock()
+        mock_writer.close = MagicMock()
+        mock_writer.wait_closed = AsyncMock()
+
+        with patch("asyncio.open_connection", new=AsyncMock(return_value=(MagicMock(), mock_writer))):
+            result = await coordinator._wait_for_tcp_ready(
+                host="192.168.1.100",
+                port=2010,
+                max_wait_seconds=10,
+                check_interval=1,
+            )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_wait_for_tcp_ready_timeout(self) -> None:
+        """Test TCP readiness check times out when port never becomes available."""
+        central = _FakeCentral()
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        # Mock asyncio.open_connection to always fail
+        with patch(
+            "asyncio.open_connection",
+            new=AsyncMock(side_effect=ConnectionRefusedError("Connection refused")),
+        ):
+            result = await coordinator._wait_for_tcp_ready(
+                host="192.168.1.100",
+                port=2010,
+                max_wait_seconds=0.5,  # Short timeout for test speed
+                check_interval=0.1,
+            )
+
+        assert result is False

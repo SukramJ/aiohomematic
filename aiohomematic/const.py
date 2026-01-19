@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.40"
+VERSION: Final = "2026.1.41"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -101,6 +101,15 @@ class TimeoutConfig(NamedTuple):
 
     backend_detection_total: float = 3 if _TEST_SPEEDUP else 15
     """Total timeout for complete backend detection process (default: 15s)."""
+
+    startup_max_init_attempts: int = 5
+    """Maximum number of initialization attempts during startup before treating as auth error (default: 5)."""
+
+    startup_init_retry_delay: float = 1 if _TEST_SPEEDUP else 3
+    """Initial delay between startup initialization retry attempts (default: 3s)."""
+
+    startup_max_init_retry_delay: float = 5 if _TEST_SPEEDUP else 30
+    """Maximum delay between startup initialization retry attempts after backoff (default: 30s)."""
 
 
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()

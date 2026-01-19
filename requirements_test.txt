@@ -6,7 +6,7 @@ coverage==7.13.1
 freezegun==1.5.5
 mypy==1.19.1
 pip==25.3
-prek==0.2.28
+prek==0.2.30
 pur==7.3.3
 pydevccu==0.1.20
 pylint-per-file-ignores==3.2.0
@@ -20,7 +20,7 @@ pytest-cov==7.0.0
 pytest-rerunfailures==16.1
 pytest-socket==0.7.0
 pytest-timeout==2.4.0
-pytest-xdist==3.6.1
+pytest-xdist==3.8.0
 pytest==9.0.2
 types-python-slugify==8.0.2.20240310
-uv==0.9.25
+uv==0.9.26

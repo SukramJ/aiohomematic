@@ -149,10 +149,10 @@ async def central_client_factory_with_homegear_client(
 # homegear mini fixtures
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def pydevccu_mini() -> pydevccu.Server:
     """Create the virtual ccu."""
-    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_MINI_PORT), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
+    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.get_ccu_mini_port()), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
     ccu.start()
     try:
         yield ccu
@@ -163,7 +163,7 @@ def pydevccu_mini() -> pydevccu.Server:
 @pytest.fixture
 async def central_unit_pydevccu_mini(pydevccu_mini: pydevccu.Server) -> CentralUnit:
     """Create and yield central."""
-    central = await get_pydev_ccu_central_unit_full(port=const.CCU_MINI_PORT)
+    central = await get_pydev_ccu_central_unit_full(port=const.get_ccu_mini_port())
     try:
         yield central
     finally:
@@ -177,10 +177,10 @@ async def central_unit_pydevccu_mini(pydevccu_mini: pydevccu.Server) -> CentralU
 # pydevccu full fixtures
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def pydevccu_full() -> pydevccu.Server:
     """Create the virtual ccu."""
-    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.CCU_PORT))
+    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.get_ccu_port()))
     ccu.start()
     try:
         yield ccu
@@ -198,7 +198,7 @@ async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralU
     def device_lifecycle_callback(event: DeviceLifecycleEvent) -> None:
         """Do dummy device lifecycle handler."""
 
-    central = await get_pydev_ccu_central_unit_full(port=const.CCU_PORT)
+    central = await get_pydev_ccu_central_unit_full(port=const.get_ccu_port())
 
     unsubscribe_device_trigger_callback = central.event_bus.subscribe(
         event_type=DeviceTriggerEvent, event_key=None, handler=device_trigger_callback

@@ -31,16 +31,27 @@ sequenceDiagram
   CC->>CC: _create_clients()
 
   loop For each interface_config
-    CC->>CX: create_client_instance()
-    CX->>SM: new(CREATED)
-    SM-->>CX: state machine ready
-    CX->>CX: fetch system info
-    CX->>SM: transition_to(INITIALIZING)
-    CX->>H: _init_handlers()
-    Note over H: DeviceOps, Firmware,<br/>LinkMgmt, Metadata,<br/>Programs, Sysvars, Backup
-    H-->>CX: handlers ready
-    CX->>SM: transition_to(INITIALIZED)
-    CX-->>CC: client ready
+    Note over CC: _create_client() with retry logic (ADR 0017)
+    CC->>CC: Stage 1: TCP pre-flight check
+    alt TCP not ready (timeout)
+      CC->>CC: fail immediately (NETWORK)
+    else TCP ready or AuthFailure (retry up to 5x)
+      CC->>CX: create_client_instance()
+      CX->>SM: new(CREATED)
+      SM-->>CX: state machine ready
+      CX->>CX: fetch system info
+      alt AuthFailure during startup
+        Note over CC: Stage 3: Exponential backoff<br/>(3s → 6s → 12s → 24s → 30s)
+        CC->>CC: retry or fail after max attempts
+      else Success
+        CX->>SM: transition_to(INITIALIZING)
+        CX->>H: _init_handlers()
+        Note over H: DeviceOps, Firmware,<br/>LinkMgmt, Metadata,<br/>Programs, Sysvars, Backup
+        H-->>CX: handlers ready
+        CX->>SM: transition_to(INITIALIZED)
+        CX-->>CC: client ready
+      end
+    end
   end
 
   CC->>CaC: load_all()
@@ -69,6 +80,127 @@ sequenceDiagram
 - ClientCoordinator orchestrates client lifecycle: creation, cache loading, initialization, and hub setup.
 - Each client uses a ClientStateMachine to enforce valid state transitions (CREATED → INITIALIZING → INITIALIZED → CONNECTING → CONNECTED).
 - Handlers are initialized during client creation, providing specialized operations (device ops, firmware, metadata, etc.).
+- **Startup Resilience (ADR 0017)**: Client creation includes defensive 3-stage validation to prevent false re-authentication requests during Docker startup race conditions:
+  - Stage 1: TCP pre-flight check (wait up to 60s for port availability)
+  - Stage 2: Client creation & RPC validation
+  - Stage 3: Retry AuthFailure with exponential backoff (up to 5 attempts)
+  - See detailed diagram below for complete retry flow
+
+---
+
+## 1a. Client Creation with Retry Logic (ADR 0017)
+
+This diagram shows the detailed startup resilience mechanism implemented to handle Docker container startup race conditions.
+
+```mermaid
+sequenceDiagram
+  participant CC as ClientCoordinator
+  participant TCP as TCP Check
+  participant CX as ClientCCU
+  participant CCU as Backend (CCU/OpenCCU)
+  participant SM as ClientStateMachine
+
+  Note over CC: _create_client(interface_config)
+  CC->>CC: attempt = 1
+
+  loop Retry up to 5 attempts
+    alt First attempt only
+      Note over CC,TCP: Stage 1: TCP Pre-Flight Check
+      CC->>TCP: _wait_for_tcp_ready(host, port, 60s timeout)
+      TCP->>CCU: Open TCP connection
+      alt Connection refused / timeout
+        CCU-->>TCP: Connection refused
+        TCP->>TCP: Wait 5s and retry
+      else TCP ready
+        CCU-->>TCP: Connection established
+        TCP-->>CC: TCP ready ✓
+      end
+
+      alt TCP timeout (60s exceeded)
+        CC->>CC: Set failure_reason = NETWORK
+        CC->>CC: Return False (no retry)
+        Note over CC: Fail fast - port never available
+      end
+    end
+
+    Note over CC,CX: Stage 2: Client Creation & RPC Validation
+    CC->>CX: create_client_instance(interface_config)
+    CX->>CCU: system.listMethods() / isPresent()
+
+    alt AuthFailure (e.g., "Unauthorized")
+      CCU-->>CX: ProtocolError: Unauthorized
+      CX-->>CC: AuthFailure exception
+
+      Note over CC: Stage 3: Retry with Exponential Backoff
+      alt attempt < 5
+        CC->>CC: delay = calculate_backoff(attempt)
+        Note over CC: Delays: 3s → 6s → 12s → 24s → 30s
+        CC->>CC: Log warning + sleep(delay)
+        CC->>CC: attempt++, continue loop
+      else Max attempts exhausted
+        CC->>CC: Set failure_reason = AUTH
+        CC->>CC: Return False
+        Note over CC: True auth error → Re-authentication
+      end
+
+    else Success
+      CCU-->>CX: OK + system info
+      CX->>SM: new(CREATED)
+      CX-->>CC: Client ready
+      CC->>CC: Register with health tracker
+      CC->>CC: Return True ✓
+      Note over CC: Exit retry loop
+
+    else Other error (NoConnection, Internal, etc.)
+      CCU-->>CX: Other exception
+      CX-->>CC: BaseHomematicException
+      CC->>CC: Set failure_reason (NETWORK/INTERNAL/etc.)
+      CC->>CC: Return False (no retry)
+      Note over CC: Non-auth errors fail immediately
+    end
+  end
+```
+
+### Startup Resilience Details
+
+**Problem Solved:**
+When Home Assistant starts before OpenCCU in Docker, "Unauthorized" errors were incorrectly classified as authentication failures instead of timing issues, triggering unnecessary re-authentication flows.
+
+**Solution (ADR 0017):**
+Three-stage defensive validation with retry logic:
+
+1. **Stage 1 - TCP Pre-Flight Check** (first attempt only):
+
+   - Wait up to 60s for TCP port to become available
+   - Check every 5s with exponential backoff
+   - Fail fast if port never becomes available (NETWORK error)
+
+2. **Stage 2 - Client Creation & RPC Validation**:
+
+   - Create client instance
+   - Attempt initial RPC handshake (system.listMethods / isPresent)
+   - Classify exception type
+
+3. **Stage 3 - Retry with Exponential Backoff**:
+   - **AuthFailure**: Retry up to 5 times with backoff (3s → 6s → 12s → 24s → 30s)
+   - **Other errors**: Fail immediately without retry
+   - After max attempts: True auth error → triggers re-authentication
+
+**Configuration (TimeoutConfig):**
+
+- `startup_max_init_attempts: int = 5` - Max retry attempts
+- `startup_init_retry_delay: float = 3` - Initial delay (seconds)
+- `startup_max_init_retry_delay: float = 30` - Max delay after backoff
+- `reconnect_tcp_check_timeout: float = 60` - TCP wait timeout (reused)
+- `reconnect_tcp_check_interval: float = 5` - TCP check interval (reused)
+- `reconnect_backoff_factor: float = 2` - Backoff multiplier (reused)
+
+**Impact:**
+
+- Eliminates false re-authentication requests during Docker startup
+- Automatic recovery from timing issues (no manual intervention)
+- True auth errors still trigger re-authentication after retries exhausted
+- Worst-case startup delay: ~105s (60s TCP + 45s retries)
 
 ---
 

@@ -1,3 +1,20 @@
+# Version 2026.1.41 (2026-01-19)
+
+## What's Changed
+
+### Added
+
+- **Startup resilience for authentication errors**: Implemented defensive client initialization to prevent false re-authentication requests when CCU starts after Home Assistant. The new approach uses a 3-stage validation:
+  - Stage 1: TCP Pre-Flight Check - Wait for port availability before attempting initialization
+  - Stage 2: Client Creation & RPC Validation - Verify backend communication
+  - Stage 3: Retry with Exponential Backoff - Retry transient authentication errors before failing
+  - New TimeoutConfig parameters:
+    - `startup_max_init_attempts`: Maximum initialization attempts during startup (default: 5)
+    - `startup_init_retry_delay`: Initial delay between retry attempts (default: 3s)
+    - `startup_max_init_retry_delay`: Maximum delay after backoff (default: 30s)
+  - Reuses existing parameters: `reconnect_tcp_check_timeout`, `reconnect_tcp_check_interval`, `reconnect_backoff_factor`
+  - Only triggers re-authentication if all retry attempts are exhausted
+
 # Version 2026.1.40 (2026-01-17)
 
 ## What's Changed

@@ -13,19 +13,18 @@
 - [x] Legacy `InterfaceEvent` dataclass removed
 - [x] Legacy `InterfaceEventType` enum removed
 - [x] Legacy `publish_interface_event()` method removed
-- [x] Migration guide created
 - [ ] Home Assistant integration migrated (external dependency)
+
+---
 
 ## Context
 
-aiohomematic currently has two parallel event systems for connection/interface status:
+aiohomematic had two parallel event systems for connection/interface status:
 
 1. **Legacy System**: `InterfaceEventType` published via `HomematicEvent` with `EventType.INTERFACE`
 2. **Modern System**: State-based events (`CentralStateChangedEvent`, `ClientStateChangedEvent`, `ConnectionStateChangedEvent`)
 
-This creates redundancy and potential confusion for consumers.
-
-## Current State
+This created redundancy and potential confusion for consumers.
 
 ### Legacy InterfaceEventType Events
 
@@ -50,6 +49,8 @@ Published directly via `EventBus.publish()`:
 | `ConnectionStateChangedEvent` | Connection issue added/removed   | `interface_id, connected`                       | Interface connectivity         |
 | `CallbackStateChangedEvent`   | Callback alive/dead detection    | `interface_id, alive, seconds_since_last_event` | CCU callback channel status    |
 
+---
+
 ## Analysis
 
 ### Overlap Matrix
@@ -68,161 +69,141 @@ Published directly via `EventBus.publish()`:
 
 **PROXY:**
 
-```python
-# Published when device availability changes
-self.central.publish_interface_event(
-    interface_id=self.interface_id,
-    interface_event_type=InterfaceEventType.PROXY,
-    data={EventKey.AVAILABLE: available},
-)
-```
+- Published when device availability changes
+- Data: `{AVAILABLE: bool}`
 
 **ClientStateChangedEvent:**
 
-```python
-# Published on state transitions
-event_bus.publish_sync(
-    event=ClientStateChangedEvent(
-        interface_id=self.interface_id,
-        old_state=old_state,
-        new_state=new_state,
-    )
-)
-```
+- Published on state transitions
+- Data: `interface_id, old_state, new_state`
 
 **Mapping:**
 | ClientState | PROXY equivalent |
-|-------------|------------------|
+| -------------- | ----------------------- |
 | `CONNECTED` | `{AVAILABLE: true}` |
 | `DISCONNECTED` | `{AVAILABLE: false}` |
 | `FAILED` | `{AVAILABLE: false}` |
 
 **Conclusion:** PROXY can be derived from ClientStateChangedEvent.
 
-#### CALLBACK vs ConnectionStateChangedEvent
-
-**CALLBACK:**
-
-```python
-# Published based on seconds_since_last_event threshold
-publish_interface_event(
-    interface_event_type=InterfaceEventType.CALLBACK,
-    data={
-        EventKey.AVAILABLE: False,
-        EventKey.SECONDS_SINCE_LAST_EVENT: 120,
-    },
-)
-```
-
-**ConnectionStateChangedEvent:**
-
-```python
-# Published when connection issues change
-event=ConnectionStateChangedEvent(
-    interface_id=interface_id,
-    connected=connected,
-)
-```
+#### CALLBACK vs CallbackStateChangedEvent
 
 **Difference:** CALLBACK provides `SECONDS_SINCE_LAST_EVENT` which ConnectionStateChangedEvent does not.
 
-**Conclusion:** Partial overlap. CALLBACK has additional diagnostic data.
+**Solution:** Created `CallbackStateChangedEvent` to preserve this diagnostic data.
 
 #### PENDING_PONG / UNKNOWN_PONG
 
 These have no modern equivalent. They provide unique diagnostic information about PING/PONG health.
 
-**Conclusion:** No consolidation possible. These should remain.
+**Solution:** Created `PingPongMismatchEvent` to replace both.
+
+---
 
 ## Decision
 
-### Phase 1: Document and Deprecate (Non-Breaking)
+**Consolidate all interface events into typed event classes**, removing the legacy `InterfaceEvent` system entirely.
 
-1. Mark legacy events as deprecated in documentation
-2. Add deprecation warnings to `publish_interface_event()` for PROXY
-3. Update Home Assistant integration to use modern events
+### Phase 1: Document and Deprecate (Non-Breaking) ✅ COMPLETE
 
-### Phase 2: Migration Path
+Marked legacy events as deprecated in documentation and added new typed events.
 
-For each legacy event, provide migration guidance:
+### Phase 2: Migration Path ✅ COMPLETE
 
-#### PROXY Migration
+Provided migration guidance for each legacy event.
+
+### Phase 3: Consolidation (Breaking Change) ✅ COMPLETE
+
+Removed entire legacy `InterfaceEvent` system (dataclass, enum, publish method).
+
+---
+
+## Migration Guide
+
+### PROXY Migration
 
 **Before:**
 
 ```python
-def on_interface_event(event_type, event_data):
-    if event_data[EventKey.TYPE] == InterfaceEventType.PROXY:
-        available = event_data[EventKey.DATA][EventKey.AVAILABLE]
-        update_availability(available)
+# Legacy: Listen to PROXY event
+if event_data[EventKey.TYPE] == InterfaceEventType.PROXY:
+    available = event_data[EventKey.DATA][EventKey.AVAILABLE]
 ```
 
 **After:**
 
 ```python
+# Modern: Use ClientStateChangedEvent
 def on_client_state_changed(*, event: ClientStateChangedEvent):
     available = event.new_state == ClientState.CONNECTED
-    update_availability(available)
 
 event_bus.subscribe(
     event_type=ClientStateChangedEvent,
-    event_key=interface_id,  # Filter by interface
+    event_key=interface_id,
     handler=on_client_state_changed,
 )
 ```
 
-#### CALLBACK Migration
+### CALLBACK Migration
 
 **Before:**
 
 ```python
-def on_interface_event(event_type, event_data):
-    if event_data[EventKey.TYPE] == InterfaceEventType.CALLBACK:
-        available = event_data[EventKey.DATA][EventKey.AVAILABLE]
-        seconds = event_data[EventKey.DATA].get(EventKey.SECONDS_SINCE_LAST_EVENT)
+# Legacy: CALLBACK event with seconds info
+if event_data[EventKey.TYPE] == InterfaceEventType.CALLBACK:
+    available = event_data[EventKey.DATA][EventKey.AVAILABLE]
+    seconds = event_data[EventKey.DATA].get(EventKey.SECONDS_SINCE_LAST_EVENT)
 ```
 
-**After (Option A - Use ConnectionStateChangedEvent):**
+**After:**
 
 ```python
-def on_connection_changed(*, event: ConnectionStateChangedEvent):
-    # Note: loses SECONDS_SINCE_LAST_EVENT information
-    update_callback_status(event.connected)
+# Modern: CallbackStateChangedEvent preserves all data
+def on_callback_changed(*, event: CallbackStateChangedEvent):
+    alive = event.alive
+    seconds = event.seconds_since_last_event
+
+event_bus.subscribe(
+    event_type=CallbackStateChangedEvent,
+    event_key=interface_id,
+    handler=on_callback_changed,
+)
 ```
 
-**After (Option B - Create new CallbackStateChangedEvent):**
+### FETCH_DATA Migration
+
+**After:**
 
 ```python
-@dataclass(frozen=True, slots=True)
-class CallbackStateChangedEvent(Event):
-    interface_id: str
-    alive: bool
-    seconds_since_last_event: int | None
+# Modern: FetchDataFailedEvent
+def on_fetch_failed(*, event: FetchDataFailedEvent):
+    _LOGGER.warning("Data fetch failed for %s", event.interface_id)
+
+event_bus.subscribe(
+    event_type=FetchDataFailedEvent,
+    handler=on_fetch_failed,
+)
 ```
 
-### Phase 3: Consolidation (Breaking Change)
+### PENDING_PONG / UNKNOWN_PONG Migration
 
-After migration period:
+**After:**
 
-1. Remove PROXY from InterfaceEventType
-2. Keep CALLBACK (or replace with CallbackStateChangedEvent)
-3. Keep FETCH_DATA (unique purpose)
-4. Keep PENDING_PONG / UNKNOWN_PONG (diagnostic)
+```python
+# Modern: PingPongMismatchEvent
+def on_ping_pong_mismatch(*, event: PingPongMismatchEvent):
+    if event.mismatch_type == "pending_pong":
+        _LOGGER.warning("PING without PONG for %s", event.interface_id)
+    else:
+        _LOGGER.warning("Unexpected PONG for %s", event.interface_id)
 
-## Recommended Actions
+event_bus.subscribe(
+    event_type=PingPongMismatchEvent,
+    handler=on_ping_pong_mismatch,
+)
+```
 
-### aiohomematic Library ✅ COMPLETED
-
-1. ~~**Add `CallbackStateChangedEvent`** to preserve `seconds_since_last_event` information~~ ✅ Done
-2. ~~**Update event_reference.md** with migration guidance~~ ✅ Done
-3. ~~**Add `FetchDataFailedEvent`** to replace `FETCH_DATA`~~ ✅ Done
-4. ~~**Add `PingPongMismatchEvent`** to replace `PENDING_PONG` and `UNKNOWN_PONG`~~ ✅ Done
-5. ~~**Add `DeviceAvailabilityChangedEvent`** for device availability changes~~ ✅ Done
-6. ~~**Remove legacy `InterfaceEvent` dataclass**~~ ✅ Done
-7. ~~**Remove legacy `InterfaceEventType` enum**~~ ✅ Done
-8. ~~**Remove legacy `publish_interface_event()` method**~~ ✅ Done
-
-### Home Assistant Integration (External)
+---
 
 ## Summary Table
 
@@ -236,28 +217,70 @@ After migration period:
 
 **Note:** The entire legacy `InterfaceEvent` system (dataclass, enum, publish method) has been removed.
 
+---
+
 ## Consequences
 
 ### Positive
 
-- Cleaner, more consistent event API
-- Type-safe events with proper dataclasses
-- Better IDE support and documentation
-- Reduced duplication
+✅ **Cleaner API**: Type-safe events with proper dataclasses
+✅ **Better IDE Support**: Autocomplete and type checking
+✅ **Reduced Duplication**: Single event system
+✅ **More Discoverable**: Events are explicit classes, not enum values
+✅ **Consistent Patterns**: All events follow same subscribe API
 
 ### Negative
 
-- Breaking change for existing consumers
-- Migration effort required
-- Temporary complexity during transition
+⚠️ **Breaking Change**: Existing consumers must update
+⚠️ **Migration Effort**: Home Assistant integration needs updates
+⚠️ **Temporary Documentation**: Both systems documented during transition
 
 ### Neutral
 
-- Home Assistant integration must be updated
-- Documentation must be maintained for both systems during transition
+ℹ️ **Home Assistant Dependency**: Integration must be updated separately
+ℹ️ **Backward Compatibility**: Not maintained for internal event system
+
+---
+
+## Implementation
+
+**Status:** ✅ Completed in version 2025.12.26
+
+### New Event Classes
+
+**`aiohomematic/central/events/bus.py`:**
+
+- `CallbackStateChangedEvent` - Callback alive/dead with seconds info
+- `FetchDataFailedEvent` - Data fetch failures
+- `PingPongMismatchEvent` - PING/PONG diagnostic events
+- `DeviceAvailabilityChangedEvent` - Device availability changes
+
+### Removed
+
+**Legacy components completely removed:**
+
+- `InterfaceEvent` dataclass
+- `InterfaceEventType` enum
+- `publish_interface_event()` method
+
+### Updated
+
+**Event publishers** updated to use new typed events:
+
+- Callback monitoring → `CallbackStateChangedEvent`
+- Device availability → `DeviceAvailabilityChangedEvent`
+- Data fetch failures → `FetchDataFailedEvent`
+- PING/PONG monitoring → `PingPongMismatchEvent`
+
+---
 
 ## References
 
-- [Event Reference](../event_reference.md)
-- [EventBus Architecture](../event_bus.md)
-- [ADR-0006: Event System Priorities](0006-event-system-priorities-and-batching.md)
+- [Event Reference](../event_reference.md) - Complete event catalog
+- [EventBus Architecture](../event_bus.md) - Event system overview
+- [ADR-0006: Event System Priorities](0006-event-system-priorities-and-batching.md) - Event batching strategy
+
+---
+
+_Created: 2025-12-26_
+_Author: Architecture Review_

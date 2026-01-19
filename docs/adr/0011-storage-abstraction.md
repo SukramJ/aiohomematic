@@ -1,8 +1,10 @@
-# ADR 0007: Storage Abstraction Layer
+# ADR 0011: Storage Abstraction Layer
 
 ## Status
 
 Implemented
+
+---
 
 ## Context
 
@@ -17,187 +19,92 @@ aiohomematic requires persistent storage for device descriptions, paramset descr
 
 ---
 
-## Architecture
+## Decision
 
-### Overview
+Implement a **storage abstraction layer** with protocol-based dependency injection:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    HomematicIP Local                            │
-│                                                                 │
-│  ┌─────────────────────┐    ┌─────────────────────────────────┐ │
-│  │  HAStoreFactory     │    │  HomeAssistant Store            │ │
-│  │  (implements        │───▶│  (native HA persistence)        │ │
-│  │  StorageFactory     │    └─────────────────────────────────┘ │
-│  │  Protocol)          │                                        │
-│  └─────────────────────┘                                        │
-└───────────────┬─────────────────────────────────────────────────┘
-                │ passes storage_factory
-                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      aiohomematic                               │
-│                                                                 │
-│  ┌─────────────────────┐    ┌─────────────────────────────────┐ │
-│  │  StorageProtocol    │    │  Storage                        │ │
-│  │  (interface)        │───▶│  (local implementation)         │ │
-│  │                     │    │  - orjson serialization         │ │
-│  └─────────────────────┘    │  - async I/O                    │ │
-│                             │  - ZIP loading support          │ │
-│  ┌─────────────────────┐    │  - version migrations           │ │
-│  │  LocalStorageFactory│    │  - delayed/debounced saves      │ │
-│  │  (default impl)     │───▶└─────────────────────────────────┘ │
-│  └─────────────────────┘                                        │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │  Persistent Caches                                          ││
-│  │  - DeviceDescriptionCache                                   ││
-│  │  - ParamsetDescriptionCache                                 ││
-│  │  - SessionRecorder                                          ││
-│  │  ──────────────────────────────────────────                 ││
-│  │  All use Storage via StorageFactoryProtocol                 ││
-│  └─────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
-```
+1. **StorageProtocol**: Interface defining load/save operations
+2. **StorageFactoryProtocol**: Factory interface for creating storage instances
+3. **LocalStorageFactory**: Default file-based implementation for standalone usage
+4. **HAStoreFactory**: Home Assistant implementation (provided by integration)
+
+### Key Principle
+
+All persistent caches depend on `StorageProtocol`, not concrete implementations. This enables seamless swapping between local files and Home Assistant Store.
 
 ---
 
-## Implementation
+## Architecture
 
-### Core Components
+### High-Level Structure
 
-#### StorageProtocol (`aiohomematic/store/storage.py`)
-
-Defines the interface for storage operations:
-
-```python
-@runtime_checkable
-class StorageProtocol(Protocol):
-    """Protocol for storage operations."""
-
-    @property
-    def key(self) -> str:
-        """Return the storage key identifier."""
-        ...
-
-    @property
-    def version(self) -> int:
-        """Return the storage version for migration support."""
-        ...
-
-    async def load(self) -> dict[str, Any] | None:
-        """Load data from storage (with migration if needed)."""
-        ...
-
-    async def save(self, *, data: dict[str, Any]) -> None:
-        """Save data to storage immediately."""
-        ...
-
-    async def delay_save(
-        self,
-        *,
-        data_func: Callable[[], dict[str, Any]],
-        delay: float = 1.0,
-    ) -> None:
-        """Schedule a delayed save operation."""
-        ...
-
-    async def flush(self) -> None:
-        """Flush any pending delayed saves immediately."""
-        ...
-
-    async def remove(self) -> None:
-        """Remove storage data."""
-        ...
+```
+┌──────────────────────┐
+│ HomematicIP Local    │
+│  └─ HAStoreFactory   │ ← Home Assistant provides factory
+└──────────┬───────────┘
+           │ StorageFactoryProtocol
+           ↓
+┌──────────────────────┐
+│ aiohomematic         │
+│  ├─ StorageProtocol  │ ← Protocol interface
+│  ├─ Storage (local)  │ ← Default implementation
+│  └─ Persistent Caches│ ← Use StorageProtocol
+└──────────────────────┘
 ```
 
-#### StorageFactoryProtocol
+### Protocol Hierarchy
 
-Factory interface for creating storage instances:
-
-```python
-@runtime_checkable
-class StorageFactoryProtocol(Protocol):
-    """Protocol for creating storage instances."""
-
-    def create_storage(
-        self,
-        *,
-        key: str,
-        version: int = 1,
-        sub_directory: str | None = None,
-        migrate_func: MigrateFunc | None = None,
-    ) -> StorageProtocol:
-        """Create a storage instance."""
-        ...
-
-    async def cleanup_files(
-        self,
-        *,
-        sub_directory: str | None = None,
-    ) -> int:
-        """Delete all storage files. Returns number of files deleted."""
-        ...
+```
+StorageFactoryProtocol
+    │
+    ├── create_storage() → StorageProtocol
+    │                           │
+    │                           ├── load()
+    │                           ├── save()
+    │                           ├── delay_save()
+    │                           ├── flush()
+    │                           └── remove()
+    │
+    └── cleanup_files() → int (files deleted)
 ```
 
-#### Storage Class
+### Storage Features
 
-Local file-based storage implementation with the following features:
+**LocalStorageFactory features:**
 
-- **orjson Serialization**: Fast JSON serialization/deserialization
+- **orjson Serialization**: Fast JSON encoding/decoding
 - **Atomic Writes**: Write to temp file, then rename for crash safety
 - **ZIP Support**: Load data from `.json.zip` archives
 - **Version Migrations**: Automatic schema migration via `migrate_func`
 - **Delayed Saves**: Debounced save operations to batch rapid updates
 - **Thread Safety**: All operations protected by asyncio.Lock
 
-#### LocalStorageFactory
+---
 
-Default factory for standalone usage:
+## Integration Points
+
+### CentralConfig
 
 ```python
-factory = LocalStorageFactory(
-    base_directory="/path/to/storage",
-    central_name="my-ccu",
-    task_scheduler=looper,
-)
-
-storage = factory.create_storage(
-    key="homematic_devices",
-    version=1,
-    sub_directory="cache",
-)
+@dataclass(slots=True)
+class CentralConfig:
+    # ... other fields ...
+    storage_factory: StorageFactoryProtocol | None = None
 ```
 
-### Persistent Cache Classes
+**Standalone usage** (no factory provided):
 
-All persistent caches inherit from `BasePersistentCache`:
+- CentralConfig creates `LocalStorageFactory` automatically
+- Storage location: `{base_directory}/{central_name}/`
 
-#### BasePersistentCache (`aiohomematic/store/persistent/base.py`)
+**Home Assistant integration** (factory provided):
 
-Abstract base class providing:
+- Integration creates `HAStoreFactory(hass)`
+- Passes via `storage_factory` parameter
+- Storage handled by Home Assistant's Store helper
 
-- Hash-based change detection for efficient saves
-- Async load/save operations via Storage
-- Optional caching control via config
-
-Subclasses implement:
-
-- `_create_empty_content()`: Define initial data structure
-- `_process_loaded_content()`: Rebuild indexes after load
-
-#### Concrete Implementations
-
-| Cache                      | Purpose                 | Storage Key           |
-| -------------------------- | ----------------------- | --------------------- |
-| `DeviceDescriptionCache`   | Device/channel metadata | `homematic_devices`   |
-| `ParamsetDescriptionCache` | Parameter metadata      | `homematic_paramsets` |
-| `SessionRecorder`          | RPC session recordings  | Dynamic per-session   |
-
-### Integration Points
-
-#### CacheCoordinator
-
-Creates all caches with storage instances:
+### CacheCoordinator
 
 ```python
 class CacheCoordinator:
@@ -207,6 +114,7 @@ class CacheCoordinator:
         storage_factory: StorageFactoryProtocol,
         # ... other dependencies ...
     ) -> None:
+        # Create storage instances for each cache
         device_storage = storage_factory.create_storage(
             key=FILE_DEVICES,
             sub_directory=SUB_DIRECTORY_CACHE,
@@ -215,54 +123,30 @@ class CacheCoordinator:
             storage=device_storage,
             config_provider=config_provider,
         )
-        # ... other caches ...
 ```
 
-#### CentralConfig
+### Persistent Cache Classes
 
-Accepts optional storage factory for Home Assistant integration:
+All persistent caches inherit from `BasePersistentCache`:
 
-```python
-@dataclass(slots=True)
-class CentralConfig:
-    # ... other fields ...
-    storage_factory: StorageFactoryProtocol | None = None
-```
+| Cache                         | Purpose                   | Storage Key           |
+| ----------------------------- | ------------------------- | --------------------- |
+| `DeviceDescriptionRegistry`   | Device/channel metadata   | `homematic_devices`   |
+| `ParamsetDescriptionRegistry` | Parameter metadata        | `homematic_paramsets` |
+| `SessionRecorder`             | RPC session recordings    | Dynamic per-session   |
+| `IncidentStore`               | Diagnostics and incidents | `incidents`           |
 
-When no factory is provided, `LocalStorageFactory` is created automatically.
+**BasePersistentCache provides:**
+
+- Hash-based change detection for efficient saves
+- Async load/save operations via StorageProtocol
+- Optional caching control via config
 
 ---
 
-## File Structure
+## Usage Patterns
 
-```
-aiohomematic/
-├── store/
-│   ├── __init__.py              # Re-exports including Storage
-│   ├── storage.py               # Storage, LocalStorageFactory, Protocols
-│   ├── types.py                 # Type definitions
-│   ├── serialization.py         # Serialization utilities
-│   ├── persistent/
-│   │   ├── __init__.py
-│   │   ├── base.py              # BasePersistentCache
-│   │   ├── device.py            # DeviceDescriptionCache
-│   │   ├── paramset.py          # ParamsetDescriptionCache
-│   │   └── session.py           # SessionRecorder
-│   ├── dynamic/                 # In-memory caches
-│   └── visibility/              # Parameter visibility
-├── central/
-│   ├── config.py                # CentralConfig with storage_factory
-│   └── coordinators/
-│       └── cache.py             # CacheCoordinator
-└── model/
-    └── device.py                # _DefinitionExporter uses Storage
-```
-
----
-
-## Usage Examples
-
-### Standalone Usage
+### Standalone Mode
 
 ```python
 from aiohomematic.central import CentralConfig
@@ -271,8 +155,10 @@ config = CentralConfig(
     name="ccu-main",
     host="192.168.1.100",
     # ... other config ...
-    # storage_factory is None -> LocalStorageFactory created automatically
+    # storage_factory is None → LocalStorageFactory created automatically
 )
+
+# Storage location: {base_directory}/ccu-main/
 ```
 
 ### Home Assistant Integration
@@ -299,23 +185,120 @@ config = CentralConfig(
 
 ### Benefits
 
-1. **Single Responsibility**: All file I/O centralized in Storage class
-2. **Exchangeability**: HA Store or local storage transparently swappable
-3. **Testability**: Storage easily mocked in tests
-4. **Consistency**: Unified API for all caches
-5. **Future-Proof**: Additional storage backends easily addable
+✅ **Single Responsibility**: All file I/O centralized in Storage class
+✅ **Exchangeability**: HA Store or local storage transparently swappable
+✅ **Testability**: Storage easily mocked in tests
+✅ **Consistency**: Unified API for all caches
+✅ **Future-Proof**: Additional storage backends easily addable (e.g., remote storage, cloud)
 
 ### Trade-offs
 
-1. **Additional Abstraction**: One more layer between cache and filesystem
-2. **Protocol Overhead**: Runtime protocol checks add minimal overhead
+⚠️ **Additional Abstraction**: One more layer between cache and filesystem
+⚠️ **Protocol Overhead**: Runtime protocol checks add minimal overhead (negligible in practice)
+
+### Neutral
+
+ℹ️ **No Breaking Changes**: Internal refactoring, public API unchanged
+ℹ️ **Transparent to Users**: Storage backend selection happens automatically
+
+---
+
+## Alternatives Considered
+
+### Alternative 1: Direct File I/O in Caches
+
+Let each cache handle its own file operations directly.
+
+**Rejected**:
+
+- No way to swap backends for Home Assistant
+- Duplicated file handling logic across caches
+- Hard to test without actual filesystem
+
+### Alternative 2: Adapter Pattern per Backend
+
+Create adapters like `LocalStorageAdapter`, `HAStorageAdapter`.
+
+**Rejected**:
+
+- Essentially what we have, but "Adapter" is less clear than "Factory"
+- Factory pattern better communicates intent (creating storage instances)
+
+### Alternative 3: Abstract Base Class Instead of Protocol
+
+Use ABC with abstract methods instead of runtime-checkable Protocol.
+
+**Rejected**:
+
+- Forces inheritance coupling
+- Protocol allows structural subtyping (more flexible)
+- Home Assistant implementation doesn't need to import from aiohomematic
+
+---
+
+## Implementation
+
+**Status:** ✅ Implemented
+
+### Core Module
+
+**`aiohomematic/store/storage.py`**
+
+- `StorageProtocol` - Protocol interface
+- `StorageFactoryProtocol` - Factory protocol
+- `Storage` - Local file-based implementation
+- `LocalStorageFactory` - Default factory
+
+### Protocol Interfaces
+
+**StorageProtocol methods:**
+
+```python
+@property def key(self) -> str
+@property def version(self) -> int
+async def load(self) -> dict[str, Any] | None
+async def save(*, data: dict[str, Any]) -> None
+async def delay_save(*, data_func: Callable, delay: float) -> None
+async def flush() -> None
+async def remove() -> None
+```
+
+**StorageFactoryProtocol methods:**
+
+```python
+def create_storage(*, key: str, version: int, sub_directory: str | None, migrate_func: MigrateFunc | None) -> StorageProtocol
+async def cleanup_files(*, sub_directory: str | None) -> int
+```
+
+### Updated Components
+
+**`aiohomematic/store/persistent/base.py`**
+
+- `BasePersistentCache` - Base class for all persistent caches
+- Subclasses: `DeviceDescriptionRegistry`, `ParamsetDescriptionRegistry`, `SessionRecorder`, `IncidentStore`
+
+**`aiohomematic/central/config.py`**
+
+- `CentralConfig.storage_factory` parameter
+- Auto-creation of `LocalStorageFactory` when None
+
+**`aiohomematic/central/coordinators/cache.py`**
+
+- `CacheCoordinator` creates storage instances via factory
+- Passes storage to cache constructors
+
+For detailed API documentation, see docstrings in:
+
+- `aiohomematic/store/storage.py`
+- `aiohomematic/store/persistent/base.py`
 
 ---
 
 ## References
 
-- [Home Assistant Storage Helper](https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/storage.py)
-- [aiohomematic Store Module](../../aiohomematic/store/)
+- [Home Assistant Storage Helper](https://github.com/home-assistant/core/blob/dev/homeassistant/helpers/storage.py) - HA Store implementation reference
+- [ADR 0015: Description Data Normalization](0015-description-normalization-concept.md) - Schema versioning strategy
+- `aiohomematic/store/` - Store module implementation
 
 ---
 

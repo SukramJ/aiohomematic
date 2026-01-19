@@ -1504,6 +1504,7 @@ class TestCustomDpIpThermostat:
         assert call_count == len(mock_client.method_calls)
 
 
+@pytest.mark.xdist_group("pydevccu")
 class TestClimateIntegration:
     """Integration tests for climate data points with PyDevCCU."""
 

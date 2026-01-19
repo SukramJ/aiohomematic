@@ -4,7 +4,7 @@
 
 **Accepted** (2026-01-05)
 
-See [0013-implementation-status.md](0013-implementation-status.md) for current progress.
+See [0013-implementation-status.md](0013-implementation-status.md) for current progress tracking.
 
 ---
 
@@ -40,8 +40,6 @@ await central.start()
 
 ## Context
 
-The current client architecture has structural issues:
-
 ### Current Problems
 
 1. **Code Scattering**: Methods like `set_value` exist in multiple classes:
@@ -59,28 +57,23 @@ The current client architecture has structural issues:
 
 4. **Handler Coupling**: 50+ references to `self._proxy` and `self._json_rpc_client` in handlers
 
-   - Handlers cannot be reused with new Backend without extensive modification
-   - Modifying handlers = same effort as migrating logic to InterfaceClient
+| Handler File    | Transport References |
+| --------------- | -------------------- |
+| `device_ops.py` | 13                   |
+| `metadata.py`   | 16                   |
+| `sysvars.py`    | 4                    |
+| `programs.py`   | 4                    |
+| `link_mgmt.py`  | 4                    |
+| `firmware.py`   | 3                    |
+| `backup.py`     | 3                    |
+| `base.py`       | 3                    |
+| **Total**       | **50**               |
 
 5. **20+ `supports_*` Properties** spread across three client classes
 
 ### Why Handler Reuse Is Not Viable
 
-Analysis shows handlers have tight coupling to transport layer:
-
-| Handler File    | `_proxy`/`_json_rpc` References |
-| --------------- | ------------------------------- |
-| `device_ops.py` | 13                              |
-| `metadata.py`   | 16                              |
-| `sysvars.py`    | 4                               |
-| `programs.py`   | 4                               |
-| `link_mgmt.py`  | 4                               |
-| `firmware.py`   | 3                               |
-| `backup.py`     | 3                               |
-| `base.py`       | 3                               |
-| **Total**       | **50**                          |
-
-Adapting handlers to use `BackendOperationsProtocol` requires the same effort as migrating logic directly into InterfaceClient, but results in worse architecture.
+Adapting handlers to use `BackendOperationsProtocol` requires the same effort as migrating logic directly into InterfaceClient, but results in worse architecture. Handlers have tight coupling that cannot be abstracted away cleanly.
 
 ---
 
@@ -184,8 +177,6 @@ Replace the legacy client hierarchy with a **single InterfaceClient** using the 
 │   ├── put_paramset(address, paramset_key, values, rx_mode)  │
 │   ├── get_paramset(address, paramset_key)                   │
 │   ├── list_devices()                                        │
-│   ├── get_device_description(address)                       │
-│   ├── get_paramset_description(address, paramset_key)       │
 │   └── ... (all RPC methods)                                 │
 └─────────────────────────────────────────────────────────────┘
         ▲                     ▲                     ▲
@@ -206,18 +197,17 @@ Replace the legacy client hierarchy with a **single InterfaceClient** using the 
 
 ### InterfaceClient (Business Logic)
 
-| Responsibility         | Source                                              | Description                           |
-| ---------------------- | --------------------------------------------------- | ------------------------------------- |
-| Value validation       | `DeviceHandler._check_set_value()`                  | Validate against paramset description |
-| Paramset validation    | `DeviceHandler._check_put_paramset()`               | Validate all values in paramset       |
-| Value conversion       | `DeviceHandler._convert_value()`                    | Convert to correct type               |
-| Temporary values       | `DeviceHandler._write_temporary_value()`            | Write for immediate UI feedback       |
-| Wait for callback      | `DeviceHandler._wait_for_state_change_or_timeout()` | Wait for confirmation event           |
-| Request coalescing     | `DeviceHandler._*_coalescer`                        | Deduplicate concurrent requests       |
-| Master polling         | `DeviceHandler.put_paramset()`                      | Poll after BidCos MASTER write        |
-| Device details parsing | `DeviceHandler.fetch_device_details()`              | Parse JSON, update cache              |
-| Connection state       | `ClientCCU`                                         | State machine, ping/pong              |
-| Capability checks      | `ClientCCU.supports_*`                              | Check before operations               |
+| Responsibility      | Source                                              | Description                           |
+| ------------------- | --------------------------------------------------- | ------------------------------------- |
+| Value validation    | `DeviceHandler._check_set_value()`                  | Validate against paramset description |
+| Paramset validation | `DeviceHandler._check_put_paramset()`               | Validate all values in paramset       |
+| Value conversion    | `DeviceHandler._convert_value()`                    | Convert to correct type               |
+| Temporary values    | `DeviceHandler._write_temporary_value()`            | Write for immediate UI feedback       |
+| Wait for callback   | `DeviceHandler._wait_for_state_change_or_timeout()` | Wait for confirmation event           |
+| Request coalescing  | `DeviceHandler._*_coalescer`                        | Deduplicate concurrent requests       |
+| Master polling      | `DeviceHandler.put_paramset()`                      | Poll after BidCos MASTER write        |
+| Connection state    | `ClientCCU`                                         | State machine, ping/pong              |
+| Capability checks   | `ClientCCU.supports_*`                              | Check before operations               |
 
 ### Backends (Transport Only)
 
@@ -237,41 +227,6 @@ Replace the legacy client hierarchy with a **single InterfaceClient** using the 
 - ❌ Access device registry or data points
 - ❌ Manage connection state
 - ❌ Coalesce requests
-
----
-
-## Handler Logic Migration Checklist
-
-### Phase 2a: Core Operations (DeviceHandler) - CRITICAL
-
-| Logic               | Source Method                         | Target Method              | Status |
-| ------------------- | ------------------------------------- | -------------------------- | ------ |
-| Value validation    | `_check_set_value()`                  | `_validate_value()`        | ⬜     |
-| Paramset validation | `_check_put_paramset()`               | `_validate_paramset()`     | ⬜     |
-| Value conversion    | `_convert_value()`                    | `_convert_value()`         | ⬜     |
-| Temporary values    | `_write_temporary_value()`            | `_write_temporary_value()` | ⬜     |
-| Wait for callback   | `_wait_for_state_change_or_timeout()` | Already imported           | ✅     |
-| Request coalescing  | `RequestCoalescer` instances          | `_request_coalescer`       | ⬜     |
-| Master polling      | `put_paramset()` poll logic           | `_poll_master_values()`    | ⬜     |
-| `check_against_pd`  | Parameter in `set_value`              | Same parameter             | ⬜     |
-
-### Phase 2b: Metadata Operations
-
-| Logic                    | Source          | Target                    | Status |
-| ------------------------ | --------------- | ------------------------- | ------ |
-| `get_all_rooms()`        | MetadataHandler | Direct delegation         | ⬜     |
-| `get_all_functions()`    | MetadataHandler | Direct delegation         | ⬜     |
-| `fetch_device_details()` | MetadataHandler | `_fetch_device_details()` | ⬜     |
-
-### Phase 2c: Other Handlers
-
-| Handler                 | Migration Strategy                    | Status |
-| ----------------------- | ------------------------------------- | ------ |
-| `LinkHandler`           | Direct delegation, minimal logic      | ⬜     |
-| `FirmwareHandler`       | Direct delegation                     | ⬜     |
-| `ProgramHandler`        | Direct delegation                     | ⬜     |
-| `SystemVariableHandler` | Direct delegation                     | ⬜     |
-| `BackupHandler`         | Move polling logic to InterfaceClient | ⬜     |
 
 ---
 
@@ -299,43 +254,6 @@ client = await create_client(use_interface_client=use_new, ...)
 
 ---
 
-## File Structure
-
-### New Files
-
-```
-aiohomematic/client/
-├── backends/                      # Transport layer
-│   ├── __init__.py               # Package exports
-│   ├── base.py                   # BaseBackend (abstract)
-│   ├── capabilities.py           # BackendCapabilities dataclass
-│   ├── ccu.py                    # CcuBackend (XML-RPC + JSON-RPC)
-│   ├── factory.py                # create_backend()
-│   ├── homegear.py               # HomegearBackend
-│   ├── json_ccu.py               # JsonCcuBackend
-│   └── protocol.py               # BackendOperationsProtocol
-│
-└── interface_client.py           # All business logic
-```
-
-### Unchanged (Legacy - Remove in Phase 5)
-
-```
-aiohomematic/client/
-├── ccu.py                        # Legacy clients
-├── handlers/                     # Legacy handlers (50+ transport refs)
-│   ├── base.py
-│   ├── device_ops.py
-│   ├── link_mgmt.py
-│   ├── firmware.py
-│   ├── metadata.py
-│   ├── programs.py
-│   ├── sysvars.py
-│   └── backup.py
-```
-
----
-
 ## Migration Phases
 
 ### Phase 1: Core Implementation ✅ COMPLETE
@@ -347,44 +265,32 @@ aiohomematic/client/
 
 ### Phase 2: Handler Logic Migration ⬅️ CURRENT
 
-- [ ] Migrate value validation from DeviceHandler
-- [ ] Migrate value conversion
-- [ ] Migrate temporary value writing
-- [ ] Migrate request coalescing
-- [ ] Migrate master paramset polling
-- [ ] Add comparison tests (legacy vs InterfaceClient)
-- [ ] Verify 100% identical behavior
+Migrate validation, conversion, callbacks, coalescing, and polling logic from handlers to InterfaceClient. Add comparison tests to verify identical behavior between legacy and new implementations.
 
 **Success Criteria:**
 
-- [ ] All comparison tests pass
-- [ ] No behavioral differences detected
-- [ ] Test coverage >= 85% for InterfaceClient
+- All comparison tests pass
+- No behavioral differences detected
+- Test coverage >= 85% for InterfaceClient
 
 ### Phase 3: Beta Testing
 
-- [ ] Enable feature flag for beta testers
-- [ ] Monitor for differences/errors
-- [ ] Minimum 4 weeks of error-free operation
-- [ ] Collect user feedback
+Enable feature flag for beta testers, monitor for differences/errors, minimum 4 weeks of error-free operation.
 
 **Success Criteria:**
 
-- [ ] Zero regressions reported
-- [ ] Performance within 5% of legacy
+- Zero regressions reported
+- Performance within 5% of legacy
 
 ### Phase 4: Rollout
 
-- [ ] Feature flag = True (default)
-- [ ] Legacy remains available as fallback
-- [ ] Update documentation
+Feature flag = True (default), legacy remains available as fallback, update documentation.
 
 ### Phase 5: Cleanup
 
-- [ ] Remove legacy clients (`ClientCCU`, `ClientJsonCCU`, `ClientHomegear`)
-- [ ] Remove handlers package
-- [ ] Remove feature flag
-- [ ] Rename `InterfaceClient` → `Client`
+Remove legacy clients, handlers package, feature flag. Rename `InterfaceClient` → `Client`.
+
+**Note:** For detailed implementation tracking, see [0013-implementation-status.md](0013-implementation-status.md).
 
 ---
 
@@ -413,17 +319,13 @@ async def test_set_value_identical_behavior(client_impl, ...):
     assert isinstance(result, set)
 ```
 
-### Test Coverage Matrix
+### Key Test Areas
 
-| Operation          | Legacy Test | InterfaceClient Test | Comparison Test |
-| ------------------ | ----------- | -------------------- | --------------- |
-| `set_value`        | ✅          | ⬜                   | ⬜              |
-| `put_paramset`     | ✅          | ⬜                   | ⬜              |
-| Value validation   | ✅          | ⬜                   | ⬜              |
-| Wait for callback  | ✅          | ⬜                   | ⬜              |
-| Temporary values   | ✅          | ⬜                   | ⬜              |
-| Request coalescing | ✅          | ⬜                   | ⬜              |
-| Master polling     | ✅          | ⬜                   | ⬜              |
+- `set_value` / `put_paramset` validation
+- Wait for callback behavior
+- Temporary values
+- Request coalescing
+- Master paramset polling
 
 ---
 
@@ -438,10 +340,93 @@ async def test_set_value_identical_behavior(client_impl, ...):
 
 ---
 
+## Consequences
+
+### Positive
+
+✅ **Clear Separation**: Business logic vs transport logic clearly separated
+✅ **Maintainable**: Single InterfaceClient easier to understand and modify
+✅ **Testable**: Backends easily mocked, business logic isolated
+✅ **Scalable**: Adding new backend = implementing transport interface only
+✅ **Safe Migration**: Feature flag enables instant rollback
+✅ **Reduced Duplication**: No more scattered `set_value` implementations
+
+### Negative
+
+⚠️ **Migration Effort**: Significant work to migrate handler logic
+⚠️ **Temporary Duplication**: Both implementations exist during migration (Phases 2-4)
+⚠️ **Testing Burden**: Comparison tests required for all operations
+⚠️ **Documentation**: Two code paths need documentation during transition
+
+### Neutral
+
+ℹ️ **Additional Abstraction**: Backend interface adds one layer
+ℹ️ **No Immediate Benefit**: Users see no difference until legacy removed
+
+---
+
+## Alternatives Considered
+
+### Alternative 1: Refactor Handlers Only
+
+Keep client hierarchy, refactor handlers to be cleaner.
+
+**Rejected**: Doesn't solve architecture problems, handler coupling remains.
+
+### Alternative 2: Gradual Per-Method Migration
+
+Migrate one method at a time from handlers to client.
+
+**Rejected**: Mixed state during migration, harder to test, longer transition period.
+
+### Alternative 3: Big Bang Replacement
+
+Remove legacy clients immediately, force migration.
+
+**Rejected**: Too risky, no rollback path, breaks existing users.
+
+### Alternative 4: Parallel Package
+
+Create new `aiohomematic2` package.
+
+**Rejected**: Splits community, double maintenance burden.
+
+---
+
+## Implementation
+
+**Status:** ⬅️ Phase 2 (Handler Logic Migration) in progress
+
+**Current State:**
+
+**New Package:**
+
+- `aiohomematic/client/backends/` - Backend implementations
+  - `protocol.py` - BackendOperationsProtocol
+  - `ccu.py`, `json_ccu.py`, `homegear.py` - Backend implementations
+  - `factory.py` - Backend factory
+
+**New File:**
+
+- `aiohomematic/client/interface_client.py` - InterfaceClient implementation
+
+**Unchanged (Legacy - Remove in Phase 5):**
+
+- `aiohomematic/client/ccu.py` - Legacy clients
+- `aiohomematic/client/handlers/` - Legacy handlers (50+ transport refs)
+
+**Feature Flag:**
+
+- `OptionalSettings.USE_INTERFACE_CLIENT` in `aiohomematic/const.py`
+
+For detailed implementation status and task tracking, see [0013-implementation-status.md](0013-implementation-status.md).
+
+---
+
 ## References
 
-- [Strategy Pattern](https://refactoring.guru/design-patterns/strategy)
-- [Strangler Fig Pattern](https://martinfowler.com/bliki/StranglerFigApplication.html)
+- [Strategy Pattern](https://refactoring.guru/design-patterns/strategy) - Design pattern used
+- [Strangler Fig Pattern](https://martinfowler.com/bliki/StranglerFigApplication.html) - Migration approach
 - [ADR 0012: Async XML-RPC Server](0012-async-xml-rpc-server-poc.md) - Similar feature flag approach
 
 ---
@@ -449,4 +434,3 @@ async def test_set_value_identical_behavior(client_impl, ...):
 _Created: 2026-01-04_
 _Updated: 2026-01-05_
 _Author: Architecture Review_
-_Status: Accepted_

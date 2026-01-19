@@ -112,9 +112,16 @@ class FactoryWithClient:
         await self._xml_proxy.do_init()
         p1 = patch("aiohomematic.client.ClientConfig._create_xml_rpc_proxy", return_value=self._xml_proxy)
         p2 = patch("aiohomematic.central.CentralUnit._identify_ip_addr", return_value=LOCAL_HOST)
+
+        # Mock TCP preflight check to always succeed (no real server in tests)
+        async def _mock_tcp_ready(*args: Any, **kwargs: Any) -> bool:
+            return True
+
+        p3 = patch("aiohomematic.central.coordinators.client.ClientCoordinator._wait_for_tcp_ready", _mock_tcp_ready)
         p1.start()
         p2.start()
-        self._patches.extend([p1, p2])
+        p3.start()
+        self._patches.extend([p1, p2, p3])
 
         # Optionally patch client creation to return a mocked client
         if self._do_mock_client:
@@ -138,9 +145,9 @@ class FactoryWithClient:
                     ),
                 )
 
-            p3 = patch("aiohomematic.client.create_client", _mocked_create_client)
-            p3.start()
-            self._patches.append(p3)
+            p4 = patch("aiohomematic.client.create_client", _mocked_create_client)
+            p4.start()
+            self._patches.append(p4)
 
         if start:
             await central.start()

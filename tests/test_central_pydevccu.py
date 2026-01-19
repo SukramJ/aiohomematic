@@ -16,6 +16,7 @@ from aiohomematic_test_support import const
 # pylint: disable=protected-access
 
 
+@pytest.mark.xdist_group("pydevccu")
 class TestCentralPyDevCCU:
     """Test central unit with PyDevCCU backend."""
 

@@ -1,3 +1,11 @@
+# Version 2026.1.42 (2026-01-19)
+
+## What's Changed
+
+### Fixed
+
+- **Device availability events for forced availability**: `Device.set_forced_availability()` now publishes `DeviceLifecycleEvent` with `event_type=AVAILABILITY_CHANGED` when the device availability actually changes. Previously, only UNREACH/STICKY_UNREACH parameter changes triggered this event, meaning forced availability changes were not observable via the EventBus.
+
 # Version 2026.1.41 (2026-01-19)
 
 ## What's Changed

@@ -10,6 +10,7 @@ import zipfile
 
 import pytest
 
+from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import (
     CLICK_EVENTS,
     DEVICE_DESCRIPTIONS_ZIP_DIR,
@@ -263,6 +264,96 @@ class TestDeviceAvailability:
         # Unregister callback via returned remover and ensure no error
         remover = remove
         remover()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [(TEST_DEVICES, True, None, None)],
+    )
+    async def test_forced_availability_publishes_lifecycle_event(
+        self, central_client_factory_with_homegear_client
+    ) -> None:
+        """Test that set_forced_availability publishes DeviceLifecycleEvent when availability changes."""
+        central, _, factory = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU6354483")
+
+        # Ensure base availability is True
+        assert device.available is True
+
+        # Clear any previous calls and wait for any pending events to settle
+        await asyncio.sleep(0.1)
+        factory.system_event_mock.reset_mock()
+
+        # Force availability to False - should publish event
+        device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+        assert device.available is False
+
+        # Wait for async event bus publish to complete
+        await asyncio.sleep(0.2)
+
+        # Verify DeviceLifecycleEvent with AVAILABILITY_CHANGED was published
+        # Filter for events that contain the expected availability change (device going unavailable)
+        availability_events_false = [
+            call[0][0]
+            for call in factory.system_event_mock.call_args_list
+            if isinstance(call[0][0], DeviceLifecycleEvent)
+            and call[0][0].event_type == DeviceLifecycleEventType.AVAILABILITY_CHANGED
+            and (device.address, False) in call[0][0].availability_changes
+        ]
+        assert len(availability_events_false) >= 1, (
+            f"Expected at least one AVAILABILITY_CHANGED event with ('{device.address}', False), "
+            f"got: {[c[0][0] for c in factory.system_event_mock.call_args_list if isinstance(c[0][0], DeviceLifecycleEvent)]}"
+        )
+
+        # Clear mock for next test
+        await asyncio.sleep(0.1)
+        factory.system_event_mock.reset_mock()
+
+        # Force availability back to True - should publish another event
+        device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_TRUE)
+        assert device.available is True
+
+        # Wait for async event bus publish to complete
+        await asyncio.sleep(0.2)
+
+        # Verify AVAILABILITY_CHANGED event was published (device becoming available)
+        availability_events_true = [
+            call[0][0]
+            for call in factory.system_event_mock.call_args_list
+            if isinstance(call[0][0], DeviceLifecycleEvent)
+            and call[0][0].event_type == DeviceLifecycleEventType.AVAILABILITY_CHANGED
+            and (device.address, True) in call[0][0].availability_changes
+        ]
+        assert len(availability_events_true) >= 1, (
+            f"Expected at least one AVAILABILITY_CHANGED event with ('{device.address}', True), "
+            f"got: {[c[0][0] for c in factory.system_event_mock.call_args_list if isinstance(c[0][0], DeviceLifecycleEvent)]}"
+        )
+
+        # Clear mock for next test
+        await asyncio.sleep(0.1)
+        factory.system_event_mock.reset_mock()
+
+        # Setting same value should NOT publish event
+        device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_TRUE)
+
+        # Wait for async event bus publish to complete
+        await asyncio.sleep(0.2)
+
+        # Verify NO availability event was published (same value)
+        availability_events = [
+            call[0][0]
+            for call in factory.system_event_mock.call_args_list
+            if isinstance(call[0][0], DeviceLifecycleEvent)
+            and call[0][0].event_type == DeviceLifecycleEventType.AVAILABILITY_CHANGED
+        ]
+        assert len(availability_events) == 0, (
+            f"Expected no AVAILABILITY_CHANGED event when setting same value, got: {availability_events}"
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

@@ -56,7 +56,13 @@ import orjson
 
 from aiohomematic import i18n
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.events import DeviceStateChangedEvent, FirmwareStateChangedEvent, LinkPeerChangedEvent
+from aiohomematic.central.events import (
+    DeviceLifecycleEvent,
+    DeviceLifecycleEventType,
+    DeviceStateChangedEvent,
+    FirmwareStateChangedEvent,
+    LinkPeerChangedEvent,
+)
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CLICK_EVENTS,
@@ -886,9 +892,29 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Set the availability of the device."""
         if self._forced_availability != forced_availability:
+            old_available = self.available
             self._forced_availability = forced_availability
+            new_available = self.available
+
             for dp in self.generic_data_points:
                 dp.publish_data_point_updated_event()
+
+            # Publish availability event if availability actually changed
+            if old_available != new_available:
+
+                async def _publish_availability_event() -> None:
+                    await self._event_bus_provider.event_bus.publish(
+                        event=DeviceLifecycleEvent(
+                            timestamp=datetime.now(),
+                            event_type=DeviceLifecycleEventType.AVAILABILITY_CHANGED,
+                            availability_changes=((self._address, new_available),),
+                        )
+                    )
+
+                self._task_scheduler.create_task(
+                    target=_publish_availability_event,
+                    name=f"availability-forced-{self._address}",
+                )
 
     def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeCallback:
         """Subscribe update handler."""

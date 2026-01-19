@@ -144,6 +144,13 @@ DeviceProfileRegistry.register(
 )
 DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
+    models="HmIP-WRC6-230",
+    data_point_class=CustomDpSwitch,
+    profile_type=DeviceProfile.IP_SWITCH,
+    channels=(9,),
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.SWITCH,
     models="HmIPW-DRS",
     data_point_class=CustomDpSwitch,
     profile_type=DeviceProfile.IP_SWITCH,

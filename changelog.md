@@ -15,6 +15,17 @@
   - Reuses existing parameters: `reconnect_tcp_check_timeout`, `reconnect_tcp_check_interval`, `reconnect_backoff_factor`
   - Only triggers re-authentication if all retry attempts are exhausted
 
+### Fixed
+
+- **Automatic reconnection after startup failures**: Fixed connection recovery coordinator to properly handle startup failures where backend (CCU/pydevccu) was not available during Home Assistant startup. Previously, the integration would remain in FAILED state indefinitely. Now:
+  - Heartbeat timer starts automatically when central transitions to FAILED state during startup
+  - Recovery attempts run every 60 seconds (configurable via `HEARTBEAT_RETRY_INTERVAL`)
+  - Two distinct recovery paths:
+    - **Startup failures** (client never created): TCP check → Client creation → Data loading
+    - **Runtime failures** (client exists): TCP check → RPC check → Warmup → Stability check → Reconnection → Data loading
+  - Port resolution for TCP checks now falls back to interface configuration when client doesn't exist
+  - Integration automatically reconnects within 60 seconds once backend becomes available
+
 # Version 2026.1.40 (2026-01-17)
 
 ## What's Changed

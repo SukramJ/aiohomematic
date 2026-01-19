@@ -15,17 +15,17 @@ Into a single, event-driven recovery system.
 Architecture
 ------------
 The coordinator:
-1. Subscribes to connection-related events (ConnectionLostEvent, CircuitBreakerTrippedEvent)
+1. Subscribes to connection-related events (ConnectionLostEvent, CircuitBreakerTrippedEvent, CentralStateChangedEvent)
 2. Executes staged recovery (TCP check → RPC check → warmup → reconnect → data load)
 3. Tracks retry attempts with exponential backoff
 4. Manages central state transitions (RECOVERING, RUNNING, DEGRADED, FAILED)
-5. Provides heartbeat retry in FAILED state
+5. Provides heartbeat retry in FAILED state (including startup failures)
 
 Event Flow
 ----------
 ::
 
-    ConnectionLostEvent / CircuitBreakerTrippedEvent
+    ConnectionLostEvent / CircuitBreakerTrippedEvent / CentralStateChangedEvent(FAILED)
         │
         ▼
     ConnectionRecoveryCoordinator
@@ -35,6 +35,9 @@ Event Flow
         ├─► RecoveryAttemptedEvent (per attempt)
         │
         └─► RecoveryCompletedEvent / RecoveryFailedEvent
+
+    Startup Failure Flow:
+    CentralState: INITIALIZING → FAILED (no clients) → Heartbeat Timer → Recovery
 
 Public API
 ----------
@@ -54,6 +57,7 @@ import time
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic.central.events import (
+    CentralStateChangedEvent,
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     ConnectionLostEvent,
@@ -451,6 +455,14 @@ class ConnectionRecoveryCoordinator:
 
         timeout_config = self._config_provider.config.timeout_config
 
+        # Check if client exists - different recovery paths for startup vs runtime failures
+        client_exists = False
+        try:
+            self._client_provider.get_client(interface_id=interface_id)
+            client_exists = True
+        except Exception:
+            client_exists = False
+
         try:
             # Stage: DETECTING → COOLDOWN
             await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.COOLDOWN)
@@ -461,21 +473,32 @@ class ConnectionRecoveryCoordinator:
             if not await self._stage_tcp_check(interface_id=interface_id):
                 return False
 
-            # Stage: TCP_CHECKING → RPC_CHECKING
-            await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.RPC_CHECKING)
-            if not await self._stage_rpc_check(interface_id=interface_id):
-                return False
+            if client_exists:
+                # Runtime failure - client exists but lost connection
+                # Do full RPC validation before reconnecting
 
-            # Stage: RPC_CHECKING → WARMING_UP
-            await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.WARMING_UP)
-            await asyncio.sleep(timeout_config.reconnect_warmup_delay)
+                # Stage: TCP_CHECKING → RPC_CHECKING
+                await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.RPC_CHECKING)
+                if not await self._stage_rpc_check(interface_id=interface_id):
+                    return False
 
-            # Stage: WARMING_UP → STABILITY_CHECK
-            await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.STABILITY_CHECK)
-            if not await self._stage_stability_check(interface_id=interface_id):
-                return False
+                # Stage: RPC_CHECKING → WARMING_UP
+                await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.WARMING_UP)
+                await asyncio.sleep(timeout_config.reconnect_warmup_delay)
 
-            # Stage: STABILITY_CHECK → RECONNECTING
+                # Stage: WARMING_UP → STABILITY_CHECK
+                await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.STABILITY_CHECK)
+                if not await self._stage_stability_check(interface_id=interface_id):
+                    return False
+            else:
+                # Startup failure - client never created
+                # Skip RPC/Warmup/Stability checks - client doesn't exist yet
+                _LOGGER.info(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: Startup failure for %s - skipping RPC checks, proceeding to client creation",
+                    interface_id,
+                )
+
+            # Stage: (STABILITY_CHECK or TCP_CHECKING) → RECONNECTING
             await self._transition_stage(interface_id=interface_id, new_stage=RecoveryStage.RECONNECTING)
             if not await self._stage_reconnect(interface_id=interface_id):
                 return False
@@ -544,23 +567,73 @@ class ConnectionRecoveryCoordinator:
             if not self._in_failed_state or self._shutdown:
                 return  # type: ignore[unreachable]
 
-            # Get failed interfaces
-            failed_interfaces = tuple(iid for iid, state in self._recovery_states.items() if not state.can_retry)
+            # Get all interfaces that need recovery:
+            # - Interfaces with exhausted retry attempts (not can_retry)
+            # - Interfaces without active clients (startup failures or disconnected)
+            failed_interfaces: list[str] = []
+            for iid, state in self._recovery_states.items():
+                # Include if max retries reached
+                if not state.can_retry:
+                    failed_interfaces.append(iid)
+                    continue
+
+                # Check if client exists and is unavailable
+                try:
+                    client = self._client_provider.get_client(interface_id=iid)
+                    if not client or not client.available:
+                        # Client doesn't exist (startup failure) or not available
+                        failed_interfaces.append(iid)
+                except Exception:
+                    # Client lookup failed - assume needs recovery
+                    failed_interfaces.append(iid)
 
             if failed_interfaces:
                 # Reset attempt counts to allow retry
                 for iid in failed_interfaces:
-                    if (state := self._recovery_states.get(iid)) is not None:
-                        state.attempt_count = MAX_RECOVERY_ATTEMPTS - 1
+                    if (recovery_state := self._recovery_states.get(iid)) is not None:
+                        recovery_state.attempt_count = MAX_RECOVERY_ATTEMPTS - 1
 
                 # Emit heartbeat event
                 await self._event_bus.publish(
                     event=HeartbeatTimerFiredEvent(
                         timestamp=datetime.now(),
                         central_name=self._central_info.name,
-                        interface_ids=failed_interfaces,
+                        interface_ids=tuple(failed_interfaces),
                     )
                 )
+
+    def _on_central_state_changed(self, *, event: CentralStateChangedEvent) -> None:
+        """
+        Handle central state changed event.
+
+        Starts recovery when central transitions to FAILED state due to
+        startup failures (no clients connected). This ensures automatic
+        reconnection even when the backend wasn't available at startup.
+        """
+        if self._shutdown:
+            return
+
+        # Only act when transitioning TO failed state
+        if event.new_state != CentralState.FAILED:
+            return
+
+        # Check if this is a startup failure (no clients connected)
+        # vs a runtime failure (clients existed but lost connection)
+        if event.old_state == CentralState.INITIALIZING and event.trigger == "no clients connected":
+            _LOGGER.info(  # i18n-log: ignore
+                "CONNECTION_RECOVERY: Central FAILED during startup (reason: %s), "
+                "starting heartbeat retry for automatic reconnection",
+                event.trigger,
+            )
+
+            # Enter failed state and start heartbeat timer
+            self._in_failed_state = True
+            self._start_heartbeat_timer()
+
+            # Get all configured interfaces to initialize recovery state
+            for interface_config in self._config_provider.config.enabled_interface_configs:
+                if (interface_id := interface_config.interface_id) not in self._recovery_states:
+                    self._recovery_states[interface_id] = InterfaceRecoveryState(interface_id=interface_id)
 
     def _on_circuit_breaker_state_changed(self, *, event: CircuitBreakerStateChangedEvent) -> None:
         """Handle circuit breaker state change event."""
@@ -827,29 +900,67 @@ class ConnectionRecoveryCoordinator:
         return True
 
     async def _stage_reconnect(self, *, interface_id: str) -> bool:
-        """Stage: Perform full client reconnection."""
+        """Stage: Perform full client reconnection or creation."""
+        # Try to get existing client
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
-            await client.reconnect()
         except Exception:
-            _LOGGER.exception(  # i18n-log: ignore
-                "CONNECTION_RECOVERY: Reconnect exception for %s",
+            # Client doesn't exist (startup failure) - try to create it
+            _LOGGER.info(  # i18n-log: ignore
+                "CONNECTION_RECOVERY: Client %s doesn't exist, attempting to create",
+                interface_id,
+            )
+            try:
+                # Call _create_clients() on the client coordinator to create all clients
+                # This will re-attempt to create clients for all configured interfaces
+                # pylint: disable=protected-access
+                if await self._coordinator_provider.client_coordinator._create_clients():
+                    # Verify the client was created
+                    try:
+                        if (
+                            client := self._client_provider.get_client(interface_id=interface_id)
+                        ) is not None and client.available:
+                            _LOGGER.info(  # i18n-log: ignore
+                                "CONNECTION_RECOVERY: Client %s created and available",
+                                interface_id,
+                            )
+                            return True
+                    except Exception:
+                        pass
+
+                _LOGGER.warning(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: Failed to create client for %s",
+                    interface_id,
+                )
+            except Exception:
+                _LOGGER.exception(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: Exception creating client for %s",
+                    interface_id,
+                )
+            return False
+        else:
+            # Client exists - perform reconnect
+            try:
+                await client.reconnect()
+            except Exception:
+                _LOGGER.exception(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: Reconnect exception for %s",
+                    interface_id,
+                )
+                return False
+
+            if client.available:
+                _LOGGER.info(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: Reconnect succeeded for %s",
+                    interface_id,
+                )
+                return True
+
+            _LOGGER.warning(  # i18n-log: ignore
+                "CONNECTION_RECOVERY: Reconnect failed for %s - client not available",
                 interface_id,
             )
             return False
-
-        if client.available:
-            _LOGGER.info(  # i18n-log: ignore
-                "CONNECTION_RECOVERY: Reconnect succeeded for %s",
-                interface_id,
-            )
-            return True
-
-        _LOGGER.warning(  # i18n-log: ignore
-            "CONNECTION_RECOVERY: Reconnect failed for %s - client not available",
-            interface_id,
-        )
-        return False
 
     async def _stage_rpc_check(self, *, interface_id: str) -> bool:
         """Stage: Check RPC service availability."""
@@ -890,19 +1001,44 @@ class ConnectionRecoveryCoordinator:
         # Get the port to check
         port = self._get_client_port(interface_id=interface_id)
 
-        # For JSON-RPC-only interfaces (CUxD, CCU-Jack), use the JSON-RPC port instead
-        # These interfaces don't have their own XML-RPC port
+        # If port not found from client (e.g., startup failure - client doesn't exist),
+        # try to get it from the interface configuration or check if JSON-RPC interface
         if port is None or port == 0:
-            client = self._client_provider.get_client(interface_id=interface_id)
-            if client.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC:
-                port = get_json_rpc_default_port(tls=config.tls)
-                _LOGGER.debug(
-                    "CONNECTION_RECOVERY: Using JSON-RPC port %d for %s",
-                    port,
-                    interface_id,
-                )
-            else:
-                # Non-JSON-RPC interface without a port - can't check
+            # First try: get from interface configuration
+            for interface_config in config.enabled_interface_configs:
+                if interface_config.interface_id == interface_id:
+                    port = interface_config.port
+                    # For JSON-RPC-only interfaces, use JSON-RPC port
+                    if (
+                        interface_config.interface
+                        in INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC
+                    ):
+                        port = get_json_rpc_default_port(tls=config.tls)
+                        _LOGGER.debug(
+                            "CONNECTION_RECOVERY: Using JSON-RPC port %d for %s",
+                            port,
+                            interface_id,
+                        )
+                    break
+
+            # Second try: if port still not found, try getting client interface type
+            # This handles cases where client exists but port wasn't in config
+            if port is None or port == 0:
+                try:
+                    client = self._client_provider.get_client(interface_id=interface_id)
+                    if client.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC:
+                        port = get_json_rpc_default_port(tls=config.tls)
+                        _LOGGER.debug(
+                            "CONNECTION_RECOVERY: Using JSON-RPC port %d for %s",
+                            port,
+                            interface_id,
+                        )
+                except Exception:
+                    # Client doesn't exist and no config - can't determine port
+                    pass
+
+            # Still no port found?
+            if port is None or port == 0:
                 _LOGGER.warning(  # i18n-log: ignore
                     "CONNECTION_RECOVERY: No port configured for %s, skipping TCP check",
                     interface_id,
@@ -932,7 +1068,7 @@ class ConnectionRecoveryCoordinator:
         if self._heartbeat_task and not self._heartbeat_task.done():
             return  # Already running
 
-        self._task_scheduler.create_task(
+        self._heartbeat_task = self._task_scheduler.create_task(
             target=self._heartbeat_loop,
             name="heartbeat_timer",
         )
@@ -1033,6 +1169,13 @@ class ConnectionRecoveryCoordinator:
 
     def _subscribe_to_events(self) -> None:
         """Subscribe to connection-related events."""
+        self._unsubscribers.append(
+            self._event_bus.subscribe(
+                event_type=CentralStateChangedEvent,
+                event_key=None,
+                handler=self._on_central_state_changed,
+            )
+        )
         self._unsubscribers.append(
             self._event_bus.subscribe(
                 event_type=ConnectionLostEvent,

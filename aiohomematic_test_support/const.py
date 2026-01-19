@@ -16,8 +16,32 @@ CENTRAL_NAME = "CentralTest"
 CCU_HOST = LOCAL_HOST
 CCU_USERNAME = "user"
 CCU_PASSWORD = "pass"
-CCU_PORT = 2002
-CCU_MINI_PORT = 2003
+
+# Base ports - actual ports are calculated per xdist worker to avoid conflicts
+_CCU_PORT_BASE = 2002
+_CCU_MINI_PORT_BASE = 2003
+
+
+def _get_xdist_worker_offset() -> int:
+    """Return port offset based on pytest-xdist worker ID."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER", "")
+    if worker_id.startswith("gw"):
+        # Extract worker number from "gw0", "gw1", etc.
+        # Multiply by 2 to leave room for both CCU_PORT and CCU_MINI_PORT
+        return int(worker_id[2:]) * 2
+    return 0
+
+
+def get_ccu_port() -> int:
+    """Return CCU port adjusted for xdist worker."""
+    return _CCU_PORT_BASE + _get_xdist_worker_offset()
+
+
+def get_ccu_mini_port() -> int:
+    """Return CCU mini port adjusted for xdist worker."""
+    return _CCU_MINI_PORT_BASE + _get_xdist_worker_offset()
+
+
 INTERFACE_ID = f"{CENTRAL_NAME}-{Interface.BIDCOS_RF}"
 
 # Backend info response for get_backend_info.fn script

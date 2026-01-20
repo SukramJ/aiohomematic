@@ -12,6 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Note: Python 3.14t (free-threaded) excluded until orjson supports it
+        # See: https://github.com/ijl/orjson/issues/595
         python-version: ["3.13", "3.14"]
         client-type: ["interface", "legacy"]
     name: Python ${{ matrix.python-version }} (${{ matrix.client-type }} client)

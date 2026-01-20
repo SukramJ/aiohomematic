@@ -14,7 +14,7 @@
 #       * aiohomematic_test_support-<version>-py3-none-any.whl
 #       * aiohomematic_test_support-<version>.tar.gz
 
-name: Upload Python Package + Support Release
+name: "Release: Publish to PyPI"
 
 on:
   release:
@@ -39,6 +39,7 @@ jobs:
   release-build:
     if: ${{ github.repository_owner == 'SukramJ' && ((github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-'))) }}
     runs-on: ubuntu-latest
+    name: Build Main Package (${{ github.event.release.tag_name || github.event.client_payload.tag }})
     env:
       TAG_NAME: ${{ github.event.release.tag_name || github.event.client_payload.tag }}
     steps:
@@ -49,6 +50,10 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements_test.txt
 
       - name: Build distributions (prod)
         run: |
@@ -72,6 +77,7 @@ jobs:
   pypi-publish:
     if: ${{ github.repository_owner == 'SukramJ' && ((github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-'))) }}
     runs-on: ubuntu-latest
+    name: Publish to PyPI (${{ github.event.release.tag_name || github.event.client_payload.tag }})
     needs: [release-build]
     permissions:
       id-token: write
@@ -99,6 +105,7 @@ jobs:
   support-release:
     if: ${{ github.repository_owner == 'SukramJ' && ((github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'support-')) || (github.event_name == 'repository_dispatch' && !startsWith(github.event.client_payload.tag, 'support-'))) }}
     runs-on: ubuntu-latest
+    name: Create Support Release (support-${{ github.event.release.tag_name || github.event.client_payload.tag }})
     needs: [release-build]
     permissions:
       contents: write
@@ -110,6 +117,12 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: 'pip'
 
       # Make a ZIP that contains a top-level 'aiohomematic_test_support/' folder WITHOUT touching your real package dir
       - name: Create support-only ZIP (stage into temp folder)

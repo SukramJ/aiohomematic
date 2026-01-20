@@ -12,31 +12,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Note: Python 3.14t (free-threaded) excluded until orjson supports it
+        # See: https://github.com/ijl/orjson/issues/595
         python-version: ["3.13", "3.14"]
-    name: Python ${{ matrix.python-version }}
+        client-type: ["interface", "legacy"]
+    name: Python ${{ matrix.python-version }} (${{ matrix.client-type }} client)
     steps:
-      - name: Set Timezone
-        uses: szenius/set-timezone@v2.0
-        with:
-          timezoneLinux: "Europe/Berlin"
-          timezoneMacos: "Europe/Berlin"
-          timezoneWindows: "Europe/Berlin"
       - uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements_test.txt
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_test.txt
-      - name: Run tests (InterfaceClient)
+      - name: Run tests with coverage
         env:
-          AIOHOMEMATIC_USE_INTERFACE_CLIENT: "1"
+          AIOHOMEMATIC_USE_INTERFACE_CLIENT: ${{ matrix.client-type == 'interface' && '1' || '0' }}
         run: |
-          echo "Testing with InterfaceClient enabled"
-          time pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy
-      - name: Run tests (legacy client)
-        env:
-          AIOHOMEMATIC_USE_INTERFACE_CLIENT: "0"
-        run: time pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy
+          echo "Testing with ${{ matrix.client-type }} client (AIOHOMEMATIC_USE_INTERFACE_CLIENT=$AIOHOMEMATIC_USE_INTERFACE_CLIENT)"
+          pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy --cov=aiohomematic --cov-report=xml --cov-report=term-missing
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.13' && matrix.client-type == 'interface'
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-${{ matrix.python-version }}-${{ matrix.client-type }}

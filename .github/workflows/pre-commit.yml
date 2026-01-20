@@ -3,8 +3,7 @@ name: Pre-commit checks
 # yamllint disable-line rule:truthy
 on:
   pull_request:
-    branches-ignore:
-      - master
+    branches:
       - devel
   push:
     branches-ignore:
@@ -29,6 +28,11 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements_test.txt
+            requirements_test_pre_commit.txt
 
       - name: Install dependencies for hooks
         run: |

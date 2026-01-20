@@ -1,4 +1,4 @@
-name: Release on tag
+name: "Release: Create from Tag"
 # yamllint disable-line rule:truthy
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 jobs:
   create_release:
     if: github.repository_owner == 'SukramJ'
-    name: Create GitHub Release from changelog
+    name: Create GitHub Release (${{ github.ref_name }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

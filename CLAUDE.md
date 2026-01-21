@@ -35,8 +35,8 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 ```python
 aiohttp>=3.12.0         # Async HTTP client
 orjson>=3.11.0          # Fast JSON serialization
+pydantic>=2.10.0        # Data validation using Python type hints
 python-slugify>=8.0.0   # URL-safe string conversion
-voluptuous>=0.15.0      # Configuration/schema validation
 ```
 
 ### Project Goals
@@ -1637,8 +1637,6 @@ This ensures consistency and accessibility for all contributors.
 The project defines standard import aliases (enforced by ruff):
 
 ```python
-import voluptuous as vol
-
 from aiohomematic import central as hmcu
 from aiohomematic.central import rpc_server as rpc
 from aiohomematic import client as hmcl
@@ -1830,7 +1828,7 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 | ------------------------- | -------------------------- | ---------------------------------- |
 | `pyproject.toml`          | Main project configuration | Build, dependencies, tool configs  |
 | `.pre-commit-config.yaml` | prek hooks configuration   | Linters, formatters, type checkers |
-| `requirements.txt`        | Runtime dependencies       | aiohttp, orjson, voluptuous        |
+| `requirements.txt`        | Runtime dependencies       | aiohttp, orjson, pydantic          |
 | `requirements_test.txt`   | Test dependencies          | pytest, mypy, pylint, ruff         |
 | `.yamllint`               | YAML linting rules         | YAML formatting standards          |
 | `codecov.yml`             | Coverage configuration     | Coverage thresholds                |

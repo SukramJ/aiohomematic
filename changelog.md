@@ -1,3 +1,24 @@
+# Version 2026.1.43 (2026-01-21)
+
+## What's Changed
+
+### Added
+
+- **Pydantic integration for RPC response validation**: Introduced `aiohomematic.schemas` package with Pydantic models for validating and normalizing data from Homematic backends:
+  - `DeviceDescriptionModel`: Validates device descriptions from `listDevices()`, `newDevices()` callbacks
+  - `ParameterDataModel`: Validates parameter metadata from `getParamsetDescription()`
+  - Normalization functions: `normalize_device_description()`, `normalize_parameter_data()`, `normalize_paramset_description()`
+  - Validation occurs at all data ingestion points (RPC responses, cache loading)
+
+### Changed
+
+- **Removed voluptuous dependency**: Replaced voluptuous with Pydantic for data validation. The `validator.py` module now uses `ValidationException` instead of `vol.Invalid`. External consumers (e.g., Home Assistant integration) that used voluptuous-based validators (`channel_no`, `wait_for`, `address`, `host`) must implement their own validators.
+
+### Breaking Changes
+
+- Removed from `aiohomematic.validator`: `channel_no`, `positive_int`, `wait_for`, `address`, `host` (voluptuous schemas)
+- Removed from `aiohomematic.validator`: `channel_address`, `device_address`, `hostname`, `ipv4_address`, `password`, `paramset_key` (validator functions)
+
 # Version 2026.1.42 (2026-01-19)
 
 ## What's Changed

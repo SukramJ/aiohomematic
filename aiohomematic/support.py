@@ -231,11 +231,6 @@ def get_channel_no(*, address: str) -> int | None:
     return get_split_channel_address(channel_address=address)[1]
 
 
-def is_address(*, address: str) -> bool:
-    """Check if it is a address."""
-    return is_device_address(address=address) or is_channel_address(address=address)
-
-
 def is_channel_address(*, address: str) -> bool:
     """Check if it is a channel address."""
     return CHANNEL_ADDRESS_PATTERN.match(address) is not None

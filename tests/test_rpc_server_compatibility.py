@@ -971,7 +971,7 @@ class TestDeviceDescriptionNormalization:
         """Verify empty CHILDREN list is unchanged."""
         from aiohomematic.schemas import normalize_device_description
 
-        desc = {"ADDRESS": "ABC:0", "CHILDREN": []}
+        desc = {"ADDRESS": "ABC:0", "TYPE": "HM-Test", "CHILDREN": []}
         result = normalize_device_description(device_description=desc)
         assert result["CHILDREN"] == []
 
@@ -979,28 +979,28 @@ class TestDeviceDescriptionNormalization:
         """Verify CHILDREN as list is unchanged."""
         from aiohomematic.schemas import normalize_device_description
 
-        desc = {"ADDRESS": "ABC:0", "CHILDREN": ["ABC:1", "ABC:2"]}
+        desc = {"ADDRESS": "ABC:0", "TYPE": "HM-Test", "CHILDREN": ["ABC:1", "ABC:2"]}
         result = normalize_device_description(device_description=desc)
         assert result["CHILDREN"] == ["ABC:1", "ABC:2"]
 
     def test_children_as_nonempty_string_converted_to_list(self) -> None:
-        """Verify non-empty string CHILDREN is also converted."""
+        """Verify non-empty string CHILDREN is converted to single-element list."""
         from aiohomematic.schemas import normalize_device_description
 
-        desc = {"ADDRESS": "ABC:0", "CHILDREN": "ABC:1"}
+        desc = {"ADDRESS": "ABC:0", "TYPE": "HM-Test", "CHILDREN": "ABC:1"}
         result = normalize_device_description(device_description=desc)
-        assert result["CHILDREN"] == []
+        assert result["CHILDREN"] == ["ABC:1"]
 
     def test_children_as_string_converted_to_list(self) -> None:
         """
-        Verify CHILDREN as string is converted to empty list.
+        Verify CHILDREN as empty string is converted to empty list.
 
         This is the core fix for issue #2731: VirtualDevices may send
         CHILDREN as empty string which causes CCU's Java parser to crash.
         """
         from aiohomematic.schemas import normalize_device_description
 
-        desc = {"ADDRESS": "ABC:0", "CHILDREN": ""}
+        desc = {"ADDRESS": "ABC:0", "TYPE": "HM-Test", "CHILDREN": ""}
         result = normalize_device_description(device_description=desc)
         assert result["CHILDREN"] == []
 
@@ -1008,7 +1008,7 @@ class TestDeviceDescriptionNormalization:
         """Verify CHILDREN=None is converted to empty list."""
         from aiohomematic.schemas import normalize_device_description
 
-        desc = {"ADDRESS": "ABC:0", "CHILDREN": None}
+        desc = {"ADDRESS": "ABC:0", "TYPE": "HM-Test", "CHILDREN": None}
         result = normalize_device_description(device_description=desc)
         assert result["CHILDREN"] == []
 

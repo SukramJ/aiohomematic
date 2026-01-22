@@ -14,6 +14,7 @@
 ### Removed
 
 - `OptionalSettings.ASYNC_RPC_SERVER` - async server is now the default
+- `OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY` - linked entity climate activity is now always enabled
 - Legacy thread-based XML-RPC server (replaced by aiohttp-based implementation)
 - `RpcServerTaskSchedulerProtocol` - only needed by removed sync server
 - `tests/test_rpc_server_compatibility.py` - compatibility tests no longer needed

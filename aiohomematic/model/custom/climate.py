@@ -25,7 +25,6 @@ from aiohomematic.const import (
     DeviceProfile,
     Field,
     InternalCustomID,
-    OptionalSettings,
     Parameter,
     ParamsetKey,
     ScheduleProfile,
@@ -519,12 +518,6 @@ class BaseCustomDpClimate(CustomDataPoint):
                 handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
             )
         )
-
-        if (
-            OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY
-            not in self._device.config_provider.config.optional_settings
-        ):
-            return
 
         for ch in self._device.channels.values():
             # subscribe to link-peer change events; store unsubscribe handle

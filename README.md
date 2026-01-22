@@ -213,7 +213,6 @@ from aiohomematic.exceptions import ClientException
 - [Changelog](changelog.md) - Release history and latest changes
 - [Calculated data points](docs/calculated_data_points.md) - Derived metrics
 - [Naming conventions](docs/naming.md) - How names are created
-- [Input select helper](docs/input_select_helper.md) - Using input select helpers
 - [Troubleshooting](docs/homeassistant_troubleshooting.md) - Common issues and debugging
 - [Unignore mechanism](docs/unignore.md) - Unignoring default-ignored devices
 

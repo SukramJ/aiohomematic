@@ -74,7 +74,7 @@ class Example:
             storage_directory="aiohomematic_storage",
             interface_configs=interface_configs,
             callback_port_xml_rpc=54323,
-            optional_settings=(const.OptionalSettings.ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY,),
+            optional_settings=(),
         ).create_central()
 
         # For testing we set a short INIT_TIMEOUT

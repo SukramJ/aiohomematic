@@ -1054,7 +1054,6 @@ class Operations(IntEnum):
 class OptionalSettings(StrEnum):
     """Enum with aiohomematic optional settings."""
 
-    ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY = "ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY"
     SR_DISABLE_RANDOMIZE_OUTPUT = "SR_DISABLE_RANDOMIZED_OUTPUT"
     SR_RECORD_SYSTEM_INIT = "SR_RECORD_SYSTEM_INIT"
 

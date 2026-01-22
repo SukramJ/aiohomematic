@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.43"
+VERSION: Final = "2026.1.44"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1053,9 +1053,6 @@ class Operations(IntEnum):
 
 class OptionalSettings(StrEnum):
     """Enum with aiohomematic optional settings."""
-
-    ASYNC_RPC_SERVER = "ASYNC_RPC_SERVER"
-    """Use async XML-RPC server instead of thread-based (opt-in)."""
 
     ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY = "ENABLE_LINKED_ENTITY_CLIMATE_ACTIVITY"
     SR_DISABLE_RANDOMIZE_OUTPUT = "SR_DISABLE_RANDOMIZED_OUTPUT"

@@ -595,7 +595,6 @@ source = ["aiohomematic",]
 omit = [
   "aiohomematic/validator.py",
   "aiohomematic/exceptions.py",
-  "aiohomematic/central/async_rpc_server.py",
   "aiohomematic/central/rpc_server.py",
   "aiohomematic/__main__.py",
   "aiohomematic/hmcli.py",

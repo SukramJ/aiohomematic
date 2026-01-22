@@ -12,7 +12,6 @@ import logging
 from typing import Any, Final, cast
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.central import rpc_server as rpc
 from aiohomematic.const import SystemEventType
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.support import extract_exc_args
@@ -53,11 +52,6 @@ def callback_backend_system(system_event: SystemEventType) -> Callable[[Callable
                 # Check for coordinator with _task_scheduler
                 elif hasattr(unit, "_task_scheduler"):
                     looper = unit._task_scheduler  # pylint: disable=protected-access
-                # Check for RPCFunctions
-                elif isinstance(unit, rpc.RPCFunctions) and (
-                    entry := unit.get_central_entry(interface_id=str(args[1]))
-                ):
-                    looper = entry.looper
                 if looper:
                     # Use partial to avoid lambda closure capturing args/kwargs
                     looper.create_task(

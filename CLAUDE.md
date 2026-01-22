@@ -66,7 +66,7 @@ python-slugify>=8.0.0   # URL-safe string conversion
 │   │   ├── scheduler.py            # BackgroundScheduler
 │   │   ├── state_machine.py        # CentralStateMachine
 │   │   ├── decorators.py           # RPC function decorators
-│   │   ├── rpc_server.py           # XML-RPC callback server
+│   │   ├── rpc_server.py           # XML-RPC callback server (aiohttp-based)
 │   │   ├── coordinators/           # Coordinator classes (7 files)
 │   │   │   ├── cache.py            # CacheCoordinator
 │   │   │   ├── client.py           # ClientCoordinator
@@ -724,7 +724,6 @@ def test_address_validation() -> None:
 - **Excluded Files**:
   - `aiohomematic/validator.py`
   - `aiohomematic/exceptions.py`
-  - `aiohomematic/central/rpc_server.py`
 
 ```bash
 # Generate coverage report

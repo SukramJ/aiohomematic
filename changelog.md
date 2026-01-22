@@ -1,3 +1,23 @@
+# Version 2026.1.44 (2026-01-22)
+
+## What's Changed
+
+### Changed
+
+- **Async RPC server is now the standard implementation**: The async XML-RPC server (using aiohttp) is now the only RPC server implementation. The legacy thread-based XML-RPC server has been removed.
+  - Removed `OptionalSettings.ASYNC_RPC_SERVER` feature flag (no longer needed)
+  - Removed legacy thread-based XML-RPC server implementation
+  - Removed `RpcServerTaskSchedulerProtocol` from `aiohomematic/interfaces/central.py`
+  - Renamed `async_rpc_server.py` to `rpc_server.py` (consistent naming, no `async_` prefix)
+  - Updated `CentralUnit` to use the aiohttp-based server directly
+
+### Removed
+
+- `OptionalSettings.ASYNC_RPC_SERVER` - async server is now the default
+- Legacy thread-based XML-RPC server (replaced by aiohttp-based implementation)
+- `RpcServerTaskSchedulerProtocol` - only needed by removed sync server
+- `tests/test_rpc_server_compatibility.py` - compatibility tests no longer needed
+
 # Version 2026.1.43 (2026-01-21)
 
 ## What's Changed

@@ -610,7 +610,7 @@ sort = "cover"
 precision = 2
 # Temporarily lowered from 85.0 to 80.0 due to InterfaceClient code not exercised
 # during legacy-only test runs. Restore to 85.0 after legacy client cleanup.
-fail_under = 80.0
+fail_under = 85.0
 
 # Exclude patterns for lines that shouldn't be counted
 exclude_lines = [

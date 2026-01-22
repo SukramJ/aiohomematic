@@ -9,21 +9,21 @@ consistent API used by the central module.
 
 Package structure
 -----------------
-- ccu.py: Client implementations (ClientCCU, ClientJsonCCU, ClientHomegear, ClientConfig)
+- interface_client.py: InterfaceClient - unified client for all backends
+- client_factory.py: ClientConfig for configuration and proxy creation
 - config.py: InterfaceConfig for per-interface connection settings
 - circuit_breaker.py: CircuitBreaker, CircuitBreakerConfig, CircuitState
 - state_machine.py: ClientStateMachine for connection state tracking
 - rpc_proxy.py: BaseRpcProxy, AioXmlRpcProxy for XML-RPC transport
 - json_rpc.py: AioJsonRpcAioHttpClient for JSON-RPC transport
 - request_coalescer.py: RequestCoalescer for deduplicating concurrent requests
-- handlers/: Protocol-specific operation handlers
 - backends/: Backend strategy implementations (CCU, CCU-Jack, Homegear)
-- interface_client.py: InterfaceClient using backend strategy pattern
+- state_change.py: State change tracking utilities
 
 Public API
 ----------
-- Clients: ClientCCU, ClientJsonCCU, ClientHomegear, ClientConfig, InterfaceClient
-- Configuration: InterfaceConfig
+- Clients: InterfaceClient
+- Configuration: ClientConfig, InterfaceConfig
 - Circuit breaker: CircuitBreaker, CircuitBreakerConfig, CircuitState
 - State machine: ClientStateMachine, InvalidStateTransitionError
 - Transport: BaseRpcProxy, AioJsonRpcAioHttpClient
@@ -33,31 +33,27 @@ Public API
 Notes
 -----
 - Most users interact with clients via CentralUnit; direct usage is for advanced scenarios
-- Clients are created via ClientConfig.create_client() or the create_client() function
+- Clients are created via the create_client() factory function
 - XML-RPC is used for device operations; JSON-RPC for metadata/programs/sysvars (CCU only)
-- InterfaceClient with backends can be enabled via:
-  - OptionalSettings.USE_INTERFACE_CLIENT in config, OR
-  - Environment variable AIOHOMEMATIC_USE_INTERFACE_CLIENT=1 (for CI testing)
 
 """
 
 from __future__ import annotations
 
 import logging
-import os
 from typing import Final
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.client.backends import create_backend
-from aiohomematic.client.ccu import ClientCCU, ClientConfig, ClientHomegear, ClientJsonCCU
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+from aiohomematic.client.client_factory import ClientConfig
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.interface_client import InterfaceClient
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.rpc_proxy import BaseRpcProxy
 from aiohomematic.client.state_machine import ClientStateMachine, InvalidStateTransitionError
-from aiohomematic.const import CircuitState, OptionalSettings
+from aiohomematic.const import CircuitState
 from aiohomematic.exceptions import NoConnectionException
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 
@@ -69,12 +65,9 @@ __all__ = [
     "CircuitBreakerConfig",
     "CircuitState",
     # Clients
-    "ClientCCU",
-    "ClientConfig",
-    "ClientHomegear",
-    "ClientJsonCCU",
     "InterfaceClient",
     # Config
+    "ClientConfig",
     "InterfaceConfig",
     # Factory functions
     "create_client",
@@ -92,61 +85,23 @@ __all__ = [
 ]
 
 
-_ENV_USE_INTERFACE_CLIENT: Final = "AIOHOMEMATIC_USE_INTERFACE_CLIENT"
-
-
-def _should_use_interface_client(*, client_deps: ClientDependenciesProtocol) -> bool:
-    """
-    Determine if InterfaceClient should be used.
-
-    Checks in order:
-    1. Environment variable AIOHOMEMATIC_USE_INTERFACE_CLIENT (for CI testing)
-    2. OptionalSettings.USE_INTERFACE_CLIENT in config
-    """
-    # Environment variable takes precedence (for CI testing)
-    if (env_value := os.environ.get(_ENV_USE_INTERFACE_CLIENT)) is not None:
-        return env_value.lower() in ("1", "true", "yes")
-
-    # Check config setting
-    return OptionalSettings.USE_INTERFACE_CLIENT in client_deps.config.optional_settings
-
-
 async def create_client(
     *,
     client_deps: ClientDependenciesProtocol,
     interface_config: InterfaceConfig,
 ) -> ClientProtocol:
     """
-    Return a new client for with a given interface_config.
+    Create and return a new client for the given interface configuration.
 
-    Uses InterfaceClient with backend strategy pattern if:
-    - Environment variable AIOHOMEMATIC_USE_INTERFACE_CLIENT=1 is set, OR
-    - USE_INTERFACE_CLIENT is enabled in optional_settings
-
-    Otherwise uses legacy ClientCCU family.
+    Uses InterfaceClient with backend strategy pattern to support all
+    Homematic backends (CCU, CCU-Jack, Homegear).
     """
-    if _should_use_interface_client(client_deps=client_deps):
-        return await _create_interface_client(client_deps=client_deps, interface_config=interface_config)
-
-    # Legacy path - unchanged
-    return await ClientConfig(
-        client_deps=client_deps,
-        interface_config=interface_config,
-    ).create_client()
-
-
-async def _create_interface_client(
-    *,
-    client_deps: ClientDependenciesProtocol,
-    interface_config: InterfaceConfig,
-) -> ClientProtocol:
-    """Create InterfaceClient using backend strategy pattern."""
-    # Get version first (needed for backend selection)
+    # Get configuration and version
     client_config = ClientConfig(
         client_deps=client_deps,
         interface_config=interface_config,
     )
-    version = await client_config._get_version()  # pylint: disable=protected-access
+    version = await client_config.get_version()
 
     # Create appropriate backend
     backend = await create_backend(
@@ -173,7 +128,7 @@ async def _create_interface_client(
     )
 
     _LOGGER.debug(
-        "CREATE_INTERFACE_CLIENT: Created %s backend for %s",
+        "CREATE_CLIENT: Created %s backend for %s",
         backend.model,
         interface_config.interface_id,
     )

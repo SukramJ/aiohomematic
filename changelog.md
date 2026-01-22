@@ -10,6 +10,14 @@
   - Removed `RpcServerTaskSchedulerProtocol` from `aiohomematic/interfaces/central.py`
   - Renamed `async_rpc_server.py` to `rpc_server.py` (consistent naming, no `async_` prefix)
   - Updated `CentralUnit` to use the aiohttp-based server directly
+- **InterfaceClient is now the only client implementation**: The legacy client implementations (ClientCCU, ClientJsonCCU, ClientHomegear) and handler classes have been removed. InterfaceClient with the Backend Strategy Pattern is now the standard implementation.
+  - Removed `OptionalSettings.USE_INTERFACE_CLIENT` feature flag (no longer needed)
+  - Removed legacy client classes: `ClientCCU`, `ClientJsonCCU`, `ClientHomegear`
+  - Removed handler classes: `DeviceHandler`, `LinkHandler`, `FirmwareHandler`, `SystemVariableHandler`, `ProgramHandler`, `BackupHandler`, `MetadataHandler`, `BaseHandler`
+  - Removed `aiohomematic/client/ccu.py` and `aiohomematic/client/handlers/` directory
+  - Added `aiohomematic/client/state_change.py` for state change tracking utilities
+  - Added `aiohomematic/client/client_factory.py` for `ClientConfig` class
+  - `ClientConfig` is now imported from `aiohomematic.client.client_factory` instead of `aiohomematic.client.ccu`
 
 ### Removed
 
@@ -18,6 +26,10 @@
 - Legacy thread-based XML-RPC server (replaced by aiohttp-based implementation)
 - `RpcServerTaskSchedulerProtocol` - only needed by removed sync server
 - `tests/test_rpc_server_compatibility.py` - compatibility tests no longer needed
+- `OptionalSettings.USE_INTERFACE_CLIENT` - InterfaceClient is now the default
+- Legacy client classes: `ClientCCU`, `ClientJsonCCU`, `ClientHomegear`
+- Handler classes in `aiohomematic/client/handlers/`
+- `aiohomematic/client/ccu.py`
 
 # Version 2026.1.43 (2026-01-21)
 

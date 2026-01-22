@@ -60,35 +60,6 @@ This approach allows us to thoroughly test new architectures in real-world envir
 
 ---
 
-### Linked Entity Climate Activity
-
-📢 **Feedback Discussion**: [#2729](https://github.com/SukramJ/aiohomematic/discussions/2729)
-
-**What it does**: Enables activity state detection for thermostats by checking linked switch actuators.
-
-**Why it exists**: Some Homematic IP thermostats (like HmIP-STHD) don't report their heating activity directly. Instead, they control linked floor heating actuators (like HmIP-FAL230-C10) that do have activity state information. Without this feature, the "Current action" (hvac_action) in Home Assistant shows as unavailable for these thermostats.
-
-When enabled, the integration looks at devices linked to your thermostat and uses their activity state to determine whether the thermostat is actively heating or idle.
-
-**Who needs this**:
-
-- Users with HmIP-STHD wall thermostats controlling floor heating actuators
-- Users who see "Unknown" or missing activity state on their climate entities
-- Anyone with thermostats that control heating through linked actuators rather than built-in valves
-
-**What to expect**:
-
-- Climate entities show correct "Heating" or "Idle" status
-- Activity state updates when linked actuators change state
-- No changes for thermostats that already report activity directly
-
-**Potential issues**:
-
-- Slightly increased processing when link peers change
-- If activity state appears incorrect, verify your device links in the CCU
-
----
-
 ### Developer/Debugging Settings
 
 The following settings are **not intended for regular users**. They exist solely for debugging purposes and should only be enabled when specifically requested by a developer to help diagnose an issue.
@@ -122,7 +93,6 @@ If you test an experimental feature, your feedback is invaluable. Here's what he
 ### What Worked
 
 - "Interface Client working fine with OpenCCU 3.x"
-- "Linked Entity Climate Activity shows correct heating status"
 
 ### What Didn't Work
 
@@ -186,11 +156,10 @@ The beauty of feature flags is that reverting is always just a toggle away.
 
 ## Roadmap
 
-| Setting                        | Current Status  | Future                                       |
-| ------------------------------ | --------------- | -------------------------------------------- |
-| Interface Client               | Testing         | Will become default if testing is successful |
-| Linked Entity Climate Activity | Testing         | Will become default if testing is successful |
-| Debugging settings (SR\_\*)    | Developer tools | Will remain opt-in permanently               |
+| Setting                     | Current Status  | Future                                       |
+| --------------------------- | --------------- | -------------------------------------------- |
+| Interface Client            | Testing         | Will become default if testing is successful |
+| Debugging settings (SR\_\*) | Developer tools | Will remain opt-in permanently               |
 
 Once an experimental feature has been thoroughly tested across different backend types and receives positive feedback, it will be promoted to the default implementation. At that point, the old implementation will be deprecated and eventually removed.
 

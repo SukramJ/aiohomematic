@@ -179,7 +179,7 @@ class TestCentralConnectionState:
 
     @pytest.mark.asyncio
     async def test_central_connection_state_issue_tracking_and_logging(self, caplog: pytest.LogCaptureFixture) -> None:
-        """Cover add/remove/has_issue and handle_exception_log with multiple_logs toggled."""
+        """Cover add/remove/is_issue and handle_exception_log with multiple_logs toggled."""
         caplog.set_level(logging.DEBUG)
         ccs = CentralConnectionState()
 
@@ -188,10 +188,10 @@ class TestCentralConnectionState:
 
         # Adding an issue should log a debug and return True the first time.
         assert ccs.add_issue(issuer=json_issuer, iid="J1") is True
-        assert ccs.has_issue(issuer=json_issuer, iid="J1") is True
+        assert ccs.is_issue(issuer=json_issuer, iid="J1") is True
 
         assert ccs.add_issue(issuer=rpc_issuer, iid="if-main") is True
-        assert ccs.has_issue(issuer=rpc_issuer, iid="if-main") is True
+        assert ccs.is_issue(issuer=rpc_issuer, iid="if-main") is True
 
         # Adding the same again should return False (already present).
         assert ccs.add_issue(issuer=json_issuer, iid="J1") is False
@@ -235,8 +235,8 @@ class TestCentralConnectionState:
         assert ccs.remove_issue(issuer=json_issuer, iid="J1") is False
         assert ccs.remove_issue(issuer=rpc_issuer, iid="if-main") is False
         # There should be no issues left
-        assert ccs.has_issue(issuer=json_issuer, iid="J1") is False
-        assert ccs.has_issue(issuer=rpc_issuer, iid="if-main") is False
+        assert ccs.is_issue(issuer=json_issuer, iid="J1") is False
+        assert ccs.is_issue(issuer=rpc_issuer, iid="if-main") is False
 
 
 class TestCentralUnitStr:

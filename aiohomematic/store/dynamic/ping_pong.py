@@ -85,7 +85,7 @@ class PingPongTracker:
         """Return True if there is a known connection issue for this interface."""
         if self._connection_state is None:
             return False
-        return self._connection_state.has_rpc_proxy_issue(interface_id=self._interface_id)
+        return self._connection_state.is_rpc_proxy_issue(interface_id=self._interface_id)
 
     @property
     def journal(self) -> PingPongJournal:

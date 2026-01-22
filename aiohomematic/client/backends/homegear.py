@@ -190,28 +190,28 @@ class HomegearBackend(BaseBackend):
             await self._proxy_read.getMetadata(address, data_id),
         )
 
-    async def get_paramset(self, *, address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+    async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
         """Return a paramset."""
         return cast(
             dict[str, Any],
-            await self._proxy_read.getParamset(address, paramset_key),
+            await self._proxy_read.getParamset(channel_address, paramset_key),
         )
 
     async def get_paramset_description(
-        self, *, address: str, paramset_key: ParamsetKey
+        self, *, channel_address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Return paramset description."""
         try:
             return cast(
                 dict[str, ParameterData],
-                await self._proxy_read.getParamsetDescription(address, paramset_key),
+                await self._proxy_read.getParamsetDescription(channel_address, paramset_key),
             )
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "GET_PARAMSET_DESCRIPTION failed: %s [%s] for %s/%s",
                 bhexc.name,
                 extract_exc_args(exc=bhexc),
-                address,
+                channel_address,
                 paramset_key,
             )
             return None
@@ -220,9 +220,9 @@ class HomegearBackend(BaseBackend):
         """Return system variable via Homegear's getSystemVariable."""
         return await self._proxy.getSystemVariable(name)
 
-    async def get_value(self, *, address: str, parameter: str) -> Any:
+    async def get_value(self, *, channel_address: str, parameter: str) -> Any:
         """Return a parameter value."""
-        return await self._proxy_read.getValue(address, parameter)
+        return await self._proxy_read.getValue(channel_address, parameter)
 
     async def init_proxy(self, *, init_url: str, interface_id: str) -> None:
         """Initialize the proxy."""
@@ -251,16 +251,16 @@ class HomegearBackend(BaseBackend):
     async def put_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
     ) -> None:
         """Set paramset values."""
         if rx_mode:
-            await self._proxy.putParamset(address, paramset_key, values, rx_mode)
+            await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
         else:
-            await self._proxy.putParamset(address, paramset_key, values)
+            await self._proxy.putParamset(channel_address, paramset_key, values)
 
     def reset_circuit_breakers(self) -> None:
         """Reset all circuit breakers to closed state."""
@@ -277,16 +277,16 @@ class HomegearBackend(BaseBackend):
     async def set_value(
         self,
         *,
-        address: str,
+        channel_address: str,
         parameter: str,
         value: Any,
         rx_mode: CommandRxMode | None = None,
     ) -> None:
         """Set a parameter value."""
         if rx_mode:
-            await self._proxy.setValue(address, parameter, value, rx_mode)
+            await self._proxy.setValue(channel_address, parameter, value, rx_mode)
         else:
-            await self._proxy.setValue(address, parameter, value)
+            await self._proxy.setValue(channel_address, parameter, value)
 
     async def stop(self) -> None:
         """Stop the backend."""

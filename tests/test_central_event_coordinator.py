@@ -364,6 +364,32 @@ class TestEventCoordinatorLastEventSeen:
         last_event = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
         assert last_event is None
 
+    def test_multiple_interfaces_tracked_independently(self) -> None:
+        """Different interfaces should have independent last_event tracking."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        # Set for first interface
+        coordinator.set_last_event_seen_for_interface(interface_id="BidCos-RF")
+        first_event = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
+
+        # Second interface should still be None
+        second_event = coordinator.get_last_event_seen_for_interface(interface_id="HmIP-RF")
+        assert second_event is None
+
+        # Set for second interface
+        coordinator.set_last_event_seen_for_interface(interface_id="HmIP-RF")
+        second_event = coordinator.get_last_event_seen_for_interface(interface_id="HmIP-RF")
+        assert second_event is not None
+
+        # First interface should be unchanged
+        assert coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF") == first_event
+
     def test_set_last_event_seen_for_interface(self) -> None:
         """Set last event seen should update the timestamp."""
         central = _FakeCentral()
@@ -379,3 +405,268 @@ class TestEventCoordinatorLastEventSeen:
         last_event = coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF")
         assert last_event is not None
         assert isinstance(last_event, datetime)
+
+
+class TestEventCoordinatorClear:
+    """Test clear method."""
+
+    def test_clear_unsubscribes_event_handlers(self) -> None:
+        """Clear should unsubscribe all event handlers."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        # Add some mock subscriptions
+        unsubscribe_called = {"dp": False, "status": False}
+
+        def make_unsubscribe(key: str) -> Any:
+            def unsub() -> None:
+                unsubscribe_called[key] = True
+
+            return unsub
+
+        coordinator._data_point_unsubscribes.append(make_unsubscribe("dp"))
+        coordinator._status_unsubscribes.append(make_unsubscribe("status"))
+
+        # Clear
+        coordinator.clear()
+
+        # Unsubscribe callbacks should have been called
+        assert unsubscribe_called["dp"] is True
+        assert unsubscribe_called["status"] is True
+
+        # Lists should be cleared
+        assert len(coordinator._data_point_unsubscribes) == 0
+        assert len(coordinator._status_unsubscribes) == 0
+
+
+class TestEventCoordinatorEventRouting:
+    """Test event routing to appropriate handlers."""
+
+    @pytest.mark.asyncio
+    async def test_data_point_event_pong_no_ping_pong_support(self) -> None:
+        """PONG event should be ignored when client has no ping_pong support."""
+        central = _FakeCentral()
+        client = _FakeClient(has_ping_pong=False)
+        central._clients["BidCos-RF"] = client
+
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        await coordinator.data_point_event(
+            interface_id="BidCos-RF",
+            channel_address="BidCos-RF:0",
+            parameter=Parameter.PONG,
+            value="BidCos-RF#test_token",
+        )
+
+        # Should NOT have handled pong
+        client.ping_pong_tracker.handle_received_pong.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_data_point_event_updates_last_seen(self) -> None:
+        """Data point event should update last event seen timestamp."""
+        central = _FakeCentral()
+        central._clients["BidCos-RF"] = _FakeClient()
+
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        # Initially no events
+        assert coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF") is None
+
+        await coordinator.data_point_event(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            parameter="STATE",
+            value=True,
+        )
+
+        # Should have updated last seen
+        assert coordinator.get_last_event_seen_for_interface(interface_id="BidCos-RF") is not None
+
+    @pytest.mark.asyncio
+    async def test_data_point_event_with_various_value_types(self) -> None:
+        """Data point events should handle various value types."""
+        central = _FakeCentral()
+        central._clients["BidCos-RF"] = _FakeClient()
+
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+        coordinator.event_bus.publish = AsyncMock()
+
+        test_values = [
+            True,  # bool
+            False,
+            42,  # int
+            3.14,  # float
+            "hello",  # string
+            0,
+            1.0,
+        ]
+
+        for value in test_values:
+            await coordinator.data_point_event(
+                interface_id="BidCos-RF",
+                channel_address="VCU0000001:1",
+                parameter="VALUE",
+                value=value,
+            )
+
+        # All events should have been published
+        assert coordinator.event_bus.publish.call_count == len(test_values)
+
+
+class TestEventCoordinatorSystemEvents:
+    """Test system event publishing."""
+
+    def test_publish_system_event_delete_devices(self) -> None:
+        """Publish system event for DELETE_DEVICES."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        coordinator.publish_system_event(
+            system_event=SystemEventType.DELETE_DEVICES,
+            interface_id="BidCos-RF",
+            addresses=("VCU0000001", "VCU0000002"),
+        )
+
+        assert len(central.looper.tasks) == 1
+        # Task name includes "devices-removed" or similar
+        assert "devices" in central.looper.tasks[0]["name"].lower()
+
+    def test_publish_system_event_devices_created(self) -> None:
+        """Publish system event for DEVICES_CREATED."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        coordinator.publish_system_event(
+            system_event=SystemEventType.DEVICES_CREATED,
+            interface_id="BidCos-RF",
+            device_descriptions=(),
+        )
+
+        assert len(central.looper.tasks) == 1
+        assert "devices-created" in central.looper.tasks[0]["name"]
+
+    def test_publish_system_event_hub_refreshed(self) -> None:
+        """Publish system event for HUB_REFRESHED."""
+        from aiohomematic.const import DataPointCategory
+
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        # Provide new_data_points to trigger the event emission
+        coordinator.publish_system_event(
+            system_event=SystemEventType.HUB_REFRESHED,
+            new_data_points={DataPointCategory.SENSOR: ["sensor1"]},
+        )
+
+        assert len(central.looper.tasks) == 1
+        assert "hub" in central.looper.tasks[0]["name"].lower() or "data" in central.looper.tasks[0]["name"].lower()
+
+
+class TestEventCoordinatorDeviceTriggerEvents:
+    """Test device trigger event publishing."""
+
+    def test_publish_device_trigger_device_error(self) -> None:
+        """Publish device trigger event for device error."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        coordinator.publish_device_trigger_event(
+            trigger_type=DeviceTriggerEventType.DEVICE_ERROR,
+            event_data=EventData(
+                interface_id="HmIP-RF",
+                model="HmIP-SMI",
+                device_address="0001234567890ABC",
+                channel_no=1,
+                parameter="ERROR",
+            ),
+        )
+
+        assert len(central.looper.tasks) == 1
+
+    def test_publish_device_trigger_impulse(self) -> None:
+        """Publish device trigger event for impulse."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        coordinator.publish_device_trigger_event(
+            trigger_type=DeviceTriggerEventType.IMPULSE,
+            event_data=EventData(
+                interface_id="BidCos-RF",
+                model="HM-PBI-4-FM",
+                device_address="VCU0000001",
+                channel_no=2,
+                parameter="PRESS_LONG",
+            ),
+        )
+
+        assert len(central.looper.tasks) == 1
+        assert "device-trigger" in central.looper.tasks[0]["name"]
+
+    def test_publish_device_trigger_with_channel(self) -> None:
+        """Publish device trigger event with channel number."""
+        central = _FakeCentral()
+        coordinator = EventCoordinator(
+            client_provider=central,
+            event_bus=central.event_bus,
+            health_tracker=central.health_tracker,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]
+
+        coordinator.publish_device_trigger_event(
+            trigger_type=DeviceTriggerEventType.KEYPRESS,
+            event_data=EventData(
+                interface_id="BidCos-RF",
+                model="HM-PBI-4-FM",
+                device_address="VCU0000001",
+                channel_no=1,
+                parameter="PRESS_SHORT",
+            ),
+        )
+
+        assert len(central.looper.tasks) == 1
+        assert "VCU0000001-1-PRESS_SHORT" in central.looper.tasks[0]["name"]

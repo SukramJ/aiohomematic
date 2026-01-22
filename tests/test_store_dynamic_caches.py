@@ -354,7 +354,7 @@ class TestPingPongTracker:
             def __init__(self, *, has_issue: bool = False) -> None:
                 self._has_issue = has_issue
 
-            def has_rpc_proxy_issue(self, *, interface_id: str) -> bool:
+            def is_rpc_proxy_issue(self, *, interface_id: str) -> bool:
                 return self._has_issue
 
         central = CentralStub()
@@ -396,7 +396,7 @@ class TestPingPongTracker:
             def __init__(self, *, has_issue: bool = False) -> None:
                 self._has_issue = has_issue
 
-            def has_rpc_proxy_issue(self, *, interface_id: str) -> bool:
+            def is_rpc_proxy_issue(self, *, interface_id: str) -> bool:
                 return self._has_issue
 
         central = CentralStub()

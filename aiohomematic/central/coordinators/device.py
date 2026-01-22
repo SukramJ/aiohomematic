@@ -71,6 +71,7 @@ from aiohomematic.interfaces.client import DeviceDiscoveryAndMetadataProtocol, D
 from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
 from aiohomematic.model.device import Device
+from aiohomematic.model.device_context import DeviceContext
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
@@ -367,26 +368,27 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                     continue
                 device: DeviceProtocol | None = None
                 try:
-                    device = Device(
+                    context = DeviceContext(
                         interface_id=interface_id,
                         device_address=device_address,
                         central_info=self._central_info,
-                        channel_lookup=self,
-                        client_provider=self._client_provider,
                         config_provider=self._config_provider,
-                        data_cache_provider=self._data_cache_provider,
-                        data_point_provider=self._data_point_provider,
+                        file_operations=self._file_operations,
                         device_data_refresher=self,
                         device_description_provider=self._device_description_provider,
                         device_details_provider=self._device_details_provider,
+                        paramset_description_provider=self._paramset_description_provider,
+                        parameter_visibility_provider=self._parameter_visibility_provider,
                         event_bus_provider=self._event_bus_provider,
                         event_publisher=self._event_publisher,
                         event_subscription_manager=self._event_subscription_manager,
-                        file_operations=self._file_operations,
-                        parameter_visibility_provider=self._parameter_visibility_provider,
-                        paramset_description_provider=self._paramset_description_provider,
                         task_scheduler=self._task_scheduler,
+                        client_provider=self._client_provider,
+                        data_cache_provider=self._data_cache_provider,
+                        data_point_provider=self._data_point_provider,
+                        channel_lookup=self,
                     )
+                    device = Device(context=context)
                 except Exception as exc:
                     _LOGGER.error(  # i18n-log: ignore
                         "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",

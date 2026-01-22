@@ -40,7 +40,7 @@ class CentralConnectionState:
         self._event_bus_provider: Final = event_bus_provider
 
     @property
-    def has_any_issue(self) -> bool:
+    def is_any_issue(self) -> bool:
         """Return True if any connection issue exists."""
         return len(self._json_issues) > 0 or len(self._rpc_proxy_issues) > 0
 
@@ -103,7 +103,7 @@ class CentralConnectionState:
     ) -> None:
         """Handle Exception and derivates logging."""
         exception_name = exception.name if hasattr(exception, "name") else exception.__class__.__name__
-        if self.has_issue(issuer=issuer, iid=iid) and multiple_logs is False:
+        if self.is_issue(issuer=issuer, iid=iid) and multiple_logs is False:
             logger.debug(
                 "%s failed: %s [%s] %s",
                 iid,
@@ -122,14 +122,14 @@ class CentralConnectionState:
                 extra_msg,
             )
 
-    def has_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
+    def is_issue(self, *, issuer: ConnectionProblemIssuer, iid: str) -> bool:
         """Check if issue exists for the given issuer and interface id."""
         if isinstance(issuer, AioJsonRpcAioHttpClient):
             return iid in self._json_issues
         # issuer is BaseRpcProxy (exhaustive union coverage)
         return iid in self._rpc_proxy_issues
 
-    def has_rpc_proxy_issue(self, *, interface_id: str) -> bool:
+    def is_rpc_proxy_issue(self, *, interface_id: str) -> bool:
         """Return True if XML-RPC proxy has a known connection issue for interface_id."""
         return interface_id in self._rpc_proxy_issues
 

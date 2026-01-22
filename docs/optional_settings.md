@@ -39,27 +39,6 @@ This approach allows us to thoroughly test new architectures in real-world envir
 
 ## Available Settings
 
-### Interface Client
-
-📢 **Feedback Discussion**: [#2728](https://github.com/SukramJ/aiohomematic/discussions/2728)
-
-**What it does**: Uses a completely redesigned client architecture for communicating with your CCU.
-
-**Why it exists**: The original code has three separate client implementations (one for CCU, one for Homegear, one for JSON-based CCU). This led to code duplication and made maintenance difficult. The new "Interface Client" uses a single, unified client with interchangeable backends—cleaner code that's easier to test and extend.
-
-**What to expect**:
-
-- Identical functionality from a user perspective
-- Better error messages when things go wrong
-- Foundation for future improvements
-
-**Potential issues**:
-
-- Some edge cases in paramset operations might behave differently
-- If device configuration fails, disable this setting
-
----
-
 ### Developer/Debugging Settings
 
 The following settings are **not intended for regular users**. They exist solely for debugging purposes and should only be enabled when specifically requested by a developer to help diagnose an issue.

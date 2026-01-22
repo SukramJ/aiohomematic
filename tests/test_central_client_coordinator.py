@@ -798,3 +798,162 @@ class TestStartupResilience:
             )
 
         assert result is False
+
+
+class TestClientCoordinatorEdgeCases:
+    """Test edge cases in ClientCoordinator."""
+
+    @pytest.mark.asyncio
+    async def test_create_clients_no_interface_configs(self) -> None:
+        """_create_clients should return False when no interface configs."""
+        central = _FakeCentral()
+        central.config.enabled_interface_configs = []
+
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        result = await coordinator._create_clients()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_create_clients_when_already_exists(self) -> None:
+        """_create_clients should return False when clients already exist."""
+        central = _FakeCentral()
+        central.config.enabled_interface_configs = [
+            _FakeInterfaceConfig(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF),
+        ]
+
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        # Pre-populate with a client
+        client = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
+        coordinator._clients["BidCos-RF"] = client  # type: ignore[assignment]
+
+        result = await coordinator._create_clients()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_de_init_clients(self) -> None:
+        """_de_init_clients should deinitialize all clients."""
+        central = _FakeCentral()
+
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        # Add clients with mock deinitialize_proxy
+        client1 = MagicMock()
+        client1.deinitialize_proxy = AsyncMock(return_value=True)
+        client2 = MagicMock()
+        client2.deinitialize_proxy = AsyncMock(return_value=True)
+
+        coordinator._clients["BidCos-RF"] = client1
+        coordinator._clients["HmIP-RF"] = client2
+
+        await coordinator._de_init_clients()
+
+        client1.deinitialize_proxy.assert_called_once()
+        client2.deinitialize_proxy.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_init_clients_interface_not_available(self) -> None:
+        """_init_clients should skip interfaces not in available_interfaces."""
+        central = _FakeCentral()
+        # Only BidCos-RF is available, not CUXD
+        central.system_information.available_interfaces = frozenset([Interface.BIDCOS_RF])
+
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        # Add a client for an interface that's not available
+        client = _FakeClient(interface_id="test-CUXD", interface=Interface.CUXD)
+        coordinator._clients["test-CUXD"] = client  # type: ignore[assignment]
+
+        await coordinator._init_clients()
+
+        # Client should have been removed because interface not available
+        assert "test-CUXD" not in coordinator._clients
+
+    def test_on_health_record_event_failure(self) -> None:
+        """_on_health_record_event should record failed request."""
+        from datetime import datetime
+
+        from aiohomematic.central.events import HealthRecordedEvent
+
+        central = _FakeCentral()
+        central.health_tracker = MagicMock()
+
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        event = HealthRecordedEvent(
+            timestamp=datetime.now(),
+            interface_id="BidCos-RF",
+            success=False,
+        )
+
+        coordinator._on_health_record_event(event=event)
+        central.health_tracker.record_failed_request.assert_called_once_with(interface_id="BidCos-RF")
+
+    def test_on_health_record_event_success(self) -> None:
+        """_on_health_record_event should record successful request."""
+        from datetime import datetime
+
+        from aiohomematic.central.events import HealthRecordedEvent
+
+        central = _FakeCentral()
+        central.health_tracker = MagicMock()
+
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        event = HealthRecordedEvent(
+            timestamp=datetime.now(),
+            interface_id="BidCos-RF",
+            success=True,
+        )
+
+        coordinator._on_health_record_event(event=event)
+        central.health_tracker.record_successful_request.assert_called_once_with(interface_id="BidCos-RF")

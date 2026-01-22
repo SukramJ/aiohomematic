@@ -144,7 +144,7 @@ class TestBackgroundSchedulerBasics:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -156,7 +156,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Verify initialization using public API
@@ -174,7 +173,7 @@ class TestBackgroundSchedulerBasics:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -186,7 +185,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         # Before start: scheduler should not be active
         assert scheduler.is_active is False
@@ -210,7 +208,7 @@ class TestBackgroundSchedulerBasics:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -222,7 +220,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Start once
@@ -247,7 +244,7 @@ class TestBackgroundSchedulerBasics:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -259,7 +256,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Start the scheduler
@@ -285,7 +281,7 @@ class TestBackgroundSchedulerBasics:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -297,7 +293,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         assert scheduler.is_active is False
 
@@ -317,7 +312,7 @@ class TestBackgroundSchedulerBasics:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -329,7 +324,6 @@ class TestBackgroundSchedulerBasics:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Verify subscribe was called
@@ -354,7 +348,7 @@ class TestBackgroundSchedulerEventHandling:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -366,7 +360,6 @@ class TestBackgroundSchedulerEventHandling:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         assert scheduler.devices_created is False
 
@@ -395,7 +388,7 @@ class TestBackgroundSchedulerEventHandling:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -407,7 +400,6 @@ class TestBackgroundSchedulerEventHandling:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         assert scheduler.devices_created is False
 
@@ -441,7 +433,7 @@ class TestBackgroundSchedulerJobExecution:
         type(central).all_clients_active = PropertyMock(side_effect=RuntimeError("unexpected error"))
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -453,7 +445,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Should handle the exception gracefully
@@ -474,7 +465,7 @@ class TestBackgroundSchedulerJobExecution:
         central.all_clients_active = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -486,7 +477,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Mock the central method to raise NoConnectionException
@@ -509,7 +499,7 @@ class TestBackgroundSchedulerJobExecution:
         central.all_clients_active = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -521,7 +511,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Should complete without errors
@@ -540,7 +529,7 @@ class TestBackgroundSchedulerJobExecution:
         central.available = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -552,7 +541,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Mock the fetch method
@@ -576,7 +564,7 @@ class TestBackgroundSchedulerJobExecution:
         central.available = False
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -588,7 +576,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Mock the fetch method
@@ -622,7 +609,7 @@ class TestBackgroundSchedulerJobExecution:
         central.set_last_event_seen_for_interface = MagicMock()
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -634,7 +621,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         await scheduler._refresh_client_data()
@@ -660,7 +646,7 @@ class TestBackgroundSchedulerJobExecution:
         central.hub_coordinator.fetch_program_data = AsyncMock()
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -672,7 +658,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central.hub_coordinator,
             event_bus_provider=central,
-            state_provider=central,
         )
         scheduler._devices_created_event.set()
 
@@ -698,7 +683,7 @@ class TestBackgroundSchedulerJobExecution:
         central.hub_coordinator.fetch_sysvar_data = AsyncMock()
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -710,7 +695,6 @@ class TestBackgroundSchedulerJobExecution:
             event_coordinator=central,
             hub_data_fetcher=central.hub_coordinator,
             event_bus_provider=central,
-            state_provider=central,
         )
         scheduler._devices_created_event.set()
 
@@ -782,7 +766,7 @@ class TestSchedulerLoopExecution:
             executions.append("executed")
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -794,7 +778,6 @@ class TestSchedulerLoopExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Replace the connection checker with our test task
@@ -820,7 +803,7 @@ class TestSchedulerLoopExecution:
         central.config.enable_device_firmware_check = True
         central.state = CentralState.INITIALIZING
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         BackgroundScheduler(
             central_info=central,
@@ -832,7 +815,6 @@ class TestSchedulerLoopExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # The loop should return early if state is not RUNNING
@@ -852,7 +834,7 @@ class TestSchedulerLoopExecution:
         central.config.enable_device_firmware_check = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -864,7 +846,6 @@ class TestSchedulerLoopExecution:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         # Start the scheduler
@@ -897,7 +878,7 @@ class TestSchedulerJobFiltering:
         central.poll_clients = []
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -909,7 +890,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         central.load_and_refresh_data_point_data = AsyncMock()
 
@@ -932,7 +912,7 @@ class TestSchedulerJobFiltering:
         central.poll_clients = None
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -944,7 +924,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         central.load_and_refresh_data_point_data = AsyncMock()
 
@@ -966,7 +945,7 @@ class TestSchedulerJobFiltering:
         central.available = False
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -978,7 +957,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         central.load_and_refresh_data_point_data = AsyncMock()
 
@@ -1001,7 +979,7 @@ class TestSchedulerJobFiltering:
         central.available = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1013,7 +991,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         assert scheduler.devices_created is False
         central.hub_coordinator.fetch_program_data = AsyncMock()
@@ -1037,7 +1014,7 @@ class TestSchedulerJobFiltering:
         central.available = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1049,7 +1026,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         central.hub_coordinator.fetch_program_data = AsyncMock()
 
@@ -1072,7 +1048,7 @@ class TestSchedulerJobFiltering:
         central.available = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1084,7 +1060,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         assert scheduler.devices_created is False
         central.hub_coordinator.fetch_sysvar_data = AsyncMock()
@@ -1108,7 +1083,7 @@ class TestSchedulerJobFiltering:
         central.available = True
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1120,7 +1095,6 @@ class TestSchedulerJobFiltering:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         central.hub_coordinator.fetch_sysvar_data = AsyncMock()
 
@@ -1147,7 +1121,7 @@ class TestSchedulerFirmwareChecks:
         central.refresh_firmware_data = AsyncMock()
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1159,7 +1133,6 @@ class TestSchedulerFirmwareChecks:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         scheduler._devices_created_event.set()
 
@@ -1181,7 +1154,7 @@ class TestSchedulerFirmwareChecks:
         central.refresh_firmware_data_by_state = AsyncMock()
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1193,7 +1166,6 @@ class TestSchedulerFirmwareChecks:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         scheduler._devices_created_event.set()
 
@@ -1215,7 +1187,7 @@ class TestSchedulerFirmwareChecks:
         central.refresh_firmware_data_by_state = AsyncMock()
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1227,7 +1199,6 @@ class TestSchedulerFirmwareChecks:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
         scheduler._devices_created_event.set()
 
@@ -1331,7 +1302,7 @@ class TestSchedulerErrorRecovery:
         central.set_last_event_seen_for_interface = MagicMock()
 
         central.connection_state = MagicMock()
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
 
         scheduler = BackgroundScheduler(
             central_info=central,
@@ -1343,7 +1314,6 @@ class TestSchedulerErrorRecovery:
             event_coordinator=central,
             hub_data_fetcher=central,
             event_bus_provider=central,
-            state_provider=central,
         )
 
         await scheduler._refresh_client_data()

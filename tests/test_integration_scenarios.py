@@ -337,19 +337,19 @@ class TestConnectionStateWorkflow:
         state.add_issue(issuer=mock_rpc_issuer, iid="BidCos-RF")
 
         # Verify state
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
         assert state.issue_count == 2
         assert state.json_issue_count == 1
         assert state.rpc_proxy_issue_count == 1
 
         # Remove one issue
         state.remove_issue(issuer=mock_json_issuer, iid="HmIP-RF")
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
         assert state.issue_count == 1
 
         # Clear all
         state.clear_all_issues()
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
         assert state.issue_count == 0
 
 

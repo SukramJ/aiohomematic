@@ -178,26 +178,26 @@ class BackendOperationsProtocol(Protocol):
         """Return remaining time in install mode (seconds)."""
         ...
 
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
-        """Return link peers for an address."""
+    async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
+        """Return link peers for a channel address."""
         ...
 
-    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
-        """Return links for an address."""
+    async def get_links(self, *, channel_address: str, flags: int) -> dict[str, Any]:
+        """Return links for a channel address."""
         ...
 
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
         """Return metadata for an address."""
         ...
 
-    async def get_paramset(self, *, address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+    async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
         """Return a paramset from the backend."""
         ...
 
     async def get_paramset_description(
-        self, *, address: str, paramset_key: ParamsetKey
+        self, *, channel_address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
-        """Return paramset description for an address and paramset key."""
+        """Return paramset description for a channel address and paramset key."""
         ...
 
     async def get_rega_id_by_address(self, *, address: str) -> int | None:
@@ -218,7 +218,7 @@ class BackendOperationsProtocol(Protocol):
         """Return the value of a system variable."""
         ...
 
-    async def get_value(self, *, address: str, parameter: str) -> Any:
+    async def get_value(self, *, channel_address: str, parameter: str) -> Any:
         """Return a single parameter value."""
         ...
 
@@ -241,7 +241,7 @@ class BackendOperationsProtocol(Protocol):
     async def put_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
@@ -261,7 +261,7 @@ class BackendOperationsProtocol(Protocol):
         """Rename a device."""
         ...
 
-    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
+    async def report_value_usage(self, *, channel_address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage to the backend."""
         ...
 
@@ -295,7 +295,7 @@ class BackendOperationsProtocol(Protocol):
     async def set_value(
         self,
         *,
-        address: str,
+        channel_address: str,
         parameter: str,
         value: Any,
         rx_mode: CommandRxMode | None = None,

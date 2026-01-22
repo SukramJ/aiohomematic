@@ -913,13 +913,37 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
 # DeviceProfileRegistry Registration
 # =============================================================================
 
-# RF Dimmer (simple)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models=("263 132", "263 134", "HSS-DX"),
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
+# Data-driven RF Dimmer registrations: (models, channels or None)
+_RF_DIMMER_REGISTRATIONS: Final[tuple[tuple[str | tuple[str, ...], tuple[int, ...] | None], ...]] = (
+    # Simple RF Dimmer (no specific channels)
+    (("263 132", "263 134", "HSS-DX"), None),
+    ("HM-LC-Dim1T-FM-LF", None),
+    (("HM-LC-Dim1L-Pl-2", "HM-LC-Dim1T-Pl-2"), None),
+    # RF Dimmer with specific channels
+    ("HM-DW-WM", (1, 2, 3, 4)),
+    ("HM-LC-Dim1T-DR", (1, 2, 3)),
+    (("HM-LC-Dim2L-CV", "HM-LC-Dim2L-SM", "HM-LC-Dim2T-SM"), (1, 2)),
+    (("HM-LC-Dim2L-SM-2", "HM-LC-Dim2T-SM-2"), (1, 2, 3, 4, 5, 6)),
+    ("HMW-LC-Dim1L-DR", (3,)),
+    ("OLIGO.smart.iq.HM", (1, 2, 3, 4, 5, 6)),
 )
+
+for _models, _channels in _RF_DIMMER_REGISTRATIONS:
+    if _channels is not None:
+        DeviceProfileRegistry.register(
+            category=DataPointCategory.LIGHT,
+            models=_models,
+            data_point_class=CustomDpDimmer,
+            profile_type=DeviceProfile.RF_DIMMER,
+            channels=_channels,
+        )
+    else:
+        DeviceProfileRegistry.register(
+            category=DataPointCategory.LIGHT,
+            models=_models,
+            data_point_class=CustomDpDimmer,
+            profile_type=DeviceProfile.RF_DIMMER,
+        )
 
 # RF Dimmer with virtual channels
 DeviceProfileRegistry.register(
@@ -946,62 +970,6 @@ DeviceProfileRegistry.register(
     profile_type=DeviceProfile.RF_DIMMER_WITH_VIRT_CHANNEL,
 )
 
-# RF Dimmer (specific channels)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HM-DW-WM",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-    channels=(1, 2, 3, 4),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HM-LC-Dim1T-DR",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-    channels=(1, 2, 3),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HM-LC-Dim1T-FM-LF",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models=("HM-LC-Dim1L-Pl-2", "HM-LC-Dim1T-Pl-2"),
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models=("HM-LC-Dim2L-CV", "HM-LC-Dim2L-SM", "HM-LC-Dim2T-SM"),
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-    channels=(1, 2),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models=("HM-LC-Dim2L-SM-2", "HM-LC-Dim2T-SM-2"),
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-    channels=(1, 2, 3, 4, 5, 6),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HMW-LC-Dim1L-DR",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-    channels=(3,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="OLIGO.smart.iq.HM",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.RF_DIMMER,
-    channels=(1, 2, 3, 4, 5, 6),
-)
-
 # RF Dimmer with color temperature
 DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
@@ -1019,49 +987,24 @@ DeviceProfileRegistry.register(
     profile_type=DeviceProfile.RF_DIMMER_COLOR,
 )
 
-# IP Dimmer
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HmIP-BDT",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.IP_DIMMER,
-    channels=(4,),
+# Data-driven IP Dimmer registrations: (models, channels)
+_IP_DIMMER_REGISTRATIONS: Final[tuple[tuple[str | tuple[str, ...], tuple[int, ...]], ...]] = (
+    ("HmIP-BDT", (4,)),
+    ("HmIP-DRDI3", (5, 9, 13)),
+    ("HmIP-FDT", (2,)),
+    ("HmIP-PDT", (3,)),
+    ("HmIP-WGT", (2,)),
+    ("HmIPW-DRD3", (2, 6, 10)),
 )
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HmIP-DRDI3",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.IP_DIMMER,
-    channels=(5, 9, 13),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HmIP-FDT",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.IP_DIMMER,
-    channels=(2,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HmIP-PDT",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.IP_DIMMER,
-    channels=(3,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HmIP-WGT",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.IP_DIMMER,
-    channels=(2,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.LIGHT,
-    models="HmIPW-DRD3",
-    data_point_class=CustomDpDimmer,
-    profile_type=DeviceProfile.IP_DIMMER,
-    channels=(2, 6, 10),
-)
+
+for _models, _channels in _IP_DIMMER_REGISTRATIONS:
+    DeviceProfileRegistry.register(
+        category=DataPointCategory.LIGHT,
+        models=_models,
+        data_point_class=CustomDpDimmer,
+        profile_type=DeviceProfile.IP_DIMMER,
+        channels=_channels,
+    )
 
 # IP Fixed Color Light
 DeviceProfileRegistry.register(

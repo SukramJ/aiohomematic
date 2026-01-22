@@ -9,13 +9,13 @@ from typing import Any, Final
 
 from aiohomematic.const import DataPointCategory, HubValueType
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
-from aiohomematic.model.support import check_length_and_log, get_value_from_value_list
+from aiohomematic.model.mixins.sensor_value import SensorValueMixin
 from aiohomematic.property_decorators import state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class SysvarDpSensor(GenericSysvarDataPoint):
+class SysvarDpSensor(SensorValueMixin, GenericSysvarDataPoint):
     """Implementation of a sysvar sensor."""
 
     __slots__ = ()
@@ -25,13 +25,9 @@ class SysvarDpSensor(GenericSysvarDataPoint):
     @state_property
     def value(self) -> Any | None:
         """Return the value."""
-        if (
-            self._data_type == HubValueType.LIST
-            and (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None
-        ):
-            return value
-        return (
-            check_length_and_log(name=self._legacy_name, value=self._value)
-            if self._data_type == HubValueType.STRING
-            else self._value
+        return self._transform_sensor_value(
+            raw_value=self._value,
+            value_list=self.values if self._data_type == HubValueType.LIST else None,
+            check_name=self._legacy_name,
+            is_string=self._data_type == HubValueType.STRING,
         )

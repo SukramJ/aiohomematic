@@ -37,7 +37,7 @@ class TestConnectionStateManagement:
         added = state.add_issue(issuer=mock_issuer, iid="HmIP-RF")
 
         assert added is True
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
         assert state.json_issue_count == 1
         assert state.rpc_proxy_issue_count == 0
 
@@ -50,7 +50,7 @@ class TestConnectionStateManagement:
         added = state.add_issue(issuer=mock_issuer, iid="BidCos-RF")
 
         assert added is True
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
         assert state.json_issue_count == 0
         assert state.rpc_proxy_issue_count == 1
 
@@ -67,7 +67,7 @@ class TestConnectionStateManagement:
 
         cleared = state.clear_all_issues()
         assert cleared == 2
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
         assert state.issue_count == 0
 
     @pytest.mark.asyncio
@@ -88,7 +88,7 @@ class TestConnectionStateManagement:
         """Test that initial state has no connection issues."""
         state = CentralConnectionState()
 
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
         assert state.issue_count == 0
         assert state.json_issue_count == 0
         assert state.rpc_proxy_issue_count == 0
@@ -100,11 +100,11 @@ class TestConnectionStateManagement:
         mock_issuer = Mock(spec=AioJsonRpcAioHttpClient)
 
         state.add_issue(issuer=mock_issuer, iid="HmIP-RF")
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
 
         removed = state.remove_issue(issuer=mock_issuer, iid="HmIP-RF")
         assert removed is True
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
 
 
 class TestConnectionStateEvents:
@@ -234,13 +234,13 @@ class TestPartialConnectivityHandling:
         # Only JSON interface has issues
         state.add_issue(issuer=mock_json_issuer, iid="HmIP-RF")
 
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
         assert state.json_issue_count == 1
         assert state.rpc_proxy_issue_count == 0
 
         # RPC interface is still healthy - verify we can track separately
-        assert state.has_issue(issuer=mock_json_issuer, iid="HmIP-RF") is True
-        assert state.has_issue(issuer=mock_rpc_issuer, iid="BidCos-RF") is False
+        assert state.is_issue(issuer=mock_json_issuer, iid="HmIP-RF") is True
+        assert state.is_issue(issuer=mock_rpc_issuer, iid="BidCos-RF") is False
 
     @pytest.mark.asyncio
     async def test_partial_recovery_one_interface_recovers(self) -> None:
@@ -256,13 +256,13 @@ class TestPartialConnectivityHandling:
 
         # JSON interface recovers
         state.remove_issue(issuer=mock_json_issuer, iid="HmIP-RF")
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
         assert state.json_issue_count == 0
         assert state.rpc_proxy_issue_count == 1
 
         # RPC interface recovers
         state.remove_issue(issuer=mock_rpc_issuer, iid="BidCos-RF")
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
 
 
 class TestConnectionStateTransitions:
@@ -346,7 +346,7 @@ class TestConnectionStateTransitions:
         state.remove_issue(issuer=mock_issuer, iid="HmIP-RF")
         await asyncio.sleep(0.02)
 
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
         assert len(state_history) == 2
         assert state_history[0] == ("HmIP-RF", False)  # disconnected
         assert state_history[1] == ("HmIP-RF", True)  # reconnected
@@ -377,10 +377,10 @@ class TestConnectionStateTransitions:
         mock_issuer = Mock(spec=AioJsonRpcAioHttpClient)
 
         # Healthy -> First issue
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
         state.add_issue(issuer=mock_issuer, iid="HmIP-RF")
         await asyncio.sleep(0.02)
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
 
         assert len(state_history) == 1
         assert state_history[0] == ("HmIP-RF", False)
@@ -521,7 +521,7 @@ class TestReconnectionWithCentral:
         connection_state = central.connection_state
 
         # Initially should have no issues (connected)
-        assert connection_state.has_any_issue is False
+        assert connection_state.is_any_issue is False
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -600,7 +600,7 @@ class TestExceptionHandlingDuringReconnection:
         mock_issuer = Mock(spec=AioJsonRpcAioHttpClient)
 
         # Initially no issues
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
 
         # Handle an exception
         state.handle_exception_log(
@@ -610,8 +610,8 @@ class TestExceptionHandlingDuringReconnection:
         )
 
         # Issue should be added
-        assert state.has_any_issue is True
-        assert state.has_issue(issuer=mock_issuer, iid="HmIP-RF") is True
+        assert state.is_any_issue is True
+        assert state.is_issue(issuer=mock_issuer, iid="HmIP-RF") is True
 
     @pytest.mark.asyncio
     async def test_handle_exception_log_multiple_logs_disabled(self) -> None:
@@ -650,11 +650,11 @@ class TestExceptionHandlingDuringReconnection:
             iid="HmIP-RF",
             exception=ConnectionError("Backend unavailable"),
         )
-        assert state.has_any_issue is True
+        assert state.is_any_issue is True
 
         # Simulate recovery
         state.remove_issue(issuer=mock_issuer, iid="HmIP-RF")
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
 
 
 class TestConcurrentConnectionStateOperations:
@@ -684,7 +684,7 @@ class TestConcurrentConnectionStateOperations:
 
         # State should be clean after all operations
         assert state.issue_count == 0
-        assert state.has_any_issue is False
+        assert state.is_any_issue is False
 
     @pytest.mark.asyncio
     async def test_concurrent_clear_operations(self) -> None:

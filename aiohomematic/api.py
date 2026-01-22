@@ -231,7 +231,7 @@ class HomematicAPI:
         return (
             self._central is not None
             and self._central.client_coordinator.has_clients
-            and not self._central.connection_state.has_any_issue
+            and not self._central.connection_state.is_any_issue
         )
 
     def get_device(self, *, address: str) -> DeviceProtocol | None:

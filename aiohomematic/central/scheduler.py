@@ -46,7 +46,6 @@ from aiohomematic.const import (
 from aiohomematic.exceptions import NoConnectionException
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
-    CentralUnitStateProviderProtocol,
     ConfigProviderProtocol,
     ConnectionStateProviderProtocol,
     DeviceDataRefresherProtocol,
@@ -134,7 +133,6 @@ class BackgroundScheduler:
         event_coordinator: EventCoordinator,
         hub_data_fetcher: HubDataFetcherProtocol,
         event_bus_provider: EventBusProviderProtocol,
-        state_provider: CentralUnitStateProviderProtocol,
     ) -> None:
         """
         Initialize the background scheduler.
@@ -150,7 +148,6 @@ class BackgroundScheduler:
             event_coordinator: Event coordinator for event management
             hub_data_fetcher: Provider for hub data fetch operations
             event_bus_provider: Provider for event bus access
-            state_provider: Provider for central unit state
 
         """
         self._central_info: Final = central_info
@@ -162,7 +159,6 @@ class BackgroundScheduler:
         self._event_coordinator: Final = event_coordinator
         self._hub_data_fetcher: Final = hub_data_fetcher
         self._event_bus_provider: Final = event_bus_provider
-        self._state_provider: Final = state_provider
 
         # Use asyncio.Event for thread-safe state flags
         self._active_event: Final = asyncio.Event()
@@ -229,7 +225,7 @@ class BackgroundScheduler:
         ]
 
     has_connection_issue: Final = DelegatedProperty[bool](
-        path="_connection_state_provider.connection_state.has_any_issue"
+        path="_connection_state_provider.connection_state.is_any_issue"
     )
 
     @property
@@ -728,7 +724,7 @@ class BackgroundScheduler:
         while self.is_active:
             # Wait until central is operational (RUNNING or DEGRADED)
             # DEGRADED means at least one interface is working, so scheduler should run
-            if (current_state := self._state_provider.state) not in (CentralState.RUNNING, CentralState.DEGRADED):
+            if (current_state := self._central_info.state) not in (CentralState.RUNNING, CentralState.DEGRADED):
                 _LOGGER.debug(
                     "Scheduler: Waiting until central %s is operational (current: %s)",
                     self._central_info.name,

@@ -73,12 +73,10 @@ class TestParameterUnIgnore:
 
     def test_parameter_is_un_ignored_custom_complex_master_path(self) -> None:
         """Custom un_ignore complex entry (MASTER@model:channel) should set early True branch."""
-        central = _Central2()
-        pvr = ParameterVisibilityRegistry(config_provider=central, event_bus_provider=_EventBusProvider())
-
-        # Add a complex un_ignore entry targeting a specific model/channel for MASTER
+        # Add a complex un_ignore entry targeting a specific model/channel for MASTER via config
         line = f"{Parameter.OPERATING_VOLTAGE}:MASTER@HmIP-Any:1"
-        pvr._process_un_ignore_entries(lines=[line])  # type: ignore[attr-defined]
+        central = _Central(un_ignore_list=frozenset([line]))
+        pvr = ParameterVisibilityRegistry(config_provider=central, event_bus_provider=_EventBusProvider())
 
         ch = _Channel(model="HmIP-Any", address="X:1", no=1)
         assert (

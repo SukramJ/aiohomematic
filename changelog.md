@@ -2,6 +2,22 @@
 
 ## What's Changed
 
+### Added
+
+- **SensorValueMixin**: New mixin class in `aiohomematic/model/mixins/sensor_value.py` that consolidates duplicated value transformation logic between `DpSensor` (generic) and `SysvarDpSensor` (hub). Provides standardized handling for value list lookup, converter functions, and string length validation.
+
+- **Priority 1 Unit Tests**: Comprehensive unit tests for InterfaceClient, Coordinators, and Event System achieving 86%+ coverage:
+  - `test_central_event_types.py`: Event type validation tests
+  - `test_central_event_bus.py`: EventBus priority, batch publishing, and handler stats tests
+  - `test_interface_client_lifecycle.py`: Client lifecycle and capability-gated operations tests
+  - `test_interface_client_backends.py`: Backend-specific capability tests
+  - `test_central_client_coordinator.py`: ClientCoordinator lifecycle and edge case tests
+  - `test_central_event_coordinator.py`: Event routing tests
+
+### Fixed
+
+- Fixed `test_package_init.py` assertion to handle i18n fallback behavior when translation is not loaded during `runpy.run_module` context
+
 ### Changed
 
 - **Async RPC server is now the standard implementation**: The async XML-RPC server (using aiohttp) is now the only RPC server implementation. The legacy thread-based XML-RPC server has been removed.
@@ -18,6 +34,12 @@
   - Added `aiohomematic/client/state_change.py` for state change tracking utilities
   - Added `aiohomematic/client/client_factory.py` for `ClientConfig` class
   - `ClientConfig` is now imported from `aiohomematic.client.client_factory` instead of `aiohomematic.client.ccu`
+
+### Refactored
+
+- **DeviceProfileRegistry data-driven registrations**: Consolidated repetitive device registration calls into data-driven tuples with loops, reducing boilerplate code:
+  - `switch.py`: 11 separate `register()` calls → single data tuple with loop (~56% reduction)
+  - `light.py`: 17 RF/IP Dimmer registrations → two data tuples with loops (~43% reduction)
 
 ### Removed
 

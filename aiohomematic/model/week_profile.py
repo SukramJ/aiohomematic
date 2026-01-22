@@ -684,7 +684,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         try:
             sca = self._validate_and_get_schedule_channel_address()
             raw_data = await self._client.get_paramset(
-                address=sca,
+                channel_address=sca,
                 paramset_key=ParamsetKey.MASTER,
                 convert_from_pd=True,
             )
@@ -1125,7 +1125,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         try:
             sca = self._validate_and_get_schedule_channel_address()
             raw_data = await self._client.get_paramset(
-                address=sca,
+                channel_address=sca,
                 paramset_key=ParamsetKey.MASTER,
                 convert_from_pd=True,
             )

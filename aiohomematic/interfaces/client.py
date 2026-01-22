@@ -272,7 +272,7 @@ class ParamsetOperationsProtocol(Protocol):
     async def get_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
         convert_from_pd: bool = False,
@@ -321,7 +321,7 @@ class ValueOperationsProtocol(Protocol):
     ) -> Any:
         """Return a value from the backend."""
 
-    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
+    async def report_value_usage(self, *, channel_address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
 
     async def set_value(
@@ -351,10 +351,10 @@ class LinkOperationsProtocol(Protocol):
     async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Add a link between two devices."""
 
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
+    async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return a list of link peers."""
 
-    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
+    async def get_links(self, *, channel_address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
 
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
@@ -576,6 +576,47 @@ class DeviceDiscoveryAndMetadataProtocol(DeviceDiscoveryOperationsProtocol, Meta
     __slots__ = ()
 
 
+@runtime_checkable
+class SystemManagementOperationsProtocol(SystemVariableOperationsProtocol, ProgramOperationsProtocol, Protocol):
+    """
+    Combined protocol for system-level operations.
+
+    Merges SystemVariableOperationsProtocol and ProgramOperationsProtocol
+    for components that need to manage CCU system variables and programs.
+
+    Implemented by: InterfaceClient
+    """
+
+    __slots__ = ()
+
+
+@runtime_checkable
+class MaintenanceOperationsProtocol(
+    LinkOperationsProtocol, FirmwareOperationsProtocol, BackupOperationsProtocol, Protocol
+):
+    """
+    Combined protocol for maintenance operations.
+
+    Merges LinkOperationsProtocol, FirmwareOperationsProtocol, and
+    BackupOperationsProtocol for components that need device linking,
+    firmware updates, and backup operations.
+
+    Implemented by: InterfaceClient
+    """
+
+    __slots__ = ()
+
+
+# Alias for backward compatibility and clearer naming
+DataManagementOperationsProtocol = ValueAndParamsetOperationsProtocol
+"""
+Alias for ValueAndParamsetOperationsProtocol.
+
+Combines ParamsetOperationsProtocol and ValueOperationsProtocol
+for components that need to read/write parameter values and paramsets.
+"""
+
+
 # =============================================================================
 # Client Composite Protocol Interface
 # =============================================================================
@@ -587,13 +628,9 @@ class ClientProtocol(
     ClientConnectionProtocol,
     ClientLifecycleProtocol,
     DeviceDiscoveryOperationsProtocol,
-    ParamsetOperationsProtocol,
-    ValueOperationsProtocol,
-    LinkOperationsProtocol,
-    FirmwareOperationsProtocol,
-    SystemVariableOperationsProtocol,
-    ProgramOperationsProtocol,
-    BackupOperationsProtocol,
+    ValueAndParamsetOperationsProtocol,  # Combines ParamsetOperationsProtocol + ValueOperationsProtocol
+    MaintenanceOperationsProtocol,  # Combines LinkOperationsProtocol + FirmwareOperationsProtocol + BackupOperationsProtocol
+    SystemManagementOperationsProtocol,  # Combines SystemVariableOperationsProtocol + ProgramOperationsProtocol
     MetadataOperationsProtocol,
     ClientSupportProtocol,
     Protocol,
@@ -603,21 +640,31 @@ class ClientProtocol(
 
     Combines all client sub-protocols into a single interface providing full
     access to backend communication, device management, and system operations.
-    Implemented by ClientCCU, ClientJsonCCU, and ClientHomegear.
+    Implemented by InterfaceClient.
 
-    Sub-protocols:
-        - ClientIdentityProtocol: Basic identification
+    Sub-protocols organized into categories:
+
+    **Identity & Connection:**
+        - ClientIdentityProtocol: Basic identification (interface_id, interface)
         - ClientConnectionProtocol: Connection state management
-        - ClientLifecycleProtocol: Lifecycle operations
-        - DeviceDiscoveryOperationsProtocol: Device discovery
-        - ParamsetOperationsProtocol: Paramset operations
-        - ValueOperationsProtocol: Value read/write
-        - LinkOperationsProtocol: Device linking
-        - FirmwareOperationsProtocol: Firmware updates
-        - SystemVariableOperationsProtocol: System variables
-        - ProgramOperationsProtocol: Program execution
-        - BackupOperationsProtocol: Backup creation
-        - MetadataOperationsProtocol: Metadata and system operations
+        - ClientLifecycleProtocol: Lifecycle operations (init, start, stop)
+
+    **Device Operations:**
+        - DeviceDiscoveryOperationsProtocol: Device discovery and listing
+
+    **Data Management:**
+        - ValueAndParamsetOperationsProtocol: Paramset and value read/write operations
+
+    **System Management:**
+        - SystemManagementOperationsProtocol: System variables and programs
+
+    **Maintenance:**
+        - MaintenanceOperationsProtocol: Device linking, firmware updates, backups
+
+    **Metadata:**
+        - MetadataOperationsProtocol: Metadata, rooms, functions, install mode
+
+    **Support:**
         - ClientSupportProtocol: Utility methods and caches
     """
 

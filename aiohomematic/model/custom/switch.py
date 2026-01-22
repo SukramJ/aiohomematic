@@ -68,96 +68,50 @@ class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
 # DeviceProfileRegistry Registration
 # =============================================================================
 
-# IP Switch (various channel configurations)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models=("ELV-SH-BS2", "HmIP-BS2", "HmIP-PCBS2"),
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(4, 8),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models=(
-        "ELV-SH-PSMCI",
-        "ELV-SH-SW1-BAT",
-        "HmIP-DRSI1",
-        "HmIP-FSI",
-        "HmIP-PCBS",
-        "HmIP-PCBS-BAT",
-        "HmIP-PS",
-        "HmIP-USBSM",
-        "HmIP-WGC",
+# Data-driven IP Switch registrations: (models, channels)
+_IP_SWITCH_REGISTRATIONS: Final[tuple[tuple[str | tuple[str, ...], tuple[int, ...]], ...]] = (
+    (("ELV-SH-BS2", "HmIP-BS2", "HmIP-PCBS2"), (4, 8)),
+    (
+        (
+            "ELV-SH-PSMCI",
+            "ELV-SH-SW1-BAT",
+            "HmIP-DRSI1",
+            "HmIP-FSI",
+            "HmIP-PCBS",
+            "HmIP-PCBS-BAT",
+            "HmIP-PS",
+            "HmIP-USBSM",
+            "HmIP-WGC",
+        ),
+        (3,),
     ),
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(3,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models=("HmIP-BSL", "HmIP-BSM"),
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(4,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIP-DRSI4",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(6, 10, 14, 18),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIP-FSM",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(2,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIP-MOD-OC8",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(10, 14, 18, 22, 26, 30, 34, 38),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIP-SCTH230",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(8,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIP-WGT",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(4,),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIP-WHS2",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(2, 6),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIPW-DRS",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(2, 6, 10, 14, 18, 22, 26, 30),
-)
-DeviceProfileRegistry.register(
-    category=DataPointCategory.SWITCH,
-    models="HmIPW-FIO6",
-    data_point_class=CustomDpSwitch,
-    profile_type=DeviceProfile.IP_SWITCH,
-    channels=(8, 12, 16, 20, 24, 28),
+    (("HmIP-BSL", "HmIP-BSM"), (4,)),
+    ("HmIP-DRSI4", (6, 10, 14, 18)),
+    ("HmIP-FSM", (2,)),
+    ("HmIP-MOD-OC8", (10, 14, 18, 22, 26, 30, 34, 38)),
+    ("HmIP-SCTH230", (8,)),
+    ("HmIP-WGT", (4,)),
+    ("HmIP-WHS2", (2, 6)),
+    ("HmIPW-DRS", (2, 6, 10, 14, 18, 22, 26, 30)),
+    ("HmIPW-FIO6", (8, 12, 16, 20, 24, 28)),
 )
 
-# HmIP-SMO230 (Switch with motion sensor)
+for _models, _channels in _IP_SWITCH_REGISTRATIONS:
+    DeviceProfileRegistry.register(
+        category=DataPointCategory.SWITCH,
+        models=_models,
+        data_point_class=CustomDpSwitch,
+        profile_type=DeviceProfile.IP_SWITCH,
+        channels=_channels,
+    )
+
+# HmIP-SMO230 (Switch with motion sensor - requires extended config)
+_SMO230_MOTION_PARAMS: Final = (
+    Parameter.ILLUMINATION,
+    Parameter.MOTION,
+    Parameter.MOTION_DETECTION_ACTIVE,
+    Parameter.RESET_MOTION,
+)
 DeviceProfileRegistry.register(
     category=DataPointCategory.SWITCH,
     models="HmIP-SMO230",
@@ -166,30 +120,10 @@ DeviceProfileRegistry.register(
     channels=(10,),
     extended=ExtendedDeviceConfig(
         additional_data_points={
-            1: (
-                Parameter.ILLUMINATION,
-                Parameter.MOTION,
-                Parameter.MOTION_DETECTION_ACTIVE,
-                Parameter.RESET_MOTION,
-            ),
-            2: (
-                Parameter.ILLUMINATION,
-                Parameter.MOTION,
-                Parameter.MOTION_DETECTION_ACTIVE,
-                Parameter.RESET_MOTION,
-            ),
-            3: (
-                Parameter.ILLUMINATION,
-                Parameter.MOTION,
-                Parameter.MOTION_DETECTION_ACTIVE,
-                Parameter.RESET_MOTION,
-            ),
-            4: (
-                Parameter.ILLUMINATION,
-                Parameter.MOTION,
-                Parameter.MOTION_DETECTION_ACTIVE,
-                Parameter.RESET_MOTION,
-            ),
+            1: _SMO230_MOTION_PARAMS,
+            2: _SMO230_MOTION_PARAMS,
+            3: _SMO230_MOTION_PARAMS,
+            4: _SMO230_MOTION_PARAMS,
         }
     ),
 )

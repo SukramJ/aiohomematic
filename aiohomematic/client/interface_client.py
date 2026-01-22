@@ -510,17 +510,17 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return 0
         return await self._backend.get_install_mode()
 
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
+    async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return a list of link peers."""
         if not self._backend.capabilities.linking:
             return ()
-        return await self._backend.get_link_peers(address=address)
+        return await self._backend.get_link_peers(channel_address=channel_address)
 
-    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
+    async def get_links(self, *, channel_address: str, flags: int) -> dict[str, Any]:
         """Return a list of links."""
         if not self._backend.capabilities.linking:
             return {}
-        return await self._backend.get_links(address=address, flags=flags)
+        return await self._backend.get_links(channel_address=channel_address, flags=flags)
 
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
         """Return the metadata for an object."""
@@ -531,16 +531,16 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     async def get_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
         convert_from_pd: bool = False,
     ) -> dict[str, Any]:
         """Return a paramset from the backend."""
-        result = await self._backend.get_paramset(address=address, paramset_key=paramset_key)
+        result = await self._backend.get_paramset(channel_address=channel_address, paramset_key=paramset_key)
         if convert_from_pd and is_paramset_key(paramset_key=paramset_key):
             result = self._check_get_paramset(
-                channel_address=address,
+                channel_address=channel_address,
                 paramset_key=ParamsetKey(paramset_key),
                 values=result,
             )
@@ -627,7 +627,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         convert_from_pd: bool = False,
     ) -> Any:
         """Return a value from the backend."""
-        value = await self._backend.get_value(address=channel_address, parameter=parameter)
+        value = await self._backend.get_value(channel_address=channel_address, parameter=parameter)
         if convert_from_pd:
             value = self._convert_read_value(
                 channel_address=channel_address,
@@ -845,7 +845,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._backend.put_paramset(
-                        address=channel_address,
+                        channel_address=channel_address,
                         paramset_key=paramset_key_or_link_address,
                         values=checked_values,
                         rx_mode=rx_mode,
@@ -854,7 +854,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
             else:
                 await self._backend.put_paramset(
-                    address=channel_address,
+                    channel_address=channel_address,
                     paramset_key=paramset_key_or_link_address,
                     values=checked_values,
                     rx_mode=rx_mode,
@@ -958,11 +958,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return False
         return await self._backend.rename_device(rega_id=rega_id, new_name=new_name)
 
-    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
+    async def report_value_usage(self, *, channel_address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""
         if not self._backend.capabilities.value_usage_reporting:
             return False
-        return await self._backend.report_value_usage(address=address, value_id=value_id, ref_counter=ref_counter)
+        return await self._backend.report_value_usage(
+            channel_address=channel_address, value_id=value_id, ref_counter=ref_counter
+        )
 
     def reset_circuit_breakers(self) -> None:
         """Reset all circuit breakers to closed state."""
@@ -1037,12 +1039,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._backend.set_value(
-                        address=channel_address, parameter=parameter, value=checked_value, rx_mode=rx_mode
+                        channel_address=channel_address, parameter=parameter, value=checked_value, rx_mode=rx_mode
                     )
                 else:
                     raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
             else:
-                await self._backend.set_value(address=channel_address, parameter=parameter, value=checked_value)
+                await self._backend.set_value(channel_address=channel_address, parameter=parameter, value=checked_value)
 
             # Store the sent value and write temporary value for UI feedback
             dpk_values = self._last_value_send_tracker.add_set_value(
@@ -1304,7 +1306,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
         async def _fetch() -> dict[str, ParameterData] | None:
             try:
-                return await self._backend.get_paramset_description(address=address, paramset_key=paramset_key)
+                return await self._backend.get_paramset_description(channel_address=address, paramset_key=paramset_key)
             except BaseHomematicException as bhexc:
                 _LOGGER.debug(
                     "GET_PARAMSET_DESCRIPTION failed with %s [%s] for %s address %s",

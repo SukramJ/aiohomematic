@@ -112,7 +112,6 @@ from aiohomematic.interfaces import (
     ChannelLookupProtocol,
     ChannelProtocol,
     ClientProtocol,
-    ClientProviderProtocol,
     ConfigProviderProtocol,
     CustomDataPointProtocol,
     DataCacheProviderProtocol,
@@ -123,7 +122,6 @@ from aiohomematic.interfaces import (
     EventBusProviderProtocol,
     EventPublisherProtocol,
     EventSubscriptionManagerProtocol,
-    FileOperationsProtocol,
     GenericDataPointProtocol,
     GenericDataPointProtocolAny,
     GenericEventProtocol,
@@ -136,6 +134,7 @@ from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
 from aiohomematic.model import event as hmev, week_profile as wp
 from aiohomematic.model.availability import AvailabilityInfo
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
+from aiohomematic.model.device_context import DeviceContext
 from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.support import (
     ChannelNameData,
@@ -220,6 +219,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_client",
         "_client_provider",
         "_config_provider",
+        "_context",
         "_data_cache_provider",
         "_data_point_provider",
         "_device_description",
@@ -255,60 +255,52 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_week_profile",
     )
 
-    def __init__(
-        self,
-        *,
-        interface_id: str,
-        device_address: str,
-        central_info: CentralInfoProtocol,
-        channel_lookup: ChannelLookupProtocol,
-        client_provider: ClientProviderProtocol,
-        config_provider: ConfigProviderProtocol,
-        data_cache_provider: DataCacheProviderProtocol,
-        data_point_provider: DataPointProviderProtocol,
-        device_data_refresher: FirmwareDataRefresherProtocol,
-        device_description_provider: DeviceDescriptionProviderProtocol,
-        device_details_provider: DeviceDetailsProviderProtocol,
-        event_bus_provider: EventBusProviderProtocol,
-        event_publisher: EventPublisherProtocol,
-        event_subscription_manager: EventSubscriptionManagerProtocol,
-        file_operations: FileOperationsProtocol,
-        parameter_visibility_provider: ParameterVisibilityProviderProtocol,
-        paramset_description_provider: ParamsetDescriptionProviderProtocol,
-        task_scheduler: TaskSchedulerProtocol,
-    ) -> None:
-        """Initialize the device object."""
+    def __init__(self, *, context: DeviceContext) -> None:
+        """
+        Initialize the device object.
+
+        Args:
+            context: DeviceContext containing all required dependencies.
+
+        """
         PayloadMixin.__init__(self)
-        self._interface_id: Final = interface_id
-        self._address: Final = device_address
-        self._device_details_provider: Final = device_details_provider
-        self._device_description_provider: Final = device_description_provider
-        self._paramset_description_provider: Final = paramset_description_provider
-        self._parameter_visibility_provider: Final = parameter_visibility_provider
-        self._client_provider: Final = client_provider
-        self._config_provider: Final = config_provider
-        self._central_info: Final = central_info
-        self._event_bus_provider: Final = event_bus_provider
-        self._event_publisher: Final = event_publisher
-        self._task_scheduler: Final = task_scheduler
-        self._file_operations: Final = file_operations
-        self._device_data_refresher: Final = device_data_refresher
-        self._data_cache_provider: Final = data_cache_provider
-        self._data_point_provider: Final = data_point_provider
-        self._channel_lookup: Final = channel_lookup
-        self._event_subscription_manager: Final = event_subscription_manager
+
+        # Store context for potential future access
+        self._context: Final = context
+
+        # Extract identity
+        self._interface_id: Final = context.interface_id
+        self._address: Final = context.device_address
+
+        # Extract all protocol interfaces from context
+        self._central_info: Final = context.central_info
+        self._config_provider: Final = context.config_provider
+        self._file_operations: Final = context.file_operations
+        self._device_data_refresher: Final = context.device_data_refresher
+        self._device_description_provider: Final = context.device_description_provider
+        self._device_details_provider: Final = context.device_details_provider
+        self._paramset_description_provider: Final = context.paramset_description_provider
+        self._parameter_visibility_provider: Final = context.parameter_visibility_provider
+        self._event_bus_provider: Final = context.event_bus_provider
+        self._event_publisher: Final = context.event_publisher
+        self._event_subscription_manager: Final = context.event_subscription_manager
+        self._task_scheduler: Final = context.task_scheduler
+        self._client_provider: Final = context.client_provider
+        self._data_cache_provider: Final = context.data_cache_provider
+        self._data_point_provider: Final = context.data_point_provider
+        self._channel_lookup: Final = context.channel_lookup
         self._channel_to_group: Final[dict[int | None, int]] = {}
         self._group_channels: Final[dict[int, set[int | None]]] = {}
-        self._rega_id: Final = device_details_provider.get_address_id(address=device_address)
-        self._interface: Final = device_details_provider.get_interface(address=device_address)
-        self._client: Final = client_provider.get_client(interface_id=interface_id)
+        self._rega_id: Final = self._device_details_provider.get_address_id(address=self._address)
+        self._interface: Final = self._device_details_provider.get_interface(address=self._address)
+        self._client: Final = self._client_provider.get_client(interface_id=self._interface_id)
         self._device_description = self._device_description_provider.get_device_description(
-            interface_id=interface_id, address=device_address
+            interface_id=self._interface_id, address=self._address
         )
         _LOGGER.debug(
             "__INIT__: Initializing device: %s, %s",
-            interface_id,
-            device_address,
+            self._interface_id,
+            self._address,
         )
 
         self._modified_at: datetime = INIT_DATETIME
@@ -318,7 +310,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._is_updatable: Final = self._device_description.get("UPDATABLE") or False
         self._rx_modes: Final = get_rx_modes(mode=self._device_description.get("RX_MODE", 0))
         self._sub_model: Final[str | None] = self._device_description.get("SUBTYPE")
-        self._ignore_for_custom_data_point: Final[bool] = parameter_visibility_provider.model_is_ignored(
+        self._ignore_for_custom_data_point: Final[bool] = self._parameter_visibility_provider.model_is_ignored(
             model=self._model
         )
         self._manufacturer = self._identify_manufacturer()
@@ -328,12 +320,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             hmed.data_point_definition_exists(model=self._model) and not self._ignore_for_custom_data_point
         )
         self._name: Final = get_device_name(
-            device_details_provider=device_details_provider,
-            device_address=device_address,
+            device_details_provider=self._device_details_provider,
+            device_address=self._address,
             model=self._model,
         )
         channel_addresses = tuple(
-            [device_address] + [address for address in self._device_description.get("CHILDREN", []) if address != ""]
+            [self._address] + [address for address in self._device_description.get("CHILDREN", []) if address != ""]
         )
         self._channels: Final[dict[str, ChannelProtocol]] = {}
         for address in channel_addresses:
@@ -342,7 +334,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             except DescriptionNotFoundException:
                 _LOGGER.warning(i18n.tr(key="log.model.device.channel_description_not_found", address=address))
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
-        self._rooms: Final = device_details_provider.get_device_rooms(device_address=device_address)
+        self._rooms: Final = self._device_details_provider.get_device_rooms(device_address=self._address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
         self._week_profile: wp.WeekProfile[dict[Any, Any]] | None = None
         _LOGGER.debug(
@@ -371,6 +363,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     channels: Final = DelegatedProperty[Mapping[str, ChannelProtocol]](path="_channels")
     client: Final = DelegatedProperty[ClientProtocol](path="_client")
     config_provider: Final = DelegatedProperty[ConfigProviderProtocol](path="_config_provider")
+    context: Final = DelegatedProperty[DeviceContext](path="_context")
     data_cache_provider: Final = DelegatedProperty[DataCacheProviderProtocol](path="_data_cache_provider")
     data_point_provider: Final = DelegatedProperty[DataPointProviderProtocol](path="_data_point_provider")
     device_data_refresher: Final = DelegatedProperty[FirmwareDataRefresherProtocol](path="_device_data_refresher")
@@ -1308,7 +1301,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         """Create a central link to support press events."""
         if self._has_key_press_events and not await self._has_central_link():
             await self._device.client.report_value_usage(
-                address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
+                channel_address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=1
             )
 
     async def finalize_init(self) -> None:
@@ -1458,7 +1451,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         """Initialize the link partners."""
         if self._link_source_categories and self._device.model not in VIRTUAL_REMOTE_MODELS:
             try:
-                link_peer_addresses = await self._device.client.get_link_peers(address=self._address)
+                link_peer_addresses = await self._device.client.get_link_peers(channel_address=self._address)
             except ClientException:
                 # Device may have been deleted or is temporarily unavailable
                 _LOGGER.debug("INIT_LINK_PEER: Failed to get link peers for %s", self._address)
@@ -1563,7 +1556,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         """Remove a central link."""
         if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
             await self._device.client.report_value_usage(
-                address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
+                channel_address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
 
     @inspector
@@ -1814,7 +1807,7 @@ class _ValueCache:
                 )
             }
         return await self._device.client.get_paramset(
-            address=dpk.channel_address, paramset_key=dpk.paramset_key, call_source=CallSource.HM_INIT
+            channel_address=dpk.channel_address, paramset_key=dpk.paramset_key, call_source=CallSource.HM_INIT
         )
 
 

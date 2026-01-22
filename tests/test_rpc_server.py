@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
-"""Tests for the async XML-RPC server."""
+"""Tests for the XML-RPC server."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import xmlrpc.client
 import aiohttp
 import pytest
 
-from aiohomematic.central.async_rpc_server import (
+from aiohomematic.central.rpc_server import (
     AsyncRPCFunctions,
     AsyncXmlRpcDispatcher,
     AsyncXmlRpcServer,
@@ -367,7 +367,7 @@ async def test_rpc_functions_error():
     """Test error callback."""
     rpc_functions, _ = _create_mock_server()
 
-    with patch("aiohomematic.central.async_rpc_server.hmcl") as mock_hmcl:
+    with patch("aiohomematic.central.rpc_server.hmcl") as mock_hmcl:
         mock_client = MagicMock()
         mock_client.central.event_coordinator.publish_system_event = MagicMock()
         mock_hmcl.get_client.return_value = mock_client

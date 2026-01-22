@@ -2,7 +2,14 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR 0012](0012-async-xml-rpc-server-poc.md)**
+
+> **Note**: This ADR is historical. The thread-based XML-RPC server was removed in version 2026.1.44.
+> The async aiohttp-based implementation (ADR 0012) is now the standard.
+
+---
+
+_Original status: Accepted_
 
 ## Context
 

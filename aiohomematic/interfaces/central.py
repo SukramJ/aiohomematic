@@ -674,27 +674,6 @@ class RpcServerCentralProtocol(Protocol):
         """Return the central name."""
 
 
-@runtime_checkable
-class RpcServerTaskSchedulerProtocol(Protocol):
-    """
-    Protocol for task scheduling in RpcServer context.
-
-    This protocol provides a way to schedule async tasks from the synchronous
-    XML-RPC callbacks without coupling to the full CentralUnit.
-
-    Implemented by CentralUnit.looper or a dedicated task scheduler.
-    """
-
-    @abstractmethod
-    def create_task(
-        self,
-        *,
-        target: Any,
-        name: str,
-    ) -> None:
-        """Create and schedule an async task."""
-
-
 # =============================================================================
 # Central State Machine Protocol
 # =============================================================================

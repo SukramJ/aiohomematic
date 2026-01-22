@@ -39,27 +39,6 @@ This approach allows us to thoroughly test new architectures in real-world envir
 
 ## Available Settings
 
-### Async RPC Server
-
-📢 **Feedback Discussion**: [#2727](https://github.com/SukramJ/aiohomematic/discussions/2727)
-
-**What it does**: Replaces the traditional thread-based XML-RPC server with a modern, asynchronous implementation.
-
-**Why it exists**: The original RPC server uses a separate thread to receive events from your CCU. While this works reliably, it doesn't integrate optimally with Home Assistant's async architecture. The new async server runs entirely within Home Assistant's event loop, potentially improving resource usage and event handling.
-
-**What to expect**:
-
-- Similar functionality to the current implementation
-- A new health check endpoint for diagnostics
-- Built-in metrics collection
-
-**Potential issues**:
-
-- Under very high event load, some events might be delayed
-- If you notice devices not updating, disable this setting
-
----
-
 ### Interface Client
 
 📢 **Feedback Discussion**: [#2728](https://github.com/SukramJ/aiohomematic/discussions/2728)
@@ -142,8 +121,8 @@ If you test an experimental feature, your feedback is invaluable. Here's what he
 
 ### What Worked
 
-- "Enabled Async RPC Server, running for 3 days without issues"
 - "Interface Client working fine with OpenCCU 3.x"
+- "Linked Entity Climate Activity shows correct heating status"
 
 ### What Didn't Work
 
@@ -209,7 +188,6 @@ The beauty of feature flags is that reverting is always just a toggle away.
 
 | Setting                        | Current Status  | Future                                       |
 | ------------------------------ | --------------- | -------------------------------------------- |
-| Async RPC Server               | Testing         | Will become default if testing is successful |
 | Interface Client               | Testing         | Will become default if testing is successful |
 | Linked Entity Climate Activity | Testing         | Will become default if testing is successful |
 | Debugging settings (SR\_\*)    | Developer tools | Will remain opt-in permanently               |

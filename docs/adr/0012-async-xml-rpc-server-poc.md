@@ -2,12 +2,17 @@
 
 ## Status
 
-**Phase 1-2 Complete, Phase 3 In Progress** (2026-01-01)
+**Accepted and Promoted to Standard** (2026-01-22)
+
+- Async XML-RPC server is now the **only** implementation (thread-based server removed)
+- Feature flag `OptionalSettings.ASYNC_RPC_SERVER` removed (no longer needed)
+- Supersedes [ADR 0004](0004-thread-based-xml-rpc-server.md)
+
+### Historical Status (Phase 1-2 Complete, Phase 3 In Progress)
 
 - Core implementation complete with 48 tests (41 unit + 4 integration + 3 stress)
 - Feature flag, health monitoring, and metrics integration done
 - Performance validated via stress tests (1000+ req/s throughput)
-- Pending: Production validation (Phase 3), Rollout (Phase 4)
 
 ## Context
 

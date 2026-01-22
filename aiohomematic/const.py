@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.44"
+VERSION: Final = "2026.1.45"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1056,9 +1056,6 @@ class OptionalSettings(StrEnum):
 
     SR_DISABLE_RANDOMIZE_OUTPUT = "SR_DISABLE_RANDOMIZED_OUTPUT"
     SR_RECORD_SYSTEM_INIT = "SR_RECORD_SYSTEM_INIT"
-
-    USE_INTERFACE_CLIENT = "USE_INTERFACE_CLIENT"
-    """Use InterfaceClient with Backend Strategy Pattern instead of legacy clients (opt-in)."""
 
 
 class Parameter(StrEnum):

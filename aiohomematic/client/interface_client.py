@@ -22,8 +22,8 @@ from aiohomematic import i18n
 from aiohomematic.central.events import ClientStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
-from aiohomematic.client.handlers.device_ops import _wait_for_state_change_or_timeout
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
+from aiohomematic.client.state_change import wait_for_state_change_or_timeout
 from aiohomematic.client.state_machine import ClientStateMachine
 from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
@@ -1404,7 +1404,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         self, *, device: DeviceProtocol, dpk_values: set[DP_KEY_VALUE], wait_for_callback: int
     ) -> None:
         """Wait for device state change or timeout."""
-        await _wait_for_state_change_or_timeout(
+        await wait_for_state_change_or_timeout(
             device=device, dpk_values=dpk_values, wait_for_callback=wait_for_callback
         )
 

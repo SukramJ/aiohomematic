@@ -15,10 +15,9 @@ Protocol Categories
 **Identity & Configuration:**
     Protocols providing system identification and configuration access.
 
-    - `CentralInfoProtocol`: Central system identification (name, model, version)
+    - `CentralInfoProtocol`: Central system identification (name, model, version, state)
     - `ConfigProviderProtocol`: Configuration access (config property)
     - `SystemInfoProviderProtocol`: Backend system information
-    - `CentralUnitStateProviderProtocol`: Central unit lifecycle state
 
 **Event System:**
     Protocols for event publishing and subscription.
@@ -62,6 +61,11 @@ Protocol Categories
         - `MetadataOperationsProtocol`: Metadata and system operations
         - `ClientSupportProtocol`: Utility methods and caches
 
+    *Combined Client Operations:*
+        - `DataManagementOperationsProtocol`: Alias for ValueAndParamsetOperationsProtocol
+        - `SystemManagementOperationsProtocol`: SystemVariable + Program operations
+        - `MaintenanceOperationsProtocol`: Link + Firmware + Backup operations
+
     *Client Composite:*
         - `ClientProtocol`: Composite of all client sub-protocols
 
@@ -104,10 +108,18 @@ Protocol Categories
 **Model Protocols:**
     Protocols defining the runtime model structure.
 
-    *Device/Channel:*
-        - `DeviceProtocol`: Physical device representation
-        - `ChannelProtocol`: Device channel representation
+    *Device/Channel (Composite):*
+        - `DeviceProtocol`: Physical device representation (uses consolidated sub-protocols)
+        - `ChannelProtocol`: Device channel representation (uses consolidated sub-protocols)
         - `HubProtocol`: Hub-level data point
+
+    *Device Combined Protocols:*
+        - `DeviceStateProtocol`: Combined (Availability + Firmware + WeekProfile)
+        - `DeviceOperationsProtocol`: Combined (LinkManagement + GroupManagement + Lifecycle)
+
+    *Channel Combined Protocols:*
+        - `ChannelMetadataAndGroupingProtocol`: Combined (Metadata + Grouping)
+        - `ChannelManagementProtocol`: Combined (LinkManagement + Lifecycle)
 
     *DataPoint Hierarchy:*
         - `CallbackDataPointProtocol`: Base for all callback data points
@@ -165,7 +177,6 @@ from aiohomematic.interfaces.central import (
     CentralProtocol,
     CentralStateMachineProtocol,
     CentralStateMachineProviderProtocol,
-    CentralUnitStateProviderProtocol,
     ChannelLookupProtocol,
     ConfigProviderProtocol,
     ConnectionHealthProtocol,
@@ -178,7 +189,6 @@ from aiohomematic.interfaces.central import (
     EventPublisherProtocol,
     EventSubscriptionManagerProtocol,
     FileOperationsProtocol,
-    HealthProviderProtocol,
     HealthTrackerProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
@@ -188,7 +198,6 @@ from aiohomematic.interfaces.central import (
 )
 from aiohomematic.interfaces.client import (
     # Client sub-protocols
-    BackupOperationsProtocol,
     # Client utilities
     CallbackAddressProviderProtocol,
     ClientConnectionProtocol,
@@ -204,24 +213,22 @@ from aiohomematic.interfaces.client import (
     CommandTrackerProtocol,
     ConnectionStateProviderProtocol,
     DataCacheWriterProtocol,
+    # Combined client operation protocols
+    DataManagementOperationsProtocol,
     DeviceDescriptionsAccessProtocol,
     DeviceDetailsWriterProtocol,
     DeviceDiscoveryOperationsProtocol,
     DeviceLookupProtocol,
-    FirmwareOperationsProtocol,
     JsonRpcClientProviderProtocol,
     LastEventTrackerProtocol,
-    LinkOperationsProtocol,
+    MaintenanceOperationsProtocol,
     MetadataOperationsProtocol,
     NewDeviceHandlerProtocol,
     ParamsetDescriptionWriterProtocol,
-    ParamsetOperationsProtocol,
     PingPongTrackerProtocol,
     PrimaryClientProviderProtocol,
-    ProgramOperationsProtocol,
     SessionRecorderProviderProtocol,
-    SystemVariableOperationsProtocol,
-    ValueOperationsProtocol,
+    SystemManagementOperationsProtocol,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
 from aiohomematic.interfaces.model import (
@@ -233,25 +240,21 @@ from aiohomematic.interfaces.model import (
     # Channel sub-protocols
     ChannelDataPointAccessProtocol,
     ChannelEventGroupProtocol,
-    ChannelGroupingProtocol,
     ChannelIdentityProtocol,
-    ChannelLifecycleProtocol,
-    ChannelLinkManagementProtocol,
-    ChannelMetadataProtocol,
+    # Channel combined protocols
+    ChannelManagementProtocol,
+    ChannelMetadataAndGroupingProtocol,
     ChannelProtocol,
     CustomDataPointProtocol,
     # Device sub-protocols
-    DeviceAvailabilityProtocol,
     DeviceChannelAccessProtocol,
     DeviceConfigurationProtocol,
-    DeviceFirmwareProtocol,
-    DeviceGroupManagementProtocol,
     DeviceIdentityProtocol,
-    DeviceLifecycleProtocol,
-    DeviceLinkManagementProtocol,
+    # Device combined protocols
+    DeviceOperationsProtocol,
     DeviceProtocol,
     DeviceProvidersProtocol,
-    DeviceWeekProfileProtocol,
+    DeviceStateProtocol,
     GenericDataPointProtocol,
     GenericDataPointProtocolAny,
     GenericEventProtocol,
@@ -296,11 +299,9 @@ __all__ = [
     # Central health
     "CentralHealthProtocol",
     "ConnectionHealthProtocol",
-    "HealthProviderProtocol",
     "HealthTrackerProtocol",
     # Central identity
     "CentralInfoProtocol",
-    "CentralUnitStateProviderProtocol",
     "ConfigProviderProtocol",
     "SystemInfoProviderProtocol",
     # Central state machine
@@ -309,19 +310,15 @@ __all__ = [
     # Client composite
     "ClientProtocol",
     # Client operations
-    "BackupOperationsProtocol",
     "ClientConnectionProtocol",
     "ClientIdentityProtocol",
     "ClientLifecycleProtocol",
     "ClientSupportProtocol",
+    "DataManagementOperationsProtocol",
     "DeviceDiscoveryOperationsProtocol",
-    "FirmwareOperationsProtocol",
-    "LinkOperationsProtocol",
+    "MaintenanceOperationsProtocol",
     "MetadataOperationsProtocol",
-    "ParamsetOperationsProtocol",
-    "ProgramOperationsProtocol",
-    "SystemVariableOperationsProtocol",
-    "ValueOperationsProtocol",
+    "SystemManagementOperationsProtocol",
     # Client providers
     "ClientDependenciesProtocol",
     "ClientFactoryProtocol",
@@ -356,11 +353,9 @@ __all__ = [
     # Model channel
     "ChannelDataPointAccessProtocol",
     "ChannelEventGroupProtocol",
-    "ChannelGroupingProtocol",
     "ChannelIdentityProtocol",
-    "ChannelLifecycleProtocol",
-    "ChannelLinkManagementProtocol",
-    "ChannelMetadataProtocol",
+    "ChannelManagementProtocol",
+    "ChannelMetadataAndGroupingProtocol",
     "ChannelProtocol",
     # Model data point
     "BaseDataPointProtocol",
@@ -374,17 +369,13 @@ __all__ = [
     "GenericEventProtocol",
     "GenericEventProtocolAny",
     # Model device
-    "DeviceAvailabilityProtocol",
     "DeviceChannelAccessProtocol",
     "DeviceConfigurationProtocol",
-    "DeviceFirmwareProtocol",
-    "DeviceGroupManagementProtocol",
     "DeviceIdentityProtocol",
-    "DeviceLifecycleProtocol",
-    "DeviceLinkManagementProtocol",
+    "DeviceOperationsProtocol",
     "DeviceProtocol",
     "DeviceProvidersProtocol",
-    "DeviceWeekProfileProtocol",
+    "DeviceStateProtocol",
     # Model hub
     "GenericHubDataPointProtocol",
     "GenericInstallModeDataPointProtocol",

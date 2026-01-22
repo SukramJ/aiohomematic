@@ -272,17 +272,17 @@ class _HmCliConnection:
                 return device
         return None
 
-    def get_paramset(self, *, address: str, paramset_key: str) -> dict[str, Any]:
+    def get_paramset(self, *, channel_address: str, paramset_key: str) -> dict[str, Any]:
         """Get full paramset."""
-        return self.proxy.getParamset(address, paramset_key)  # type: ignore[return-value]
+        return self.proxy.getParamset(channel_address, paramset_key)  # type: ignore[return-value]
 
-    def get_paramset_description(self, *, address: str, paramset_key: str = "VALUES") -> dict[str, Any]:
+    def get_paramset_description(self, *, channel_address: str, paramset_key: str = "VALUES") -> dict[str, Any]:
         """Return paramset description for a channel."""
-        return self.proxy.getParamsetDescription(address, paramset_key)  # type: ignore[return-value]
+        return self.proxy.getParamsetDescription(channel_address, paramset_key)  # type: ignore[return-value]
 
-    def get_value(self, *, address: str, parameter: str) -> Any:
+    def get_value(self, *, channel_address: str, parameter: str) -> Any:
         """Get parameter value."""
-        return self.proxy.getValue(address, parameter)
+        return self.proxy.getValue(channel_address, parameter)
 
     def list_devices(self) -> list[dict[str, Any]]:
         """List all devices from the hub."""
@@ -290,13 +290,13 @@ class _HmCliConnection:
             self._devices = self.proxy.listDevices()  # type: ignore[assignment]
         return self._devices or []
 
-    def put_paramset(self, *, address: str, paramset_key: str, values: dict[str, Any]) -> None:
+    def put_paramset(self, *, channel_address: str, paramset_key: str, values: dict[str, Any]) -> None:
         """Put paramset values."""
-        self.proxy.putParamset(address, paramset_key, values)
+        self.proxy.putParamset(channel_address, paramset_key, values)
 
-    def set_value(self, *, address: str, parameter: str, value: Any) -> None:
+    def set_value(self, *, channel_address: str, parameter: str, value: Any) -> None:
         """Set parameter value."""
-        self.proxy.setValue(address, parameter, value)
+        self.proxy.setValue(channel_address, parameter, value)
 
 
 class _InteractiveShell(cmd.Cmd):
@@ -339,7 +339,7 @@ class _InteractiveShell(cmd.Cmd):
             # Complete parameter name
             try:
                 address = parts[1]
-                params = self.connection.get_paramset_description(address=address)
+                params = self.connection.get_paramset_description(channel_address=address)
                 return [p for p in params if p.startswith(text.upper())]
             except Exception:
                 return []
@@ -386,7 +386,7 @@ class _InteractiveShell(cmd.Cmd):
         elif len(parts) == 3:
             try:
                 address = parts[1]
-                params = self.connection.get_paramset_description(address=address)
+                params = self.connection.get_paramset_description(channel_address=address)
                 return [p for p in params if p.startswith(text.upper())]
             except Exception:
                 return []
@@ -438,9 +438,9 @@ class _InteractiveShell(cmd.Cmd):
 
         try:
             if paramset_key == "VALUES":
-                result = self.connection.get_value(address=address, parameter=parameter)
+                result = self.connection.get_value(channel_address=address, parameter=parameter)
             else:
-                paramset = self.connection.get_paramset(address=address, paramset_key=paramset_key)
+                paramset = self.connection.get_paramset(channel_address=address, paramset_key=paramset_key)
                 result = paramset.get(parameter, "Parameter not found")
 
             self._print_result(result=result, context={"address": address, "parameter": parameter})
@@ -518,7 +518,9 @@ class _InteractiveShell(cmd.Cmd):
         paramset_key = parts[1] if len(parts) > 1 else "VALUES"
 
         try:
-            params = self.connection.get_paramset_description(address=channel_address, paramset_key=paramset_key)
+            params = self.connection.get_paramset_description(
+                channel_address=channel_address, paramset_key=paramset_key
+            )
 
             headers = ["PARAMETER", "TYPE", "OPERATIONS", "MIN", "MAX", "DEFAULT"]
             rows = []
@@ -576,9 +578,11 @@ class _InteractiveShell(cmd.Cmd):
                 value = value_str.lower() in ("1", "true", "yes", "on")
 
             if paramset_key == "VALUES":
-                self.connection.set_value(address=address, parameter=parameter, value=value)
+                self.connection.set_value(channel_address=address, parameter=parameter, value=value)
             else:
-                self.connection.put_paramset(address=address, paramset_key=paramset_key, values={parameter: value})
+                self.connection.put_paramset(
+                    channel_address=address, paramset_key=paramset_key, values={parameter: value}
+                )
 
             print(f"Set {address}.{parameter} = {value}")
         except Exception as ex:
@@ -734,7 +738,9 @@ def _cmd_list_parameters(
 ) -> int:
     """Handle list-parameters command."""
     try:
-        params = connection.get_paramset_description(address=args.channel_address, paramset_key=args.paramset_key)
+        params = connection.get_paramset_description(
+            channel_address=args.channel_address, paramset_key=args.paramset_key
+        )
 
         headers = ["PARAMETER", "TYPE", "OPERATIONS", "MIN", "MAX", "DEFAULT"]
         rows = []
@@ -795,9 +801,9 @@ def _cmd_get(
     """Handle get command."""
     try:
         if args.paramset_key == ParamsetKey.VALUES:
-            result = connection.get_value(address=args.address, parameter=args.parameter)
+            result = connection.get_value(channel_address=args.address, parameter=args.parameter)
         else:
-            paramset = connection.get_paramset(address=args.address, paramset_key=args.paramset_key)
+            paramset = connection.get_paramset(channel_address=args.address, paramset_key=args.paramset_key)
             if args.parameter not in paramset:
                 print(f"Parameter not found: {args.parameter}", file=sys.stderr)
                 return 1
@@ -830,10 +836,10 @@ def _cmd_set(
             value = bool(int(args.value))
 
         if args.paramset_key == ParamsetKey.VALUES:
-            connection.set_value(address=args.address, parameter=args.parameter, value=value)
+            connection.set_value(channel_address=args.address, parameter=args.parameter, value=value)
         else:
             connection.put_paramset(
-                address=args.address, paramset_key=args.paramset_key, values={args.parameter: value}
+                channel_address=args.address, paramset_key=args.paramset_key, values={args.parameter: value}
             )
     except Exception as ex:
         print(f"Error: {ex}", file=sys.stderr)

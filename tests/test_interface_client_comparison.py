@@ -137,12 +137,14 @@ class _FakeBackend:
             "CHILDREN": [f"{address}:1", f"{address}:2"] if ":" not in address else [],
         }
 
-    async def get_paramset(self, *, address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
-        self.calls.append(("get_paramset", (address, paramset_key)))
+    async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+        self.calls.append(("get_paramset", (channel_address, paramset_key)))
         return {"LEVEL": 0.5}
 
-    async def get_paramset_description(self, *, address: str, paramset_key: ParamsetKey) -> dict[str, Any] | None:
-        self.calls.append(("get_paramset_description", (address, paramset_key)))
+    async def get_paramset_description(
+        self, *, channel_address: str, paramset_key: ParamsetKey
+    ) -> dict[str, Any] | None:
+        self.calls.append(("get_paramset_description", (channel_address, paramset_key)))
         return {
             "LEVEL": {
                 "TYPE": "FLOAT",
@@ -156,8 +158,8 @@ class _FakeBackend:
             },
         }
 
-    async def get_value(self, *, address: str, parameter: str) -> Any:
-        self.calls.append(("get_value", (address, parameter)))
+    async def get_value(self, *, channel_address: str, parameter: str) -> Any:
+        self.calls.append(("get_value", (channel_address, parameter)))
         return 0.5
 
     async def list_devices(self) -> tuple[dict[str, Any], ...] | None:
@@ -166,22 +168,22 @@ class _FakeBackend:
     async def put_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
         rx_mode: Any | None = None,
     ) -> None:
-        self.calls.append(("put_paramset", (address, paramset_key, values, rx_mode)))
+        self.calls.append(("put_paramset", (channel_address, paramset_key, values, rx_mode)))
 
     async def set_value(
         self,
         *,
-        address: str,
+        channel_address: str,
         parameter: str,
         value: Any,
         rx_mode: Any | None = None,
     ) -> None:
-        self.calls.append(("set_value", (address, parameter, value, rx_mode)))
+        self.calls.append(("set_value", (channel_address, parameter, value, rx_mode)))
 
     async def stop(self) -> None:
         pass
@@ -725,8 +727,10 @@ class _SlowBackend(_FakeBackend):
             "CHILDREN": [f"{address}:1", f"{address}:2"] if ":" not in address else [],
         }
 
-    async def get_paramset_description(self, *, address: str, paramset_key: ParamsetKey) -> dict[str, Any] | None:
-        self.calls.append(("get_paramset_description", (address, paramset_key)))
+    async def get_paramset_description(
+        self, *, channel_address: str, paramset_key: ParamsetKey
+    ) -> dict[str, Any] | None:
+        self.calls.append(("get_paramset_description", (channel_address, paramset_key)))
         await asyncio.sleep(0.05)  # Add delay to allow coalescing
         return {
             "LEVEL": {

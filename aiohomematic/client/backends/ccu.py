@@ -273,15 +273,15 @@ class CcuBackend(BaseBackend):
         """Return remaining install mode time."""
         return cast(int, await self._proxy.getInstallMode())
 
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
+    async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return link peers."""
-        return tuple(await self._proxy_read.getLinkPeers(address))
+        return tuple(await self._proxy_read.getLinkPeers(channel_address))
 
-    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
+    async def get_links(self, *, channel_address: str, flags: int) -> dict[str, Any]:
         """Return links."""
         return cast(
             dict[str, Any],
-            await self._proxy_read.getLinks(address, flags),
+            await self._proxy_read.getLinks(channel_address, flags),
         )
 
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
@@ -291,28 +291,28 @@ class CcuBackend(BaseBackend):
             await self._proxy_read.getMetadata(address, data_id),
         )
 
-    async def get_paramset(self, *, address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+    async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
         """Return a paramset."""
         return cast(
             dict[str, Any],
-            await self._proxy_read.getParamset(address, paramset_key),
+            await self._proxy_read.getParamset(channel_address, paramset_key),
         )
 
     async def get_paramset_description(
-        self, *, address: str, paramset_key: ParamsetKey
+        self, *, channel_address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Return paramset description."""
         try:
             return cast(
                 dict[str, ParameterData],
-                await self._proxy_read.getParamsetDescription(address, paramset_key),
+                await self._proxy_read.getParamsetDescription(channel_address, paramset_key),
             )
         except BaseHomematicException as bhexc:
             _LOGGER.debug(
                 "GET_PARAMSET_DESCRIPTION failed: %s [%s] for %s/%s",
                 bhexc.name,
                 extract_exc_args(exc=bhexc),
-                address,
+                channel_address,
                 paramset_key,
             )
             return None
@@ -335,9 +335,9 @@ class CcuBackend(BaseBackend):
         """Return system variable value."""
         return await self._json_rpc.get_system_variable(name=name)
 
-    async def get_value(self, *, address: str, parameter: str) -> Any:
+    async def get_value(self, *, channel_address: str, parameter: str) -> Any:
         """Return a parameter value."""
-        return await self._proxy_read.getValue(address, parameter)
+        return await self._proxy_read.getValue(channel_address, parameter)
 
     async def has_program_ids(self, *, rega_id: int) -> bool:
         """Check if channel has program IDs."""
@@ -370,16 +370,16 @@ class CcuBackend(BaseBackend):
     async def put_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
     ) -> None:
         """Set paramset values."""
         if rx_mode:
-            await self._proxy.putParamset(address, paramset_key, values, rx_mode)
+            await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
         else:
-            await self._proxy.putParamset(address, paramset_key, values)
+            await self._proxy.putParamset(channel_address, paramset_key, values)
 
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Remove a link."""
@@ -393,9 +393,9 @@ class CcuBackend(BaseBackend):
         """Rename a device."""
         return await self._json_rpc.rename_device(rega_id=rega_id, new_name=new_name)
 
-    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
+    async def report_value_usage(self, *, channel_address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage to the backend."""
-        return bool(await self._proxy.reportValueUsage(address, value_id, ref_counter))
+        return bool(await self._proxy.reportValueUsage(channel_address, value_id, ref_counter))
 
     def reset_circuit_breakers(self) -> None:
         """Reset all circuit breakers to closed state."""
@@ -436,16 +436,16 @@ class CcuBackend(BaseBackend):
     async def set_value(
         self,
         *,
-        address: str,
+        channel_address: str,
         parameter: str,
         value: Any,
         rx_mode: CommandRxMode | None = None,
     ) -> None:
         """Set a parameter value."""
         if rx_mode:
-            await self._proxy.setValue(address, parameter, value, rx_mode)
+            await self._proxy.setValue(channel_address, parameter, value, rx_mode)
         else:
-            await self._proxy.setValue(address, parameter, value)
+            await self._proxy.setValue(channel_address, parameter, value)
 
     async def stop(self) -> None:
         """Stop the backend and release resources."""

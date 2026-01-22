@@ -426,7 +426,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                     i18n.tr(key="exception.client.xmlrpc.circuit_open", interface_id=self._interface_id)
                 )
 
-            if method in _CIRCUIT_BREAKER_BYPASS_METHODS or not self._connection_state.has_issue(
+            if method in _CIRCUIT_BREAKER_BYPASS_METHODS or not self._connection_state.is_issue(
                 issuer=self, iid=self._interface_id
             ):
                 args = _cleanup_args(*args)
@@ -532,7 +532,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             )
             raise ClientException(terr) from terr
         except xmlrpc.client.ProtocolError as perr:
-            if not self._connection_state.has_issue(issuer=self, iid=self._interface_id):
+            if not self._connection_state.is_issue(issuer=self, iid=self._interface_id):
                 self._record_rpc_error_incident(
                     method=str(args[0]),
                     error_type="ProtocolError",

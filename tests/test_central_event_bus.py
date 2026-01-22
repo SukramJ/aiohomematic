@@ -768,6 +768,727 @@ class TestEventBusConcurrency:
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == subscriber_count
 
 
+class TestEventBusPriority:
+    """Test handler priority ordering in EventBus."""
+
+    @pytest.mark.asyncio
+    async def test_priority_critical_runs_first(self) -> None:
+        """CRITICAL priority handlers should run before all others."""
+        from aiohomematic.central.events import EventPriority
+
+        bus = EventBus(task_scheduler=Looper())
+        execution_order: list[str] = []
+
+        def critical_handler(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("critical")
+
+        def normal_handler(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("normal")
+
+        # Subscribe normal first, then critical
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=normal_handler,
+            priority=EventPriority.NORMAL,
+        )
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=critical_handler,
+            priority=EventPriority.CRITICAL,
+        )
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+        await bus.publish(event=event)
+
+        # Critical should have been called first
+        assert execution_order == ["critical", "normal"]
+
+    @pytest.mark.asyncio
+    async def test_priority_full_ordering(self) -> None:
+        """All priority levels should be correctly ordered."""
+        from aiohomematic.central.events import EventPriority
+
+        bus = EventBus(task_scheduler=Looper())
+        execution_order: list[str] = []
+
+        def make_handler(name: str) -> Callable[[DeviceLifecycleEvent], None]:
+            def handler(event: DeviceLifecycleEvent) -> None:
+                execution_order.append(name)
+
+            return handler
+
+        # Subscribe in random order
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=make_handler("normal"),
+            priority=EventPriority.NORMAL,
+        )
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=make_handler("low"),
+            priority=EventPriority.LOW,
+        )
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=make_handler("critical"),
+            priority=EventPriority.CRITICAL,
+        )
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=make_handler("high"),
+            priority=EventPriority.HIGH,
+        )
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+        await bus.publish(event=event)
+
+        # CRITICAL > HIGH > NORMAL > LOW
+        assert execution_order == ["critical", "high", "normal", "low"]
+
+    @pytest.mark.asyncio
+    async def test_priority_high_runs_before_normal(self) -> None:
+        """HIGH priority handlers should run before NORMAL."""
+        from aiohomematic.central.events import EventPriority
+
+        bus = EventBus(task_scheduler=Looper())
+        execution_order: list[str] = []
+
+        def high_handler(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("high")
+
+        def normal_handler(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("normal")
+
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=normal_handler,
+            priority=EventPriority.NORMAL,
+        )
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=high_handler,
+            priority=EventPriority.HIGH,
+        )
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+        await bus.publish(event=event)
+
+        assert execution_order == ["high", "normal"]
+
+    @pytest.mark.asyncio
+    async def test_priority_low_runs_last(self) -> None:
+        """LOW priority handlers should run after all others."""
+        from aiohomematic.central.events import EventPriority
+
+        bus = EventBus(task_scheduler=Looper())
+        execution_order: list[str] = []
+
+        def low_handler(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("low")
+
+        def normal_handler(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("normal")
+
+        # Subscribe low first
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=low_handler,
+            priority=EventPriority.LOW,
+        )
+        bus.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=normal_handler,
+            priority=EventPriority.NORMAL,
+        )
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+        await bus.publish(event=event)
+
+        assert execution_order == ["normal", "low"]
+
+    @pytest.mark.asyncio
+    async def test_same_priority_maintains_subscription_order(self) -> None:
+        """Handlers with same priority should maintain subscription order (FIFO)."""
+        bus = EventBus(task_scheduler=Looper())
+        execution_order: list[str] = []
+
+        def handler1(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("first")
+
+        def handler2(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("second")
+
+        def handler3(event: DeviceLifecycleEvent) -> None:
+            execution_order.append("third")
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler1)
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler2)
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler3)
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+        await bus.publish(event=event)
+
+        assert execution_order == ["first", "second", "third"]
+
+
+class TestHandlerStats:
+    """Test HandlerStats tracking in EventBus."""
+
+    @pytest.mark.asyncio
+    async def test_handler_stats_avg_duration(self) -> None:
+        """HandlerStats should calculate average duration correctly."""
+        bus = EventBus(task_scheduler=Looper())
+
+        async def handler(event: DeviceLifecycleEvent) -> None:
+            await asyncio.sleep(0.01)  # 10ms
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler)
+
+        for _ in range(3):
+            event = DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+            await bus.publish(event=event)
+
+        stats = bus.get_handler_stats()
+        # Average should be roughly total_duration / total_executions
+        expected_avg = stats.total_duration_ms / stats.total_executions
+        assert abs(stats.avg_duration_ms - expected_avg) < 0.001
+
+    @pytest.mark.asyncio
+    async def test_handler_stats_initial_values(self) -> None:
+        """HandlerStats should start with zero values."""
+        bus = EventBus(task_scheduler=Looper())
+        stats = bus.get_handler_stats()
+
+        assert stats.total_executions == 0
+        assert stats.total_errors == 0
+        assert stats.total_duration_ms == 0.0
+        assert stats.max_duration_ms == 0.0
+        assert stats.avg_duration_ms == 0.0
+
+    @pytest.mark.asyncio
+    async def test_handler_stats_max_duration(self) -> None:
+        """HandlerStats should track maximum duration."""
+        bus = EventBus(task_scheduler=Looper())
+
+        durations = [0.01, 0.05, 0.02]  # 10ms, 50ms, 20ms
+        call_index = [0]
+
+        async def variable_handler(event: DeviceLifecycleEvent) -> None:
+            await asyncio.sleep(durations[call_index[0]])
+            call_index[0] += 1
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=variable_handler)
+
+        for _ in range(3):
+            event = DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+            await bus.publish(event=event)
+
+        stats = bus.get_handler_stats()
+        assert stats.max_duration_ms >= 50.0  # Should be from the 50ms call
+
+    def test_handler_stats_reset(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """HandlerStats reset should clear all values."""
+        from aiohomematic.central.events import HandlerStats
+
+        stats = HandlerStats()
+        stats.total_executions = 100
+        stats.total_errors = 10
+        stats.total_duration_ms = 5000.0
+        stats.max_duration_ms = 200.0
+
+        stats.reset()
+
+        assert stats.total_executions == 0
+        assert stats.total_errors == 0
+        assert stats.total_duration_ms == 0.0
+        assert stats.max_duration_ms == 0.0
+
+    @pytest.mark.asyncio
+    async def test_handler_stats_tracks_duration(self) -> None:
+        """HandlerStats should track execution duration."""
+        bus = EventBus(task_scheduler=Looper())
+
+        async def slow_handler(event: DeviceLifecycleEvent) -> None:
+            await asyncio.sleep(0.05)  # 50ms
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=slow_handler)
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+        await bus.publish(event=event)
+
+        stats = bus.get_handler_stats()
+        assert stats.total_duration_ms >= 50.0  # At least 50ms
+        assert stats.max_duration_ms >= 50.0
+        assert stats.avg_duration_ms >= 50.0
+
+    @pytest.mark.asyncio
+    async def test_handler_stats_tracks_errors(self) -> None:
+        """HandlerStats should track handler errors."""
+        bus = EventBus(task_scheduler=Looper())
+
+        def failing_handler(event: DeviceLifecycleEvent) -> None:
+            raise ValueError("Test error")
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=failing_handler)
+
+        for _ in range(3):
+            event = DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+            await bus.publish(event=event)
+
+        stats = bus.get_handler_stats()
+        assert stats.total_executions == 3
+        assert stats.total_errors == 3
+
+    @pytest.mark.asyncio
+    async def test_handler_stats_tracks_executions(self) -> None:
+        """HandlerStats should track total executions."""
+        bus = EventBus(task_scheduler=Looper())
+
+        def handler(event: DeviceLifecycleEvent) -> None:
+            pass
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler)
+
+        for _ in range(5):
+            event = DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+            await bus.publish(event=event)
+
+        stats = bus.get_handler_stats()
+        assert stats.total_executions == 5
+
+
+class TestEventBatch:
+    """Test EventBatch for batch publishing."""
+
+    @pytest.mark.asyncio
+    async def test_batch_add_after_flush_raises(self) -> None:
+        """Adding events after flush should raise RuntimeError."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        batch = EventBatch(bus=bus)
+
+        await batch.flush()
+
+        with pytest.raises(RuntimeError, match="Cannot add events to a flushed batch"):
+            batch.add(
+                event=DeviceLifecycleEvent(
+                    timestamp=datetime.now(),
+                    event_type=DeviceLifecycleEventType.CREATED,
+                    device_addresses=("VCU0000001",),
+                )
+            )
+
+    @pytest.mark.asyncio
+    async def test_batch_add_all(self) -> None:
+        """EventBatch add_all should add multiple events."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        received_events: list[DeviceLifecycleEvent] = []
+
+        def handler(event: DeviceLifecycleEvent) -> None:
+            received_events.append(event)
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler)
+
+        events = [
+            DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=(f"VCU000000{i}",),
+            )
+            for i in range(5)
+        ]
+
+        batch = EventBatch(bus=bus)
+        batch.add_all(events=events)
+        assert batch.event_count == 5
+
+        await batch.flush()
+        assert len(received_events) == 5
+
+    @pytest.mark.asyncio
+    async def test_batch_add_all_after_flush_raises(self) -> None:
+        """Adding events with add_all after flush should raise RuntimeError."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        batch = EventBatch(bus=bus)
+        await batch.flush()
+
+        events = [
+            DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+        ]
+
+        with pytest.raises(RuntimeError, match="Cannot add events to a flushed batch"):
+            batch.add_all(events=events)
+
+    @pytest.mark.asyncio
+    async def test_batch_context_manager(self) -> None:
+        """EventBatch should work as async context manager."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        received_events: list[DeviceLifecycleEvent] = []
+
+        def handler(event: DeviceLifecycleEvent) -> None:
+            received_events.append(event)
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler)
+
+        async with EventBatch(bus=bus) as batch:
+            batch.add(
+                event=DeviceLifecycleEvent(
+                    timestamp=datetime.now(),
+                    event_type=DeviceLifecycleEventType.CREATED,
+                    device_addresses=("VCU0000001",),
+                )
+            )
+            batch.add(
+                event=DeviceLifecycleEvent(
+                    timestamp=datetime.now(),
+                    event_type=DeviceLifecycleEventType.CREATED,
+                    device_addresses=("VCU0000002",),
+                )
+            )
+
+        # Events should be published after context exits
+        assert len(received_events) == 2
+
+    @pytest.mark.asyncio
+    async def test_batch_double_flush(self) -> None:
+        """Double flush should be safe and return 0 on second call."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        batch = EventBatch(bus=bus)
+
+        batch.add(
+            event=DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+        )
+
+        count1 = await batch.flush()
+        count2 = await batch.flush()
+
+        assert count1 == 1
+        assert count2 == 0
+
+    @pytest.mark.asyncio
+    async def test_batch_event_count(self) -> None:
+        """EventBatch should track event count."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        batch = EventBatch(bus=bus)
+
+        assert batch.event_count == 0
+
+        batch.add(
+            event=DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+        )
+        assert batch.event_count == 1
+
+        batch.add(
+            event=DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000002",),
+            )
+        )
+        assert batch.event_count == 2
+
+    @pytest.mark.asyncio
+    async def test_batch_flush_empty(self) -> None:
+        """Flushing empty batch should return 0."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        batch = EventBatch(bus=bus)
+
+        count = await batch.flush()
+        assert count == 0
+        assert batch.is_flushed is True
+
+    @pytest.mark.asyncio
+    async def test_batch_flush_returns_count(self) -> None:
+        """EventBatch flush should return number of events published."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        batch = EventBatch(bus=bus)
+
+        batch.add(
+            event=DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+        )
+        batch.add(
+            event=DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000002",),
+            )
+        )
+
+        count = await batch.flush()
+        assert count == 2
+
+    @pytest.mark.asyncio
+    async def test_batch_is_flushed(self) -> None:
+        """EventBatch should track flushed state."""
+        from aiohomematic.central.events import EventBatch
+
+        bus = EventBus(task_scheduler=Looper())
+        batch = EventBatch(bus=bus)
+
+        assert batch.is_flushed is False
+
+        batch.add(
+            event=DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=("VCU0000001",),
+            )
+        )
+        await batch.flush()
+
+        assert batch.is_flushed is True
+
+
+class TestEventBusAdditionalMethods:
+    """Test additional EventBus methods."""
+
+    def test_clear_event_stats(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """clear_event_stats should reset all statistics."""
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
+
+        # Manually set some stats
+        bus._event_count[DataPointValueReceivedEvent] = 100
+
+        bus.clear_event_stats()
+
+        assert bus.get_event_stats() == {}
+
+    def test_clear_external_subscriptions(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """clear_external_subscriptions should clear external event types."""
+        from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent
+
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
+
+        def handler1(event: DataPointStateChangedEvent) -> None:
+            pass
+
+        def handler2(event: DeviceRemovedEvent) -> None:
+            pass
+
+        bus.subscribe(event_type=DataPointStateChangedEvent, event_key="dp_1", handler=handler1)
+        bus.subscribe(event_type=DeviceRemovedEvent, event_key="device_1", handler=handler2)
+
+        cleared = bus.clear_external_subscriptions()
+        assert cleared == 2
+        assert bus.get_subscription_count(event_type=DataPointStateChangedEvent) == 0
+        assert bus.get_subscription_count(event_type=DeviceRemovedEvent) == 0
+
+    def test_clear_subscriptions_by_key(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """clear_subscriptions_by_key should remove all handlers for a key."""
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
+
+        def handler1(event: DataPointValueReceivedEvent) -> None:
+            pass
+
+        def handler2(event: DataPointValueReceivedEvent) -> None:
+            pass
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk, handler=handler1)
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk, handler=handler2)
+
+        assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 2
+
+        removed = bus.clear_subscriptions_by_key(event_key=dpk)
+
+        assert removed == 2
+        assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
+
+    def test_clear_subscriptions_by_key_nonexistent(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """clear_subscriptions_by_key should return 0 for nonexistent key."""
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
+
+        removed = bus.clear_subscriptions_by_key(event_key="nonexistent")
+        assert removed == 0
+
+    def test_get_total_subscription_count(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """get_total_subscription_count should return total across all types."""
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
+
+        def handler1(event: DataPointValueReceivedEvent) -> None:
+            pass
+
+        def handler2(event: DeviceLifecycleEvent) -> None:
+            pass
+
+        def handler3(event: SysvarStateChangedEvent) -> None:
+            pass
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk, handler=handler1)
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler2)
+        bus.subscribe(event_type=SysvarStateChangedEvent, event_key="sv_123", handler=handler3)
+
+        assert bus.get_total_subscription_count() == 3
+
+    def test_log_leaked_subscriptions_no_leaks(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """log_leaked_subscriptions should return 0 when no subscriptions."""
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
+
+        leaked = bus.log_leaked_subscriptions()
+        assert leaked == 0
+
+    def test_log_leaked_subscriptions_with_leaks(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
+        """log_leaked_subscriptions should return count of leaked subscriptions."""
+        bus = EventBus(task_scheduler=no_op_task_scheduler)
+
+        def handler(event: DeviceLifecycleEvent) -> None:
+            pass
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler)
+
+        leaked = bus.log_leaked_subscriptions()
+        assert leaked == 1
+
+    @pytest.mark.asyncio
+    async def test_publish_batch_empty(self) -> None:
+        """publish_batch with empty list should not error."""
+        bus = EventBus(task_scheduler=Looper())
+
+        # Should not raise
+        await bus.publish_batch(events=[])
+
+    @pytest.mark.asyncio
+    async def test_publish_batch_method(self) -> None:
+        """publish_batch should efficiently publish multiple events."""
+        bus = EventBus(task_scheduler=Looper())
+        received_events: list[DeviceLifecycleEvent] = []
+
+        def handler(event: DeviceLifecycleEvent) -> None:
+            received_events.append(event)
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler)
+
+        events = [
+            DeviceLifecycleEvent(
+                timestamp=datetime.now(),
+                event_type=DeviceLifecycleEventType.CREATED,
+                device_addresses=(f"VCU000000{i}",),
+            )
+            for i in range(10)
+        ]
+
+        await bus.publish_batch(events=events)
+
+        assert len(received_events) == 10
+
+    @pytest.mark.asyncio
+    async def test_publish_sync(self) -> None:
+        """publish_sync should schedule event for async publishing."""
+        bus = EventBus(task_scheduler=Looper())
+        received_events: list[DeviceLifecycleEvent] = []
+
+        def handler(event: DeviceLifecycleEvent) -> None:
+            received_events.append(event)
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler)
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+
+        # publish_sync schedules the event - need to let event loop process it
+        bus.publish_sync(event=event)
+
+        # Give the event loop time to process
+        await asyncio.sleep(0.05)
+
+        assert len(received_events) == 1
+
+
 class TestEventBusIntegration:
     """Integration tests for EventBus with multiple event types."""
 

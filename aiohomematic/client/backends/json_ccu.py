@@ -122,19 +122,19 @@ class JsonCcuBackend(BaseBackend):
             )
             return None
 
-    async def get_paramset(self, *, address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+    async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
         """Return a paramset via JSON-RPC."""
         return (
             await self._json_rpc.get_paramset(
                 interface=self._interface,
-                address=address,
+                address=channel_address,
                 paramset_key=paramset_key,
             )
             or {}
         )
 
     async def get_paramset_description(
-        self, *, address: str, paramset_key: ParamsetKey
+        self, *, channel_address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Return paramset description via JSON-RPC."""
         try:
@@ -142,7 +142,7 @@ class JsonCcuBackend(BaseBackend):
                 dict[str, ParameterData],
                 await self._json_rpc.get_paramset_description(
                     interface=self._interface,
-                    address=address,
+                    address=channel_address,
                     paramset_key=paramset_key,
                 ),
             )
@@ -151,16 +151,16 @@ class JsonCcuBackend(BaseBackend):
                 "GET_PARAMSET_DESCRIPTION failed: %s [%s] for %s/%s",
                 bhexc.name,
                 extract_exc_args(exc=bhexc),
-                address,
+                channel_address,
                 paramset_key,
             )
             return None
 
-    async def get_value(self, *, address: str, parameter: str) -> Any:
+    async def get_value(self, *, channel_address: str, parameter: str) -> Any:
         """Return a parameter value via JSON-RPC."""
         return await self._json_rpc.get_value(
             interface=self._interface,
-            address=address,
+            address=channel_address,
             paramset_key=ParamsetKey.VALUES,
             parameter=parameter,
         )
@@ -191,7 +191,7 @@ class JsonCcuBackend(BaseBackend):
     async def put_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
@@ -199,7 +199,7 @@ class JsonCcuBackend(BaseBackend):
         """Set paramset values via JSON-RPC (one value at a time)."""
         for parameter, value in values.items():
             await self.set_value(
-                address=address,
+                channel_address=channel_address,
                 parameter=parameter,
                 value=value,
                 rx_mode=rx_mode,
@@ -212,17 +212,17 @@ class JsonCcuBackend(BaseBackend):
     async def set_value(
         self,
         *,
-        address: str,
+        channel_address: str,
         parameter: str,
         value: Any,
         rx_mode: CommandRxMode | None = None,
     ) -> None:
         """Set a parameter value via JSON-RPC."""
-        if (value_type := self._get_parameter_type(address=address, parameter=parameter)) is None:
+        if (value_type := self._get_parameter_type(address=channel_address, parameter=parameter)) is None:
             raise ClientException(
                 i18n.tr(
                     key="exception.client.json_ccu.set_value.unknown_type",
-                    channel_address=address,
+                    channel_address=channel_address,
                     paramset_key=ParamsetKey.VALUES,
                     parameter=parameter,
                 )
@@ -231,7 +231,7 @@ class JsonCcuBackend(BaseBackend):
         json_type = _CCU_JSON_VALUE_TYPE.get(value_type, "string")
         await self._json_rpc.set_value(
             interface=self._interface,
-            address=address,
+            address=channel_address,
             parameter=parameter,
             value_type=json_type,
             value=value,

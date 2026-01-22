@@ -190,11 +190,11 @@ class BaseBackend(ABC):
         """Return install mode time (unsupported by default)."""
         return 0
 
-    async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
+    async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return link peers (unsupported by default)."""
         return ()
 
-    async def get_links(self, *, address: str, flags: int) -> dict[str, Any]:
+    async def get_links(self, *, channel_address: str, flags: int) -> dict[str, Any]:
         """Return links (unsupported by default)."""
         return {}
 
@@ -203,13 +203,13 @@ class BaseBackend(ABC):
         return {}
 
     @abstractmethod
-    async def get_paramset(self, *, address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+    async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
         """Return paramset."""
         ...
 
     @abstractmethod
     async def get_paramset_description(
-        self, *, address: str, paramset_key: ParamsetKey
+        self, *, channel_address: str, paramset_key: ParamsetKey
     ) -> dict[str, ParameterData] | None:
         """Return paramset description."""
         ...
@@ -233,7 +233,7 @@ class BaseBackend(ABC):
         return None
 
     @abstractmethod
-    async def get_value(self, *, address: str, parameter: str) -> Any:
+    async def get_value(self, *, channel_address: str, parameter: str) -> Any:
         """Return parameter value."""
         ...
 
@@ -260,7 +260,7 @@ class BaseBackend(ABC):
     async def put_paramset(
         self,
         *,
-        address: str,
+        channel_address: str,
         paramset_key: ParamsetKey | str,
         values: dict[str, Any],
         rx_mode: CommandRxMode | None = None,
@@ -279,7 +279,7 @@ class BaseBackend(ABC):
         """Rename device (unsupported by default)."""
         return False
 
-    async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
+    async def report_value_usage(self, *, channel_address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage (unsupported by default)."""
         return False
 
@@ -313,7 +313,7 @@ class BaseBackend(ABC):
     async def set_value(
         self,
         *,
-        address: str,
+        channel_address: str,
         parameter: str,
         value: Any,
         rx_mode: CommandRxMode | None = None,

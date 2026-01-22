@@ -10,25 +10,27 @@ capabilities without coupling to the full implementation.
 Protocol Hierarchy
 ------------------
 
-Channel protocols (ChannelProtocol composed of):
+Channel protocols (ChannelProtocol composed of consolidated sub-protocols):
 - ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, rega_id)
 - ChannelDataPointAccessProtocol: DataPoint and event access methods
-- ChannelGroupingProtocol: Channel group management (group_master, group_no, link_peer_channels)
-- ChannelMetadataProtocol: Additional metadata (device, function, room, paramset_descriptions)
-- ChannelLinkManagementProtocol: Central link operations
-- ChannelLifecycleProtocol: Lifecycle methods (finalize_init, on_config_changed, remove)
+- ChannelMetadataAndGroupingProtocol: Combined (Metadata + Grouping)
+- ChannelManagementProtocol: Combined (LinkManagement + Lifecycle)
 
-Device protocols (DeviceProtocol composed of):
+Individual channel sub-protocols (for fine-grained dependencies):
+- ChannelGroupingProtocol, ChannelMetadataProtocol
+- ChannelLinkManagementProtocol, ChannelLifecycleProtocol
+
+Device protocols (DeviceProtocol composed of consolidated sub-protocols):
 - DeviceIdentityProtocol: Basic identification (address, name, model, manufacturer, interface)
 - DeviceChannelAccessProtocol: Channel and DataPoint access methods
-- DeviceAvailabilityProtocol: Availability state management
-- DeviceFirmwareProtocol: Firmware information and update operations
-- DeviceLinkManagementProtocol: Central link operations
-- DeviceGroupManagementProtocol: Channel group management
+- DeviceStateProtocol: Combined (Availability + Firmware + WeekProfile)
+- DeviceOperationsProtocol: Combined (LinkManagement + GroupManagement + Lifecycle)
 - DeviceConfigurationProtocol: Device configuration and metadata
-- DeviceWeekProfileProtocol: Week profile support
 - DeviceProvidersProtocol: Protocol interface providers
-- DeviceLifecycleProtocol: Lifecycle methods
+
+Individual sub-protocols (for fine-grained dependencies):
+- DeviceAvailabilityProtocol, DeviceFirmwareProtocol, DeviceWeekProfileProtocol
+- DeviceLinkManagementProtocol, DeviceGroupManagementProtocol, DeviceLifecycleProtocol
 """
 
 from __future__ import annotations
@@ -1400,6 +1402,49 @@ class ChannelLifecycleProtocol(Protocol):
 
 
 # =============================================================================
+# Channel Combined Sub-Protocol Interfaces
+# =============================================================================
+
+
+@runtime_checkable
+class ChannelMetadataAndGroupingProtocol(
+    ChannelMetadataProtocol,
+    ChannelGroupingProtocol,
+    Protocol,
+):
+    """
+    Combined protocol for channel metadata and grouping.
+
+    Merges: ChannelMetadataProtocol + ChannelGroupingProtocol
+
+    Provides access to:
+    - Metadata (device, function, room, paramset_descriptions, operation_mode)
+    - Grouping (group_master, group_no, is_in_multi_group, link_peer_channels)
+    """
+
+    __slots__ = ()
+
+
+@runtime_checkable
+class ChannelManagementProtocol(
+    ChannelLinkManagementProtocol,
+    ChannelLifecycleProtocol,
+    Protocol,
+):
+    """
+    Combined protocol for channel management operations.
+
+    Merges: ChannelLinkManagementProtocol + ChannelLifecycleProtocol
+
+    Provides access to:
+    - Central link operations (create/remove central link)
+    - Lifecycle methods (finalize_init, on_config_changed, remove)
+    """
+
+    __slots__ = ()
+
+
+# =============================================================================
 # Channel Composite Protocol Interface
 # =============================================================================
 
@@ -1408,10 +1453,8 @@ class ChannelLifecycleProtocol(Protocol):
 class ChannelProtocol(
     ChannelIdentityProtocol,
     ChannelDataPointAccessProtocol,
-    ChannelGroupingProtocol,
-    ChannelMetadataProtocol,
-    ChannelLinkManagementProtocol,
-    ChannelLifecycleProtocol,
+    ChannelMetadataAndGroupingProtocol,
+    ChannelManagementProtocol,
     Protocol,
 ):
     """
@@ -1420,13 +1463,11 @@ class ChannelProtocol(
     Combines all channel sub-protocols into a single interface.
     Implemented by Channel.
 
-    Sub-protocols:
+    Sub-protocols (consolidated):
     - ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, rega_id)
     - ChannelDataPointAccessProtocol: DataPoint and event access methods
-    - ChannelGroupingProtocol: Channel group management (group_master, group_no, link_peer_channels)
-    - ChannelMetadataProtocol: Additional metadata (device, function, room, paramset_descriptions)
-    - ChannelLinkManagementProtocol: Central link operations
-    - ChannelLifecycleProtocol: Lifecycle methods (finalize_init, on_config_changed, remove)
+    - ChannelMetadataAndGroupingProtocol: Combined (Metadata + Grouping)
+    - ChannelManagementProtocol: Combined (LinkManagement + Lifecycle)
     """
 
     __slots__ = ()
@@ -1920,6 +1961,48 @@ class DeviceRemovalInfoProtocol(DeviceIdentityProtocol, DeviceChannelAccessProto
     __slots__ = ()
 
 
+@runtime_checkable
+class DeviceStateProtocol(
+    DeviceAvailabilityProtocol,
+    DeviceFirmwareProtocol,
+    DeviceWeekProfileProtocol,
+    Protocol,
+):
+    """
+    Combined protocol for device state information.
+
+    Merges: DeviceAvailabilityProtocol + DeviceFirmwareProtocol + DeviceWeekProfileProtocol
+
+    Provides access to:
+    - Availability state (available, config_pending, forced availability)
+    - Firmware information (version, updatable, update state)
+    - Week profile support (schedule access)
+    """
+
+    __slots__ = ()
+
+
+@runtime_checkable
+class DeviceOperationsProtocol(
+    DeviceLinkManagementProtocol,
+    DeviceGroupManagementProtocol,
+    DeviceLifecycleProtocol,
+    Protocol,
+):
+    """
+    Combined protocol for device management operations.
+
+    Merges: DeviceLinkManagementProtocol + DeviceGroupManagementProtocol + DeviceLifecycleProtocol
+
+    Provides access to:
+    - Central link management (create/remove links, link peers)
+    - Channel group management (add to group, get group number)
+    - Lifecycle operations (init, config change, remove)
+    """
+
+    __slots__ = ()
+
+
 # =============================================================================
 # Device Composite Protocol Interface
 # =============================================================================
@@ -1929,14 +2012,10 @@ class DeviceRemovalInfoProtocol(DeviceIdentityProtocol, DeviceChannelAccessProto
 class DeviceProtocol(
     DeviceIdentityProtocol,
     DeviceChannelAccessProtocol,
-    DeviceAvailabilityProtocol,
-    DeviceFirmwareProtocol,
-    DeviceLinkManagementProtocol,
-    DeviceGroupManagementProtocol,
+    DeviceStateProtocol,
+    DeviceOperationsProtocol,
     DeviceConfigurationProtocol,
-    DeviceWeekProfileProtocol,
     DeviceProvidersProtocol,
-    DeviceLifecycleProtocol,
     Protocol,
 ):
     """
@@ -1945,17 +2024,13 @@ class DeviceProtocol(
     Combines all device sub-protocols into a single interface.
     Implemented by Device.
 
-    Sub-protocols:
+    Sub-protocols (consolidated):
     - DeviceIdentityProtocol: Basic identification (address, name, model, manufacturer, interface)
     - DeviceChannelAccessProtocol: Channel and DataPoint access methods
-    - DeviceAvailabilityProtocol: Availability state management
-    - DeviceFirmwareProtocol: Firmware information and update operations
-    - DeviceLinkManagementProtocol: Central link operations
-    - DeviceGroupManagementProtocol: Channel group management
+    - DeviceStateProtocol: Combines Availability + Firmware + WeekProfile
+    - DeviceOperationsProtocol: Combines LinkManagement + GroupManagement + Lifecycle
     - DeviceConfigurationProtocol: Device configuration and metadata
-    - DeviceWeekProfileProtocol: Week profile support
     - DeviceProvidersProtocol: Protocol interface providers
-    - DeviceLifecycleProtocol: Lifecycle methods
     """
 
     __slots__ = ()

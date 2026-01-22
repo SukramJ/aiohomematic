@@ -59,7 +59,9 @@ class TestPackageImport:
             # Execute package __init__ in a fresh namespace to avoid polluting global state
             runpy.run_module("aiohomematic.__init__", init_globals={}, run_name="__init__")
 
-        assert "startup validation failed" in str(err.value).lower()
+        error_msg = str(err.value).lower()
+        # Accept either the translated message or the i18n key (fallback when translation not loaded)
+        assert "startup validation failed" in error_msg or "validation_failed" in error_msg
 
     def test_init_sets_version_and_allows_non_tty_import(self, reload_pkg):
         """Import on non-TTY should still set __version__ and __all__."""

@@ -559,8 +559,8 @@ class TestDeviceChannelOperations:
         # Spy for report_value_usage
         reported: list[tuple[str, int]] = []
 
-        async def report_value_usage(*, address: str, value_id: str, ref_counter: int) -> None:
-            reported.append((address, ref_counter))
+        async def report_value_usage(*, channel_address: str, value_id: str, ref_counter: int) -> None:
+            reported.append((channel_address, ref_counter))
 
         monkeypatch.setattr(client, "report_value_usage", report_value_usage)
 

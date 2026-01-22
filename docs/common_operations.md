@@ -66,7 +66,7 @@ elif central.central_state == CentralState.FAILED:
     print("❌ System failed - max retries reached")
 
 # Check connection health per interface
-if central.connection_state.has_any_issue:
+if central.connection_state.is_any_issue:
     print(f"Connection issues: {central.connection_state.issue_count}")
 
 # Subscribe to device state changes
@@ -496,7 +496,7 @@ await central.update_device_firmware(device_address="VCU0000001")
 
 ```python
 # Get link peers for a device
-peers = await central.get_link_peers(address="VCU0000001:1")
+peers = await central.get_link_peers(channel_address="VCU0000001:1")
 for peer in peers:
     print(f"Linked to: {peer}")
 

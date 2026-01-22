@@ -217,7 +217,7 @@ class TestHomematicAPIOperations:
         central.device_coordinator = MagicMock()
         central.device_coordinator.get_device = MagicMock(return_value=None)
         central.device_registry.devices = []
-        central.connection_state.has_any_issue = False
+        central.connection_state.is_any_issue = False
         return central
 
     def test_get_device(self, api_with_mock_central: HomematicAPI, mock_central: MagicMock) -> None:
@@ -238,7 +238,7 @@ class TestHomematicAPIOperations:
 
     def test_is_connected_false_with_issues(self, api_with_mock_central: HomematicAPI, mock_central: MagicMock) -> None:
         """Test is_connected returns False when connection issues exist."""
-        mock_central.connection_state.has_any_issue = True
+        mock_central.connection_state.is_any_issue = True
 
         assert api_with_mock_central.is_connected is False
 

@@ -297,20 +297,6 @@ class CentralInfoProtocol(Protocol):
 
 
 @runtime_checkable
-class CentralUnitStateProviderProtocol(Protocol):
-    """
-    Protocol for accessing central unit state.
-
-    Implemented by CentralUnit.
-    """
-
-    @property
-    @abstractmethod
-    def state(self) -> CentralState:
-        """Get current central state."""
-
-
-@runtime_checkable
 class ConfigProviderProtocol(Protocol):
     """
     Protocol for accessing configuration.
@@ -933,20 +919,6 @@ class HealthTrackerProtocol(Protocol):
 
 
 @runtime_checkable
-class HealthProviderProtocol(Protocol):
-    """
-    Protocol for accessing the health tracker.
-
-    Implemented by CentralUnit.
-    """
-
-    @property
-    @abstractmethod
-    def health_tracker(self) -> HealthTrackerProtocol:
-        """Return the health tracker."""
-
-
-@runtime_checkable
 class MetricsProviderProtocol(Protocol):
     """
     Protocol for accessing the metrics observer.
@@ -982,7 +954,6 @@ class CentralProtocol(
     # From interfaces/central.py (this module)
     BackupProviderProtocol,
     CentralInfoProtocol,
-    CentralUnitStateProviderProtocol,
     ConfigProviderProtocol,
     DataPointProviderProtocol,
     DeviceDataRefresherProtocol,
@@ -1010,8 +981,7 @@ class CentralProtocol(
     Sub-protocols are organized into categories:
 
     **Identity & Configuration:**
-        - CentralInfoProtocol: Central system identification
-        - CentralUnitStateProviderProtocol: Central unit lifecycle state
+        - CentralInfoProtocol: Central system identification (includes state)
         - ConfigProviderProtocol: Configuration access
         - SystemInfoProviderProtocol: Backend system information
 

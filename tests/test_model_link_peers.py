@@ -46,7 +46,7 @@ class TestChannelLinkPeers:
             (f"{device.address}:2", f"{device.address}:3"),
         ]
 
-        async def _fake_get_link_peers(*, address: str):
+        async def _fake_get_link_peers(*, channel_address: str):
             # Pop from the sequence until exhausted; then keep returning last
             if seq:
                 return seq.pop(0)
@@ -112,7 +112,7 @@ class TestChannelLinkPeers:
         # Prepare a deterministic get_link_peers implementation
         peer_addr_single = f"{device.address}:2"
 
-        async def _fake_get_link_peers(*, address: str):
+        async def _fake_get_link_peers(*, channel_address: str):
             return (peer_addr_single,)
 
         monkeypatch.setattr(client, "get_link_peers", _fake_get_link_peers, raising=False)

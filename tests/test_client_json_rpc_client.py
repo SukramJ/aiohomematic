@@ -6,16 +6,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
-import json
-from json import JSONDecodeError
 from typing import Any
 
 from aiohttp import ClientConnectorCertificateError, ClientSession, ContentTypeError
 from aiohttp.client_exceptions import ClientConnectorError, ClientError
-import orjson
 import pytest
 
-from aiohomematic import central as hmcu
+from aiohomematic import central as hmcu, compat
 from aiohomematic.client import AioJsonRpcAioHttpClient
 from aiohomematic.client.json_rpc import _get_params, _JsonKey, _JsonRpcMethod
 from aiohomematic.const import (
@@ -63,25 +60,25 @@ class TestJsonConversion:
 
     def test_convert_to_json_fails(self) -> None:
         """Test if convert to json is successful."""
-        with pytest.raises(json.JSONDecodeError):
-            orjson.loads(FAILURE)
+        with pytest.raises(compat.JSONDecodeError):
+            compat.loads(data=FAILURE)
 
     def test_convert_to_json_success(self) -> None:
         """Test if convert to json is successful."""
-        assert orjson.loads(SUCCESS)
+        assert compat.loads(data=SUCCESS)
 
     def test_defect_json(self) -> None:
         """Check if json with special characters can be parsed."""
         accepted_chars = ("a", "<", ">", "'", "&", "$", "[", "]", "{", "}")
         faulthy_chars = ('"', "\\", "	")
         for sc in accepted_chars:
-            json = "{" + '"name": "Text mit Wert ' + sc + '"' + "}"
-            assert orjson.loads(json)
+            json_str = "{" + '"name": "Text mit Wert ' + sc + '"' + "}"
+            assert compat.loads(data=json_str)
 
         for sc in faulthy_chars:
-            json = "{" + '"name": "Text mit Wert ' + sc + '"' + "}"
-            with pytest.raises(orjson.JSONDecodeError):
-                orjson.loads(json)
+            json_str = "{" + '"name": "Text mit Wert ' + sc + '"' + "}"
+            with pytest.raises(compat.JSONDecodeError):
+                compat.loads(data=json_str)
 
 
 class TestHtmlCleanup:
@@ -511,7 +508,7 @@ class TestJsonRpcClientErrorHandling:
         async def raise_json(
             *, script_name: str, extra_params: Mapping[_JsonKey, Any] | None = None, keep_session: bool = True
         ):
-            raise JSONDecodeError("bad", "{}", 0)
+            raise compat.JSONDecodeError("bad")
 
         async def raise_ct(
             *, script_name: str, extra_params: Mapping[_JsonKey, Any] | None = None, keep_session: bool = True
@@ -616,10 +613,8 @@ class TestJsonRpcClientOperations:
         )
 
         # Cause the helper to raise JSONDecodeError inside the method
-        from json import JSONDecodeError
-
         async def raise_json_decode(*args: Any, **kwargs: Any):
-            raise JSONDecodeError("msg", doc="{}", pos=0)
+            raise compat.JSONDecodeError("msg")
 
         monkeypatch.setattr(client, "_post_script", raise_json_decode)
 
@@ -643,10 +638,8 @@ class TestJsonRpcClientOperations:
             tls=False,
         )
 
-        from json import JSONDecodeError
-
         async def raise_json_decode(*args: Any, **kwargs: Any):
-            raise JSONDecodeError("msg", doc="{}", pos=0)
+            raise compat.JSONDecodeError("msg")
 
         monkeypatch.setattr(client, "_post_script", raise_json_decode)
 
@@ -1006,7 +999,7 @@ class TestServiceMessagesAndSystemUpdate:
         )
 
         async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
-            raise JSONDecodeError("bad json", "", 0)
+            raise compat.JSONDecodeError("bad json")
 
         monkeypatch.setattr(client, "_post_script", fake_post_script)
 
@@ -1246,7 +1239,7 @@ class TestServiceMessagesAndSystemUpdate:
         )
 
         async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
-            raise JSONDecodeError("bad json", "", 0)
+            raise compat.JSONDecodeError("bad json")
 
         monkeypatch.setattr(client, "_post_script", fake_post_script)
 
@@ -1326,7 +1319,7 @@ class TestServiceMessagesAndSystemUpdate:
         )
 
         async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
-            raise JSONDecodeError("bad json", "", 0)
+            raise compat.JSONDecodeError("bad json")
 
         monkeypatch.setattr(client, "_post_script", fake_post_script)
 

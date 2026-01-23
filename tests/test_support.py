@@ -831,9 +831,10 @@ class TestLogging:
         assert "[boundary=client action=connect err=AioHomematicException: oops]" in msg
         assert "while trying to connect" in msg
         assert "ctx={" in msg
-        assert '"password":"***"' in msg
-        assert '"token":"***"' in msg
-        assert '"info":42' in msg
+        # Accept both orjson format (no space) and stdlib json format (with space)
+        assert '"password": "***"' in msg or '"password":"***"' in msg
+        assert '"token": "***"' in msg or '"token":"***"' in msg
+        assert '"info": 42' in msg or '"info":42' in msg
 
         # ERROR for non-domain exception
         caplog.clear()

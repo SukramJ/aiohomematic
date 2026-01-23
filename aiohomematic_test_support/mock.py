@@ -50,8 +50,8 @@ from unittest.mock import MagicMock, Mock
 import zipfile
 
 from aiohttp import ClientSession
-import orjson
 
+from aiohomematic import compat
 from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralUnit
 from aiohomematic.client import BaseRpcProxy, CircuitBreaker
@@ -117,7 +117,7 @@ def get_client_session(  # noqa: C901
             return self._json
 
         async def read(self) -> bytes:
-            return orjson.dumps(self._json)
+            return compat.dumps(obj=self._json)
 
     class _MockClientSession:
         def __init__(self) -> None:
@@ -136,11 +136,11 @@ def get_client_session(  # noqa: C901
             timeout: Any = None,  # noqa: ASYNC109
             ssl: Any = None,
         ) -> _MockResponse:
-            # Payload is produced by AioJsonRpcAioHttpClient via orjson.dumps
+            # Payload is produced by AioJsonRpcAioHttpClient via compat.dumps
             if isinstance(data, (bytes, bytearray)):
-                payload = orjson.loads(data)
+                payload = compat.loads(data=bytes(data))
             elif isinstance(data, str):
-                payload = orjson.loads(data.encode(UTF_8))
+                payload = compat.loads(data=data.encode(UTF_8))
             else:
                 payload = {}
 

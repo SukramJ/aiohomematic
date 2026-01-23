@@ -15,27 +15,36 @@ authors     = [
 keywords    = ["home", "automation", "homematic", "openccu", "homegear"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "Environment :: No Input/Output (Daemon)",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Natural Language :: German",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Free Threading :: 2 - Beta",
     "Programming Language :: Python :: Implementation :: CPython",
     "Framework :: AsyncIO",
-    "Typing :: Typed",
     "Topic :: Home Automation",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.0",
-    "orjson>=3.11.0",
     "pydantic>=2.10.0",
     "python-slugify>=8.0.0",
 ]
+
+[project.optional-dependencies]
+# orjson provides faster JSON serialization but does not support free-threaded Python.
+# The compat module automatically falls back to stdlib json when orjson is unavailable.
+fast = ["orjson>=3.11.0"]
 
 [project.urls]
 "Homepage" = "https://github.com/sukramj/aiohomematic"

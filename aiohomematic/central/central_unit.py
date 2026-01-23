@@ -29,6 +29,7 @@ from aiohomematic.central.coordinators import (
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
 from aiohomematic.central.health import CentralHealth, HealthTracker
+from aiohomematic.central.registry import CENTRAL_REGISTRY
 from aiohomematic.central.scheduler import BackgroundScheduler
 from aiohomematic.central.state_machine import CentralStateMachine
 from aiohomematic.client import AioJsonRpcAioHttpClient
@@ -81,9 +82,6 @@ from aiohomematic.support import (
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-# {central_name, central}
-CENTRAL_INSTANCES: Final[dict[str, CentralUnit]] = {}
 
 
 class CentralUnit(
@@ -196,7 +194,7 @@ class CentralUnit(
             task_scheduler=self.looper,
         )
 
-        CENTRAL_INSTANCES[self.name] = self
+        CENTRAL_REGISTRY.register(name=self.name, central=self)
         self._scheduler: Final = BackgroundScheduler(
             central_info=self,
             config_provider=self,
@@ -923,8 +921,7 @@ class CentralUnit(
             _LOGGER.debug("STOP: shared XmlRPC-Server NOT stopped. There is still another central instance registered")
 
         _LOGGER.debug("STOP: Removing instance")
-        if self.name in CENTRAL_INSTANCES:
-            del CENTRAL_INSTANCES[self.name]
+        CENTRAL_REGISTRY.unregister(name=self.name)
 
         # Clear hub coordinator subscriptions (sysvar event subscriptions)
         self._hub_coordinator.clear()

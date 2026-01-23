@@ -19,9 +19,8 @@ from xml.parsers.expat import ExpatError
 import xmlrpc.client
 
 from aiohttp import web
-import orjson
 
-from aiohomematic import client as hmcl, i18n
+from aiohomematic import client as hmcl, compat, i18n
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
@@ -679,7 +678,7 @@ class AsyncXmlRpcServer:
             "listen_address": f"{self._ip_addr}:{self._actual_port}",
         }
         return web.Response(
-            body=orjson.dumps(health_data),
+            body=compat.dumps(obj=health_data),
             content_type="application/json",
             charset="utf-8",
         )

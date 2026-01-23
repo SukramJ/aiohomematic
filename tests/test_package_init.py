@@ -87,11 +87,20 @@ class TestPackageImport:
         loop = asyncio.new_event_loop()
         monkeypatch.setattr(asyncio, "get_running_loop", lambda: loop)
 
-        # Patch central instances mapping
+        # Patch central registry to return our fake central
         import aiohomematic.central as hmcu
 
         fake = FakeCentral()
-        monkeypatch.setattr(hmcu, "CENTRAL_INSTANCES", {"c1": fake})
+
+        # Create a mock registry that returns our fake central
+        class MockRegistry:
+            """Mock registry for testing."""
+
+            def values(self) -> list:
+                """Return list of fake centrals."""
+                return [fake]
+
+        monkeypatch.setattr(hmcu, "CENTRAL_REGISTRY", MockRegistry())
 
         pkg = reload_pkg(stdout_isatty=True)
 

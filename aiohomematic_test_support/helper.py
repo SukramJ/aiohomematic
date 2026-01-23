@@ -9,8 +9,7 @@ import logging
 import os
 from typing import Any
 
-import orjson
-
+from aiohomematic import compat
 from aiohomematic.central import CentralUnit
 from aiohomematic.const import UTF_8
 from aiohomematic.interfaces import CustomDataPointProtocol
@@ -28,7 +27,7 @@ def _load_json_file(anchor: str, resource: str, file_name: str) -> Any | None:  
         file=os.path.join(package_path, resource, file_name),
         encoding=UTF_8,
     ) as fptr:
-        return orjson.loads(fptr.read())
+        return compat.loads(data=fptr.read())
 
 
 def get_prepared_custom_data_point(  # kwonly: disable

@@ -52,9 +52,7 @@ import random
 from typing import Any, Final, cast
 import zipfile
 
-import orjson
-
-from aiohomematic import i18n
+from aiohomematic import compat, i18n
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.events import (
     DeviceLifecycleEvent,
@@ -1921,9 +1919,9 @@ class _DefinitionExporter:
         temp_path = f"{zip_path}.tmp"
 
         # Serialize JSON with formatting
-        opts = orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS
-        device_json = orjson.dumps(device_descriptions, option=opts)
-        paramset_json = orjson.dumps(paramset_descriptions, option=opts)
+        opts = compat.OPT_INDENT_2 | compat.OPT_NON_STR_KEYS
+        device_json = compat.dumps(obj=device_descriptions, option=opts)
+        paramset_json = compat.dumps(obj=paramset_descriptions, option=opts)
 
         # Write ZIP with subdirectories
         with zipfile.ZipFile(temp_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:

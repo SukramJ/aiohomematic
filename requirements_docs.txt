@@ -10,6 +10,6 @@ myst-parser>=4.0.1
 
 # Required for building docs with project dependencies
 aiohttp>=3.13.3
-orjson>=3.11.5
 python-slugify>=8.0.4
 voluptuous>=0.16.0
+# Note: orjson is optional - compat module falls back to stdlib json

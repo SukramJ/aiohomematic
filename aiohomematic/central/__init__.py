@@ -67,13 +67,14 @@ from __future__ import annotations
 # Re-export public API from submodules (excluding sub-packages coordinators/ and events/)
 # For coordinators, import from: aiohomematic.central.coordinators
 # For events, import from: aiohomematic.central.events
-from aiohomematic.central.central_unit import CENTRAL_INSTANCES, CentralUnit
+from aiohomematic.central.central_unit import CentralUnit
 from aiohomematic.central.config import CentralConfig, check_config
 from aiohomematic.central.config_builder import CentralConfigBuilder, ValidationError
 from aiohomematic.central.connection_state import CentralConnectionState, ConnectionProblemIssuer
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.health import CentralHealth, ConnectionHealth, HealthTracker
+from aiohomematic.central.registry import CENTRAL_REGISTRY
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob
 
 __all__ = [
@@ -86,7 +87,7 @@ __all__ = [
     "CentralConnectionState",
     "ConnectionProblemIssuer",
     # Core
-    "CENTRAL_INSTANCES",
+    "CENTRAL_REGISTRY",
     "CentralUnit",
     # Decorators
     "callback_backend_system",

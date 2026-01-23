@@ -92,7 +92,7 @@ def signal_handler(sig, frame):  # type: ignore[no-untyped-def]  # kwonly: disab
     """Handle signal to shut down central."""
     _LOGGER.info(i18n.tr(key="log.core.signal.shutdown", sig=str(sig)))
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    for central in hmcu.CENTRAL_INSTANCES.values():
+    for central in hmcu.CENTRAL_REGISTRY.values():
         asyncio.run_coroutine_threadsafe(central.stop(), asyncio.get_running_loop())
 
 

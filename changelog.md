@@ -1,3 +1,50 @@
+# Version 2026.1.45 (2026-01-23)
+
+## What's Changed
+
+### Added
+
+- **Free-threaded Python 3.14t support**: Added compatibility layer for Python 3.14 free-threaded builds (no GIL). The new `compat` module (`aiohomematic/compat.py`) provides:
+
+  - `is_free_threaded_build()` and `is_gil_enabled()` detection functions
+  - Conditional JSON backend: uses orjson on standard builds, falls back to stdlib `json` on free-threaded builds
+  - `dumps()`, `loads()`, and `JSONDecodeError` with unified API across backends
+  - Option flags (`OPT_INDENT_2`, `OPT_NON_STR_KEYS`, `OPT_SORT_KEYS`) compatible with both backends
+
+- **CentralRegistry**: New thread-safe registry (`aiohomematic/central/registry.py`) for CentralUnit instances using copy-on-read pattern. Safe for both GIL-enabled and free-threaded Python builds. Replaces the module-level `CENTRAL_INSTANCES` dict.
+
+- **Python 3.14t in CI**: Added free-threaded Python 3.14t to the test matrix in GitHub Actions workflow.
+
+- **Package classifiers**: Added new classifiers to `pyproject.toml`:
+
+  - `Programming Language :: Python :: Free Threading :: 2 - Beta`
+  - `Natural Language :: English`, `Natural Language :: German`
+  - `Environment :: No Input/Output (Daemon)`
+  - `Topic :: Internet`, `Topic :: Software Development :: Libraries :: Python Modules`
+
+- **Tests**: Added comprehensive test suites:
+  - `tests/test_compat.py`: Tests for free-threading detection, JSON serialization, and round-trip behavior
+  - `tests/test_central_registry.py`: Tests for CentralRegistry thread-safety and operations
+
+### Changed
+
+- **orjson is now an optional dependency**: orjson does not support free-threaded Python, so it has been moved to an optional extra. Install with `pip install aiohomematic[fast]` for faster JSON serialization on standard builds. The `compat` module automatically falls back to stdlib `json` when orjson is unavailable.
+
+- **compat module functions use keyword-only arguments**: `dumps(*, obj, option)` and `loads(*, data)` require keyword arguments for consistency with project coding standards.
+
+- **Migrated JSON operations to compat module**: All direct orjson usage replaced with `compat.dumps()` and `compat.loads()` in:
+
+  - `aiohomematic/central/rpc_server.py`
+  - `aiohomematic/client/json_rpc.py`
+  - `aiohomematic/model/device.py`
+  - `aiohomematic/store/persistent/session.py`
+  - `aiohomematic/store/storage.py`
+  - `aiohomematic/support.py`
+  - `aiohomematic/i18n.py`
+
+- **CENTRAL_INSTANCES replaced with CentralRegistry**: The module-level `CENTRAL_INSTANCES: dict[str, CentralUnit]` has been replaced with a thread-safe `CentralRegistry` instance providing atomic operations.
+- ***
+
 # Version 2026.1.44 (2026-01-22)
 
 ## What's Changed

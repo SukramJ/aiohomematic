@@ -12,9 +12,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Note: Python 3.14t (free-threaded) excluded until orjson supports it
-        # See: https://github.com/ijl/orjson/issues/595
-        python-version: ["3.13", "3.14"]
+        # Python 3.14t (free-threaded) uses stdlib json via compat module
+        # since orjson does not yet support free-threading (PyO3 limitation).
+        # See: aiohomematic/compat.py and https://github.com/ijl/orjson/issues/595
+        python-version: ["3.13", "3.14", "3.14t"]
     name: Python ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6
@@ -26,10 +27,14 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements_test.txt
+            requirements_test_pre_commit.txt
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_test.txt
+      - name: Install orjson (non-free-threaded only)
+        if: matrix.python-version != '3.14t'
+        run: pip install orjson>=3.11.5
       - name: Run tests with coverage
         run: |
           pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy --cov=aiohomematic --cov-report=xml --cov-report=term-missing

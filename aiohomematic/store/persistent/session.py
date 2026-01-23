@@ -24,10 +24,9 @@ import logging
 import random
 from typing import TYPE_CHECKING, Any, Final, Self, cast
 
-import orjson
 from slugify import slugify
 
-from aiohomematic import i18n
+from aiohomematic import compat, i18n
 from aiohomematic.const import FILE_NAME_TS_PATTERN, FILE_SESSION_RECORDER, SUB_DIRECTORY_SESSION, RPCType
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.serialization import cleanup_params_for_session, freeze_params, unfreeze_params
@@ -491,11 +490,11 @@ class SessionRecorder:
         address_map = dict(zip(device_addresses, randomized, strict=True))
 
         # Replace addresses in the serialized data
-        json_str = orjson.dumps(data).decode("utf-8")
+        json_str = compat.dumps(obj=data).decode("utf-8")
         for original, replacement in address_map.items():
             json_str = json_str.replace(original, replacement)
 
-        return cast(dict[str, Any], orjson.loads(json_str))
+        return cast(dict[str, Any], compat.loads(data=json_str))
 
     def _purge_expired_at(
         self,

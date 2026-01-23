@@ -28,9 +28,7 @@ import ssl
 import sys
 from typing import Any, Final
 
-import orjson
-
-from aiohomematic import i18n
+from aiohomematic import compat, i18n
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CCU_PASSWORD_PATTERN,
@@ -517,7 +515,7 @@ def hash_sha256(*, value: Any) -> str:
     """
     hasher = hashlib.sha256()
     try:
-        data = orjson.dumps(value, option=orjson.OPT_SORT_KEYS | orjson.OPT_NON_STR_KEYS)
+        data = compat.dumps(obj=value, option=compat.OPT_SORT_KEYS | compat.OPT_NON_STR_KEYS)
     except Exception:
         # Fallback: convert to a hashable representation and use repr()
         data = repr(_make_value_hashable(value=value)).encode(encoding=UTF_8)
@@ -633,7 +631,7 @@ def log_boundary_error(
         log_message += f" {message}"
 
     if log_context:
-        log_message += f" ctx={orjson.dumps(_safe_log_context(context=log_context), option=orjson.OPT_SORT_KEYS).decode(encoding=UTF_8)}"
+        log_message += f" ctx={compat.dumps(obj=_safe_log_context(context=log_context), option=compat.OPT_SORT_KEYS).decode(encoding=UTF_8)}"
 
     # Choose level if not provided:
     if (chosen_level := level) is None:

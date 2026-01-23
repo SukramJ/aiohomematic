@@ -37,13 +37,14 @@ from collections.abc import Mapping
 from datetime import datetime
 from enum import StrEnum
 from functools import partial
-from json import JSONDecodeError
 import logging
 import os
 from pathlib import Path
 from ssl import SSLContext
 from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import unquote
+
+from aiohomematic.compat import JSONDecodeError
 
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
@@ -59,9 +60,8 @@ from aiohttp import (
     ContentTypeError,
     TCPConnector,
 )
-import orjson
 
-from aiohomematic import central as hmcu, i18n
+from aiohomematic import central as hmcu, compat, i18n
 from aiohomematic.async_support import Looper
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error, sanitize_error_message
@@ -1505,7 +1505,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         params = _get_params(session_id=session_id, extra_params=extra_params, use_default_params=use_default_params)
 
         try:
-            payload = orjson.dumps({"method": method, "params": params, "jsonrpc": "1.1", "id": 0})
+            payload = compat.dumps(obj={"method": method, "params": params, "jsonrpc": "1.1", "id": 0})
 
             headers = {
                 "Content-Type": "application/json",
@@ -1732,7 +1732,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 extract_exc_args(exc=verr),
             )
             # Workaround for bug in CCU
-            return orjson.loads((await response.read()).decode(encoding=UTF_8))
+            return compat.loads(data=(await response.read()).decode(encoding=UTF_8))
 
     async def _get_program_descriptions(self) -> Mapping[str, str]:
         """Get all program descriptions from the backend via script."""
@@ -1784,7 +1784,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 # or an already-parsed dict. Support both.
                 if isinstance(json_result, str):
                     try:
-                        json_result = orjson.loads(json_result)
+                        json_result = compat.loads(data=json_result)
                     except Exception:
                         # Fall back to plain string handling; return last 10 chars
                         serial_exc = str(json_result)
@@ -1940,7 +1940,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         try:
             if not response[_JsonKey.ERROR] and (resp := response[_JsonKey.RESULT]) and isinstance(resp, str):
-                response[_JsonKey.RESULT] = orjson.loads(resp)
+                response[_JsonKey.RESULT] = compat.loads(data=resp)
         finally:
             if not keep_session:
                 await self._do_logout(session_id=session_id)

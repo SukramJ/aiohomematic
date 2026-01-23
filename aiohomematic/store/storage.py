@@ -68,8 +68,9 @@ import os
 from typing import TYPE_CHECKING, Any, Final, Protocol, cast, runtime_checkable
 import zipfile
 
-import orjson
 from slugify import slugify
+
+from aiohomematic import compat
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import TaskSchedulerProtocol
@@ -440,7 +441,7 @@ class Storage:
                 if not (json_files := [n for n in zf.namelist() if n.lower().endswith(".json")]):
                     raise StorageError(f"No JSON file found in ZIP: {zip_path}")  # i18n-exc: ignore
                 raw = zf.read(json_files[0])
-                return self._parse_and_unwrap(raw_data=orjson.loads(raw))
+                return self._parse_and_unwrap(raw_data=compat.loads(data=raw))
         except (zipfile.BadZipFile, OSError) as exc:
             raise StorageError(f"Failed to load ZIP '{zip_path}': {exc}") from exc  # i18n-exc: ignore
 
@@ -466,8 +467,8 @@ class Storage:
         # Regular JSON load
         try:
             with open(self._file_path, "rb") as f:
-                return self._parse_and_unwrap(raw_data=orjson.loads(f.read()))
-        except (orjson.JSONDecodeError, OSError) as exc:
+                return self._parse_and_unwrap(raw_data=compat.loads(data=f.read()))
+        except (compat.JSONDecodeError, OSError) as exc:
             raise StorageError(f"Failed to load storage '{self._key}': {exc}") from exc  # i18n-exc: ignore
 
     def _parse_and_unwrap(self, *, raw_data: Any) -> dict[str, Any]:
@@ -499,9 +500,9 @@ class Storage:
         to_save = data if self._raw_mode else {"_version": self._version, "_key": self._key, "data": data}
 
         # Serialize (formatted with indentation or compact)
-        opts = orjson.OPT_NON_STR_KEYS | (orjson.OPT_INDENT_2 if self._formatted else 0)
+        opts = compat.OPT_NON_STR_KEYS | (compat.OPT_INDENT_2 if self._formatted else 0)
         try:
-            serialized = orjson.dumps(to_save, option=opts)
+            serialized = compat.dumps(obj=to_save, option=opts)
         except TypeError as exc:
             raise StorageError(f"Data not serializable for '{self._key}': {exc}") from exc  # i18n-exc: ignore
 
@@ -550,7 +551,7 @@ class Storage:
             )
 
         try:
-            orjson.dumps(data, option=orjson.OPT_NON_STR_KEYS)
+            compat.dumps(obj=data, option=compat.OPT_NON_STR_KEYS)
         except TypeError as exc:
             raise StorageError(  # i18n-exc: ignore
                 f"Data for storage '{self._key}' is not JSON-serializable: {exc}"

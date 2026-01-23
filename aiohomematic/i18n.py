@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Simple i18n helper to localize exceptions (first iteration).
+Simple i18n helper to localize exceptions.
+
+Thread-safe implementation using immutable state snapshots for free-threading compatibility.
 
 Usage:
 - Call set_locale("de") early (CentralUnit will do this from CentralConfig).
@@ -16,95 +18,116 @@ Lookup order:
 from __future__ import annotations
 
 import asyncio
+import contextlib
+from dataclasses import dataclass, field
 import logging
 import pkgutil
-from threading import RLock
 from typing import Any, Final
 
-import orjson
-
+from aiohomematic import compat
 from aiohomematic.const import DEFAULT_LOCALE
 
-_ACTIVE_CATALOG: dict[str, str] = {}
-_ACTIVE_LOCALE: str = DEFAULT_LOCALE
-_BASE_CACHE_LOADED: bool = False
-_BASE_CATALOG: dict[str, str] = {}
-_CACHE: dict[str, dict[str, str]] = {}
-_CURRENT_LOCALE: str = DEFAULT_LOCALE
-_LOCK: Final = RLock()
-_TRANSLATIONS_PKG = "aiohomematic"
-
 _LOGGER: Final = logging.getLogger(__name__)
+_TRANSLATIONS_PKG: Final = "aiohomematic"
 
-# Eagerly load the base catalog at import time to avoid any later I/O on first use
-# and to satisfy environments that prefer initialization-time loading.
-try:  # pragma: no cover - trivial import-time path
-    # This will load packaged resources via pkgutil without using builtins.open in our code.
-    # Protected by the lock to keep thread safety consistent.
-    def _eager_init_base() -> None:
-        if not _BASE_CACHE_LOADED:
-            _load_base_catalog()
 
-    _eager_init_base()
-except Exception:  # pragma: no cover - defensive
-    # If eager load fails for any reason, lazy load will occur on first access.
-    pass
+@dataclass(frozen=True, slots=True)
+class _LocaleState:
+    """
+    Immutable snapshot of locale state for thread-safe access.
+
+    By using a frozen dataclass, we ensure that:
+    1. State cannot be mutated after creation
+    2. All state changes require creating a new instance
+    3. Reads are always consistent (no partial updates)
+    """
+
+    current_locale: str = DEFAULT_LOCALE
+    active_catalog: dict[str, str] = field(default_factory=dict)
+    base_catalog: dict[str, str] = field(default_factory=dict)
+    cache: dict[str, dict[str, str]] = field(default_factory=dict)
+    base_loaded: bool = False
+
+
+# Single atomic reference to immutable state
+# Assignment in Python is atomic, so no lock needed for reads
+_state: _LocaleState = _LocaleState()
 
 
 class _SafeDict(dict[str, str]):
     """Dict that leaves unknown placeholders untouched during format_map."""
 
-    def __missing__(self, k: str) -> str:  # pragma: no cover - trivial  # kwonly: disable
+    def __missing__(self, k: str) -> str:  # kwonly: disable
         """Return the key as-is if not found in the dict."""
         return "{" + k + "}"
 
 
 def _load_json_resource(*, package: str, resource: str, in_translations: bool = True) -> dict[str, str]:
-    """
-    Load a JSON resource from the package. By default from `translations/` subdir.
-
-    Uses pkgutil.get_data to read packaged data (works in editable installs and wheels).
-    """
+    """Load a JSON resource from the package."""
+    resource_path = f"translations/{resource}" if in_translations else resource
     try:
-        resource_path = f"translations/{resource}" if in_translations else resource
         if not (data_bytes := pkgutil.get_data(package=package, resource=resource_path)):
             return {}
-        data = orjson.loads(data_bytes)
+        data = compat.loads(data=data_bytes)
         return {str(k): str(v) for k, v in data.items()}
     except Exception as exc:  # pragma: no cover - defensive
         _LOGGER.debug("Failed to load translation resource %s/%s: %s", package, resource_path, exc)
         return {}
 
 
-def _load_base_catalog() -> None:
-    """Load the base catalog (strings.json) once."""
-    global _BASE_CACHE_LOADED, _BASE_CATALOG, _ACTIVE_CATALOG  # noqa: PLW0603  # pylint: disable=global-statement
-    with _LOCK:
-        if _BASE_CACHE_LOADED:
-            return
-        _BASE_CATALOG = _load_json_resource(package=_TRANSLATIONS_PKG, resource="strings.json", in_translations=False)
-        # Initialize active catalog with whatever we have for the current locale (likely base on first import)
-        _ACTIVE_CATALOG = {**_BASE_CATALOG, **(_CACHE.get(_CURRENT_LOCALE) or {})}
-        _BASE_CACHE_LOADED = True
+def _ensure_base_loaded() -> _LocaleState:
+    """Ensure base catalog is loaded, return current state."""
+    global _state  # noqa: PLW0603  # pylint: disable=global-statement
+
+    current = _state
+    if current.base_loaded:
+        return current
+
+    # Load base catalog
+    base_catalog = _load_json_resource(package=_TRANSLATIONS_PKG, resource="strings.json", in_translations=False)
+
+    # Create new immutable state with base loaded
+    new_state = _LocaleState(
+        current_locale=current.current_locale,
+        active_catalog={**base_catalog},
+        base_catalog=base_catalog,
+        cache=dict(current.cache),
+        base_loaded=True,
+    )
+
+    # Atomic assignment (may race, but result is consistent - both threads load same data)
+    _state = new_state
+    return new_state
 
 
 def _get_catalog(*, locale: str) -> dict[str, str]:
-    """Get the catalog for a locale as a plain dict (cached)."""
-    _load_base_catalog()
-    if locale in _CACHE:
-        return _CACHE[locale]
-    with _LOCK:
-        if locale in _CACHE:
-            return _CACHE[locale]
-        localized = _load_json_resource(package=_TRANSLATIONS_PKG, resource=f"{locale}.json")
-        # merge with base; localized should override base
-        merged: dict[str, str] = {**_BASE_CATALOG, **(localized or {})}
-        _CACHE[locale] = merged
-        # If this is the active locale, refresh the active catalog reference for fast-path lookups
-        if locale == _ACTIVE_LOCALE:
-            global _ACTIVE_CATALOG  # noqa: PLW0603  # pylint: disable=global-statement
-            _ACTIVE_CATALOG = merged
-        return merged
+    """Get the catalog for a locale (cached)."""
+    global _state  # noqa: PLW0603  # pylint: disable=global-statement
+
+    state = _ensure_base_loaded()
+
+    # Check cache first
+    if locale in state.cache:
+        return state.cache[locale]
+
+    # Load and merge locale
+    localized = _load_json_resource(package=_TRANSLATIONS_PKG, resource=f"{locale}.json")
+    merged: dict[str, str] = {**state.base_catalog, **(localized or {})}
+
+    # Update cache atomically via new state
+    new_cache = dict(state.cache)
+    new_cache[locale] = merged
+
+    new_state = _LocaleState(
+        current_locale=state.current_locale,
+        active_catalog=merged if locale == state.current_locale else state.active_catalog,
+        base_catalog=state.base_catalog,
+        cache=new_cache,
+        base_loaded=True,
+    )
+    _state = new_state
+
+    return merged
 
 
 def set_locale(*, locale: str | None = None) -> None:
@@ -115,21 +138,25 @@ def set_locale(*, locale: str | None = None) -> None:
     Updates the active catalog reference immediately so subsequent `tr()` calls
     reflect the new locale without requiring background preload.
     """
-    global _CURRENT_LOCALE, _ACTIVE_LOCALE, _ACTIVE_CATALOG  # noqa: PLW0603  # pylint: disable=global-statement
+    global _state  # noqa: PLW0603  # pylint: disable=global-statement
+
     new_locale = (locale or DEFAULT_LOCALE).strip() or DEFAULT_LOCALE
-    # Ensure base is available
-    _load_base_catalog()
-    # Build or fetch the merged catalog synchronously (uses pkgutil.get_data under the hood)
     merged = _get_catalog(locale=new_locale)
-    with _LOCK:
-        _CURRENT_LOCALE = new_locale
-        _ACTIVE_LOCALE = new_locale
-        _ACTIVE_CATALOG = merged
+
+    state = _state
+    new_state = _LocaleState(
+        current_locale=new_locale,
+        active_catalog=merged,
+        base_catalog=state.base_catalog,
+        cache=state.cache,
+        base_loaded=state.base_loaded,
+    )
+    _state = new_state
 
 
 def get_locale() -> str:
     """Return the currently active locale code (e.g. 'en', 'de')."""
-    return _CURRENT_LOCALE
+    return _state.current_locale
 
 
 def tr(*, key: str, **kwargs: Any) -> str:
@@ -141,11 +168,12 @@ def tr(*, key: str, **kwargs: Any) -> str:
     Optimized for the hot path: use an active-catalog reference and avoid formatting
     when not needed.
     """
-    # Fast path: read from active catalog without extra lookups/allocations
-    if (template := _ACTIVE_CATALOG.get(key)) is None:
-        # Fallback to base without additional loading (base is eager-loaded). We intentionally
-        # avoid synchronous resource loading on the hot path; locales should be preloaded.
-        template = _BASE_CATALOG.get(key, key)
+    # Read state once (atomic) - ensures consistent view
+    state = _state
+
+    if (template := state.active_catalog.get(key)) is None:
+        # Fallback to base without additional loading
+        template = state.base_catalog.get(key, key)
 
     # If no formatting arguments, or template has no placeholders, return as-is
     if not kwargs or ("{" not in template):
@@ -162,18 +190,12 @@ async def preload_locale(*, locale: str) -> None:
     """
     Asynchronously preload and cache a locale catalog.
 
-    This avoids doing synchronous package resource loading in the event loop by offloading
-    the work to a thread via asyncio.to_thread. Safe to call multiple times; uses cache.
+    This avoids doing synchronous package resource loading in the event loop by
+    offloading the work to a thread via asyncio.to_thread. Safe to call multiple
+    times; uses cache.
     """
-    # Normalize locale like set_locale does
     normalized = (locale or DEFAULT_LOCALE).strip() or DEFAULT_LOCALE
-
-    def _load_sync() -> None:
-        # Just call the normal loader which handles locking and caching
-        _get_catalog(locale=normalized)
-
-    # Offload synchronous resource loading to thread to avoid blocking the loop
-    await asyncio.to_thread(_load_sync)
+    await asyncio.to_thread(_get_catalog, locale=normalized)
 
 
 def schedule_preload_locale(*, locale: str) -> asyncio.Task[None] | None:
@@ -191,3 +213,9 @@ def schedule_preload_locale(*, locale: str) -> asyncio.Task[None] | None:
         return None
 
     return loop.create_task(preload_locale(locale=locale))
+
+
+# Eager initialization at import time to avoid any later I/O on first use
+# If eager load fails for any reason, lazy load will occur on first access.
+with contextlib.suppress(Exception):  # pragma: no cover - trivial import-time path
+    _ensure_base_loaded()

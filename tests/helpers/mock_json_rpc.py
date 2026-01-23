@@ -8,6 +8,7 @@ from typing import Any, Final
 
 from aiohttp import web
 
+from aiohomematic import compat
 from aiohomematic.const import PATH_JSON_RPC, UTF_8
 
 
@@ -102,11 +103,9 @@ class MockJsonRpc:
         elif method == "ReGa.runScript":
             # Simulate script responses used by client (e.g., get_serial.fn)
             # Client expects 'result' to be a JSON string which it will parse.
-            import orjson
-
             script: str = params.get("script", "")
             result_obj = {"serial": "ABCDEF123456"} if "get_serial" in script or '{"serial"' in script else {"ok": True}
-            response = {"error": None, "result": orjson.dumps(result_obj).decode(UTF_8)}
+            response = {"error": None, "result": compat.dumps(obj=result_obj).decode(UTF_8)}
         else:
             response = {"error": {"message": f"method not implemented: {method}"}, "result": None}
 

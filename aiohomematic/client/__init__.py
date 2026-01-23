@@ -152,7 +152,7 @@ async def create_client(
 
 def get_client(*, interface_id: str) -> ClientProtocol | None:
     """Return client by interface_id."""
-    for central in hmcu.CENTRAL_INSTANCES.values():
+    for central in hmcu.CENTRAL_REGISTRY.values():
         if central.client_coordinator.has_client(interface_id=interface_id):
             return central.client_coordinator.get_client(interface_id=interface_id)
     return None

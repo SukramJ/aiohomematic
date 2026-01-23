@@ -1,5 +1,5 @@
 aiohttp>=3.13.3
-pydantic>=2.10.0
+pydantic>=2.12.5
 python-slugify>=8.0.4
 # orjson is optional - see pyproject.toml [project.optional-dependencies]
 # Install with: pip install aiohomematic[fast]

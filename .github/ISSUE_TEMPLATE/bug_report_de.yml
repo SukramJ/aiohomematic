@@ -51,7 +51,9 @@ body:
 
         4. **Was hast Du bereits versucht?** (Neustart, Neuladen, Neu-Anlernen, ...)
 
-        Keine Protokolle hier! Screenshots sind willkommen.
+        Keine Protokolle hier!
+
+        💡 **Tipp:** Bei Geräteproblemen (fehlende Entitäten, falsche Werte, seltsames Verhalten) sind Screenshots viel hilfreicher als lange Textbeschreibungen! Zeige uns, was Du in Home Assistant oder der CCU siehst.
   - type: markdown
     attributes:
       value: |

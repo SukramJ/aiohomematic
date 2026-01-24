@@ -51,7 +51,9 @@ body:
 
         4. **What have you tried?** (Restart, reload, re-pairing, ...)
 
-        NO logs here! Screenshots are welcome.
+        NO logs here!
+
+        💡 **Tip:** For device-related issues (missing entities, wrong values, strange behavior), screenshots are much more helpful than long text descriptions! Show us what you see in Home Assistant or the CCU.
   - type: markdown
     attributes:
       value: |

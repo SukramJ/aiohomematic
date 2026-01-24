@@ -778,7 +778,42 @@ REQUIRED_FIELDS = [
     "problem_description",
 ]
 
+# German template markers - if any of these are found, the issue uses the German template
+GERMAN_TEMPLATE_MARKERS = [
+    "Ich stimme dem Folgenden zu",
+    "Das Problem",
+    "Bei welcher Version",
+    "Welche Art von Installation",
+    "Dieses Formular dient ausschließlich",
+    "Diagnoseinformationen (keine Protokolle hier!)",
+    "Protokolldatei (am besten DEBUG-Log)",
+    "Welche Schnittstellen werden verwendet?",
+]
+
+
+def detect_template_language(issue_body: str) -> str:
+    """
+    Detect which template language was used based on template-specific markers.
+
+    Returns "de" if German template markers are found, "en" otherwise.
+    """
+    if not issue_body:
+        return "en"
+
+    # Check for German template markers
+    for marker in GERMAN_TEMPLATE_MARKERS:
+        if marker in issue_body:
+            return "de"
+
+    return "en"
+
 CLAUDE_ANALYSIS_PROMPT = """You are an AI assistant helping to analyze GitHub issues for the AioHomematic and Homematic(IP) Local projects.
+
+**CRITICAL - Response Language:**
+The issue template language has been detected as: **{template_language}**
+- If "de" (German): You MUST respond in German. All text fields in your JSON response (summary, descriptions, explanations, recommendations) MUST be in German.
+- If "en" (English): You MUST respond in English. All text fields in your JSON response MUST be in English.
+This is mandatory and overrides any other language detection based on content.
 
 Context:
 - This repository (aiohomematic) is a Python library for controlling Homematic and HomematicIP devices
@@ -904,6 +939,8 @@ Please respond in JSON format with the following structure:
   "search_terms": ["term1", "term2", ...],
   "language": "de" or "en",
   "is_bug_report": boolean,
+  "is_device_related": boolean,
+  "has_screenshots": boolean,
   "summary": "brief summary of the issue in the detected language"
 }}
 
@@ -912,7 +949,9 @@ IMPORTANT:
 - If "device_not_registered" findings exist, this is the root cause - not STICKY_UN_REACH
 - Be helpful and constructive
 - Only flag missing information if it's genuinely required
-- If terminology is misused, gently suggest correct terms and link to glossary"""
+- If terminology is misused, gently suggest correct terms and link to glossary
+- For device-related issues (missing entities, wrong values, strange behavior): Check if the issue contains screenshots. If not, flag this as missing information - screenshots are much more helpful than long text descriptions for device issues!
+- Detect screenshots by looking for image URLs (e.g., user-attachments/assets, imgur, png, jpg, gif extensions)"""
 
 
 def get_claude_analysis(
@@ -927,6 +966,10 @@ def get_claude_analysis(
     client = Anthropic(api_key=api_key)
 
     docs_str = "\n".join([f"- {key}: {url}" for key, url in DOCS_LINKS.items()])
+
+    # Detect template language from issue body
+    template_language = detect_template_language(body or "")
+    print(f"Detected template language: {template_language}")  # noqa: T201
 
     # Fetch current versions from GitHub Releases
     current_stable, current_prerelease = fetch_latest_versions(gh)
@@ -968,6 +1011,7 @@ def get_claude_analysis(
         current_prerelease=current_prerelease or "none",
         version_check_json=json.dumps(version_check, indent=2),
         deep_analysis_json=json.dumps(deep_analysis_dict, indent=2),
+        template_language="de (German)" if template_language == "de" else "en (English)",
     )
 
     message = client.messages.create(
@@ -984,6 +1028,9 @@ def get_claude_analysis(
 
     analysis = cast(dict[str, Any], json.loads(response_text))
 
+    # Override language with detected template language (template language takes precedence)
+    analysis["language"] = template_language
+
     # Merge deep analysis findings if Claude didn't include them
     if deep_analysis and deep_analysis.findings:
         attachment_analysis = analysis.get("attachment_analysis", {})
@@ -991,8 +1038,8 @@ def get_claude_analysis(
 
         # If Claude returned fewer findings than our deep analysis, use ours
         if len(claude_findings) < len(deep_analysis.findings):
-            # Determine language from analysis
-            is_german = analysis.get("language", "en") == "de"
+            # Use template language for findings
+            is_german = template_language == "de"
 
             # Prioritize findings
             prioritized = prioritize_findings(
@@ -1164,6 +1211,34 @@ def _format_missing_required_info(
     return result
 
 
+def _format_screenshot_hint(
+    is_device_related: bool,
+    has_screenshots: bool,
+    is_german: bool,
+) -> str:
+    """Format screenshot hint for device-related issues."""
+    if not is_device_related or has_screenshots:
+        return ""
+
+    if is_german:
+        return (
+            "### 📸 Screenshots empfohlen\n\n"
+            "Bei Geräteproblemen (fehlende Entitäten, falsche Werte, seltsames Verhalten) "
+            "sind **Screenshots viel hilfreicher als lange Textbeschreibungen**!\n\n"
+            "Bitte zeige uns, was Du siehst:\n"
+            "- Screenshot der betroffenen Entität in Home Assistant\n"
+            "- Screenshot des Geräts/Kanals in der CCU-Oberfläche\n\n"
+        )
+    return (
+        "### 📸 Screenshots Recommended\n\n"
+        "For device-related issues (missing entities, wrong values, strange behavior), "
+        "**screenshots are much more helpful than long text descriptions**!\n\n"
+        "Please show us what you see:\n"
+        "- Screenshot of the affected entity in Home Assistant\n"
+        "- Screenshot of the device/channel in the CCU interface\n\n"
+    )
+
+
 def format_comment(
     analysis: dict[str, Any],
     similar_items: list[dict[str, Any]],
@@ -1215,6 +1290,11 @@ def format_comment(
     has_diagnostics = attachment_analysis.get("has_diagnostics", False)
     has_logs = attachment_analysis.get("has_logs", False)
     comment += _format_missing_required_info(has_diagnostics, has_logs, is_german)
+
+    # Screenshot hint for device-related issues
+    is_device_related = analysis.get("is_device_related", False)
+    has_screenshots = analysis.get("has_screenshots", False)
+    comment += _format_screenshot_hint(is_device_related, has_screenshots, is_german)
 
     # Other missing information
     missing = analysis.get("missing_information", [])

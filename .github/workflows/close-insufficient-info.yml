@@ -49,6 +49,15 @@ jobs:
             - Bitte lies [Warum sind Diagnosedaten und Logs so wichtig?](https://github.com/SukramJ/aiohomematic/blob/devel/docs/debug_data_importance.md)
             - Erstelle ein neues Issue mit vollständigen Diagnosedaten, falls das Problem weiterhin besteht
 
+            💡 **Tipp:** Bei Geräteproblemen (fehlende Entitäten, falsche Werte, seltsames Verhalten) sind Screenshots viel hilfreicher als lange Textbeschreibungen!
+
+            **Hilfreiche Dokumentation:**
+            - [Dokumentation](https://github.com/sukramj/homematicip_local#homematicip_local)
+            - [Fehlerbehebung](https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md)
+            - [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions)
+            - [Glossar](https://github.com/SukramJ/aiohomematic/blob/devel/docs/glossary.md)
+            - [Versionshinweise](https://github.com/sukramj/homematicip_local/releases)
+
             Wir helfen gerne, sobald die erforderlichen Informationen vorliegen.`;
             } else {
               comment = `This issue is being closed because the information provided is insufficient to analyze the problem.
@@ -58,6 +67,15 @@ jobs:
             **Next steps:**
             - Please read [Why are diagnostics and logs so important?](https://github.com/SukramJ/aiohomematic/blob/devel/docs/debug_data_importance.md)
             - Open a new issue with complete diagnostic data if the problem persists
+
+            💡 **Tip:** For device-related issues (missing entities, wrong values, strange behavior), screenshots are much more helpful than long text descriptions!
+
+            **Helpful documentation:**
+            - [Documentation](https://github.com/sukramj/homematicip_local#homematicip_local)
+            - [Troubleshooting](https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md)
+            - [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions)
+            - [Glossary](https://github.com/SukramJ/aiohomematic/blob/devel/docs/glossary.md)
+            - [Release notes](https://github.com/sukramj/homematicip_local/releases)
 
             We're happy to help once the required information is available.`;
             }

@@ -19,7 +19,7 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
-VERSION: Final = "2026.1.45"
+VERSION: Final = "2026.1.46"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1777,11 +1777,22 @@ class SystemInformation:
     version: str = ""
     hostname: str = ""
     ccu_type: CCUType = CCUType.UNKNOWN
+    is_ha_addon: bool = False
 
     @property
     def has_backup(self) -> bool:
-        """Return True if backend supports online firmware update checks."""
+        """Return True if backend supports backup functionality."""
         return self.ccu_type == CCUType.OPENCCU
+
+    @property
+    def has_system_update(self) -> bool:
+        """
+        Return True if backend supports system update functionality.
+
+        Note: HA-Addons do not support system updates through this integration
+        as updates are managed by the HA Supervisor.
+        """
+        return self.ccu_type == CCUType.OPENCCU and not self.is_ha_addon
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

@@ -1,3 +1,21 @@
+# Version 2026.1.46 (2026-01-24)
+
+## What's Changed
+
+### Added
+
+- **HA-Addon detection**: OpenCCU running as Home Assistant Add-on is now detected via `HM_RUNNING_IN_HA` or `SUPERVISOR_TOKEN` environment variables. The new `is_ha_addon` field in `SystemInformation` indicates whether the backend runs as an HA-Addon.
+
+### Changed
+
+- **System update disabled for HA-Addons**: The `has_system_update` property returns `False` for HA-Addons. The System Update entity is not created and the `firmware_update_trigger` capability is set to `False`, as updates are managed by the HA Supervisor.
+
+### Breaking Changes
+
+- **System Update entity not created for HA-Addons**: The System Update entity is no longer created when running as an HA-Addon. Existing orphaned entities can be manually deleted in Home Assistant.
+
+---
+
 # Version 2026.1.45 (2026-01-23)
 
 ## What's Changed

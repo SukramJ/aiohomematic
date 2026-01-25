@@ -186,6 +186,7 @@
   "log.central.set_system_variable.not_found": "SET_SYSTEM_VARIABLE fehlgeschlagen: Variable {legacy_name} nicht gefunden auf {name}",
   "log.central.startup.auth_failed": "STARTUP: Authentifizierung fehlgeschlagen für {interface_id} nach {max_attempts} Versuchen: {reason}",
   "log.central.startup.auth_retry": "STARTUP: Authentifizierungsfehler für {interface_id} (Versuch {attempt}/{max_attempts}), neuer Versuch in {delay}s: {reason}",
+  "log.central.startup.json_port_not_ready": "STARTUP: JSON-RPC-Port {host}:{port} nicht verfügbar, Verbindung zur CCU nicht möglich",
   "log.central.startup.tcp_check_failed": "STARTUP: TCP-Prüfung für {host}:{port} fehlgeschlagen (Versuch {attempt}): {reason}",
   "log.central.startup.tcp_not_ready": "STARTUP: TCP nicht bereit für Schnittstelle {interface_id}, Initialisierung übersprungen",
   "log.central.startup.tcp_ready": "STARTUP: TCP-Port {host}:{port} ist bereit (Versuch {attempt})",

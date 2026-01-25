@@ -250,9 +250,9 @@ class TestInterfaceConfiguration:
 
         interfaces = {ic.interface for ic in config.enabled_interface_configs}
         assert Interface.CUXD in interfaces
-        # Verify port is 0 (JSON-RPC only, no XML-RPC port)
+        # Verify port is None (JSON-RPC only, no XML-RPC port)
         cuxd_config = next(ic for ic in config.enabled_interface_configs if ic.interface == Interface.CUXD)
-        assert cuxd_config.port == 0
+        assert cuxd_config.port is None
 
     def test_add_hmip_interface(self) -> None:
         """Test adding HMIP interface."""

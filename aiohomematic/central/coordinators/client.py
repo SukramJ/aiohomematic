@@ -350,8 +350,8 @@ class ClientCoordinator(ClientProviderProtocol):
         for attempt in range(1, max_attempts + 1):
             try:
                 # Stage 1: TCP Pre-Flight Check (first attempt only)
-                # Skip for JSON-RPC-only interfaces (CUxD, CCU-Jack) which have port=0
-                if attempt == 1 and interface_config.port > 0:
+                # Skip for JSON-RPC-only interfaces (CUxD, CCU-Jack) which have port=None
+                if attempt == 1 and interface_config.port:
                     tcp_ready = await self._wait_for_tcp_ready(
                         host=self._config_provider.config.host,
                         port=interface_config.port,

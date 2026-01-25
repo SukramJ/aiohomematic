@@ -1,3 +1,17 @@
+# Version 2026.1.50 (2026-01-25)
+
+## What's Changed
+
+### Changed
+
+- **Clean port handling for JSON-RPC-only interfaces**: Refactored `InterfaceConfig.port` from `int` to `int | None`. XML-RPC interfaces (HmIP-RF, BidCos-RF, BidCos-Wired, VirtualDevices) require a valid port > 0, while JSON-RPC-only interfaces (CUxD, CCU-Jack) now correctly use `None` instead of the previous workaround value `0`. This provides cleaner semantics and proper validation:
+  - `InterfaceConfig` now enforces port validation based on interface type
+  - `CentralConfigBuilder.add_cuxd_interface()` no longer passes `port=0`
+  - TCP pre-flight checks correctly skip interfaces with `port=None`
+  - Connection recovery checks simplified from `port is None or port == 0` to `port is None`
+
+---
+
 # Version 2026.1.49 (2026-01-25)
 
 ## What's Changed

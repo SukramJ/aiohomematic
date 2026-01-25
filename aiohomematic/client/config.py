@@ -34,7 +34,7 @@ class InterfaceConfig:
         *,
         central_name: str,
         interface: Interface,
-        port: int,
+        port: int | None,
         remote_path: str | None = None,
     ) -> None:
         """Initialize the interface configuration."""
@@ -42,7 +42,8 @@ class InterfaceConfig:
 
         self.rpc_server: Final[RpcServerType] = INTERFACE_RPC_SERVER_TYPE[interface]
         self.interface_id: Final[str] = f"{central_name}-{self.interface}"
-        self.port: Final = port
+        # JSON-RPC-only interfaces (CUxD, CCU-Jack) don't have an XML-RPC port
+        self.port: Final[int | None] = port if self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK else None
         self.remote_path: Final = remote_path
         self._init_validate()
         self._enabled: bool = True
@@ -55,7 +56,7 @@ class InterfaceConfig:
 
     def _init_validate(self) -> None:
         """Validate the client_config."""
-        if not self.port and self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK:
+        if self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK and (self.port is None or self.port <= 0):
             raise ClientException(
                 i18n.tr(
                     key="exception.client.interface_config.port_required",

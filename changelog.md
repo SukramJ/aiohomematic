@@ -1,10 +1,20 @@
+# Version 2026.1.48 (2026-01-25)
+
+## What's Changed
+
+### Fixed
+
+- **XML-RPC authentication headers not sent with TLS**: Fixed a critical bug where HTTP Basic Authentication headers were not being sent when TLS was enabled. The custom timeout transport classes (`_TimeoutTransport`, `_TimeoutSafeTransport`) did not pass the `headers` parameter to the base class `__init__()`. When `ServerProxy` receives a pre-built transport, it does not add headers to it - headers must be passed directly to the transport constructor. This caused all XML-RPC calls to fail with `ProtocolError: Unauthorized` when CCU authentication was enabled. The fix passes the authentication headers directly to the transport classes.
+
+---
+
 # Version 2026.1.47 (2026-01-25)
 
 ## What's Changed
 
 ### Fixed
 
-- **Authentication check fails for non-admin users**: Fixed a regression introduced in 2026.1.41 where users without ADMIN rights on the CCU would fail to connect. The `_get_auth_enabled()` method in `json_rpc.py` now catches `AuthFailure` exceptions in addition to `InternalBackendException`. When `CCU.getAuthEnabled` fails with "access denied (ADMIN needed 2)", this actually proves that authentication is enabled on the CCU (otherwise no permission check would occur). The method now correctly returns `True` in this case instead of propagating the exception, which was incorrectly triggering the startup resiliency retry loop and eventually a re-authentication flow.
+- **Authentication check fails for non-admin users**: Fixed a regression introduced in 2026.1.41 where users without ADMIN rights on the CCU would fail to connect via JSON-RPC. The `_get_auth_enabled()` method in `json_rpc.py` now catches `AuthFailure` exceptions in addition to `InternalBackendException`. When `CCU.getAuthEnabled` fails with "access denied (ADMIN needed 2)", this actually proves that authentication is enabled on the CCU (otherwise no permission check would occur). The method now correctly returns `True` in this case instead of propagating the exception.
 
 ---
 

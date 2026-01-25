@@ -216,6 +216,7 @@ class CentralUnit(
             device_data_refresher=self,
             event_bus=self._event_bus,
             task_scheduler=self.looper,
+            hub_data_fetcher=self._hub_coordinator,
             state_machine=self._central_state_machine,
         )
 

@@ -90,6 +90,7 @@ if TYPE_CHECKING:
         ConfigProviderProtocol,
         CoordinatorProviderProtocol,
         DeviceDataRefresherProtocol,
+        HubDataFetcherProtocol,
         IncidentRecorderProtocol,
         TaskSchedulerProtocol,
     )
@@ -213,6 +214,7 @@ class ConnectionRecoveryCoordinator:
             device_data_refresher=central,
             event_bus=central.event_bus,
             task_scheduler=central,
+            hub_data_fetcher=central.hub_coordinator,
             state_machine=central.state_machine,
         )
 
@@ -232,6 +234,7 @@ class ConnectionRecoveryCoordinator:
         "_device_data_refresher",
         "_event_bus",
         "_heartbeat_task",
+        "_hub_data_fetcher",
         "_incident_recorder",
         "_in_failed_state",
         "_recovery_semaphore",
@@ -252,6 +255,7 @@ class ConnectionRecoveryCoordinator:
         device_data_refresher: DeviceDataRefresherProtocol,
         event_bus: EventBus,
         task_scheduler: TaskSchedulerProtocol,
+        hub_data_fetcher: HubDataFetcherProtocol | None = None,
         state_machine: CentralStateMachine | None = None,
         incident_recorder: IncidentRecorderProtocol | None = None,
     ) -> None:
@@ -266,6 +270,7 @@ class ConnectionRecoveryCoordinator:
             device_data_refresher: Device data refresh operations
             event_bus: Event bus for subscriptions and publishing
             task_scheduler: Task scheduler for async operations
+            hub_data_fetcher: Optional hub data fetcher for refreshing hub data after recovery
             state_machine: Optional central state machine
             incident_recorder: Optional incident recorder for diagnostic events
 
@@ -277,6 +282,7 @@ class ConnectionRecoveryCoordinator:
         self._device_data_refresher: Final = device_data_refresher
         self._event_bus: Final = event_bus
         self._task_scheduler: Final = task_scheduler
+        self._hub_data_fetcher = hub_data_fetcher
         self._state_machine = state_machine
         self._incident_recorder = incident_recorder
 
@@ -868,6 +874,48 @@ class ConnectionRecoveryCoordinator:
         elif success_count > 0:
             self._transition_to_degraded(failed_count=failed_count)
 
+    async def _refresh_hub_data_after_recovery(self) -> None:
+        """Refresh hub data (system update, programs, sysvars) after recovery."""
+        if self._hub_data_fetcher is None:
+            return
+
+        _LOGGER.debug(
+            "CONNECTION_RECOVERY: Refreshing hub data for %s",
+            self._central_info.name,
+        )
+
+        # Refresh system update data first - most important after CCU restart/update
+        try:
+            await self._hub_data_fetcher.fetch_system_update_data(scheduled=False)
+            _LOGGER.debug("CONNECTION_RECOVERY: System update data refreshed")
+        except Exception:
+            _LOGGER.debug(  # i18n-log: ignore
+                "CONNECTION_RECOVERY: Failed to refresh system update data",
+                exc_info=True,
+            )
+
+        # Refresh programs if enabled
+        if self._config_provider.config.enable_program_scan:
+            try:
+                await self._hub_data_fetcher.fetch_program_data(scheduled=False)
+                _LOGGER.debug("CONNECTION_RECOVERY: Program data refreshed")
+            except Exception:
+                _LOGGER.debug(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: Failed to refresh program data",
+                    exc_info=True,
+                )
+
+        # Refresh sysvars if enabled
+        if self._config_provider.config.enable_sysvar_scan:
+            try:
+                await self._hub_data_fetcher.fetch_sysvar_data(scheduled=False)
+                _LOGGER.debug("CONNECTION_RECOVERY: Sysvar data refreshed")
+            except Exception:
+                _LOGGER.debug(  # i18n-log: ignore
+                    "CONNECTION_RECOVERY: Failed to refresh sysvar data",
+                    exc_info=True,
+                )
+
     async def _refresh_interface_data(self, *, interface_id: str) -> None:
         """Refresh data for a specific interface after recovery."""
         try:
@@ -881,7 +929,7 @@ class ConnectionRecoveryCoordinator:
             )
 
     async def _stage_data_load(self, *, interface_id: str) -> bool:
-        """Stage: Load device and paramset data."""
+        """Stage: Load device and paramset data, then refresh hub data."""
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
             interface = client.interface
@@ -897,6 +945,13 @@ class ConnectionRecoveryCoordinator:
             "CONNECTION_RECOVERY: Data load completed for %s",
             interface_id,
         )
+
+        # Refresh hub data after successful reconnect
+        # This ensures System Update, Programs, and Sysvars reflect CCU state
+        # (e.g., after CCU performed firmware update during disconnect)
+        if self._hub_data_fetcher is not None:
+            await self._refresh_hub_data_after_recovery()
+
         return True
 
     async def _stage_reconnect(self, *, interface_id: str) -> bool:

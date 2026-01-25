@@ -10,6 +10,12 @@
 
 - **Client state machine blocks recovery from INITIALIZED state**: Fixed an issue where clients stuck in `INITIALIZED` state (initialized but never connected) could not be recovered. The state machine now allows `INITIALIZED → DISCONNECTED` transitions, enabling `deinitialize_proxy()` to reset the client state for reconnection attempts. This was causing `InvalidStateTransitionError: Invalid state transition from initialized to disconnected`.
 
+- **TCP check fails for JSON-RPC-only interfaces**: Fixed an issue where CUxD and CCU-Jack client creation would always fail at startup because the TCP pre-flight check was attempted on port 0. These interfaces use JSON-RPC (via the central JSON port 443/80) and don't have individual XML-RPC ports. The TCP check is now skipped for interfaces with `port=0`.
+
+### Added
+
+- **JSON-RPC port pre-flight check**: Added a TCP pre-flight check for the JSON-RPC port (80/443) before creating any CCU clients. CCU uses JSON-RPC for hub operations (programs, sysvars, system updates, etc.) in addition to XML-RPC for device communication. This check happens once at startup and ensures the JSON-RPC service is available before attempting to create clients.
+
 ---
 
 # Version 2026.1.48 (2026-01-25)

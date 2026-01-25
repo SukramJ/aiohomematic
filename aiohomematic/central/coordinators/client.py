@@ -350,7 +350,8 @@ class ClientCoordinator(ClientProviderProtocol):
         for attempt in range(1, max_attempts + 1):
             try:
                 # Stage 1: TCP Pre-Flight Check (first attempt only)
-                if attempt == 1:
+                # Skip for JSON-RPC-only interfaces (CUxD, CCU-Jack) which have port=0
+                if attempt == 1 and interface_config.port > 0:
                     tcp_ready = await self._wait_for_tcp_ready(
                         host=self._config_provider.config.host,
                         port=interface_config.port,
@@ -464,6 +465,27 @@ class ClientCoordinator(ClientProviderProtocol):
                 )
             )
             return False
+
+        # Pre-flight check: Verify JSON-RPC port is available (CCU uses JSON-RPC for hub operations)
+        # This check happens once before creating any client
+        if (json_port := self._config_provider.config.json_port) and json_port > 0:
+            timeout_config = self._config_provider.config.timeout_config
+            json_port_ready = await self._wait_for_tcp_ready(
+                host=self._config_provider.config.host,
+                port=json_port,
+                max_wait_seconds=timeout_config.reconnect_tcp_check_timeout,
+                check_interval=timeout_config.reconnect_tcp_check_interval,
+            )
+            if not json_port_ready:
+                _LOGGER.warning(
+                    i18n.tr(
+                        key="log.central.startup.json_port_not_ready",
+                        host=self._config_provider.config.host,
+                        port=json_port,
+                    )
+                )
+                self._last_failure_reason = FailureReason.NETWORK
+                return False
 
         # Create primary clients first
         for interface_config in self._config_provider.config.enabled_interface_configs:

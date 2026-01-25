@@ -144,6 +144,11 @@ class CentralConfigProtocol(Protocol):
 
     @property
     @abstractmethod
+    def json_port(self) -> int | None:
+        """Return the JSON-RPC port."""
+
+    @property
+    @abstractmethod
     def listen_ip_addr(self) -> str | None:
         """Return the listen IP address."""
 

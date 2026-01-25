@@ -149,6 +149,7 @@ class _JsonKey(StrEnum):
     INSTALL_MODE = "installMode"
     INTERFACE = "interface"
     IS_ACTIVE = "isActive"
+    IS_HA_ADDON = "is_ha_addon"
     IS_INTERNAL = "isInternal"
     KEY = "key"
     KEYMODE = "keymode"
@@ -1002,10 +1003,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Get system information of the the backend."""
         auth_enabled = await self._get_auth_enabled()
 
-        # Get backend info (version, product, hostname, ccu_type)
+        # Get backend info (version, product, hostname, ccu_type, is_ha_addon)
         version = ""
         hostname = ""
         ccu_type = CCUType.UNKNOWN
+        is_ha_addon = False
         try:
             response = await self._post_script(script_name=RegaScript.GET_BACKEND_INFO)
             _LOGGER.debug("GET_SYSTEM_INFORMATION: Getting backend information")
@@ -1013,6 +1015,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 version = json_result.get(_JsonKey.VERSION, "")
                 ccu_type = _determine_ccu_type(product=json_result.get(_JsonKey.PRODUCT, ""))
                 hostname = json_result.get(_JsonKey.HOSTNAME, "")
+                is_ha_addon = json_result.get(_JsonKey.IS_HA_ADDON, False)
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
@@ -1029,6 +1032,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             version=version,
             hostname=hostname,
             ccu_type=ccu_type,
+            is_ha_addon=is_ha_addon,
         )
 
     async def get_system_update_info(self) -> SystemUpdateData:

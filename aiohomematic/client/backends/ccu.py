@@ -350,9 +350,11 @@ class CcuBackend(BaseBackend):
     async def initialize(self) -> None:
         """Initialize the backend by fetching system information."""
         self._system_information = await self._json_rpc.get_system_information()
-        # Update backup capability based on system info
+        # Update capabilities based on system info
         if not self._system_information.has_backup:
             self._capabilities = replace(self._capabilities, backup=False)
+        if not self._system_information.has_system_update:
+            self._capabilities = replace(self._capabilities, firmware_update_trigger=False)
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """Return all device descriptions (normalized)."""

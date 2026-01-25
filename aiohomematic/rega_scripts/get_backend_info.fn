@@ -2,11 +2,13 @@
 !#
 !# This script retrieves backend information and identifies the CCU type.
 !# Product is normalized to CCU (CCU2/CCU3/debmatic) or OpenCCU
+!# Also detects if running as Home Assistant Add-on
 !#
 
 string sVersion = "";
 string sProduct = "";
 string sHostname = "";
+string sIsHaAddon = "false";
 
 system.Exec("grep VERSION= /VERSION | tr -d '[:space:]' | cut -d= -f2", &sVersion);
 sVersion = sVersion.Trim();
@@ -22,4 +24,20 @@ if ((!sProduct.Contains("ccu")) && (!sProduct == "debmatic")) {
 system.Exec("hostname", &sHostname);
 sHostname = sHostname.Trim();
 
-Write('{"version":"' # sVersion # '","product":"' # sProduct # '","hostname":"' # sHostname # '"}');
+!# Detect if running as HA-Addon
+!# Check for HM_RUNNING_IN_HA environment variable first, then SUPERVISOR_TOKEN as fallback
+string sHaEnv = "";
+system.Exec("printenv HM_RUNNING_IN_HA 2>/dev/null || true", &sHaEnv);
+sHaEnv = sHaEnv.Trim();
+if (sHaEnv == "1") {
+    sIsHaAddon = "true";
+} else {
+    string sSupervisorToken = "";
+    system.Exec("printenv SUPERVISOR_TOKEN 2>/dev/null || true", &sSupervisorToken);
+    sSupervisorToken = sSupervisorToken.Trim();
+    if (sSupervisorToken.Length() > 0) {
+        sIsHaAddon = "true";
+    }
+}
+
+Write('{"version":"' # sVersion # '","product":"' # sProduct # '","hostname":"' # sHostname # '","is_ha_addon":' # sIsHaAddon # '}');

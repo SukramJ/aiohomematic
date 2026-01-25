@@ -1069,11 +1069,9 @@ class ConnectionRecoveryCoordinator:
         host = config.host
 
         # Get the port to check
-        port = self._get_client_port(interface_id=interface_id)
-
         # If port not found from client (e.g., startup failure - client doesn't exist),
         # try to get it from the interface configuration or check if JSON-RPC interface
-        if port is None or port == 0:
+        if (port := self._get_client_port(interface_id=interface_id)) is None:
             # First try: get from interface configuration
             for interface_config in config.enabled_interface_configs:
                 if interface_config.interface_id == interface_id:
@@ -1093,7 +1091,7 @@ class ConnectionRecoveryCoordinator:
 
             # Second try: if port still not found, try getting client interface type
             # This handles cases where client exists but port wasn't in config
-            if port is None or port == 0:
+            if port is None:
                 try:
                     client = self._client_provider.get_client(interface_id=interface_id)
                     if client.interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC:
@@ -1108,7 +1106,7 @@ class ConnectionRecoveryCoordinator:
                     pass
 
             # Still no port found?
-            if port is None or port == 0:
+            if port is None:
                 _LOGGER.warning(  # i18n-log: ignore
                     "CONNECTION_RECOVERY: No port configured for %s, skipping TCP check",
                     interface_id,

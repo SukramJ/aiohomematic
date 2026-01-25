@@ -1,3 +1,27 @@
+# Version 2026.1.51 (2026-01-25)
+
+## What's Changed
+
+### Added
+
+- **Comprehensive contract tests for stability guarantees**: Added contract tests that define the stable API contract for aiohomematic. These tests ensure that changes to core infrastructure require explicit consideration and MAJOR version bumps:
+  - `test_capability_contract.py`: Backend capabilities (CUxD, CCU-Jack, CCU, Homegear)
+  - `test_client_state_machine_contract.py`: Client state machine transitions and properties
+  - `test_central_state_machine_contract.py`: Central state machine transitions and properties
+  - `test_connection_recovery_contract.py`: Connection recovery behavior (exponential backoff, max attempts, stage progression)
+  - `test_event_system_contract.py`: Event types, required fields, and immutability
+  - `test_client_lifecycle_contract.py`: Client lifecycle methods (init, deinit, reconnect, stop)
+  - `test_enum_constants_contract.py`: Enum value stability (Interface, Backend, DataPointCategory, DeviceProfile, ParamsetKey, etc.)
+  - `test_configuration_contract.py`: Configuration class stability (CentralConfig, InterfaceConfig, TimeoutConfig)
+  - `test_exception_hierarchy_contract.py`: Exception hierarchy (BaseHomematicException and subclasses)
+  - `test_protocol_interfaces_contract.py`: Protocol interface definitions (runtime checkable, required members)
+  - `test_hub_entities_contract.py`: Hub entity classes (Program, Sysvar, Metrics, Inbox, Update)
+  - `test_subscription_api_contract.py`: EventBus subscription API stability
+
+See ADR-0018 for architectural context.
+
+---
+
 # Version 2026.1.50 (2026-01-25)
 
 ## What's Changed

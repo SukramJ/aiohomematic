@@ -6,6 +6,10 @@
 
 - **Hub data not refreshed after connection recovery**: Fixed an issue where hub data (System Update, Programs, Sysvars) was not refreshed after a successful reconnect. This caused the System Update DataPoint in Home Assistant to show stale information (e.g., "Update available" even after the CCU had completed the firmware update during the disconnect). The `ConnectionRecoveryCoordinator` now accepts a `hub_data_fetcher` parameter and calls `fetch_system_update_data()`, `fetch_program_data()`, and `fetch_sysvar_data()` after successful data load. This ensures that hub state is synchronized immediately after recovery instead of waiting up to 4 hours for the next scheduled refresh.
 
+- **Recovery fails for individual clients when others exist**: Fixed an issue where recovery for CUxD or CCU-Jack clients would fail with "Clients bereits erstellt" when other clients (HmIP-RF, BidCos-RF, etc.) were already created. The `ConnectionRecoveryCoordinator._stage_reconnect()` now calls `_create_client(interface_config=...)` directly for the specific failing interface instead of `_create_clients()` which requires no existing clients.
+
+- **Client state machine blocks recovery from INITIALIZED state**: Fixed an issue where clients stuck in `INITIALIZED` state (initialized but never connected) could not be recovered. The state machine now allows `INITIALIZED → DISCONNECTED` transitions, enabling `deinitialize_proxy()` to reset the client state for reconnection attempts. This was causing `InvalidStateTransitionError: Invalid state transition from initialized to disconnected`.
+
 ---
 
 # Version 2026.1.48 (2026-01-25)

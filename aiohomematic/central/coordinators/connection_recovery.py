@@ -960,16 +960,31 @@ class ConnectionRecoveryCoordinator:
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
         except Exception:
-            # Client doesn't exist (startup failure) - try to create it
+            # Client doesn't exist (startup failure) - try to create just this client
             _LOGGER.info(  # i18n-log: ignore
                 "CONNECTION_RECOVERY: Client %s doesn't exist, attempting to create",
                 interface_id,
             )
             try:
-                # Call _create_clients() on the client coordinator to create all clients
-                # This will re-attempt to create clients for all configured interfaces
+                # Find the InterfaceConfig for this interface_id
+                interface_config = None
+                for config in self._config_provider.config.enabled_interface_configs:
+                    if config.interface_id == interface_id:
+                        interface_config = config
+                        break
+
+                if interface_config is None:
+                    _LOGGER.warning(  # i18n-log: ignore
+                        "CONNECTION_RECOVERY: No interface config found for %s",
+                        interface_id,
+                    )
+                    return False
+
+                # Call _create_client() directly to create just this one client
                 # pylint: disable=protected-access
-                if await self._coordinator_provider.client_coordinator._create_clients():
+                if await self._coordinator_provider.client_coordinator._create_client(
+                    interface_config=interface_config
+                ):
                     # Verify the client was created
                     try:
                         if (

@@ -1,3 +1,13 @@
+# Version 2026.1.49 (2026-01-25)
+
+## What's Changed
+
+### Fixed
+
+- **Hub data not refreshed after connection recovery**: Fixed an issue where hub data (System Update, Programs, Sysvars) was not refreshed after a successful reconnect. This caused the System Update DataPoint in Home Assistant to show stale information (e.g., "Update available" even after the CCU had completed the firmware update during the disconnect). The `ConnectionRecoveryCoordinator` now accepts a `hub_data_fetcher` parameter and calls `fetch_system_update_data()`, `fetch_program_data()`, and `fetch_sysvar_data()` after successful data load. This ensures that hub state is synchronized immediately after recovery instead of waiting up to 4 hours for the next scheduled refresh.
+
+---
+
 # Version 2026.1.48 (2026-01-25)
 
 ## What's Changed

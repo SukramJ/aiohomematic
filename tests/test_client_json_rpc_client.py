@@ -526,6 +526,36 @@ class TestJsonRpcClientErrorHandling:
             await client.get_all_device_data(interface=Interface.BIDCOS_RF)
 
     @pytest.mark.asyncio
+    async def test_get_auth_enabled_handles_auth_failure(
+        self, mock_json_rpc_server, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        _get_auth_enabled should catch AuthFailure and return True.
+
+        This scenario occurs when the user doesn't have ADMIN rights on the CCU.
+        The error "access denied (ADMIN needed)" is classified as AuthFailure,
+        but it actually proves that auth is enabled (otherwise no permission check).
+        """
+        (_, base_url) = mock_json_rpc_server
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="user",
+            password="pass",
+            device_url=base_url,
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def raise_auth_failure(*args, **kwargs):
+            raise AuthFailure("access denied (ADMIN needed 2)")
+
+        monkeypatch.setattr(client, "_post", raise_auth_failure)
+        assert await client._get_auth_enabled() is True
+
+        await client.stop()
+
+    @pytest.mark.asyncio
     async def test_get_auth_enabled_handles_internal_error(
         self, mock_json_rpc_server, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
     ) -> None:

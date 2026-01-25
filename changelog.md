@@ -1,3 +1,13 @@
+# Version 2026.1.47 (2026-01-25)
+
+## What's Changed
+
+### Fixed
+
+- **Authentication check fails for non-admin users**: Fixed a regression introduced in 2026.1.41 where users without ADMIN rights on the CCU would fail to connect. The `_get_auth_enabled()` method in `json_rpc.py` now catches `AuthFailure` exceptions in addition to `InternalBackendException`. When `CCU.getAuthEnabled` fails with "access denied (ADMIN needed 2)", this actually proves that authentication is enabled on the CCU (otherwise no permission check would occur). The method now correctly returns `True` in this case instead of propagating the exception, which was incorrectly triggering the startup resiliency retry loop and eventually a re-authentication flow.
+
+---
+
 # Version 2026.1.46 (2026-01-24)
 
 ## What's Changed

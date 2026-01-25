@@ -1706,13 +1706,23 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         return await self._do_login()
 
     async def _get_auth_enabled(self) -> bool:
-        """Get the auth_enabled flag of the backend."""
+        """
+        Get the auth_enabled flag of the backend.
+
+        Note:
+            If CCU.getAuthEnabled fails with AuthFailure (e.g., "access denied (ADMIN needed)"),
+            we assume auth is enabled. This error indicates that the user doesn't have ADMIN
+            rights, which itself proves that authentication is enabled on the CCU.
+
+        """
         _LOGGER.debug("GET_AUTH_ENABLED: Getting the flag auth_enabled")
         try:
             response = await self._post(method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
             if (json_result := response[_JsonKey.RESULT]) is not None:
                 return bool(json_result)
-        except InternalBackendException:
+        except (AuthFailure, InternalBackendException):
+            # AuthFailure: "access denied (ADMIN needed)" means auth is enabled
+            # InternalBackendException: Backend error, assume auth is enabled to be safe
             return True
 
         return True

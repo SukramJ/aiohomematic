@@ -33,10 +33,10 @@ _LOGGER: Final = logging.getLogger(__name__)
 # State Diagram:
 #
 #   CREATED ──► INITIALIZING ──► INITIALIZED ──► CONNECTING ──► CONNECTED
-#                    │                               ▲              │
-#                    ▼                               │              ▼
-#                 FAILED ◄─────────────────────────┬┴─────── DISCONNECTED
-#                    │                             │              ▲
+#                    │               │               ▲              │
+#                    ▼               │               │              ▼
+#                 FAILED ◄──────────┼──────────────┬┴─────── DISCONNECTED
+#                    │              │              │              ▲
 #                    ├─────► INITIALIZING          │              │
 #                    ├─────► CONNECTING ◄──────────┴──────── RECONNECTING
 #                    ├─────► DISCONNECTED (for graceful shutdown) ▲
@@ -44,13 +44,16 @@ _LOGGER: Final = logging.getLogger(__name__)
 #
 #   STOPPED ◄── STOPPING ◄─────────────────────────(from CONNECTED/DISCONNECTED/RECONNECTING)
 #
+#   Note: INITIALIZED → DISCONNECTED allows recovery reset when connection was never established
+#
 _VALID_TRANSITIONS: Final[dict[ClientState, frozenset[ClientState]]] = {
     # Initial state after client creation - can only begin initialization
     ClientState.CREATED: frozenset({ClientState.INITIALIZING}),
     # During initialization (loading metadata, etc.) - succeeds or fails
     ClientState.INITIALIZING: frozenset({ClientState.INITIALIZED, ClientState.FAILED}),
     # Initialization complete - ready to establish connection
-    ClientState.INITIALIZED: frozenset({ClientState.CONNECTING}),
+    # DISCONNECTED allows reset for recovery when connection was never established
+    ClientState.INITIALIZED: frozenset({ClientState.CONNECTING, ClientState.DISCONNECTED}),
     # Attempting to connect to backend - succeeds or fails
     ClientState.CONNECTING: frozenset({ClientState.CONNECTED, ClientState.FAILED}),
     # Fully connected and operational

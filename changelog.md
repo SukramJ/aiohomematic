@@ -33,7 +33,12 @@
 
 ### Changed
 
-- **Backend factory now supports plugins**: The `create_backend()` function now accepts an optional `plugin_registry` parameter. For CUxD/CCU-Jack interfaces, plugins are tried first; if no plugin is available, the built-in `JsonCcuBackend` is used as fallback
+- **JsonCcuBackend moved to external plugin**: The `JsonCcuBackend` implementation for CUxD and CCU-Jack interfaces has been moved to the separate `aiohomematic-jsonclient` package. Install with: `pip install aiohomematic-jsonclient`
+- **Backend factory now supports plugins**: The `create_backend()` function now accepts an optional `plugin_registry` parameter to delegate backend creation to plugins
+
+### Removed
+
+- **JsonCcuBackend**: Removed from core package (now in `aiohomematic-jsonclient` plugin)
 
 ---
 

@@ -125,6 +125,7 @@ async def create_client(
         paramset_provider=client_deps.cache_coordinator.paramset_descriptions,
         device_details_provider=client_deps.cache_coordinator.device_details.device_channel_rega_ids,
         has_push_updates=client_config.has_push_updates,
+        # Plugin support for CUxD, CCU-Jack, etc.
         plugin_registry=client_deps.plugin_registry,
         username=client_deps.config.username,
         password=client_deps.config.password,

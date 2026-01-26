@@ -11,9 +11,11 @@ Public API
 - BackendOperationsProtocol: Interface for all backend operations
 - BackendCapabilities: Capability flags dataclass
 - CcuBackend: CCU backend (XML-RPC + JSON-RPC)
-- JsonCcuBackend: CCU-Jack backend (JSON-RPC only)
 - HomegearBackend: Homegear backend (XML-RPC with extensions)
 - create_backend: Factory function to create appropriate backend
+
+Note: JSON-RPC-only backends (CUxD, CCU-Jack) are provided by the
+aiohomematic-jsonclient plugin.
 
 """
 
@@ -28,7 +30,6 @@ from aiohomematic.client.backends.capabilities import (
 from aiohomematic.client.backends.ccu import CcuBackend
 from aiohomematic.client.backends.factory import create_backend
 from aiohomematic.client.backends.homegear import HomegearBackend
-from aiohomematic.client.backends.json_ccu import JsonCcuBackend
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 
 __all__ = [
@@ -42,7 +43,6 @@ __all__ = [
     # Backends
     "CcuBackend",
     "HomegearBackend",
-    "JsonCcuBackend",
     # Factory
     "create_backend",
 ]

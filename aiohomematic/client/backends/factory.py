@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, Final
 
 from aiohomematic.client.backends.ccu import CcuBackend
 from aiohomematic.client.backends.homegear import HomegearBackend
-from aiohomematic.client.backends.json_ccu import JsonCcuBackend
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 from aiohomematic.const import INTERFACES_REQUIRING_JSON_RPC_CLIENT, Interface
 
@@ -80,9 +79,8 @@ async def create_backend(
     """
     backend: BackendOperationsProtocol
 
-    # Check if a plugin handles this interface (CUxD, CCU-Jack)
+    # Check if a plugin handles this interface
     if interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT:
-        # First, try to use a plugin if available
         if (
             plugin_registry is not None
             and (plugin := plugin_registry.get_plugin_for_interface(interface=str(interface))) is not None
@@ -105,20 +103,11 @@ async def create_backend(
             )
             return backend
 
-        # Fallback to built-in JsonCcuBackend
-        _LOGGER.debug(
-            "CREATE_BACKEND: Creating JsonCcuBackend for interface %s",
-            interface_id,
+        # No plugin available - raise helpful error
+        raise ValueError(  # i18n-exc: ignore
+            f"Interface {interface} requires aiohomematic-jsonclient plugin. "
+            "Install it with: pip install aiohomematic-jsonclient"
         )
-        backend = JsonCcuBackend(
-            interface=interface,
-            interface_id=interface_id,
-            json_rpc=json_rpc,
-            paramset_provider=paramset_provider,
-            has_push_updates=has_push_updates,
-        )
-        await backend.initialize()
-        return backend
 
     # Homegear/pydevccu: XML-RPC with Homegear extensions
     if interface == Interface.BIDCOS_RF and ("Homegear" in version or "pydevccu" in version):

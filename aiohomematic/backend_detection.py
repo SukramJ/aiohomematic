@@ -481,21 +481,21 @@ async def _query_json_rpc_interfaces(
                     _LOGGER.debug(
                         i18n.tr(
                             key="log.backend_detection.json_rpc.interface_present",
-                            interface=interface.value,
+                            interface=str(interface),
                         )
                     )
                 else:
                     _LOGGER.warning(
                         i18n.tr(
                             key="log.backend_detection.json_rpc.interface_not_present",
-                            interface=interface.value,
+                            interface=str(interface),
                         )
                     )
             except Exception as exc:
                 _LOGGER.warning(
                     i18n.tr(
                         key="log.backend_detection.json_rpc.is_present_failed",
-                        interface=interface.value,
+                        interface=str(interface),
                         reason=str(exc),
                     )
                 )

@@ -63,6 +63,7 @@ if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState, DeviceRegistry
     from aiohomematic.central.coordinators import CacheCoordinator, DeviceCoordinator, EventCoordinator
     from aiohomematic.central.events import EventBus
+    from aiohomematic.central.plugin_registry import PluginRegistry
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
     from aiohomematic.client.backends.capabilities import BackendCapabilities
     from aiohomematic.interfaces.central import CentralConfigProtocol
@@ -1136,6 +1137,11 @@ class ClientDependenciesProtocol(Protocol):
     @abstractmethod
     def name(self) -> str:
         """Return central name."""
+
+    @property
+    @abstractmethod
+    def plugin_registry(self) -> PluginRegistry:
+        """Return the plugin registry for client backends."""
 
     @property
     @abstractmethod

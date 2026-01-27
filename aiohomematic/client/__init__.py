@@ -125,6 +125,13 @@ async def create_client(
         paramset_provider=client_deps.cache_coordinator.paramset_descriptions,
         device_details_provider=client_deps.cache_coordinator.device_details.device_channel_rega_ids,
         has_push_updates=client_config.has_push_updates,
+        plugin_registry=client_deps.plugin_registry,
+        username=client_deps.config.username,
+        password=client_deps.config.password,
+        device_url=client_deps.config.create_central_url(),
+        client_session=client_deps.config.client_session,
+        tls=client_deps.config.tls,
+        verify_tls=client_deps.config.verify_tls,
     )
 
     _LOGGER.debug(

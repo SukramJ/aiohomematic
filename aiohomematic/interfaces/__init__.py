@@ -277,6 +277,7 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.interfaces.plugin import ClientPluginProtocol, PluginConfig, PluginState
 
 __all__ = [
     # Cache protocols
@@ -386,6 +387,10 @@ __all__ = [
     "HubSensorDataPointProtocol",
     # Model week profile
     "WeekProfileProtocol",
+    # Plugin protocols
+    "ClientPluginProtocol",
+    "PluginConfig",
+    "PluginState",
     # Task scheduling
     "TaskSchedulerProtocol",
     # Utility protocols

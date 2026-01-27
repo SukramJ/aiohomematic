@@ -21,6 +21,9 @@ from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 from aiohomematic.const import INTERFACES_REQUIRING_JSON_RPC_CLIENT, Interface
 
 if TYPE_CHECKING:
+    from aiohttp import ClientSession
+
+    from aiohomematic.central.plugin_registry import PluginRegistry
     from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
     from aiohomematic.client.rpc_proxy import BaseRpcProxy
     from aiohomematic.interfaces import ParamsetDescriptionProviderProtocol
@@ -41,6 +44,14 @@ async def create_backend(
     paramset_provider: ParamsetDescriptionProviderProtocol,
     device_details_provider: Mapping[str, int],
     has_push_updates: bool,
+    # Plugin support
+    plugin_registry: PluginRegistry | None = None,
+    username: str = "",
+    password: str = "",
+    device_url: str = "",
+    client_session: ClientSession | None = None,
+    tls: bool = False,
+    verify_tls: bool = False,
 ) -> BackendOperationsProtocol:
     """
     Create the appropriate backend based on interface and version.
@@ -55,6 +66,13 @@ async def create_backend(
         paramset_provider: Provider for paramset descriptions
         device_details_provider: Mapping of address to rega_id for room/function lookup
         has_push_updates: Whether interface supports push updates (from config)
+        plugin_registry: Optional plugin registry for plugin-based backends
+        username: Username for plugin authentication
+        password: Password for plugin authentication
+        device_url: Device URL for plugin connection
+        client_session: HTTP client session for plugin
+        tls: Whether to use TLS for plugin connection
+        verify_tls: Whether to verify TLS certificates for plugin
 
     Returns:
         Appropriate backend implementation.
@@ -62,8 +80,32 @@ async def create_backend(
     """
     backend: BackendOperationsProtocol
 
-    # CCU-Jack: JSON-RPC only
+    # Check if a plugin handles this interface (CUxD, CCU-Jack)
     if interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT:
+        # First, try to use a plugin if available
+        if (
+            plugin_registry is not None
+            and (plugin := plugin_registry.get_plugin_for_interface(interface=str(interface))) is not None
+        ):
+            _LOGGER.debug(
+                "CREATE_BACKEND: Using plugin %s for interface %s",
+                plugin.name,
+                interface_id,
+            )
+            backend = await plugin.create_backend(
+                interface=str(interface),
+                interface_id=interface_id,
+                username=username,
+                password=password,
+                device_url=device_url,
+                client_session=client_session,
+                tls=tls,
+                verify_tls=verify_tls,
+                has_push_updates=has_push_updates,
+            )
+            return backend
+
+        # Fallback to built-in JsonCcuBackend
         _LOGGER.debug(
             "CREATE_BACKEND: Creating JsonCcuBackend for interface %s",
             interface_id,
@@ -75,9 +117,11 @@ async def create_backend(
             paramset_provider=paramset_provider,
             has_push_updates=has_push_updates,
         )
+        await backend.initialize()
+        return backend
 
     # Homegear/pydevccu: XML-RPC with Homegear extensions
-    elif interface == Interface.BIDCOS_RF and ("Homegear" in version or "pydevccu" in version):
+    if interface == Interface.BIDCOS_RF and ("Homegear" in version or "pydevccu" in version):
         if proxy is None or proxy_read is None:
             raise ValueError("Homegear backend requires XML-RPC proxies")  # i18n-exc: ignore
         _LOGGER.debug(

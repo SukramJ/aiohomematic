@@ -29,6 +29,7 @@ from aiohomematic.central.coordinators import (
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
 from aiohomematic.central.health import CentralHealth, HealthTracker
+from aiohomematic.central.plugin_registry import PluginRegistry, discover_and_register_plugins_async
 from aiohomematic.central.registry import CENTRAL_REGISTRY
 from aiohomematic.central.scheduler import BackgroundScheduler
 from aiohomematic.central.state_machine import CentralStateMachine
@@ -127,6 +128,11 @@ class CentralUnit(
             central_name=central_config.name,
             task_scheduler=self.looper,
         )
+
+        # Initialize plugin registry for client backends (CUxD, CCU-Jack, etc.)
+        # Plugins are discovered asynchronously in start() to avoid blocking
+        self._plugin_registry: Final = PluginRegistry()
+        self._plugins_discovered: bool = False
 
         # Initialize coordinators
         self._client_coordinator: Final = ClientCoordinator(
@@ -321,6 +327,11 @@ class CentralUnit(
                 incident_recorder=self._cache_coordinator.incident_store,
             )
         return self._json_rpc_client
+
+    @property
+    def plugin_registry(self) -> PluginRegistry:
+        """Return the plugin registry for client backends."""
+        return self._plugin_registry
 
     @property
     def system_information(self) -> SystemInformation:
@@ -786,6 +797,9 @@ class CentralUnit(
             _LOGGER.debug("START: Central %s already started", self.name)
             return
 
+        # Discover and register plugins asynchronously (runs in thread to avoid blocking)
+        await self._ensure_plugins_discovered()
+
         # Transition central state machine to INITIALIZING
         if self._central_state_machine.can_transition_to(target=CentralState.INITIALIZING):
             self._central_state_machine.transition_to(
@@ -987,6 +1001,9 @@ class CentralUnit(
 
     async def validate_config_and_get_system_information(self) -> SystemInformation:
         """Validate the central configuration."""
+        # Ensure plugins are discovered before creating clients
+        await self._ensure_plugins_discovered()
+
         if len(self._config.enabled_interface_configs) == 0:
             raise NoClientsException(i18n.tr(key="exception.central.validate_config.no_clients"))
 
@@ -1006,6 +1023,13 @@ class CentralUnit(
             if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and not system_information.serial:
                 system_information = client.system_information
         return system_information
+
+    async def _ensure_plugins_discovered(self) -> None:
+        """Ensure plugins are discovered (runs in thread to avoid blocking)."""
+        if not getattr(self, "_plugins_discovered", False):
+            if hasattr(self, "_plugin_registry"):
+                await discover_and_register_plugins_async(registry=self._plugin_registry)
+            self._plugins_discovered = True
 
     async def _identify_ip_addr(self, *, port: int) -> str:
         ip_addr: str | None = None

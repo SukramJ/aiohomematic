@@ -89,7 +89,7 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
         self._health_tracker: Final = health_tracker
 
         # Create unique ID and name
-        sensor_name = f"{CONNECTIVITY_SENSOR_PREFIX} {interface.value}"
+        sensor_name = f"{CONNECTIVITY_SENSOR_PREFIX} {interface}"
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
@@ -139,7 +139,7 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
     @property
     def description(self) -> str | None:
         """Return data point description."""
-        return f"Connectivity status for {self._interface.value} interface"
+        return f"Connectivity status for {self._interface} interface"
 
     @property
     def interface(self) -> Interface:
@@ -185,7 +185,7 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
 
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
-        return HubPathData(name=slugify(f"connectivity_{self._interface.value}"))
+        return HubPathData(name=slugify(f"connectivity_{self._interface}"))
 
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""

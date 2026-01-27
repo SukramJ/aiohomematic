@@ -1,10 +1,19 @@
-# Version 2026.1.51 (2026-01-25)
+# Version 2026.1.51 (2026-01-27)
 
 ## What's Changed
 
 ### Added
 
+- **Plugin infrastructure for extensible backends**: Added plugin system to support external backend implementations:
+
+  - `ClientPluginProtocol`: Protocol for client plugins providing backend implementations
+  - `PluginRegistry`: Registry for managing and discovering plugins
+  - Auto-discovery via `aiohomematic.plugins` entry point group
+  - Plugin backends must implement `BackendOperationsProtocol`
+  - See ADR-0019 for architectural details
+
 - **Comprehensive contract tests for stability guarantees**: Added contract tests that define the stable API contract for aiohomematic. These tests ensure that changes to core infrastructure require explicit consideration and MAJOR version bumps:
+
   - `test_capability_contract.py`: Backend capabilities (CUxD, CCU-Jack, CCU, Homegear)
   - `test_client_state_machine_contract.py`: Client state machine transitions and properties
   - `test_central_state_machine_contract.py`: Central state machine transitions and properties
@@ -17,8 +26,14 @@
   - `test_protocol_interfaces_contract.py`: Protocol interface definitions (runtime checkable, required members)
   - `test_hub_entities_contract.py`: Hub entity classes (Program, Sysvar, Metrics, Inbox, Update)
   - `test_subscription_api_contract.py`: EventBus subscription API stability
+  - `test_plugin_contract.py`: Plugin interface stability (ClientPluginProtocol, BackendOperationsProtocol, PluginRegistry validation)
+  - See ADR-0018 for architectural context
 
-See ADR-0018 for architectural context.
+- **Dynamic plugin contract validation**: Added `plugin_validator.py` module that dynamically extracts required methods and properties from `ClientPluginProtocol` and `BackendOperationsProtocol`. The validator automatically stays in sync with protocol changes, ensuring plugins are validated against the current protocol definitions at runtime
+
+### Changed
+
+- **Backend factory now supports plugins**: The `create_backend()` function now accepts an optional `plugin_registry` parameter. For CUxD/CCU-Jack interfaces, plugins are tried first; if no plugin is available, the built-in `JsonCcuBackend` is used as fallback
 
 ---
 

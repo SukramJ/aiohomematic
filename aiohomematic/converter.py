@@ -34,7 +34,7 @@ from typing import Any, Final, cast
 from aiohomematic.const import Parameter
 from aiohomematic.support import extract_exc_args
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 # =============================================================================

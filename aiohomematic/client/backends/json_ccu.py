@@ -12,7 +12,6 @@ Public API
 
 from __future__ import annotations
 
-from dataclasses import replace
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
@@ -75,10 +74,7 @@ class JsonCcuBackend(BaseBackend):
     ) -> None:
         """Initialize the JSON CCU backend."""
         # Build capabilities based on config
-        capabilities = replace(
-            JSON_CCU_CAPABILITIES,
-            push_updates=has_push_updates,
-        )
+        capabilities = JSON_CCU_CAPABILITIES.model_copy(update={"push_updates": has_push_updates})
         super().__init__(
             interface=interface,
             interface_id=interface_id,

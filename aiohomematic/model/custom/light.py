@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from enum import StrEnum, unique
 import math
-from typing import Final, TypedDict, Unpack
+from typing import Final, TypedDict, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.model.custom.capabilities.light import LightCapabilities
@@ -310,6 +310,7 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         """Return true if dimmer is on."""
         return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
 
+    @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if self.is_timer_state_change():
@@ -775,6 +776,7 @@ class CustomDpIpFixedColorLight(TimerUnitMixin, CustomDpDimmer):
 
         await super().turn_on(collector=collector, **kwargs)
 
+    @override
     def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         super()._post_init()

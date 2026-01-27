@@ -9,7 +9,7 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 import logging
-from typing import Final, Unpack
+from typing import Final, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.model.custom.data_point import CustomDataPoint
@@ -45,6 +45,7 @@ class CustomDpIpIrrigationValve(StateChangeTimerMixin, GroupStateMixin, CustomDa
             return
         await self._dp_state.turn_off(collector=collector)
 
+    @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if self.is_state_change_for_on_off(**kwargs):

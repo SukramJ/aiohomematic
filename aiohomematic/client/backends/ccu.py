@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
-from dataclasses import replace
 from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
@@ -81,13 +80,14 @@ class CcuBackend(BaseBackend):
     ) -> None:
         """Initialize the CCU backend."""
         # Build capabilities based on interface and config
-        capabilities = replace(
-            CCU_CAPABILITIES,
-            firmware_updates=interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
-            linking=interface in LINKABLE_INTERFACES,
-            ping_pong=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
-            push_updates=has_push_updates,
-            rpc_callback=interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
+        capabilities = CCU_CAPABILITIES.model_copy(
+            update={
+                "firmware_updates": interface in INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
+                "linking": interface in LINKABLE_INTERFACES,
+                "ping_pong": interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
+                "push_updates": has_push_updates,
+                "rpc_callback": interface in INTERFACES_SUPPORTING_RPC_CALLBACK,
+            }
         )
         super().__init__(
             interface=interface,
@@ -352,9 +352,9 @@ class CcuBackend(BaseBackend):
         self._system_information = await self._json_rpc.get_system_information()
         # Update capabilities based on system info
         if not self._system_information.has_backup:
-            self._capabilities = replace(self._capabilities, backup=False)
+            self._capabilities = self._capabilities.model_copy(update={"backup": False})
         if not self._system_information.has_system_update:
-            self._capabilities = replace(self._capabilities, firmware_update_trigger=False)
+            self._capabilities = self._capabilities.model_copy(update={"firmware_update_trigger": False})
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """Return all device descriptions (normalized)."""

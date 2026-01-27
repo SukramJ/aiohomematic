@@ -33,8 +33,9 @@ Example usage:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+from pydantic import BaseModel, ConfigDict
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
 
@@ -48,9 +49,10 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class ExtendedDeviceConfig:
+class ExtendedDeviceConfig(BaseModel):
     """Extended configuration for custom data point creation."""
+
+    model_config = ConfigDict(frozen=True)
 
     fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] | None = None
     additional_data_points: Mapping[int | tuple[int, ...], tuple[Parameter, ...]] | None = None
@@ -70,11 +72,14 @@ class ExtendedDeviceConfig:
         return tuple(required_parameters)
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class DeviceConfig:
+class DeviceConfig(BaseModel):
     """Configuration for mapping a device model to its custom data point implementation."""
 
-    data_point_class: type[CustomDataPoint]
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    # Note: Using Any due to circular import (data_point.py imports DeviceConfig)
+    # Static type: type[CustomDataPoint]
+    data_point_class: Any
     profile_type: DeviceProfile
     channels: tuple[int | None, ...] = (1,)
     extended: ExtendedDeviceConfig | None = None

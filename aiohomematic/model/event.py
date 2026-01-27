@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import Any, Final
+from typing import Any, Final, override
 
 from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
@@ -280,6 +280,7 @@ class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
         """Set up internal subscriptions after channel events are ready."""
         self._setup_internal_subscriptions()
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data."""
         return DataPointPathData(
@@ -289,6 +290,7 @@ class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
             kind="event_group",
         )
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the event group."""
         return f"{self._category}/{self._channel.device.model}/event_group"

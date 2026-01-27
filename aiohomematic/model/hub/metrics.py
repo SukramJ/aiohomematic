@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, override
 
 from slugify import slugify
 
@@ -160,10 +160,12 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         """Return the current metric value. Override in subclasses."""
         raise NotImplementedError
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return HubPathData(name=slugify(self._sensor_name))
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self.name}"

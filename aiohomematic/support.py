@@ -205,8 +205,8 @@ def _create_tls_context(*, verify_tls: bool) -> ssl.SSLContext:
     return sslcontext
 
 
-_DEFAULT_NO_VERIFY_SSL_CONTEXT = _create_tls_context(verify_tls=False)
-_DEFAULT_SSL_CONTEXT = _create_tls_context(verify_tls=True)
+_DEFAULT_NO_VERIFY_SSL_CONTEXT: Final = _create_tls_context(verify_tls=False)
+_DEFAULT_SSL_CONTEXT: Final = _create_tls_context(verify_tls=True)
 
 
 def get_tls_context(*, verify_tls: bool) -> ssl.SSLContext:
@@ -578,7 +578,7 @@ def create_random_device_addresses(*, addresses: list[str]) -> dict[str, str]:
 
 # --- Structured error boundary logging helpers ---
 
-_BOUNDARY_MSG = "error_boundary"
+_BOUNDARY_MSG: Final = "error_boundary"
 
 
 def _safe_log_context(*, context: Mapping[str, Any] | None) -> dict[str, Any]:

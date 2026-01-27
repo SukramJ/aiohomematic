@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 from enum import IntEnum, StrEnum, unique
 import logging
-from typing import Final, Unpack
+from typing import Final, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
@@ -165,6 +165,7 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
             return
         await self._set_level(level=self._closed_level, collector=collector)
 
+    @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if kwargs.get(_StateChangeArg.OPEN) is not None and self._group_level != self._open_level:
@@ -205,6 +206,7 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
         """Stop the device if in motion."""
         await self._dp_stop.send_value(value=True, collector=collector)
 
+    @override
     def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         super()._post_init()
@@ -328,6 +330,7 @@ class CustomDpBlind(CustomDpCover):
             return
         await self._set_level(tilt_level=self._closed_level, collector=collector)
 
+    @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if (
@@ -577,6 +580,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
             return
         await self._dp_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
 
+    @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if kwargs.get(_StateChangeArg.OPEN) is not None and self.current_position != _CoverPosition.OPEN:

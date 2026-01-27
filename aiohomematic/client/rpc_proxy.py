@@ -26,7 +26,7 @@ import asyncio
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
-from enum import Enum, IntEnum, StrEnum
+from enum import Enum, IntEnum, StrEnum, unique
 import errno
 import http.client
 import logging
@@ -64,6 +64,7 @@ _TLS: Final = "tls"
 _VERIFY_TLS: Final = "verify_tls"
 
 
+@unique
 class _RpcMethod(StrEnum):
     """Enum for Homematic json rpc methods types."""
 
@@ -95,6 +96,7 @@ _OS_ERROR_CODES: Final[dict[int, str]] = {
 }
 
 
+@unique
 class _XmlRpcFaultCode(IntEnum):
     """
     XML-RPC fault codes from the Homematic backend.

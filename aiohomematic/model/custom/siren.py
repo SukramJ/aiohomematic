@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import contextlib
-from enum import StrEnum
+from enum import StrEnum, unique
 from typing import Final, TypedDict, Unpack
 
 from aiohomematic import i18n
@@ -63,6 +63,7 @@ def _convert_repetitions(*, repetitions: int | None) -> str:
     return f"REPETITIONS_{repetitions:03d}"
 
 
+@unique
 class _SirenCommand(StrEnum):
     """Enum with siren commands."""
 

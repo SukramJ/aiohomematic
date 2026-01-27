@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from enum import IntEnum, StrEnum
+from enum import IntEnum, StrEnum, unique
 import logging
 from typing import Final, Unpack, cast
 
@@ -63,6 +63,7 @@ _TEMP_CELSIUS: Final = "°C"
 PROFILE_PREFIX: Final = "week_program_"
 
 
+@unique
 class _ModeHm(StrEnum):
     """Enum with the HM modes."""
 
@@ -72,6 +73,7 @@ class _ModeHm(StrEnum):
     MANU = "MANU-MODE"  # 1
 
 
+@unique
 class _ModeHmIP(IntEnum):
     """Enum with the HmIP modes."""
 
@@ -80,6 +82,7 @@ class _ModeHmIP(IntEnum):
     MANU = 1
 
 
+@unique
 class _StateChangeArg(StrEnum):
     """Enum with climate state change arguments."""
 
@@ -88,6 +91,7 @@ class _StateChangeArg(StrEnum):
     TEMPERATURE = "temperature"
 
 
+@unique
 class ClimateActivity(StrEnum):
     """Enum with the climate activities."""
 
@@ -97,6 +101,7 @@ class ClimateActivity(StrEnum):
     OFF = "off"
 
 
+@unique
 class ClimateHeatingValveType(StrEnum):
     """Enum with the climate heating valve types."""
 
@@ -104,6 +109,7 @@ class ClimateHeatingValveType(StrEnum):
     NORMALLY_OPEN = "NORMALLY_OPEN"
 
 
+@unique
 class ClimateMode(StrEnum):
     """Enum with the thermostat modes."""
 
@@ -113,6 +119,7 @@ class ClimateMode(StrEnum):
     OFF = "off"
 
 
+@unique
 class ClimateProfile(StrEnum):
     """Enum with profiles."""
 

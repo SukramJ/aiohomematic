@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import StrEnum, unique
 import logging
 from typing import Any, Final
 
@@ -150,6 +150,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         )
 
 
+@unique
 class _BatteryType(StrEnum):
     CR2032 = "CR2032"
     LR44 = "LR44"

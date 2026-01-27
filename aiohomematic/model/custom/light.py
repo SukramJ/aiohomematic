@@ -9,7 +9,7 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import StrEnum
+from enum import StrEnum, unique
 import math
 from typing import Final, TypedDict, Unpack
 
@@ -48,6 +48,7 @@ _NOT_USED: Final = 111600
 _SATURATION_MULTIPLIER: Final = 100
 
 
+@unique
 class _DeviceOperationMode(StrEnum):
     """Enum with device operation modes."""
 
@@ -57,6 +58,7 @@ class _DeviceOperationMode(StrEnum):
     TUNABLE_WHITE = "2_TUNABLE_WHITE"
 
 
+@unique
 class _ColorBehaviour(StrEnum):
     """Enum with color behaviours."""
 
@@ -66,6 +68,7 @@ class _ColorBehaviour(StrEnum):
     ON = "ON"
 
 
+@unique
 class FixedColor(StrEnum):
     """Enum with colors."""
 
@@ -81,6 +84,7 @@ class FixedColor(StrEnum):
     YELLOW = "YELLOW"
 
 
+@unique
 class _StateChangeArg(StrEnum):
     """Enum with light state change arguments."""
 

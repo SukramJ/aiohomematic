@@ -35,7 +35,7 @@ import asyncio
 from asyncio import Semaphore
 from collections.abc import Mapping
 from datetime import datetime
-from enum import StrEnum
+from enum import StrEnum, unique
 from functools import partial
 import logging
 import os
@@ -128,6 +128,7 @@ from aiohomematic.support import (
 _LOGGER: Final = logging.getLogger(__name__)
 
 
+@unique
 class _JsonKey(StrEnum):
     """Enum for Homematic json keys."""
 
@@ -186,6 +187,7 @@ class _JsonKey(StrEnum):
     VERSION = "version"
 
 
+@unique
 class _JsonRpcMethod(StrEnum):
     """Enum for Homematic json rpc methods types."""
 

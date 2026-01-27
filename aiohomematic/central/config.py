@@ -15,7 +15,8 @@ import asyncio
 from collections.abc import Set as AbstractSet
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, PrivateAttr, model_validator
+from aiohttp import ClientSession
+from pydantic import BaseModel, ConfigDict, PrivateAttr, SkipValidation, model_validator
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.central.central_unit import CentralUnit
@@ -52,6 +53,7 @@ from aiohomematic.const import (
     get_json_rpc_default_port,
 )
 from aiohomematic.exceptions import AioHomematicConfigException, AioHomematicException, BaseHomematicException
+from aiohomematic.store import StorageFactoryProtocol
 from aiohomematic.support import (
     _check_or_create_directory_sync,
     check_password,
@@ -87,7 +89,7 @@ class CentralConfig(BaseModel):
     """Username for authentication."""
 
     # Optional fields with defaults
-    client_session: Any = None  # ClientSession | None - using Any to allow mock sessions in tests
+    client_session: SkipValidation[ClientSession | None] = None
     """Optional aiohttp client session to use."""
 
     callback_host: str | None = None
@@ -144,7 +146,7 @@ class CentralConfig(BaseModel):
     storage_directory: str = DEFAULT_STORAGE_DIRECTORY
     """Directory for persistent storage."""
 
-    storage_factory: Any = None  # StorageFactoryProtocol | None - can't use protocol in Pydantic
+    storage_factory: SkipValidation[StorageFactoryProtocol | None] = None
     """Optional storage factory for custom storage implementations."""
 
     sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS

@@ -113,12 +113,14 @@ class TimeoutConfig(BaseModel):
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()
 
 
-class ScheduleTimerConfig(NamedTuple):
+class ScheduleTimerConfig(BaseModel):
     """
     Configuration for scheduler intervals and timeouts.
 
     All values are in seconds.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     connection_checker_interval: int = 1 if _TEST_SPEEDUP else 15
     """Interval between connection health checks (default: 15s)."""

@@ -13,7 +13,7 @@ The workflow uses Claude AI to:
 2. **Suggest relevant documentation**
    - References appropriate documentation pages in both repositories:
      - AioHomematic README and Docs
-     - Homematic(IP) Local README and Wiki
+     - Homematic(IP) Local README
    - Considers troubleshooting guides and FAQs
 
 3. **Find similar issues and discussions**
@@ -85,8 +85,6 @@ The following documentation pages might be helpful:
 
 - [troubleshooting](https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md)
   _Contains solutions for common connection problems_
-- [installation](https://github.com/sukramj/homematicip_local/wiki/Installation)
-  _Guide for correct TLS configuration_
 
 ### Similar Issues and Discussions
 

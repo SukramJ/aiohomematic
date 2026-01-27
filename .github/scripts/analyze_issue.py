@@ -759,7 +759,6 @@ DOCS_LINKS = {
     "homematicip_local_readme": "https://github.com/sukramj/homematicip_local#homematicip_local",
     "troubleshooting": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md",
     "faqs": "https://github.com/sukramj/homematicip_local#frequently-asked-questions",
-    "installation": "https://github.com/sukramj/homematicip_local/wiki/Installation",
     "releases": "https://github.com/sukramj/homematicip_local/releases",
     "architecture": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/architecture.md",
     "naming": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/naming.md",

@@ -157,7 +157,7 @@ class FactoryWithClient:
 
     async def get_raw_central(self) -> CentralUnit:
         """Return a central based on give address_device_translation."""
-        interface_configs = self._interface_configs if self._interface_configs else set()
+        interface_configs = frozenset(self._interface_configs) if self._interface_configs else frozenset()
         central = await CentralConfig(
             name=const.CENTRAL_NAME,
             host=const.CCU_HOST,
@@ -169,7 +169,7 @@ class FactoryWithClient:
             un_ignore_list=self._un_ignore_list,
             ignore_custom_device_definition_models=frozenset(self._ignore_custom_device_definition_models or []),
             start_direct=True,
-            optional_settings=(),
+            optional_settings=frozenset(),
         ).create_central()
 
         # Subscribe to events via event bus
@@ -301,13 +301,15 @@ async def get_pydev_ccu_central_unit_full(
         if event.event_type == DeviceLifecycleEventType.CREATED:
             device_event.set()
 
-    interface_configs = {
-        InterfaceConfig(
-            central_name=const.CENTRAL_NAME,
-            interface=Interface.BIDCOS_RF,
-            port=port,
-        )
-    }
+    interface_configs = frozenset(
+        {
+            InterfaceConfig(
+                central_name=const.CENTRAL_NAME,
+                interface=Interface.BIDCOS_RF,
+                port=port,
+            )
+        }
+    )
 
     central = await CentralConfig(
         name=const.CENTRAL_NAME,

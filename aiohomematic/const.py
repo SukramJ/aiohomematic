@@ -19,6 +19,8 @@ import sys
 from types import MappingProxyType
 from typing import Any, Final, NamedTuple, Required, TypedDict
 
+from pydantic import BaseModel, ConfigDict
+
 VERSION: Final = "2026.1.51"
 
 # Detect test speedup mode via environment
@@ -50,12 +52,14 @@ DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 
 
-class TimeoutConfig(NamedTuple):
+class TimeoutConfig(BaseModel):
     """
     Configuration for various timeout and interval settings.
 
     All values are in seconds unless otherwise noted.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     reconnect_initial_delay: float = 0.5 if _TEST_SPEEDUP else 2
     """Initial delay before first reconnect attempt (default: 2s)."""
@@ -76,13 +80,7 @@ class TimeoutConfig(NamedTuple):
     """Interval between TCP port checks during reconnection (default: 5s)."""
 
     reconnect_warmup_delay: float = 0.5 if _TEST_SPEEDUP else 15
-    """
-    Warmup delay after first successful RPC check before attempting init (default: 15s).
-
-    After TCP port becomes available and first listMethods succeeds, this delay allows
-    CCU services to fully stabilize. A second listMethods call verifies stability before
-    init() is attempted.
-    """
+    """Warmup delay after first successful RPC check before attempting init (default: 15s)."""
 
     callback_warn_interval: float = (1 if _TEST_SPEEDUP else 15) * 12
     """Interval before warning about missing callback events (default: 180s = 3min)."""
@@ -115,12 +113,14 @@ class TimeoutConfig(NamedTuple):
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()
 
 
-class ScheduleTimerConfig(NamedTuple):
+class ScheduleTimerConfig(BaseModel):
     """
     Configuration for scheduler intervals and timeouts.
 
     All values are in seconds.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     connection_checker_interval: int = 1 if _TEST_SPEEDUP else 15
     """Interval between connection health checks (default: 15s)."""

@@ -402,7 +402,7 @@ class CentralConfigBuilder:
             # Required
             central_id=central_id,
             host=self._host,  # type: ignore[arg-type]
-            interface_configs=interface_configs,
+            interface_configs=frozenset(interface_configs),
             name=self._name,  # type: ignore[arg-type]
             password=self._password,  # type: ignore[arg-type]
             username=self._username,  # type: ignore[arg-type]
@@ -430,7 +430,7 @@ class CentralConfigBuilder:
             ignore_custom_device_definition_models=self._ignore_custom_device_definition_models,
             interfaces_requiring_periodic_refresh=self._interfaces_requiring_periodic_refresh,
             max_read_workers=self._max_read_workers,
-            optional_settings=self._optional_settings,
+            optional_settings=frozenset(self._optional_settings),
             schedule_timer_config=self._schedule_timer_config,
             start_direct=self._start_direct,
             timeout_config=self._timeout_config,

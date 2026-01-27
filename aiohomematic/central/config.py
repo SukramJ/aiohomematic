@@ -8,11 +8,15 @@ This module provides CentralConfig for configuring and creating CentralUnit inst
 
 from __future__ import annotations
 
+# Pydantic validators require a fixed signature that cannot use keyword-only args
+__kwonly_check__ = False
+
 import asyncio
 from collections.abc import Set as AbstractSet
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any
 
 from aiohttp import ClientSession
+from pydantic import BaseModel, ConfigDict, PrivateAttr, SkipValidation, model_validator
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.central.central_unit import CentralUnit
@@ -49,7 +53,7 @@ from aiohomematic.const import (
     get_json_rpc_default_port,
 )
 from aiohomematic.exceptions import AioHomematicConfigException, AioHomematicException, BaseHomematicException
-from aiohomematic.property_decorators import DelegatedProperty
+from aiohomematic.store import StorageFactoryProtocol
 from aiohomematic.support import (
     _check_or_create_directory_sync,
     check_password,
@@ -59,96 +63,147 @@ from aiohomematic.support import (
     is_port,
 )
 
-if TYPE_CHECKING:
-    from aiohomematic.store import StorageFactoryProtocol
 
-
-class CentralConfig:
+class CentralConfig(BaseModel):
     """Configuration for CentralUnit initialization and behavior."""
 
-    def __init__(
-        self,
-        *,
-        central_id: str,
-        host: str,
-        interface_configs: AbstractSet[hmcl.InterfaceConfig],
-        name: str,
-        password: str,
-        username: str,
-        client_session: ClientSession | None = None,
-        callback_host: str | None = None,
-        callback_port_xml_rpc: int | None = None,
-        default_callback_port_xml_rpc: int = PORT_ANY,
-        delay_new_device_creation: bool = DEFAULT_DELAY_NEW_DEVICE_CREATION,
-        enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK,
-        enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN,
-        enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN,
-        ignore_custom_device_definition_models: frozenset[str] = DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS,
-        interfaces_requiring_periodic_refresh: frozenset[Interface] = DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH,
-        json_port: int | None = None,
-        listen_ip_addr: str | None = None,
-        listen_port_xml_rpc: int | None = None,
-        max_read_workers: int = DEFAULT_MAX_READ_WORKERS,
-        optional_settings: tuple[OptionalSettings | str, ...] = DEFAULT_OPTIONAL_SETTINGS,
-        program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS,
-        schedule_timer_config: ScheduleTimerConfig = DEFAULT_SCHEDULE_TIMER_CONFIG,
-        start_direct: bool = False,
-        storage_directory: str = DEFAULT_STORAGE_DIRECTORY,
-        storage_factory: StorageFactoryProtocol | None = None,
-        sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS,
-        timeout_config: TimeoutConfig = DEFAULT_TIMEOUT_CONFIG,
-        tls: bool = DEFAULT_TLS,
-        un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES,
-        use_group_channel_for_cover_state: bool = DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE,
-        verify_tls: bool = DEFAULT_VERIFY_TLS,
-        locale: str = DEFAULT_LOCALE,
-    ) -> None:
-        """Initialize the central configuration."""
-        self._interface_configs: Final = interface_configs
-        self._optional_settings: Final = frozenset(optional_settings or ())
-        self.requires_xml_rpc_server: Final = any(
-            ic for ic in interface_configs if ic.rpc_server == RpcServerType.XML_RPC
-        )
-        self.callback_host: Final = callback_host
-        self.callback_port_xml_rpc: Final = callback_port_xml_rpc
-        self.central_id: Final = central_id
-        self.client_session: Final = client_session
-        self.default_callback_port_xml_rpc: Final = default_callback_port_xml_rpc
-        self.delay_new_device_creation: Final = delay_new_device_creation
-        self.enable_device_firmware_check: Final = enable_device_firmware_check
-        self.enable_program_scan: Final = enable_program_scan
-        self.enable_sysvar_scan: Final = enable_sysvar_scan
-        self.host: Final = host
-        self.ignore_custom_device_definition_models: Final = frozenset(ignore_custom_device_definition_models or ())
-        self.interfaces_requiring_periodic_refresh: Final = frozenset(interfaces_requiring_periodic_refresh or ())
-        self.json_port: Final = json_port
-        self.listen_ip_addr: Final = listen_ip_addr
-        self.listen_port_xml_rpc: Final = listen_port_xml_rpc
-        self.max_read_workers = max_read_workers
-        self.name: Final = name
-        self.password: Final = password
-        self.program_markers: Final = program_markers
-        self.start_direct: Final = start_direct
-        self.session_recorder_randomize_output = (
-            OptionalSettings.SR_DISABLE_RANDOMIZE_OUTPUT not in self._optional_settings
-        )
-        self.session_recorder_start_for_seconds: Final = (
-            DEFAULT_SESSION_RECORDER_START_FOR_SECONDS
-            if OptionalSettings.SR_RECORD_SYSTEM_INIT in self._optional_settings
-            else 0
-        )
-        self.session_recorder_start = self.session_recorder_start_for_seconds > 0
-        self.schedule_timer_config: Final = schedule_timer_config
-        self.storage_directory: Final = storage_directory
-        self.storage_factory: Final = storage_factory
-        self.sysvar_markers: Final = sysvar_markers
-        self.timeout_config: Final = timeout_config
-        self.tls: Final = tls
-        self.un_ignore_list: Final = un_ignore_list
-        self.use_group_channel_for_cover_state: Final = use_group_channel_for_cover_state
-        self.username: Final = username
-        self.verify_tls: Final = verify_tls
-        self.locale: Final = locale
+    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True, extra="allow")
+
+    # Required fields
+    central_id: str
+    """Unique identifier for the central unit."""
+
+    host: str
+    """Hostname or IP address of the CCU/Homegear."""
+
+    interface_configs: frozenset[hmcl.InterfaceConfig]
+    """Set of interface configurations."""
+
+    name: str
+    """Name identifier for the central unit."""
+
+    password: str
+    """Password for authentication."""
+
+    username: str
+    """Username for authentication."""
+
+    # Optional fields with defaults
+    client_session: SkipValidation[ClientSession | None] = None
+    """Optional aiohttp client session to use."""
+
+    callback_host: str | None = None
+    """Hostname/IP for XML-RPC callback server."""
+
+    callback_port_xml_rpc: int | None = None
+    """Port for XML-RPC callback server."""
+
+    default_callback_port_xml_rpc: int = PORT_ANY
+    """Default port for XML-RPC callback if not specified."""
+
+    delay_new_device_creation: bool = DEFAULT_DELAY_NEW_DEVICE_CREATION
+    """Delay creation of new devices."""
+
+    enable_device_firmware_check: bool = DEFAULT_ENABLE_DEVICE_FIRMWARE_CHECK
+    """Enable periodic device firmware checks."""
+
+    enable_program_scan: bool = DEFAULT_ENABLE_PROGRAM_SCAN
+    """Enable scanning of CCU programs."""
+
+    enable_sysvar_scan: bool = DEFAULT_ENABLE_SYSVAR_SCAN
+    """Enable scanning of CCU system variables."""
+
+    ignore_custom_device_definition_models: frozenset[str] = DEFAULT_IGNORE_CUSTOM_DEVICE_DEFINITION_MODELS
+    """Device models to ignore for custom definitions."""
+
+    interfaces_requiring_periodic_refresh: frozenset[Interface] = DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH
+    """Interfaces that need periodic refresh instead of push updates."""
+
+    json_port: int | None = None
+    """Port for JSON-RPC communication."""
+
+    listen_ip_addr: str | None = None
+    """IP address to listen on for callback server."""
+
+    listen_port_xml_rpc: int | None = None
+    """Port to listen on for XML-RPC callback server."""
+
+    max_read_workers: int = DEFAULT_MAX_READ_WORKERS
+    """Maximum number of concurrent read workers."""
+
+    optional_settings: frozenset[OptionalSettings | str] = frozenset(DEFAULT_OPTIONAL_SETTINGS)
+    """Optional feature flags."""
+
+    program_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_PROGRAM_MARKERS
+    """Markers to filter programs."""
+
+    schedule_timer_config: ScheduleTimerConfig = DEFAULT_SCHEDULE_TIMER_CONFIG
+    """Timer configuration for scheduled tasks."""
+
+    start_direct: bool = False
+    """Start without XML-RPC server (direct mode)."""
+
+    storage_directory: str = DEFAULT_STORAGE_DIRECTORY
+    """Directory for persistent storage."""
+
+    storage_factory: SkipValidation[StorageFactoryProtocol | None] = None
+    """Optional storage factory for custom storage implementations."""
+
+    sysvar_markers: tuple[DescriptionMarker | str, ...] = DEFAULT_SYSVAR_MARKERS
+    """Markers to filter system variables."""
+
+    timeout_config: TimeoutConfig = DEFAULT_TIMEOUT_CONFIG
+    """Timeout configuration for various operations."""
+
+    tls: bool = DEFAULT_TLS
+    """Enable TLS encryption."""
+
+    un_ignore_list: frozenset[str] = DEFAULT_UN_IGNORES
+    """List of parameters to un-ignore."""
+
+    use_group_channel_for_cover_state: bool = DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE
+    """Use group channel for cover state."""
+
+    verify_tls: bool = DEFAULT_VERIFY_TLS
+    """Verify TLS certificates."""
+
+    locale: str = DEFAULT_LOCALE
+    """Locale for translations."""
+
+    # Private attributes for computed values
+    _requires_xml_rpc_server: bool = PrivateAttr(default=False)
+    _session_recorder_randomize_output: bool = PrivateAttr(default=True)
+    _session_recorder_start_for_seconds: int = PrivateAttr(default=0)
+    _session_recorder_start: bool = PrivateAttr(default=False)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_collections(cls, data: Any) -> Any:
+        """Normalize collection types before validation."""
+        if isinstance(data, dict):
+            # Convert interface_configs to frozenset if it's a set or other iterable
+            if "interface_configs" in data and not isinstance(data["interface_configs"], frozenset):
+                data["interface_configs"] = frozenset(data["interface_configs"])
+            # Convert optional_settings tuple to frozenset
+            if "optional_settings" in data:
+                val = data["optional_settings"]
+                if isinstance(val, tuple):
+                    data["optional_settings"] = frozenset(val)
+                elif val is None:
+                    data["optional_settings"] = frozenset()
+            # Convert ignore_custom_device_definition_models
+            if (
+                "ignore_custom_device_definition_models" in data
+                and data["ignore_custom_device_definition_models"] is None
+            ):
+                data["ignore_custom_device_definition_models"] = frozenset()
+            # Convert interfaces_requiring_periodic_refresh
+            if (
+                "interfaces_requiring_periodic_refresh" in data
+                and data["interfaces_requiring_periodic_refresh"] is None
+            ):
+                data["interfaces_requiring_periodic_refresh"] = frozenset()
+        return data
 
     @classmethod
     def for_ccu(
@@ -244,7 +299,7 @@ class CentralConfig:
             username=username,
             password=password,
             name=name,
-            interface_configs=interface_configs,
+            interface_configs=frozenset(interface_configs),
             json_port=get_json_rpc_default_port(tls=tls),
             tls=tls,
             **kwargs,
@@ -293,13 +348,15 @@ class CentralConfig:
         """
         interface_port = port or get_interface_default_port(interface=Interface.BIDCOS_RF, tls=tls) or 2001
 
-        interface_configs: set[hmcl.InterfaceConfig] = {
-            hmcl.InterfaceConfig(
-                central_name=name,
-                interface=Interface.BIDCOS_RF,
-                port=interface_port,
-            )
-        }
+        interface_configs: frozenset[hmcl.InterfaceConfig] = frozenset(
+            {
+                hmcl.InterfaceConfig(
+                    central_name=name,
+                    interface=Interface.BIDCOS_RF,
+                    port=interface_port,
+                )
+            }
+        )
 
         return cls(
             central_id=central_id or f"{name}-{host}",
@@ -312,12 +369,10 @@ class CentralConfig:
             **kwargs,
         )
 
-    optional_settings: Final = DelegatedProperty[frozenset[OptionalSettings | str]](path="_optional_settings")
-
     @property
     def connection_check_port(self) -> int:
         """Return the connection check port."""
-        if used_ports := tuple(ic.port for ic in self._interface_configs if ic.port is not None):
+        if used_ports := tuple(ic.port for ic in self.interface_configs if ic.port is not None):
             return used_ports[0]
         if self.json_port:
             return self.json_port
@@ -331,12 +386,42 @@ class CentralConfig:
     @property
     def enabled_interface_configs(self) -> frozenset[hmcl.InterfaceConfig]:
         """Return the interface configs."""
-        return frozenset(ic for ic in self._interface_configs if ic.enabled is True)
+        return frozenset(ic for ic in self.interface_configs if ic.enabled is True)
 
     @property
     def load_un_ignore(self) -> bool:
         """Return if un_ignore should be loaded."""
         return self.start_direct is False
+
+    @property
+    def requires_xml_rpc_server(self) -> bool:
+        """Return if XML-RPC server is required."""
+        return self._requires_xml_rpc_server
+
+    @property
+    def session_recorder_randomize_output(self) -> bool:
+        """Return if session recorder should randomize output."""
+        return self._session_recorder_randomize_output
+
+    @session_recorder_randomize_output.setter
+    def session_recorder_randomize_output(self, value: bool) -> None:
+        """Set session recorder randomize output."""
+        self._session_recorder_randomize_output = value
+
+    @property
+    def session_recorder_start(self) -> bool:
+        """Return if session recorder should start."""
+        return self._session_recorder_start
+
+    @session_recorder_start.setter
+    def session_recorder_start(self, value: bool) -> None:
+        """Set session recorder start flag."""
+        self._session_recorder_start = value
+
+    @property
+    def session_recorder_start_for_seconds(self) -> int:
+        """Return session recorder start duration in seconds."""
+        return self._session_recorder_start_for_seconds
 
     @property
     def use_caches(self) -> bool:
@@ -354,7 +439,7 @@ class CentralConfig:
             callback_host=self.callback_host,
             callback_port_xml_rpc=self.callback_port_xml_rpc,
             json_port=self.json_port,
-            interface_configs=self._interface_configs,
+            interface_configs=self.interface_configs,
         ):
             failures = ", ".join(config_failures)
             msg = i18n.tr(key="exception.config.invalid", failures=failures)
@@ -380,6 +465,21 @@ class CentralConfig:
         if self.json_port:
             url = f"{url}:{self.json_port}"
         return f"{url}"
+
+    def model_post_init(self, _context: Any, /) -> None:
+        """Initialize computed private attributes after model creation."""
+        self._requires_xml_rpc_server = any(
+            ic for ic in self.interface_configs if ic.rpc_server == RpcServerType.XML_RPC
+        )
+        self._session_recorder_randomize_output = (
+            OptionalSettings.SR_DISABLE_RANDOMIZE_OUTPUT not in self.optional_settings
+        )
+        self._session_recorder_start_for_seconds = (
+            DEFAULT_SESSION_RECORDER_START_FOR_SECONDS
+            if OptionalSettings.SR_RECORD_SYSTEM_INIT in self.optional_settings
+            else 0
+        )
+        self._session_recorder_start = self._session_recorder_start_for_seconds > 0
 
 
 def _check_config_sync(

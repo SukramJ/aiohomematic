@@ -600,6 +600,6 @@ class TestDefaultConfigConstantsContract:
         assert isinstance(DEFAULT_TIMEOUT_CONFIG, TimeoutConfig)
 
     def test_default_timeout_config_is_immutable(self) -> None:
-        """Contract: DEFAULT_TIMEOUT_CONFIG is a NamedTuple (immutable)."""
-        # NamedTuples are immutable by design
-        assert hasattr(DEFAULT_TIMEOUT_CONFIG, "_fields")
+        """Contract: DEFAULT_TIMEOUT_CONFIG is frozen (immutable)."""
+        # Pydantic models with frozen=True are immutable
+        assert DEFAULT_TIMEOUT_CONFIG.model_config.get("frozen") is True

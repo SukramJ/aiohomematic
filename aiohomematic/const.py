@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum, IntEnum, StrEnum
+from enum import Enum, IntEnum, StrEnum, unique
 import inspect
 import os
 import re
@@ -295,6 +295,7 @@ CONNECTIVITY_SENSOR_PREFIX: Final = "Connectivity"
 INBOX_SENSOR_NAME: Final = "inbox"
 
 
+@unique
 class Backend(StrEnum):
     """Enum with supported aiohomematic backends."""
 
@@ -303,6 +304,7 @@ class Backend(StrEnum):
     PYDEVCCU = "PyDevCCU"
 
 
+@unique
 class CCUType(StrEnum):
     """
     Enum with CCU types.
@@ -316,6 +318,7 @@ class CCUType(StrEnum):
     UNKNOWN = "Unknown"
 
 
+@unique
 class SystemEventType(StrEnum):
     """Enum with aiohomematic system events."""
 
@@ -331,6 +334,7 @@ class SystemEventType(StrEnum):
     UPDATE_DEVICE = "updateDevice"
 
 
+@unique
 class CallSource(StrEnum):
     """Enum with sources for calls."""
 
@@ -339,6 +343,7 @@ class CallSource(StrEnum):
     MANUAL_OR_SCHEDULED = "manual_or_scheduled"
 
 
+@unique
 class ServiceScope(StrEnum):
     """
     Enum defining the scope of service methods.
@@ -359,6 +364,7 @@ class ServiceScope(StrEnum):
     INTERNAL = "internal"
 
 
+@unique
 class CalculatedParameter(StrEnum):
     """Enum with calculated Homematic parameters."""
 
@@ -371,6 +377,7 @@ class CalculatedParameter(StrEnum):
     VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
 
 
+@unique
 class ProfileKey(StrEnum):
     """Enum for custom data point definitions."""
 
@@ -389,6 +396,7 @@ class ProfileKey(StrEnum):
     VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
 
 
+@unique
 class ChannelOffset(IntEnum):
     """
     Semantic channel offsets relative to the primary channel.
@@ -407,6 +415,7 @@ class ChannelOffset(IntEnum):
     """Configuration channel offset (e.g., for WGTC thermostat)."""
 
 
+@unique
 class CacheInvalidationReason(StrEnum):
     """Reason for cache invalidation."""
 
@@ -432,6 +441,7 @@ class CacheInvalidationReason(StrEnum):
     """Cache invalidated during shutdown."""
 
 
+@unique
 class CacheType(StrEnum):
     """Cache type identifiers."""
 
@@ -451,6 +461,7 @@ class CacheType(StrEnum):
     """Parameter visibility cache."""
 
 
+@unique
 class CentralState(StrEnum):
     """
     Central State Machine states for overall system health orchestration.
@@ -508,6 +519,7 @@ class CentralState(StrEnum):
     """Central has been stopped."""
 
 
+@unique
 class FailureReason(StrEnum):
     """
     Reason for a failure state in state machines.
@@ -560,6 +572,7 @@ class FailureReason(StrEnum):
     """Unknown or unclassified error."""
 
 
+@unique
 class UpdateDeviceHint(IntEnum):
     """
     Hint values for updateDevice callback from Homematic backend.
@@ -576,6 +589,7 @@ class UpdateDeviceHint(IntEnum):
     """Link partners changed - no cache invalidation needed."""
 
 
+@unique
 class ConnectionStage(IntEnum):
     """
     Reconnection stage progression.
@@ -616,6 +630,7 @@ class ConnectionStage(IntEnum):
         return names.get(self.value, "Unknown")
 
 
+@unique
 class RecoveryStage(StrEnum):
     """
     Stages of the unified connection recovery process.
@@ -691,6 +706,7 @@ class RecoveryStage(StrEnum):
         return names.get(self.value, "Unknown")
 
 
+@unique
 class RecoveryResult(StrEnum):
     """Result of a recovery attempt."""
 
@@ -710,6 +726,7 @@ class RecoveryResult(StrEnum):
     """Recovery was cancelled (e.g., during shutdown)."""
 
 
+@unique
 class CommandRxMode(StrEnum):
     """Enum for Homematic rx modes for commands."""
 
@@ -717,6 +734,7 @@ class CommandRxMode(StrEnum):
     WAKEUP = "WAKEUP"
 
 
+@unique
 class DataOperationResult(Enum):
     """Enum with data operation results."""
 
@@ -729,6 +747,7 @@ class DataOperationResult(Enum):
     NO_SAVE = 21
 
 
+@unique
 class DataPointCategory(StrEnum):
     """Enum with data point types."""
 
@@ -771,6 +790,7 @@ class DataPointKey(NamedTuple):
     parameter: str
 
 
+@unique
 class DataPointUsage(StrEnum):
     """Enum with usage information."""
 
@@ -782,6 +802,7 @@ class DataPointUsage(StrEnum):
     NO_CREATE = "no_create"
 
 
+@unique
 class ParameterStatus(StrEnum):
     """
     Status values for paired *_STATUS parameters.
@@ -817,6 +838,7 @@ class ParameterStatus(StrEnum):
     """Value is from an external source."""
 
 
+@unique
 class DescriptionMarker(StrEnum):
     """Enum with default description markers."""
 
@@ -826,6 +848,7 @@ class DescriptionMarker(StrEnum):
     MQTT = "MQTT"
 
 
+@unique
 class DeviceFirmwareState(StrEnum):
     """Enum with Homematic device firmware states."""
 
@@ -842,6 +865,7 @@ class DeviceFirmwareState(StrEnum):
     BACKGROUND_UPDATE_NOT_SUPPORTED = "BACKGROUND_UPDATE_NOT_SUPPORTED"
 
 
+@unique
 class DeviceProfile(StrEnum):
     """Enum for device profiles."""
 
@@ -880,6 +904,7 @@ class DeviceProfile(StrEnum):
     SIMPLE_RF_THERMOSTAT = "SimpleRfThermostat"
 
 
+@unique
 class DeviceTriggerEventType(StrEnum):
     """Enum with aiohomematic event types."""
 
@@ -905,6 +930,7 @@ class EventData:
     value: Any = None
 
 
+@unique
 class Field(Enum):
     """Enum for fields."""
 
@@ -1008,6 +1034,7 @@ class Field(Enum):
     WEEK_PROGRAM_POINTER = "week_program_pointer"
 
 
+@unique
 class Flag(IntEnum):
     """Enum with Homematic flags."""
 
@@ -1018,6 +1045,7 @@ class Flag(IntEnum):
     STICKY = 10  # This might be wrong. Documentation says 0x10 # not used
 
 
+@unique
 class ForcedDeviceAvailability(StrEnum):
     """Enum with aiohomematic event types."""
 
@@ -1026,6 +1054,7 @@ class ForcedDeviceAvailability(StrEnum):
     NOT_SET = "not_set"
 
 
+@unique
 class InternalCustomID(StrEnum):
     """Enum for Homematic internal custom IDs."""
 
@@ -1034,6 +1063,7 @@ class InternalCustomID(StrEnum):
     MANU_TEMP = "cid_manu_temp"
 
 
+@unique
 class Manufacturer(StrEnum):
     """Enum with aiohomematic system events."""
 
@@ -1042,6 +1072,7 @@ class Manufacturer(StrEnum):
     MOEHLENHOFF = "Möhlenhoff"
 
 
+@unique
 class Operations(IntEnum):
     """Enum with Homematic operations."""
 
@@ -1051,6 +1082,7 @@ class Operations(IntEnum):
     EVENT = 4
 
 
+@unique
 class OptionalSettings(StrEnum):
     """Enum with aiohomematic optional settings."""
 
@@ -1058,6 +1090,7 @@ class OptionalSettings(StrEnum):
     SR_RECORD_SYSTEM_INIT = "SR_RECORD_SYSTEM_INIT"
 
 
+@unique
 class Parameter(StrEnum):
     """Enum with Homematic parameters."""
 
@@ -1202,6 +1235,7 @@ class Parameter(StrEnum):
     WORKING = "WORKING"
 
 
+@unique
 class ParamsetKey(StrEnum):
     """Enum with paramset keys."""
 
@@ -1213,6 +1247,7 @@ class ParamsetKey(StrEnum):
     VALUES = "VALUES"
 
 
+@unique
 class ProductGroup(StrEnum):
     """Enum with Homematic product groups."""
 
@@ -1224,6 +1259,7 @@ class ProductGroup(StrEnum):
     VIRTUAL = "VirtualDevices"
 
 
+@unique
 class RegaScript(StrEnum):
     """Enum with Homematic rega scripts."""
 
@@ -1243,6 +1279,7 @@ class RegaScript(StrEnum):
     TRIGGER_FIRMWARE_UPDATE = "trigger_firmware_update.fn"
 
 
+@unique
 class RPCType(StrEnum):
     """Enum with Homematic rpc types."""
 
@@ -1250,6 +1287,7 @@ class RPCType(StrEnum):
     JSON_RPC = "jsonrpc"
 
 
+@unique
 class Interface(StrEnum):
     """Enum with Homematic interfaces."""
 
@@ -1261,6 +1299,7 @@ class Interface(StrEnum):
     VIRTUAL_DEVICES = "VirtualDevices"
 
 
+@unique
 class PingPongMismatchType(StrEnum):
     """Enum for PING/PONG mismatch event types."""
 
@@ -1268,6 +1307,7 @@ class PingPongMismatchType(StrEnum):
     UNKNOWN = "unknown"  # PONG received without matching PING
 
 
+@unique
 class IntegrationIssueSeverity(StrEnum):
     """Severity level for integration issues."""
 
@@ -1275,6 +1315,7 @@ class IntegrationIssueSeverity(StrEnum):
     WARNING = "warning"
 
 
+@unique
 class IntegrationIssueType(StrEnum):
     """
     Type of integration issue.
@@ -1289,6 +1330,7 @@ class IntegrationIssueType(StrEnum):
     INCOMPLETE_DEVICE_DATA = "incomplete_device_data"
 
 
+@unique
 class DataRefreshType(StrEnum):
     """Type of data refresh operation."""
 
@@ -1301,6 +1343,7 @@ class DataRefreshType(StrEnum):
     SYSVAR = "sysvar"
 
 
+@unique
 class ProgramTrigger(StrEnum):
     """Trigger source for program execution."""
 
@@ -1310,6 +1353,7 @@ class ProgramTrigger(StrEnum):
     AUTOMATION = "automation"
 
 
+@unique
 class ParameterType(StrEnum):
     """Enum for Homematic parameter types."""
 
@@ -1323,6 +1367,7 @@ class ParameterType(StrEnum):
     EMPTY = ""
 
 
+@unique
 class ProxyInitState(Enum):
     """Enum with proxy handling results."""
 
@@ -1333,6 +1378,7 @@ class ProxyInitState(Enum):
     DE_INIT_SKIPPED = 16
 
 
+@unique
 class ClientState(StrEnum):
     """
     Client connection lifecycle states.
@@ -1387,6 +1433,7 @@ class ClientState(StrEnum):
     FAILED = "failed"
 
 
+@unique
 class CircuitState(StrEnum):
     """Circuit breaker states."""
 
@@ -1400,6 +1447,7 @@ class CircuitState(StrEnum):
     """Test mode - one request is allowed to test recovery."""
 
 
+@unique
 class RpcServerType(StrEnum):
     """Enum for Homematic rpc server types."""
 
@@ -1407,6 +1455,7 @@ class RpcServerType(StrEnum):
     NONE = "none"
 
 
+@unique
 class RxMode(IntEnum):
     """Enum for Homematic rx modes."""
 
@@ -1418,6 +1467,7 @@ class RxMode(IntEnum):
     LAZY_CONFIG = 16
 
 
+@unique
 class ServiceMessageType(IntEnum):
     """Enum for CCU service message types (AlType)."""
 
@@ -1426,6 +1476,7 @@ class ServiceMessageType(IntEnum):
     CONFIG_PENDING = 2
 
 
+@unique
 class SourceOfDeviceCreation(StrEnum):
     """Enum with source of device creation."""
 
@@ -1436,6 +1487,7 @@ class SourceOfDeviceCreation(StrEnum):
     REFRESH = "REFRESH"
 
 
+@unique
 class HubValueType(StrEnum):
     """Enum for Homematic hub value types."""
 
@@ -1828,6 +1880,7 @@ class SystemUpdateData:
     check_script_available: bool = False
 
 
+@unique
 class BackupStatus(StrEnum):
     """Enum with backup status values."""
 
@@ -1999,6 +2052,7 @@ def is_interface_default_port(*, interface: Interface | str, port: int) -> bool:
     return False
 
 
+@unique
 class AstroType(IntEnum):
     """Enum for astro event types."""
 
@@ -2006,6 +2060,7 @@ class AstroType(IntEnum):
     SUNSET = 1
 
 
+@unique
 class ScheduleActorChannel(IntEnum):
     """Enum for target actor channels (bitwise)."""
 
@@ -2035,6 +2090,7 @@ class ScheduleActorChannel(IntEnum):
     CHANNEL_8_3 = 8388608
 
 
+@unique
 class ScheduleCondition(IntEnum):
     """Enum for schedule trigger conditions."""
 
@@ -2048,6 +2104,7 @@ class ScheduleCondition(IntEnum):
     LATEST_OF_FIXED_AND_ASTRO = 7
 
 
+@unique
 class ScheduleField(StrEnum):
     """Enum for switch schedule field names."""
 
@@ -2066,6 +2123,7 @@ class ScheduleField(StrEnum):
     WEEKDAY = "WEEKDAY"
 
 
+@unique
 class ScheduleSlotType(StrEnum):
     """Enum for climate item type."""
 
@@ -2074,6 +2132,7 @@ class ScheduleSlotType(StrEnum):
     TEMPERATURE = "TEMPERATURE"
 
 
+@unique
 class ScheduleProfile(StrEnum):
     """Enum for climate profiles."""
 
@@ -2085,6 +2144,7 @@ class ScheduleProfile(StrEnum):
     P6 = "P6"
 
 
+@unique
 class TimeBase(IntEnum):
     """Enum for duration base units."""
 
@@ -2098,6 +2158,7 @@ class TimeBase(IntEnum):
     HOUR_1 = 7  # 1 hour
 
 
+@unique
 class WeekdayInt(IntEnum):
     """Enum for weekdays (bitwise)."""
 
@@ -2110,6 +2171,7 @@ class WeekdayInt(IntEnum):
     SATURDAY = 64
 
 
+@unique
 class WeekdayStr(StrEnum):
     """Enum for climate week days."""
 

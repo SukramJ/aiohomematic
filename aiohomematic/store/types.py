@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import StrEnum
+from enum import StrEnum, unique
 import time
 from typing import TYPE_CHECKING, Any, TypeAlias
 
@@ -47,6 +47,7 @@ InterfaceParamsetMap: TypeAlias = dict[str, ChannelParamsetMap]
 # =============================================================================
 
 
+@unique
 class CacheName(StrEnum):
     """Enumeration of cache names for identification."""
 
@@ -208,6 +209,7 @@ class PongTracker:
 # =============================================================================
 
 
+@unique
 class PingPongEventType(StrEnum):
     """Types of events recorded in the PingPong journal."""
 
@@ -425,6 +427,7 @@ class PingPongJournal:
 # =============================================================================
 
 
+@unique
 class IncidentType(StrEnum):
     """Types of incidents that can be recorded for diagnostics."""
 
@@ -453,6 +456,7 @@ class IncidentType(StrEnum):
     """Circuit breaker recovered after successful test requests."""
 
 
+@unique
 class IncidentSeverity(StrEnum):
     """Severity levels for incidents."""
 

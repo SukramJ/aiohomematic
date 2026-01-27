@@ -9,7 +9,7 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from abc import abstractmethod
-from enum import StrEnum
+from enum import StrEnum, unique
 from typing import Final
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
@@ -22,6 +22,7 @@ from aiohomematic.model.generic import DpAction, DpActionSelect, DpSensor, DpSwi
 from aiohomematic.property_decorators import state_property
 
 
+@unique
 class _LockActivity(StrEnum):
     """Enum with lock activities."""
 
@@ -29,6 +30,7 @@ class _LockActivity(StrEnum):
     UNLOCKING = "UP"
 
 
+@unique
 class _LockError(StrEnum):
     """Enum with lock errors."""
 
@@ -37,6 +39,7 @@ class _LockError(StrEnum):
     MOTOR_ABORTED = "MOTOR_ABORTED"
 
 
+@unique
 class _LockTargetLevel(StrEnum):
     """Enum with lock target levels."""
 
@@ -45,6 +48,7 @@ class _LockTargetLevel(StrEnum):
     UNLOCKED = "UNLOCKED"
 
 
+@unique
 class LockState(StrEnum):
     """Enum with lock states."""
 

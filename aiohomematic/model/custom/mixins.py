@@ -28,7 +28,7 @@ multiple inheritance::
 from __future__ import annotations
 
 from abc import abstractmethod
-from enum import StrEnum
+from enum import StrEnum, unique
 from typing import TYPE_CHECKING, Any, Protocol, TypedDict, Unpack, runtime_checkable
 
 if TYPE_CHECKING:
@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from aiohomematic.model.generic import DpAction, DpSwitch
 
 
+@unique
 class StateChangeArg(StrEnum):
     """Common state change arguments for on/off data points."""
 

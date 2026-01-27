@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 import contextlib
 from datetime import datetime
-from enum import Enum, StrEnum
+from enum import Enum, StrEnum, unique
 from functools import singledispatch
 from typing import Any, Final, ParamSpec, Self, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
@@ -46,6 +46,7 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
+@unique
 class Kind(StrEnum):
     """Enum for property feature flags."""
 

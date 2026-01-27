@@ -20,7 +20,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from enum import IntEnum, StrEnum
+from enum import IntEnum, StrEnum, unique
 from typing import Any
 
 from aiohomematic.const import CentralState, CircuitState, ClientState
@@ -38,6 +38,7 @@ __all__ = [
 ]
 
 
+@unique
 class EventPriority(IntEnum):
     """
     Priority levels for event handlers.
@@ -63,6 +64,7 @@ class EventPriority(IntEnum):
     """Highest priority - runs before all other handlers (e.g., logging, metrics)."""
 
 
+@unique
 class DataFetchOperation(StrEnum):
     """Type of data fetch operation that completed."""
 

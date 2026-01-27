@@ -14,6 +14,7 @@
   - Backend behavior (init_proxy/deinit_proxy are no-ops)
 
 - **Comprehensive contract tests for stability guarantees**: Added contract tests that define the stable API contract for aiohomematic. These tests ensure that changes to core infrastructure require explicit consideration and MAJOR version bumps:
+
   - `test_capability_contract.py`: Backend capabilities (CUxD, CCU-Jack, CCU, Homegear)
   - `test_client_state_machine_contract.py`: Client state machine transitions and properties
   - `test_central_state_machine_contract.py`: Central state machine transitions and properties
@@ -26,6 +27,9 @@
   - `test_protocol_interfaces_contract.py`: Protocol interface definitions (runtime checkable, required members)
   - `test_hub_entities_contract.py`: Hub entity classes (Program, Sysvar, Metrics, Inbox, Update)
   - `test_subscription_api_contract.py`: EventBus subscription API stability
+  - `test_backend_week_profile_contract.py`: BackendOperationsProtocol (47 tests) and WeekProfileProtocol (7 tests) API stability
+
+- **@unique decorator for all Enums**: Added `@unique` decorator to 70+ enum classes across 15+ files to prevent accidental duplicate enum values. Affected modules include `const.py`, `climate.py`, `cover.py`, `light.py`, `lock.py`, `siren.py`, `mixins.py`, `events/types.py`, `events/integration.py`, `json_rpc.py`, `rpc_proxy.py`, `metrics/events.py`, `store/types.py`, and `property_decorators.py`
 
 ### Changed
 

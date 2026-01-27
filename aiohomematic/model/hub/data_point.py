@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Final
+from typing import Any, Final, override
 
 from slugify import slugify
 
@@ -120,6 +120,7 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
         """Return the availability of the device."""
         return self._central_info.available
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self.name}"
@@ -253,6 +254,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
             value = float(new_value)
         return value
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return SysvarPathData(vid=self._vid)
@@ -343,6 +345,7 @@ class GenericProgramDataPoint(GenericHubDataPoint, GenericProgramDataPointProtoc
         if do_update:
             self.publish_data_point_updated_event()
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return ProgramPathData(pid=self.pid)

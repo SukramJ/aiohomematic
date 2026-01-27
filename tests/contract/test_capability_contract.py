@@ -22,12 +22,12 @@ See ADR-0018 for architectural context and rationale.
 
 from __future__ import annotations
 
-from dataclasses import fields
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from pydantic import ValidationError
 import pytest
 
 from aiohomematic.client.backends.capabilities import (
@@ -109,12 +109,12 @@ class _FakeCentral:
             host = "localhost"
             tls = False
             verify_tls = False
-            username = None
-            password = None
+            username: str | None = None
+            password: str | None = None
             max_read_workers = 0
             callback_host = "127.0.0.1"
             callback_port_xml_rpc = 0
-            interfaces_requiring_periodic_refresh = frozenset()
+            interfaces_requiring_periodic_refresh: frozenset[str] = frozenset()
             timeout_config = SimpleNamespace(
                 callback_warn_interval=callback_warn_interval,
                 connectivity_error_threshold=3,
@@ -233,25 +233,25 @@ class TestBackendCapabilitiesStructureContract:
     is allowed, but removing or renaming existing fields is a breaking change.
     """
 
-    def test_capabilities_are_frozen_dataclass(self) -> None:
+    def test_capabilities_are_frozen_model(self) -> None:
         """
-        CONTRACT: BackendCapabilities MUST be an immutable (frozen) dataclass.
+        CONTRACT: BackendCapabilities MUST be an immutable (frozen) Pydantic model.
 
         Immutability ensures capability flags cannot be modified after creation,
         which is essential for predictable behavior.
         """
         caps = BackendCapabilities()
 
-        # Attempt to modify should raise an error
-        with pytest.raises((AttributeError, TypeError)):
-            caps.ping_pong = True  # type: ignore[misc]
+        # Attempt to modify should raise an error (Pydantic raises ValidationError for frozen)
+        with pytest.raises((AttributeError, TypeError, ValidationError)):
+            caps.ping_pong = True
 
-    def test_capabilities_use_slots(self) -> None:
-        """CONTRACT: BackendCapabilities SHOULD use __slots__ for memory efficiency."""
+    def test_capabilities_use_frozen_pydantic(self) -> None:
+        """CONTRACT: BackendCapabilities SHOULD be an immutable Pydantic model."""
         caps = BackendCapabilities()
 
-        # Frozen dataclasses with slots=True don't have __dict__
-        assert not hasattr(caps, "__dict__") or len(caps.__dict__) == 0
+        # Pydantic frozen models have model_config with frozen=True
+        assert caps.model_config.get("frozen") is True
 
     def test_default_values_are_safe(self) -> None:
         """
@@ -269,9 +269,10 @@ class TestBackendCapabilitiesStructureContract:
         assert caps.rpc_callback is True, "rpc_callback default MUST be True"
 
         # All feature flags should default to False
-        feature_fields = [f for f in fields(caps) if f.name not in ("ping_pong", "push_updates", "rpc_callback")]
-        for field in feature_fields:
-            assert getattr(caps, field.name) is False, f"{field.name} default MUST be False"
+        excluded_fields = {"ping_pong", "push_updates", "rpc_callback"}
+        for field_name in BackendCapabilities.model_fields:
+            if field_name not in excluded_fields:
+                assert getattr(caps, field_name) is False, f"{field_name} default MUST be False"
 
     def test_required_connection_capability_fields_exist(self) -> None:
         """
@@ -649,11 +650,9 @@ class TestPushUpdatesCapabilityContract:
 
         Rationale: If there are no push updates, there's no callback_warn to check.
         """
-        from dataclasses import replace
-
         central = _FakeCentral()
         # Create capabilities with push_updates=False (but ping_pong=True to not hit that early return)
-        caps = replace(CCU_CAPABILITIES, push_updates=False, ping_pong=True)
+        caps = CCU_CAPABILITIES.model_copy(update={"push_updates": False, "ping_pong": True})
         backend = _create_fake_backend(
             interface=Interface.HMIP_RF,
             interface_id="test-HmIP-RF",

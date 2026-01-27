@@ -28,8 +28,9 @@ Example usage:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
 from typing import Final, TypeAlias
+
+from pydantic import BaseModel, ConfigDict, Field as PydanticField
 
 from aiohomematic.const import ChannelOffset, DeviceProfile, Field, Parameter
 
@@ -45,8 +46,7 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class ChannelGroupConfig:
+class ChannelGroupConfig(BaseModel):
     """
     Configuration for a channel group within a profile.
 
@@ -89,6 +89,8 @@ class ChannelGroupConfig:
     - ChannelOffset enum values can be used for semantic offsets in channel_fields
     """
 
+    model_config = ConfigDict(frozen=True)
+
     # Channel structure (relative to group_no base channel)
     primary_channel: int | None = 0
     secondary_channels: tuple[int, ...] = ()
@@ -96,34 +98,34 @@ class ChannelGroupConfig:
     allow_undefined_generic_data_points: bool = False
 
     # Field mappings applied to the primary channel (not channel-specific)
-    fields: Mapping[Field, Parameter] = field(default_factory=dict)
-    visible_fields: Mapping[Field, Parameter] = field(default_factory=dict)
+    fields: Mapping[Field, Parameter] = PydanticField(default_factory=dict)
+    visible_fields: Mapping[Field, Parameter] = PydanticField(default_factory=dict)
 
     # Channel-specific field mappings with RELATIVE channel offsets
     # {channel_offset: {field: parameter}} - channel numbers are offsets from group_no
     # Use ChannelOffset enum values (e.g., ChannelOffset.STATE) for semantic offsets.
-    channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = field(default_factory=dict)
-    visible_channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = field(default_factory=dict)
+    channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
+    visible_channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
 
     # Channel-specific field mappings with ABSOLUTE (fixed) channel numbers
     # {channel_no: {field: parameter}} - channel numbers are NOT rebased
     # Use for fields that must always reference specific device channels (e.g., channel 0).
-    fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = field(default_factory=dict)
-    visible_fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = field(default_factory=dict)
+    fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
+    visible_fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class ProfileConfig:
+class ProfileConfig(BaseModel):
     """Complete profile configuration for a device type."""
+
+    model_config = ConfigDict(frozen=True)
 
     profile_type: DeviceProfile
     channel_group: ChannelGroupConfig
-    additional_data_points: Mapping[int, tuple[Parameter, ...]] = field(default_factory=dict)
+    additional_data_points: Mapping[int, tuple[Parameter, ...]] = PydanticField(default_factory=dict)
     include_default_data_points: bool = True
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class RebasedChannelGroupConfig:
+class RebasedChannelGroupConfig(BaseModel):
     """
     Channel group configuration with rebased channel numbers.
 
@@ -136,6 +138,8 @@ class RebasedChannelGroupConfig:
     - `channel_fields`, `visible_channel_fields` - rebased from offsets
     - `fixed_channel_fields`, `visible_fixed_channel_fields` - already absolute (unchanged)
     """
+
+    model_config = ConfigDict(frozen=True)
 
     # Rebased channel structure (actual channel numbers after applying group_no)
     primary_channel: int | None

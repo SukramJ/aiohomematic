@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 import logging
-from typing import Final
+from typing import Final, override
 
 from slugify import slugify
 
@@ -164,10 +164,12 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         self._state_uncertain = False
         self.publish_data_point_updated_event()
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return HubPathData(name=slugify(_UPDATE_NAME))
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self.name}"

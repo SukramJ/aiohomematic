@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import IntEnum, StrEnum, unique
 import logging
-from typing import Final, Unpack, cast
+from typing import Final, Unpack, cast, override
 
 from aiohomematic import i18n
 from aiohomematic.const import (
@@ -397,6 +397,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             return await self._device.week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
         return {}
 
+    @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
         if (
@@ -516,6 +517,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         # Inform listeners that relevant inputs may have changed
         self.publish_data_point_updated_event()
 
+    @override
     def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         super()._post_init()
@@ -777,6 +779,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         ):
             self._old_manu_setpoint = self.target_temperature
 
+    @override
     def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         super()._post_init()
@@ -1028,6 +1031,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         ):
             self._old_manu_setpoint = self.target_temperature
 
+    @override
     def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         super()._post_init()

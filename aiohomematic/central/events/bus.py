@@ -132,7 +132,7 @@ if TYPE_CHECKING:
 
     from aiohomematic.interfaces import TaskSchedulerProtocol
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 # Type variables for generic event handling
 T_Event = TypeVar("T_Event", bound="Event")

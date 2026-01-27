@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Final
+from typing import Final, override
 
 from aiohomematic.const import (
     HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES,
@@ -131,6 +131,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         """Turn the update on."""
         return await self._device.update_firmware(refresh_after_update_intervals=refresh_after_update_intervals)
 
+    @override
     def _get_path_data(self) -> DataPointPathData:
         """Return the path data of the data_point."""
         return DataPointPathData(
@@ -140,6 +141,7 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
             kind=DataPointCategory.UPDATE,
         )
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self._device.model}"

@@ -12,7 +12,6 @@ Public API
 
 from __future__ import annotations
 
-from dataclasses import replace
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 
@@ -70,10 +69,7 @@ class HomegearBackend(BaseBackend):
     ) -> None:
         """Initialize the Homegear backend."""
         # Build capabilities based on config
-        capabilities = replace(
-            HOMEGEAR_CAPABILITIES,
-            push_updates=has_push_updates,
-        )
+        capabilities = HOMEGEAR_CAPABILITIES.model_copy(update={"push_updates": has_push_updates})
         super().__init__(
             interface=interface,
             interface_id=interface_id,

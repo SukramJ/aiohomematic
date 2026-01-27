@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from inspect import getfullargspec
 import logging
-from typing import Any, Final, TypeAlias, TypeVar, cast, overload
+from typing import Any, Final, TypeAlias, TypeVar, cast, overload, override
 
 from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
@@ -1162,6 +1162,7 @@ class BaseParameterDataPoint[
             return multiplier
         return DEFAULT_MULTIPLIER
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return DataPointPathData(
@@ -1171,6 +1172,7 @@ class BaseParameterDataPoint[
             kind=self._parameter,
         )
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self._parameter}"

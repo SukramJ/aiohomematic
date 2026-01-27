@@ -28,6 +28,8 @@
   - `test_hub_entities_contract.py`: Hub entity classes (Program, Sysvar, Metrics, Inbox, Update)
   - `test_subscription_api_contract.py`: EventBus subscription API stability
   - `test_backend_week_profile_contract.py`: BackendOperationsProtocol (47 tests) and WeekProfileProtocol (7 tests) API stability
+  - `test_client_protocol_contract.py`: ClientProtocol and all 18 sub-protocols (124 tests covering identity, connection, lifecycle, operations, and method signatures)
+  - `test_device_channel_protocol_contract.py`: DeviceProtocol, ChannelProtocol and all sub-protocols (273 tests covering identity, channel access, state, operations, configuration, and providers)
 
 - **@unique decorator for all Enums**: Added `@unique` decorator to 70+ enum classes across 15+ files to prevent accidental duplicate enum values. Affected modules include `const.py`, `climate.py`, `cover.py`, `light.py`, `lock.py`, `siren.py`, `mixins.py`, `events/types.py`, `events/integration.py`, `json_rpc.py`, `rpc_proxy.py`, `metrics/events.py`, `store/types.py`, and `property_decorators.py`
 
@@ -42,10 +44,21 @@
   - `interface_id` and `rpc_server` are computed fields
 
 - **CentralConfig converted to Pydantic**: `CentralConfig` is now a Pydantic `BaseModel` with:
+
   - Automatic collection normalization (set/tuple → frozenset)
   - Computed private attributes for derived values (`requires_xml_rpc_server`, `session_recorder_*`)
   - Factory methods (`for_ccu`, `for_homegear`) preserved
   - All 30+ configuration fields with proper type hints and defaults
+
+- **DeviceConfig/ExtendedDeviceConfig converted to Pydantic**: `DeviceConfig` and `ExtendedDeviceConfig` in `model/custom/registry.py` are now Pydantic `BaseModel` classes with `frozen=True` for immutability
+
+- **ProfileConfig classes converted to Pydantic**: `ChannelGroupConfig`, `ProfileConfig`, and `RebasedChannelGroupConfig` in `model/custom/profile.py` are now Pydantic `BaseModel` classes with `frozen=True`
+
+- **BackendCapabilities converted to Pydantic**: `BackendCapabilities` in `client/backends/capabilities.py` is now a Pydantic `BaseModel` with `frozen=True`. Backend implementations now use `model_copy(update={...})` instead of `dataclasses.replace()`
+
+- **@override decorators added**: Added `@override` decorator from `typing` module to explicitly mark overridden methods across the codebase for improved code clarity and type checking
+
+- **Final annotations for constants**: Added `Final` type annotations to key constants for improved type safety
 
 ### Documentation
 

@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum, unique
 import logging
-from typing import Any, Final
+from typing import Any, Final, override
 
 from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
 from aiohomematic.interfaces import ChannelProtocol
@@ -133,6 +133,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
             )
         return None
 
+    @override
     def _post_init(self) -> None:
         """Post action after initialisation of the data point fields."""
         super()._post_init()

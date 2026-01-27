@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import Final
+from typing import Final, override
 
 from slugify import slugify
 
@@ -183,10 +183,12 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
             return health.is_available
         return False
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return HubPathData(name=slugify(f"connectivity_{self._interface.value}"))
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self.name}"

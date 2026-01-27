@@ -389,7 +389,7 @@ from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol
 if TYPE_CHECKING:
     from aiohomematic.model.custom import BaseCustomDpClimate
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):

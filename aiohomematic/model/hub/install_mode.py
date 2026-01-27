@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 import logging
-from typing import Final, NamedTuple
+from typing import Final, NamedTuple, override
 
 from slugify import slugify
 
@@ -126,10 +126,12 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
             return client.capabilities.install_mode and self._central_info.available
         return False
 
+    @override
     def _get_path_data(self) -> HubPathData:
         """Return the path data of the data_point."""
         return HubPathData(name=self._name_data.name)
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self.name}"

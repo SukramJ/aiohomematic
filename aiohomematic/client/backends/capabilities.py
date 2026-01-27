@@ -16,8 +16,9 @@ Public API
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Final
+
+from pydantic import BaseModel, ConfigDict
 
 __all__ = [
     "BackendCapabilities",
@@ -27,8 +28,7 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True, slots=True)
-class BackendCapabilities:
+class BackendCapabilities(BaseModel):
     """
     Immutable capability flags for a backend.
 
@@ -37,6 +37,8 @@ class BackendCapabilities:
     capabilities at initialization; clients expose them via the
     `capabilities` property.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     # Device Operations
     device_firmware_update: bool = False

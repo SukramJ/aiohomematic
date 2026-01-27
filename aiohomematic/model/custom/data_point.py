@@ -12,7 +12,7 @@ from collections.abc import Mapping
 import contextlib
 from datetime import datetime
 import logging
-from typing import Any, Final, Unpack
+from typing import Any, Final, Unpack, override
 
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
@@ -257,6 +257,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
                 if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                     self._add_data_point(field=field_name, data_point=dp, is_visible=is_visible)
 
+    @override
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data point."""
         is_only_primary_channel = check_channel_is_the_only_primary_channel(
@@ -272,6 +273,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             postfix=self.data_point_name_postfix.replace("_", " ").title(),
         )
 
+    @override
     def _get_data_point_usage(self) -> DataPointUsage:
         """Generate the usage for the data point."""
         if self._forced_usage:
@@ -280,6 +282,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             return DataPointUsage.CDP_PRIMARY
         return DataPointUsage.CDP_SECONDARY
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return DataPointPathData(
@@ -289,6 +292,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             kind=self._category,
         )
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self.data_point_name_postfix}"

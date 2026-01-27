@@ -11,7 +11,7 @@ from __future__ import annotations
 import contextlib
 from datetime import datetime
 import logging
-from typing import Final, Unpack, cast
+from typing import Final, Unpack, cast, override
 
 from aiohomematic.const import (
     INIT_DATETIME,
@@ -136,6 +136,10 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def _should_publish_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
         if self.published_event_recently:  # pylint: disable=using-constant-test
+            return False
+
+        # Don't publish if source data points aren't refreshed yet.
+        if not self.is_refreshed:
             return False
 
         if (relevant_values_data_point := self._relevant_values_data_points) is not None and len(
@@ -281,14 +285,17 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         self._data_points[key] = dummy
         return cast(dpt, dummy)  # type: ignore[valid-type]
 
+    @override
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data point."""
         return get_data_point_name_data(channel=self._channel, parameter=self._calculated_parameter)
 
+    @override
     def _get_data_point_usage(self) -> DataPointUsage:
         """Generate the usage for the data point."""
         return DataPointUsage.DATA_POINT
 
+    @override
     def _get_path_data(self) -> PathData:
         """Return the path data of the data_point."""
         return DataPointPathData(
@@ -298,6 +305,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             kind=self._category,
         )
 
+    @override
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
         return f"{self._category}/{self._channel.device.model}/{self._calculated_parameter}"

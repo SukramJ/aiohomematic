@@ -15,13 +15,25 @@ Detailed guides for specific Homematic devices:
 
 ## Contributing
 
-Have a useful template or guide for Homematic devices? Contributions are welcome! Please submit a pull request.
+We welcome community contributions! If you have a useful template, device guide, or CCU script, here's how to share it:
 
-When contributing:
+### How to Contribute
 
-- Include a clear description of the problem being solved
-- Provide complete, tested YAML configuration
-- Document any entity IDs that need customization
-- Credit yourself as the contributor
-- Place device-specific guides in `devices/`
-- Place CCU scripts in `ccu_scripts/`
+1. **Fork** the [aiohomematic repository](https://github.com/SukramJ/aiohomematic)
+2. **Create** your guide as a Markdown file in the appropriate folder:
+   - `docs/user/devices/` — Device-specific guides (naming: `device_model.md`)
+   - `docs/user/ccu_scripts/` — CCU maintenance scripts
+3. **Submit** a Pull Request with a brief description
+
+### Content Guidelines
+
+Your contribution should include:
+
+- **Problem description** — What challenge does this solve?
+- **Complete configuration** — Tested YAML/code that users can copy
+- **Customization notes** — Which entity IDs or values need adjustment
+- **Your credit** — Add yourself as contributor (optional)
+
+### Questions?
+
+Open a [Discussion](https://github.com/SukramJ/aiohomematic/discussions) if you're unsure whether your idea fits or need help with formatting.

@@ -32,9 +32,16 @@
 - **TimeoutConfig converted to Pydantic**: `TimeoutConfig` is now a Pydantic `BaseModel` with `frozen=True` for immutability. The API remains fully compatible with the previous `NamedTuple` implementation.
 
 - **InterfaceConfig converted to Pydantic with CUxD validation**: `InterfaceConfig` is now a Pydantic `BaseModel` with proper validation:
+
   - For standard interfaces (HmIP-RF, BidCos-RF, etc.): port must be > 0
   - For CUxD/CCU-Jack: port is automatically set to `None` (ignored, JSON-RPC uses HTTP/HTTPS)
   - `interface_id` and `rpc_server` are computed fields
+
+- **CentralConfig converted to Pydantic**: `CentralConfig` is now a Pydantic `BaseModel` with:
+  - Automatic collection normalization (set/tuple → frozenset)
+  - Computed private attributes for derived values (`requires_xml_rpc_server`, `session_recorder_*`)
+  - Factory methods (`for_ccu`, `for_homegear`) preserved
+  - All 30+ configuration fields with proper type hints and defaults
 
 ### Documentation
 

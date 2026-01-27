@@ -163,7 +163,8 @@ pip install -r requirements.txt
 
 ```python
 from aiohomematic.central import CentralConfig
-from aiohomematic.client import InterfaceConfig, Interface
+from aiohomematic.client import InterfaceConfig
+from aiohomematic.const import Interface
 
 config = CentralConfig(
     central_id="ccu-main",
@@ -172,7 +173,7 @@ config = CentralConfig(
     password="secret",
     default_callback_port=43439,
     interface_configs={
-        InterfaceConfig(interface=Interface.HMIP, port=2010, enabled=True)
+        InterfaceConfig(central_name="ccu-main", interface=Interface.HMIP_RF, port=2010)
     },
 )
 

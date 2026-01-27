@@ -27,6 +27,15 @@
   - `test_hub_entities_contract.py`: Hub entity classes (Program, Sysvar, Metrics, Inbox, Update)
   - `test_subscription_api_contract.py`: EventBus subscription API stability
 
+### Changed
+
+- **TimeoutConfig converted to Pydantic**: `TimeoutConfig` is now a Pydantic `BaseModel` with `frozen=True` for immutability. The API remains fully compatible with the previous `NamedTuple` implementation.
+
+- **InterfaceConfig converted to Pydantic with CUxD validation**: `InterfaceConfig` is now a Pydantic `BaseModel` with proper validation:
+  - For standard interfaces (HmIP-RF, BidCos-RF, etc.): port must be > 0
+  - For CUxD/CCU-Jack: port is automatically set to `None` (ignored, JSON-RPC uses HTTP/HTTPS)
+  - `interface_id` and `rpc_server` are computed fields
+
 ### Documentation
 
 - **CLAUDE.md: CUxD/CCU-Jack special handling section**: Added prominent "⚠️ CRITICAL: CUxD/CCU-Jack Special Handling" section at the top of CLAUDE.md to prevent AI-assisted refactoring regressions. Includes:

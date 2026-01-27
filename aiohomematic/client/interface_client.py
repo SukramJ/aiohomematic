@@ -905,6 +905,15 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def reconnect(self) -> bool:
         """Re-init all RPC clients with exponential backoff."""
+        # If in INITIALIZED state, transition to DISCONNECTED first.
+        # This enables recovery when initial connection was never established
+        # (e.g., startup failed before connecting). DISCONNECTED allows RECONNECTING.
+        if self._state_machine.state == ClientState.INITIALIZED:
+            self._state_machine.transition_to(
+                target=ClientState.DISCONNECTED,
+                reason="recovery from initialized state",
+            )
+
         if self._state_machine.can_reconnect:
             self._state_machine.transition_to(target=ClientState.RECONNECTING)
 

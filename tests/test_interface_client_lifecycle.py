@@ -923,6 +923,33 @@ class TestInterfaceClientReconnect:
     """Test reconnect functionality."""
 
     @pytest.mark.asyncio
+    async def test_reconnect_from_initialized_state(self) -> None:
+        """
+        Reconnect should work from INITIALIZED state by transitioning to DISCONNECTED first.
+
+        This tests the fix for the issue where clients stuck in INITIALIZED state
+        (e.g., after a failed startup) couldn't be reconnected because RECONNECTING
+        was not a valid transition from INITIALIZED. The fix transitions to DISCONNECTED
+        first, which then allows RECONNECTING.
+        """
+        backend = _FakeBackend()
+        client = _create_interface_client(backend=backend)
+
+        # Initialize client to get to INITIALIZED state
+        await client.init_client()
+        assert client.state == ClientState.INITIALIZED
+
+        # Verify reconnect was not possible before (RECONNECTING not in valid transitions from INITIALIZED)
+        assert not client._state_machine.can_reconnect
+
+        # Now call reconnect - it should transition to DISCONNECTED first, then succeed
+        result = await client.reconnect()
+
+        assert result is True
+        assert client.state == ClientState.CONNECTED
+        assert client.available is True
+
+    @pytest.mark.asyncio
     async def test_reconnect_not_allowed_from_created(self) -> None:
         """Reconnect should return False when state doesn't allow it."""
         client = _create_interface_client()

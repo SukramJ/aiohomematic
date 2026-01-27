@@ -1,8 +1,17 @@
-# Version 2026.1.51 (2026-01-25)
+# Version 2026.1.51 (2026-01-27)
 
 ## What's Changed
 
 ### Added
+
+- **CUxD/CCU-Jack regression prevention contract tests**: Added dedicated `test_cuxd_ccu_jack_contract.py` with 20 tests specifically designed to prevent regressions that have occurred during AI-assisted refactoring. Tests cover:
+
+  - Interface classification (JSON-RPC vs XML-RPC constants)
+  - Backend factory behavior (JsonCcuBackend creation)
+  - Capability flags (ping_pong=False, rpc_callback=False)
+  - Port configuration (HTTP 80 / HTTPS 443)
+  - Enum value stability
+  - Backend behavior (init_proxy/deinit_proxy are no-ops)
 
 - **Comprehensive contract tests for stability guarantees**: Added contract tests that define the stable API contract for aiohomematic. These tests ensure that changes to core infrastructure require explicit consideration and MAJOR version bumps:
   - `test_capability_contract.py`: Backend capabilities (CUxD, CCU-Jack, CCU, Homegear)
@@ -17,6 +26,14 @@
   - `test_protocol_interfaces_contract.py`: Protocol interface definitions (runtime checkable, required members)
   - `test_hub_entities_contract.py`: Hub entity classes (Program, Sysvar, Metrics, Inbox, Update)
   - `test_subscription_api_contract.py`: EventBus subscription API stability
+
+### Documentation
+
+- **CLAUDE.md: CUxD/CCU-Jack special handling section**: Added prominent "⚠️ CRITICAL: CUxD/CCU-Jack Special Handling" section at the top of CLAUDE.md to prevent AI-assisted refactoring regressions. Includes:
+  - Comparison table (XML-RPC vs JSON-RPC differences)
+  - Key constants to check before refactoring
+  - Common regression patterns with ❌ WRONG / ✅ CORRECT examples
+  - Refactoring checklist with pytest commands
 
 See ADR-0018 for architectural context.
 

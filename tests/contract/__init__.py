@@ -11,6 +11,10 @@ plugin maintainers (e.g., Homematic(IP) Local for Home Assistant).
 
 Test Modules
 ------------
+**Tier 0 - Regression Prevention (Run before any refactoring):**
+
+- test_cuxd_ccu_jack_contract.py: CUxD/CCU-Jack special handling (JSON-RPC only)
+
 **Tier 1 - Critical (Public API used by Home Assistant):**
 
 - test_capability_contract.py: Backend capabilities (CUxD, CCU-Jack, CCU, Homegear)
@@ -31,17 +35,18 @@ Test Modules
 
 Contract Scope
 --------------
-1. **State Machine Contracts**: Valid/invalid transitions, failure tracking, properties
-2. **Capability Contracts**: Capability flags, capability-gated behavior
-3. **Recovery Contracts**: Exponential backoff, max attempts, stage progression
-4. **Event Contracts**: Event types, required fields, immutability
-5. **Lifecycle Contracts**: init/deinit, reconnect, stop behavior
-6. **Enum Contracts**: Enum values must not change without major version bump
-7. **Configuration Contracts**: Config field stability and defaults
-8. **Exception Contracts**: Exception hierarchy and name attributes
-9. **Protocol Contracts**: Protocol interface member stability
-10. **Hub Entity Contracts**: Hub data point type stability
-11. **Subscription Contracts**: EventBus API and handler patterns
+1. **CUxD/CCU-Jack Contracts**: JSON-RPC-only interfaces, no XML-RPC, no ping/pong
+2. **State Machine Contracts**: Valid/invalid transitions, failure tracking, properties
+3. **Capability Contracts**: Capability flags, capability-gated behavior
+4. **Recovery Contracts**: Exponential backoff, max attempts, stage progression
+5. **Event Contracts**: Event types, required fields, immutability
+6. **Lifecycle Contracts**: init/deinit, reconnect, stop behavior
+7. **Enum Contracts**: Enum values must not change without major version bump
+8. **Configuration Contracts**: Config field stability and defaults
+9. **Exception Contracts**: Exception hierarchy and name attributes
+10. **Protocol Contracts**: Protocol interface member stability
+11. **Hub Entity Contracts**: Hub data point type stability
+12. **Subscription Contracts**: EventBus API and handler patterns
 
 See ADR-0018 for architectural context and rationale.
 """

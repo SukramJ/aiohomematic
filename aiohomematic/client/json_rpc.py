@@ -40,6 +40,7 @@ from functools import partial
 import logging
 import os
 from pathlib import Path
+import re
 from ssl import SSLContext
 from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import unquote
@@ -126,6 +127,33 @@ from aiohomematic.support import (
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+# Pattern to match unescaped control characters (U+0000 to U+001F) in JSON strings.
+# These must be escaped as \uXXXX per RFC 8259.
+_CONTROL_CHAR_PATTERN: Final = re.compile(r"[\x00-\x1f]")
+
+
+def _sanitize_json_control_chars(*, data: str) -> str:
+    """
+    Escape unescaped control characters in JSON data.
+
+    The CCU may return JSON with unescaped control characters in string values
+    (e.g., device names containing newlines or tabs). This function escapes them
+    to valid JSON unicode escape sequences.
+
+    Args:
+        data: Raw JSON string that may contain unescaped control characters.
+
+    Returns:
+        JSON string with control characters properly escaped.
+
+    """
+
+    def escape_control_char(match: re.Match[str]) -> str:
+        """Convert control character to unicode escape sequence."""
+        return f"\\u{ord(match.group()):04x}"
+
+    return _CONTROL_CHAR_PATTERN.sub(escape_control_char, data)
 
 
 @unique
@@ -1747,8 +1775,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
                 extract_exc_args(exc=verr),
             )
-            # Workaround for bug in CCU
-            return compat.loads(data=(await response.read()).decode(encoding=UTF_8))
+            # Workaround for bug in CCU: device names may contain unescaped control characters
+            raw_data = (await response.read()).decode(encoding=UTF_8)
+            sanitized_data = _sanitize_json_control_chars(data=raw_data)
+            return compat.loads(data=sanitized_data)
 
     async def _get_program_descriptions(self) -> Mapping[str, str]:
         """Get all program descriptions from the backend via script."""

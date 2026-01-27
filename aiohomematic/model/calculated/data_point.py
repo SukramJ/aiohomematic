@@ -138,6 +138,10 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         if self.published_event_recently:  # pylint: disable=using-constant-test
             return False
 
+        # Don't publish if source data points aren't refreshed yet.
+        if not self.is_refreshed:
+            return False
+
         if (relevant_values_data_point := self._relevant_values_data_points) is not None and len(
             relevant_values_data_point
         ) <= 1:

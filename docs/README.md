@@ -37,7 +37,14 @@ make clean
 
 - `api/` - Auto-generated API reference documentation
 - `user/` - User guides (installation, quickstart, configuration, examples)
+  - [community_templates.md](user/community_templates.md) - Overview of community templates and guides
+  - `devices/` - Device-specific guides
+    - [hmip_srh_window_handle.md](user/devices/hmip_srh_window_handle.md) - Three-state window handle sensor
+    - [hmip_swsd_smoke_detector.md](user/devices/hmip_swsd_smoke_detector.md) - Smoke detector binary sensors
+  - `ccu_scripts/` - CCU maintenance scripts
 - `dev/` - Developer documentation
+- `adr/` - Architecture Decision Records
+- `migrations/` - Migration guides for breaking changes
 - Markdown files - Architecture and integration guides
 - [glossary.md](glossary.md) - Terminology reference (Integration vs Add-on, Backend, Interface, etc.)
 

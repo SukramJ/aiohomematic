@@ -14,7 +14,7 @@ import pytest
 
 from aiohomematic import central as hmcu, compat
 from aiohomematic.client import AioJsonRpcAioHttpClient
-from aiohomematic.client.json_rpc import _get_params, _JsonKey, _JsonRpcMethod
+from aiohomematic.client.json_rpc import _get_params, _JsonKey, _JsonRpcMethod, _sanitize_json_control_chars
 from aiohomematic.const import (
     UTF_8,
     DescriptionMarker,
@@ -79,6 +79,61 @@ class TestJsonConversion:
             json_str = "{" + '"name": "Text mit Wert ' + sc + '"' + "}"
             with pytest.raises(compat.JSONDecodeError):
                 compat.loads(data=json_str)
+
+
+class TestSanitizeJsonControlChars:
+    """Test control character sanitization in JSON strings."""
+
+    def test_sanitize_carriage_return_in_string(self) -> None:
+        """Test that embedded carriage return is escaped."""
+        data = '{"name": "Device\rwith CR"}'
+        result = _sanitize_json_control_chars(data=data)
+        assert result == '{"name": "Device\\u000dwith CR"}'
+        assert compat.loads(data=result) == {"name": "Device\rwith CR"}
+
+    def test_sanitize_multiple_control_chars(self) -> None:
+        """Test that multiple control characters are all escaped."""
+        data = '{"name": "A\nB\tC\rD"}'
+        result = _sanitize_json_control_chars(data=data)
+        assert result == '{"name": "A\\u000aB\\u0009C\\u000dD"}'
+        assert compat.loads(data=result) == {"name": "A\nB\tC\rD"}
+
+    def test_sanitize_newline_in_string(self) -> None:
+        """Test that embedded newline is escaped."""
+        # Raw newline in string value (invalid JSON)
+        data = '{"name": "Device\nwith newline"}'
+        result = _sanitize_json_control_chars(data=data)
+        assert result == '{"name": "Device\\u000awith newline"}'
+        # Verify it's now valid JSON
+        assert compat.loads(data=result) == {"name": "Device\nwith newline"}
+
+    def test_sanitize_no_control_chars(self) -> None:
+        """Test that normal JSON passes through unchanged."""
+        data = '{"name": "Normal device name"}'
+        assert _sanitize_json_control_chars(data=data) == data
+
+    def test_sanitize_null_byte_in_string(self) -> None:
+        """Test that null byte is escaped."""
+        data = '{"name": "Device\x00with null"}'
+        result = _sanitize_json_control_chars(data=data)
+        assert result == '{"name": "Device\\u0000with null"}'
+        assert compat.loads(data=result) == {"name": "Device\x00with null"}
+
+    def test_sanitize_preserves_valid_escapes(self) -> None:
+        """Test that already-escaped sequences are not double-escaped."""
+        # Note: The function operates on raw strings, so \\n is two chars: backslash + n
+        # These are valid JSON and should pass through the JSON parser correctly
+        data = r'{"name": "Device\\nwith escaped newline"}'
+        result = _sanitize_json_control_chars(data=data)
+        # No control chars present, so no change
+        assert result == data
+
+    def test_sanitize_tab_in_string(self) -> None:
+        """Test that embedded tab is escaped."""
+        data = '{"name": "Device\twith tab"}'
+        result = _sanitize_json_control_chars(data=data)
+        assert result == '{"name": "Device\\u0009with tab"}'
+        assert compat.loads(data=result) == {"name": "Device\twith tab"}
 
 
 class TestHtmlCleanup:

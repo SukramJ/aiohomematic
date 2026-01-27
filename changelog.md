@@ -74,6 +74,8 @@ See ADR-0018 for architectural context.
 
 - **Client reconnect now works from INITIALIZED state**: Fixed an issue where clients stuck in `INITIALIZED` state (e.g., after a failed startup due to JSON parsing errors) couldn't be reconnected. The state machine didn't allow `RECONNECTING` as a valid transition from `INITIALIZED`. The fix transitions to `DISCONNECTED` first (which is the documented recovery path), then proceeds with reconnection. This enables automatic recovery when the initial connection was never established.
 
+- **JSON parsing now handles unescaped control characters**: Fixed `JSONDecodeError: unexpected control character in string` errors that occurred when device names or descriptions on the CCU contained unescaped control characters (newline, tab, carriage return, etc.). The `Device.listAllDetail` JSON-RPC response is now sanitized by escaping control characters (U+0000 to U+001F) to proper `\uXXXX` sequences before parsing. This allows the central unit to start successfully even when the CCU returns malformed JSON.
+
 ---
 
 # Version 2026.1.50 (2026-01-25)

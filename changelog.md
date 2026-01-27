@@ -70,6 +70,10 @@
 
 See ADR-0018 for architectural context.
 
+### Fixed
+
+- **Client reconnect now works from INITIALIZED state**: Fixed an issue where clients stuck in `INITIALIZED` state (e.g., after a failed startup due to JSON parsing errors) couldn't be reconnected. The state machine didn't allow `RECONNECTING` as a valid transition from `INITIALIZED`. The fix transitions to `DISCONNECTED` first (which is the documented recovery path), then proceeds with reconnection. This enables automatic recovery when the initial connection was never established.
+
 ---
 
 # Version 2026.1.50 (2026-01-25)

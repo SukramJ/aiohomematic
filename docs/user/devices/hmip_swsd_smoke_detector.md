@@ -71,12 +71,12 @@ template:
 
 The HmIP-SWSD exposes these alarm states:
 
-| State | Description |
-|-------|-------------|
-| `idle_off` | No alarm, detector inactive |
-| `primary_alarm` | Direct smoke detection by this device |
+| State             | Description                                |
+| ----------------- | ------------------------------------------ |
+| `idle_off`        | No alarm, detector inactive                |
+| `primary_alarm`   | Direct smoke detection by this device      |
 | `secondary_alarm` | Triggered by another linked smoke detector |
-| `intrusion_alarm` | Security system activation / tamper alert |
+| `intrusion_alarm` | Security system activation / tamper alert  |
 
 ## Customization
 

@@ -23,4 +23,4 @@ pytest-timeout==2.4.0
 pytest-xdist==3.8.0
 pytest==9.0.2
 types-python-slugify==8.0.2.20240310
-uv==0.9.26
+uv==0.9.27

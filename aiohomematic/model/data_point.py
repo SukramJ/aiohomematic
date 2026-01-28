@@ -38,6 +38,7 @@ from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent
 from aiohomematic.const import (
+    _OPTIONAL_PARAMETERS,
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
     INIT_DATETIME,
@@ -264,8 +265,26 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
 
     @property
     def is_valid(self) -> bool:
-        """Return if the value is valid (refreshed and status is OK)."""
-        return self.is_refreshed and self.is_status_valid
+        """
+        Return if the data point has a valid value.
+
+        A data point is considered valid if:
+        1. It has been refreshed (received at least one value)
+        2. The STATUS parameter (if present) indicates a valid state
+        3. The current value is valid for the parameter type
+        4. The current value is within the allowed range/values
+
+        This property is used by Home Assistant to determine if an entity
+        should be marked as available or restored.
+        """
+        # Must be refreshed first
+        if not self.is_refreshed:
+            return False
+
+        # STATUS parameter must be OK
+        # For base CallbackDataPoint, we don't have type information
+        # Subclasses override this for proper validation
+        return self.is_status_valid
 
     @property
     def usage(self) -> DataPointUsage:
@@ -708,6 +727,7 @@ class BaseParameterDataPoint[
         "_state_uncertain",
         "_status_dpk",
         "_status_parameter",
+        "_status_unsubscriber",
         "_status_value",
         "_status_value_list",
         "_temporary_value",
@@ -781,6 +801,9 @@ class BaseParameterDataPoint[
             )
             if status_param_data and (value_list := status_param_data.get("VALUE_LIST")):
                 self._status_value_list = tuple(value_list)
+            # Subscribe to STATUS parameter updates
+            # Note: Subscription happens later after device is fully registered
+            self._status_unsubscriber: CallableAny | None = None
 
     default: Final = DelegatedProperty[ParameterT](path="_default")
     hmtype: Final = DelegatedProperty[ParameterType](path="_type")
@@ -824,6 +847,35 @@ class BaseParameterDataPoint[
         return self._status_parameter is not None
 
     @property
+    def has_valid_value_type(self) -> bool:
+        """
+        Check if the current value is valid for this parameter type.
+
+        Returns False if:
+        - Value is None and this type doesn't allow None
+        - Value type doesn't match parameter type
+        """
+        # None is only valid for specific cases
+        if self._value is None:
+            return self._allows_none_value()
+
+        # Type-specific validation
+        if self._type == ParameterType.BOOL:
+            return isinstance(self._value, bool)
+        if self._type in (ParameterType.INTEGER, ParameterType.FLOAT):
+            return isinstance(self._value, (int, float))
+        if self._type == ParameterType.STRING:
+            return isinstance(self._value, str)
+        if self._type == ParameterType.ENUM:
+            # ENUM can be int (index) or string (value)
+            return isinstance(self._value, (int, str))
+        if self._type == ParameterType.ACTION:
+            # ACTION has no persistent value
+            return True
+
+        return True  # Unknown types are considered valid
+
+    @property
     def is_readable(self) -> bool:
         """Return, if data_point is readable."""
         return bool(self._operations & Operations.READ)
@@ -840,6 +892,64 @@ class BaseParameterDataPoint[
     def is_unit_fixed(self) -> bool:
         """Return if the unit is fixed."""
         return self._raw_unit != self._unit
+
+    @property
+    @override
+    def is_valid(self) -> bool:
+        """
+        Return if the data point has a valid value.
+
+        For parameter-based data points, additionally checks:
+        - Value type matches parameter type
+        - Value is within allowed range/values
+        """
+        # Check base validity (refreshed + status)
+        if not super().is_valid:
+            return False
+
+        # Check value type validity
+        if not self.has_valid_value_type:
+            return False
+
+        # Check value range
+        return self.is_value_in_range
+
+    @property
+    def is_value_in_range(self) -> bool:
+        """
+        Check if the current value is within the allowed range or value list.
+
+        Returns True if:
+        - Value is None (handled by has_valid_value_type)
+        - Type has no range constraints
+        - Value is within min/max bounds (numeric)
+        - Value is in the allowed value list (enum)
+        """
+        if self._value is None:
+            return True  # None handling is done in has_valid_value_type
+
+        # ENUM validation
+        if self._type == ParameterType.ENUM and self._values is not None:
+            if isinstance(self._value, int):
+                # Index-based enum (HM devices)
+                return 0 <= self._value < len(self._values)
+            if isinstance(self._value, str):
+                # String-based enum (HmIP devices)
+                return self._value in self._values
+            return False
+
+        # Numeric range validation
+        if self._type in (ParameterType.INTEGER, ParameterType.FLOAT):
+            # mypy doesn't understand that _value can't be None here due to check above
+            value = cast(int | float, self._value)
+            min_val = cast(int | float, self._min) if self._min is not None else None
+            max_val = cast(int | float, self._max) if self._max is not None else None
+            if min_val is not None and value < min_val:
+                return False
+            return not (max_val is not None and value > max_val)
+
+        # BOOL, STRING, ACTION have no range constraints
+        return True
 
     @property
     def is_writable(self) -> bool:
@@ -1052,7 +1162,60 @@ class BaseParameterDataPoint[
                 self.publish_data_point_updated_event(old_value=old_value, new_value=None)
             return (old_value, None)
 
-        new_value = self._convert_value(value=value)
+        # Validate the converted value
+        if (new_value := self._convert_value(value=value)) is not None:
+            # Check range for numeric types
+            if self._type in (ParameterType.INTEGER, ParameterType.FLOAT):
+                # mypy doesn't understand that new_value can't be None here
+                val = cast(int | float, new_value)
+                min_val = cast(int | float, self._min) if self._min is not None else None
+                max_val = cast(int | float, self._max) if self._max is not None else None
+                if min_val is not None and val < min_val:
+                    _LOGGER.warning(
+                        i18n.tr(
+                            key="log.model.data_point.value_below_minimum",
+                            value=new_value,
+                            minimum=self._min,
+                            interface_id=self._device.interface_id,
+                            channel_address=self._channel.address,
+                            parameter=self._parameter,
+                        )
+                    )
+                    # Don't reject, but mark as potentially invalid
+                elif max_val is not None and val > max_val:
+                    _LOGGER.warning(
+                        i18n.tr(
+                            key="log.model.data_point.value_above_maximum",
+                            value=new_value,
+                            maximum=self._max,
+                            interface_id=self._device.interface_id,
+                            channel_address=self._channel.address,
+                            parameter=self._parameter,
+                        )
+                    )
+            # Check enum values
+            elif self._type == ParameterType.ENUM and self._values:
+                if isinstance(new_value, int):
+                    if new_value < 0 or new_value >= len(self._values):
+                        _LOGGER.warning(
+                            i18n.tr(
+                                key="log.model.data_point.enum_index_out_of_range",
+                                index=new_value,
+                                interface_id=self._device.interface_id,
+                                channel_address=self._channel.address,
+                                parameter=self._parameter,
+                            )
+                        )
+                elif isinstance(new_value, str) and new_value not in self._values:
+                    _LOGGER.warning(
+                        i18n.tr(
+                            key="log.model.data_point.enum_value_not_in_list",
+                            value=new_value,
+                            interface_id=self._device.interface_id,
+                            channel_address=self._channel.address,
+                            parameter=self._parameter,
+                        )
+                    )
         if old_value == new_value:
             self._set_refreshed_at(refreshed_at=write_at)
         else:
@@ -1065,6 +1228,27 @@ class BaseParameterDataPoint[
         self._state_uncertain = False
         self.publish_data_point_updated_event(old_value=old_value, new_value=new_value)
         return (old_value, new_value)
+
+    def _allows_none_value(self) -> bool:
+        """
+        Determine if None is a valid value for this parameter.
+
+        Returns True only for:
+        - ACTION type parameters (no persistent value)
+        - Parameters explicitly marked as optional
+        - Specific known optional parameters (e.g., LEVEL_2 for blinds without slats)
+        """
+        # ACTION types don't have persistent values
+        if self._type == ParameterType.ACTION:
+            return True
+
+        # Check if parameter is in the known optional list
+        if self._parameter in _OPTIONAL_PARAMETERS:
+            return True
+
+        # Check SPECIAL field for optional marker
+        # All other cases: None is not valid
+        return bool(self._special and self._special.get("OPTIONAL"))
 
     def _assign_parameter_data(self, *, parameter_data: ParameterData) -> None:
         """Assign parameter data to instance variables."""
@@ -1188,6 +1372,14 @@ class BaseParameterDataPoint[
         """
         return self._value
 
+    def _register_status_listener(self) -> None:
+        """
+        Register listener for STATUS parameter updates.
+
+        Note: Currently not implemented due to protocol limitations.
+        STATUS updates would need to be triggered externally.
+        """
+
     def _reset_temporary_value(self) -> None:
         """Reset the temp storage."""
         self._temporary_value = None
@@ -1196,6 +1388,12 @@ class BaseParameterDataPoint[
     def _set_value(self, value: ParameterT) -> None:  # kwonly: disable
         """Set the local value."""
         self.write_value(value=value, write_at=datetime.now())
+
+    def _unregister_status_listener(self) -> None:
+        """Unregister STATUS parameter listener."""
+        if self._status_unsubscriber:
+            self._status_unsubscriber()
+            self._status_unsubscriber = None
 
     def __get_value_proxy(self) -> ParameterT | None:
         """

@@ -21,7 +21,7 @@ from typing import Any, Final, NamedTuple, Required, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.1.51"
+VERSION: Final = "2026.1.52"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1147,6 +1147,8 @@ class Parameter(StrEnum):
     HUE = "HUE"
     HUMIDITY = "HUMIDITY"
     ILLUMINATION = "ILLUMINATION"
+    INHIBIT = "INHIBIT"
+    INSTALL_TEST = "INSTALL_TEST"
     INTERVAL = "INTERVAL"
     LED_STATUS = "LED_STATUS"
     LEVEL = "LEVEL"
@@ -1168,6 +1170,8 @@ class Parameter(StrEnum):
     MOTION_DETECTION_ACTIVE = "MOTION_DETECTION_ACTIVE"
     ON_TIME = "ON_TIME"
     ON_TIME_LIST_1 = "ON_TIME_LIST_1"
+    ON_TIME_UNIT = "ON_TIME_UNIT"
+    ON_TIME_VALUE = "ON_TIME_VALUE"
     OPEN = "OPEN"
     OPERATING_VOLTAGE = "OPERATING_VOLTAGE"
     OPTICAL_ALARM_ACTIVE = "OPTICAL_ALARM_ACTIVE"
@@ -1175,6 +1179,11 @@ class Parameter(StrEnum):
     OPTIMUM_START_STOP = "OPTIMUM_START_STOP"
     PARTY_MODE = "PARTY_MODE"
     PARTY_MODE_SUBMIT = "PARTY_MODE_SUBMIT"
+    PARTY_START_DAY = "PARTY_START_DAY"
+    PARTY_START_TIME = "PARTY_START_TIME"
+    PARTY_STOP_DAY = "PARTY_STOP_DAY"
+    PARTY_STOP_TIME = "PARTY_STOP_TIME"
+    PARTY_TEMPERATURE = "PARTY_TEMPERATURE"
     PARTY_TIME_END = "PARTY_TIME_END"
     PARTY_TIME_START = "PARTY_TIME_START"
     PONG = "PONG"
@@ -1680,6 +1689,38 @@ _IGNORE_ON_INITIAL_LOAD_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
         Parameter.LOW_BAT,
         Parameter.LOWBAT,
         Parameter.OPERATING_VOLTAGE,
+    }
+)
+
+# Optional parameters that can have None as a valid value
+# Note: Parameters with ParameterType.ACTION are automatically handled by _allows_none_value()
+# and do not need to be listed here (e.g., ON_TIME_VALUE, RAMP_TIME_VALUE, DURATION_VALUE)
+_OPTIONAL_PARAMETERS: Final[frozenset[Parameter]] = frozenset(
+    {
+        # Cover/Blinds - slat control
+        Parameter.LEVEL_2,  # Optional slat position for blinds (not all blinds have slats)
+        # Light color parameters (only on color-capable lights)
+        Parameter.COLOR,  # Optional fixed color selection (DpInteger)
+        Parameter.COLOR_TEMPERATURE,  # Optional color temperature in Kelvin (DpInteger)
+        Parameter.EFFECT,  # Optional light effects (DpActionSelect - ENUM)
+        Parameter.HUE,  # Optional hue 0-360 for RGB lights (DpInteger)
+        Parameter.SATURATION,  # Optional saturation 0-1 for RGB lights (DpFloat)
+        # Timing parameters - UNIT selectors (optional ENUM types)
+        Parameter.DURATION_UNIT,  # Optional duration unit selector (DpActionSelect - ENUM)
+        Parameter.ON_TIME,  # Optional automatic shutoff timer (legacy, rarely used)
+        Parameter.ON_TIME_UNIT,  # Optional on-time unit selector (DpActionSelect - ENUM)
+        Parameter.RAMP_TIME,  # Optional dimming ramp time (legacy, rarely used)
+        Parameter.RAMP_TIME_UNIT,  # Optional ramp time unit selector (DpActionSelect - ENUM)
+        Parameter.RAMP_TIME_TO_OFF_UNIT,  # Optional ramp-to-off unit selector (DpActionSelect - ENUM)
+        # Climate party mode (only on thermostats with party mode support)
+        Parameter.PARTY_START_DAY,  # Optional party mode start day
+        Parameter.PARTY_START_TIME,  # Optional party mode start time
+        Parameter.PARTY_STOP_DAY,  # Optional party mode stop day
+        Parameter.PARTY_STOP_TIME,  # Optional party mode stop time
+        Parameter.PARTY_TEMPERATURE,  # Optional party mode temperature
+        # Special features
+        Parameter.INHIBIT,  # Optional inhibit flag
+        Parameter.INSTALL_TEST,  # Optional installation test mode
     }
 )
 

@@ -1,6 +1,19 @@
 # Version 2026.1.52 (2026-01-28)
 
-## Improvements
+## What's Changed
+
+### Added
+
+- **Derived Binary Sensors**: Implemented registry-based system for creating binary sensors derived from enum data points (ADR 0019)
+  - Added `DerivedBinarySensor` calculated data point class
+  - Added `DerivedBinarySensorRegistry` for declarative mapping definitions
+  - Added `DerivedBinarySensorMapping` dataclass for mapping rules
+  - New calculated parameters: `INTRUSION_ALARM`, `SMOKE_ALARM`, `WINDOW_OPEN`
+  - Automatic creation of derived binary sensors during device initialization
+  - HmIP-SRH, HM-Sec-RHS: Window handle sensor now provides additional `WINDOW_OPEN` binary sensor (ON when TILTED or OPEN)
+  - HmIP-SWSD: Smoke detector now provides additional `INTRUSION_ALARM` and `SMOKE_ALARM` binary sensors (ON when alarm active)
+
+### Improvements
 
 - **Enhanced Data Point Validity**: Implemented comprehensive validation for data points including type checking, range validation, and proper None handling
 - **Automatic STATUS Parameter Updates**: STATUS parameters (e.g., LEVEL_STATUS) now automatically update the main parameter's validity state

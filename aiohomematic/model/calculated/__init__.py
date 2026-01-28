@@ -51,6 +51,11 @@ from aiohomematic.model.calculated.climate import (
     VaporConcentration,
 )
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
+from aiohomematic.model.calculated.derived_binary_sensor import (
+    DerivedBinarySensor,
+    DerivedBinarySensorMapping,
+    DerivedBinarySensorRegistry,
+)
 from aiohomematic.model.calculated.operating_voltage_level import OperatingVoltageLevel
 
 __all__ = [
@@ -63,6 +68,10 @@ __all__ = [
     "Enthalpy",
     "FrostPoint",
     "VaporConcentration",
+    # Derived
+    "DerivedBinarySensor",
+    "DerivedBinarySensorMapping",
+    "DerivedBinarySensorRegistry",
     # Factory
     "create_calculated_data_points",
     # Voltage
@@ -87,3 +96,8 @@ def create_calculated_data_points(*, channel: ChannelProtocol) -> None:
     for dp in _CALCULATED_DATA_POINTS:
         if dp.is_relevant_for_model(channel=channel):
             channel.add_data_point(data_point=dp(channel=channel))
+
+    # Create derived binary sensors
+    for mapping in DerivedBinarySensorRegistry.get_mappings_for_model(model=channel.device.model):
+        if DerivedBinarySensor.is_relevant_for_mapping(channel=channel, mapping=mapping):
+            channel.add_data_point(data_point=DerivedBinarySensor(channel=channel, mapping=mapping))

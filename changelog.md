@@ -1,3 +1,22 @@
+# Version 2026.1.52 (2026-01-28)
+
+## Improvements
+
+- **Enhanced Data Point Validity**: Implemented comprehensive validation for data points including type checking, range validation, and proper None handling
+- **Automatic STATUS Parameter Updates**: STATUS parameters (e.g., LEVEL_STATUS) now automatically update the main parameter's validity state
+- **Type-Specific Validation**: Each parameter type (FLOAT, INTEGER, BOOL, ENUM, etc.) now has appropriate validation rules
+- **None Value Semantics**: Clarified when None is a valid value (ACTION types, optional parameters) vs invalid (numeric sensors)
+
+## Technical Details
+
+- Added `has_valid_value_type` and `is_value_in_range` properties to BaseParameterDataPoint
+- STATUS parameter events are now automatically subscribed and processed
+- Warning logs for out-of-range values received from CCU
+- Added `_OPTIONAL_PARAMETERS` frozenset (19 parameters) using Parameter enum values - excludes ACTION type parameters which are handled automatically
+- Added missing Parameter enum values: INHIBIT, INSTALL_TEST, ON_TIME_UNIT, ON_TIME_VALUE, PARTY_START_DAY, PARTY_START_TIME, PARTY_STOP_DAY, PARTY_STOP_TIME, PARTY_TEMPERATURE
+- Optional parameters include: color controls (COLOR, HUE, SATURATION, COLOR*TEMPERATURE, EFFECT), timing unit selectors (ON_TIME_UNIT, RAMP_TIME_UNIT, RAMP_TIME_TO_OFF_UNIT, DURATION_UNIT), party mode (PARTY*\*), and special features (LEVEL_2, INHIBIT, INSTALL_TEST)
+- Note: ACTION type parameters (\*\_VALUE like ON_TIME_VALUE, RAMP_TIME_VALUE) are automatically allowed to be None and don't need explicit listing
+
 # Version 2026.1.51 (2026-01-27)
 
 ## What's Changed

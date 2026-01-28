@@ -102,21 +102,21 @@ card:
 
 ## State Mapping Reference
 
-| HmIP-SRH State | Description | Suggested Icon |
-|----------------|-------------|----------------|
-| `closed` | Window fully closed | `mdi:window-closed` |
-| `tilted` | Window tilted/vented | `mdi:window-open-variant` |
-| `open` | Window fully open | `mdi:window-open` |
+| HmIP-SRH State | Description          | Suggested Icon            |
+| -------------- | -------------------- | ------------------------- |
+| `closed`       | Window fully closed  | `mdi:window-closed`       |
+| `tilted`       | Window tilted/vented | `mdi:window-open-variant` |
+| `open`         | Window fully open    | `mdi:window-open`         |
 
 ## Custom Icons (Optional)
 
 For FontAwesome Pro icons (requires HACS fontawesome integration):
 
-| State | FontAwesome Icon |
-|-------|------------------|
-| closed | `fapro:x-window-closed` |
-| tilted | `fapro:x-window-tilted` |
-| open | `fapro:x-window-open-left` |
+| State  | FontAwesome Icon           |
+| ------ | -------------------------- |
+| closed | `fapro:x-window-closed`    |
+| tilted | `fapro:x-window-tilted`    |
+| open   | `fapro:x-window-open-left` |
 
 ## Tips
 

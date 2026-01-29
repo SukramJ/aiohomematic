@@ -268,7 +268,6 @@ Coverage data is automatically combined.
 
 ## See Also
 
-- [Testing Guide](testing.rst) - How to write tests
-- [Contributing](contributing.rst) - Contribution guidelines
 - [pytest-cov documentation](https://pytest-cov.readthedocs.io/)
 - [Codecov documentation](https://docs.codecov.com/)
+- [CLAUDE.md](https://github.com/sukramj/aiohomematic/blob/devel/CLAUDE.md#testing-guidelines) - Testing guidelines

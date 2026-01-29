@@ -1,8 +1,14 @@
 # aiohomematic Documentation
 
-This directory contains the Sphinx documentation for aiohomematic.
+This directory contains the documentation for aiohomematic, built with [MkDocs](https://www.mkdocs.org/) and the [Material theme](https://squidfunk.github.io/mkdocs-material/).
 
-## Building the Documentation
+## Online Documentation
+
+The documentation is automatically deployed to GitHub Pages:
+
+**https://sukramj.github.io/aiohomematic/**
+
+## Building Locally
 
 ### Install Dependencies
 
@@ -10,120 +16,51 @@ This directory contains the Sphinx documentation for aiohomematic.
 pip install -r requirements_docs.txt
 ```
 
-### Build HTML Documentation
+### Serve Documentation (with live reload)
 
 ```bash
-cd docs
-make html
+mkdocs serve
 ```
 
-The built documentation will be in `_build/html/`. Open `_build/html/index.html` in your browser.
+Open http://127.0.0.1:8000 in your browser.
 
-### Build Other Formats
+### Build Static Site
 
 ```bash
-make latexpdf  # PDF documentation
-make epub      # EPUB documentation
-make help      # See all available formats
+mkdocs build
 ```
 
-### Clean Build Artifacts
-
-```bash
-make clean
-```
+The built documentation will be in `site/`.
 
 ## Documentation Structure
 
-- `api/` - Auto-generated API reference documentation
-- `user/` - User guides (installation, quickstart, configuration, examples)
-  - [community_templates.md](user/community_templates.md) - Overview of community templates and guides
-  - `devices/` - Device-specific guides
-    - [hmip_srh_window_handle.md](user/devices/hmip_srh_window_handle.md) - Three-state window handle sensor
-    - [hmip_swsd_smoke_detector.md](user/devices/hmip_swsd_smoke_detector.md) - Smoke detector binary sensors
-  - `ccu_scripts/` - CCU maintenance scripts
-- `dev/` - Developer documentation
-- `adr/` - Architecture Decision Records
-- `migrations/` - Migration guides for breaking changes
-- Markdown files - Architecture and integration guides
-- [glossary.md](glossary.md) - Terminology reference (Integration vs Add-on, Backend, Interface, etc.)
+```
+docs/
+├── index.md                    # Landing page
+├── getting_started.md          # Installation and first steps
+├── glossary.md                 # Terminology reference
+├── architecture.md             # System design overview
+├── data_flow.md                # Data flow diagrams
+├── sequence_diagrams.md        # Sequence diagrams
+├── event_bus.md                # Event system
+├── event_reference.md          # Event types reference
+├── extension_points.md         # How to extend the library
+├── consumer_api.md             # API for integrations
+├── homeassistant_lifecycle.md  # HA integration guide
+├── adr/                        # Architecture Decision Records
+├── migrations/                 # Migration guides
+├── user/                       # User guides
+│   ├── community_templates.md
+│   └── devices/                # Device-specific guides
+└── dev/                        # Developer documentation
+    └── coverage.md
+```
 
 ## Contributing to Documentation
 
-When adding new modules or classes:
+1. Edit or create Markdown files in the `docs/` directory
+2. Update `mkdocs.yml` navigation if adding new pages
+3. Test locally with `mkdocs serve`
+4. Submit a pull request
 
-1. Add appropriate docstrings to your code (Google style)
-2. Update the relevant `.rst` files in `api/`
-3. Rebuild the documentation to verify
-
-For narrative documentation:
-
-1. Create/edit `.rst` or `.md` files
-2. Update `index.rst` if adding new pages
-3. Rebuild to verify formatting
-
-## Docstring Style
-
-This project uses Google-style docstrings:
-
-```python
-def example_function(param1: str, param2: int) -> bool:
-    """
-    Brief description of the function.
-
-    Longer description with more details about what the function does,
-    its behavior, and any important notes.
-
-    Args:
-    ----
-        param1: Description of param1
-        param2: Description of param2
-
-    Returns:
-    -------
-        Description of return value
-
-    Raises:
-    ------
-        ValueError: When param2 is negative
-
-    Example:
-    -------
-        >>> example_function("test", 42)
-        True
-
-    """
-    return True
-```
-
-## Online Documentation
-
-The documentation is automatically built and published at:
-
-- https://aiohomematic.readthedocs.io (if configured)
-
-## Troubleshooting
-
-### Import Errors
-
-If you get import errors when building:
-
-1. Ensure all dependencies are installed
-2. Check that Python 3.13+ is being used
-3. Verify the package can be imported: `python -c "import aiohomematic"`
-
-### Missing Modules
-
-If autodoc can't find modules:
-
-1. Check `sys.path` configuration in `conf.py`
-2. Ensure the package is installed or the path is correct
-3. Verify module names in `.rst` files
-
-### Theme Issues
-
-If the RTD theme doesn't work:
-
-```bash
-pip install --upgrade sphinx-rtd-theme
-```
+Documentation is automatically deployed when changes are pushed to `devel` or `master`.

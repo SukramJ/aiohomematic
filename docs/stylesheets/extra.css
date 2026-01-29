@@ -1,0 +1,74 @@
+/* Custom styles for aiohomematic documentation */
+
+/* Improve code block readability */
+.md-typeset code {
+  font-size: 0.85em;
+}
+
+/* Better table styling */
+.md-typeset table:not([class]) {
+  font-size: 0.85em;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}
+
+/* Admonition improvements */
+.md-typeset .admonition {
+  font-size: 0.9em;
+}
+
+/* Navigation improvements */
+.md-nav__link {
+  font-size: 0.75rem;
+}
+
+/* Better heading anchor visibility */
+.md-typeset .headerlink {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.md-typeset h1:hover .headerlink,
+.md-typeset h2:hover .headerlink,
+.md-typeset h3:hover .headerlink,
+.md-typeset h4:hover .headerlink {
+  opacity: 1;
+}
+
+/* ADR styling */
+.md-typeset h1:has(+ p > strong:first-child) {
+  border-bottom: 2px solid var(--md-primary-fg-color);
+  padding-bottom: 0.5em;
+}
+
+/* Mermaid diagram improvements */
+.mermaid {
+  text-align: center;
+  margin: 1em 0;
+}
+
+/* Improve inline code in tables */
+.md-typeset table:not([class]) code {
+  word-break: normal;
+}
+
+/* Footer improvements */
+.md-footer-meta {
+  background-color: var(--md-footer-bg-color);
+}
+
+/* Search result improvements */
+.md-search-result__meta {
+  color: var(--md-default-fg-color--light);
+}
+
+/* Badge styling */
+.md-typeset img[alt="PyPI version"],
+.md-typeset img[alt="Python versions"],
+.md-typeset img[alt="License"] {
+  vertical-align: middle;
+  margin-right: 0.25em;
+}

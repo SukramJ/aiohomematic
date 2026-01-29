@@ -12,20 +12,20 @@ body:
         Dazu gehören insbesondere: **Integrationsdiagnose (.json-Datei)** und **Protokolldatei**.
         Issues ohne diese Informationen können kommentarlos geschlossen werden.
 
-        📖 **[Warum sind Diagnosedaten und Logs so wichtig?](https://github.com/SukramJ/aiohomematic/blob/devel/docs/debug_data_importance.md)** - Bitte lies dies, um zu verstehen, was wir benötigen und warum.
+        📖 **[Warum sind Diagnosedaten und Logs so wichtig?](https://sukramj.github.io/aiohomematic/contributor/testing/debug_data_importance/)** - Bitte lies dies, um zu verstehen, was wir benötigen und warum.
 
         Bitte vermeide unnötigen Aufwand, indem die folgenden Punkte aufmerksam gelesen werden.
   - type: checkboxes
     attributes:
       label: Ich stimme dem Folgenden zu
       options:
-        - label: Ich habe die [Dokumentation](https://github.com/sukramj/homematicip_local#homematicip_local) gelesen
+        - label: Ich habe die [Dokumentation](https://sukramj.github.io/aiohomematic/) gelesen
           required: true
-        - label: Ich habe die [Fehlerbehebung-Dokumentation](https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md) gelesen, und versucht das Problem selbstständig zu identifizieren/beheben.
+        - label: Ich habe die [Fehlerbehebung-Dokumentation](https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/) gelesen, und versucht das Problem selbstständig zu identifizieren/beheben.
           required: true
         - label: Ich habe die [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions) gelesen
           required: true
-        - label: Ich habe das [Glossar](https://github.com/SukramJ/aiohomematic/blob/devel/docs/glossary.md) gelesen und verstehe den Unterschied zwischen Integration, Add-on und Backend
+        - label: Ich habe das [Glossar](https://sukramj.github.io/aiohomematic/reference/glossary/) gelesen und verstehe den Unterschied zwischen Integration, Add-on und Backend
           required: true
         - label: Ich kenne die neuesten [Versionshinweise](https://github.com/sukramj/homematicip_local/releases)
           required: true

@@ -755,17 +755,16 @@ def perform_deep_analysis(issue_body: str) -> AttachmentAnalysis:
 
 # Documentation links
 DOCS_LINKS = {
-    "main_readme": "https://github.com/SukramJ/aiohomematic/blob/devel/README.md",
+    "main_readme": "https://sukramj.github.io/aiohomematic/",
     "homematicip_local_readme": "https://github.com/sukramj/homematicip_local#homematicip_local",
-    "troubleshooting": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md",
+    "troubleshooting": "https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/",
     "faqs": "https://github.com/sukramj/homematicip_local#frequently-asked-questions",
     "releases": "https://github.com/sukramj/homematicip_local/releases",
-    "architecture": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/architecture.md",
-    "naming": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/naming.md",
-    "unignore": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/unignore.md",
-    "input_select_helper": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/input_select_helper.md",
-    "lifecycle": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_lifecycle.md",
-    "glossary": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/glossary.md",
+    "architecture": "https://sukramj.github.io/aiohomematic/architecture/",
+    "naming": "https://sukramj.github.io/aiohomematic/contributor/coding/naming/",
+    "unignore": "https://sukramj.github.io/aiohomematic/user/advanced/unignore/",
+    "lifecycle": "https://sukramj.github.io/aiohomematic/developer/homeassistant_lifecycle/",
+    "glossary": "https://sukramj.github.io/aiohomematic/reference/glossary/",
     "discussions": "https://github.com/sukramj/aiohomematic/discussions",
 }
 

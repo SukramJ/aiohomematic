@@ -194,6 +194,15 @@ data:
 
 ### Enable Debug Logging
 
+**Easiest method** - Enable via Home Assistant UI:
+
+1. Go to **Settings** → **Devices & Services** → **Homematic(IP) Local**
+2. Click **Configure** → **Enable debug logging**
+3. Reproduce the problem
+4. Click **Disable debug logging** - the debug log will be offered as a file download
+
+**Alternative** - Via YAML configuration:
+
 ```yaml
 logger:
   default: warning

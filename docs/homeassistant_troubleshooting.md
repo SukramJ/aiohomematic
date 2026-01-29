@@ -87,6 +87,15 @@ To test callback reachability:
 
 Enable detailed logging to see what's happening:
 
+**Easiest method** - Enable via Home Assistant UI:
+
+1. Go to **Settings** → **Devices & Services** → **Homematic(IP) Local**
+2. Click **Configure** → **Enable debug logging**
+3. Reproduce the problem
+4. Click **Disable debug logging** - the debug log will be offered as a file download
+
+**Alternative** - Via YAML configuration:
+
 1. Add to your `configuration.yaml`:
    ```yaml
    logger:
@@ -677,6 +686,15 @@ sudo ufw allow from <CCU-IP> to any port <callback-port> proto tcp
 ## 5) Logging and debug
 
 ### Enabling debug logging
+
+**Easiest method** - Enable via Home Assistant UI:
+
+1. Go to **Settings** → **Devices & Services** → **Homematic(IP) Local**
+2. Click **Configure** → **Enable debug logging**
+3. Reproduce the problem
+4. Click **Disable debug logging** - the debug log will be offered as a file download
+
+**Alternative** - Via YAML configuration:
 
 Add to your `configuration.yaml`:
 

@@ -96,7 +96,14 @@ With the MQTT bridge configured, events from CCU-Jack devices are forwarded to H
 
 ### Debug Logging
 
-Enable debug logging to diagnose issues:
+**Easiest method** - Enable via Home Assistant UI:
+
+1. Go to **Settings** → **Devices & Services** → **Homematic(IP) Local**
+2. Click **Configure** → **Enable debug logging**
+3. Reproduce the problem
+4. Click **Disable debug logging** - the debug log will be offered as a file download
+
+**Alternative** - Via YAML configuration:
 
 ```yaml
 logger:
@@ -106,7 +113,7 @@ logger:
     custom_components.homematicip_local: debug
 ```
 
-Restart Home Assistant and check the logs for:
+Check the logs for:
 
 - Interface connection status
 - Device discovery messages

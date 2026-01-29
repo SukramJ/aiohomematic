@@ -490,4 +490,4 @@ if sysvar:
 
 - See [Common Operations](common_operations.md) for more detailed examples
 - Check the [Architecture](architecture.md) documentation for advanced usage
-- Review the [API Reference](api_reference.md) for complete method documentation
+- Review the [Consumer API](consumer_api.md) for integration patterns

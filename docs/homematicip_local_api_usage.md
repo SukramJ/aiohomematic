@@ -631,7 +631,7 @@ This analysis is based on:
 
 For breaking changes and migration guides, see:
 
-- [aiohomematic changelog](../changelog.md)
+- [aiohomematic changelog](https://github.com/sukramj/aiohomematic/blob/devel/changelog.md)
 - [Homematic(IP) Local releases](https://github.com/sukramj/homematicip_local/releases)
 
 ---

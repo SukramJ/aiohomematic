@@ -451,12 +451,12 @@ To add support for a new device/parameter combination:
 
 ## References
 
-- [CalculatedDataPoint Implementation](../aiohomematic/model/calculated/data_point.py) - Base class for calculated data points
-- [OperatingVoltageLevel](../aiohomematic/model/calculated/operating_voltage_level.py) - Example calculated data point
-- [DeviceProfileRegistry](../aiohomematic/model/custom/registry.py) - Similar registry pattern
-- [CustomDpIpSirenSmoke](../aiohomematic/model/custom/siren.py) - Current workaround with `is_on` property
-- [HmIP-SRH Documentation](../docs/user/devices/hmip_srh_window_handle.md) - Window handle sensor
-- [HmIP-SWSD Documentation](../docs/user/devices/hmip_swsd_smoke_detector.md) - Smoke detector
+- [CalculatedDataPoint Implementation](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/calculated/data_point.py) - Base class for calculated data points
+- [OperatingVoltageLevel](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/calculated/operating_voltage_level.py) - Example calculated data point
+- [DeviceProfileRegistry](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/custom/registry.py) - Similar registry pattern
+- [CustomDpIpSirenSmoke](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/custom/siren.py) - Current workaround with `is_on` property
+- [HmIP-SRH Documentation](../user/devices/hmip_srh_window_handle.md) - Window handle sensor
+- [HmIP-SWSD Documentation](../user/devices/hmip_swsd_smoke_detector.md) - Smoke detector
 
 ---
 

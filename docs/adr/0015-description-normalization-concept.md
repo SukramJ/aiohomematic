@@ -303,8 +303,8 @@ Normalization follows official HomeMatic API specifications:
 - [PR #2733: \_normalize_device_description](https://github.com/sukramj/aiohomematic/pull/2733) - Original motivation
 - [ADR 0011: Storage Abstraction](0011-storage-abstraction.md) - Cache architecture
 - [voluptuous Documentation](https://github.com/alecthomas/voluptuous) - Schema validation library
-- [HM_XmlRpc_API.pdf V2.16](./tmp/HM_XmlRpc_API.pdf) - HomeMatic XML-RPC API Specification
-- [HMIP_XmlRpc_API_Addendum.pdf V2.10](./tmp/HMIP_XmlRpc_API_Addendum.pdf) - HomeMatic IP Extensions
+- HM_XmlRpc_API.pdf V2.16 - HomeMatic XML-RPC API Specification (available from eQ-3)
+- HMIP_XmlRpc_API_Addendum.pdf V2.10 - HomeMatic IP Extensions (available from eQ-3)
 
 ---
 

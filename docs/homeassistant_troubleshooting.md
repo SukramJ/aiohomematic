@@ -2,7 +2,8 @@
 
 This document helps you quickly analyze and resolve typical problems when using aiohomematic with Home Assistant (integration: Homematic(IP) Local). The notes apply to CCU (CCU2/3, OpenCCU, piVCCU/Debmatic) and Homegear unless stated otherwise.
 
-> **Note:** If you're unfamiliar with terms like Integration, Add-on, Backend, Interface, or Channel, please read the [Glossary](glossary.md) first.
+!!! note
+If you're unfamiliar with terms like Integration, Add-on, Backend, Interface, or Channel, please read the [Glossary](glossary.md) first.
 
 Contents:
 
@@ -769,8 +770,8 @@ When reporting issues on GitHub, include the following information to help with 
 ## 7) References
 
 - [Why diagnostics and logs matter](debug_data_importance.md) - What data we need for issue analysis and why
-- [Lifecycle documentation](../docs/homeassistant_lifecycle.md) - Understand how devices and data points are managed
-- [README](../README.md) - Quickstart guide and configuration notes
+- [Lifecycle documentation](homeassistant_lifecycle.md) - Understand how devices and data points are managed
+- [aiohomematic on GitHub](https://github.com/sukramj/aiohomematic) - Library repository
 - [Integration repository](https://github.com/SukramJ/homematicip_local) - Homematic(IP) Local integration for Home Assistant
 - [Integration documentation](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#services) - Available services and their usage
 - [Blueprints](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#blueprints) - Automation blueprints including Reactivate

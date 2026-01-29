@@ -38,6 +38,13 @@ aiohomematic uses a type-safe, async-first EventBus for decoupled event handling
 | `DataRefreshCompletedEvent`       | Data Refresh    | `interface_id`    | Refresh completed                   |
 | `ProgramExecutedEvent`            | Hub             | `program_id`      | Program executed                    |
 | `RequestCoalescedEvent`           | Optimization    | `interface_id`    | Requests merged                     |
+| `ConnectionLostEvent`             | Recovery        | `interface_id`    | Connection lost detected            |
+| `RecoveryStageChangedEvent`       | Recovery        | `interface_id`    | Recovery stage transition           |
+| `RecoveryAttemptedEvent`          | Recovery        | `interface_id`    | Recovery attempt started            |
+| `RecoveryCompletedEvent`          | Recovery        | `interface_id`    | Recovery completed successfully     |
+| `RecoveryFailedEvent`             | Recovery        | `interface_id`    | Recovery failed                     |
+| `HeartbeatTimerFiredEvent`        | Recovery        | `interface_id`    | Heartbeat timer triggered           |
+| `DataFetchCompletedEvent`         | Data            | `interface_id`    | Data fetch operation completed      |
 | `SystemStatusChangedEvent`        | Integration     | `None`            | System status (HA)                  |
 | `DeviceLifecycleEvent`            | Integration     | `None`            | Device lifecycle (HA)               |
 | `DataPointsCreatedEvent`          | Integration     | `None`            | Data points created (HA)            |
@@ -566,6 +573,95 @@ from aiohomematic.central.events import RequestCoalescedEvent
 | `request_key`     | `str`      | Key identifying the request type |
 | `coalesced_count` | `int`      | Number of requests merged        |
 | `interface_id`    | `str`      | Interface identifier             |
+
+**Key:** `interface_id`
+
+---
+
+## Recovery Events
+
+Events related to connection recovery operations.
+
+### ConnectionLostEvent
+
+Fired when connection to an interface is lost.
+
+```python
+from aiohomematic.central.events import ConnectionLostEvent
+```
+
+| Field          | Type       | Description                |
+| -------------- | ---------- | -------------------------- |
+| `timestamp`    | `datetime` | When the event was created |
+| `interface_id` | `str`      | Interface identifier       |
+
+**Key:** `interface_id`
+
+### RecoveryStageChangedEvent
+
+Fired when recovery transitions between stages.
+
+```python
+from aiohomematic.central.events import RecoveryStageChangedEvent
+```
+
+| Field          | Type       | Description                |
+| -------------- | ---------- | -------------------------- |
+| `timestamp`    | `datetime` | When the event was created |
+| `interface_id` | `str`      | Interface identifier       |
+| `old_stage`    | `str`      | Previous recovery stage    |
+| `new_stage`    | `str`      | New recovery stage         |
+
+**Key:** `interface_id`
+
+### RecoveryCompletedEvent
+
+Fired when recovery completes successfully.
+
+```python
+from aiohomematic.central.events import RecoveryCompletedEvent
+```
+
+| Field          | Type       | Description                |
+| -------------- | ---------- | -------------------------- |
+| `timestamp`    | `datetime` | When the event was created |
+| `interface_id` | `str`      | Interface identifier       |
+| `duration_ms`  | `float`    | Total recovery duration    |
+
+**Key:** `interface_id`
+
+### RecoveryFailedEvent
+
+Fired when recovery fails after all retry attempts.
+
+```python
+from aiohomematic.central.events import RecoveryFailedEvent
+```
+
+| Field          | Type       | Description                |
+| -------------- | ---------- | -------------------------- |
+| `timestamp`    | `datetime` | When the event was created |
+| `interface_id` | `str`      | Interface identifier       |
+| `reason`       | `str`      | Failure reason             |
+
+**Key:** `interface_id`
+
+---
+
+## Data Events
+
+### DataFetchCompletedEvent
+
+Fired when a data fetch operation completes.
+
+```python
+from aiohomematic.central.events import DataFetchCompletedEvent
+```
+
+| Field          | Type       | Description                |
+| -------------- | ---------- | -------------------------- |
+| `timestamp`    | `datetime` | When the event was created |
+| `interface_id` | `str`      | Interface identifier       |
 
 **Key:** `interface_id`
 

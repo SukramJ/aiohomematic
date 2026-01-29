@@ -3,13 +3,14 @@
 _AioHomematic_ maintains [multiple lists][visibility] of parameters that should be ignored when entities are created.
 These parameters are filtered out to provide a better user experience for the majority of the users.
 
-[visibility]: ../aiohomematic/store/visibility.py
+[visibility]: https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/store/visibility.py
 
 But there is also a group of users that wants to do more... _things_.
 
 These advanced users can use the _unignore mechanism_ provided by _aiohomematic_.
 
-> **Note:** For definitions of terms like Parameter, Channel, and Paramset (VALUES, MASTER), see the [Glossary](glossary.md).
+!!! note
+For definitions of terms like Parameter, Channel, and Paramset (VALUES, MASTER), see the [Glossary](glossary.md).
 
 You must accept the following before using the _unignore mechanism_:
 

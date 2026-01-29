@@ -5,7 +5,6 @@ This document provides ready-to-use docstring templates for common patterns in t
 **Related Documents**:
 
 - [Docstring Standards](./docstring_standards.md) - Complete style guide
-- [Docstring Audit](./docstring_audit.md) - Module categorization
 
 ---
 

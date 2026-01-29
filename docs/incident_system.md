@@ -427,5 +427,4 @@ Add the context schema to this document in the "Context Data Requirements" secti
 ## Related Documentation
 
 - [Architecture Overview](architecture.md)
-- [PingPong Analysis](analysis/pingpong_analysis.md)
-- [Circuit Breaker](../aiohomematic/client/circuit_breaker.py)
+- [Circuit Breaker Implementation](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/client/circuit_breaker.py)

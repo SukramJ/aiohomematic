@@ -19,11 +19,9 @@ body:
     attributes:
       label: I agree to the following
       options:
-        - label: I have read the [documentation](https://sukramj.github.io/aiohomematic/)
+        - label: I have read the [documentation](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/)
           required: true
         - label: I have read the [troubleshooting documentation](https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/), and tried to identify/solve the issue by myself.
-          required: true
-        - label: I have read the [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions)
           required: true
         - label: I have read the [Glossary](https://sukramj.github.io/aiohomematic/reference/glossary/) and understand the difference between Integration, Add-on, and Backend
           required: true

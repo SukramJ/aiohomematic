@@ -52,9 +52,8 @@ jobs:
             💡 **Tipp:** Bei Geräteproblemen (fehlende Entitäten, falsche Werte, seltsames Verhalten) sind Screenshots viel hilfreicher als lange Textbeschreibungen!
 
             **Hilfreiche Dokumentation:**
-            - [Dokumentation](https://sukramj.github.io/aiohomematic/)
+            - [Dokumentation](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/)
             - [Fehlerbehebung](https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/)
-            - [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions)
             - [Glossar](https://sukramj.github.io/aiohomematic/reference/glossary/)
             - [Versionshinweise](https://github.com/sukramj/homematicip_local/releases)
 
@@ -71,9 +70,8 @@ jobs:
             💡 **Tip:** For device-related issues (missing entities, wrong values, strange behavior), screenshots are much more helpful than long text descriptions!
 
             **Helpful documentation:**
-            - [Documentation](https://sukramj.github.io/aiohomematic/)
+            - [Documentation](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/)
             - [Troubleshooting](https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/)
-            - [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions)
             - [Glossary](https://sukramj.github.io/aiohomematic/reference/glossary/)
             - [Release notes](https://github.com/sukramj/homematicip_local/releases)
 

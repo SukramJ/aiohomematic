@@ -1,3 +1,16 @@
+# Version 2026.1.54 (2026-01-29)
+
+## What's Changed
+
+### Changed
+
+- **Logging**: Reduced log level for data point validation messages from WARNING to DEBUG (value range min/max, enum index/value validation)
+
+### Fixed
+
+- **Documentation**: Fixed MkDocs abbreviations format (`*[...]` instead of `_[...]`)
+- **Documentation**: Added `.prettierignore` to prevent prettier from breaking abbreviations syntax
+
 # Version 2026.1.53 (2026-01-29)
 
 ## What's Changed

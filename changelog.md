@@ -4,6 +4,8 @@
 
 ### Added
 
+- **Device Support**: Added HmIP-WRC6-230 (Wall-mount Remote Control 6-button 230V) as fixed color light
+
 - **MkDocs Documentation**: Replaced Sphinx with MkDocs Material theme for GitHub Pages documentation
 
   - Added `mkdocs.yml` with full Material theme configuration
@@ -30,7 +32,7 @@
 
 - **Documentation Structure**: Reorganized docs/ directory for better navigation
 
-  - `docs/user/` - User documentation (features/, troubleshooting/, advanced/, devices/)
+  - `docs/user/` - User documentation (features/, troubleshooting/, advanced/)
   - `docs/developer/` - Library consumer documentation
   - `docs/contributor/` - Code contribution documentation (coding/, testing/)
   - `docs/architecture/` - Technical deep-dives (events/)
@@ -39,13 +41,21 @@
 - **README.md**: Simplified with links to GitHub Pages documentation
 - **Unignore Documentation**: Revised to UI-only configuration (no file-based config)
 - **Pre-commit Config**: Updated codespell excludes for new doc paths
+- **GitHub Issue Templates**: Updated all documentation links to use GitHub Pages URLs
+- **GitHub Workflows**: Updated close-insufficient-info workflow with GitHub Pages links
+- **Abbreviations**: Fixed format from `_[...]` to `*[...]` for proper MkDocs rendering
 
 ### Removed
 
 - **Sphinx Documentation**: Removed unused Sphinx configuration and files
+
   - Removed `docs/conf.py`, `docs/index.rst`, `docs/Makefile`, `docs/__init__.py`
   - Removed `docs/api/*.rst` (5 files), `docs/user/*.rst` (4 files), `docs/dev/*.rst` (3 files)
   - Simplified `requirements_docs.txt` to MkDocs dependencies only
+
+- **Device-Specific Documentation**: Removed obsolete pages (replaced by derived binary sensors)
+  - Removed `docs/user/devices/` (hmip_srh_window_handle.md, hmip_swsd_smoke_detector.md)
+  - Removed `docs/user/ccu_scripts/` (rename_sysvar_marker.md)
 
 # Version 2026.1.52 (2026-01-28)
 

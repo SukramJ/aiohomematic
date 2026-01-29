@@ -1030,6 +1030,15 @@ DeviceProfileRegistry.register(
     channels=(7, 8, 9, 10, 11, 12, 13),
 )
 
+# IP Simple Fixed Color Light 230V
+DeviceProfileRegistry.register(
+    category=DataPointCategory.LIGHT,
+    models="HmIP-WRC6-230",
+    data_point_class=CustomDpIpFixedColorLight,
+    profile_type=DeviceProfile.IP_SIMPLE_FIXED_COLOR_LIGHT_WIRED,
+    channels=(12, 13, 14, 15, 16, 17, 18),
+)
+
 # IP RGBW Light
 DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,

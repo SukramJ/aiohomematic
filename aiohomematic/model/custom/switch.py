@@ -93,6 +93,7 @@ _IP_SWITCH_REGISTRATIONS: Final[tuple[tuple[str | tuple[str, ...], tuple[int, ..
     ("HmIP-SCTH230", (8,)),
     ("HmIP-WGT", (4,)),
     ("HmIP-WHS2", (2, 6)),
+    ("HmIP-WRC6-230", (9,)),
     ("HmIPW-DRS", (2, 6, 10, 14, 18, 22, 26, 30)),
     ("HmIPW-FIO6", (8, 12, 16, 20, 24, 28)),
 )

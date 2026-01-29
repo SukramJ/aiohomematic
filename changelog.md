@@ -12,10 +12,33 @@
   - Added abbreviation tooltips (`docs/includes/abbreviations.md`) for common terms (CCU, HmIP, RF, etc.)
   - Documentation available at https://sukramj.github.io/aiohomematic/
 
-- **Home Assistant Integration Documentation**: Added comprehensive user guide for the Homematic(IP) Local for OpenCCU integration
-  - `docs/user/homeassistant_integration.md` - Complete integration guide (installation, configuration, features)
-  - `docs/user/homeassistant_actions.md` - Full actions reference with examples
-  - `docs/user/homeassistant_naming.md` - Device and entity naming conventions
+- **Home Assistant Integration Documentation**: Added comprehensive user guide for the Homematic(IP) Local integration
+
+  - `docs/user/homeassistant_integration.md` - Complete integration guide
+  - `docs/user/features/homeassistant_actions.md` - Full actions reference with examples
+  - `docs/user/features/week_profile.md` - Week profile/schedule management
+  - `docs/user/troubleshooting/troubleshooting_flowchart.md` - Visual diagnosis flowcharts
+  - `docs/user/advanced/cuxd_ccu_jack.md` - CUxD and CCU-Jack setup guide
+  - `docs/user/device_support.md` - Device support overview
+
+- **Developer Documentation**
+  - `docs/developer/error_handling.md` - Exception hierarchy and circuit breaker
+  - `docs/architecture/caching.md` - Cache architecture documentation
+  - `docs/contributor/release_process.md` - Release workflow
+
+### Changed
+
+- **Documentation Structure**: Reorganized docs/ directory for better navigation
+
+  - `docs/user/` - User documentation (features/, troubleshooting/, advanced/, devices/)
+  - `docs/developer/` - Library consumer documentation
+  - `docs/contributor/` - Code contribution documentation (coding/, testing/)
+  - `docs/architecture/` - Technical deep-dives (events/)
+  - `docs/reference/` - Reference material (glossary, common operations)
+
+- **README.md**: Simplified with links to GitHub Pages documentation
+- **Unignore Documentation**: Revised to UI-only configuration (no file-based config)
+- **Pre-commit Config**: Updated codespell excludes for new doc paths
 
 ### Removed
 
@@ -23,11 +46,6 @@
   - Removed `docs/conf.py`, `docs/index.rst`, `docs/Makefile`, `docs/__init__.py`
   - Removed `docs/api/*.rst` (5 files), `docs/user/*.rst` (4 files), `docs/dev/*.rst` (3 files)
   - Simplified `requirements_docs.txt` to MkDocs dependencies only
-
-### Changed
-
-- **docs/README.md**: Updated with MkDocs build instructions
-- **docs/dev/coverage.md**: Fixed broken links to deleted Sphinx files
 
 # Version 2026.1.52 (2026-01-28)
 

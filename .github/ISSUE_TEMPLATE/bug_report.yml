@@ -12,20 +12,20 @@ body:
         This includes in particular: **Integration diagnostics (.json file)** and **log file**.
         Issues without this information may be closed without comment.
 
-        📖 **[Why are diagnostics and logs so important?](https://github.com/SukramJ/aiohomematic/blob/devel/docs/debug_data_importance.md)** - Please read this to understand what we need and why.
+        📖 **[Why are diagnostics and logs so important?](https://sukramj.github.io/aiohomematic/contributor/testing/debug_data_importance/)** - Please read this to understand what we need and why.
 
         Please avoid unnecessary effort by reading the points below.
   - type: checkboxes
     attributes:
       label: I agree to the following
       options:
-        - label: I have read the [documentation](https://github.com/sukramj/homematicip_local#homematicip_local)
+        - label: I have read the [documentation](https://sukramj.github.io/aiohomematic/)
           required: true
-        - label: I have read the [troubleshooting documentation](https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md), and tried to identify/solve the issue by myself.
+        - label: I have read the [troubleshooting documentation](https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/), and tried to identify/solve the issue by myself.
           required: true
         - label: I have read the [FAQs](https://github.com/sukramj/homematicip_local#frequently-asked-questions)
           required: true
-        - label: I have read the [Glossary](https://github.com/SukramJ/aiohomematic/blob/devel/docs/glossary.md) and understand the difference between Integration, Add-on, and Backend
+        - label: I have read the [Glossary](https://sukramj.github.io/aiohomematic/reference/glossary/) and understand the difference between Integration, Add-on, and Backend
           required: true
         - label: I am aware of the latest [release notes](https://github.com/sukramj/homematicip_local/releases)
           required: true

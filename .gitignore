@@ -19,6 +19,9 @@ build
 
 venv
 
+# Claude Code local settings
+.claude/
+
 .coverage
 .output.txt
 *.out
@@ -30,3 +33,4 @@ venv
 *.log
 *.pdf
 /tmp
+site/

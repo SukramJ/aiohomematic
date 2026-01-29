@@ -184,7 +184,7 @@ class Device:
 
 ### Mitigation
 
-- Clear documentation in CLAUDE.md
+- Clear documentation in project guidelines
 - IDE support handles long parameter lists well
 - Protocol names are self-documenting
 

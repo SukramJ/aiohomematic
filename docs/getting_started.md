@@ -2,7 +2,7 @@
 
 This guide provides everything you need to start using aiohomematic as a standalone Python library for controlling Homematic and HomematicIP devices.
 
-> **Tip:** For definitions of terms like Backend, Interface, Device, Channel, and Parameter, see the [Glossary](glossary.md).
+> **Tip:** For definitions of terms like Backend, Interface, Device, Channel, and Parameter, see the [Glossary](reference/glossary.md).
 
 ## Installation
 
@@ -488,6 +488,6 @@ if sysvar:
 
 ## Next Steps
 
-- See [Common Operations](common_operations.md) for more detailed examples
+- See [Common Operations](reference/common_operations.md) for more detailed examples
 - Check the [Architecture](architecture.md) documentation for advanced usage
-- Review the [API Reference](api_reference.md) for complete method documentation
+- Review the [Consumer API](developer/consumer_api.md) for integration patterns

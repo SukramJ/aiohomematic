@@ -1,3 +1,34 @@
+# Version 2026.1.53 (2026-01-29)
+
+## What's Changed
+
+### Added
+
+- **MkDocs Documentation**: Replaced Sphinx with MkDocs Material theme for GitHub Pages documentation
+
+  - Added `mkdocs.yml` with full Material theme configuration
+  - Added GitHub Actions workflow (`.github/workflows/docs.yml`) for automatic deployment on push to `devel`/`master`
+  - Added custom styling (`docs/stylesheets/extra.css`) for tables, code blocks, and ADR formatting
+  - Added abbreviation tooltips (`docs/includes/abbreviations.md`) for common terms (CCU, HmIP, RF, etc.)
+  - Documentation available at https://sukramj.github.io/aiohomematic/
+
+- **Home Assistant Integration Documentation**: Added comprehensive user guide for the Homematic(IP) Local for OpenCCU integration
+  - `docs/user/homeassistant_integration.md` - Complete integration guide (installation, configuration, features)
+  - `docs/user/homeassistant_actions.md` - Full actions reference with examples
+  - `docs/user/homeassistant_naming.md` - Device and entity naming conventions
+
+### Removed
+
+- **Sphinx Documentation**: Removed unused Sphinx configuration and files
+  - Removed `docs/conf.py`, `docs/index.rst`, `docs/Makefile`, `docs/__init__.py`
+  - Removed `docs/api/*.rst` (5 files), `docs/user/*.rst` (4 files), `docs/dev/*.rst` (3 files)
+  - Simplified `requirements_docs.txt` to MkDocs dependencies only
+
+### Changed
+
+- **docs/README.md**: Updated with MkDocs build instructions
+- **docs/dev/coverage.md**: Fixed broken links to deleted Sphinx files
+
 # Version 2026.1.52 (2026-01-28)
 
 ## What's Changed

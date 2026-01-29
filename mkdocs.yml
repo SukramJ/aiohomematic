@@ -1,0 +1,204 @@
+site_name: aiohomematic
+site_description: Modern async Python library for Homematic and HomematicIP devices
+site_url: https://sukramj.github.io/aiohomematic/
+repo_url: https://github.com/sukramj/aiohomematic
+repo_name: sukramj/aiohomematic
+edit_uri: edit/devel/docs/
+
+copyright: Copyright &copy; 2021-2026 aiohomematic contributors
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - User Guide:
+      - Overview: user/homeassistant_integration.md
+      - Device Support: user/device_support.md
+      - Features:
+          - Actions Reference: user/features/homeassistant_actions.md
+          - Week Profiles: user/features/week_profile.md
+          - Calculated Climate Sensors: user/features/calculated_climate_sensors.md
+          - Community Templates: user/features/community_templates.md
+      - Troubleshooting:
+          - Troubleshooting Guide: user/troubleshooting/homeassistant_troubleshooting.md
+          - Troubleshooting Flowchart: user/troubleshooting/troubleshooting_flowchart.md
+          - RSSI Fix: user/troubleshooting/rssi_fix.md
+      - Devices:
+          - Window Handle (HmIP-SRH): user/devices/hmip_srh_window_handle.md
+          - Smoke Detector (HmIP-SWSD): user/devices/hmip_swsd_smoke_detector.md
+      - Advanced:
+          - Naming Conventions: user/advanced/homeassistant_naming.md
+          - CUxD and CCU-Jack: user/advanced/cuxd_ccu_jack.md
+          - Optional Settings: user/advanced/optional_settings.md
+          - Unignore Parameters: user/advanced/unignore.md
+      - CCU Scripts:
+          - Rename Sysvar Marker: user/ccu_scripts/rename_sysvar_marker.md
+  - Developer Guide:
+      - Getting Started: getting_started.md
+      - Consumer API: developer/consumer_api.md
+      - Home Assistant Lifecycle: developer/homeassistant_lifecycle.md
+      - API Usage Details: developer/homematicip_local_api_usage.md
+      - Extension Points: developer/extension_points.md
+      - Error Handling: developer/error_handling.md
+      - Backend Detection: developer/backend_detection.md
+      - Incident System: developer/incident_system.md
+  - Contributor Guide:
+      - Contributing: contributor/contributing.md
+      - Coding Standards:
+          - Naming Conventions: contributor/coding/naming.md
+          - Docstring Standards: contributor/coding/docstring_standards.md
+          - Docstring Templates: contributor/coding/docstring_templates.md
+          - i18n Management: contributor/coding/i18n_management.md
+      - Testing:
+          - Coverage: contributor/testing/coverage.md
+          - Testing with Events: contributor/testing/testing_with_events.md
+          - Debug Data Importance: contributor/testing/debug_data_importance.md
+      - Release Process: contributor/release_process.md
+  - Architecture:
+      - Overview: architecture.md
+      - Data Flow: architecture/data_flow.md
+      - Sequence Diagrams: architecture/sequence_diagrams.md
+      - Caching: architecture/caching.md
+      - Event System:
+          - Event Bus: architecture/events/event_bus.md
+          - Event Reference: architecture/events/event_reference.md
+          - Event-Driven Metrics: architecture/event_driven_metrics.md
+  - Reference:
+      - Common Operations: reference/common_operations.md
+      - Glossary: reference/glossary.md
+  - Migrations:
+      - Capabilities Migration: migrations/capabilities_migration_2026_01.md
+      - Channel Event Group Migration: migrations/channel_event_group_migration_2026_01.md
+      - Strongly Typed Events: migrations/strongly_typed_events_2026_01.md
+  - ADRs:
+      - "0001 Circuit Breaker": adr/0001-circuit-breaker-and-connection-state.md
+      - "0002 Protocol-Based DI": adr/0002-protocol-based-dependency-injection.md
+      - "0003 Explicit Protocol Injection": adr/0003-explicit-over-composite-protocol-injection.md
+      - "0004 Thread-Based XML-RPC Server": adr/0004-thread-based-xml-rpc-server.md
+      - "0005 Unbounded Parameter Cache": adr/0005-unbounded-parameter-visibility-cache.md
+      - "0006 Event System Priorities": adr/0006-event-system-priorities-and-batching.md
+      - "0007 Device Slots Reduction": adr/0007-device-slots-reduction-rejected.md
+      - "0008 TaskGroup Migration": adr/0008-taskgroup-migration-deferred.md
+      - "0009 Interface Event Consolidation": adr/0009-interface-event-consolidation.md
+      - "0010 Protocol Combination Analysis": adr/0010-protocol-combination-analysis.md
+      - "0011 Storage Abstraction": adr/0011-storage-abstraction.md
+      - "0012 Async XML-RPC Server POC": adr/0012-async-xml-rpc-server-poc.md
+      - "0013 Implementation Status": adr/0013-implementation-status.md
+      - "0013 Interface Client Backend": adr/0013-interface-client-backend-strategy.md
+      - "0014 Retry Logic Removal": adr/0014-retry-logic-removal.md
+      - "0015 Description Normalization": adr/0015-description-normalization-concept.md
+      - "0016 Paramset Description Patching": adr/0016-paramset-description-patching.md
+      - "0017 Startup Auth Error Handling": adr/0017-startup-auth-error-handling.md
+      - "0018 Contract Tests": adr/0018_contract_tests.md
+      - "0019 Derived Binary Sensors": adr/0019-derived-binary-sensors.md
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: sukramj
+      repo: aiohomematic
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      base_path: docs
+      auto_append:
+        - includes/abbreviations.md
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+plugins:
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/sukramj/aiohomematic
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/aiohomematic/
+  generator: false
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css

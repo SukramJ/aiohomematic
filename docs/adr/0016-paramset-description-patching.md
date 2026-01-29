@@ -235,7 +235,7 @@ To add a patch for a new device issue:
 
 - [ADR 0015: Description Data Normalization](0015-description-normalization-concept.md) - Type normalization prerequisite
 - [ADR 0011: Storage Abstraction](0011-storage-abstraction.md) - Cache architecture
-- [HM_XmlRpc_API.pdf V2.16](./tmp/HM_XmlRpc_API.pdf) - HomeMatic XML-RPC API Specification
+- HM_XmlRpc_API.pdf V2.16 - HomeMatic XML-RPC API Specification (available from eQ-3)
 - Related Issues: TBD when implemented
 
 ---

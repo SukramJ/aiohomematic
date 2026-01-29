@@ -2,7 +2,7 @@
 
 This document describes the high‑level architecture of aiohomematic, focusing on the main components and how they interact at runtime. It is intended for contributors and integrators who want to understand data flow, responsibilities, and the boundaries between modules.
 
-> **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs Add-on), see the [Glossary](glossary.md).
+> **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs Add-on), see the [Glossary](reference/glossary.md).
 
 ## Top‑level components
 
@@ -226,14 +226,14 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 
 ## Further reading
 
-- [Data flow](data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
-- [Sequence diagrams](sequence_diagrams.md) (connect, discovery, propagation, state machines, health tracking, recovery)
-- [Event reference](event_reference.md) complete event type documentation
-- [Event-driven metrics](event_driven_metrics.md) metrics and observability architecture
+- [Data flow](architecture/data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
+- [Sequence diagrams](architecture/sequence_diagrams.md) (connect, discovery, propagation, state machines, health tracking, recovery)
+- [Event reference](architecture/events/event_reference.md) complete event type documentation
+- [Event-driven metrics](architecture/event_driven_metrics.md) metrics and observability architecture
 
 ## Architectural Decision Records (ADRs)
 
-All architectural decisions are documented as formal ADRs in the [adr/](adr/) directory:
+All architectural decisions are documented as formal ADRs in the `adr/` directory:
 
 | ADR                                                            | Title                                                 | Status   |
 | -------------------------------------------------------------- | ----------------------------------------------------- | -------- |
@@ -247,6 +247,16 @@ All architectural decisions are documented as formal ADRs in the [adr/](adr/) di
 | [0008](adr/0008-taskgroup-migration-deferred.md)               | TaskGroup Migration                                   | Deferred |
 | [0009](adr/0009-interface-event-consolidation.md)              | Interface Event Consolidation                         | Accepted |
 | [0010](adr/0010-protocol-combination-analysis.md)              | Protocol Combination Analysis                         | Accepted |
+| [0011](adr/0011-storage-abstraction.md)                        | Storage Abstraction                                   | Accepted |
+| [0012](adr/0012-async-xml-rpc-server-poc.md)                   | Async XML-RPC Server POC                              | Accepted |
+| [0013a](adr/0013-implementation-status.md)                     | Implementation Status                                 | Accepted |
+| [0013b](adr/0013-interface-client-backend-strategy.md)         | Interface Client Backend Strategy                     | Accepted |
+| [0014](adr/0014-retry-logic-removal.md)                        | Retry Logic Removal                                   | Accepted |
+| [0015](adr/0015-description-normalization-concept.md)          | Description Normalization Concept                     | Accepted |
+| [0016](adr/0016-paramset-description-patching.md)              | Paramset Description Patching                         | Accepted |
+| [0017](adr/0017-startup-auth-error-handling.md)                | Startup Auth Error Handling                           | Accepted |
+| [0018](adr/0018_contract_tests.md)                             | Contract Tests                                        | Accepted |
+| [0019](adr/0019-derived-binary-sensors.md)                     | Derived Binary Sensors                                | Accepted |
 
 ## Notes
 

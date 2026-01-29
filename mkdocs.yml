@@ -57,7 +57,6 @@ nav:
           - Actions Reference: user/features/homeassistant_actions.md
           - Week Profiles: user/features/week_profile.md
           - Calculated Climate Sensors: user/features/calculated_climate_sensors.md
-          - Community Templates: user/features/community_templates.md
       - Troubleshooting:
           - Troubleshooting Guide: user/troubleshooting/homeassistant_troubleshooting.md
           - Troubleshooting Flowchart: user/troubleshooting/troubleshooting_flowchart.md
@@ -100,10 +99,6 @@ nav:
   - Reference:
       - Common Operations: reference/common_operations.md
       - Glossary: reference/glossary.md
-  - Migrations:
-      - Capabilities Migration: migrations/capabilities_migration_2026_01.md
-      - Channel Event Group Migration: migrations/channel_event_group_migration_2026_01.md
-      - Strongly Typed Events: migrations/strongly_typed_events_2026_01.md
   - ADRs:
       - "0001 Circuit Breaker": adr/0001-circuit-breaker-and-connection-state.md
       - "0002 Protocol-Based DI": adr/0002-protocol-based-dependency-injection.md

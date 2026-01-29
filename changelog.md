@@ -11,6 +11,11 @@
 - **Documentation**: Fixed MkDocs abbreviations format (`*[...]` instead of `_[...]`)
 - **Documentation**: Added `.prettierignore` to prevent prettier from breaking abbreviations syntax
 
+### Removed
+
+- **Documentation**: Removed migration guides (obsolete after refactoring completion)
+- **Documentation**: Removed community templates page
+
 # Version 2026.1.53 (2026-01-29)
 
 ## What's Changed

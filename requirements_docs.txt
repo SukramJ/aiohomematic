@@ -1,15 +1,6 @@
-# Documentation build dependencies for Sphinx
-
-# Core Sphinx
-sphinx>=8.2.3
-sphinx-rtd-theme>=3.0.2
-
-# Sphinx extensions
-sphinx-autodoc-typehints>=3.5.2
-myst-parser>=4.0.1
-
-# Required for building docs with project dependencies
-aiohttp>=3.13.3
-python-slugify>=8.0.4
-voluptuous>=0.16.0
-# Note: orjson is optional - compat module falls back to stdlib json
+# MkDocs Documentation Dependencies (GitHub Pages)
+mkdocs-material>=9.5.0
+mkdocs-minify-plugin>=0.8.0
+pymdown-extensions>=10.7
+pillow>=10.0.0
+cairosvg>=2.7.0

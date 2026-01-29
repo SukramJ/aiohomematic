@@ -30,3 +30,4 @@ venv
 *.log
 *.pdf
 /tmp
+site/

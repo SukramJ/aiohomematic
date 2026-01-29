@@ -1,0 +1,190 @@
+site_name: aiohomematic
+site_description: Modern async Python library for Homematic and HomematicIP devices
+site_url: https://sukramj.github.io/aiohomematic/
+repo_url: https://github.com/sukramj/aiohomematic
+repo_name: sukramj/aiohomematic
+edit_uri: edit/devel/docs/
+
+copyright: Copyright &copy; 2021-2026 aiohomematic contributors
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Overview: getting_started.md
+      - Glossary: glossary.md
+  - Architecture:
+      - Overview: architecture.md
+      - Data Flow: data_flow.md
+      - Sequence Diagrams: sequence_diagrams.md
+      - Event System:
+          - Event Bus: event_bus.md
+          - Event Reference: event_reference.md
+          - Event-Driven Metrics: event_driven_metrics.md
+          - Testing with Events: testing_with_events.md
+      - Backend Detection: backend_detection.md
+      - Incident System: incident_system.md
+  - Developer Guide:
+      - Extension Points: extension_points.md
+      - Consumer API: consumer_api.md
+      - Common Operations: common_operations.md
+      - Naming Conventions: naming.md
+      - Docstring Standards: docstring_standards.md
+      - Docstring Templates: docstring_templates.md
+      - i18n Management: i18n_management.md
+      - Optional Settings: optional_settings.md
+      - Coverage: dev/coverage.md
+  - Integration:
+      - Home Assistant Lifecycle: homeassistant_lifecycle.md
+      - Homematic(IP) Local API: homematicip_local_api_usage.md
+      - Troubleshooting: homeassistant_troubleshooting.md
+      - Calculated Climate Sensors: calculated_climate_sensors.md
+  - User Guide:
+      - Home Assistant Integration:
+          - Overview: user/homeassistant_integration.md
+          - Actions Reference: user/homeassistant_actions.md
+          - Naming Conventions: user/homeassistant_naming.md
+      - Community Templates: user/community_templates.md
+      - Devices:
+          - Window Handle (HmIP-SRH): user/devices/hmip_srh_window_handle.md
+          - Smoke Detector (HmIP-SWSD): user/devices/hmip_swsd_smoke_detector.md
+  - Migrations:
+      - Capabilities Migration: migrations/capabilities_migration_2026_01.md
+      - Channel Event Group Migration: migrations/channel_event_group_migration_2026_01.md
+      - Strongly Typed Events: migrations/strongly_typed_events_2026_01.md
+  - ADRs:
+      - "0001 Circuit Breaker": adr/0001-circuit-breaker-and-connection-state.md
+      - "0002 Protocol-Based DI": adr/0002-protocol-based-dependency-injection.md
+      - "0003 Explicit Protocol Injection": adr/0003-explicit-over-composite-protocol-injection.md
+      - "0004 Thread-Based XML-RPC Server": adr/0004-thread-based-xml-rpc-server.md
+      - "0005 Unbounded Parameter Cache": adr/0005-unbounded-parameter-visibility-cache.md
+      - "0006 Event System Priorities": adr/0006-event-system-priorities-and-batching.md
+      - "0007 Device Slots Reduction": adr/0007-device-slots-reduction-rejected.md
+      - "0008 TaskGroup Migration": adr/0008-taskgroup-migration-deferred.md
+      - "0009 Interface Event Consolidation": adr/0009-interface-event-consolidation.md
+      - "0010 Protocol Combination Analysis": adr/0010-protocol-combination-analysis.md
+      - "0011 Storage Abstraction": adr/0011-storage-abstraction.md
+      - "0012 Async XML-RPC Server POC": adr/0012-async-xml-rpc-server-poc.md
+      - "0013 Implementation Status": adr/0013-implementation-status.md
+      - "0013 Interface Client Backend": adr/0013-interface-client-backend-strategy.md
+      - "0014 Retry Logic Removal": adr/0014-retry-logic-removal.md
+      - "0015 Description Normalization": adr/0015-description-normalization-concept.md
+      - "0016 Paramset Description Patching": adr/0016-paramset-description-patching.md
+      - "0017 Startup Auth Error Handling": adr/0017-startup-auth-error-handling.md
+      - "0018 Contract Tests": adr/0018_contract_tests.md
+      - "0019 Derived Binary Sensors": adr/0019-derived-binary-sensors.md
+  - Debug:
+      - Debug Data Importance: debug_data_importance.md
+      - RSSI Fix: rssi_fix.md
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: sukramj
+      repo: aiohomematic
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      base_path: docs
+      auto_append:
+        - includes/abbreviations.md
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+plugins:
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/sukramj/aiohomematic
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/aiohomematic/
+  generator: false
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css

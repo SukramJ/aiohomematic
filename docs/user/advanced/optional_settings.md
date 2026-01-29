@@ -67,7 +67,7 @@ The following settings are **not intended for regular users**. They exist solely
 
 If you test an experimental feature, your feedback is invaluable. Here's what helps us most:
 
-📖 **[Why are diagnostics and logs so important?](debug_data_importance.md)** - Detailed explanation of what data we need and why.
+📖 **[Why are diagnostics and logs so important?](../../contributor/testing/debug_data_importance.md)** - Detailed explanation of what data we need and why.
 
 ### What Worked
 

@@ -454,7 +454,7 @@ except AioHomematicException as e:
 
 ## See Also
 
-- [Architecture Overview](architecture.md)
-- [Event Bus Documentation](event_bus.md)
+- [Architecture Overview](../architecture.md)
+- [Event Bus Documentation](../architecture/events/event_bus.md)
 - [Extension Points](extension_points.md)
 - [Home Assistant Lifecycle](homeassistant_lifecycle.md)

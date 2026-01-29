@@ -282,4 +282,4 @@ async def safe_operation():
 
 - [Architecture Overview](../architecture.md)
 - [Circuit Breaker ADR](../adr/0001-circuit-breaker-and-connection-state.md)
-- [Data Flow](../data_flow.md)
+- [Data Flow](../architecture/data_flow.md)

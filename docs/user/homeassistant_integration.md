@@ -326,7 +326,7 @@ Fired when a device is in an error state.
 
 ## Actions Reference
 
-See [Actions](homeassistant_actions.md) for the complete action reference including:
+See [Actions](features/homeassistant_actions.md) for the complete action reference including:
 
 - Device value operations (`get_device_value`, `set_device_value`)
 - Paramset operations (`get_paramset`, `put_paramset`)
@@ -386,7 +386,7 @@ CUxD/CCU-Jack differences from original hardware behavior are **not considered b
 
 ### Getting Help
 
-1. Read the [full troubleshooting guide](../homeassistant_troubleshooting.md)
+1. Read the [full troubleshooting guide](troubleshooting/homeassistant_troubleshooting.md)
 2. Search [existing issues](https://github.com/sukramj/aiohomematic/issues)
 3. Ask in [discussions](https://github.com/sukramj/aiohomematic/discussions)
 4. Open an issue with: HA version, integration version, CCU type/firmware, logs, steps to reproduce
@@ -423,7 +423,7 @@ System variables are imported as disabled entities. Enable them in Settings → 
 
 ## See Also
 
-- [Actions Reference](homeassistant_actions.md)
-- [Naming Conventions](homeassistant_naming.md)
-- [Troubleshooting Guide](../homeassistant_troubleshooting.md)
-- [Calculated Climate Sensors](../calculated_climate_sensors.md)
+- [Actions Reference](features/homeassistant_actions.md)
+- [Naming Conventions](advanced/homeassistant_naming.md)
+- [Troubleshooting Guide](troubleshooting/homeassistant_troubleshooting.md)
+- [Calculated Climate Sensors](features/calculated_climate_sensors.md)

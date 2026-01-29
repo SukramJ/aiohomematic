@@ -99,5 +99,5 @@ Entities without their own distinct name "use the device name" in HA. This is ex
 
 ## See Also
 
-- [aiohomematic naming documentation](../naming.md)
-- [Integration Guide](homeassistant_integration.md)
+- [aiohomematic naming documentation](../../contributor/coding/naming.md)
+- [Integration Guide](../homeassistant_integration.md)

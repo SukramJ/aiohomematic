@@ -259,4 +259,4 @@ automation:
 ## See Also
 
 - [Actions Reference](homeassistant_actions.md#climate-schedule-operations)
-- [Climate Entities](homeassistant_integration.md)
+- [Climate Entities](../homeassistant_integration.md)

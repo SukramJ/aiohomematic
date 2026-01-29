@@ -638,9 +638,9 @@ For breaking changes and migration guides, see:
 
 ## Related Documentation
 
-- [Architecture Overview](architecture.md)
+- [Architecture Overview](../architecture.md)
 - [Extension Points](extension_points.md)
-- [Data Flow](data_flow.md)
+- [Data Flow](../architecture/data_flow.md)
 - [Home Assistant Lifecycle](homeassistant_lifecycle.md)
 
 ---

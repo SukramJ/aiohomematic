@@ -2,7 +2,7 @@
 
 This document describes the high‑level architecture of aiohomematic, focusing on the main components and how they interact at runtime. It is intended for contributors and integrators who want to understand data flow, responsibilities, and the boundaries between modules.
 
-> **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs Add-on), see the [Glossary](glossary.md).
+> **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs Add-on), see the [Glossary](reference/glossary.md).
 
 ## Top‑level components
 
@@ -226,14 +226,14 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 
 ## Further reading
 
-- [Data flow](data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
-- [Sequence diagrams](sequence_diagrams.md) (connect, discovery, propagation, state machines, health tracking, recovery)
-- [Event reference](event_reference.md) complete event type documentation
-- [Event-driven metrics](event_driven_metrics.md) metrics and observability architecture
+- [Data flow](architecture/data_flow.md) details (XML-RPC/JSON-RPC, events, updates)
+- [Sequence diagrams](architecture/sequence_diagrams.md) (connect, discovery, propagation, state machines, health tracking, recovery)
+- [Event reference](architecture/events/event_reference.md) complete event type documentation
+- [Event-driven metrics](architecture/event_driven_metrics.md) metrics and observability architecture
 
 ## Architectural Decision Records (ADRs)
 
-All architectural decisions are documented as formal ADRs in the [adr/](adr/) directory:
+All architectural decisions are documented as formal ADRs in the `adr/` directory:
 
 | ADR                                                            | Title                                                 | Status   |
 | -------------------------------------------------------------- | ----------------------------------------------------- | -------- |

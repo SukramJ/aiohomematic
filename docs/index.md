@@ -71,20 +71,20 @@ asyncio.run(main())
 ### For Users
 
 - [Getting Started](getting_started.md) - Installation and first steps
-- [Glossary](glossary.md) - Terminology reference
-- [Troubleshooting](homeassistant_troubleshooting.md) - Common issues and solutions
+- [Glossary](reference/glossary.md) - Terminology reference
+- [Troubleshooting](user/troubleshooting/homeassistant_troubleshooting.md) - Common issues and solutions
 
 ### For Developers
 
 - [Architecture](architecture.md) - System design overview
-- [Extension Points](extension_points.md) - How to add device support
-- [Consumer API](consumer_api.md) - API reference for integrations
-- [Event System](event_bus.md) - Event handling patterns
+- [Extension Points](developer/extension_points.md) - How to add device support
+- [Consumer API](developer/consumer_api.md) - API reference for integrations
+- [Event System](architecture/events/event_bus.md) - Event handling patterns
 
 ### For Contributors
 
-- [Docstring Standards](docstring_standards.md) - Code documentation guidelines
-- [Naming Conventions](naming.md) - Naming patterns and rules
+- [Docstring Standards](contributor/coding/docstring_standards.md) - Code documentation guidelines
+- [Naming Conventions](contributor/coding/naming.md) - Naming patterns and rules
 - [ADRs](adr/0001-circuit-breaker-and-connection-state.md) - Architecture decisions
 
 ## Supported Devices
@@ -101,7 +101,7 @@ aiohomematic supports a wide range of Homematic and HomematicIP devices:
 | **Sensor**  | HmIP-SRH, HmIP-SWSD, HmIP-SMI     |
 | **Siren**   | HmIP-ASIR, HmIP-MP3P              |
 
-For a complete list, see the [Extension Points](extension_points.md) documentation.
+For a complete list, see the [Extension Points](developer/extension_points.md) documentation.
 
 ## Integration with Home Assistant
 
@@ -123,7 +123,7 @@ CCU3 / RaspberryMatic / Homegear
 Homematic Devices
 ```
 
-See [Home Assistant Lifecycle](homeassistant_lifecycle.md) for detailed integration flow.
+See [Home Assistant Lifecycle](developer/homeassistant_lifecycle.md) for detailed integration flow.
 
 ## Links
 

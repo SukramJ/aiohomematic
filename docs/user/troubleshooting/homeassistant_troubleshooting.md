@@ -3,7 +3,7 @@
 This document helps you quickly analyze and resolve typical problems when using aiohomematic with Home Assistant (integration: Homematic(IP) Local). The notes apply to CCU (CCU2/3, OpenCCU, piVCCU/Debmatic) and Homegear unless stated otherwise.
 
 !!! note
-If you're unfamiliar with terms like Integration, Add-on, Backend, Interface, or Channel, please read the [Glossary](glossary.md) first.
+If you're unfamiliar with terms like Integration, Add-on, Backend, Interface, or Channel, please read the [Glossary](../../reference/glossary.md) first.
 
 Contents:
 
@@ -776,7 +776,7 @@ When reporting issues on GitHub, include the following information to help with 
 
 ### Logs and diagnostics
 
-📖 **[Why are diagnostics and logs so important?](debug_data_importance.md)** - Understand what we need and why complete data matters.
+📖 **[Why are diagnostics and logs so important?](../../contributor/testing/debug_data_importance.md)** - Understand what we need and why complete data matters.
 
 - **Debug logs**: From Home Assistant startup to the first error (at debug level)
 - **Diagnostics file**: Download from the integration
@@ -787,8 +787,8 @@ When reporting issues on GitHub, include the following information to help with 
 
 ## 7) References
 
-- [Why diagnostics and logs matter](debug_data_importance.md) - What data we need for issue analysis and why
-- [Lifecycle documentation](homeassistant_lifecycle.md) - Understand how devices and data points are managed
+- [Why diagnostics and logs matter](../../contributor/testing/debug_data_importance.md) - What data we need for issue analysis and why
+- [Lifecycle documentation](../../developer/homeassistant_lifecycle.md) - Understand how devices and data points are managed
 - [aiohomematic on GitHub](https://github.com/sukramj/aiohomematic) - Library repository
 - [Integration repository](https://github.com/SukramJ/homematicip_local) - Homematic(IP) Local integration for Home Assistant
 - [Integration documentation](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#services) - Available services and their usage

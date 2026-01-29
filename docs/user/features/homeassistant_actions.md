@@ -478,5 +478,5 @@ Update firmware data for all devices.
 
 ## See Also
 
-- [Integration Guide](homeassistant_integration.md)
-- [Troubleshooting](../homeassistant_troubleshooting.md)
+- [Integration Guide](../homeassistant_integration.md)
+- [Troubleshooting](../troubleshooting/homeassistant_troubleshooting.md)

@@ -6,10 +6,10 @@ This page provides an overview of community-contributed templates and guides for
 
 Detailed guides for specific Homematic devices:
 
-| Device                                                          | Description                                           |
-| --------------------------------------------------------------- | ----------------------------------------------------- |
-| [HmIP-SWSD Smoke Detector](devices/hmip_swsd_smoke_detector.md) | Binary sensors for multi-state smoke detector         |
-| [HmIP-SRH Window Handle](devices/hmip_srh_window_handle.md)     | Three-state window handle sensor (closed/tilted/open) |
+| Device                                                             | Description                                           |
+| ------------------------------------------------------------------ | ----------------------------------------------------- |
+| [HmIP-SWSD Smoke Detector](../devices/hmip_swsd_smoke_detector.md) | Binary sensors for multi-state smoke detector         |
+| [HmIP-SRH Window Handle](../devices/hmip_srh_window_handle.md)     | Three-state window handle sensor (closed/tilted/open) |
 
 ---
 

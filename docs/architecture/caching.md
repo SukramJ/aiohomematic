@@ -279,5 +279,5 @@ periodic_refresh_interval = 15              # Device details (seconds)
 ## See Also
 
 - [Architecture Overview](../architecture.md)
-- [Data Flow](../data_flow.md)
-- [Error Handling](error_handling.md)
+- [Data Flow](data_flow.md)
+- [Error Handling](../developer/error_handling.md)

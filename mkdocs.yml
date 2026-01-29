@@ -52,57 +52,59 @@ nav:
   - Home: index.md
   - User Guide:
       - Overview: user/homeassistant_integration.md
-      - Actions Reference: user/homeassistant_actions.md
-      - Naming Conventions: user/homeassistant_naming.md
-      - Week Profiles: user/week_profile.md
-      - Troubleshooting: homeassistant_troubleshooting.md
-      - Troubleshooting Flowchart: user/troubleshooting_flowchart.md
-      - Calculated Climate Sensors: calculated_climate_sensors.md
-      - CUxD and CCU-Jack: user/cuxd_ccu_jack.md
-      - Community Templates: user/community_templates.md
       - Device Support: user/device_support.md
+      - Features:
+          - Actions Reference: user/features/homeassistant_actions.md
+          - Week Profiles: user/features/week_profile.md
+          - Calculated Climate Sensors: user/features/calculated_climate_sensors.md
+          - Community Templates: user/features/community_templates.md
+      - Troubleshooting:
+          - Troubleshooting Guide: user/troubleshooting/homeassistant_troubleshooting.md
+          - Troubleshooting Flowchart: user/troubleshooting/troubleshooting_flowchart.md
+          - RSSI Fix: user/troubleshooting/rssi_fix.md
       - Devices:
           - Window Handle (HmIP-SRH): user/devices/hmip_srh_window_handle.md
           - Smoke Detector (HmIP-SWSD): user/devices/hmip_swsd_smoke_detector.md
+      - Advanced:
+          - Naming Conventions: user/advanced/homeassistant_naming.md
+          - CUxD and CCU-Jack: user/advanced/cuxd_ccu_jack.md
+          - Optional Settings: user/advanced/optional_settings.md
+          - Unignore Parameters: user/advanced/unignore.md
       - CCU Scripts:
           - Rename Sysvar Marker: user/ccu_scripts/rename_sysvar_marker.md
-      - Advanced:
-          - Unignore Parameters: unignore.md
   - Developer Guide:
       - Getting Started: getting_started.md
-      - Consumer API: consumer_api.md
-      - Common Operations: common_operations.md
-      - Home Assistant Lifecycle: homeassistant_lifecycle.md
-      - API Usage Details: homematicip_local_api_usage.md
-      - Error Handling: dev/error_handling.md
-      - Caching: dev/caching.md
+      - Consumer API: developer/consumer_api.md
+      - Home Assistant Lifecycle: developer/homeassistant_lifecycle.md
+      - API Usage Details: developer/homematicip_local_api_usage.md
+      - Extension Points: developer/extension_points.md
+      - Error Handling: developer/error_handling.md
+      - Backend Detection: developer/backend_detection.md
+      - Incident System: developer/incident_system.md
   - Contributor Guide:
-      - Contributing: contributing.md
-      - Extension Points: extension_points.md
+      - Contributing: contributor/contributing.md
       - Coding Standards:
-          - Naming Conventions: naming.md
-          - Docstring Standards: docstring_standards.md
-          - Docstring Templates: docstring_templates.md
-      - i18n Management: i18n_management.md
+          - Naming Conventions: contributor/coding/naming.md
+          - Docstring Standards: contributor/coding/docstring_standards.md
+          - Docstring Templates: contributor/coding/docstring_templates.md
+          - i18n Management: contributor/coding/i18n_management.md
       - Testing:
-          - Coverage: dev/coverage.md
-          - Testing with Events: testing_with_events.md
-      - Optional Settings: optional_settings.md
-      - Release Process: dev/release_process.md
+          - Coverage: contributor/testing/coverage.md
+          - Testing with Events: contributor/testing/testing_with_events.md
+          - Debug Data Importance: contributor/testing/debug_data_importance.md
+      - Release Process: contributor/release_process.md
   - Architecture:
       - Overview: architecture.md
-      - Data Flow: data_flow.md
-      - Sequence Diagrams: sequence_diagrams.md
+      - Data Flow: architecture/data_flow.md
+      - Sequence Diagrams: architecture/sequence_diagrams.md
+      - Caching: architecture/caching.md
       - Event System:
-          - Event Bus: event_bus.md
-          - Event Reference: event_reference.md
-          - Event-Driven Metrics: event_driven_metrics.md
-      - Backend Detection: backend_detection.md
-      - Incident System: incident_system.md
+          - Event Bus: architecture/events/event_bus.md
+          - Event Reference: architecture/events/event_reference.md
+          - Event-Driven Metrics: architecture/event_driven_metrics.md
   - Reference:
-      - Glossary: glossary.md
-      - Debug Data Importance: debug_data_importance.md
-      - RSSI Fix: rssi_fix.md
+      - Common Operations: reference/common_operations.md
+      - Glossary: reference/glossary.md
   - Migrations:
       - Capabilities Migration: migrations/capabilities_migration_2026_01.md
       - Channel Event Group Migration: migrations/channel_event_group_migration_2026_01.md

@@ -82,7 +82,7 @@ def get_device(self, address):
 - **Line length**: 120 characters
 - **Imports**: Use `from __future__ import annotations` in every file
 - **Arguments**: Use keyword-only arguments for functions with > 2 parameters
-- **Docstrings**: Follow [Docstring Standards](docstring_standards.md)
+- **Docstrings**: Follow [Docstring Standards](coding/docstring_standards.md)
 
 ## Pull Request Process
 
@@ -154,7 +154,7 @@ DeviceProfileRegistry.register(
 4. **Add tests** in `tests/test_model_*.py`
 5. **Update changelog**
 
-See [Extension Points](extension_points.md) for detailed instructions.
+See [Extension Points](../developer/extension_points.md) for detailed instructions.
 
 ## Bug Reports
 

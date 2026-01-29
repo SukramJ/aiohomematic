@@ -87,29 +87,14 @@ Many entities are created **disabled by default** to avoid cluttering your dashb
 
 ### Adding Hidden Parameters (Unignore)
 
-If you need a parameter that isn't created as an entity, you can **unignore** it:
+If you need a parameter that isn't created as an entity, you can **unignore** it via the integration configuration:
 
 1. Go to **Settings** → **Devices & Services** → **Homematic(IP) Local**
-2. Click **Configure** → **Advanced Settings**
-3. Add the parameter to the **un_ignore** list
+2. Click **Configure** → navigate to **Interface** page
+3. Enable **Advanced configuration**
+4. Add the parameter pattern to the **un_ignore** list (e.g., `*:*:RSSI_PEER`)
 
-**Format:**
-
-```
-DEVICE_TYPE:CHANNEL:PARAMETER
-```
-
-**Examples:**
-
-```
-HmIP-eTRV-2:0:LOW_BAT
-HmIP-SWDO:1:ERROR
-*:*:RSSI_PEER
-```
-
-Use `*` as wildcard for device type or channel.
-
-See [Unignore Parameters](../unignore.md) for detailed instructions.
+See [Unignore Parameters](advanced/unignore.md) for detailed instructions and pattern examples.
 
 ## When Devices Don't Work as Expected
 
@@ -212,6 +197,6 @@ All other devices work through generic entity creation:
 
 ## See Also
 
-- [Extension Points](../extension_points.md) - For developers adding custom mappings
-- [Actions Reference](homeassistant_actions.md) - Raw device access
-- [Unignore Parameters](../unignore.md) - Access hidden parameters
+- [Extension Points](../developer/extension_points.md) - For developers adding custom mappings
+- [Actions Reference](features/homeassistant_actions.md) - Raw device access
+- [Unignore Parameters](advanced/unignore.md) - Access hidden parameters

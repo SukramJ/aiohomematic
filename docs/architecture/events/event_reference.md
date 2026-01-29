@@ -935,7 +935,7 @@ capture.assert_event_emitted(
 capture.cleanup()
 ```
 
-See [Testing with Events](testing_with_events.md) for complete testing guide.
+See [Testing with Events](../../contributor/testing/testing_with_events.md) for complete testing guide.
 
 ---
 
@@ -997,7 +997,7 @@ async def handler(*, event: DataPointValueReceivedEvent) -> None:
 ## Related Documentation
 
 - [EventBus Architecture](event_bus.md) - Internal architecture and design decisions
-- [Event-Driven Metrics](event_driven_metrics.md) - Metrics collected via events
-- [Testing with Events](testing_with_events.md) - Event-based testing guide
-- [Architecture Overview](architecture.md) - Overall system architecture
-- [Data Flow](data_flow.md) - How data flows through the system
+- [Event-Driven Metrics](../event_driven_metrics.md) - Metrics collected via events
+- [Testing with Events](../../contributor/testing/testing_with_events.md) - Event-based testing guide
+- [Architecture Overview](../../architecture.md) - Overall system architecture
+- [Data Flow](../data_flow.md) - How data flows through the system

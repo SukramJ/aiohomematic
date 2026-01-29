@@ -1380,6 +1380,6 @@ if recovery_result == RecoveryResult.MAX_RETRIES:
 
 ## See also
 
-- [Architecture](architecture.md) for high-level components and responsibilities
+- [Architecture](../architecture.md) for high-level components and responsibilities
 - [Data flow](data_flow.md) for textual data flow and additional sequence diagrams (reads/writes)
-- [ADR 0005](adr/0005-unbounded-parameter-visibility-cache.md) for cache strategy rationale
+- [ADR 0005](../adr/0005-unbounded-parameter-visibility-cache.md) for cache strategy rationale

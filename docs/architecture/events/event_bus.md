@@ -413,9 +413,9 @@ print(f"Failed handlers: {stats['failed_handlers']}")
 ## Related Documentation
 
 - [Event Reference](event_reference.md) - Complete reference of all event types
-- [Architecture Overview](architecture.md)
-- [Extension Points](extension_points.md)
-- [Testing with Events](testing_with_events.md)
+- [Architecture Overview](../../architecture.md)
+- [Extension Points](../../developer/extension_points.md)
+- [Testing with Events](../../contributor/testing/testing_with_events.md)
 
 ## Changelog
 

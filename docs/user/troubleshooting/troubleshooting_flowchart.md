@@ -237,6 +237,6 @@ data:
 
 ## See Also
 
-- [Troubleshooting Guide](../homeassistant_troubleshooting.md) - Detailed troubleshooting
-- [CUxD and CCU-Jack](cuxd_ccu_jack.md) - Special interface handling
-- [Device Support](device_support.md) - How devices are supported
+- [Troubleshooting Guide](homeassistant_troubleshooting.md) - Detailed troubleshooting
+- [CUxD and CCU-Jack](../advanced/cuxd_ccu_jack.md) - Special interface handling
+- [Device Support](../device_support.md) - How devices are supported

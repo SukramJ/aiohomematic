@@ -276,8 +276,8 @@ event_bus.subscribe(
 
 ## References
 
-- [Event Reference](../event_reference.md) - Complete event catalog
-- [EventBus Architecture](../event_bus.md) - Event system overview
+- [Event Reference](../architecture/events/event_reference.md) - Complete event catalog
+- [EventBus Architecture](../architecture/events/event_bus.md) - Event system overview
 - [ADR-0006: Event System Priorities](0006-event-system-priorities-and-batching.md) - Event batching strategy
 
 ---

@@ -200,5 +200,5 @@ GitHub Actions automatically:
 
 ## See Also
 
-- [Contributing Guide](../contributing.md)
-- [Testing Guidelines](testing_with_events.md)
+- [Contributing Guide](contributing.md)
+- [Testing Guidelines](testing/testing_with_events.md)

@@ -166,5 +166,5 @@ CUxD and CCU-Jack have some limitations compared to standard interfaces:
 
 ## See Also
 
-- [Troubleshooting Guide](../homeassistant_troubleshooting.md)
-- [Actions Reference](homeassistant_actions.md) - For manual device control
+- [Troubleshooting Guide](../troubleshooting/homeassistant_troubleshooting.md)
+- [Actions Reference](../features/homeassistant_actions.md) - For manual device control

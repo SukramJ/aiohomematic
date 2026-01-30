@@ -7,20 +7,20 @@ This document explains how aiohomematic handles devices and DataPoints (paramete
 > For a complete terminology reference including Home Assistant ecosystem terms, see the [Glossary](../reference/glossary.md).
 
 - Device: A physical or virtual Homematic/HomematicIP device. Implemented by `aiohomematic.model.device.Device`.
-- Channel: Logical sub‑unit of a device; contains DataPoints and events. Implemented by `Device.Channel`.
+- Channel: Logical sub-unit of a device; contains DataPoints and events. Implemented by `Device.Channel`.
 - DataPoint: Representation of a single parameter (e.g., LEVEL, STATE). Implemented generically by `aiohomematic.model.generic.data_point.GenericDataPoint` or specialized classes; firmware update exposed via `aiohomematic.model.update.DpUpdate`.
-- Central: Connects the RPC clients (XML‑RPC/HmIP JSON‑RPC) to the CCU/Homegear and manages devices, events, and caches.
+- Central: Connects the RPC clients (XML-RPC/HmIP JSON-RPC) to the CCU/Homegear and manages devices, events, and caches.
 
 ---
 
 ## 1. Discovery
 
-Sequence at startup or after re‑connecting to CCU/Homegear:
+Sequence at startup or after re-connecting to CCU/Homegear:
 
 1. Interface availability and methods: The client layers (`client.xml_rpc`, `client.json_rpc`) check supported methods and register the callback endpoint at the CCU.
 2. Load device list/details:
-   - For most interfaces: XML‑RPC provides the device catalog and channel descriptions.
-   - For CCU: JSON‑RPC provides `get_all_device_data`, `get_system_variable`, `set_system_variable`, etc.
+   - For most interfaces: XML-RPC provides the device catalog and channel descriptions.
+   - For CCU: JSON-RPC provides `get_all_device_data`, `get_system_variable`, `set_system_variable`, etc.
 3. Caching for fast restarts:
    - Paramset descriptions (`VALUES`, optionally `MASTER`) and values are persisted in `homematicip_local`. This often eliminates the need for a full fetch on subsequent starts.
 4. Create devices and DataPoints:
@@ -40,20 +40,20 @@ Home Assistant view: The HA integration (Homematic(IP) Local) registers for Cent
 Event and value processing during operation:
 
 - Value changes (events):
-  - The CCU sends XML‑RPC events. They are routed to the matching DataPoints (`GenericDataPoint.event`).
+  - The CCU sends XML-RPC events. They are routed to the matching DataPoints (`GenericDataPoint.event`).
   - The DataPoint writes the new value via `write_value` and checks for state change (`is_state_change`).
   - Special handling:
     - `CONFIG_PENDING`: Transition from True→False triggers reloading the paramset descriptions and a refresh of readable MASTER parameters (see `GenericDataPoint.event`).
     - Availability (`UN_REACH`, `STICKY_UN_REACH`): Triggers `publish_device_updated_event` on the device and publishes `DeviceLifecycleEvent` with `DeviceLifecycleEventType.AVAILABILITY_CHANGED` so HA can adjust availability.
 - Reading/sending values:
   - Read: Via `DataPoint.load_data_point_value()` in conjunction with the device store/client. Cache is consulted to avoid unnecessary CCU calls.
-  - Write: `GenericDataPoint.send_value()` validates, converts, de‑duplicates (no sending without a state change), and calls `client.set_value()`.
+  - Write: `GenericDataPoint.send_value()` validates, converts, de-duplicates (no sending without a state change), and calls `client.set_value()`.
 - Firmware update:
   - `DpUpdate` mirrors fields like `available`, `firmware`, `latest_firmware`, `firmware_update_state`, `in_progress`. `update_firmware()` delegates to `Device.update_firmware()`.
 
 Reconnection/resubscribe:
 
-- On connection loss, the Central restores operation: RPC clients re‑register, events start flowing again, DataPoints remain intact. HA entities keep their IDs; states are updated once the first events/refresh arrive.
+- On connection loss, the Central restores operation: RPC clients re-register, events start flowing again, DataPoints remain intact. HA entities keep their IDs; states are updated once the first events/refresh arrive.
 
 ---
 
@@ -65,11 +65,11 @@ Orderly teardown at different levels:
   - `Channel.remove()` removes registered DataPoints (and events) from the channel via `_remove_data_point()` and cleans link metadata.
 - Device removal:
   - `Device.remove()` initiates teardown for all channels and data structures of the device.
-- Callback de‑registration:
+- Callback de-registration:
   - DataPoints/Updates register callbacks (e.g., `subscribe_to_data_point_updated`). On removal these are properly cleaned up via returned unsubscribe functions or explicit unsubscribe.
 - Central stop:
   - When the integration shuts down, the Central stops the RPC clients, cancels subscriptions, and closes sessions. HA does not automatically remove entities unless devices are considered permanently deleted (see next point).
-- Device mutations (delete/re‑pairing):
+- Device mutations (delete/re-pairing):
   - If the CCU permanently deletes a device or addresses change, the Central removes the associated Device/Channel/DataPoint objects. The HA integration receives corresponding signals so entities can be archived/removed.
 
 ---
@@ -88,7 +88,7 @@ Signals/callbacks relevant for integration developers:
 
 - Create entities only when `usage == DATA_POINT` and `unique_id` is stable.
 - Tie an entity’s availability to `Device.available` (and consume the dedicated availability events).
-- When `CONFIG_PENDING` changes True→False: re‑load MASTER parameters (already triggered by aiohomematic; optionally request a refresh from HA if needed).
+- When `CONFIG_PENDING` changes True→False: re-load MASTER parameters (already triggered by aiohomematic; optionally request a refresh from HA if needed).
 - Only send write commands if target state differs from current (`send_value` already does this). Log errors/validation exceptions.
 - Account for reconnects: keep entities, update states on events. Do not subscribe twice to the same events.
 
@@ -97,7 +97,7 @@ Signals/callbacks relevant for integration developers:
 ## 6. References (code)
 
 - `aiohomematic/model/device.py`: Device/Channel, removal, cache init, callback mechanisms, firmware functions.
-- `aiohomematic/model/generic/data_point.py`: Event processing, usage decision, send/read logic, availability events, config‑pending handling.
+- `aiohomematic/model/generic/data_point.py`: Event processing, usage decision, send/read logic, availability events, config-pending handling.
 - `aiohomematic/model/update.py`: `DpUpdate` for firmware status and actions.
 - `aiohomematic/client/rpc_proxy.py` and `aiohomematic/client/json_rpc.py`: Transport, login/session, method probing.
 

@@ -57,10 +57,19 @@ jobs:
             mkdocs-minify-plugin \
             pymdown-extensions \
             pillow \
-            cairosvg
+            cairosvg \
+            mkdocstrings[python] \
+            linkchecker
+          # Install aiohomematic for API documentation
+          pip install -e .
 
       - name: Build documentation
         run: mkdocs build
+
+      - name: Check internal links
+        run: |
+          # Check for broken internal links in generated HTML
+          linkchecker site/ --check-extern=false --ignore-url='^https?://' --no-warnings || true
 
       - name: Upload artifact
         if: github.event_name != 'pull_request'

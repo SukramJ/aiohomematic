@@ -1,21 +1,85 @@
 # Architecture overview
 
-This document describes the high‑level architecture of aiohomematic, focusing on the main components and how they interact at runtime. It is intended for contributors and integrators who want to understand data flow, responsibilities, and the boundaries between modules.
+This document describes the high-level architecture of aiohomematic, focusing on the main components and how they interact at runtime. It is intended for contributors and integrators who want to understand data flow, responsibilities, and the boundaries between modules.
 
 > **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs Add-on), see the [Glossary](reference/glossary.md).
 
-## Top‑level components
+## Component Overview
 
-- Central (aiohomematic/central): Orchestrates the whole system. Manages client lifecycles, creates devices and data points, runs a lightweight scheduler, exposes the local XML‑RPC callback server for events, and provides a query facade over the runtime model and caches. The central is created via CentralConfig and realized by CentralUnit.
-- Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear). Clients abstract XML‑RPC and JSON‑RPC calls, maintain connection health, and translate high‑level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Concrete types: ClientCCU, ClientJsonCCU, ClientHomegear. A client belongs to one Interface (BidCos‑RF, HmIP, etc.).
-- Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device‑specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
+```mermaid
+graph TB
+    subgraph Consumer["Consumer (Home Assistant)"]
+        HA[Homematic IP Local Integration]
+    end
+
+    subgraph aiohomematic["aiohomematic Library"]
+        CU[CentralUnit]
+
+        subgraph Coordinators["Coordinators"]
+            CC[ClientCoordinator]
+            DC[DeviceCoordinator]
+            EC[EventCoordinator]
+            HC[HubCoordinator]
+        end
+
+        subgraph Model["Model Layer"]
+            DEV[Device]
+            CH[Channel]
+            DP[DataPoint]
+        end
+
+        subgraph Client["Client Layer"]
+            CCCU[ClientCCU]
+            CJSON[ClientJsonCCU]
+            CHG[ClientHomegear]
+        end
+
+        subgraph Store["Store Layer"]
+            PERS[Persistent Caches]
+            DYN[Dynamic Caches]
+            VIS[Visibility Rules]
+        end
+
+        EB[EventBus]
+    end
+
+    subgraph Backend["Homematic Backend"]
+        CCU[CCU3 / OpenCCU / Homegear]
+    end
+
+    HA --> CU
+    CU --> CC
+    CU --> DC
+    CU --> EC
+    CU --> HC
+    CC --> CCCU
+    CC --> CJSON
+    CC --> CHG
+    DC --> DEV
+    DEV --> CH
+    CH --> DP
+    CCCU --> CCU
+    CJSON --> CCU
+    CHG --> CCU
+    CU --> PERS
+    CU --> DYN
+    CU --> VIS
+    EC --> EB
+    DP -.-> EB
+```
+
+## Top-level components
+
+- Central (aiohomematic/central): Orchestrates the whole system. Manages client lifecycles, creates devices and data points, runs a lightweight scheduler, exposes the local XML-RPC callback server for events, and provides a query facade over the runtime model and caches. The central is created via CentralConfig and realized by CentralUnit.
+- Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear). Clients abstract XML-RPC and JSON-RPC calls, maintain connection health, and translate high-level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Concrete types: ClientCCU, ClientJsonCCU, ClientHomegear. A client belongs to one Interface (BidCos-RF, HmIP, etc.).
+- Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device-specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
 - Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values. Organized into subpackages:
   - persistent/: DeviceDescriptionRegistry and ParamsetDescriptionRegistry store descriptions on disk between runs. IncidentStore persists diagnostic incidents for post-mortem analysis. SessionRecorder captures RPC sessions for testing.
-  - dynamic/: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongTracker hold in‑memory runtime state and connection health. PingPongTracker includes a PingPongJournal for diagnostic events.
+  - dynamic/: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongTracker hold in-memory runtime state and connection health. PingPongTracker includes a PingPongJournal for diagnostic events.
   - visibility/: ParameterVisibilityRegistry applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
   - types.py: Shared typed dataclasses (CachedCommand, PongTracker, PingPongJournal, IncidentSnapshot) for cache entries.
   - serialization.py: Session recording utilities for freeze/unfreeze of parameters.
-- Support (aiohomematic/support.py and helpers): Cross‑cutting utilities: URI/header construction for XML‑RPC, input validation, hashing, network helpers, conversion helpers, and small abstractions used across central and client. aiohomematic/async_support.py provides helpers for periodic tasks.
+- Support (aiohomematic/support.py and helpers): Cross-cutting utilities: URI/header construction for XML-RPC, input validation, hashing, network helpers, conversion helpers, and small abstractions used across central and client. aiohomematic/async_support.py provides helpers for periodic tasks.
 
 ## Dependency Injection Architecture
 
@@ -132,11 +196,11 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 ## Responsibilities and boundaries
 
 - Central vs Client
-  - Central owns system composition: it creates and starts/stops clients per configured interface, starts the XML‑RPC callback server, and maintains the runtime model and caches.
+  - Central owns system composition: it creates and starts/stops clients per configured interface, starts the XML-RPC callback server, and maintains the runtime model and caches.
   - Central implements all protocol interfaces and injects them into coordinators during construction.
-  - Client owns protocol details: it knows how to talk to the backend via XML‑RPC or JSON‑RPC, how to fetch lists and paramsets, and how to write values. Central should not embed protocol specifics; instead it calls client methods.
+  - Client owns protocol details: it knows how to talk to the backend via XML-RPC or JSON-RPC, how to fetch lists and paramsets, and how to write values. Central should not embed protocol specifics; instead it calls client methods.
 - Model vs Central/Client
-  - Model is pure domain representation plus transformation from paramset descriptions to concrete data points/events. It must not perform network I/O. It consumes metadata provided by Central/Client and exposes typed operations on DataPoints (which then delegate to the client for I/O through the device/channel back‑reference).
+  - Model is pure domain representation plus transformation from paramset descriptions to concrete data points/events. It must not perform network I/O. It consumes metadata provided by Central/Client and exposes typed operations on DataPoints (which then delegate to the client for I/O through the device/channel back-reference).
   - Model layer (Device, Channel, DataPoint) uses full dependency injection with protocol interfaces, achieving complete decoupling from CentralUnit.
 - Coordinators
   - All coordinators use full dependency injection with protocol interfaces.
@@ -144,10 +208,10 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
   - Factory coordinators (ClientCoordinator, HubCoordinator) use ClientFactoryProtocol and other protocol interfaces for all operations including object creation.
 - Caches
   - Persistent caches are loaded/saved by Central during startup/shutdown and used by Clients to avoid redundant metadata fetches.
-  - Dynamic caches are updated by Clients and Central when values change, and consulted to answer quick queries or de‑duplicate work.
+  - Dynamic caches are updated by Clients and Central when values change, and consulted to answer quick queries or de-duplicate work.
   - All cache classes use dependency injection to receive only required interfaces.
 - Support
-  - Shared, stateless helpers. No long‑lived state; safe to import anywhere.
+  - Shared, stateless helpers. No long-lived state; safe to import anywhere.
 
 ## Key runtime interactions
 
@@ -156,7 +220,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 1. CentralConfig is created with central name, host, credentials, interface configs, and options.
 2. CentralConfig.create_central() builds a CentralUnit. CentralUnit.\_create_clients() creates one Client per enabled Interface.
 3. CentralUnit.start():
-   - Validates configuration and, if enabled, starts the local XML‑RPC callback server (xml_rpc_server) so the backend can push events.
+   - Validates configuration and, if enabled, starts the local XML-RPC callback server (xml_rpc_server) so the backend can push events.
    - Loads persistent caches (device/paramset descriptions) and initializes clients.
    - Initializes the Hub (programs, system variables) and starts a scheduler thread for periodic refresh and health checks.
 
@@ -170,36 +234,36 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 ## State read and write
 
 - Reads
-  - Central or a consumer requests a value: Client.get_value(channel_address, paramset_key, parameter) performs the appropriate RPC call (XML‑RPC or JSON‑RPC) and returns a converted value (model.support.convert_value is used where necessary). Results may be stored in dynamic caches.
+  - Central or a consumer requests a value: Client.get_value(channel_address, paramset_key, parameter) performs the appropriate RPC call (XML-RPC or JSON-RPC) and returns a converted value (model.support.convert_value is used where necessary). Results may be stored in dynamic caches.
 - Writes
   - A consumer calls DataPoint.set_value(...), which delegates to the owning Device/Channel/Client. Client.\_set_value/\_exec_set_value sends the RPC write. Optionally the system waits for an event confirming the new value; otherwise the value may be written into a temporary cache and later reconciled.
 
 ## Event handling and data point updates
 
-1. The backend pushes events to the local XML‑RPC callback server (Central's xml_rpc_server). Each event carries interface_id, channel_address, parameter, and value.
+1. The backend pushes events to the local XML-RPC callback server (Central's xml_rpc_server). Each event carries interface_id, channel_address, parameter, and value.
 2. CentralUnit.data_point_event(interface_id, channel_address, parameter, value) is invoked via decorators wiring. Central looks up the target DataPoint by channel+parameter.
 3. The DataPoint's internal state is updated; events are published to subscribers via EventBus. Central updates last event timestamps and connection health.
 4. If events indicate new devices or configuration changes, Central may trigger scans to fetch updated descriptions and update the model accordingly.
 
-## JSON‑RPC vs XML‑RPC data flow
+## JSON-RPC vs XML-RPC data flow
 
-- XML‑RPC
+- XML-RPC
   - Used primarily for event callbacks and many CCU operations. Client uses XmlRpcProxy to issue method calls to the backend. The local xml_rpc_server exposes endpoints for the backend’s event callbacks.
-- JSON‑RPC
+- JSON-RPC
   - Optional, when the backend provides a JSON API. ClientCCU/ClientJsonCCU routes some operations through JsonRpcAioHttpClient. Choice of backend per interface is encapsulated by the concrete Client type.
 
 ## Caching strategy
 
 - Persistent caches (on disk)
-  - DeviceDescriptionRegistry and ParamsetDescriptionRegistry reduce cold‑start time and load on the backend. Central decides when to refresh and when to trust cached data (based on age and configuration).
+  - DeviceDescriptionRegistry and ParamsetDescriptionRegistry reduce cold-start time and load on the backend. Central decides when to refresh and when to trust cached data (based on age and configuration).
   - IncidentStore persists diagnostic incidents (e.g., PING_PONG_MISMATCH_HIGH, PING_PONG_UNKNOWN_HIGH) for post-mortem analysis. Uses save-on-incident, load-on-demand strategy with automatic cleanup of old incidents.
 - Dynamic caches (in memory)
   - CentralDataCache holds recent values and metadata to accelerate lookups and avoid redundant conversions.
-  - CommandCache and PingPongTracker support write‑ack workflows and connection health checks.
+  - CommandCache and PingPongTracker support write-ack workflows and connection health checks.
   - PingPongTracker includes a PingPongJournal ring buffer for tracking PING/PONG events and RTT statistics.
-  - DeviceDetailsCache stores supplementary per‑device data fetched on demand.
+  - DeviceDetailsCache stores supplementary per-device data fetched on demand.
 - Visibility cache
-  - ParameterVisibilityRegistry determines which parameters are exposed as DataPoints/events, influenced by user un‑ignore lists and marker rules.
+  - ParameterVisibilityRegistry determines which parameters are exposed as DataPoints/events, influenced by user un-ignore lists and marker rules.
 
 ## Concurrency model
 
@@ -207,7 +271,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
   - Checks connection health and reconnection needs.
   - Refreshes hub data (programs/system variables) and firmware update information.
   - Optionally polls devices for values where push is unavailable.
-- I/O operations in Clients are async‑aware or threaded via proxies where needed; long‑running operations are awaited and protected by timeouts (see const.TIMEOUT) and command queues.
+- I/O operations in Clients are async-aware or threaded via proxies where needed; long-running operations are awaited and protected by timeouts (see const.TIMEOUT) and command queues.
 
 ## Extension points
 
@@ -221,7 +285,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 - Client: Protocol adapter for a single interface towards CCU/Homegear.
 - Device/Channel: Domain model reflecting backend device topology.
 - DataPoint: Addressable parameter on a channel, with read/write and event capabilities.
-- Event: Push‑style notification mapped to selected parameters (e.g., button clicks, device errors).
+- Event: Push-style notification mapped to selected parameters (e.g., button clicks, device errors).
 - Hub: Program and System Variable data points provided by the backend itself.
 
 ## Further reading
@@ -260,4 +324,4 @@ All architectural decisions are documented as formal ADRs in the `adr/` director
 
 ## Notes
 
-- This is a high‑level overview. For detailed API and exact behavior, consult the module docstrings and tests under tests/ which cover most features and edge cases.
+- This is a high-level overview. For detailed API and exact behavior, consult the module docstrings and tests under tests/ which cover most features and edge cases.

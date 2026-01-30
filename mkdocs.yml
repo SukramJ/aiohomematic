@@ -50,6 +50,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Quick Start: quickstart.md
   - User Guide:
       - Overview: user/homeassistant_integration.md
       - Device Support: user/device_support.md
@@ -57,15 +58,12 @@ nav:
           - Actions Reference: user/features/homeassistant_actions.md
           - Week Profiles: user/features/week_profile.md
           - Calculated Climate Sensors: user/features/calculated_climate_sensors.md
-      - Troubleshooting:
-          - Troubleshooting Guide: user/troubleshooting/homeassistant_troubleshooting.md
-          - Troubleshooting Flowchart: user/troubleshooting/troubleshooting_flowchart.md
-          - RSSI Fix: user/troubleshooting/rssi_fix.md
       - Advanced:
           - Naming Conventions: user/advanced/homeassistant_naming.md
           - CUxD and CCU-Jack: user/advanced/cuxd_ccu_jack.md
           - Optional Settings: user/advanced/optional_settings.md
           - Unignore Parameters: user/advanced/unignore.md
+          - Security: user/advanced/security.md
   - Developer Guide:
       - Getting Started: getting_started.md
       - Consumer API: developer/consumer_api.md
@@ -77,6 +75,8 @@ nav:
       - Incident System: developer/incident_system.md
   - Contributor Guide:
       - Contributing: contributor/contributing.md
+      - Development Environment: contributor/dev-environment.md
+      - Git Workflow: contributor/git-workflow.md
       - Coding Standards:
           - Naming Conventions: contributor/coding/naming.md
           - Docstring Standards: contributor/coding/docstring_standards.md
@@ -93,12 +93,28 @@ nav:
       - Sequence Diagrams: architecture/sequence_diagrams.md
       - Caching: architecture/caching.md
       - Event System:
+          - Overview: architecture/events/index.md
           - Event Bus: architecture/events/event_bus.md
           - Event Reference: architecture/events/event_reference.md
           - Event-Driven Metrics: architecture/event_driven_metrics.md
+  - Troubleshooting:
+      - Overview: troubleshooting/index.md
+      - Troubleshooting Guide: user/troubleshooting/homeassistant_troubleshooting.md
+      - Troubleshooting Flowchart: user/troubleshooting/troubleshooting_flowchart.md
+      - RSSI Fix: user/troubleshooting/rssi_fix.md
   - Reference:
       - Common Operations: reference/common_operations.md
+      - API Reference:
+          - Overview: reference/api/index.md
+          - HomematicAPI: reference/api/api.md
+          - CentralUnit: reference/api/central.md
+          - CentralConfig: reference/api/config.md
+          - Exceptions: reference/api/exceptions.md
+          - Constants: reference/api/const.md
       - Glossary: reference/glossary.md
+  - FAQ: faq.md
+  - Changelog: changelog.md
+  - Migrations: migrations/index.md
   - ADRs:
       - "0001 Circuit Breaker": adr/0001-circuit-breaker-and-connection-state.md
       - "0002 Protocol-Based DI": adr/0002-protocol-based-dependency-injection.md
@@ -179,6 +195,23 @@ plugins:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
       minify_html: true
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: false
+            show_bases: true
+            show_signature_annotations: true
+            separate_signature: true
+            merge_init_into_class: true
+            members_order: source
+            filters:
+              - "!^_"
+              - "^__init__$"
 
 extra:
   social:

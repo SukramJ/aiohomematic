@@ -1,3 +1,28 @@
+# Version 2026.1.55 (2026-01-30)
+
+## What's Changed
+
+### Added
+
+- **Documentation**: Added comparison table of Homematic integrations in FAQ (Homematic, HomematicIP Cloud, Homematic(IP) Local)
+- **Documentation**: Added raw schedule operations documentation (`get_schedule_profile`, `get_schedule_weekday`, `set_schedule_profile`, `set_schedule_weekday`)
+- **Documentation**: Added comprehensive `send_text_display` action documentation with all parameters (icon, colors, alignment, sound, etc.)
+- **Documentation**: Added instructions for accessing optional settings in Home Assistant
+
+### Fixed
+
+- **Documentation**: Corrected client architecture references across all docs - replaced non-existent `ClientCCU`/`ClientJsonCCU`/`ClientHomegear` classes with correct `InterfaceClient` + Backend Strategy pattern (`CcuBackend`, `JsonCcuBackend`, `HomegearBackend`)
+- **Documentation**: Fixed `HeartbeatTimerFiredEvent` key from `interface_id` to `central_name` in event reference
+- **Documentation**: Added missing `RecoveryAttemptedEvent` field documentation (`max_attempts`, `stage_reached`, `success`, `error_message`)
+- **Documentation**: Removed references to non-existent `USE_INTERFACE_CLIENT` feature flag in ADR 0013
+- **Documentation**: Fixed outdated file paths in CLAUDE.md (docstring docs moved to `docs/contributor/coding/`)
+- **Documentation**: Updated sequence diagram participant names to `InterfaceClient`
+- **Documentation**: Replaced non-existent Handler class hierarchy with correct Backend Strategy architecture in sequence diagrams
+- **Documentation**: Fixed action name typo `homeassistant.update_device_firmware_data` → `homematicip_local.update_device_firmware_data`
+- **Documentation**: Fixed `copy_schedule` and `copy_schedule_profile` examples (corrected source/target entity usage)
+- **Documentation**: Fixed broken links in troubleshooting docs (now point to Actions Reference)
+- **Documentation**: Fixed GitHub issues URL in optional settings
+
 # Version 2026.1.54 (2026-01-29)
 
 ## What's Changed

@@ -48,12 +48,12 @@ Purpose: Alternative/optional transport for CCU JSON API and ReGa interactions (
 
 ### Outbound calls (read/write)
 
-1. Consumer requests go through ClientCCU/ClientJsonCCU, which uses JsonRpcAioHttpClient.
+1. Consumer requests go through InterfaceClient (with CcuBackend or JsonCcuBackend), which uses JsonRpcAioHttpClient.
 2. JsonRpcAioHttpClient ensures an authenticated session (login or renew). Requests are posted via \_post/\_do_post with method names defined in \_JsonRpcMethod.
 3. Responses are parsed safely (\_get_json_reponse) and converted to domain structures:
    - Device details → Names, Rooms, Functions
-   - Device descriptions → DeviceDescription (ClientJsonCCU)
-   - Paramset descriptions → ParameterData (ClientJsonCCU)
+   - Device descriptions → DeviceDescription (via JsonCcuBackend)
+   - Paramset descriptions → ParameterData (via JsonCcuBackend)
    - Program/system variable data → ProgramData/SystemVariableData
    - Values (get/set) are converted via model.support.convert_value where needed.
 4. Dynamic caches in Central are updated. For writes, CommandCache may record the pending state until a confirming callback (if provided via XML-RPC) or a subsequent read reconciles the value.
@@ -120,7 +120,7 @@ sequenceDiagram
   participant DP as DataPoint
   participant Dev as Device/Channel
   participant C as CentralUnit
-  participant CX as ClientCCU (XML-RPC)
+  participant CX as InterfaceClient (XML-RPC)
   participant X as XmlRpcProxy
   App->>DP: read()
   DP->>Dev: delegate
@@ -159,7 +159,7 @@ sequenceDiagram
   participant DP as DataPoint
   participant Dev as Device/Channel
   participant C as CentralUnit
-  participant CX as ClientCCU (XML-RPC)
+  participant CX as InterfaceClient (XML-RPC)
   participant X as XmlRpcProxy
   App->>DP: set_value(v)
   DP->>Dev: delegate
@@ -182,8 +182,8 @@ sequenceDiagram
   - AioXmlRpcProxy, supported methods, async request handling
 - JSON-RPC client: aiohomematic/client/json_rpc.py
   - JsonRpcAioHttpClient, login/session, methods, conversions
-- Client: aiohomematic/client/**init**.py
-  - ClientCCU, ClientHomegear, ClientJsonCCU
+- Client: aiohomematic/client/interface_client.py and aiohomematic/client/backends/
+  - InterfaceClient (unified client), CcuBackend, JsonCcuBackend, HomegearBackend
 - Model and updates: aiohomematic/model/device.py and subpackages
   - Device/Channel, DataPoint types, value cache, update flow
 - Events: aiohomematic/model/event.py

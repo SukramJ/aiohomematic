@@ -29,9 +29,12 @@ graph TB
         end
 
         subgraph Client["Client Layer"]
-            CCCU[ClientCCU]
-            CJSON[ClientJsonCCU]
-            CHG[ClientHomegear]
+            IC[InterfaceClient]
+            subgraph Backends["Backends"]
+                CCUB[CcuBackend]
+                JSONB[JsonCcuBackend]
+                HGB[HomegearBackend]
+            end
         end
 
         subgraph Store["Store Layer"]
@@ -52,15 +55,16 @@ graph TB
     CU --> DC
     CU --> EC
     CU --> HC
-    CC --> CCCU
-    CC --> CJSON
-    CC --> CHG
+    CC --> IC
+    IC --> CCUB
+    IC --> JSONB
+    IC --> HGB
     DC --> DEV
     DEV --> CH
     CH --> DP
-    CCCU --> CCU
-    CJSON --> CCU
-    CHG --> CCU
+    CCUB --> CCU
+    JSONB --> CCU
+    HGB --> CCU
     CU --> PERS
     CU --> DYN
     CU --> VIS
@@ -71,7 +75,7 @@ graph TB
 ## Top-level components
 
 - Central (aiohomematic/central): Orchestrates the whole system. Manages client lifecycles, creates devices and data points, runs a lightweight scheduler, exposes the local XML-RPC callback server for events, and provides a query facade over the runtime model and caches. The central is created via CentralConfig and realized by CentralUnit.
-- Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear). Clients abstract XML-RPC and JSON-RPC calls, maintain connection health, and translate high-level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Concrete types: ClientCCU, ClientJsonCCU, ClientHomegear. A client belongs to one Interface (BidCos-RF, HmIP, etc.).
+- Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear) using the **Backend Strategy Pattern**. The unified `InterfaceClient` abstracts XML-RPC and JSON-RPC calls, maintains connection health, and translates high-level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Backends: `CcuBackend` (CCU3/CCU2 via XML-RPC + JSON-RPC), `JsonCcuBackend` (CUxD/CCU-Jack via JSON-RPC only), `HomegearBackend` (Homegear/pydevccu via XML-RPC). A client belongs to one Interface (BidCos-RF, HmIP, etc.).
 - Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device-specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
 - Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values. Organized into subpackages:
   - persistent/: DeviceDescriptionRegistry and ParamsetDescriptionRegistry store descriptions on disk between runs. IncidentStore persists diagnostic incidents for post-mortem analysis. SessionRecorder captures RPC sessions for testing.
@@ -250,7 +254,7 @@ These protocols use `@runtime_checkable` and structural subtyping, allowing Cent
 - XML-RPC
   - Used primarily for event callbacks and many CCU operations. Client uses XmlRpcProxy to issue method calls to the backend. The local xml_rpc_server exposes endpoints for the backend’s event callbacks.
 - JSON-RPC
-  - Optional, when the backend provides a JSON API. ClientCCU/ClientJsonCCU routes some operations through JsonRpcAioHttpClient. Choice of backend per interface is encapsulated by the concrete Client type.
+  - Optional, when the backend provides a JSON API. InterfaceClient with CcuBackend or JsonCcuBackend routes some operations through JsonRpcAioHttpClient. Choice of backend per interface is encapsulated by the Backend Strategy.
 
 ## Caching strategy
 

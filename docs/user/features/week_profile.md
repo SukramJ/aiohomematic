@@ -125,21 +125,21 @@ data:
 Copy schedules between devices or profiles:
 
 ```yaml
-# Copy complete schedule (all profiles) to another device
+# Copy complete schedule (all profiles) from source to target device
 action: homematicip_local.copy_schedule
 target:
-  entity_id: climate.source_thermostat
+  entity_id: climate.target_thermostat
 data:
-  target_entity_id: climate.target_thermostat
+  source_entity_id: climate.source_thermostat
 
 # Copy single profile (within same device or to another)
 action: homematicip_local.copy_schedule_profile
 target:
-  entity_id: climate.living_room_thermostat
+  entity_id: climate.target_thermostat
 data:
+  source_entity_id: climate.source_thermostat  # Optional: omit if copying within same device
   source_profile: P1
   target_profile: P2
-  # Optional: target_entity_id for copying to another device
 ```
 
 ## Common Schedules

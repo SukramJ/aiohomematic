@@ -37,6 +37,20 @@ This approach allows us to thoroughly test new architectures in real-world envir
 
 ---
 
+## How to Access Optional Settings
+
+To enable or disable experimental features:
+
+1. Go to **Settings** → **Devices & Services**
+2. Find **Homematic(IP) Local** and click on it
+3. Click **Configure**
+4. Navigate to the **Advanced** configuration page
+5. Look for the **Optional Settings** section
+6. Enable the desired settings
+7. Restart Home Assistant for changes to take effect
+
+---
+
 ## Available Settings
 
 ### Developer/Debugging Settings
@@ -104,7 +118,7 @@ After adding this, restart Home Assistant and check the logs under **Settings** 
 
 ### Where to Report
 
-- **GitHub Issues**: https://github.com/SukramJ/hahomematic/issues
+- **GitHub Issues**: https://github.com/sukramj/aiohomematic/issues
 - Use the tag `experimental-feature` when reporting
 
 ---

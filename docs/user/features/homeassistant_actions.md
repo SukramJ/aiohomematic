@@ -229,6 +229,29 @@ Copies a single schedule profile from one device to another (or to a different p
 - Copy P1 from Device A to P1 on Device B
 - Copy P3 from Device A to P1 on Device B
 
+### Raw Schedule Operations
+
+The following actions work with the raw 13-slot schedule format used internally by Homematic devices. For most users, the simplified format above is easier to use.
+
+#### homematicip_local.get_schedule_profile
+
+Returns the complete schedule of a climate profile in raw format (all 13 slots per weekday).
+
+#### homematicip_local.get_schedule_weekday
+
+Returns the schedule for a specific weekday in raw format.
+
+#### homematicip_local.set_schedule_profile
+
+Sets the complete schedule for a climate profile using raw format.
+
+!!! warning "Advanced Use"
+The raw format requires all 13 time slots per weekday. Consider using `set_schedule_simple_profile` instead.
+
+#### homematicip_local.set_schedule_weekday
+
+Sets the schedule for a specific weekday using raw format.
+
 ---
 
 ## Climate Away Mode
@@ -361,16 +384,42 @@ Set on time for a valve entity. Must be followed by `valve.open`. Use 0 to reset
 
 ### homematicip_local.send_text_display
 
-Send text to a text display entity.
+Send text to a notify entity (text display devices like HmIP-WRCD).
 
-| Field       | Required | Description            |
-| ----------- | -------- | ---------------------- |
-| `entity_id` | Yes      | Text display entity ID |
-| `text`      | Yes      | Text to display        |
+| Field              | Required | Description                                                                                                                                        |
+| ------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entity_id`        | Yes      | Notify entity ID (domain: `notify`)                                                                                                                |
+| `text`             | Yes      | Text to display                                                                                                                                    |
+| `icon`             | No       | Display icon (see options below)                                                                                                                   |
+| `background_color` | No       | Background color: `white`, `black`                                                                                                                 |
+| `text_color`       | No       | Text color: `white`, `black`                                                                                                                       |
+| `alignment`        | No       | Text alignment: `left`, `center`, `right`                                                                                                          |
+| `display_id`       | No       | Display ID (1-5) for multi-display devices                                                                                                         |
+| `sound`            | No       | Sound: `disarmed`, `externally_armed`, `internally_armed`, `delayed_externally_armed`, `delayed_internally_armed`, `event`, `error`, `low_battery` |
+| `repeat`           | No       | Repeat count (0-15)                                                                                                                                |
+
+**Available icons:**
+
+`no_icon`, `sun`, `moon`, `cloud`, `cloud_and_sun`, `cloud_and_mooon`, `cloud_sun_and_rain`, `rain`, `raindrop`, `drizzle`, `snow`, `snowflake`, `wind`, `thunderstorm`, `bell`, `clock`, `eco`, `flame`, `lamp_on`, `lamp_off`, `padlock_open`, `padlock_closed`, `error`, `everything_okay`, `information`, `new_message`, `service_message`, `shutters`, `window_open`, `external_protection`, `internal_protection`, `protection_deactivated`
+
+**Example:**
+
+```yaml
+action: homematicip_local.send_text_display
+target:
+  entity_id: notify.display_living_room
+data:
+  text: "Hello World"
+  icon: sun
+  background_color: white
+  text_color: black
+  alignment: center
+  sound: event
+```
 
 ### homematicip_local.clear_text_display
 
-Clear text on a text display entity.
+Clear text on a notify entity (text display).
 
 ---
 
@@ -470,7 +519,7 @@ Update entity value (limited to once per 60 seconds).
     - Battery devices: Values from backend cache
     - Non-battery devices: Values from device (impacts duty cycle)
 
-### homeassistant.update_device_firmware_data
+### homematicip_local.update_device_firmware_data
 
 Update firmware data for all devices.
 

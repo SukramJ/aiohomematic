@@ -12,11 +12,10 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 
 ## Goals (Mandatory)
 
-| Goal                        | Status     | Verification                                  |
-| --------------------------- | ---------- | --------------------------------------------- |
-| **100% Compatible**         | ✅ Phase 1 | All existing tests pass with feature flag OFF |
-| **100% Functionality**      | ✅ Phase 2 | Comparison tests verify identical results     |
-| **Feature Flag Switchable** | ✅ Phase 1 | `USE_INTERFACE_CLIENT` toggles implementation |
+| Goal                   | Status     | Verification                              |
+| ---------------------- | ---------- | ----------------------------------------- |
+| **100% Compatible**    | ✅ Phase 1 | All existing tests pass                   |
+| **100% Functionality** | ✅ Phase 2 | Comparison tests verify identical results |
 
 ---
 
@@ -47,8 +46,8 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 
 | File                 | Status | Notes                                       |
 | -------------------- | ------ | ------------------------------------------- |
-| `const.py`           | ✅     | USE_INTERFACE_CLIENT in OptionalSettings    |
-| `client/__init__.py` | ✅     | create_client() with feature flag switching |
+| `const.py`           | ✅     | Interface constants and enums               |
+| `client/__init__.py` | ✅     | create_client() factory for InterfaceClient |
 
 ---
 
@@ -236,30 +235,30 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 ┌─────────────────────────────────────────────────────────────┐
 │                     ClientProtocol                          │
 └─────────────────────────────────────────────────────────────┘
-              ▲                              ▲
-              │                              │
-┌─────────────┴─────────────┐  ┌────────────┴────────────────┐
-│  Legacy Clients            │  │  InterfaceClient (New)      │
-│  ├── ClientCCU             │  │                             │
-│  ├── ClientJsonCCU         │  │  Business Logic:            │
-│  └── ClientHomegear        │  │  ├── Validation ✅          │
-│                            │  │  ├── Temporary values ✅    │
-│  Uses: Handlers            │  │  ├── Coalescing ✅          │
-│  (50+ transport refs)      │  │  ├── Master polling ✅      │
-│                            │  │  └── Callback waiting ✅    │
-│  To be removed Phase 5     │  │                             │
-│                            │  │  Transport: Backend         │
-└────────────────────────────┘  └─────────────────────────────┘
-              │                              │
-              └──────────┬───────────────────┘
-                         │ USE_INTERFACE_CLIENT
-                         ▼
-              ┌──────────────────────┐
-              │   create_client()    │
-              └──────────────────────┘
+                              ▲
+                              │
+              ┌───────────────┴───────────────┐
+              │      InterfaceClient          │
+              │                               │
+              │  Business Logic:              │
+              │  ├── Validation ✅            │
+              │  ├── Temporary values ✅      │
+              │  ├── Coalescing ✅            │
+              │  ├── Master polling ✅        │
+              │  └── Callback waiting ✅      │
+              │                               │
+              │  Transport: Backend Strategy  │
+              └───────────────┬───────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+┌───────▼───────┐     ┌───────▼───────┐     ┌───────▼───────┐
+│  CcuBackend   │     │JsonCcuBackend │     │HomegearBackend│
+│  (XML+JSON)   │     │  (JSON only)  │     │  (XML-RPC)    │
+└───────────────┘     └───────────────┘     └───────────────┘
 ```
 
-**Key Decision**: Handlers are NOT reused. Business logic migrates from handlers into InterfaceClient. Backends contain transport logic ONLY.
+**Key Decision**: InterfaceClient is the unified client implementation. Backends contain transport logic ONLY and are selected via the Backend Strategy Pattern.
 
 ---
 
@@ -294,7 +293,6 @@ Implementation of InterfaceClient with Backend Strategy Pattern.
 
 ### Future: Phase 5 (Code Cleanup)
 
-1. [ ] Remove legacy client code (ClientCCU, ClientJsonCCU, ClientHomegear)
-2. [ ] Remove legacy handlers that are no longer needed
-3. [ ] Restore test coverage threshold from 80% to 85% in `pyproject.toml`
-4. [ ] Remove feature flag `USE_INTERFACE_CLIENT` (InterfaceClient becomes default)
+1. [ ] Remove any remaining legacy code if present
+2. [ ] Restore test coverage threshold from 80% to 85% in `pyproject.toml`
+3. [ ] Final documentation updates

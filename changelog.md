@@ -11,6 +11,9 @@
 
 ### Fixed
 
+- **OperatingVoltageLevel**: Use user-configured `LOW_BAT_LIMIT` value instead of default for battery percentage calculation. This fixes incorrect battery readings when users have customized the low battery threshold (regression from #2281)
+- **OperatingVoltageLevel**: Return `None` instead of clamped value when `voltage_max <= low_bat_limit` (invalid configuration)
+- **OperatingVoltageLevel**: Ensure `calculate_operating_voltage_level` always returns `float` (0.0/100.0) instead of `int` (0/100)
 - **Documentation**: Corrected client architecture references across all docs - replaced non-existent `ClientCCU`/`ClientJsonCCU`/`ClientHomegear` classes with correct `InterfaceClient` + Backend Strategy pattern (`CcuBackend`, `JsonCcuBackend`, `HomegearBackend`)
 - **Documentation**: Fixed `HeartbeatTimerFiredEvent` key from `interface_id` to `central_name` in event reference
 - **Documentation**: Added missing `RecoveryAttemptedEvent` field documentation (`max_attempts`, `stage_reached`, `success`, `error_message`)

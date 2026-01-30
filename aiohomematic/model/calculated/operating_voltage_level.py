@@ -93,12 +93,11 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
 
     @property
     def _low_bat_limit(self) -> float | None:
-        """Return the min value."""
-        return (
-            float(self._dp_low_bat_limit.value)
-            if self._dp_low_bat_limit is not None and self._dp_low_bat_limit.value is not None
-            else None
-        )
+        """Return the low battery limit (user-configured value, fallback to default)."""
+        if self._dp_low_bat_limit.value is not None:
+            return float(self._dp_low_bat_limit.value)
+        # Fallback to default if no user-configured value
+        return self._low_bat_limit_default
 
     @state_property
     def additional_information(self) -> dict[str, Any]:
@@ -122,7 +121,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT])
         try:
             return calculate_operating_voltage_level(
                 operating_voltage=self._dp_operating_voltage.value,
-                low_bat_limit=self._low_bat_limit_default,
+                low_bat_limit=self._low_bat_limit,
                 voltage_max=self._voltage_max,
             )
         except Exception as exc:

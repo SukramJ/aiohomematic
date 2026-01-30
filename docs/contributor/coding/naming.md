@@ -2,16 +2,16 @@
 
 This is a description how naming is handled in AIO Homematic, there are additional rules applied for HA entities and devices.
 
-This document explains how human‑readable names are constructed for devices, channels, data points (including events and custom data points), and when unique IDs are used as a fallback.
+This document explains how human-readable names are constructed for devices, channels, data points (including events and custom data points), and when unique IDs are used as a fallback.
 
-The logic lives primarily in `aiohomematic/model/support.py` and relies on names stored in the CCU (device and channel names) plus some auto‑generation helpers when no explicit names are available.
+The logic lives primarily in `aiohomematic/model/support.py` and relies on names stored in the CCU (device and channel names) plus some auto-generation helpers when no explicit names are available.
 
 ## Terminology
 
 > For a complete terminology reference, see the [Glossary](../../reference/glossary.md).
 
-- Device: The physical device (e.g., HmIP‑BROLL) identified by a device address (e.g., `000A1B2C3D4E00`).
-- Channel: A sub‑unit of a device identified by a channel address (e.g., `000A1B2C3D4E00:1`). Channels may have a user‑editable name in the CCU.
+- Device: The physical device (e.g., HmIP-BROLL) identified by a device address (e.g., `000A1B2C3D4E00`).
+- Channel: A sub-unit of a device identified by a channel address (e.g., `000A1B2C3D4E00:1`). Channels may have a user-editable name in the CCU.
 - Data point: A parameter on a channel (e.g., `LEVEL`, `STATE`). These become entities in upper layers.
 - Address separator: `:` used between device address and channel number.
 
@@ -20,12 +20,12 @@ The logic lives primarily in `aiohomematic/model/support.py` and relies on names
 Function: `get_device_name(central, device_address, model)`
 
 - If a custom name was set in the CCU for the device address, that name is used.
-- Otherwise, an auto‑generated name is returned: `<model>_<device_address>`.
+- Otherwise, an auto-generated name is returned: `<model>_<device_address>`.
 
 Examples:
 
 - CCU has a name: `"Livingroom Blind Controller"` → returned as is.
-- No CCU name: model `HmIP‑BROLL`, address `000A1B2C3D4E00` → `HmIP‑BROLL_000A1B2C3D4E00`.
+- No CCU name: model `HmIP-BROLL`, address `000A1B2C3D4E00` → `HmIP-BROLL_000A1B2C3D4E00`.
 
 ## Channel names
 
@@ -46,7 +46,7 @@ The returned `ChannelNameData` contains:
 Examples:
 
 - CCU channel name: `"Livingroom Blind Controller:1"` → `device_name="Livingroom Blind Controller"`, `channel_name=":1"`, `full_name="Livingroom Blind Controller :1"`.
-- No CCU channel name: device name `HmIP‑BROLL_...` and channel 1 → base `HmIP‑BROLL_...:1`, which yields the same fields as above.
+- No CCU channel name: device name `HmIP-BROLL_...` and channel 1 → base `HmIP-BROLL_...:1`, which yields the same fields as above.
 
 Note about channel number detection:
 
@@ -57,8 +57,8 @@ Note about channel number detection:
 Function: `get_data_point_name_data(channel, parameter)`
 Steps:
 
-1. Resolve a `channel_name` via `_get_base_name_from_channel_or_device` as described above. If there is none, we cannot construct a human‑readable name and fall back to unique IDs elsewhere.
-2. Build a human‑friendly parameter name: `parameter.title().replace("_", " ")` (e.g., `LEVEL` → `Level`, `WINDOW_STATE` → `Window State`).
+1. Resolve a `channel_name` via `_get_base_name_from_channel_or_device` as described above. If there is none, we cannot construct a human-readable name and fall back to unique IDs elsewhere.
+2. Build a human-friendly parameter name: `parameter.title().replace("_", " ")` (e.g., `LEVEL` → `Level`, `WINDOW_STATE` → `Window State`).
 3. If the channel name includes a numeric channel suffix (`<something>:<int>`):
    - Use the part before `:` as the channel base (`c_name`).
    - When the same parameter exists on multiple channels of the device, append a channel marker to the parameter: `" ch<channel_no>"` (omitted for channel 0 or `None`). Determination uses `central.paramset_descriptions.is_in_multiple_channels(...)`.
@@ -71,14 +71,14 @@ Steps:
 
 Examples:
 
-- Channel name `"Livingroom Blind Controller:1"`, parameter `LEVEL` → `name="Livingroom Blind Controller Level ch1"`, `full_name="Livingroom Blind Controller Livingroom Blind Controller Level ch1"` after de‑duplication yields `"Livingroom Blind Controller Level ch1"`.
+- Channel name `"Livingroom Blind Controller:1"`, parameter `LEVEL` → `name="Livingroom Blind Controller Level ch1"`, `full_name="Livingroom Blind Controller Livingroom Blind Controller Level ch1"` after de-duplication yields `"Livingroom Blind Controller Level ch1"`.
 - Channel name `"Window Contact"`, parameter `STATE` → `name="Window Contact State"`.
 
 ## Event names
 
 Function: `get_event_name(channel, parameter)`
 
-- Similar to `get_data_point_name_data`, but when a numeric channel suffix is present, the channel part in the name becomes just `" ch<channel_no>"` (or empty for channel 0/None), followed by the human‑friendly parameter name.
+- Similar to `get_data_point_name_data`, but when a numeric channel suffix is present, the channel part in the name becomes just `" ch<channel_no>"` (or empty for channel 0/None), followed by the human-friendly parameter name.
 - Otherwise the full channel name plus parameter is used.
 
 ## Custom data point names
@@ -109,7 +109,7 @@ Rules for IDs:
 
 - `:` and `-` are replaced with `_`.
 - Optional `parameter` and `prefix` are appended with underscore separators.
-- For CCU‑internal addresses (`PROGRAM`, `SYSVAR`, `INT000...`, or virtual remote addresses), the central ID is prepended to ensure global uniqueness.
+- For CCU-internal addresses (`PROGRAM`, `SYSVAR`, `INT000...`, or virtual remote addresses), the central ID is prepended to ensure global uniqueness.
 - IDs are always returned in lowercase.
 
 ## Worked examples

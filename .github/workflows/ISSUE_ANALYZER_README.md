@@ -83,7 +83,7 @@ To help you better, the following information is missing:
 
 The following documentation pages might be helpful:
 
-- [troubleshooting](https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md)
+- [troubleshooting](https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/)
   _Contains solutions for common connection problems_
 
 ### Similar Issues and Discussions
@@ -103,13 +103,13 @@ _This analysis was generated automatically. For questions or problems, please us
 
 The available documentation links are defined in `.github/scripts/analyze_issue.py`.
 
-> **Note:** These links use `blob/devel` because they are used in GitHub issue comments, which require absolute URLs. The `devel` branch contains the latest documentation.
+> **Note:** These links point to the deployed documentation site at `sukramj.github.io/aiohomematic/` which is built from the `devel` branch.
 
 ```python
 DOCS_LINKS = {
-    "main_readme": "https://github.com/SukramJ/aiohomematic/blob/devel/README.md",
+    "main_readme": "https://sukramj.github.io/aiohomematic/",
     "homematicip_local_readme": "https://github.com/sukramj/homematicip_local#homematicip_local",
-    "troubleshooting": "https://github.com/SukramJ/aiohomematic/blob/devel/docs/homeassistant_troubleshooting.md",
+    "troubleshooting": "https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/",
     # ... more links
 }
 ```

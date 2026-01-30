@@ -68,24 +68,27 @@ asyncio.run(main())
 
 ## Documentation Overview
 
-### For Users
+### For Users (Home Assistant)
 
-- [Getting Started](getting_started.md) - Installation and first steps
+- [User Guide](user/homeassistant_integration.md) - Complete integration guide
+- [Troubleshooting](troubleshooting/index.md) - Common issues and solutions
+- [FAQ](faq.md) - Frequently asked questions
 - [Glossary](reference/glossary.md) - Terminology reference
-- [Troubleshooting](user/troubleshooting/homeassistant_troubleshooting.md) - Common issues and solutions
 
-### For Developers
+### For Developers (Library Usage)
 
+- [Quick Start](quickstart.md) - Get running in 5 minutes
+- [Getting Started](getting_started.md) - Detailed setup guide
+- [Consumer API](developer/consumer_api.md) - API patterns for integrations
+- [API Reference](reference/api/index.md) - Auto-generated API docs
 - [Architecture](architecture.md) - System design overview
-- [Extension Points](developer/extension_points.md) - How to add device support
-- [Consumer API](developer/consumer_api.md) - API reference for integrations
-- [Event System](architecture/events/event_bus.md) - Event handling patterns
 
 ### For Contributors
 
-- [Docstring Standards](contributor/coding/docstring_standards.md) - Code documentation guidelines
-- [Naming Conventions](contributor/coding/naming.md) - Naming patterns and rules
+- [Contributing](contributor/contributing.md) - How to contribute
+- [Coding Standards](contributor/coding/naming.md) - Naming and style conventions
 - [ADRs](adr/0001-circuit-breaker-and-connection-state.md) - Architecture decisions
+- [Changelog](changelog.md) - Version history
 
 ## Supported Devices
 
@@ -103,24 +106,37 @@ aiohomematic supports a wide range of Homematic and HomematicIP devices:
 
 For a complete list, see the [Extension Points](developer/extension_points.md) documentation.
 
-## Integration with Home Assistant
+## Two Projects, One Ecosystem
 
-aiohomematic is designed to work seamlessly with the **Homematic(IP) Local** integration:
+This documentation covers **two related but separate projects**:
+
+| Project                 | Type           | Purpose                               | Repository                                                        |
+| ----------------------- | -------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| **aiohomematic**        | Python Library | Protocol implementation, device model | [aiohomematic](https://github.com/sukramj/aiohomematic)           |
+| **Homematic(IP) Local** | HA Integration | Home Assistant entities, UI, services | [homematicip_local](https://github.com/sukramj/homematicip_local) |
+
+### Which documentation do I need?
+
+- **Home Assistant user?** → Start with the [User Guide](user/homeassistant_integration.md)
+- **Building a Python application?** → See [Quick Start](quickstart.md) and [Consumer API](developer/consumer_api.md)
+- **Contributing code?** → Check the [Contributor Guide](contributor/contributing.md)
+
+### Architecture Overview
 
 ```
 Home Assistant
      │
      ▼
-Homematic(IP) Local Integration
+Homematic(IP) Local Integration    ← HA-specific: entities, services, UI
      │
      ▼
-aiohomematic Library
+aiohomematic Library               ← Standalone: protocol, devices, events
      │
      ▼
-CCU3 / RaspberryMatic / Homegear
+CCU3 / OpenCCU / Homegear          ← Backend hardware/software
      │
      ▼
-Homematic Devices
+Homematic Devices                  ← Physical devices
 ```
 
 See [Home Assistant Lifecycle](developer/homeassistant_lifecycle.md) for detailed integration flow.

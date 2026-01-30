@@ -43,7 +43,7 @@ aiohomematic uses a type-safe, async-first EventBus for decoupled event handling
 | `RecoveryAttemptedEvent`          | Recovery        | `interface_id`    | Recovery attempt started            |
 | `RecoveryCompletedEvent`          | Recovery        | `interface_id`    | Recovery completed successfully     |
 | `RecoveryFailedEvent`             | Recovery        | `interface_id`    | Recovery failed                     |
-| `HeartbeatTimerFiredEvent`        | Recovery        | `interface_id`    | Heartbeat timer triggered           |
+| `HeartbeatTimerFiredEvent`        | Recovery        | `central_name`    | Heartbeat timer triggered           |
 | `DataFetchCompletedEvent`         | Data            | `interface_id`    | Data fetch operation completed      |
 | `SystemStatusChangedEvent`        | Integration     | `None`            | System status (HA)                  |
 | `DeviceLifecycleEvent`            | Integration     | `None`            | Device lifecycle (HA)               |
@@ -611,6 +611,26 @@ from aiohomematic.central.events import RecoveryStageChangedEvent
 | `interface_id` | `str`      | Interface identifier       |
 | `old_stage`    | `str`      | Previous recovery stage    |
 | `new_stage`    | `str`      | New recovery stage         |
+
+**Key:** `interface_id`
+
+### RecoveryAttemptedEvent
+
+Fired after each recovery attempt, regardless of success or failure.
+
+```python
+from aiohomematic.central.events import RecoveryAttemptedEvent
+```
+
+| Field            | Type            | Description                     |
+| ---------------- | --------------- | ------------------------------- |
+| `timestamp`      | `datetime`      | When the event was created      |
+| `interface_id`   | `str`           | Interface identifier            |
+| `attempt_number` | `int`           | Current attempt number          |
+| `max_attempts`   | `int`           | Maximum number of attempts      |
+| `stage_reached`  | `RecoveryStage` | Stage reached during attempt    |
+| `success`        | `bool`          | Whether the attempt succeeded   |
+| `error_message`  | `str \| None`   | Error message if attempt failed |
 
 **Key:** `interface_id`
 

@@ -87,7 +87,7 @@ class IncidentRecorderProtocol(Protocol):
 | `CONNECTION_LOST`           | ERROR    | ConnectionRecoveryCoordinator            | Connection to backend lost             |
 | `CONNECTION_RESTORED`       | INFO     | ConnectionRecoveryCoordinator            | Connection to backend restored         |
 | `RPC_ERROR`                 | ERROR    | AioXmlRpcProxy / AioJsonRpcAioHttpClient | RPC call failed                        |
-| `CALLBACK_TIMEOUT`          | WARNING  | ClientCCU                                | Callback from backend timed out        |
+| `CALLBACK_TIMEOUT`          | WARNING  | InterfaceClient                          | Callback from backend timed out        |
 
 ## Incident Data Structure
 

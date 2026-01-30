@@ -238,9 +238,9 @@ The CCU WebUI may display device status differently than Home Assistant. However
 
 If you prefer to have devices remain available in Home Assistant despite UNREACH events (similar to how some interpret the CCU WebUI behavior), you have two options:
 
-1. **Service call**: Use the `homematicip_local.force_device_availability` service to manually force a device to be marked as available. See the [integration documentation](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#homematicip_localforce_device_availability) for details.
+1. **Service call**: Use the `homematicip_local.force_device_availability` service to manually force a device to be marked as available. See the [Actions Reference](../features/homeassistant_actions.md#homematicip_localforce_device_availability) for details.
 
-2. **Automation with Blueprint**: Use the "Reactivate" blueprints to automatically restore device availability after UNREACH events. These blueprints monitor for UNREACH events and automatically call the force availability service. See the [Reactivate Blueprints](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#blueprints) in the integration documentation.
+2. **Automation with Blueprint**: Use the "Reactivate" blueprints to automatically restore device availability after UNREACH events. These blueprints monitor for UNREACH events and automatically call the force availability service. See the [Blueprints](https://github.com/SukramJ/homematicip_local#blueprints) in the integration repository.
 
 **Note:** Using these options means Home Assistant will show the device as available even when communication with the CCU is impaired. Use with caution, as this may hide actual device problems.
 
@@ -399,7 +399,7 @@ aiohomematic caches device descriptions and parameter information for faster sta
 2. **Restart Home Assistant** after clearing the cache
 3. This forces a fresh discovery of all devices and their parameters
 
-See the [integration documentation](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#homematicip_localclear_cache) for more details about the clear_cache service.
+See the [Actions Reference](../features/homeassistant_actions.md#homematicip_localclear_cache) for more details about the clear_cache service.
 
 ### I) Unifi Firewall alerts: "ET EXPLOIT HTTP POST with Common Ruby RCE Technique in Body"
 
@@ -791,5 +791,5 @@ When reporting issues on GitHub, include the following information to help with 
 - [Lifecycle documentation](../../developer/homeassistant_lifecycle.md) - Understand how devices and data points are managed
 - [aiohomematic on GitHub](https://github.com/sukramj/aiohomematic) - Library repository
 - [Integration repository](https://github.com/SukramJ/homematicip_local) - Homematic(IP) Local integration for Home Assistant
-- [Integration documentation](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#services) - Available services and their usage
-- [Blueprints](https://github.com/SukramJ/homematicip_local?tab=readme-ov-file#blueprints) - Automation blueprints including Reactivate
+- [Actions Reference](../features/homeassistant_actions.md) - Available actions and their usage
+- [Blueprints](https://github.com/SukramJ/homematicip_local#blueprints) - Automation blueprints including Reactivate

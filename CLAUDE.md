@@ -192,16 +192,26 @@ python-slugify>=8.0.0   # URL-safe string conversion
 │   │       ├── bus.py              # EventBus and event types
 │   │       └── integration.py      # Integration events for HA
 │   │
-│   ├── client/                      # Protocol adapters (9 files)
+│   ├── client/                      # Protocol adapters (15 files)
 │   │   ├── __init__.py             # Package facade and factory functions
-│   │   ├── ccu.py                  # ClientCCU, ClientJsonCCU, ClientHomegear, ClientConfig
+│   │   ├── interface_client.py     # InterfaceClient (unified client using Backend Strategy)
+│   │   ├── client_factory.py       # ClientConfig for client creation
 │   │   ├── config.py               # InterfaceConfig
 │   │   ├── json_rpc.py             # JSON-RPC implementation
 │   │   ├── rpc_proxy.py            # XML-RPC proxy wrapper
 │   │   ├── _rpc_errors.py          # RPC error handling
 │   │   ├── state_machine.py        # Client state machine
 │   │   ├── circuit_breaker.py      # Connection circuit breaker
-│   │   └── request_coalescer.py    # Request deduplication
+│   │   ├── request_coalescer.py    # Request deduplication
+│   │   └── backends/               # Backend Strategy implementations
+│   │       ├── __init__.py         # Backend exports
+│   │       ├── protocol.py         # BackendOperationsProtocol
+│   │       ├── base.py             # BaseBackend abstract class
+│   │       ├── capabilities.py     # BackendCapabilities dataclass
+│   │       ├── factory.py          # create_backend() factory
+│   │       ├── ccu.py              # CcuBackend (XML-RPC + JSON-RPC)
+│   │       ├── json_ccu.py         # JsonCcuBackend (JSON-RPC only, for CUxD/CCU-Jack)
+│   │       └── homegear.py         # HomegearBackend (XML-RPC)
 │   │
 │   ├── model/                       # Domain model (43 files, ~13.8K LOC)
 │   │   ├── custom/                 # Device-specific implementations
@@ -605,9 +615,8 @@ ruff format --check
 
 #### Documentation Resources
 
-- **[docs/docstring_standards.md](docs/docstring_standards.md)** - Complete docstring style guide with rules, patterns, and anti-patterns
-- **[docs/docstring_templates.md](docs/docstring_templates.md)** - Ready-to-use templates for common code patterns
-- **[docs/docstring_audit.md](docs/docstring_audit.md)** - Module categorization and improvement roadmap
+- **[docs/contributor/coding/docstring_standards.md](docs/contributor/coding/docstring_standards.md)** - Complete docstring style guide with rules, patterns, and anti-patterns
+- **[docs/contributor/coding/docstring_templates.md](docs/contributor/coding/docstring_templates.md)** - Ready-to-use templates for common code patterns
 
 #### Key Principles
 
@@ -908,7 +917,7 @@ For **CUxD** and **CCU-Jack** interfaces:
 
 #### Callback Alive Check - Capability-Based Handling
 
-The `is_callback_alive()` method in `aiohomematic/client/ccu.py` and `aiohomematic/client/interface_client.py` performs connection health checks:
+The `is_callback_alive()` method in `aiohomematic/client/interface_client.py` performs connection health checks:
 
 ```python
 def is_callback_alive(self) -> bool:
@@ -924,7 +933,7 @@ def is_callback_alive(self) -> bool:
 
 CUxD and CCU-Jack require **two** safeguards because they receive events via MQTT (through Homematic(IP) Local) but lack ping/pong support:
 
-1. **ClientJsonCCU** is used (determined by `INTERFACES_REQUIRING_JSON_RPC_CLIENT`)
+1. **JsonCcuBackend** is used (determined by `INTERFACES_REQUIRING_JSON_RPC_CLIENT`)
 2. **JSON_CCU_CAPABILITIES** has `ping_pong=False` by design
 3. **Homematic(IP) Local override**: Since MQTT provides push updates, the integration may set `interfaces_requiring_periodic_refresh = frozenset()` (empty), causing `push_updates=True` for CUxD/CCU-Jack
 4. **Two methods check callback health**:
@@ -1043,12 +1052,14 @@ await central.stop()
 - Implements XML-RPC and JSON-RPC communication
 - Maintains connection health
 - Translates high-level operations to backend requests
+- Uses **Backend Strategy Pattern** for different backend types
 
 **Key Types**:
 
-- `ClientCCU` - CCU3/CCU2 via XML-RPC
-- `ClientJsonCCU` - CCU via JSON-RPC
-- `ClientHomegear` - Homegear backend
+- `InterfaceClient` - Unified client class that delegates to backends
+- `CcuBackend` - Backend for CCU3/CCU2 (XML-RPC + JSON-RPC)
+- `JsonCcuBackend` - Backend for CUxD/CCU-Jack (JSON-RPC only)
+- `HomegearBackend` - Backend for Homegear/pydevccu (XML-RPC)
 
 #### 3. Model (aiohomematic/model/)
 
@@ -1958,18 +1969,17 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 
 ### Documentation Files
 
-| File                              | Purpose                           |
-| --------------------------------- | --------------------------------- |
-| `README.md`                       | Project overview, quickstart      |
-| `changelog.md`                    | Release history                   |
-| `docs/architecture.md`            | Architecture overview             |
-| `docs/data_flow.md`               | Data flow diagrams                |
-| `docs/extension_points.md`        | How to extend the library         |
-| `docs/sequence_diagrams.md`       | Sequence diagrams                 |
-| `docs/homeassistant_lifecycle.md` | Home Assistant integration        |
-| `docs/docstring_standards.md`     | Docstring style guide and rules   |
-| `docs/docstring_templates.md`     | Ready-to-use docstring templates  |
-| `docs/docstring_audit.md`         | Module categorization and roadmap |
+| File                                             | Purpose                          |
+| ------------------------------------------------ | -------------------------------- |
+| `README.md`                                      | Project overview, quickstart     |
+| `changelog.md`                                   | Release history                  |
+| `docs/architecture.md`                           | Architecture overview            |
+| `docs/architecture/data_flow.md`                 | Data flow diagrams               |
+| `docs/architecture/sequence_diagrams.md`         | Sequence diagrams                |
+| `docs/developer/extension_points.md`             | How to extend the library        |
+| `docs/developer/homeassistant_lifecycle.md`      | Home Assistant integration       |
+| `docs/contributor/coding/docstring_standards.md` | Docstring style guide and rules  |
+| `docs/contributor/coding/docstring_templates.md` | Ready-to-use docstring templates |
 
 ### Test Files
 

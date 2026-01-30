@@ -14,7 +14,7 @@ sequenceDiagram
   participant HC as HubCoordinator
   participant XRS as XmlRpcServer (local)
   participant CCU as Backend (CCU/Homegear)
-  participant CX as ClientCCU
+  participant CX as InterfaceClient
   participant SM as ClientStateMachine
   participant H as Handlers
 
@@ -96,7 +96,7 @@ This diagram shows the detailed startup resilience mechanism implemented to hand
 sequenceDiagram
   participant CC as ClientCoordinator
   participant TCP as TCP Check
-  participant CX as ClientCCU
+  participant CX as InterfaceClient
   participant CCU as Backend (CCU/OpenCCU)
   participant SM as ClientStateMachine
 
@@ -214,7 +214,7 @@ sequenceDiagram
   participant CaC as CacheCoordinator
   participant DDC as DeviceDescriptionRegistry
   participant PDC as ParamsetDescriptionRegistry
-  participant CX as ClientCCU
+  participant CX as InterfaceClient
   participant DR as DeviceRegistry
   participant D as Device
   participant DP as DataPoint
@@ -576,33 +576,29 @@ sequenceDiagram
 
 ---
 
-## 6. Handler architecture (specialized client operations)
+## 6. Backend Strategy architecture (specialized client operations)
+
+The client layer uses the **Backend Strategy Pattern** where `InterfaceClient` delegates operations to specialized backend implementations.
 
 ```mermaid
 classDiagram
-  class ClientCCU {
-    -state_machine: ClientStateMachine
-    -device_ops: DeviceOperationsHandler
-    -firmware: FirmwareHandler
-    -link_mgmt: LinkManagementHandler
-    -metadata: MetadataHandler
-    -programs: ProgramHandler
-    -sysvars: SystemVariableHandler
-    -backup: BackupHandler
+  class InterfaceClient {
+    -_backend: BackendOperationsProtocol
+    -_state_machine: ClientStateMachine
+    -_circuit_breaker: CircuitBreaker
     +init_client()
     +initialize_proxy()
+    +get_value()
+    +set_value()
+    +get_paramset()
+    +put_paramset()
   }
 
-  class BaseHandler {
-    #_central: ClientDependencies
-    #_interface: Interface
-    #_interface_id: str
-    #_json_rpc_client
-    #_proxy: BaseRpcProxy
-    #_proxy_read: BaseRpcProxy
-  }
-
-  class DeviceOperationsHandler {
+  class BackendOperationsProtocol {
+    <<protocol>>
+    +interface: Interface
+    +interface_id: str
+    +capabilities: BackendCapabilities
     +fetch_all_device_data()
     +get_value()
     +set_value()
@@ -610,68 +606,79 @@ classDiagram
     +put_paramset()
     +fetch_device_descriptions()
     +fetch_paramset_descriptions()
-  }
-
-  class FirmwareHandler {
     +get_firmware_update_state()
-    +install_device_firmware()
-    +install_system_firmware()
-  }
-
-  class LinkManagementHandler {
-    +get_link_peers()
-    +add_link()
-    +remove_link()
-  }
-
-  class MetadataHandler {
-    +rename_device()
-    +set_device_room()
-    +set_device_function()
-    +set_install_mode()
-    +get_inbox()
-    +accept_device()
-  }
-
-  class ProgramHandler {
-    +get_programs()
     +execute_program()
-    +set_program_active()
-  }
-
-  class SystemVariableHandler {
     +get_system_variables()
-    +set_system_variable()
-    +delete_system_variable()
-  }
-
-  class BackupHandler {
     +create_backup()
-    +download_backup()
   }
 
-  ClientCCU --> DeviceOperationsHandler
-  ClientCCU --> FirmwareHandler
-  ClientCCU --> LinkManagementHandler
-  ClientCCU --> MetadataHandler
-  ClientCCU --> ProgramHandler
-  ClientCCU --> SystemVariableHandler
-  ClientCCU --> BackupHandler
+  class BaseBackend {
+    <<abstract>>
+    #_interface: Interface
+    #_interface_id: str
+    #_capabilities: BackendCapabilities
+    #_json_rpc: JsonRpcAioHttpClient
+  }
 
-  BaseHandler <|-- DeviceOperationsHandler
-  BaseHandler <|-- FirmwareHandler
-  BaseHandler <|-- LinkManagementHandler
-  BaseHandler <|-- MetadataHandler
-  BaseHandler <|-- ProgramHandler
-  BaseHandler <|-- SystemVariableHandler
-  BaseHandler <|-- BackupHandler
+  class CcuBackend {
+    -_proxy: BaseRpcProxy
+    -_proxy_read: BaseRpcProxy
+    +All BackendOperationsProtocol methods
+    Note: XML-RPC + JSON-RPC
+  }
+
+  class JsonCcuBackend {
+    +Limited BackendOperationsProtocol methods
+    Note: JSON-RPC only, for CUxD/CCU-Jack
+  }
+
+  class HomegearBackend {
+    -_proxy: BaseRpcProxy
+    -_proxy_read: BaseRpcProxy
+    +Homegear-specific methods
+    Note: XML-RPC only
+  }
+
+  class BackendCapabilities {
+    +ping_pong: bool
+    +push_updates: bool
+    +rpc_callback: bool
+    +programs: bool
+    +backup: bool
+    +firmware_updates: bool
+  }
+
+  InterfaceClient --> BackendOperationsProtocol : delegates to
+  BackendOperationsProtocol <|.. BaseBackend : implements
+  BaseBackend <|-- CcuBackend
+  BaseBackend <|-- JsonCcuBackend
+  BaseBackend <|-- HomegearBackend
+  CcuBackend --> BackendCapabilities
+  JsonCcuBackend --> BackendCapabilities
+  HomegearBackend --> BackendCapabilities
+```
+
+### Backend Selection (Factory)
+
+The backend is selected at client creation time based on interface type:
+
+```python
+# In aiohomematic/client/backends/factory.py
+async def create_backend(...) -> BackendOperationsProtocol:
+    if interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT:
+        return JsonCcuBackend(...)  # CUxD, CCU-Jack
+    elif "Homegear" in version or "pydevccu" in version:
+        return HomegearBackend(...)
+    else:
+        return CcuBackend(...)  # Default for CCU3/CCU2
 ```
 
 ### Notes
 
-- ClientCCU delegates operations to specialized handler classes for separation of concerns.
-- All handlers extend BaseHandler which provides common dependencies via ClientDependencies protocol.
-- Handlers receive protocol interfaces (not direct CentralUnit references) for decoupled architecture.
+- InterfaceClient is the **only** client class; it delegates all backend-specific operations to the backend.
+- All backends implement `BackendOperationsProtocol` which defines ~50 methods for device, metadata, program, sysvar, and backup operations.
+- `BackendCapabilities` determines which features are available (e.g., JsonCcuBackend has `ping_pong=False`, `programs=False`).
+- Backends receive protocol interfaces (not direct CentralUnit references) for decoupled architecture.
 - Each handler focuses on a specific domain: device ops, firmware, linking, metadata, programs, sysvars, backup.
 
 ---
@@ -682,7 +689,7 @@ classDiagram
 sequenceDiagram
   participant Sched as BackgroundScheduler
   participant CC as ClientCoordinationProtocol
-  participant CX as ClientCCU
+  participant CX as InterfaceClient
   participant SM as ClientStateMachine
   participant Proxy as BaseRpcProxy
   participant CCU as Backend (CCU/Homegear)
@@ -779,7 +786,7 @@ sequenceDiagram
   participant PDC as ParamsetDescriptionRegistry
   participant CDC as CentralDataCache
   participant DDtC as DeviceDetailsCache
-  participant CX as ClientCCU
+  participant CX as InterfaceClient
   participant CCU as Backend
 
   Note over C: Startup - Cache Loading
@@ -903,7 +910,7 @@ sequenceDiagram
   participant DP as CustomDpClimate
   participant WP as WeekProfile
   participant D as Device
-  participant CX as ClientCCU
+  participant CX as InterfaceClient
   participant Proxy as BaseRpcProxy
   participant CCU as Backend
 
@@ -1104,7 +1111,7 @@ should_be_running = all_clients_healthy  # ALL clients must be CONNECTED
 
 ```mermaid
 sequenceDiagram
-    participant Client as ClientCCU
+    participant Client as InterfaceClient
     participant CSM as ClientStateMachine
     participant CB as CircuitBreaker
     participant HT as HealthTracker
@@ -1240,7 +1247,7 @@ sequenceDiagram
     participant RS as RecoveryState
     participant HT as HealthTracker
     participant CSM as CentralStateMachine
-    participant Client as ClientCCU
+    participant Client as InterfaceClient
 
     Note over Sched: Periodic health check
     Sched->>HT: health.failed_clients
@@ -1313,12 +1320,12 @@ flowchart TB
         EB[EventBus]
     end
 
-    subgraph Client1["ClientCCU (HmIP-RF)"]
+    subgraph Client1["InterfaceClient (HmIP-RF)"]
         SM1[ClientStateMachine]
         CB1[CircuitBreaker]
     end
 
-    subgraph Client2["ClientCCU (BidCos-RF)"]
+    subgraph Client2["InterfaceClient (BidCos-RF)"]
         SM2[ClientStateMachine]
         CB2[CircuitBreaker]
     end

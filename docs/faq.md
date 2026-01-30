@@ -52,7 +52,21 @@ aiohomematic is a modern, async Python library for controlling Homematic and Hom
 
 ### Can I use this alongside the official Homematic integration?
 
-Yes, but they use different approaches. The official integration is cloud-based (for HomematicIP Access Points), while Homematic(IP) Local is fully local (for CCU-based setups). You should not configure the same devices in both.
+There are multiple Homematic-related integrations:
+
+| Integration                                                                            | Type        | Backend              | Status          |
+| -------------------------------------------------------------------------------------- | ----------- | -------------------- | --------------- |
+| **[Homematic](https://www.home-assistant.io/integrations/homematic/)**                 | HA Core     | CCU (local)          | ⚠️ Unmaintained |
+| **[HomematicIP Cloud](https://www.home-assistant.io/integrations/homematicip_cloud/)** | HA Core     | Access Point (cloud) | Active          |
+| **Homematic(IP) Local**                                                                | HACS Custom | CCU (local)          | ✅ Active       |
+
+**Why is the Homematic core integration unmaintained?**
+
+The official Homematic integration is based on [pyhomematic](https://github.com/danielperna84/pyhomematic), which is no longer maintained. aiohomematic is the modern successor to pyhomematic, offering async support, better typing, and active development. Since pyhomematic is not being developed further, neither is the Homematic core integration.
+
+**Should I use Homematic or Homematic(IP) Local?**
+
+Use **Homematic(IP) Local**. It offers more features, supports newer devices, and receives regular updates. You should **not** configure the same devices in both integrations simultaneously.
 
 ### Why does the integration need admin credentials?
 

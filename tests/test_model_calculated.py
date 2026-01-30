@@ -172,6 +172,7 @@ class _FakeChannel:
         self.device = _FakeDevice(model=model, address=address.split(":")[0])
         self.address = address
         self.no = int(address.split(":")[-1]) if ":" in address else 1
+        self.name = f"FakeChannel {address}"
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
 
     def add_fake(self, dp: _FakeGenericDP) -> None:
@@ -370,7 +371,8 @@ class TestOperatingVoltageLevel:
 
     def test_value_and_additional_information_and_low_bat_limit_property(self) -> None:
         """Test value computes percentage and additional_information contains formatted battery data."""
-        device = _FakeDevice(model="HmIP-SWDO")
+        # Use HmIP-STHO: 2x AA = 3.0V max, which is > low_bat_limit of 2.0V
+        device = _FakeDevice(model="HmIP-STHO")
         ch = _FakeChannel(model=device.model)
         # Use BATTERY_STATE path and device-level LOW_BAT_LIMIT
         ch.add_fake(_FakeGenericDP(parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES, value=2.5))
@@ -384,9 +386,9 @@ class TestOperatingVoltageLevel:
         # Verify _low_bat_limit property reads from dp
         assert ovl._low_bat_limit == 2.0
 
-        # Calculate value using defaults derived from battery type/qty; should be a float percentage
+        # Calculate value: (2.5 - 2.0) / (3.0 - 2.0) * 100 = 50.0%
         val = ovl.value
-        assert val is None or isinstance(val, float)
+        assert val == 50.0
 
         info = ovl.additional_information
         # Should contain formatted keys when battery data is known for model
@@ -398,22 +400,24 @@ class TestOperatingVoltageLevel:
 
     def test_value_exception_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test if the helper raises, value should catch and return None without raising to caller."""
-        device = _FakeDevice(model="HmIP-SWDO")
+        # Use HmIP-STHO: 2x AA = 3.0V max, which is > low_bat_limit of 2.0V
+        device = _FakeDevice(model="HmIP-STHO")
         ch = _FakeChannel(model=device.model)
         ch.add_fake(_FakeGenericDP(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, value=2.6))
         ch.add_fake(
             _FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
         )
 
-        ovl = OperatingVoltageLevel(channel=ch)  # type: ignore[arg-type]
-
-        # Monkeypatch the helper used in value() to raise
-        from aiohomematic.model.calculated import support as support_mod
+        # Monkeypatch the helper BEFORE creating OperatingVoltageLevel
+        # Patch in the module where it's used, not where it's defined
+        from aiohomematic.model.calculated import operating_voltage_level as ovl_mod
 
         def raise_exc(*_a: object, **_k: object) -> None:
             raise RuntimeError("forced")
 
-        monkeypatch.setattr(support_mod, "calculate_operating_voltage_level", raise_exc, raising=True)
+        monkeypatch.setattr(ovl_mod, "calculate_operating_voltage_level", raise_exc, raising=True)
+
+        ovl = OperatingVoltageLevel(channel=ch)  # type: ignore[arg-type]
 
         assert ovl.value is None
 
@@ -456,6 +460,10 @@ class TestOperatingVoltageLevelCalculations:
         """Values above or equal to voltage_max clamp to 100."""
         assert calculate_operating_voltage_level(operating_voltage=3.5, low_bat_limit=2.0, voltage_max=3.0) == 100.0
         assert calculate_operating_voltage_level(operating_voltage=3.0, low_bat_limit=2.0, voltage_max=3.0) == 100.0
+
+        """Invalid configuration: voltage_max <= low_bat_limit returns None."""
+        assert calculate_operating_voltage_level(operating_voltage=2.5, low_bat_limit=2.0, voltage_max=2.0) is None
+        assert calculate_operating_voltage_level(operating_voltage=2.5, low_bat_limit=2.0, voltage_max=1.5) is None
 
 
 class TestVaporConcentration:

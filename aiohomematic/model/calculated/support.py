@@ -215,18 +215,19 @@ def calculate_frost_point(*, temperature: float, humidity: int) -> float | None:
 def calculate_operating_voltage_level(
     *, operating_voltage: float | None, low_bat_limit: float | None, voltage_max: float | None
 ) -> float | None:
-    """Return the operating voltage level."""
+    """Return the operating voltage level as percentage (0.0-100.0)."""
     if operating_voltage is None or low_bat_limit is None or voltage_max is None:
         return None
+    if voltage_max <= low_bat_limit:
+        # Invalid configuration: max voltage must be greater than low battery limit
+        return None
     return max(
-        0,
+        0.0,
         min(
-            100,
-            float(
-                round(
-                    ((float(operating_voltage) - low_bat_limit) / (voltage_max - low_bat_limit) * 100),
-                    1,
-                )
+            100.0,
+            round(
+                ((float(operating_voltage) - low_bat_limit) / (voltage_max - low_bat_limit) * 100),
+                1,
             ),
         ),
     )

@@ -17,6 +17,17 @@ from aiohttp import ClientSession
 import pydevccu
 import pytest
 
+# Check if pydevccu has OpenCCU support (VirtualCCU, BackendMode)
+# This will be available in pydevccu 0.2.0+
+try:
+    from pydevccu import BackendMode, VirtualCCU
+
+    PYDEVCCU_HAS_OPENCCU_SUPPORT = True
+except ImportError:
+    PYDEVCCU_HAS_OPENCCU_SUPPORT = False
+    BackendMode = None  # type: ignore[assignment, misc]
+    VirtualCCU = None  # type: ignore[assignment, misc]
+
 from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralUnit
 from aiohomematic.central.events import DeviceLifecycleEvent, DeviceTriggerEvent, EventBus
@@ -215,6 +226,160 @@ async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server) -> CentralU
         # Clear pydevccu's remotes BEFORE stopping central to prevent
         # _askDevices thread from trying to contact stopped XML-RPC server
         pydevccu_full._rpcfunctions.remotes.clear()
+        await central.stop()
+        await central.cache_coordinator.clear_all()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OpenCCU fixtures (requires pydevccu 0.2.0+ with VirtualCCU support)
+# These fixtures use VirtualCCU with BackendMode.OPENCCU to simulate a real
+# OpenCCU/RaspberryMatic system including JSON-RPC API, ReGa scripts, and
+# programs/system variables support.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Marker for tests requiring OpenCCU support
+requires_openccu = pytest.mark.skipif(
+    not PYDEVCCU_HAS_OPENCCU_SUPPORT,
+    reason="Requires pydevccu 0.2.0+ with VirtualCCU/BackendMode support",
+)
+
+
+@pytest.fixture(scope="session")
+def pydevccu_openccu() -> VirtualCCU | None:  # type: ignore[name-defined]
+    """
+    Create a virtual OpenCCU instance for testing.
+
+    This fixture provides a complete OpenCCU simulation including:
+    - XML-RPC server (for device operations)
+    - JSON-RPC server (for programs, system variables, rooms, etc.)
+    - ReGa script engine (for CCU-specific scripts)
+    - Default test state (programs, system variables, rooms)
+
+    The JSON-RPC server runs in a background thread with its own event loop
+    to allow the test event loop to communicate with it via HTTP.
+
+    Requires pydevccu 0.2.0+ with VirtualCCU support.
+    """
+    if not PYDEVCCU_HAS_OPENCCU_SUPPORT:
+        pytest.skip("Requires pydevccu 0.2.0+ with VirtualCCU/BackendMode support")
+        return None
+
+    import asyncio
+    import threading
+
+    ccu = VirtualCCU(
+        mode=BackendMode.OPENCCU,
+        host=const.CCU_HOST,
+        xml_rpc_port=const.get_openccu_xml_rpc_port(),
+        json_rpc_port=const.get_openccu_json_rpc_port(),
+        auth_enabled=True,
+        username=const.CCU_USERNAME,
+        password=const.CCU_PASSWORD,
+    )
+    ccu.setup_default_state()
+
+    # Create a dedicated event loop and thread for the JSON-RPC server
+    # This is necessary because aiohttp servers only respond to requests
+    # in the same event loop they were started in.
+    server_loop: asyncio.AbstractEventLoop | None = None
+    server_started = threading.Event()
+
+    def run_server() -> None:
+        nonlocal server_loop
+        server_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(server_loop)
+        server_loop.run_until_complete(ccu.start())
+        server_started.set()
+        # Keep the loop running to handle requests
+        server_loop.run_forever()
+
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    # Wait for server to start
+    server_started.wait(timeout=10)
+    if not server_started.is_set():
+        raise RuntimeError("VirtualCCU server failed to start within 10 seconds")
+
+    try:
+        yield ccu
+    finally:
+        # Stop the server and cleanup
+        if server_loop is not None:
+
+            def stop_server() -> None:
+                stop_task = asyncio.ensure_future(ccu.stop())  # noqa: F841, RUF006
+                server_loop.call_soon(server_loop.stop)
+
+            server_loop.call_soon_threadsafe(stop_server)
+            server_thread.join(timeout=5)
+
+
+@pytest.fixture
+async def central_unit_openccu(pydevccu_openccu: VirtualCCU) -> CentralUnit:  # type: ignore[name-defined]
+    """
+    Create a CentralUnit connected to virtual OpenCCU.
+
+    This fixture provides a fully functional CentralUnit configured for
+    OpenCCU backend, suitable for testing CCU-specific features like:
+    - Programs and system variables
+    - Rooms and functions
+    - Backup and firmware update
+    - ReGa script execution
+
+    Requires pydevccu 0.2.0+ with VirtualCCU support.
+    """
+    import contextlib
+
+    from aiohomematic.central import CentralConfig
+    from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+    from aiohomematic.client import InterfaceConfig
+    from aiohomematic.const import Interface
+
+    if not PYDEVCCU_HAS_OPENCCU_SUPPORT:
+        pytest.skip("Requires pydevccu 0.2.0+ with VirtualCCU/BackendMode support")
+
+    # Wait for devices to be created
+    device_event = asyncio.Event()
+
+    def device_lifecycle_event_handler(event: DeviceLifecycleEvent) -> None:
+        """Handle device lifecycle events."""
+        if event.event_type == DeviceLifecycleEventType.CREATED:
+            device_event.set()
+
+    config = CentralConfig(
+        name=const.OPENCCU_CENTRAL_NAME,
+        host=const.CCU_HOST,
+        username=const.CCU_USERNAME,
+        password=const.CCU_PASSWORD,
+        central_id="test-openccu-123",
+        interface_configs={
+            InterfaceConfig(
+                central_name=const.OPENCCU_CENTRAL_NAME,
+                interface=Interface.BIDCOS_RF,
+                port=const.get_openccu_xml_rpc_port(),
+            ),
+        },
+        json_port=const.get_openccu_json_rpc_port(),
+        program_markers=(),
+        sysvar_markers=(),
+        start_direct=True,
+    )
+
+    central = await config.create_central()
+    central.event_bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=device_lifecycle_event_handler)
+    await central.start()
+
+    # Wait up to 60 seconds for the DEVICES_CREATED event
+    with contextlib.suppress(TimeoutError):
+        await asyncio.wait_for(device_event.wait(), timeout=60)
+
+    try:
+        yield central
+    finally:
+        # Clear pydevccu's remotes BEFORE stopping central
+        if hasattr(pydevccu_openccu, "_xml_rpc_server") and pydevccu_openccu._xml_rpc_server:
+            pydevccu_openccu._xml_rpc_server._rpcfunctions.remotes.clear()
         await central.stop()
         await central.cache_coordinator.clear_all()
 

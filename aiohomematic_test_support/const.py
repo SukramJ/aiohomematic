@@ -21,6 +21,11 @@ CCU_PASSWORD = "pass"
 _CCU_PORT_BASE = 2002
 _CCU_MINI_PORT_BASE = 2003
 
+# OpenCCU ports (XML-RPC and JSON-RPC) - for VirtualCCU in OpenCCU mode
+# These will be used when pydevccu supports VirtualCCU with BackendMode.OPENCCU
+_OPENCCU_XML_RPC_PORT_BASE = 12010
+_OPENCCU_JSON_RPC_PORT_BASE = 18080
+
 
 def _get_xdist_worker_offset() -> int:
     """Return port offset based on pytest-xdist worker ID."""
@@ -42,7 +47,21 @@ def get_ccu_mini_port() -> int:
     return _CCU_MINI_PORT_BASE + _get_xdist_worker_offset()
 
 
+def get_openccu_xml_rpc_port() -> int:
+    """Return OpenCCU XML-RPC port adjusted for xdist worker."""
+    return _OPENCCU_XML_RPC_PORT_BASE + _get_xdist_worker_offset()
+
+
+def get_openccu_json_rpc_port() -> int:
+    """Return OpenCCU JSON-RPC port adjusted for xdist worker."""
+    return _OPENCCU_JSON_RPC_PORT_BASE + _get_xdist_worker_offset()
+
+
 INTERFACE_ID = f"{CENTRAL_NAME}-{Interface.BIDCOS_RF}"
+
+# OpenCCU test constants
+OPENCCU_CENTRAL_NAME = "test-openccu"
+OPENCCU_INTERFACE_ID = f"{OPENCCU_CENTRAL_NAME}-{Interface.BIDCOS_RF}"
 
 # Backend info response for get_backend_info.fn script
 BACKEND_INFO_JSON = {

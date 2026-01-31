@@ -502,6 +502,39 @@ class TestCuxdCcuJackBackendBehavior:
         await backend.deinit_proxy(init_url="http://test")
 
     @pytest.mark.asyncio
+    async def test_json_ccu_backend_get_all_device_data_calls_json_rpc(
+        self,
+        mock_json_rpc: MagicMock,
+        mock_paramset_provider: MagicMock,
+    ) -> None:
+        """
+        CONTRACT: JsonCcuBackend.get_all_device_data() MUST call JSON-RPC get_all_device_data.
+
+        This method is critical for the scheduler's periodic data refresh.
+        Without it, the central data cache won't be populated for CUxD devices.
+
+        REGRESSION: If get_all_device_data is not implemented or returns None,
+        the scheduler won't be able to bulk-fetch device data, and the fallback
+        to individual getValue calls may not be triggered correctly.
+        """
+        mock_json_rpc.get_all_device_data = AsyncMock(return_value={"key": "value"})
+
+        backend = JsonCcuBackend(
+            interface=Interface.CUXD,
+            interface_id="test-CUxD",
+            json_rpc=mock_json_rpc,
+            paramset_provider=mock_paramset_provider,
+            has_push_updates=False,
+        )
+
+        result = await backend.get_all_device_data(interface=Interface.CUXD)
+
+        # Should call json_rpc.get_all_device_data
+        mock_json_rpc.get_all_device_data.assert_called_once_with(interface=Interface.CUXD)
+        # Should return the data as a dict
+        assert result == {"key": "value"}
+
+    @pytest.mark.asyncio
     async def test_json_ccu_backend_init_proxy_is_noop(
         self,
         mock_json_rpc: MagicMock,

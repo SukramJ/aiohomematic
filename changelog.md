@@ -1,3 +1,11 @@
+# Version 2026.1.56 (2026-01-31)
+
+## What's Changed
+
+### Fixed
+
+- **CUxD/CCU-Jack**: Fix data not updating after startup for polled interfaces (#2884). The `refresh_data_point_data()` method was using hardcoded `CallSource.HM_INIT` which caused data points with `ignore_on_initial_load` to be skipped during periodic polling. Changed default to `CallSource.MANUAL_OR_SCHEDULED` so polling works correctly while preserving initialization behavior.
+
 # Version 2026.1.55 (2026-01-30)
 
 ## What's Changed

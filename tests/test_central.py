@@ -830,17 +830,17 @@ class TestCentralCallbacksAndServices:
         await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.MASTER)
         assert len(mock_client.method_calls) == init_len_method_calls
         await central.load_and_refresh_data_point_data(interface=Interface.BIDCOS_RF, paramset_key=ParamsetKey.VALUES)
-        assert len(mock_client.method_calls) == init_len_method_calls + 11
+        assert len(mock_client.method_calls) == init_len_method_calls + 19
 
         await central.hub_coordinator.get_system_variable(legacy_name="SysVar_Name")
         assert mock_client.method_calls[-1] == call.get_system_variable(name="SysVar_Name")
 
-        assert len(mock_client.method_calls) == init_len_method_calls + 12
+        assert len(mock_client.method_calls) == init_len_method_calls + 20
         await central.hub_coordinator.set_system_variable(legacy_name="alarm", value=True)
         assert mock_client.method_calls[-1] == call.set_system_variable(legacy_name="alarm", value=True)
-        assert len(mock_client.method_calls) == init_len_method_calls + 13
+        assert len(mock_client.method_calls) == init_len_method_calls + 21
         await central.hub_coordinator.set_system_variable(legacy_name="SysVar_Name", value=True)
-        assert len(mock_client.method_calls) == init_len_method_calls + 13
+        assert len(mock_client.method_calls) == init_len_method_calls + 21
 
         await central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).set_value(
             channel_address="123",
@@ -854,7 +854,7 @@ class TestCentralCallbacksAndServices:
             parameter="LEVEL",
             value=1.0,
         )
-        assert len(mock_client.method_calls) == init_len_method_calls + 14
+        assert len(mock_client.method_calls) == init_len_method_calls + 22
 
         with pytest.raises(AioHomematicException):
             await central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").set_value(
@@ -863,7 +863,7 @@ class TestCentralCallbacksAndServices:
                 parameter="LEVEL",
                 value=1.0,
             )
-        assert len(mock_client.method_calls) == init_len_method_calls + 14
+        assert len(mock_client.method_calls) == init_len_method_calls + 22
 
         await central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).put_paramset(
             channel_address="123",
@@ -873,14 +873,14 @@ class TestCentralCallbacksAndServices:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="123", paramset_key_or_link_address=ParamsetKey.VALUES, values={"LEVEL": 1.0}
         )
-        assert len(mock_client.method_calls) == init_len_method_calls + 15
+        assert len(mock_client.method_calls) == init_len_method_calls + 23
         with pytest.raises(AioHomematicException):
             await central.client_coordinator.get_client(interface_id="NOT_A_VALID_INTERFACE_ID").put_paramset(
                 channel_address="123",
                 paramset_key_or_link_address=ParamsetKey.VALUES,
                 values={"LEVEL": 1.0},
             )
-        assert len(mock_client.method_calls) == init_len_method_calls + 15
+        assert len(mock_client.method_calls) == init_len_method_calls + 23
 
         assert (
             central.get_generic_data_point(channel_address="VCU6354483:0", parameter="DUTY_CYCLE").parameter

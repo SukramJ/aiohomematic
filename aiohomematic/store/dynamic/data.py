@@ -130,12 +130,24 @@ class CentralDataCache(DataCacheWriterProtocol, CacheWithStatisticsProtocol):
         paramset_key: ParamsetKey | None = None,
         interface: Interface | None = None,
         direct_call: bool = False,
+        call_source: CallSource = CallSource.MANUAL_OR_SCHEDULED,
     ) -> None:
-        """Refresh data_point data."""
+        """
+        Refresh data_point data.
+
+        Args:
+            paramset_key: Optional paramset key to filter data points.
+            interface: Optional interface to filter data points.
+            direct_call: If True, bypass cache age checks.
+            call_source: The call source for loading values.
+                Use MANUAL_OR_SCHEDULED for periodic polling (default).
+                Use HM_INIT only during initial device creation.
+
+        """
         for dp in self._data_point_provider.get_readable_generic_data_points(
             paramset_key=paramset_key, interface=interface
         ):
-            await dp.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=direct_call)
+            await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
     def set_initialization_complete(self) -> None:
         """

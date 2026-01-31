@@ -25,6 +25,7 @@ from aiohomematic.const import (
     CircuitState,
     CommandRxMode,
     DeviceDescription,
+    DeviceDetail,
     Interface,
     ParameterData,
     ParameterType,
@@ -121,6 +122,15 @@ class JsonCcuBackend(BaseBackend):
                 extract_exc_args(exc=bhexc),
             )
             return None
+
+    async def get_device_details(self, *, addresses: tuple[str, ...] | None = None) -> list[DeviceDetail] | None:
+        """
+        Return device names, interfaces, and rega IDs via JSON-RPC.
+
+        Note: The addresses parameter is ignored as JSON-RPC returns all device
+        details in a single call via Device.listAllDetail.
+        """
+        return list(await self._json_rpc.get_device_details())
 
     async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
         """Return a paramset via JSON-RPC."""

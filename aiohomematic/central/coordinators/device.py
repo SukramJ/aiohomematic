@@ -934,6 +934,10 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 )
                 client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
                 for dev_desc in devices_missing_paramsets:
+                    # Ensure interface is registered for device address (may be missing from older caches)
+                    self._coordinator_provider.cache_coordinator.device_details.add_interface(
+                        address=dev_desc["ADDRESS"], interface=client.interface
+                    )
                     await client.fetch_paramset_descriptions(device_description=dev_desc)
 
                 # Emit event ONCE after batch to trigger automatic cache persistence
@@ -1001,6 +1005,12 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 try:
                     self._coordinator_provider.cache_coordinator.device_descriptions.add_device(
                         interface_id=interface_id, device_description=dev_desc
+                    )
+                    # Register interface for device address so Device.interface is correct.
+                    # This is critical for JSON-RPC-only backends (CUxD, CCU-Jack) where
+                    # fetch_device_details() returns None and interface would default to BIDCOS_RF.
+                    self._coordinator_provider.cache_coordinator.device_details.add_interface(
+                        address=dev_desc["ADDRESS"], interface=client.interface
                     )
                     # Only fetch paramset descriptions for new devices (not needed for refresh)
                     if source != SourceOfDeviceCreation.REFRESH or dev_desc in new_device_descriptions:

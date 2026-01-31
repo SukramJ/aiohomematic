@@ -1,10 +1,24 @@
+# Version 2026.1.57 (2026-01-31)
+
+## What's Changed
+
+### Added
+
+- **JsonCcuBackend**: Implemented `get_device_details()` method via JSON-RPC `Device.listAllDetail`. This enables proper device name and interface registration for CUxD/CCU-Jack backends, matching the functionality of `CcuBackend`.
+
+### Fixed
+
+- **CUxD/CCU-Jack**: Fix interface registration for CUxD/CCU-Jack devices. Devices were incorrectly assigned `Interface.BIDCOS_RF` (default) because `JsonCcuBackend.get_device_details()` returned `None`, causing `get_data_points(interface=Interface.CUXD)` to filter out all CUxD devices. Interface is now registered during `_add_new_devices()` when device descriptions are cached.
+
+- **InterfaceClient**: Fix `fetch_device_details()` to use interface from device data instead of client's interface. The legacy client used `Interface(device["interface"])` but the new implementation incorrectly used `self.interface`, which would register all devices with the calling client's interface when `Device.listAllDetail` returns devices from multiple interfaces.
+
 # Version 2026.1.56 (2026-01-31)
 
 ## What's Changed
 
 ### Fixed
 
-- **CUxD/CCU-Jack**: Fix data not updating after startup for polled interfaces (#2884). The `refresh_data_point_data()` method was using hardcoded `CallSource.HM_INIT` which caused data points with `ignore_on_initial_load` to be skipped during periodic polling. Changed default to `CallSource.MANUAL_OR_SCHEDULED` so polling works correctly while preserving initialization behavior.
+- **CUxD/CCU-Jack**: Fix data not updating after startup for polled interfaces. The `refresh_data_point_data()` method was using hardcoded `CallSource.HM_INIT` which caused data points with `ignore_on_initial_load` to be skipped during periodic polling. Changed default to `CallSource.MANUAL_OR_SCHEDULED` so polling works correctly while preserving initialization behavior.
 
 # Version 2026.1.55 (2026-01-30)
 

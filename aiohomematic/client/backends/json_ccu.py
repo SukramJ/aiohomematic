@@ -106,6 +106,10 @@ class JsonCcuBackend(BaseBackend):
     async def deinit_proxy(self, *, init_url: str) -> None:
         """No proxy de-initialization needed."""
 
+    async def get_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
+        """Return all device data via JSON-RPC."""
+        return dict(await self._json_rpc.get_all_device_data(interface=interface))
+
     async def get_device_description(self, *, address: str) -> DeviceDescription | None:
         """Return device description via JSON-RPC."""
         try:

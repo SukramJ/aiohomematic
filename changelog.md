@@ -9,6 +9,14 @@
 - **Documentation**: Added comprehensive `send_text_display` action documentation with all parameters (icon, colors, alignment, sound, etc.)
 - **Documentation**: Added instructions for accessing optional settings in Home Assistant
 
+### Test Infrastructure
+
+- **OpenCCU**: Added comprehensive test fixtures for VirtualCCU with BackendMode.OPENCCU support
+- **OpenCCU**: Added `pydevccu_openccu` session-scoped fixture running JSON-RPC server in separate thread
+- **OpenCCU**: Added `central_unit_openccu` fixture with proper device lifecycle event handling
+- **OpenCCU**: Added `test_backend_openccu.py` with backend detection, programs, sysvars, rooms/functions, and backup tests
+- **OpenCCU**: Added `test_central_pydev_openccu.py` with full 397-device central unit tests
+
 ### Fixed
 
 - **OperatingVoltageLevel**: Use user-configured `LOW_BAT_LIMIT` value instead of default for battery percentage calculation. This fixes incorrect battery readings when users have customized the low battery threshold (regression from #2281)

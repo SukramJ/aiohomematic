@@ -372,9 +372,15 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     self._central.cache_coordinator.device_details.add_address_rega_id(
                         address=device_address, rega_id=device["id"]
                     )
-                self._central.cache_coordinator.device_details.add_interface(
-                    address=device_address, interface=self.interface
-                )
+                # Use interface from device data (CCU provides this), fallback to client's interface (Homegear)
+                if (iface := device.get("interface")) and iface in Interface:
+                    self._central.cache_coordinator.device_details.add_interface(
+                        address=device_address, interface=Interface(iface)
+                    )
+                else:
+                    self._central.cache_coordinator.device_details.add_interface(
+                        address=device_address, interface=self.interface
+                    )
                 # Process nested channels array (CCU provides these, Homegear doesn't)
                 for channel in device["channels"]:
                     channel_address = channel["address"]

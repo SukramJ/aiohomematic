@@ -13,7 +13,7 @@
 !# v2.2 - 09/2023
 !#
 !# Das Interface wird durch die Integration an 'sUse_Interface' übergeben.
-!# Nutzbare Interfaces: BidCos-RF, BidCos-Wired, HmIP-RF, VirtualDevices
+!# Nutzbare Interfaces: BidCos-RF, BidCos-Wired, HmIP-RF, VirtualDevices, CUxD, CCU-Jack
 !# Zum Testen direkt auf der Homematic-Zentrale muss das Interface wie folgt eingetragen werden: sUse_Interface = "HmIP-RF";
 !#
 !# Params for session recorder

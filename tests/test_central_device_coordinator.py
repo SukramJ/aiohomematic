@@ -1316,3 +1316,162 @@ class TestIdentifyDevicesMissingParamsets:
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
+
+
+class TestIdentifyMissingDeviceDescriptions:
+    """
+    Tests for _identify_missing_device_descriptions method.
+
+    This method identifies device/channel descriptions whose ADDRESS is missing from cache,
+    regardless of whether the parent device is known. This is critical for handling devices
+    that were factory reset and re-paired with the same address (issue #2894).
+    """
+
+    def test_all_descriptions_missing(self) -> None:
+        """Test that all descriptions are returned when cache is empty."""
+        coordinator = self._make_coordinator(cached_addresses=frozenset())
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "HEQ0128279:0", "PARENT": "HEQ0128279", "TYPE": "MAINTENANCE"},
+            {"ADDRESS": "HEQ0128279:1", "PARENT": "HEQ0128279", "TYPE": "SHUTTER_CONTACT"},
+        )
+
+        result = coordinator._identify_missing_device_descriptions(
+            interface_id="test-BidCos-RF", device_descriptions=device_descriptions
+        )
+
+        assert len(result) == 2
+        assert {r["ADDRESS"] for r in result} == {"HEQ0128279:0", "HEQ0128279:1"}
+
+    def test_all_descriptions_present(self) -> None:
+        """Test that no descriptions are returned when all are cached."""
+        coordinator = self._make_coordinator(cached_addresses=frozenset({"HEQ0128279", "HEQ0128279:0", "HEQ0128279:1"}))
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "HEQ0128279:0", "PARENT": "HEQ0128279", "TYPE": "MAINTENANCE"},
+            {"ADDRESS": "HEQ0128279:1", "PARENT": "HEQ0128279", "TYPE": "SHUTTER_CONTACT"},
+        )
+
+        result = coordinator._identify_missing_device_descriptions(
+            interface_id="test-BidCos-RF", device_descriptions=device_descriptions
+        )
+
+        assert result == ()
+
+    def test_comparison_with_identify_new_device_descriptions(self) -> None:
+        """
+        Test that _identify_missing differs from _identify_new when parent is known.
+
+        _identify_new_device_descriptions checks the PARENT address.
+        _identify_missing_device_descriptions checks the ADDRESS itself.
+
+        For factory reset devices, the parent is known but channels are missing.
+        """
+        # Parent device is known
+        coordinator = self._make_coordinator(cached_addresses=frozenset({"HEQ0128279"}))
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "HEQ0128279:0", "PARENT": "HEQ0128279", "TYPE": "MAINTENANCE"},
+            {"ADDRESS": "HEQ0128279:1", "PARENT": "HEQ0128279", "TYPE": "SHUTTER_CONTACT"},
+        )
+
+        # _identify_new returns empty (parent is known)
+        new_result = coordinator._identify_new_device_descriptions(
+            interface_id="test-BidCos-RF", device_descriptions=device_descriptions
+        )
+        assert new_result == ()
+
+        # _identify_missing returns the channels (addresses are not in cache)
+        missing_result = coordinator._identify_missing_device_descriptions(
+            interface_id="test-BidCos-RF", device_descriptions=device_descriptions
+        )
+        assert len(missing_result) == 2
+
+    def test_device_entry_without_parent(self) -> None:
+        """Test device entries (without PARENT) are also checked."""
+        coordinator = self._make_coordinator(cached_addresses=frozenset())
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "HEQ0128279", "TYPE": "HM-Sec-SC"},  # Device entry, no PARENT
+        )
+
+        result = coordinator._identify_missing_device_descriptions(
+            interface_id="test-BidCos-RF", device_descriptions=device_descriptions
+        )
+
+        assert len(result) == 1
+        assert result[0]["ADDRESS"] == "HEQ0128279"
+
+    def test_mixed_some_channels_missing(self) -> None:
+        """Test with multiple devices where some channels are missing."""
+        # Device 1: all channels present, Device 2: channels missing
+        coordinator = self._make_coordinator(cached_addresses=frozenset({"DEV001", "DEV001:0", "DEV001:1", "DEV002"}))
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "DEV001:0", "PARENT": "DEV001", "TYPE": "MAINTENANCE"},
+            {"ADDRESS": "DEV001:1", "PARENT": "DEV001", "TYPE": "SENSOR"},
+            {"ADDRESS": "DEV002:0", "PARENT": "DEV002", "TYPE": "MAINTENANCE"},
+            {"ADDRESS": "DEV002:1", "PARENT": "DEV002", "TYPE": "SENSOR"},
+        )
+
+        result = coordinator._identify_missing_device_descriptions(
+            interface_id="test-BidCos-RF", device_descriptions=device_descriptions
+        )
+
+        # Only DEV002 channels should be identified as missing
+        assert len(result) == 2
+        assert {r["ADDRESS"] for r in result} == {"DEV002:0", "DEV002:1"}
+
+    def test_parent_known_but_channels_missing_factory_reset_scenario(self) -> None:
+        """
+        Test the factory reset scenario: parent device known but channels missing.
+
+        This is the critical case for issue #2894:
+        1. User performs factory reset on device (5sec button press, red blinking, etc.)
+        2. Device is re-paired to CCU
+        3. Since device was known to CCU, old configuration is restored
+        4. Device appears in CCU device list (not inbox) with old name
+        5. CCU sends newDevices with channel descriptions
+        6. But parent address (HEQ0128279) is already in aiohomematic cache
+        7. Without the fix, channels would not be cached -> device disappears from HA
+        """
+        # Only parent device is known, channels are missing
+        coordinator = self._make_coordinator(cached_addresses=frozenset({"HEQ0128279"}))
+
+        device_descriptions: tuple[DeviceDescription, ...] = (
+            {"ADDRESS": "HEQ0128279:0", "PARENT": "HEQ0128279", "TYPE": "MAINTENANCE"},
+            {"ADDRESS": "HEQ0128279:1", "PARENT": "HEQ0128279", "TYPE": "SHUTTER_CONTACT"},
+        )
+
+        result = coordinator._identify_missing_device_descriptions(
+            interface_id="test-BidCos-RF", device_descriptions=device_descriptions
+        )
+
+        # Both channel descriptions should be identified as missing
+        assert len(result) == 2
+        assert {r["ADDRESS"] for r in result} == {"HEQ0128279:0", "HEQ0128279:1"}
+
+    def _make_coordinator(self, *, cached_addresses: frozenset[str]) -> DeviceCoordinator:
+        """Create a DeviceCoordinator with mocked device descriptions cache."""
+        central = _FakeCentral()
+
+        # Configure device_descriptions mock to return the specified addresses
+        central.cache_coordinator.device_descriptions.get_addresses = lambda *, interface_id: cached_addresses
+
+        return DeviceCoordinator(
+            central_info=central,
+            client_provider=central,
+            config_provider=central,
+            coordinator_provider=central,
+            data_cache_provider=central.cache_coordinator.data_cache,
+            data_point_provider=central,
+            device_description_provider=central.cache_coordinator.device_descriptions,
+            device_details_provider=central.cache_coordinator.device_details,
+            event_bus_provider=central,
+            event_publisher=central,
+            event_subscription_manager=central,
+            file_operations=central,
+            parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+            paramset_description_provider=central.cache_coordinator.paramset_descriptions,
+            task_scheduler=central.looper,
+        )  # type: ignore[arg-type]

@@ -909,11 +909,26 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 device_descriptions=device_descriptions, interface_id=interface_id
             )
 
+            # Also identify device/channel descriptions that are missing from cache.
+            # This handles the case where a device was factory reset and re-paired:
+            # - The device address (PARENT) is already known
+            # - But the channel descriptions are missing (e.g., HEQ0128279:0, HEQ0128279:1)
+            missing_device_descriptions = self._identify_missing_device_descriptions(
+                device_descriptions=device_descriptions, interface_id=interface_id
+            )
+
             # For REFRESH operations, we need to update the cache even for existing devices
             # (e.g., firmware data may have changed)
-            descriptions_to_cache = (
-                device_descriptions if source == SourceOfDeviceCreation.REFRESH else new_device_descriptions
-            )
+            # For NEW operations, cache both new devices AND missing channel descriptions
+            if source == SourceOfDeviceCreation.REFRESH:
+                descriptions_to_cache = device_descriptions
+            else:
+                # Combine new devices with missing descriptions, removing duplicates
+                descriptions_to_cache = tuple(
+                    {
+                        desc["ADDRESS"]: desc for desc in (*new_device_descriptions, *missing_device_descriptions)
+                    }.values()
+                )
 
             if not descriptions_to_cache:
                 # Check if there are devices with missing paramset descriptions
@@ -1107,6 +1122,34 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 missing.append(dev_desc)
 
         return tuple(missing)
+
+    def _identify_missing_device_descriptions(
+        self, *, device_descriptions: tuple[DeviceDescription, ...], interface_id: str
+    ) -> tuple[DeviceDescription, ...]:
+        """
+        Identify device/channel descriptions whose ADDRESS is missing from cache.
+
+        Unlike _identify_new_device_descriptions which checks the PARENT address,
+        this method checks if each ADDRESS itself is in the cache. This is needed
+        for scenarios where:
+        - A device was factory reset and re-paired (same device address, new channels)
+        - Channel descriptions were not cached during initial device creation
+        - Cache corruption or incomplete saves
+
+        Args:
+        ----
+            device_descriptions: Tuple of device descriptions
+            interface_id: Interface identifier
+
+        Returns:
+        -------
+            Tuple of device descriptions whose ADDRESS is missing from cache
+
+        """
+        known_addresses = self._coordinator_provider.cache_coordinator.device_descriptions.get_addresses(
+            interface_id=interface_id
+        )
+        return tuple(dev_desc for dev_desc in device_descriptions if dev_desc["ADDRESS"] not in known_addresses)
 
     def _identify_new_device_descriptions(
         self, *, device_descriptions: tuple[DeviceDescription, ...], interface_id: str | None = None

@@ -139,7 +139,23 @@ See [Getting Started](https://sukramj.github.io/aiohomematic/getting_started/) f
 ## Requirements
 
 - **Python**: 3.13+
-- **CCU Firmware**: CCU2 ≥2.53.27, CCU3 ≥3.53.26 (for HomematicIP devices)
+- **CCU Firmware**: CCU2 ≥2.61.x, CCU3 ≥3.61.x
+- There is not active testing to identfy the minimum required firmware versions.
+
+### Important Notes on Backend Support
+
+**Actively tested backends:**
+
+- OpenCCU with current firmware
+
+**Not actively tested:**
+
+- CCU2
+- Homegear
+
+Running outdated firmware versions or using untested backends (CCU2, Homegear) is at your own risk.
+
+**Recommendation:** Keep your CCU firmware up to date. Outdated versions may lack bug fixes, security patches, and compatibility improvements that this library depends on.
 
 ## Related Projects
 

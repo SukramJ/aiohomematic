@@ -1,3 +1,11 @@
+# Version 2026.2.0 (2026-02-01)
+
+## What's Changed
+
+### Fixed
+
+- **EventBus**: Fix subscription leak for `DeviceLifecycleEvent` when stopping CentralUnit. The event type was missing from `clear_external_subscriptions()`, causing "LEAKED_SUBSCRIPTION" warnings during shutdown.
+
 # Version 2026.1.57 (2026-01-31)
 
 ## What's Changed

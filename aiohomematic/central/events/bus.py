@@ -112,6 +112,7 @@ import time
 import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
+from aiohomematic.central.events.integration import DeviceLifecycleEvent
 from aiohomematic.central.events.types import Event, EventPriority
 from aiohomematic.const import (
     CacheInvalidationReason,
@@ -840,6 +841,7 @@ class EventBus:
         """
         external_event_types: tuple[type[Event], ...] = (
             DataPointStateChangedEvent,
+            DeviceLifecycleEvent,
             DeviceRemovedEvent,
             DeviceStateChangedEvent,
             FirmwareStateChangedEvent,

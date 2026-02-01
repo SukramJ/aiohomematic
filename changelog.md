@@ -6,6 +6,8 @@
 
 - **EventBus**: Fix subscription leak for `DeviceLifecycleEvent` when stopping CentralUnit. The event type was missing from `clear_external_subscriptions()`, causing "LEAKED_SUBSCRIPTION" warnings during shutdown.
 
+- **DeviceCoordinator**: Fix devices not appearing after factory reset and re-pairing. When a device was reset and re-paired with the same address, channel descriptions (e.g., `HEQ0128279:0`, `HEQ0128279:1`) were not added to cache because only the parent device address was checked. Added `_identify_missing_device_descriptions()` to detect and cache missing channel descriptions.
+
 # Version 2026.1.57 (2026-01-31)
 
 ## What's Changed

@@ -1,3 +1,24 @@
+# Version 2026.2.1 (2026-02-01)
+
+## What's Changed
+
+### Changed
+
+- **DefaultWeekProfile**: Refactored schedule cache to use human-readable Pydantic models (`SimpleSchedule`, `SimpleScheduleEntry`) instead of complex dictionary format. The new format provides automatic validation, clear field names (e.g., `weekdays`, `time`, `level`, `duration`), and better developer experience.
+
+### Added
+
+- **schedule_models**: New module `aiohomematic/model/schedule_models.py` with Pydantic models for device schedules:
+  - `SimpleScheduleEntry`: Validated schedule entry with weekdays, time, condition, target_channels, level, duration, ramp_time
+  - `SimpleSchedule`: Container for multiple schedule entries keyed by group number (1-24)
+  - Conversion functions between raw CCU format and human-readable format
+
+### Technical
+
+- Added Pydantic mypy plugin to `pyproject.toml` for improved type inference
+- Updated `WeekProfileProtocol` to accept any schedule type (removed `dict[Any, Any]` constraint)
+- Updated type annotations in `Device`, `DeviceWeekProfileProtocol`, and `BaseCustomDataPoint`
+
 # Version 2026.2.0 (2026-02-01)
 
 ## What's Changed

@@ -334,7 +334,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
         self._rooms: Final = self._device_details_provider.get_device_rooms(device_address=self._address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
-        self._week_profile: wp.WeekProfile[dict[Any, Any]] | None = None
+        self._week_profile: wp.ClimateWeekProfile | wp.DefaultWeekProfile | None = None
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
             self._interface_id,
@@ -397,7 +397,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     task_scheduler: Final = DelegatedProperty[TaskSchedulerProtocol](path="_task_scheduler")
     update_data_point: Final = DelegatedProperty[DpUpdate | None](path="_update_data_point")
     value_cache: Final = DelegatedProperty["_ValueCache"](path="_value_cache")
-    week_profile: Final = DelegatedProperty[wp.WeekProfile[dict[Any, Any]] | None](path="_week_profile")
+    week_profile: Final = DelegatedProperty[wp.ClimateWeekProfile | wp.DefaultWeekProfile | None](path="_week_profile")
 
     @property
     def _dp_config_pending(self) -> DpBinarySensor | None:

@@ -385,6 +385,12 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
 from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol
+from aiohomematic.model.schedule_models import (
+    SimpleSchedule,
+    SimpleScheduleEntry,
+    convert_raw_group_to_simple_entry,
+    convert_simple_entry_to_raw_group,
+)
 
 if TYPE_CHECKING:
     from aiohomematic.model.custom import BaseCustomDpClimate
@@ -392,7 +398,7 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
+class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
     """Handle the device week profile."""
 
     __slots__ = (
@@ -482,13 +488,33 @@ class WeekProfile[SCHEDULE_DICT_T: dict[Any, Any]](ABC, WeekProfileProtocol[SCHE
         return sca
 
 
-class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
+class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
     """
     Handle device week profiles for switches, lights, covers, and valves.
 
     This class manages the weekly scheduling functionality for non-climate devices,
-    converting between CCU raw paramset format and structured Python dictionaries.
+    converting between CCU raw paramset format and human-readable Pydantic models.
+
+    The schedule cache stores data in a human-readable SimpleSchedule format:
+
+    Example:
+        {
+            1: {
+                "weekdays": ["MONDAY", "TUESDAY"],
+                "time": "07:30",
+                "condition": "fixed_time",
+                "target_channels": ["1_1"],
+                "level": 1.0,
+                "duration": "10s",
+            }
+        }
+
     """
+
+    def __init__(self, *, data_point: CustomDataPointProtocol) -> None:
+        """Initialize the default week profile with empty SimpleSchedule."""
+        super().__init__(data_point=data_point)
+        self._schedule_cache: SimpleSchedule = SimpleSchedule(entries={})
 
     @staticmethod
     def _convert_schedule_entries(*, values: RAW_SCHEDULE_DICT) -> RAW_SCHEDULE_DICT:
@@ -507,24 +533,27 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         return schedule
 
     @staticmethod
-    def convert_dict_to_raw_schedule(*, schedule_data: DEFAULT_SCHEDULE_DICT) -> RAW_SCHEDULE_DICT:
+    def convert_dict_to_raw_schedule(*, schedule_data: SimpleSchedule) -> RAW_SCHEDULE_DICT:
         """
-        Convert structured dictionary to raw paramset schedule.
+        Convert SimpleSchedule to raw paramset schedule.
 
         Args:
-            schedule_data: Structured schedule dictionary
+            schedule_data: SimpleSchedule with human-readable entries
 
         Returns:
             Raw schedule for CCU
 
         Example:
-            Input: {1: {SwitchScheduleField.WEEKDAY: [Weekday.SUNDAY, ...], ...}}
-            Output: {"01_WP_WEEKDAY": 127, "01_WP_LEVEL": 1, ...}
+            Input: SimpleSchedule(entries={1: SimpleScheduleEntry(weekdays=["MONDAY"], ...)})
+            Output: {"01_WP_WEEKDAY": 2, "01_WP_FIXED_HOUR": 7, ...}
 
         """
         raw_schedule: RAW_SCHEDULE_DICT = {}
 
-        for group_no, group_data in schedule_data.items():
+        for group_no, entry in schedule_data.entries.items():
+            # Convert SimpleScheduleEntry to raw group format
+            group_data = convert_simple_entry_to_raw_group(entry=entry)
+
             for field, value in group_data.items():
                 # Build parameter name: "01_WP_WEEKDAY"
                 key = f"{group_no:02d}_WP_{field.value}"
@@ -536,36 +565,51 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
                     ScheduleField.DURATION_BASE,
                     ScheduleField.RAMP_TIME_BASE,
                 ):
-                    raw_schedule[key] = int(value.value)
+                    # These are IntEnum values
+                    enum_value = cast(IntEnum, value)
+                    raw_schedule[key] = int(enum_value.value)
                 elif field in (ScheduleField.WEEKDAY, ScheduleField.TARGET_CHANNELS):
-                    raw_schedule[key] = _list_to_bitwise(items=value)
+                    # These are lists of IntEnum
+                    list_value = cast(list[IntEnum], value)
+                    raw_schedule[key] = _list_to_bitwise(items=list_value)
                 elif field == ScheduleField.LEVEL:
-                    raw_schedule[key] = int(value.value) if isinstance(value, IntEnum) else float(value)
+                    if isinstance(value, IntEnum):
+                        raw_schedule[key] = int(value.value)
+                    elif isinstance(value, (int, float)):
+                        raw_schedule[key] = float(value)
+                    else:
+                        raw_schedule[key] = 0.0
                 elif field == ScheduleField.LEVEL_2:
-                    raw_schedule[key] = float(value)
-                else:
-                    # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE, RAMP_TIME_FACTOR
+                    if isinstance(value, (int, float)):
+                        raw_schedule[key] = float(value)
+                    else:
+                        raw_schedule[key] = 0.0
+                # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE, RAMP_TIME_FACTOR
+                elif isinstance(value, (int, float)):
                     raw_schedule[key] = int(value)
+                else:
+                    raw_schedule[key] = 0
 
         return raw_schedule
 
     @staticmethod
-    def convert_raw_to_dict_schedule(*, raw_schedule: RAW_SCHEDULE_DICT) -> DEFAULT_SCHEDULE_DICT:
+    def convert_raw_to_dict_schedule(*, raw_schedule: RAW_SCHEDULE_DICT) -> SimpleSchedule:
         """
-        Convert raw paramset schedule to structured dictionary.
+        Convert raw paramset schedule to SimpleSchedule.
 
         Args:
             raw_schedule: Raw schedule from CCU (e.g., {"01_WP_WEEKDAY": 127, ...})
 
         Returns:
-            Structured dictionary grouped by schedule number
+            SimpleSchedule with human-readable entries
 
         Example:
-            Input: {"01_WP_WEEKDAY": 127, "01_WP_LEVEL": 1, ...}
-            Output: {1: {SwitchScheduleField.WEEKDAY: [Weekday.SUNDAY, ...], ...}}
+            Input: {"01_WP_WEEKDAY": 3, "01_WP_FIXED_HOUR": 7, "01_WP_FIXED_MINUTE": 30, ...}
+            Output: SimpleSchedule(entries={1: SimpleScheduleEntry(weekdays=["MONDAY", "SUNDAY"], time="07:30", ...)})
 
         """
-        schedule_data: DEFAULT_SCHEDULE_DICT = {}
+        # First, parse raw schedule into intermediate group format
+        intermediate_data: DEFAULT_SCHEDULE_DICT = {}
 
         for key, value in raw_schedule.items():
             # Expected format: "01_WP_WEEKDAY"
@@ -581,55 +625,73 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
                 # Skip invalid entries
                 continue
 
-            if group_no not in schedule_data:
-                schedule_data[group_no] = {}
+            if group_no not in intermediate_data:
+                intermediate_data[group_no] = {}
 
             # Convert value based on field type
             int_value = int(value)
 
             if field == ScheduleField.ASTRO_TYPE:
                 try:
-                    schedule_data[group_no][field] = AstroType(int_value)
+                    intermediate_data[group_no][field] = AstroType(int_value)
                 except ValueError:
-                    # Unknown astro type - store as raw int for forward compatibility
-                    schedule_data[group_no][field] = int_value
+                    intermediate_data[group_no][field] = int_value
             elif field == ScheduleField.CONDITION:
                 try:
-                    schedule_data[group_no][field] = ScheduleCondition(int_value)
+                    intermediate_data[group_no][field] = ScheduleCondition(int_value)
                 except ValueError:
-                    # Unknown condition - store as raw int for forward compatibility
-                    schedule_data[group_no][field] = int_value
+                    intermediate_data[group_no][field] = int_value
             elif field in (ScheduleField.DURATION_BASE, ScheduleField.RAMP_TIME_BASE):
                 try:
-                    schedule_data[group_no][field] = TimeBase(int_value)
+                    intermediate_data[group_no][field] = TimeBase(int_value)
                 except ValueError:
-                    # Unknown time base - store as raw int for forward compatibility
-                    schedule_data[group_no][field] = int_value
+                    intermediate_data[group_no][field] = int_value
             elif field == ScheduleField.LEVEL:
-                schedule_data[group_no][field] = int_value if isinstance(value, int) else float(value)
+                intermediate_data[group_no][field] = int_value if isinstance(value, int) else float(value)
             elif field == ScheduleField.LEVEL_2:
-                schedule_data[group_no][field] = float(value)
+                intermediate_data[group_no][field] = float(value)
             elif field == ScheduleField.WEEKDAY:
-                schedule_data[group_no][field] = _bitwise_to_list(value=int_value, enum_class=WeekdayInt)
+                intermediate_data[group_no][field] = _bitwise_to_list(value=int_value, enum_class=WeekdayInt)
             elif field == ScheduleField.TARGET_CHANNELS:
-                schedule_data[group_no][field] = _bitwise_to_list(value=int_value, enum_class=ScheduleActorChannel)
+                intermediate_data[group_no][field] = _bitwise_to_list(value=int_value, enum_class=ScheduleActorChannel)
             else:
                 # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE, RAMP_TIME_FACTOR
-                schedule_data[group_no][field] = int_value
+                intermediate_data[group_no][field] = int_value
 
-        # Return all schedule groups, even if incomplete
-        # Filtering can be done by callers using is_schedule_active() if needed
-        return schedule_data
+        # Convert intermediate format to SimpleSchedule
+        entries: dict[int, SimpleScheduleEntry] = {}
+        for group_no, group_data in intermediate_data.items():
+            if is_schedule_active(group_data=group_data):
+                try:
+                    entries[group_no] = convert_raw_group_to_simple_entry(group_data=group_data)
+                except (ValueError, KeyError) as ex:
+                    _LOGGER.debug(
+                        "CONVERT_RAW_TO_DICT_SCHEDULE: Failed to convert group %d: %s",
+                        group_no,
+                        ex,
+                    )
+                    continue
 
-    def empty_schedule_group(self) -> DEFAULT_SCHEDULE_GROUP:
-        """Return an empty schedule dictionary."""
-        if not self.has_schedule:
-            return create_empty_schedule_group(category=self._data_point.category)
-        return {}
+        return SimpleSchedule(entries=entries)
+
+    def empty_schedule_entry(self) -> SimpleScheduleEntry:
+        """Return an empty (minimal) schedule entry."""
+        return SimpleScheduleEntry(
+            weekdays=["MONDAY"],
+            time="00:00",
+            condition="fixed_time",
+            astro_type=None,
+            astro_offset_minutes=0,
+            target_channels=["1_1"],
+            level=0.0,
+            level_2=None,
+            duration=None,
+            ramp_time=None,
+        )
 
     @inspector
-    async def get_schedule(self, *, force_load: bool = False) -> DEFAULT_SCHEDULE_DICT:
-        """Return the raw schedule dictionary."""
+    async def get_schedule(self, *, force_load: bool = False) -> SimpleSchedule:
+        """Return the schedule in human-readable SimpleSchedule format."""
         if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
@@ -641,7 +703,7 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
         return self._schedule_cache
 
     async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
-        """Reload schedule entries and update cache."""
+        """Reload schedule entries from CCU and update cache with SimpleSchedule format."""
         if not force and not self.has_schedule:
             return
 
@@ -649,18 +711,21 @@ class DefaultWeekProfile(WeekProfile[DEFAULT_SCHEDULE_DICT]):
             new_raw_schedule = await self._get_raw_schedule()
         except ValidationException:
             return
+
         old_schedule = self._schedule_cache
-        new_schedule_data = self.convert_raw_to_dict_schedule(raw_schedule=new_raw_schedule)
-        self._schedule_cache = {
-            no: group_data for no, group_data in new_schedule_data.items() if is_schedule_active(group_data=group_data)
-        }
-        if old_schedule != self._schedule_cache:
+        new_schedule = self.convert_raw_to_dict_schedule(raw_schedule=new_raw_schedule)
+        self._schedule_cache = new_schedule
+
+        if old_schedule != new_schedule:
             self._data_point.publish_data_point_updated_event()
 
     @inspector
-    async def set_schedule(self, *, schedule_data: DEFAULT_SCHEDULE_DICT) -> None:
+    async def set_schedule(self, *, schedule_data: SimpleSchedule) -> None:
         """
-        Persist the provided raw schedule dictionary.
+        Persist the provided SimpleSchedule to device.
+
+        Args:
+            schedule_data: SimpleSchedule with human-readable entries (Pydantic-validated)
 
         Note:
             The cache is NOT updated optimistically. The cache will be refreshed
@@ -1494,7 +1559,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             previous_endtime = endtime
 
 
-def create_week_profile(*, data_point: CustomDataPointProtocol) -> WeekProfile[dict[Any, Any]]:
+def create_week_profile(*, data_point: CustomDataPointProtocol) -> ClimateWeekProfile | DefaultWeekProfile:
     """Create a week profile from a custom data point."""
     if data_point.category == DataPointCategory.CLIMATE:
         return ClimateWeekProfile(data_point=data_point)

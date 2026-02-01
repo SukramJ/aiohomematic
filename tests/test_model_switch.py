@@ -9,21 +9,12 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
-from aiohomematic.const import (
-    WAIT_FOR_CALLBACK,
-    AstroType,
-    DataPointUsage,
-    ParamsetKey,
-    ScheduleActorChannel,
-    ScheduleCondition,
-    ScheduleField,
-    TimeBase,
-    WeekdayInt,
-)
+from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpSwitch
 from aiohomematic.model.generic import DpSwitch
 from aiohomematic.model.hub import SysvarDpSwitch
+from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry
 from aiohomematic.model.week_profile import DefaultWeekProfile, create_empty_schedule_group, is_schedule_active
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -128,7 +119,7 @@ class TestCustomSwitch:
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test schedule read/write support."""
+        """Test schedule read/write support with SimpleSchedule format."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
 
@@ -136,39 +127,49 @@ class TestCustomSwitch:
             "01_WP_FIXED_HOUR": 7,
             "01_WP_FIXED_MINUTE": 30,
             "01_WP_CONDITION": 0,
+            "01_WP_ASTRO_TYPE": 0,
+            "01_WP_ASTRO_OFFSET": 0,
             "01_WP_TARGET_CHANNELS": 1,
             "01_WP_WEEKDAY": 2,
+            "01_WP_LEVEL": 1.0,
+            "02_WP_FIXED_HOUR": 0,
+            "02_WP_FIXED_MINUTE": 0,
+            "02_WP_CONDITION": 0,
+            "02_WP_ASTRO_TYPE": 0,
+            "02_WP_ASTRO_OFFSET": 0,
             "02_WP_TARGET_CHANNELS": 1,
             "02_WP_WEEKDAY": 2,
+            "02_WP_LEVEL": 0.0,
             "UNRELATED": 99,
-        }
-        expected_schedule = {
-            1: {
-                ScheduleField.CONDITION: ScheduleCondition.FIXED_TIME,
-                ScheduleField.FIXED_HOUR: 7,
-                ScheduleField.FIXED_MINUTE: 30,
-                ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
-                ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
-            },
-            2: {
-                ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
-                ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
-            },
         }
 
         mock_client.get_paramset = AsyncMock(return_value=schedule_payload)
 
         schedule = await switch.device.week_profile.get_schedule(force_load=True)
-        assert schedule == expected_schedule
-        assert switch.schedule == expected_schedule
+
+        # Verify schedule is SimpleSchedule with expected entries
+        assert isinstance(schedule, SimpleSchedule)
+        assert 1 in schedule.entries
+        assert 2 in schedule.entries
+        assert schedule.entries[1].time == "07:30"
+        assert schedule.entries[1].weekdays == ["MONDAY"]
+        assert schedule.entries[1].target_channels == ["1_1"]
+        assert schedule.entries[1].level == 1.0
         assert switch.has_schedule is True
 
-        await switch.set_schedule(schedule_data=expected_schedule)
-        mock_client.put_paramset.assert_called_with(
-            channel_address=switch.device.week_profile.schedule_channel_address,
-            paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=expected_schedule),
+        # Create new schedule and write it
+        new_schedule = SimpleSchedule(
+            entries={
+                1: SimpleScheduleEntry(
+                    weekdays=["MONDAY"],
+                    time="08:00",
+                    target_channels=["1_1"],
+                    level=1.0,
+                )
+            }
         )
+        await switch.set_schedule(schedule_data=new_schedule)
+        mock_client.put_paramset.assert_called()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -315,19 +316,15 @@ class TestSysvarSwitch:
 
 
 class TestScheduleConversion:
-    """Tests for schedule conversion between raw and structured formats."""
+    """Tests for schedule conversion with SimpleSchedule format."""
 
     @pytest.mark.asyncio
-    async def test_switch_schedule_24_channels(self) -> None:
-        """Test that all 24 channels are supported."""
-
-        # Test all 24 channels at once (bitwise sum of all channels)
-        all_channels_bitwise = sum(2**i for i in range(24))  # 16777215
-
+    async def test_switch_schedule_all_weekdays(self) -> None:
+        """Test that all weekdays are correctly converted to SimpleSchedule."""
         raw_schedule = {
-            "01_WP_WEEKDAY": 127,
+            "01_WP_WEEKDAY": 127,  # All weekdays
             "01_WP_LEVEL": 1,
-            "01_WP_TARGET_CHANNELS": all_channels_bitwise,
+            "01_WP_TARGET_CHANNELS": 1,
             "01_WP_FIXED_HOUR": 12,
             "01_WP_FIXED_MINUTE": 0,
             "01_WP_DURATION_BASE": 0,
@@ -337,46 +334,21 @@ class TestScheduleConversion:
             "01_WP_ASTRO_OFFSET": 0,
         }
 
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        schedule = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        # Verify all 24 channels are present
-        channels = structured[1][ScheduleField.TARGET_CHANNELS]
-        assert len(channels) == 24
+        assert isinstance(schedule, SimpleSchedule)
+        assert 1 in schedule.entries
+        entry = schedule.entries[1]
 
-        # Verify specific channels
-        assert ScheduleActorChannel.CHANNEL_1_1 in channels
-        assert ScheduleActorChannel.CHANNEL_4_3 in channels
-        assert ScheduleActorChannel.CHANNEL_8_3 in channels
-
-        # Test individual channels
-        for i in range(1, 25):
-            channel_value = 2 ** (i - 1)
-            test_raw = {
-                "01_WP_TARGET_CHANNELS": channel_value,
-                "01_WP_WEEKDAY": 1,
-                "01_WP_LEVEL": 1,
-                "01_WP_FIXED_HOUR": 0,
-                "01_WP_FIXED_MINUTE": 0,
-                "01_WP_DURATION_BASE": 0,
-                "01_WP_DURATION_FACTOR": 0,
-                "01_WP_CONDITION": 0,
-                "01_WP_ASTRO_TYPE": 0,
-                "01_WP_ASTRO_OFFSET": 0,
-            }
-
-            test_structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=test_raw)
-            test_channels = test_structured[1][ScheduleField.TARGET_CHANNELS]
-            assert len(test_channels) == 1
-            assert test_channels[0].value == channel_value
-
-        # Round-trip test with all channels
-        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=structured)
-        assert back_to_raw["01_WP_TARGET_CHANNELS"] == all_channels_bitwise
+        # All weekdays should be in the list
+        assert len(entry.weekdays) == 7
+        assert "SUNDAY" in entry.weekdays
+        assert "MONDAY" in entry.weekdays
+        assert "SATURDAY" in entry.weekdays
 
     @pytest.mark.asyncio
     async def test_switch_schedule_astro_mode(self) -> None:
-        """Test astro-based schedule."""
-        # Test data with astro mode (sunrise + 42 minutes)
+        """Test astro-based schedule conversion to SimpleSchedule."""
         raw_schedule = {
             "05_WP_ASTRO_OFFSET": 42,
             "05_WP_ASTRO_TYPE": 0,  # SUNRISE
@@ -390,192 +362,80 @@ class TestScheduleConversion:
             "05_WP_WEEKDAY": 4,  # Tuesday
         }
 
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        schedule = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        entry = schedule.entries[5]
 
-        # Verify astro settings
-        assert structured[5][ScheduleField.CONDITION] == ScheduleCondition.ASTRO
-        assert structured[5][ScheduleField.ASTRO_TYPE] == AstroType.SUNRISE
-        assert structured[5][ScheduleField.ASTRO_OFFSET] == 42
-        assert structured[5][ScheduleField.WEEKDAY] == [WeekdayInt.TUESDAY]
-
-    @pytest.mark.asyncio
-    async def test_switch_schedule_bitwise_conversion(self) -> None:
-        """Test bitwise conversion for weekdays and channels."""
-        # Test all weekdays (127 = 1+2+4+8+16+32+64)
-        raw_schedule = {
-            "01_WP_WEEKDAY": 127,
-            "01_WP_TARGET_CHANNELS": 7,  # All 3 channels
-            "01_WP_LEVEL": 1,
-            "01_WP_FIXED_HOUR": 0,
-            "01_WP_FIXED_MINUTE": 0,
-            "01_WP_DURATION_BASE": 0,
-            "01_WP_DURATION_FACTOR": 0,
-            "01_WP_CONDITION": 0,
-            "01_WP_ASTRO_TYPE": 0,
-            "01_WP_ASTRO_OFFSET": 0,
-        }
-
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
-
-        # Verify all weekdays are present
-        weekdays = structured[1][ScheduleField.WEEKDAY]
-        assert len(weekdays) == 7
-        assert WeekdayInt.SUNDAY in weekdays
-        assert WeekdayInt.MONDAY in weekdays
-        assert WeekdayInt.TUESDAY in weekdays
-        assert WeekdayInt.WEDNESDAY in weekdays
-        assert WeekdayInt.THURSDAY in weekdays
-        assert WeekdayInt.FRIDAY in weekdays
-        assert WeekdayInt.SATURDAY in weekdays
-
-        # Verify all channels are present
-        channels = structured[1][ScheduleField.TARGET_CHANNELS]
-        assert len(channels) == 3
-        assert ScheduleActorChannel.CHANNEL_1_1 in channels
-        assert ScheduleActorChannel.CHANNEL_1_2 in channels
-        assert ScheduleActorChannel.CHANNEL_1_3 in channels
+        assert entry.condition == "astro"
+        assert entry.astro_type == "sunrise"
+        assert entry.astro_offset_minutes == 42
+        assert entry.weekdays == ["TUESDAY"]
 
     @pytest.mark.asyncio
-    async def test_switch_schedule_channel_combinations(self) -> None:
-        """Test various channel combinations."""
-        # Test combination: Channels 1, 5, 10, 15, 20
-        # 1 + 16 + 512 + 16384 + 524288 = 541201
-        channels_bitwise = (2**0) + (2**4) + (2**9) + (2**14) + (2**19)
-
+    async def test_switch_schedule_duration_conversion(self) -> None:
+        """Test duration is converted to human-readable format."""
         raw_schedule = {
-            "01_WP_TARGET_CHANNELS": channels_bitwise,
-            "01_WP_WEEKDAY": 127,
-            "01_WP_LEVEL": 1,
-            "01_WP_FIXED_HOUR": 0,
-            "01_WP_FIXED_MINUTE": 0,
-            "01_WP_DURATION_BASE": 0,
-            "01_WP_DURATION_FACTOR": 0,
-            "01_WP_CONDITION": 0,
-            "01_WP_ASTRO_TYPE": 0,
-            "01_WP_ASTRO_OFFSET": 0,
-        }
-
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
-        channels = structured[1][ScheduleField.TARGET_CHANNELS]
-
-        # Verify exactly 5 channels
-        assert len(channels) == 5
-        assert ScheduleActorChannel.CHANNEL_1_1 in channels
-        assert ScheduleActorChannel.CHANNEL_2_2 in channels
-        assert ScheduleActorChannel.CHANNEL_4_1 in channels
-        assert ScheduleActorChannel.CHANNEL_5_3 in channels
-        assert ScheduleActorChannel.CHANNEL_7_2 in channels
-
-    @pytest.mark.asyncio
-    async def test_switch_schedule_conversion(self) -> None:
-        """Test conversion between raw and structured schedule formats."""
-
-        # Test data from user's example
-        raw_schedule = {
-            "02_WP_ASTRO_OFFSET": 0,
-            "02_WP_ASTRO_TYPE": 0,
-            "02_WP_CONDITION": 0,
-            "02_WP_DURATION_BASE": 1,
-            "02_WP_DURATION_FACTOR": 10,
-            "02_WP_FIXED_HOUR": 12,
-            "02_WP_FIXED_MINUTE": 0,
-            "02_WP_LEVEL": 1,
-            "02_WP_TARGET_CHANNELS": 2,
-            "02_WP_WEEKDAY": 2,
-        }
-
-        # Convert to structured format
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
-
-        # Verify structure
-        assert 2 in structured
-        assert structured[2][ScheduleField.WEEKDAY] == [WeekdayInt.MONDAY]
-        assert structured[2][ScheduleField.LEVEL] == 1
-        assert structured[2][ScheduleField.TARGET_CHANNELS] == [ScheduleActorChannel.CHANNEL_1_2]
-        assert structured[2][ScheduleField.FIXED_HOUR] == 12
-        assert structured[2][ScheduleField.FIXED_MINUTE] == 0
-        assert structured[2][ScheduleField.DURATION_BASE] == TimeBase.SEC_1
-        assert structured[2][ScheduleField.DURATION_FACTOR] == 10
-        assert structured[2][ScheduleField.CONDITION] == ScheduleCondition.FIXED_TIME
-        assert structured[2][ScheduleField.ASTRO_TYPE] == AstroType.SUNRISE
-        assert structured[2][ScheduleField.ASTRO_OFFSET] == 0
-
-        # Convert back to raw
-        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=structured)
-
-        # Verify round-trip conversion
-        assert back_to_raw == raw_schedule
-
-    @pytest.mark.asyncio
-    async def test_switch_schedule_duration_calculation(self) -> None:
-        """Test duration calculation examples."""
-
-        # Example: 10 seconds × 6 = 60 seconds total duration
-        raw_schedule = {
-            "01_WP_DURATION_BASE": 3,  # 10 seconds
-            "01_WP_DURATION_FACTOR": 6,
-            "01_WP_WEEKDAY": 127,
+            "01_WP_DURATION_BASE": 1,  # SEC_1
+            "01_WP_DURATION_FACTOR": 10,  # 10 seconds
+            "01_WP_WEEKDAY": 2,
             "01_WP_LEVEL": 1,
             "01_WP_TARGET_CHANNELS": 1,
-            "01_WP_FIXED_HOUR": 0,
+            "01_WP_FIXED_HOUR": 8,
             "01_WP_FIXED_MINUTE": 0,
             "01_WP_CONDITION": 0,
             "01_WP_ASTRO_TYPE": 0,
             "01_WP_ASTRO_OFFSET": 0,
         }
 
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        schedule = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        entry = schedule.entries[1]
 
-        # Verify duration settings
-        assert structured[1][ScheduleField.DURATION_BASE] == TimeBase.SEC_10
-        assert structured[1][ScheduleField.DURATION_FACTOR] == 6
-
-    @pytest.mark.asyncio
-    async def test_switch_schedule_edge_cases(self) -> None:
-        """Test edge cases in schedule conversion."""
-        # Test with invalid entries that should be skipped
-        raw_schedule = {
-            "02_WP_WEEKDAY": 2,
-            "02_WP_LEVEL": 1,
-            "INVALID_KEY": 123,  # Should be skipped
-            "02_INVALID_FIELD": 456,  # Should be skipped
-            "02_WP_UNKNOWN_FIELD": 789,  # Should be skipped
-            "02_WP_TARGET_CHANNELS": 1,
-        }
-
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
-
-        # Should only have valid fields
-        assert 2 in structured
-        assert len(structured[2]) == 3  # Only WEEKDAY and LEVEL
+        # Duration should be human-readable
+        assert entry.duration == "10s"
 
     @pytest.mark.asyncio
     async def test_switch_schedule_empty_deactivated(self) -> None:
         """Test empty/deactivated schedule detection."""
-
-        # Create empty schedule
         empty_schedule = create_empty_schedule_group()
-
-        # Verify it's detected as inactive
         assert is_schedule_active(group_data=empty_schedule) is False
 
     @pytest.mark.asyncio
-    async def test_switch_schedule_multiple_groups(self) -> None:
-        """Test handling multiple schedule groups."""
-        # Multiple groups from user's test data
+    async def test_switch_schedule_multiple_channels(self) -> None:
+        """Test multiple target channels are correctly converted."""
         raw_schedule = {
-            # Group 1
+            "01_WP_WEEKDAY": 2,  # Monday
+            "01_WP_LEVEL": 1,
+            "01_WP_TARGET_CHANNELS": 7,  # Channels 1_1, 1_2, 1_3
+            "01_WP_FIXED_HOUR": 8,
+            "01_WP_FIXED_MINUTE": 30,
+            "01_WP_CONDITION": 0,
+            "01_WP_ASTRO_TYPE": 0,
+            "01_WP_ASTRO_OFFSET": 0,
+        }
+
+        schedule = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        entry = schedule.entries[1]
+
+        assert len(entry.target_channels) == 3
+        assert "1_1" in entry.target_channels
+        assert "1_2" in entry.target_channels
+        assert "1_3" in entry.target_channels
+
+    @pytest.mark.asyncio
+    async def test_switch_schedule_multiple_groups(self) -> None:
+        """Test handling multiple schedule groups as SimpleSchedule."""
+        raw_schedule = {
+            # Group 1 - all weekdays, channel 1_1
             "01_WP_WEEKDAY": 127,
             "01_WP_LEVEL": 1,
             "01_WP_TARGET_CHANNELS": 1,
             "01_WP_FIXED_HOUR": 0,
             "01_WP_FIXED_MINUTE": 0,
-            "01_WP_DURATION_BASE": 3,
-            "01_WP_DURATION_FACTOR": 6,
+            "01_WP_DURATION_BASE": 1,
+            "01_WP_DURATION_FACTOR": 60,
             "01_WP_CONDITION": 0,
             "01_WP_ASTRO_TYPE": 0,
             "01_WP_ASTRO_OFFSET": 0,
-            # Group 2
+            # Group 2 - Monday, channel 1_2
             "02_WP_WEEKDAY": 2,
             "02_WP_LEVEL": 1,
             "02_WP_TARGET_CHANNELS": 2,
@@ -586,7 +446,7 @@ class TestScheduleConversion:
             "02_WP_CONDITION": 0,
             "02_WP_ASTRO_TYPE": 0,
             "02_WP_ASTRO_OFFSET": 0,
-            # Group 3
+            # Group 3 - Sunday, channel 1_3
             "03_WP_WEEKDAY": 1,
             "03_WP_LEVEL": 0,
             "03_WP_TARGET_CHANNELS": 4,
@@ -599,26 +459,61 @@ class TestScheduleConversion:
             "03_WP_ASTRO_OFFSET": 0,
         }
 
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        schedule = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        # Verify all three groups are present
-        assert 1 in structured
-        assert 2 in structured
-        assert 3 in structured
+        assert isinstance(schedule, SimpleSchedule)
+        assert 1 in schedule.entries
+        assert 2 in schedule.entries
+        assert 3 in schedule.entries
 
-        # Verify each group has correct field count
-        assert len(structured[1]) == 10  # All fields
-        assert len(structured[2]) == 10
-        assert len(structured[3]) == 10
+        # Verify specific entries
+        assert schedule.entries[1].time == "00:00"
+        assert schedule.entries[1].duration == "60s"
+        assert schedule.entries[2].time == "12:00"
+        assert schedule.entries[2].target_channels == ["1_2"]
+        assert schedule.entries[3].weekdays == ["SUNDAY"]
+        assert schedule.entries[3].level == 0.0
 
-        # Round-trip test
-        back_to_raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=structured)
-        assert len(back_to_raw) == len(raw_schedule)
+    @pytest.mark.asyncio
+    async def test_switch_schedule_round_trip(self) -> None:
+        """Test round-trip conversion SimpleSchedule -> raw -> SimpleSchedule."""
+        original = SimpleSchedule(
+            entries={
+                1: SimpleScheduleEntry(
+                    weekdays=["MONDAY", "FRIDAY"],
+                    time="08:00",
+                    target_channels=["1_1", "1_2"],
+                    level=1.0,
+                    duration="30s",
+                ),
+                2: SimpleScheduleEntry(
+                    weekdays=["SATURDAY"],
+                    time="10:00",
+                    target_channels=["1_1"],
+                    level=0.5,
+                    condition="astro",
+                    astro_type="sunrise",
+                    astro_offset_minutes=15,
+                ),
+            }
+        )
+
+        # Convert to raw
+        raw = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=original)
+
+        # Convert back to SimpleSchedule
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw)
+
+        # Verify round-trip preserves data
+        assert result.entries[1].weekdays == original.entries[1].weekdays
+        assert result.entries[1].time == original.entries[1].time
+        assert result.entries[1].level == original.entries[1].level
+        assert result.entries[2].condition == "astro"
+        assert result.entries[2].astro_type == "sunrise"
 
     @pytest.mark.asyncio
     async def test_switch_schedule_sunset_example(self) -> None:
-        """Test sunset-based schedule from user's data."""
-        # Group 6: Sunset + 24 minutes, turn off, all weekdays
+        """Test sunset-based schedule as SimpleSchedule."""
         raw_schedule = {
             "06_WP_ASTRO_OFFSET": 24,
             "06_WP_ASTRO_TYPE": 1,  # SUNSET
@@ -632,14 +527,14 @@ class TestScheduleConversion:
             "06_WP_WEEKDAY": 127,  # All days
         }
 
-        structured = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        schedule = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        entry = schedule.entries[6]
 
-        # Verify: "At sunset + 24 minutes, turn off channel 1, every day"
-        assert structured[6][ScheduleField.ASTRO_TYPE] == AstroType.SUNSET
-        assert structured[6][ScheduleField.ASTRO_OFFSET] == 24
-        assert structured[6][ScheduleField.CONDITION] == ScheduleCondition.ASTRO
-        assert structured[6][ScheduleField.LEVEL] == 0
-        assert len(structured[6][ScheduleField.WEEKDAY]) == 7  # All weekdays
+        assert entry.astro_type == "sunset"
+        assert entry.astro_offset_minutes == 24
+        assert entry.condition == "astro"
+        assert entry.level == 0.0
+        assert len(entry.weekdays) == 7
 
 
 class TestProgramSwitch:

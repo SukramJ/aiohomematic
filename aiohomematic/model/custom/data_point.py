@@ -130,7 +130,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return all(dp.is_status_valid for dp in self._relevant_data_points)
 
     @property
-    def schedule(self) -> dict[Any, Any]:
+    def schedule(self) -> Any:
         """Return cached schedule entries from device week profile."""
         if self._device.week_profile:
             return self._device.week_profile.schedule
@@ -168,7 +168,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
-    async def get_schedule(self, *, force_load: bool = False) -> dict[Any, Any]:
+    async def get_schedule(self, *, force_load: bool = False) -> Any:
         """Get schedule from device week profile."""
         if self._device.week_profile:
             return await self._device.week_profile.get_schedule(force_load=force_load)

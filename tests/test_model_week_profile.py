@@ -20,6 +20,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDataPoint, CustomDpRfThermostat
+from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry
 from aiohomematic.model.week_profile import (
     ClimateWeekProfile,
     DefaultWeekProfile,
@@ -1378,18 +1379,20 @@ class TestClimateWeekProfileIntegration:
 
 
 class TestDefaultWeekProfileConversion:
-    """Test DefaultWeekProfile conversion methods."""
+    """Test DefaultWeekProfile conversion methods with SimpleSchedule format."""
 
     def test_convert_dict_to_raw_schedule_switch(self):
-        """Test converting switch schedule dict to raw format."""
-        schedule_data = {
-            1: {
-                ScheduleField.WEEKDAY: [WeekdayInt.MONDAY, WeekdayInt.TUESDAY],
-                ScheduleField.LEVEL: 1.0,
-                ScheduleField.FIXED_HOUR: 10,
-                ScheduleField.FIXED_MINUTE: 30,
+        """Test converting SimpleSchedule to raw format."""
+        schedule_data = SimpleSchedule(
+            entries={
+                1: SimpleScheduleEntry(
+                    weekdays=["MONDAY", "TUESDAY"],
+                    time="10:30",
+                    target_channels=["1_1"],
+                    level=1.0,
+                )
             }
-        }
+        )
 
         result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
@@ -1403,49 +1406,58 @@ class TestDefaultWeekProfileConversion:
         assert result["01_WP_FIXED_MINUTE"] == 30
 
     def test_convert_raw_to_dict_schedule(self):
-        """Test converting raw schedule to dict format."""
+        """Test converting raw schedule to SimpleSchedule format."""
         raw_schedule = {
             "01_WP_WEEKDAY": 6,  # MONDAY + TUESDAY
+            "01_WP_TARGET_CHANNELS": 1,  # CHANNEL_1_1
             "01_WP_LEVEL": 1.0,
             "01_WP_FIXED_HOUR": 10,
             "01_WP_FIXED_MINUTE": 30,
-            "02_WP_WEEKDAY": 127,  # All days
-            "02_WP_LEVEL": 0.0,
+            "01_WP_CONDITION": 0,  # FIXED_TIME
+            "01_WP_ASTRO_TYPE": 0,  # SUNRISE
+            "01_WP_ASTRO_OFFSET": 0,
             "INVALID_FORMAT": 42,  # Should be skipped
             "01_INVALID": 42,  # Should be skipped
         }
 
         result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        assert 1 in result
-        assert 2 in result
-        assert ScheduleField.WEEKDAY in result[1]
-        assert ScheduleField.LEVEL in result[1]
-        assert ScheduleField.FIXED_HOUR in result[1]
-        assert ScheduleField.FIXED_MINUTE in result[1]
-        assert isinstance(result[1][ScheduleField.WEEKDAY], list)
-        assert result[1][ScheduleField.LEVEL] == 1.0
-        assert result[1][ScheduleField.FIXED_HOUR] == 10
-        assert result[1][ScheduleField.FIXED_MINUTE] == 30
+        assert isinstance(result, SimpleSchedule)
+        assert 1 in result.entries
+        entry = result.entries[1]
+        assert "MONDAY" in entry.weekdays
+        assert "TUESDAY" in entry.weekdays
+        assert entry.time == "10:30"
+        assert entry.level == 1.0
+        assert entry.condition == "fixed_time"
 
-    def test_convert_raw_to_dict_schedule_with_enums(self):
-        """Test converting raw schedule with enum fields."""
-        from aiohomematic.const import AstroType, ScheduleCondition, TimeBase
-
+    def test_convert_raw_to_dict_schedule_with_astro(self):
+        """Test converting raw schedule with astro condition to SimpleSchedule."""
         raw_schedule = {
-            "01_WP_ASTRO_TYPE": 1,
-            "01_WP_CONDITION": 0,
-            "01_WP_DURATION_BASE": 4,
-            "01_WP_RAMP_TIME_BASE": 4,
+            "01_WP_WEEKDAY": 2,  # MONDAY
+            "01_WP_TARGET_CHANNELS": 1,  # CHANNEL_1_1
+            "01_WP_LEVEL": 0.5,
+            "01_WP_FIXED_HOUR": 7,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_ASTRO_TYPE": 1,  # SUNSET
+            "01_WP_CONDITION": 1,  # ASTRO
+            "01_WP_ASTRO_OFFSET": 30,
+            "01_WP_DURATION_BASE": 1,  # SEC_1
+            "01_WP_DURATION_FACTOR": 10,
+            "01_WP_RAMP_TIME_BASE": 1,  # SEC_1
+            "01_WP_RAMP_TIME_FACTOR": 2,
         }
 
         result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        assert 1 in result
-        assert result[1][ScheduleField.ASTRO_TYPE] == AstroType.SUNSET
-        assert result[1][ScheduleField.CONDITION] == ScheduleCondition.FIXED_TIME
-        assert result[1][ScheduleField.DURATION_BASE] == TimeBase.MIN_1
-        assert result[1][ScheduleField.RAMP_TIME_BASE] == TimeBase.MIN_1
+        assert isinstance(result, SimpleSchedule)
+        assert 1 in result.entries
+        entry = result.entries[1]
+        assert entry.condition == "astro"
+        assert entry.astro_type == "sunset"
+        assert entry.astro_offset_minutes == 30
+        assert entry.duration == "10s"
+        assert entry.ramp_time == "2s"
 
     def test_convert_schedule_entries(self):
         """Test _convert_schedule_entries filtering."""
@@ -1480,6 +1492,112 @@ class TestDefaultWeekProfileConversion:
         result = DefaultWeekProfile._convert_schedule_entries(values=raw_values)
         assert result["01_WP_LEVEL"] == 1.5
         assert result["02_WP_LEVEL"] == 2
+
+    def test_simple_schedule_duration_format(self):
+        """Test duration and ramp_time format validation."""
+        # Valid durations
+        entry = SimpleScheduleEntry(
+            weekdays=["MONDAY"],
+            time="07:30",
+            target_channels=["1_1"],
+            level=0.5,
+            duration="10s",
+            ramp_time="500ms",
+        )
+        assert entry.duration == "10s"
+        assert entry.ramp_time == "500ms"
+
+        # Invalid duration format
+        with pytest.raises(ValueError):
+            SimpleScheduleEntry(
+                weekdays=["MONDAY"],
+                time="07:30",
+                target_channels=["1_1"],
+                level=0.5,
+                duration="invalid",
+            )
+
+    def test_simple_schedule_entry_astro_validation(self):
+        """Test that astro_type is required when condition uses astro."""
+        # Valid: fixed_time without astro_type
+        entry = SimpleScheduleEntry(
+            weekdays=["MONDAY"],
+            time="07:30",
+            target_channels=["1_1"],
+            level=0.5,
+            condition="fixed_time",
+        )
+        assert entry.astro_type is None
+
+        # Valid: astro with astro_type
+        entry = SimpleScheduleEntry(
+            weekdays=["MONDAY"],
+            time="07:30",
+            target_channels=["1_1"],
+            level=0.5,
+            condition="astro",
+            astro_type="sunrise",
+        )
+        assert entry.astro_type == "sunrise"
+
+        # Invalid: astro without astro_type
+        with pytest.raises(ValueError):
+            SimpleScheduleEntry(
+                weekdays=["MONDAY"],
+                time="07:30",
+                target_channels=["1_1"],
+                level=0.5,
+                condition="astro",
+            )
+
+    def test_simple_schedule_entry_validation(self):
+        """Test that SimpleScheduleEntry validates input correctly."""
+        # Valid entry
+        entry = SimpleScheduleEntry(
+            weekdays=["MONDAY"],
+            time="07:30",
+            target_channels=["1_1"],
+            level=0.5,
+        )
+        assert entry.weekdays == ["MONDAY"]
+        assert entry.time == "07:30"
+        assert entry.level == 0.5
+
+        # Invalid weekday
+        with pytest.raises(ValueError):
+            SimpleScheduleEntry(
+                weekdays=["INVALID"],
+                time="07:30",
+                target_channels=["1_1"],
+                level=0.5,
+            )
+
+        # Invalid time format
+        with pytest.raises(ValueError):
+            SimpleScheduleEntry(
+                weekdays=["MONDAY"],
+                time="25:00",
+                target_channels=["1_1"],
+                level=0.5,
+            )
+
+        # Invalid channel format
+        with pytest.raises(ValueError):
+            SimpleScheduleEntry(
+                weekdays=["MONDAY"],
+                time="07:30",
+                target_channels=["9_5"],
+                level=0.5,
+            )
+
+        # Level out of range
+        with pytest.raises(ValueError):
+            SimpleScheduleEntry(
+                weekdays=["MONDAY"],
+                time="07:30",
+                target_channels=["1_1"],
+                level=1.5,
+            )
 
 
 class TestClimateWeekProfileConversion:
@@ -1711,49 +1829,53 @@ class TestErrorPaths:
 
 
 class TestDefaultWeekProfileAdditionalEdgeCases:
-    """Test additional edge cases for DefaultWeekProfile."""
+    """Test additional edge cases for DefaultWeekProfile with SimpleSchedule format."""
 
     def test_convert_dict_to_raw_schedule_with_all_field_types(self):
-        """Test converting schedule with all supported field types."""
-        from aiohomematic.const import AstroType, ScheduleCondition, TimeBase
-
-        schedule_data = {
-            1: {
-                ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
-                ScheduleField.TARGET_CHANNELS: [ScheduleActorChannel.CHANNEL_1_1],
-                ScheduleField.ASTRO_TYPE: AstroType.SUNSET,
-                ScheduleField.CONDITION: ScheduleCondition.ASTRO,
-                ScheduleField.DURATION_BASE: TimeBase.MIN_1,
-                ScheduleField.RAMP_TIME_BASE: TimeBase.SEC_1,
-                ScheduleField.ASTRO_OFFSET: 30,
-                ScheduleField.DURATION_FACTOR: 10,
-                ScheduleField.FIXED_HOUR: 12,
-                ScheduleField.FIXED_MINUTE: 30,
-                ScheduleField.RAMP_TIME_FACTOR: 5,
+        """Test converting SimpleSchedule with all supported field types to raw format."""
+        schedule_data = SimpleSchedule(
+            entries={
+                1: SimpleScheduleEntry(
+                    weekdays=["MONDAY"],
+                    time="12:30",
+                    target_channels=["1_1"],
+                    level=0.5,
+                    condition="astro",
+                    astro_type="sunset",
+                    astro_offset_minutes=30,
+                    duration="10min",
+                    ramp_time="5s",
+                )
             }
-        }
+        )
 
         result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
 
         assert result["01_WP_ASTRO_TYPE"] == 1  # AstroType.SUNSET
         assert result["01_WP_CONDITION"] == 1  # ScheduleCondition.ASTRO
-        assert result["01_WP_DURATION_BASE"] == 4  # TimeBase.MIN_1
-        assert result["01_WP_RAMP_TIME_BASE"] == 1  # TimeBase.SEC_1
         assert result["01_WP_ASTRO_OFFSET"] == 30
-        assert result["01_WP_DURATION_FACTOR"] == 10
         assert result["01_WP_FIXED_HOUR"] == 12
         assert result["01_WP_FIXED_MINUTE"] == 30
+        # Duration 10min = TimeBase.MIN_1 (4) + factor 10
+        assert result["01_WP_DURATION_BASE"] == 4  # TimeBase.MIN_1
+        assert result["01_WP_DURATION_FACTOR"] == 10
+        # Ramp time 5s = TimeBase.SEC_1 (1) + factor 5
+        assert result["01_WP_RAMP_TIME_BASE"] == 1  # TimeBase.SEC_1
         assert result["01_WP_RAMP_TIME_FACTOR"] == 5
 
-    def test_convert_dict_to_raw_schedule_with_float_level_2(self):
-        """Test converting schedule with LEVEL_2 (float)."""
-        schedule_data = {
-            1: {
-                ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
-                ScheduleField.LEVEL: 0.5,
-                ScheduleField.LEVEL_2: 0.75,
+    def test_convert_dict_to_raw_schedule_with_level_2(self):
+        """Test converting SimpleSchedule with LEVEL_2 (for covers)."""
+        schedule_data = SimpleSchedule(
+            entries={
+                1: SimpleScheduleEntry(
+                    weekdays=["MONDAY"],
+                    time="08:00",
+                    target_channels=["1_1"],
+                    level=0.5,
+                    level_2=0.75,
+                )
             }
-        }
+        )
 
         result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
         assert "01_WP_LEVEL" in result
@@ -1761,52 +1883,63 @@ class TestDefaultWeekProfileAdditionalEdgeCases:
         assert result["01_WP_LEVEL"] == 0.5
         assert result["01_WP_LEVEL_2"] == 0.75
 
-    def test_convert_dict_to_raw_schedule_with_int_level(self):
-        """Test converting schedule with integer level value."""
-        schedule_data = {
-            1: {
-                ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
-                ScheduleField.LEVEL: 1,  # Integer
-            }
-        }
-
-        result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=schedule_data)
-        assert "01_WP_LEVEL" in result
-        assert result["01_WP_LEVEL"] == 1.0  # Should be converted to float
-
-    def test_convert_raw_to_dict_schedule_with_int_level(self):
-        """Test converting raw schedule with integer LEVEL."""
+    def test_convert_raw_to_dict_schedule_filters_inactive(self):
+        """Test that inactive schedules (no weekdays/channels) are filtered."""
+        # Schedule with no weekdays or channels should be filtered out
         raw_schedule = {
-            "01_WP_LEVEL": 1,  # Integer level
+            "01_WP_LEVEL": 1.0,
+            "01_WP_FIXED_HOUR": 10,
+            "01_WP_FIXED_MINUTE": 0,
+            # Missing WEEKDAY and TARGET_CHANNELS - should be inactive
         }
 
         result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        assert 1 in result
-        assert result[1][ScheduleField.LEVEL] == 1
+        # Inactive schedules are filtered out
+        assert isinstance(result, SimpleSchedule)
+        assert 1 not in result.entries
 
     def test_convert_raw_to_dict_schedule_with_level_2(self):
-        """Test converting raw schedule with LEVEL_2."""
+        """Test converting raw schedule with LEVEL_2 to SimpleSchedule."""
         raw_schedule = {
+            "01_WP_WEEKDAY": 2,  # MONDAY
+            "01_WP_TARGET_CHANNELS": 1,  # CHANNEL_1_1
+            "01_WP_LEVEL": 0.5,
             "01_WP_LEVEL_2": 0.75,
+            "01_WP_FIXED_HOUR": 8,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_CONDITION": 0,
+            "01_WP_ASTRO_TYPE": 0,
+            "01_WP_ASTRO_OFFSET": 0,
         }
 
         result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        assert 1 in result
-        assert result[1][ScheduleField.LEVEL_2] == 0.75
+        assert isinstance(result, SimpleSchedule)
+        assert 1 in result.entries
+        assert result.entries[1].level == 0.5
+        assert result.entries[1].level_2 == 0.75
 
-    def test_convert_raw_to_dict_schedule_with_target_channels(self):
-        """Test converting raw schedule with TARGET_CHANNELS."""
+    def test_convert_raw_to_dict_schedule_with_multiple_channels(self):
+        """Test converting raw schedule with multiple TARGET_CHANNELS."""
         raw_schedule = {
-            "01_WP_TARGET_CHANNELS": 3,  # Bitwise for channels
+            "01_WP_WEEKDAY": 2,  # MONDAY
+            "01_WP_TARGET_CHANNELS": 3,  # CHANNEL_1_1 + CHANNEL_1_2
+            "01_WP_LEVEL": 1.0,
+            "01_WP_FIXED_HOUR": 10,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_CONDITION": 0,
+            "01_WP_ASTRO_TYPE": 0,
+            "01_WP_ASTRO_OFFSET": 0,
         }
 
         result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
 
-        assert 1 in result
-        assert ScheduleField.TARGET_CHANNELS in result[1]
-        assert isinstance(result[1][ScheduleField.TARGET_CHANNELS], list)
+        assert isinstance(result, SimpleSchedule)
+        assert 1 in result.entries
+        # Channels 1_1 and 1_2 should be in the list
+        assert "1_1" in result.entries[1].target_channels
+        assert "1_2" in result.entries[1].target_channels
 
 
 class TestClimateWeekProfileAdditionalEdgeCases:
@@ -3113,11 +3246,11 @@ class TestWeekProfileHelperMethods:
             (TEST_DEVICES_SCHEDULE, True, None, None),
         ],
     )
-    async def test_empty_schedule_group(
+    async def test_empty_schedule_entry(
         self,
         central_client_factory_with_homegear_client,
     ):
-        """Test empty_schedule_group method for DefaultWeekProfile."""
+        """Test empty_schedule_entry method for DefaultWeekProfile."""
         central, mock_client, _ = central_client_factory_with_homegear_client
 
         # Create a mock custom data point with non-climate category
@@ -3131,11 +3264,14 @@ class TestWeekProfileHelperMethods:
         # Create DefaultWeekProfile
         week_profile = DefaultWeekProfile(data_point=mock_data_point)
 
-        # Get empty schedule group
-        empty_group = week_profile.empty_schedule_group()
+        # Get empty schedule entry
+        empty_entry = week_profile.empty_schedule_entry()
 
-        # Should return empty dict when schedule not supported
-        assert isinstance(empty_group, dict)
+        # Should return a SimpleScheduleEntry
+        assert isinstance(empty_entry, SimpleScheduleEntry)
+        assert empty_entry.weekdays == ["MONDAY"]
+        assert empty_entry.time == "00:00"
+        assert empty_entry.level == 0.0
 
     def test_empty_schedule_group_cover_category(self):
         """Test create_empty_schedule_group for cover category."""

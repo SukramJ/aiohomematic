@@ -401,11 +401,11 @@ class CentralConfigBuilder:
         return CentralConfig(
             # Required
             central_id=central_id,
-            host=self._host,  # type: ignore[arg-type]
+            host=self._host,
             interface_configs=frozenset(interface_configs),
-            name=self._name,  # type: ignore[arg-type]
-            password=self._password,  # type: ignore[arg-type]
-            username=self._username,  # type: ignore[arg-type]
+            name=self._name,
+            password=self._password,
+            username=self._username,
             # Connection
             client_session=self._client_session,
             tls=self._tls,

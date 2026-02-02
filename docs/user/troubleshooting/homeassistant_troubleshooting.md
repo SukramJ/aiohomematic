@@ -33,6 +33,7 @@ This section provides a quick overview of common symptoms and their most likely 
 | Auto-discovery notification keeps appearing            | SSDP serial mismatch, integration created before discovery                                                              | [3K](#k-auto-discovery-keeps-appearing)                              |
 | "Error fetching initial data" warning                  | CCU REGA script returned invalid data, CCU overloaded                                                                   | [3L](#l-error-fetching-initial-data)                                 |
 | "Incomplete device data" repair issue                  | Paramset descriptions missing for devices, CCU data corruption or communication issue                                   | [3M](#m-incomplete-device-data)                                      |
+| "GET_ALL_DEVICE_DATA failed" + JSONDecodeError         | Device/channel name contains invalid characters breaking JSON output                                                    | [3N](#n-get_all_device_data-failed-json-parse-error)                 |
 
 ---
 
@@ -602,6 +603,95 @@ This issue occurs when:
   - Device types (model numbers)
   - CCU type and firmware version
   - Debug logs showing the fetch attempts
+
+### N) GET_ALL_DEVICE_DATA failed (JSON parse error)
+
+**Symptoms:**
+
+- Error in logs: `GET_ALL_DEVICE_DATA failed: Unable to fetch device data for interface X`
+- Traceback shows `orjson.JSONDecodeError: unexpected character: line X column Y`
+- Integration fails to start or loads without device data
+
+**Understanding this issue:**
+
+The integration fetches all device data via JSON-RPC by executing a ReGa script on the CCU. The script returns device values as JSON. If a device name, channel name, or value contains special characters that break JSON syntax, the parsing fails.
+
+**Common causes:**
+
+1. Device or channel name contains unescaped quotes (`"`) or backslashes (`\`)
+2. Device name contains control characters or unusual Unicode
+3. A numeric value is invalid (e.g., `NaN`, `Infinity`, or malformed number)
+4. Copy-pasted text with invisible characters in device names
+
+**Diagnostic steps:**
+
+Unlike other issues, this requires direct JSON-RPC debugging because the ReGa script cannot be easily executed manually.
+
+1. **Login to CCU via JSON-RPC** (get session ID):
+
+   ```bash
+   curl -s -X POST "http://<CCU-IP>/api/homematic.cgi" \
+     -H "Content-Type: application/json" \
+     -d '{"method":"Session.login","params":{"username":"<USER>","password":"<PASSWORD>"}}'
+   ```
+
+   Response: `{"result":"<SESSION_ID>","error":null}`
+
+2. **Execute the device data script** (replace `<SESSION_ID>` and `<INTERFACE>`):
+
+   Valid interfaces: `BidCos-RF`, `BidCos-Wired`, `HmIP-RF`, `VirtualDevices`
+
+   ```bash
+   curl -s -X POST "http://<CCU-IP>/api/homematic.cgi" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "method": "ReGa.runScript",
+       "params": {
+         "_session_id_": "<SESSION_ID>",
+         "script": "string sUse_Interface = \"<INTERFACE>\"; string sDevId; string sChnId; string sDPId; var vDPValue; boolean bDPFirst = true; object oInterface = interfaces.Get(sUse_Interface); Write(\"{\"); if (oInterface) { integer iInterface_ID = interfaces.Get(sUse_Interface).ID(); string sAllDevices = dom.GetObject(ID_DEVICES).EnumUsedIDs(); foreach (sDevId, sAllDevices) { object oDevice = dom.GetObject(sDevId); if ((oDevice) && (oDevice.ReadyConfig()) && (oDevice.Interface() == iInterface_ID)) { foreach (sChnId, oDevice.Channels()) { object oChannel = dom.GetObject(sChnId); if (oChannel) { var oDPs = oChannel.DPs(); if (oDPs) { foreach(sDPId, oDPs.EnumUsedIDs()) { object oDP = dom.GetObject(sDPId); if (oDP && oDP.Timestamp()) { if (oDP.TypeName() != \"VARDP\") { integer sValueType = oDP.ValueType(); boolean bHasValue = false; string sValue; string sID = oDP.Name().UriEncode(); if (sValueType == 20) { sValue = oDP.Value().UriEncode(); bHasValue = true; } else { vDPValue = oDP.Value(); if (sValueType == 2) { if (vDPValue) { sValue = \"true\"; } else { sValue = \"false\"; } bHasValue = true; } else { if (vDPValue == \"\") { sValue = \"0\"; } else { sValue = vDPValue; } bHasValue = true; } } if (bHasValue) { if (bDPFirst) { bDPFirst = false; } else { WriteLine(\",\"); } Write(\"\\\"\"); Write(sID); Write(\"\\\":\"); if (sValueType == 20) { Write(\"\\\"\"); Write(sValue); Write(\"\\\"\"); } else { Write(sValue); } } } } } } } } } } } Write(\"}\");"
+       }
+     }' | jq -r '.result' > device_data.json
+   ```
+
+3. **Find the problematic line** (the error message shows line and column):
+
+   ```bash
+   # If error says "line 94 column 50"
+   head -n 94 device_data.json | tail -n 1
+   ```
+
+4. **Validate the JSON** to see all errors:
+
+   ```bash
+   cat device_data.json | python3 -m json.tool
+   ```
+
+5. **Logout** (cleanup session):
+
+   ```bash
+   curl -s -X POST "http://<CCU-IP>/api/homematic.cgi" \
+     -H "Content-Type: application/json" \
+     -d '{"method":"Session.logout","params":{"_session_id_":"<SESSION_ID>"}}'
+   ```
+
+**Solutions:**
+
+1. **Identify the problematic device** from the line/column in the error
+2. **Rename the device/channel** in CCU WebUI to remove special characters:
+   - Remove quotes: `"`, `'`
+   - Remove backslashes: `\`
+   - Remove control characters (re-type the name instead of copy-paste)
+3. **Restart the integration** after fixing the name
+
+**Example of problematic names:**
+
+| Problematic name        | Issue                | Fixed name           |
+| ----------------------- | -------------------- | -------------------- |
+| `Wohnzimmer "Lampe"`    | Contains quotes      | `Wohnzimmer Lampe`   |
+| `Sensor\Fenster`        | Contains backslash   | `Sensor Fenster`     |
+| `Tür­sensor`            | Hidden soft hyphen   | `Tuersensor`         |
+
+**Note:** This is a data issue on the CCU, not an integration bug. The integration cannot handle invalid JSON returned by the CCU's ReGa engine.
 
 ---
 

@@ -2935,18 +2935,22 @@ class TestClimateSimpleScheduleMethods:
         # Get simple profile
         simple_profile = await climate.get_schedule_simple_profile(profile=ScheduleProfile.P1)
 
-        # Should return a dict with weekdays
-        assert isinstance(simple_profile, dict)
+        # Should return a Pydantic RootModel (dict-like)
+        from aiohomematic.model.schedule_models import (
+            ClimateProfileSchedule as ClimateProfileScheduleModel,
+            ClimateWeekdaySchedule as ClimateWeekdayScheduleModel,
+        )
+
+        assert isinstance(simple_profile, ClimateProfileScheduleModel)
         # Simple profile has weekdays as keys
-        for weekday, simple_weekday in simple_profile.items():
-            assert isinstance(weekday, WeekdayStr)
-            assert isinstance(simple_weekday, dict)
-            # Each entry should have STARTTIME, ENDTIME, TEMPERATURE
-            weekday = simple_weekday["periods"]
-            for slot in weekday:
-                assert "starttime" in slot
-                assert "endtime" in slot
-                assert "temperature" in slot
+        for weekday_str, simple_weekday in simple_profile.items():
+            assert isinstance(weekday_str, str)
+            assert isinstance(simple_weekday, ClimateWeekdayScheduleModel)
+            # Each period should have starttime, endtime, temperature
+            for period in simple_weekday.periods:
+                assert hasattr(period, "starttime")
+                assert hasattr(period, "endtime")
+                assert hasattr(period, "temperature")
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -2976,21 +2980,27 @@ class TestClimateSimpleScheduleMethods:
         # Get simple schedule
         simple_schedule = await climate.get_schedule_simple_schedule()
 
-        # Should return a dict with profiles
-        assert isinstance(simple_schedule, dict)
+        # Should return a Pydantic RootModel (dict-like)
+        from aiohomematic.model.schedule_models import (
+            ClimateProfileSchedule as ClimateProfileScheduleModel,
+            ClimateSchedule as ClimateScheduleModel,
+            ClimateWeekdaySchedule as ClimateWeekdayScheduleModel,
+        )
+
+        assert isinstance(simple_schedule, ClimateScheduleModel)
         # Should have profiles as keys
         assert len(simple_schedule) > 0
-        for profile, profile_data in simple_schedule.items():
-            assert isinstance(profile, ScheduleProfile)
-            assert isinstance(profile_data, dict)
+        for profile_str, profile_data in simple_schedule.items():
+            assert isinstance(profile_str, str)
+            assert isinstance(profile_data, ClimateProfileScheduleModel)
             # Each profile should have weekdays
-            for weekday, weekday_data in profile_data.items():
-                assert isinstance(weekday, WeekdayStr)
-                assert isinstance(weekday_data, dict)
-                assert "base_temperature" in weekday_data
-                assert "periods" in weekday_data
-                assert isinstance(weekday_data["base_temperature"], float)
-                assert isinstance(weekday_data["periods"], list)
+            for weekday_str, weekday_data in profile_data.items():
+                assert isinstance(weekday_str, str)
+                assert isinstance(weekday_data, ClimateWeekdayScheduleModel)
+                assert hasattr(weekday_data, "base_temperature")
+                assert hasattr(weekday_data, "periods")
+                assert isinstance(weekday_data.base_temperature, float)
+                assert isinstance(weekday_data.periods, list)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -3022,17 +3032,18 @@ class TestClimateSimpleScheduleMethods:
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY
         )
 
-        # Should return a dict
-        assert isinstance(simple_weekday, dict)
-        # Each slot should have required fields
-        weekday = simple_weekday["periods"]
-        for slot in weekday:
-            assert "starttime" in slot
-            assert "endtime" in slot
-            assert "temperature" in slot
+        # Should return a Pydantic model
+        from aiohomematic.model.schedule_models import ClimateWeekdaySchedule as ClimateWeekdayScheduleModel
+
+        assert isinstance(simple_weekday, ClimateWeekdayScheduleModel)
+        # Each period should have required fields
+        for period in simple_weekday.periods:
+            assert hasattr(period, "starttime")
+            assert hasattr(period, "endtime")
+            assert hasattr(period, "temperature")
             # Start should be before end
-            start_minutes = _convert_time_str_to_minutes(time_str=slot["starttime"])
-            end_minutes = _convert_time_str_to_minutes(time_str=slot["endtime"])
+            start_minutes = _convert_time_str_to_minutes(time_str=period.starttime)
+            end_minutes = _convert_time_str_to_minutes(time_str=period.endtime)
             assert start_minutes < end_minutes
 
     @pytest.mark.asyncio

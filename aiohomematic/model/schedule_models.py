@@ -39,7 +39,7 @@ from __future__ import annotations
 import re
 from typing import Annotated, Final, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator, model_validator
 
 from aiohomematic import i18n
 from aiohomematic.const import AstroType, ScheduleActorChannel, ScheduleCondition, ScheduleField, TimeBase, WeekdayInt
@@ -766,90 +766,144 @@ class ClimateWeekdaySchedule(BaseModel):
         return self
 
 
-class ClimateProfileSchedule(BaseModel):
+class ClimateProfileSchedule(RootModel[dict[str, ClimateWeekdaySchedule]]):
     """
     Schedule for all weekdays in a climate profile.
 
     This model validates a complete weekly schedule for a single profile (e.g., P1).
     It maps weekday names to their respective daily schedules.
 
-    Attributes:
-        schedules: Dictionary mapping weekday names to ClimateWeekdaySchedule
+    This is a RootModel that behaves like a dict, providing full backward compatibility
+    with TypedDict usage (supports `in`, iteration, indexing, etc.).
 
     Example:
-        >>> profile = ClimateProfileSchedule(
-        ...     schedules={
-        ...         "MONDAY": ClimateWeekdaySchedule(base_temperature=18.0, periods=[...]),
-        ...         "TUESDAY": ClimateWeekdaySchedule(base_temperature=18.0, periods=[...]),
-        ...     }
-        ... )
+        >>> profile = ClimateProfileSchedule({
+        ...     "MONDAY": ClimateWeekdaySchedule(base_temperature=18.0, periods=[...]),
+        ...     "TUESDAY": ClimateWeekdaySchedule(base_temperature=18.0, periods=[...]),
+        ... })
+        >>> "MONDAY" in profile  # Works like a dict
+        True
+        >>> profile["MONDAY"]  # Dict-like access
+        ClimateWeekdaySchedule(...)
 
     """
 
-    model_config = ConfigDict(
-        frozen=True,
-        extra="forbid",
-    )
+    root: dict[str, ClimateWeekdaySchedule]
 
-    schedules: Annotated[
-        dict[str, ClimateWeekdaySchedule],
-        Field(description="Weekday schedules keyed by weekday name (MONDAY-SUNDAY)"),
-    ]
+    model_config = ConfigDict(frozen=True)
 
-    @field_validator("schedules")
-    @classmethod
-    def validate_weekday_keys(  # kwonly: disable
-        cls, v: dict[str, ClimateWeekdaySchedule]
-    ) -> dict[str, ClimateWeekdaySchedule]:
+    def __contains__(self, key: object) -> bool:  # kwonly: disable
+        """Check if key is in the schedule."""
+        return key in self.root
+
+    def __getitem__(self, key: str) -> ClimateWeekdaySchedule:  # kwonly: disable
+        """Get weekday schedule by key."""
+        return self.root[key]
+
+    def __iter__(self):  # type: ignore[no-untyped-def]
+        """Iterate over weekday keys."""
+        return iter(self.root)
+
+    def __len__(self) -> int:
+        """Return number of weekdays in schedule."""
+        return len(self.root)
+
+    def get(  # kwonly: disable
+        self, key: str, default: ClimateWeekdaySchedule | None = None
+    ) -> ClimateWeekdaySchedule | None:
+        """Get weekday schedule with default."""
+        return self.root.get(key, default)
+
+    def items(self):  # type: ignore[no-untyped-def]
+        """Return items view."""
+        return self.root.items()
+
+    def keys(self):  # type: ignore[no-untyped-def]
+        """Return keys view."""
+        return self.root.keys()
+
+    @model_validator(mode="after")
+    def validate_weekday_keys(self) -> ClimateProfileSchedule:
         """Validate weekday names."""
         valid_weekdays = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"}
-        for key in v:
+        for key in self.root:
             if key not in valid_weekdays:
                 raise ValueError(i18n.tr(key="exception.model.schedule.invalid_weekday", weekday=key))
-        return v
+        return self
+
+    def values(self):  # type: ignore[no-untyped-def]
+        """Return values view."""
+        return self.root.values()
 
 
-class ClimateSchedule(BaseModel):
+class ClimateSchedule(RootModel[dict[str, ClimateProfileSchedule]]):
     """
     Complete climate schedule with all profiles.
 
     This model validates a complete device schedule with multiple profiles (P1-P6).
     Each profile contains weekly schedules for climate devices (thermostats).
 
-    Attributes:
-        profiles: Dictionary mapping profile names to ClimateProfileSchedule
+    This is a RootModel that behaves like a dict, providing full backward compatibility
+    with TypedDict usage (supports `in`, iteration, indexing, etc.).
 
     Example:
-        >>> schedule = ClimateSchedule(
-        ...     profiles={
-        ...         "P1": ClimateProfileSchedule(schedules={...}),
-        ...         "P2": ClimateProfileSchedule(schedules={...}),
-        ...     }
-        ... )
+        >>> schedule = ClimateSchedule({
+        ...     "P1": ClimateProfileSchedule({...}),
+        ...     "P2": ClimateProfileSchedule({...}),
+        ... })
+        >>> "P1" in schedule  # Works like a dict
+        True
+        >>> schedule["P1"]  # Dict-like access
+        ClimateProfileSchedule(...)
 
     """
 
-    model_config = ConfigDict(
-        frozen=True,
-        extra="forbid",
-    )
+    root: dict[str, ClimateProfileSchedule]
 
-    profiles: Annotated[
-        dict[str, ClimateProfileSchedule],
-        Field(default_factory=dict, description="Profile schedules keyed by profile name (P1-P6)"),
-    ]
+    model_config = ConfigDict(frozen=True)
 
-    @field_validator("profiles")
-    @classmethod
-    def validate_profile_keys(  # kwonly: disable
-        cls, v: dict[str, ClimateProfileSchedule]
-    ) -> dict[str, ClimateProfileSchedule]:
+    def __contains__(self, key: object) -> bool:  # kwonly: disable
+        """Check if key is in the schedule."""
+        return key in self.root
+
+    def __getitem__(self, key: str) -> ClimateProfileSchedule:  # kwonly: disable
+        """Get profile schedule by key."""
+        return self.root[key]
+
+    def __iter__(self):  # type: ignore[no-untyped-def]
+        """Iterate over profile keys."""
+        return iter(self.root)
+
+    def __len__(self) -> int:
+        """Return number of profiles in schedule."""
+        return len(self.root)
+
+    def get(  # kwonly: disable
+        self, key: str, default: ClimateProfileSchedule | None = None
+    ) -> ClimateProfileSchedule | None:
+        """Get profile schedule with default."""
+        return self.root.get(key, default)
+
+    def items(self):  # type: ignore[no-untyped-def]
+        """Return items view."""
+        return self.root.items()
+
+    def keys(self):  # type: ignore[no-untyped-def]
+        """Return keys view."""
+        return self.root.keys()
+
+    @model_validator(mode="after")
+    def validate_profile_keys(self) -> ClimateSchedule:
         """Validate profile names."""
         valid_profiles = {"P1", "P2", "P3", "P4", "P5", "P6"}
-        for key in v:
+        for key in self.root:
             if key not in valid_profiles:
                 raise ValueError(i18n.tr(key="exception.model.schedule.invalid_profile", profile=key))
-        return v
+        return self
+
+    def values(self):  # type: ignore[no-untyped-def]
+        """Return values view."""
+        return self.root.values()
 
 
 # =============================================================================

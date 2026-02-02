@@ -386,6 +386,8 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
 from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol
 from aiohomematic.model.schedule_models import (
+    ClimateProfileSchedule as ClimateProfileScheduleModel,
+    ClimateSchedule as ClimateScheduleModel,
     ClimateWeekdaySchedule as ClimateWeekdayScheduleModel,
     SimpleSchedule,
     SimpleScheduleEntry,
@@ -897,8 +899,8 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         return _filter_schedule_entries(schedule_data=self._schedule_cache)
 
     @property
-    def simple_schedule(self) -> SimpleScheduleDict:
-        """Return schedule in TypedDict format with string keys for JSON compatibility."""
+    def simple_schedule(self) -> ClimateScheduleModel:
+        """Return schedule as Pydantic model for validation and easy access."""
         return self._validate_and_convert_schedule_to_simple(schedule_data=self._schedule_cache)
 
     @inspector
@@ -1003,7 +1005,9 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         return _filter_schedule_entries(schedule_data=self._schedule_cache)
 
     @inspector
-    async def get_simple_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> SimpleProfileSchedule:
+    async def get_simple_profile(
+        self, *, profile: ScheduleProfile, force_load: bool = False
+    ) -> ClimateProfileScheduleModel:
         """Return a simple schedule by climate profile."""
         if not self.has_schedule:
             raise ValidationException(
@@ -1017,7 +1021,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         return self._validate_and_convert_profile_to_simple(profile_data=self._schedule_cache.get(profile, {}))
 
     @inspector
-    async def get_simple_schedule(self, *, force_load: bool = False) -> SimpleScheduleDict:
+    async def get_simple_schedule(self, *, force_load: bool = False) -> ClimateScheduleModel:
         """Return the complete simple schedule dictionary."""
         if not self.has_schedule:
             raise ValidationException(
@@ -1033,7 +1037,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
     @inspector
     async def get_simple_weekday(
         self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
-    ) -> SimpleWeekdaySchedule:
+    ) -> ClimateWeekdayScheduleModel:
         """Return a simple schedule by climate profile and weekday."""
         if not self.has_schedule:
             raise ValidationException(
@@ -1128,15 +1132,15 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         self,
         *,
         profile: ScheduleProfile,
-        simple_profile_data: SimpleProfileSchedule,
+        simple_profile_data: SimpleProfileSchedule | ClimateProfileScheduleModel,
     ) -> None:
-        """Set a profile to device."""
+        """Set a profile to device (accepts TypedDict or Pydantic model)."""
         profile_data = self._validate_and_convert_simple_to_profile(simple_profile_data=simple_profile_data)
         await self.set_profile(profile=profile, profile_data=profile_data)
 
     @inspector
-    async def set_simple_schedule(self, *, simple_schedule_data: SimpleScheduleDict) -> None:
-        """Set the complete simple schedule dictionary to device."""
+    async def set_simple_schedule(self, *, simple_schedule_data: SimpleScheduleDict | ClimateScheduleModel) -> None:
+        """Set the complete simple schedule dictionary to device (accepts TypedDict or Pydantic model)."""
         # Convert simple schedule to full schedule format
         schedule_data = self._validate_and_convert_simple_to_schedule(simple_schedule_data=simple_schedule_data)
         await self.set_schedule(schedule_data=schedule_data)
@@ -1147,9 +1151,9 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         *,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        simple_weekday_data: SimpleWeekdaySchedule,
+        simple_weekday_data: SimpleWeekdaySchedule | ClimateWeekdayScheduleModel,
     ) -> None:
-        """Store a simple weekday profile to device."""
+        """Store a simple weekday profile to device (accepts TypedDict or Pydantic model)."""
         weekday_data = self._validate_and_convert_simple_to_weekday(simple_weekday_data=simple_weekday_data)
         await self.set_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
@@ -1243,47 +1247,71 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             values=self.convert_dict_to_raw_schedule(schedule_data={profile: profile_data}),
         )
 
-    def _validate_and_convert_profile_to_simple(self, *, profile_data: ClimateProfileSchedule) -> SimpleProfileSchedule:
-        """Convert a full climate profile to simplified TypedDict format."""
-        simple_profile: SimpleProfileSchedule = {}
+    def _validate_and_convert_profile_to_simple(
+        self, *, profile_data: ClimateProfileSchedule
+    ) -> ClimateProfileScheduleModel:
+        """Convert a full climate profile to simplified Pydantic model."""
+        simple_profile: dict[WeekdayStr, ClimateWeekdayScheduleModel] = {}
         for weekday, weekday_data in profile_data.items():
             simple_profile[weekday] = self._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-        return simple_profile
+        # Convert enum keys to strings for RootModel
+        return ClimateProfileScheduleModel({str(k): v for k, v in simple_profile.items()})
 
-    def _validate_and_convert_schedule_to_simple(self, *, schedule_data: ClimateScheduleDict) -> SimpleScheduleDict:
-        """Convert a full schedule to simplified TypedDict format."""
-        simple_schedule: SimpleScheduleDict = {}
+    def _validate_and_convert_schedule_to_simple(self, *, schedule_data: ClimateScheduleDict) -> ClimateScheduleModel:
+        """Convert a full schedule to simplified Pydantic model."""
+        simple_schedule: dict[ScheduleProfile, ClimateProfileScheduleModel] = {}
         for profile, profile_data in schedule_data.items():
             simple_schedule[profile] = self._validate_and_convert_profile_to_simple(profile_data=profile_data)
-        return simple_schedule
+        # Convert enum keys to strings for RootModel
+        return ClimateScheduleModel({str(k): v for k, v in simple_schedule.items()})
 
     def _validate_and_convert_simple_to_profile(
-        self, *, simple_profile_data: SimpleProfileSchedule
+        self, *, simple_profile_data: SimpleProfileSchedule | ClimateProfileScheduleModel
     ) -> ClimateProfileSchedule:
-        """Convert simple profile TypedDict to full profile dict."""
-        # Validate each weekday individually
+        """Convert simple profile (TypedDict or Pydantic model) to full profile dict."""
+        # Validate with Pydantic (handles both TypedDict and Pydantic model)
+        try:
+            validated_profile = ClimateProfileScheduleModel.model_validate(simple_profile_data)
+        except ValueError as ex:
+            raise ValidationException(str(ex)) from ex
+
+        # Convert each weekday to full format
+        # RootModel behaves like a dict, can iterate directly
         profile_data: ClimateProfileSchedule = {}
-        for day, simple_weekday_data in simple_profile_data.items():
-            profile_data[day] = self._validate_and_convert_simple_to_weekday(simple_weekday_data=simple_weekday_data)
+        for day, simple_weekday_data in validated_profile.root.items():
+            # Cast string key to WeekdayStr enum for TypedDict
+            profile_data[WeekdayStr(day)] = self._validate_and_convert_simple_to_weekday(
+                simple_weekday_data=simple_weekday_data
+            )
         return profile_data
 
     def _validate_and_convert_simple_to_schedule(
-        self, *, simple_schedule_data: SimpleScheduleDict
+        self, *, simple_schedule_data: SimpleScheduleDict | ClimateScheduleModel
     ) -> ClimateScheduleDict:
-        """Convert simple schedule TypedDict to full schedule dict."""
-        # Validate each profile individually
+        """Convert simple schedule (TypedDict or Pydantic model) to full schedule dict."""
+        # Validate with Pydantic (handles both TypedDict and Pydantic model)
+        try:
+            validated_schedule = ClimateScheduleModel.model_validate(simple_schedule_data)
+        except ValueError as ex:
+            raise ValidationException(str(ex)) from ex
+
+        # Convert each profile to full format
+        # RootModel behaves like a dict, can iterate directly
         schedule_data: ClimateScheduleDict = {}
-        for profile, profile_data in simple_schedule_data.items():
-            schedule_data[profile] = self._validate_and_convert_simple_to_profile(simple_profile_data=profile_data)
+        for profile, profile_data in validated_schedule.root.items():
+            # Cast string key to ScheduleProfile enum for TypedDict
+            schedule_data[ScheduleProfile(profile)] = self._validate_and_convert_simple_to_profile(
+                simple_profile_data=profile_data
+            )
         return schedule_data
 
     def _validate_and_convert_simple_to_weekday(
-        self, *, simple_weekday_data: SimpleWeekdaySchedule
+        self, *, simple_weekday_data: SimpleWeekdaySchedule | ClimateWeekdayScheduleModel
     ) -> ClimateWeekdaySchedule:
-        """Convert simple weekday TypedDict to full weekday dict."""
-        # Pydantic validates automatically when creating the model
+        """Convert simple weekday (TypedDict or Pydantic model) to full weekday dict."""
+        # Pydantic validates and handles both TypedDict and Pydantic model
         try:
-            validated_weekday = ClimateWeekdayScheduleModel(**simple_weekday_data)
+            validated_weekday = ClimateWeekdayScheduleModel.model_validate(simple_weekday_data)
         except ValueError as ex:
             raise ValidationException(str(ex)) from ex
 
@@ -1376,12 +1404,14 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
         return _fillup_weekday_data(base_temperature=base_temperature, weekday_data=weekday_data)
 
-    def _validate_and_convert_weekday_to_simple(self, *, weekday_data: ClimateWeekdaySchedule) -> SimpleWeekdaySchedule:
+    def _validate_and_convert_weekday_to_simple(
+        self, *, weekday_data: ClimateWeekdaySchedule
+    ) -> ClimateWeekdayScheduleModel:
         """
-        Convert a full weekday (13 slots) to a simplified TypedDict format.
+        Convert a full weekday (13 slots) to a simplified Pydantic model.
 
         Returns:
-            SimpleWeekdaySchedule with base_temperature and periods list
+            ClimateWeekdayScheduleModel with base_temperature and periods list
 
         """
         base_temperature = identify_base_temperature(weekday_data=weekday_data)
@@ -1474,7 +1504,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         if periods:
             periods = sorted(periods, key=lambda p: _convert_time_str_to_minutes(time_str=p["starttime"]))
 
-        return SimpleWeekdaySchedule(base_temperature=base_temperature, periods=periods)
+        return ClimateWeekdayScheduleModel(base_temperature=base_temperature, periods=periods)
 
     def _validate_profile(self, *, profile: ScheduleProfile, profile_data: ClimateProfileSchedule) -> None:
         """Validate the profile."""

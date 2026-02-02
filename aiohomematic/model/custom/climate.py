@@ -26,9 +26,6 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
     ScheduleProfile,
-    SimpleProfileSchedule,
-    SimpleScheduleDict,
-    SimpleWeekdaySchedule,
     WeekdayStr,
 )
 from aiohomematic.decorators import inspector
@@ -398,8 +395,10 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Set new profile."""
 
     @inspector
-    async def set_schedule(self, *, schedule_data: SimpleScheduleDict) -> None:
-        """Set the complete schedule to device as Pydantic model (delegates to week profile)."""
+    async def set_schedule(  # type: ignore[override]
+        self, *, schedule_data: ClimateSchedule
+    ) -> None:
+        """Set the complete schedule to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_schedule(schedule_data=schedule_data)
 
@@ -408,9 +407,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         self,
         *,
         profile: ScheduleProfile,
-        profile_data: SimpleProfileSchedule,
+        profile_data: ClimateProfileSchedule,
     ) -> None:
-        """Set a profile to device as Pydantic model (delegates to week profile)."""
+        """Set a profile to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_profile(profile=profile, profile_data=profile_data)
 
@@ -420,9 +419,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         *,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        weekday_data: SimpleWeekdaySchedule,
+        weekday_data: ClimateWeekdaySchedule,
     ) -> None:
-        """Store a weekday profile to device as Pydantic model (delegates to week profile)."""
+        """Store a weekday profile to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             await self._device.week_profile.set_weekday(
                 profile=profile,

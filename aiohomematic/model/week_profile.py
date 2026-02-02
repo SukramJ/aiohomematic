@@ -109,40 +109,31 @@ SIMPLE SCHEDULE FORMAT
 
 A simplified format for easy user input, focusing on temperature periods without
 redundant 24:00 slots. The base temperature is automatically identified or can be
-specified as part of the data structure. Uses TypedDict-based structures with
-lowercase string keys for full JSON serialization support.
+specified as part of the data structure. Uses Pydantic models for validation.
 
-SimpleWeekdaySchedule (TypedDict):
-    A dictionary containing:
-    - "base_temperature" (float): The temperature used for periods not explicitly defined
-    - "periods" (list): Non-base temperature periods with starttime, endtime, temperature
+ClimateWeekdaySchedule (Pydantic model):
+    A model containing:
+    - base_temperature (float): The temperature used for periods not explicitly defined
+    - periods (list[ClimateSchedulePeriod]): Temperature periods with starttime, endtime, temperature
 
 Example:
-{
-    "base_temperature": 18.0,
-    "periods": [
-        {
-            "starttime": "06:00",
-            "endtime": "08:00",
-            "temperature": 21.0
-        },
-        {
-            "starttime": "17:00",
-            "endtime": "22:00",
-            "temperature": 21.0
-        }
+ClimateWeekdaySchedule(
+    base_temperature=18.0,
+    periods=[
+        ClimateSchedulePeriod(starttime="06:00", endtime="08:00", temperature=21.0),
+        ClimateSchedulePeriod(starttime="17:00", endtime="22:00", temperature=21.0),
     ]
-}
+)
 
-SimpleProfileSchedule:
-    Structure: dict[WeekdayStr, SimpleWeekdaySchedule]
+ClimateProfileSchedule (Pydantic RootModel):
+    Structure: dict[str, ClimateWeekdaySchedule]
 
-    Maps weekday names to their simple weekday data (base temp + periods).
+    Maps weekday names to their weekday data (base temp + periods).
 
-SimpleScheduleDict:
-    Structure: dict[ScheduleProfile, SimpleProfileSchedule]
+ClimateSchedule (Pydantic RootModel):
+    Structure: dict[str, ClimateProfileSchedule]
 
-    Maps profiles (P1-P6) to their simple profile data.
+    Maps profiles (P1-P6) to their profile data.
 
 The system automatically:
 - Identifies base_temperature when converting from full format (using identify_base_temperature())
@@ -188,35 +179,32 @@ set_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, weekday_data: Clim
 Simple Format Methods:
 ~~~~~~~~~~~~~~~~~~~~~~
 
-get_simple_schedule(*, force_load: bool = False) -> SimpleScheduleDict
+get_simple_schedule(*, force_load: bool = False) -> ClimateSchedule
     Retrieves complete schedule in simplified format from cache or device.
     Automatically identifies base_temperature for each weekday.
-    Returns dict[ScheduleProfile, dict[WeekdayStr, SimpleWeekdaySchedule]].
+    Returns ClimateSchedule Pydantic model.
 
-get_simple_profile(*, profile: ScheduleProfile, force_load: bool = False) -> SimpleProfileSchedule
+get_simple_profile(*, profile: ScheduleProfile, force_load: bool = False) -> ClimateProfileSchedule
     Retrieves single profile in simplified format from cache or device.
     Automatically identifies base_temperature for each weekday.
-    Returns dict[WeekdayStr, SimpleWeekdaySchedule] for the specified profile.
+    Returns ClimateProfileSchedule Pydantic model.
 
-get_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> SimpleWeekdaySchedule
+get_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> ClimateWeekdaySchedule
     Retrieves single weekday in simplified format from cache or device.
     Automatically identifies base_temperature.
-    Returns SimpleWeekdaySchedule with base_temperature and periods list.
+    Returns ClimateWeekdaySchedule with base_temperature and periods list.
 
-set_simple_schedule(*, simple_schedule_data: SimpleScheduleDict) -> None
+set_simple_schedule(*, simple_schedule_data: ClimateSchedule) -> None
     Persists complete schedule using simplified format to device.
     Converts simple format to full 13-slot format automatically.
-    Expects dict[ScheduleProfile, dict[WeekdayStr, SimpleWeekdaySchedule]].
 
-set_simple_profile(*, profile: ScheduleProfile, simple_profile_data: SimpleProfileSchedule) -> None
+set_simple_profile(*, profile: ScheduleProfile, simple_profile_data: ClimateProfileSchedule) -> None
     Persists single profile using simplified format to device.
     Converts simple format to full 13-slot format automatically.
-    Expects dict[WeekdayStr, SimpleWeekdaySchedule].
 
-set_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, simple_weekday_data: SimpleWeekdaySchedule) -> None
+set_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, simple_weekday_data: ClimateWeekdaySchedule) -> None
     Persists single weekday using simplified format to device.
     Converts simple format to full 13-slot format automatically.
-    Expects SimpleWeekdaySchedule with base_temperature and periods.
 
 Utility Methods:
 ~~~~~~~~~~~~~~~~
@@ -365,9 +353,6 @@ from aiohomematic.const import (
     ScheduleCondition,
     ScheduleField,
     ScheduleProfile,
-    SimpleProfileSchedule,
-    SimpleScheduleDict,
-    SimpleWeekdaySchedule,
     TimeBase,
     WeekdayInt,
     WeekdayStr,
@@ -1114,10 +1099,10 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         self,
         *,
         profile: ScheduleProfile,
-        profile_data: SimpleProfileSchedule | ClimateProfileSchedule,
+        profile_data: ClimateProfileSchedule,
     ) -> None:
         """
-        Set a profile to device (accepts TypedDict or Pydantic model).
+        Set a profile to device.
 
         Note:
             The cache is NOT updated optimistically. The cache will be refreshed
@@ -1137,9 +1122,9 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         )
 
     @inspector
-    async def set_schedule(self, *, schedule_data: SimpleScheduleDict | ClimateSchedule) -> None:
+    async def set_schedule(self, *, schedule_data: ClimateSchedule) -> None:
         """
-        Set the complete schedule to device (accepts TypedDict or Pydantic model).
+        Set the complete schedule to device.
 
         Note:
             The cache is NOT updated optimistically. The cache will be refreshed
@@ -1164,10 +1149,10 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         *,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        weekday_data: SimpleWeekdaySchedule | ClimateWeekdaySchedule,
+        weekday_data: ClimateWeekdaySchedule,
     ) -> None:
         """
-        Store a weekday profile to device (accepts TypedDict or Pydantic model).
+        Store a weekday profile to device.
 
         Note:
             The cache is NOT updated optimistically. The cache will be refreshed
@@ -1247,10 +1232,10 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return ClimateSchedule({str(k): v for k, v in simple_schedule.items()})
 
     def _validate_and_convert_simple_to_profile(
-        self, *, simple_profile_data: SimpleProfileSchedule | ClimateProfileSchedule
+        self, *, simple_profile_data: ClimateProfileSchedule
     ) -> _ClimateProfileScheduleDictInternal:
-        """Convert simple profile (TypedDict or Pydantic model) to full profile dict."""
-        # Validate with Pydantic (handles both TypedDict and Pydantic model)
+        """Convert simple profile to full profile dict."""
+        # Validate with Pydantic
         try:
             validated_profile = ClimateProfileSchedule.model_validate(simple_profile_data)
         except ValueError as ex:
@@ -1267,10 +1252,10 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return profile_data
 
     def _validate_and_convert_simple_to_schedule(
-        self, *, simple_schedule_data: SimpleScheduleDict | ClimateSchedule
+        self, *, simple_schedule_data: ClimateSchedule
     ) -> _ClimateScheduleDictInternal:
-        """Convert simple schedule (TypedDict or Pydantic model) to full schedule dict."""
-        # Validate with Pydantic (handles both TypedDict and Pydantic model)
+        """Convert simple schedule to full schedule dict."""
+        # Validate with Pydantic
         try:
             validated_schedule = ClimateSchedule.model_validate(simple_schedule_data)
         except ValueError as ex:
@@ -1287,10 +1272,10 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return schedule_data
 
     def _validate_and_convert_simple_to_weekday(
-        self, *, simple_weekday_data: SimpleWeekdaySchedule | ClimateWeekdaySchedule
+        self, *, simple_weekday_data: ClimateWeekdaySchedule
     ) -> _ClimateWeekdayScheduleDictInternal:
-        """Convert simple weekday (TypedDict or Pydantic model) to full weekday dict."""
-        # Pydantic validates and handles both TypedDict and Pydantic model
+        """Convert simple weekday to full weekday dict."""
+        # Validate with Pydantic
         try:
             validated_weekday = ClimateWeekdaySchedule.model_validate(simple_weekday_data)
         except ValueError as ex:

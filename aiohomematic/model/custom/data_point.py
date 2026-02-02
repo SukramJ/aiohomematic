@@ -17,6 +17,7 @@ from typing import Any, Final, Unpack, override
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
+from aiohomematic.interfaces.model import ScheduleDataType
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
@@ -199,7 +200,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             await self._device.week_profile.reload_and_cache_schedule()
         self.publish_data_point_updated_event()
 
-    async def set_schedule(self, *, schedule_data: dict[Any, Any]) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDataType) -> None:
         """Set schedule on device week profile."""
         if self._device.week_profile:
             await self._device.week_profile.set_schedule(schedule_data=schedule_data)

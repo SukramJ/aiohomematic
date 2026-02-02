@@ -33,7 +33,8 @@ from aiohomematic.model.custom import (
 )
 from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy
-from aiohomematic.model.week_profile import SimpleWeekdaySchedule, _convert_time_str_to_minutes
+from aiohomematic.model.schedule_models import ClimateSchedulePeriod, ClimateWeekdaySchedule
+from aiohomematic.model.week_profile import _convert_time_str_to_minutes
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -768,15 +769,15 @@ class TestCustomDpRfThermostat:
         )
 
         # Create simple schedule with INTEGER temperatures (as user would in YAML)
-        # Note: We intentionally use integers to test the conversion (mypy: ignore type)
-        simple_weekday_data: SimpleWeekdaySchedule = {  # type: ignore[typeddict-item]
-            "base_temperature": 16,  # Integer
-            "periods": [
-                {"starttime": "05:00", "endtime": "06:00", "temperature": 17},  # Integer
-                {"starttime": "09:00", "endtime": "15:00", "temperature": 17},  # Integer
-                {"starttime": "19:00", "endtime": "22:00", "temperature": 22},  # Integer
+        # Note: Pydantic will validate and convert integers to floats
+        simple_weekday_data = ClimateWeekdaySchedule(
+            base_temperature=16,  # Integer - Pydantic converts to float
+            periods=[
+                ClimateSchedulePeriod(starttime="05:00", endtime="06:00", temperature=17),
+                ClimateSchedulePeriod(starttime="09:00", endtime="15:00", temperature=17),
+                ClimateSchedulePeriod(starttime="19:00", endtime="22:00", temperature=22),
             ],
-        }
+        )
 
         # Write schedule with integer temperatures
         await climate.set_schedule_weekday(
@@ -1555,13 +1556,13 @@ class TestClimateIntegration:
                 },
             )
         # Test with simple format: base_temperature 17, periods where temp differs
-        manual_week_profile_data: SimpleWeekdaySchedule = {
-            "base_temperature": 17.0,
-            "periods": [
-                {"starttime": "06:00", "endtime": "07:00", "temperature": 21.0},
-                {"starttime": "10:00", "endtime": "23:00", "temperature": 21.0},
+        manual_week_profile_data = ClimateWeekdaySchedule(
+            base_temperature=17.0,
+            periods=[
+                ClimateSchedulePeriod(starttime="06:00", endtime="07:00", temperature=21.0),
+                ClimateSchedulePeriod(starttime="10:00", endtime="23:00", temperature=21.0),
             ],
-        }
+        )
         await climate_bwth.set_schedule_weekday(
             profile="P1",
             weekday="MONDAY",

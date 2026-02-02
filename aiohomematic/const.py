@@ -2219,54 +2219,6 @@ class WeekdayStr(StrEnum):
     SUNDAY = "SUNDAY"
 
 
-class SimpleSchedulePeriod(TypedDict):
-    """
-    A single temperature period in a simple schedule.
-
-    Uses lowercase string keys for JSON serialization compatibility with custom cards.
-
-    Attributes:
-        starttime: Start time in "HH:MM" format (e.g., "06:00")
-        endtime: End time in "HH:MM" format (e.g., "22:00")
-        temperature: Target temperature in degrees Celsius
-
-    """
-
-    starttime: str
-    endtime: str
-    temperature: float
-
-
-class SimpleWeekdaySchedule(TypedDict):
-    """
-    Schedule for a single weekday with base temperature and heating periods.
-
-    Attributes:
-        base_temperature: Default temperature when no period is active
-        periods: List of temperature periods with start/end times
-
-    Example:
-        {
-            "base_temperature": 18.0,
-            "periods": [
-                {"starttime": "06:00", "endtime": "08:00", "temperature": 21.0},
-                {"starttime": "17:00", "endtime": "22:00", "temperature": 21.0}
-            ]
-        }
-
-    """
-
-    base_temperature: float
-    periods: list[SimpleSchedulePeriod]
-
-
-# Type aliases for higher-level structures
-SimpleProfileSchedule = dict[WeekdayStr, SimpleWeekdaySchedule]
-"""Schedule for all weekdays in a profile."""
-
-SimpleScheduleDict = dict[ScheduleProfile, SimpleProfileSchedule]
-"""Complete schedule with all profiles."""
-
 DEFAULT_CLIMATE_FILL_TEMPERATURE: Final = 18.0
 DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]
 DEFAULT_SCHEDULE_DICT = dict[int, DEFAULT_SCHEDULE_GROUP]

@@ -685,11 +685,11 @@ Unlike other issues, this requires direct JSON-RPC debugging because the ReGa sc
 
 **Example of problematic names:**
 
-| Problematic name        | Issue                | Fixed name           |
-| ----------------------- | -------------------- | -------------------- |
-| `Wohnzimmer "Lampe"`    | Contains quotes      | `Wohnzimmer Lampe`   |
-| `Sensor\Fenster`        | Contains backslash   | `Sensor Fenster`     |
-| `Tür­sensor`            | Hidden soft hyphen   | `Tuersensor`         |
+| Problematic name     | Issue              | Fixed name         |
+| -------------------- | ------------------ | ------------------ |
+| `Wohnzimmer "Lampe"` | Contains quotes    | `Wohnzimmer Lampe` |
+| `Sensor\Fenster`     | Contains backslash | `Sensor Fenster`   |
+| `Tür­sensor`         | Hidden soft hyphen | `Tuersensor`       |
 
 **Note:** This is a data issue on the CCU, not an integration bug. The integration cannot handle invalid JSON returned by the CCU's ReGa engine.
 

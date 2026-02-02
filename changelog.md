@@ -2,6 +2,10 @@
 
 ## What's Changed
 
+### Fixed
+
+- **LINK paramset validation**: Fixed `put_paramset` with `check_against_pd=True` for LINK paramsets. LINK paramsets are not cached during device initialization (by design), so validation is now automatically skipped for LINK calls to prevent "Parameter not found" errors. Fixes #2903.
+
 ### Changed
 
 - **ClimateWeekProfile**: Simple schedule format now uses Pydantic models for automatic validation. The existing user-facing format remains unchanged (no breaking changes), but input validation is now more robust with clear error messages.

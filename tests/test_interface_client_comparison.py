@@ -550,6 +550,36 @@ class TestInterfaceClientPutParamset:
         assert len(backend.calls) == 0
 
     @pytest.mark.asyncio
+    async def test_put_paramset_link_skips_validation(self) -> None:
+        """Test put_paramset with LINK paramset skips validation even when check_against_pd=True."""
+        central = _FakeCentral()
+        backend = _FakeBackend()
+        client = _create_interface_client(central, backend)
+
+        # Do NOT add LINK paramset descriptions to cache (they are not cached in production)
+        # This simulates the real scenario where LINK paramsets are skipped during initialization
+
+        # Call put_paramset with a receiver channel address (LINK call) and check_against_pd=True
+        # This should NOT raise "Parameter not found" error
+        result = await client.put_paramset(
+            channel_address="sender:1",
+            paramset_key_or_link_address="receiver:2",  # LINK call (channel address as paramset key)
+            values={"SHORT_ON_LEVEL": 0.5, "SHORT_ON_TIME_FACTOR": 1.0},
+            wait_for_callback=None,
+            check_against_pd=True,  # Validation should be skipped for LINK calls
+        )
+
+        # Should return empty set for LINK calls (no data point tracking)
+        assert result == set()
+
+        # Backend should have been called with the values
+        assert len(backend.calls) == 1
+        assert backend.calls[0][0] == "put_paramset"
+        assert backend.calls[0][1][0] == "sender:1"
+        assert backend.calls[0][1][1] == "receiver:2"
+        assert backend.calls[0][1][2] == {"SHORT_ON_LEVEL": 0.5, "SHORT_ON_TIME_FACTOR": 1.0}
+
+    @pytest.mark.asyncio
     async def test_put_paramset_validation_error(self) -> None:
         """Test put_paramset returns empty set when any value is invalid (inspector catches exception)."""
         central = _FakeCentral()

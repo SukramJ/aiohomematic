@@ -17,7 +17,7 @@ import os
 import re
 import sys
 from types import MappingProxyType
-from typing import Any, Final, NamedTuple, Required, TypedDict
+from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
@@ -2224,6 +2224,9 @@ DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]
 DEFAULT_SCHEDULE_DICT = dict[int, DEFAULT_SCHEDULE_GROUP]
 RAW_SCHEDULE_DICT = dict[str, float | int]
 SCHEDULE_PATTERN: Final = re.compile(r"^\d+_WP_")
+
+ScheduleDict: TypeAlias = dict[str, Any]
+"""JSON-serializable schedule dictionary for public API."""
 
 
 # Define public API for this module

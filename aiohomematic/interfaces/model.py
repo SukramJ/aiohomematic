@@ -59,6 +59,7 @@ from aiohomematic.const import (
     ProductGroup,
     ProgramData,
     RxMode,
+    ScheduleDict,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.operations import (
@@ -87,12 +88,11 @@ if TYPE_CHECKING:
     from aiohomematic.model.availability import AvailabilityInfo
     from aiohomematic.model.custom import DeviceConfig
     from aiohomematic.model.custom.mixins import StateChangeArgs
-    from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
 
-# Type alias for all supported schedule data types
-ScheduleDataType: TypeAlias = "SimpleSchedule | ClimateSchedule"
+# Type alias for all supported schedule data types (public API uses JSON-serializable dicts)
+ScheduleDataType: TypeAlias = ScheduleDict
 
 # =============================================================================
 # DataPoint Protocol Interfaces

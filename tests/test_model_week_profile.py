@@ -20,13 +20,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDataPoint, CustomDpRfThermostat
-from aiohomematic.model.schedule_models import (
-    ClimateProfileSchedule,
-    ClimateSchedule,
-    ClimateWeekdaySchedule,
-    SimpleSchedule,
-    SimpleScheduleEntry,
-)
+from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, SimpleScheduleEntry
 from aiohomematic.model.week_profile import (
     ClimateWeekProfile,
     DefaultWeekProfile,
@@ -950,12 +944,12 @@ class TestClimateWeekProfileIntegration:
 
         # Get schedule without forcing load (uses cache)
         schedule = await climate.get_schedule()
-        assert isinstance(schedule, ClimateSchedule)
-        assert ScheduleProfile.P1 in schedule
+        assert isinstance(schedule, dict)
+        assert "P1" in schedule
 
         # Get schedule with force_load=True
         schedule_forced = await climate.get_schedule(force_load=True)
-        assert isinstance(schedule_forced, ClimateSchedule)
+        assert isinstance(schedule_forced, dict)
 
     @pytest.mark.parametrize(
         (
@@ -977,12 +971,12 @@ class TestClimateWeekProfileIntegration:
 
         # Get profile
         profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert isinstance(profile_data, ClimateProfileSchedule)
-        assert WeekdayStr.MONDAY in profile_data
+        assert isinstance(profile_data, dict)
+        assert "MONDAY" in profile_data
 
         # Get with force_load
         profile_data_forced = await climate.get_schedule_profile(profile=ScheduleProfile.P1, force_load=True)
-        assert isinstance(profile_data_forced, ClimateProfileSchedule)
+        assert isinstance(profile_data_forced, dict)
 
     @pytest.mark.parametrize(
         (
@@ -1004,13 +998,15 @@ class TestClimateWeekProfileIntegration:
 
         # Get weekday data
         weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
-        assert isinstance(weekday_data, ClimateWeekdaySchedule)
+        assert isinstance(weekday_data, dict)
+        assert "base_temperature" in weekday_data
+        assert "periods" in weekday_data
 
         # Get with force_load
         weekday_data_forced = await climate.get_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, force_load=True
         )
-        assert isinstance(weekday_data_forced, ClimateWeekdaySchedule)
+        assert isinstance(weekday_data_forced, dict)
 
     @pytest.mark.parametrize(
         (
@@ -1030,9 +1026,9 @@ class TestClimateWeekProfileIntegration:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
-        # Access property
+        # Access property - returns JSON-serializable dict
         schedule = climate.schedule
-        assert isinstance(schedule, ClimateSchedule)
+        assert isinstance(schedule, dict)
 
     @pytest.mark.parametrize(
         (
@@ -1491,7 +1487,7 @@ class TestErrorPaths:
 
         # Get schedule without force_load - should load from device
         schedule = await climate.get_schedule()
-        assert isinstance(schedule, ClimateSchedule)
+        assert isinstance(schedule, dict)
 
     @pytest.mark.parametrize(
         (
@@ -1517,7 +1513,7 @@ class TestErrorPaths:
 
         # Get profile - should load from device
         profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert isinstance(profile_data, ClimateProfileSchedule)
+        assert isinstance(profile_data, dict)
 
     @pytest.mark.parametrize(
         (
@@ -1543,7 +1539,7 @@ class TestErrorPaths:
 
         # Get weekday - should load from device
         weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
-        assert isinstance(weekday_data, ClimateWeekdaySchedule)
+        assert isinstance(weekday_data, dict)
 
     @pytest.mark.parametrize(
         (
@@ -1851,16 +1847,16 @@ class TestPropertyAccessAndValidation:
         # Load schedule first
         await climate.get_schedule()
 
-        # Access schedule property directly
+        # Access schedule property directly - returns JSON-serializable dict
         schedule = climate.schedule
-        assert isinstance(schedule, ClimateSchedule)
-        # Schedule is now Pydantic model with periods instead of 13-slot structure
+        assert isinstance(schedule, dict)
+        # Schedule is now a dict with periods instead of 13-slot structure
         # Verify we have valid data
         for profile_data in schedule.values():
             for weekday_data in profile_data.values():
-                # weekday_data is ClimateWeekdaySchedule with periods list
-                assert hasattr(weekday_data, "periods")
-                assert hasattr(weekday_data, "base_temperature")
+                # weekday_data is dict with periods list
+                assert "periods" in weekday_data
+                assert "base_temperature" in weekday_data
 
 
 class TestSimpleScheduleConversionMethods:
@@ -2247,8 +2243,8 @@ class TestEdgeCasesAndErrorPaths:
             climate.device.week_profile._schedule_cache = {}
 
         profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P3)
-        # Should return empty or valid ClimateProfileSchedule
-        assert isinstance(profile_data, ClimateProfileSchedule)
+        # Should return empty or valid dict
+        assert isinstance(profile_data, dict)
 
     @pytest.mark.parametrize(
         (
@@ -2273,8 +2269,8 @@ class TestEdgeCasesAndErrorPaths:
             climate.device.week_profile._schedule_cache = {}
 
         weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P3, weekday=WeekdayStr.SUNDAY)
-        # Should return empty ClimateWeekdaySchedule
-        assert isinstance(weekday_data, ClimateWeekdaySchedule)
+        # Should return empty dict
+        assert isinstance(weekday_data, dict)
 
     @pytest.mark.parametrize(
         (

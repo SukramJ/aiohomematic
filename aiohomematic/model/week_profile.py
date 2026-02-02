@@ -351,6 +351,7 @@ from aiohomematic.const import (
     ParamsetKey,
     ScheduleActorChannel,
     ScheduleCondition,
+    ScheduleDict,
     ScheduleField,
     ScheduleProfile,
     TimeBase,
@@ -1099,7 +1100,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         self,
         *,
         profile: ScheduleProfile,
-        profile_data: ClimateProfileSchedule,
+        profile_data: ScheduleDict | ClimateProfileSchedule,
     ) -> None:
         """
         Set a profile to device.
@@ -1122,7 +1123,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         )
 
     @inspector
-    async def set_schedule(self, *, schedule_data: ClimateSchedule) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDict | ClimateSchedule) -> None:
         """
         Set the complete schedule to device.
 
@@ -1149,7 +1150,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         *,
         profile: ScheduleProfile,
         weekday: WeekdayStr,
-        weekday_data: ClimateWeekdaySchedule,
+        weekday_data: ScheduleDict | ClimateWeekdaySchedule,
     ) -> None:
         """
         Store a weekday profile to device.
@@ -1232,7 +1233,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return ClimateSchedule({str(k): v for k, v in simple_schedule.items()})
 
     def _validate_and_convert_simple_to_profile(
-        self, *, simple_profile_data: ClimateProfileSchedule
+        self, *, simple_profile_data: ScheduleDict | ClimateProfileSchedule
     ) -> _ClimateProfileScheduleDictInternal:
         """Convert simple profile to full profile dict."""
         # Validate with Pydantic
@@ -1252,7 +1253,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return profile_data
 
     def _validate_and_convert_simple_to_schedule(
-        self, *, simple_schedule_data: ClimateSchedule
+        self, *, simple_schedule_data: ScheduleDict | ClimateSchedule
     ) -> _ClimateScheduleDictInternal:
         """Convert simple schedule to full schedule dict."""
         # Validate with Pydantic
@@ -1272,7 +1273,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return schedule_data
 
     def _validate_and_convert_simple_to_weekday(
-        self, *, simple_weekday_data: ClimateWeekdaySchedule
+        self, *, simple_weekday_data: ScheduleDict | ClimateWeekdaySchedule
     ) -> _ClimateWeekdayScheduleDictInternal:
         """Convert simple weekday to full weekday dict."""
         # Validate with Pydantic
@@ -1792,7 +1793,7 @@ def _fillup_weekday_data(
 
 
 def _normalize_weekday_data(
-    *, weekday_data: _ClimateWeekdayScheduleDictInternal | dict[str, Any]
+    *, weekday_data: _ClimateWeekdayScheduleDictInternal | ScheduleDict
 ) -> _ClimateWeekdayScheduleDictInternal:
     """
     Normalize climate weekday schedule data.

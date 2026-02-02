@@ -376,7 +376,6 @@ from aiohomematic.const import (
     ScheduleProfile,
     SimpleProfileSchedule,
     SimpleScheduleDict,
-    SimpleSchedulePeriod,
     SimpleWeekdaySchedule,
     TimeBase,
     WeekdayInt,
@@ -388,6 +387,7 @@ from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol
 from aiohomematic.model.schedule_models import (
     ClimateProfileSchedule as ClimateProfileScheduleModel,
     ClimateSchedule as ClimateScheduleModel,
+    ClimateSchedulePeriod,
     ClimateWeekdaySchedule as ClimateWeekdayScheduleModel,
     SimpleSchedule,
     SimpleScheduleEntry,
@@ -1337,15 +1337,8 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
         weekday_data: ClimateWeekdaySchedule = {}
 
-        # Validate required fields before sorting
-        for slot in _weekday_data:
-            if (starttime := slot.get("starttime")) is None:
-                raise ValidationException(i18n.tr(key="exception.model.week_profile.validate.starttime_missing"))
-            if (endtime := slot.get("endtime")) is None:
-                raise ValidationException(i18n.tr(key="exception.model.week_profile.validate.endtime_missing"))
-            if (temperature := slot.get("temperature")) is None:
-                raise ValidationException(i18n.tr(key="exception.model.week_profile.validate.temperature_missing"))
-
+        # Pydantic already validated: required fields, time format, starttime < endtime
+        # Only need to validate business logic: overlaps, temperature range, gaps
         sorted_periods = sorted(_weekday_data, key=lambda p: _convert_time_str_to_minutes(time_str=str(p["starttime"])))
         previous_endtime = CLIMATE_MIN_SCHEDULER_TIME
         slot_no = 1
@@ -1354,15 +1347,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             endtime = str(slot["endtime"])
             temperature = float(slot["temperature"])
 
-            if _convert_time_str_to_minutes(time_str=starttime) >= _convert_time_str_to_minutes(time_str=endtime):
-                raise ValidationException(
-                    i18n.tr(
-                        key="exception.model.week_profile.validate.start_before_end",
-                        start=starttime,
-                        end=endtime,
-                    )
-                )
-
+            # Check for overlaps between periods
             if _convert_time_str_to_minutes(time_str=starttime) < _convert_time_str_to_minutes(
                 time_str=previous_endtime
             ):
@@ -1433,9 +1418,9 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         normalized = _normalize_weekday_data(weekday_data=filtered_data)
 
         # Build simple list by merging consecutive non-base temperature slots
-        periods: list[SimpleSchedulePeriod] = []
+        periods: list[ClimateSchedulePeriod] = []
         previous_end = CLIMATE_MIN_SCHEDULER_TIME
-        open_range: SimpleSchedulePeriod | None = None
+        open_range: ClimateSchedulePeriod | None = None
         last_temp: float | None = None
 
         for no in sorted(normalized.keys()):
@@ -1465,7 +1450,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             if temp != float(base_temperature):
                 if open_range is None:
                     # start new range from previous_end
-                    open_range = SimpleSchedulePeriod(
+                    open_range = ClimateSchedulePeriod(
                         starttime=str(previous_end),
                         endtime=endtime_str,
                         temperature=temp,
@@ -1473,15 +1458,15 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                     last_temp = temp
                 # extend if same temperature
                 elif temp == last_temp:
-                    open_range = SimpleSchedulePeriod(
-                        starttime=open_range["starttime"],
+                    open_range = ClimateSchedulePeriod(
+                        starttime=open_range.starttime,
                         endtime=endtime_str,
                         temperature=temp,
                     )
                 else:
                     # temperature changed: close previous and start new
                     periods.append(open_range)
-                    open_range = SimpleSchedulePeriod(
+                    open_range = ClimateSchedulePeriod(
                         starttime=str(previous_end),
                         endtime=endtime_str,
                         temperature=temp,
@@ -1502,7 +1487,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
 
         # Sort by start time
         if periods:
-            periods = sorted(periods, key=lambda p: _convert_time_str_to_minutes(time_str=p["starttime"]))
+            periods = sorted(periods, key=lambda p: _convert_time_str_to_minutes(time_str=p.starttime))
 
         return ClimateWeekdayScheduleModel(base_temperature=base_temperature, periods=periods)
 

@@ -163,12 +163,27 @@ async def central_client_factory_with_homegear_client(
 @pytest.fixture(scope="session")
 def pydevccu_mini() -> pydevccu.Server:
     """Create the virtual ccu."""
+    import asyncio
+    import contextlib
+
     ccu = pydevccu.Server(addr=(const.CCU_HOST, const.get_ccu_mini_port()), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
     ccu.start()
     try:
         yield ccu
     finally:
-        ccu.stop()
+        # Properly await stop() coroutine to avoid "Task was destroyed" warnings
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is running, create task and let it complete
+                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006
+            else:
+                # If loop is not running, run it synchronously
+                loop.run_until_complete(ccu.stop())
+        except Exception:
+            # Fallback: try to stop synchronously (for older pydevccu versions)
+            with contextlib.suppress(Exception):
+                ccu.stop()
 
 
 @pytest.fixture
@@ -191,12 +206,27 @@ async def central_unit_pydevccu_mini(pydevccu_mini: pydevccu.Server) -> CentralU
 @pytest.fixture(scope="session")
 def pydevccu_full() -> pydevccu.Server:
     """Create the virtual ccu."""
+    import asyncio
+    import contextlib
+
     ccu = pydevccu.Server(addr=(const.CCU_HOST, const.get_ccu_port()))
     ccu.start()
     try:
         yield ccu
     finally:
-        ccu.stop()
+        # Properly await stop() coroutine to avoid "Task was destroyed" warnings
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is running, create task and let it complete
+                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006
+            else:
+                # If loop is not running, run it synchronously
+                loop.run_until_complete(ccu.stop())
+        except Exception:
+            # Fallback: try to stop synchronously (for older pydevccu versions)
+            with contextlib.suppress(Exception):
+                ccu.stop()
 
 
 @pytest.fixture
@@ -307,12 +337,24 @@ def pydevccu_openccu() -> VirtualCCU | None:  # type: ignore[name-defined]
         # Stop the server and cleanup
         if server_loop is not None:
 
-            def stop_server() -> None:
-                stop_task = asyncio.ensure_future(ccu.stop())  # noqa: F841, RUF006
-                server_loop.call_soon(server_loop.stop)
+            async def stop_server() -> None:
+                """Properly stop the server and await the coroutine."""
+                try:
+                    await asyncio.wait_for(ccu.stop(), timeout=5.0)
+                except TimeoutError:
+                    pass  # Ignore timeout during cleanup
+                except Exception:
+                    pass  # Ignore other cleanup errors
+                finally:
+                    server_loop.stop()
 
-            server_loop.call_soon_threadsafe(stop_server)
-            server_thread.join(timeout=5)
+            # Schedule the stop coroutine and wait for completion
+            import contextlib
+
+            future = asyncio.run_coroutine_threadsafe(stop_server(), server_loop)
+            with contextlib.suppress(Exception):
+                future.result(timeout=6.0)
+            server_thread.join(timeout=1)
 
 
 @pytest.fixture

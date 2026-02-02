@@ -49,6 +49,11 @@ from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
+from aiohomematic.model.schedule_models import (
+    ClimateProfileSchedule as ClimateProfileScheduleModel,
+    ClimateSchedule as ClimateScheduleModel,
+    ClimateWeekdaySchedule as ClimateWeekdayScheduleModel,
+)
 from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -242,20 +247,20 @@ class BaseCustomDpClimate(CustomDataPoint):
         return 0
 
     @property
-    def simple_schedule(self) -> SimpleScheduleDict:
+    def simple_schedule(self) -> ClimateScheduleModel:
         """
-        Return cached simple schedule in TypedDict format.
+        Return cached simple schedule as Pydantic model.
 
         This format uses string keys and is optimized for JSON serialization.
         Ideal for custom card integration.
 
         Returns:
-            SimpleScheduleDict with base_temperature and periods per weekday
+            ClimateScheduleModel with base_temperature and periods per weekday.
 
         """
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return self._device.week_profile.simple_schedule
-        return {}
+        return ClimateScheduleModel({})
 
     @config_property
     def target_temperature_step(self) -> float:
@@ -364,29 +369,29 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def get_schedule_simple_profile(
         self, *, profile: ScheduleProfile, force_load: bool = False
-    ) -> SimpleProfileSchedule:
+    ) -> ClimateProfileScheduleModel:
         """Return a simple schedule by climate profile (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_simple_profile(profile=profile, force_load=force_load)
-        return {}
+        return ClimateProfileScheduleModel({})
 
     @inspector
-    async def get_schedule_simple_schedule(self, *, force_load: bool = False) -> SimpleScheduleDict:
+    async def get_schedule_simple_schedule(self, *, force_load: bool = False) -> ClimateScheduleModel:
         """Return the complete simple schedule dictionary (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_simple_schedule(force_load=force_load)
-        return {}
+        return ClimateScheduleModel({})
 
     @inspector
     async def get_schedule_simple_weekday(
         self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
-    ) -> SimpleWeekdaySchedule:
+    ) -> ClimateWeekdayScheduleModel:
         """Return a simple schedule by climate profile and weekday (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
             return await self._device.week_profile.get_simple_weekday(
                 profile=profile, weekday=weekday, force_load=force_load
             )
-        return SimpleWeekdaySchedule(base_temperature=DEFAULT_CLIMATE_FILL_TEMPERATURE, periods=[])
+        return ClimateWeekdayScheduleModel(base_temperature=DEFAULT_CLIMATE_FILL_TEMPERATURE, periods=[])
 
     @inspector
     async def get_schedule_weekday(

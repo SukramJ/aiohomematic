@@ -827,19 +827,25 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         check_against_pd: bool = False,
     ) -> set[DP_KEY_VALUE]:
         """Set paramsets manually."""
-        is_link_call: bool = False
+        # Determine if this is a LINK call (needed for early return logic)
+        is_link_call = is_channel_address(address=paramset_key_or_link_address)
         checked_values = values
+
         try:
-            # Validate values if requested
+            # Validate values if requested (skip for LINK paramsets as they are not cached)
             if check_against_pd:
-                check_paramset_key = (
-                    ParamsetKey(paramset_key_or_link_address)
-                    if is_paramset_key(paramset_key=paramset_key_or_link_address)
-                    else ParamsetKey.LINK
-                    if (is_link_call := is_channel_address(address=paramset_key_or_link_address))
-                    else None
-                )
-                if check_paramset_key:
+                # Determine paramset key type
+                if is_paramset_key(paramset_key=paramset_key_or_link_address):
+                    check_paramset_key = ParamsetKey(paramset_key_or_link_address)
+                elif is_link_call:
+                    check_paramset_key = ParamsetKey.LINK
+                else:
+                    check_paramset_key = None
+
+                # Skip validation for LINK paramsets (they are not cached during initialization)
+                if is_link_call:
+                    checked_values = values
+                elif check_paramset_key:
                     checked_values = self._check_put_paramset(
                         channel_address=channel_address,
                         paramset_key=check_paramset_key,

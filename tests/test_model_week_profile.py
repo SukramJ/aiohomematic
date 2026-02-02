@@ -20,7 +20,13 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDataPoint, CustomDpRfThermostat
-from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry
+from aiohomematic.model.schedule_models import (
+    ClimateProfileSchedule,
+    ClimateSchedule,
+    ClimateWeekdaySchedule,
+    SimpleSchedule,
+    SimpleScheduleEntry,
+)
 from aiohomematic.model.week_profile import (
     ClimateWeekProfile,
     DefaultWeekProfile,
@@ -559,10 +565,10 @@ class TestScheduleOperations:
 
         # Should raise ValidationException for out of range base temperature
         with pytest.raises(ValidationException):
-            await climate.set_simple_schedule_weekday(
+            await climate.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
-                simple_weekday_data=simple_data,
+                weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -598,10 +604,10 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_simple_schedule_weekday(
+            await climate.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
-                simple_weekday_data=simple_data,
+                weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -637,10 +643,10 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_simple_schedule_weekday(
+            await climate.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
-                simple_weekday_data=simple_data,
+                weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -676,10 +682,10 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_simple_schedule_weekday(
+            await climate.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
-                simple_weekday_data=simple_data,
+                weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -720,10 +726,10 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_simple_schedule_weekday(
+            await climate.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
-                simple_weekday_data=simple_data,
+                weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -759,10 +765,10 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_simple_schedule_weekday(
+            await climate.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
-                simple_weekday_data=simple_data,
+                weekday_data=simple_data,
             )
 
     @pytest.mark.parametrize(
@@ -798,226 +804,10 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_simple_schedule_weekday(
-                profile=ScheduleProfile.P1,
-                weekday=WeekdayStr.MONDAY,
-                simple_weekday_data=simple_data,
-            )
-
-
-class TestScheduleValidation:
-    """Test schedule validation methods."""
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validation_missing_slot_fields(self, central_client_factory_with_homegear_client):
-        """Test validation rejects slots missing required fields."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        # Create 13 slots but one is missing TEMPERATURE
-        weekday_data = {}
-        for i in range(1, 14):
-            if i == 5:
-                weekday_data[i] = {
-                    "endtime": f"{i:02d}:00",
-                    # Missing TEMPERATURE
-                }
-            else:
-                weekday_data[i] = {
-                    "endtime": f"{i:02d}:00" if i < 13 else "24:00",
-                    "temperature": 20.0,
-                }
-
-        with pytest.raises(ValidationException):
             await climate.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
-                weekday_data=weekday_data,
-                do_validate=True,
-            )
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validation_missing_slot_number(self, central_client_factory_with_homegear_client):
-        """Test that after normalization, missing slot numbers cause validation error."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        # This will be normalized to 13 slots, so validation should pass
-        # The test validates that normalization happens before validation
-        weekday_data = {
-            1: {"endtime": "06:00", "temperature": 18.0},
-            # Missing slot 2, but normalization will fill it
-            3: {"endtime": "12:00", "temperature": 21.0},
-        }
-
-        # Should work because normalization fills missing slots
-        await climate.set_schedule_weekday(
-            profile=ScheduleProfile.P1,
-            weekday=WeekdayStr.MONDAY,
-            weekday_data=weekday_data,
-        )
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validation_time_not_ascending(self, central_client_factory_with_homegear_client):
-        """Test validation rejects non-ascending time sequence."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        # Create 13 slots with non-ascending times
-        weekday_data = {
-            1: {"endtime": "06:00", "temperature": 18.0},
-            2: {"endtime": "08:00", "temperature": 20.0},
-            3: {"endtime": "07:00", "temperature": 21.0},  # Goes back!
-        }
-
-        # Normalization will sort by time, so let's create a case where
-        # after normalization the times are still invalid
-        # Actually, normalization sorts by ENDTIME, so this should be caught during validation
-        # Let me create 13 slots where times go backwards
-        weekday_data = {}
-        for i in range(1, 14):
-            if i < 7:
-                weekday_data[i] = {
-                    "endtime": f"{i * 2:02d}:00",
-                    "temperature": 20.0,
-                }
-            elif i == 7:
-                weekday_data[i] = {
-                    "endtime": "05:00",  # Goes back!
-                    "temperature": 20.0,
-                }
-            else:
-                weekday_data[i] = {
-                    "endtime": "24:00",
-                    "temperature": 20.0,
-                }
-
-        # Normalization will sort these, so validation should actually pass
-        # The test shows that normalization handles unsorted input
-        await climate.set_schedule_weekday(
-            profile=ScheduleProfile.P1,
-            weekday=WeekdayStr.MONDAY,
-            weekday_data=weekday_data,
-        )
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validation_too_few_slots(self, central_client_factory_with_homegear_client):
-        """Test validation accepts fewer than 13 slots (normalization fills them)."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        # Create only 3 slots - should be filled to 13
-        weekday_data = {
-            1: {"endtime": "06:00", "temperature": 18.0},
-            2: {"endtime": "12:00", "temperature": 21.0},
-            3: {"endtime": "24:00", "temperature": 18.0},
-        }
-
-        # Should not raise - normalization fills missing slots
-        await climate.set_schedule_weekday(
-            profile=ScheduleProfile.P1,
-            weekday=WeekdayStr.MONDAY,
-            weekday_data=weekday_data,
-        )
-
-        # Verify it was called
-        assert mock_client.put_paramset.called
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validation_too_many_slots(self, central_client_factory_with_homegear_client):
-        """Test validation rejects more than 13 slots."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        # Create 14 slots (one too many)
-        weekday_data = {}
-        for i in range(1, 15):  # 14 slots
-            weekday_data[i] = {
-                "endtime": f"{i:02d}:00",
-                "temperature": 20.0,
-            }
-
-        with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
-                profile=ScheduleProfile.P1,
-                weekday=WeekdayStr.MONDAY,
-                weekday_data=weekday_data,
-                do_validate=True,
+                weekday_data=simple_data,
             )
 
 
@@ -1160,12 +950,12 @@ class TestClimateWeekProfileIntegration:
 
         # Get schedule without forcing load (uses cache)
         schedule = await climate.get_schedule()
-        assert isinstance(schedule, dict)
+        assert isinstance(schedule, ClimateSchedule)
         assert ScheduleProfile.P1 in schedule
 
         # Get schedule with force_load=True
         schedule_forced = await climate.get_schedule(force_load=True)
-        assert isinstance(schedule_forced, dict)
+        assert isinstance(schedule_forced, ClimateSchedule)
 
     @pytest.mark.parametrize(
         (
@@ -1187,12 +977,12 @@ class TestClimateWeekProfileIntegration:
 
         # Get profile
         profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert isinstance(profile_data, dict)
+        assert isinstance(profile_data, ClimateProfileSchedule)
         assert WeekdayStr.MONDAY in profile_data
 
         # Get with force_load
         profile_data_forced = await climate.get_schedule_profile(profile=ScheduleProfile.P1, force_load=True)
-        assert isinstance(profile_data_forced, dict)
+        assert isinstance(profile_data_forced, ClimateProfileSchedule)
 
     @pytest.mark.parametrize(
         (
@@ -1214,13 +1004,13 @@ class TestClimateWeekProfileIntegration:
 
         # Get weekday data
         weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
-        assert isinstance(weekday_data, dict)
+        assert isinstance(weekday_data, ClimateWeekdaySchedule)
 
         # Get with force_load
         weekday_data_forced = await climate.get_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, force_load=True
         )
-        assert isinstance(weekday_data_forced, dict)
+        assert isinstance(weekday_data_forced, ClimateWeekdaySchedule)
 
     @pytest.mark.parametrize(
         (
@@ -1242,7 +1032,7 @@ class TestClimateWeekProfileIntegration:
 
         # Access property
         schedule = climate.schedule
-        assert isinstance(schedule, dict)
+        assert isinstance(schedule, ClimateSchedule)
 
     @pytest.mark.parametrize(
         (
@@ -1289,11 +1079,8 @@ class TestClimateWeekProfileIntegration:
         # Get existing profile
         profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
 
-        # Set profile with validation
-        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data, do_validate=True)
-
-        # Set profile without validation
-        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data, do_validate=False)
+        # Set profile back (validation always happens with Pydantic models)
+        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
 
     @pytest.mark.parametrize(
         (
@@ -1338,7 +1125,7 @@ class TestClimateWeekProfileIntegration:
         }
 
         # Set simple schedule
-        await climate.set_simple_schedule_profile(profile=ScheduleProfile.P2, simple_profile_data=simple_profile_data)
+        await climate.set_schedule_profile(profile=ScheduleProfile.P2, profile_data=simple_profile_data)
 
     @pytest.mark.parametrize(
         (
@@ -1371,10 +1158,10 @@ class TestClimateWeekProfileIntegration:
         }
 
         # Set simple weekday schedule
-        await climate.set_simple_schedule_weekday(
+        await climate.set_schedule_weekday(
             profile=ScheduleProfile.P2,
             weekday=WeekdayStr.WEDNESDAY,
-            simple_weekday_data=simple_weekday_data,
+            weekday_data=simple_weekday_data,
         )
 
 
@@ -1704,7 +1491,7 @@ class TestErrorPaths:
 
         # Get schedule without force_load - should load from device
         schedule = await climate.get_schedule()
-        assert isinstance(schedule, dict)
+        assert isinstance(schedule, ClimateSchedule)
 
     @pytest.mark.parametrize(
         (
@@ -1730,7 +1517,7 @@ class TestErrorPaths:
 
         # Get profile - should load from device
         profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-        assert isinstance(profile_data, dict)
+        assert isinstance(profile_data, ClimateProfileSchedule)
 
     @pytest.mark.parametrize(
         (
@@ -1756,7 +1543,7 @@ class TestErrorPaths:
 
         # Get weekday - should load from device
         weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
-        assert isinstance(weekday_data, dict)
+        assert isinstance(weekday_data, ClimateWeekdaySchedule)
 
     @pytest.mark.parametrize(
         (
@@ -1776,11 +1563,12 @@ class TestErrorPaths:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
-        # Create new weekday data
+        # Create new weekday data in Simple format
         weekday_data = {
-            1: {"endtime": "06:00", "temperature": 18.0},
-            2: {"endtime": "22:00", "temperature": 21.0},
-            3: {"endtime": "24:00", "temperature": 18.0},
+            "base_temperature": 18.0,
+            "periods": [
+                {"starttime": "06:00", "endtime": "22:00", "temperature": 21.0},
+            ],
         }
 
         # Set weekday data
@@ -1813,18 +1601,17 @@ class TestErrorPaths:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
-        # Create weekday data
+        # Create weekday data in Simple format (base temperature only, no heating periods)
         weekday_data = {
-            1: {"endtime": "06:00", "temperature": 18.0},
-            2: {"endtime": "24:00", "temperature": 18.0},
+            "base_temperature": 18.0,
+            "periods": [],
         }
 
-        # Set without validation
+        # Set weekday data (validation always happens with Pydantic)
         await climate.set_schedule_weekday(
             profile=ScheduleProfile.P2,
             weekday=WeekdayStr.SATURDAY,
             weekday_data=weekday_data,
-            do_validate=False,
         )
 
 
@@ -2066,12 +1853,14 @@ class TestPropertyAccessAndValidation:
 
         # Access schedule property directly
         schedule = climate.schedule
-        assert isinstance(schedule, dict)
-        # Should not contain redundant 24:00 slots
+        assert isinstance(schedule, ClimateSchedule)
+        # Schedule is now Pydantic model with periods instead of 13-slot structure
+        # Verify we have valid data
         for profile_data in schedule.values():
             for weekday_data in profile_data.values():
-                count_24_00 = sum(1 for slot in weekday_data.values() if slot.get("endtime") == "24:00")
-                assert count_24_00 <= 1  # At most one 24:00 slot
+                # weekday_data is ClimateWeekdaySchedule with periods list
+                assert hasattr(weekday_data, "periods")
+                assert hasattr(weekday_data, "base_temperature")
 
 
 class TestSimpleScheduleConversionMethods:
@@ -2130,7 +1919,7 @@ class TestSimpleScheduleConversionMethods:
         }
 
         # Set and verify
-        await climate.set_simple_schedule_profile(profile=ScheduleProfile.P4, simple_profile_data=simple_profile_data)
+        await climate.set_schedule_profile(profile=ScheduleProfile.P4, profile_data=simple_profile_data)
 
     @pytest.mark.parametrize(
         (
@@ -2168,126 +1957,10 @@ class TestSimpleScheduleConversionMethods:
         }
 
         # Set and verify it works
-        await climate.set_simple_schedule_weekday(
+        await climate.set_schedule_weekday(
             profile=ScheduleProfile.P3,
             weekday=WeekdayStr.SUNDAY,
-            simple_weekday_data=simple_weekday_data,
-        )
-
-
-class TestAdvancedValidation:
-    """Test advanced validation scenarios."""
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_normalization_fills_to_13_slots_ending_24_00(self, central_client_factory_with_homegear_client):
-        """Test that normalization fills incomplete slots to 13 ending with 24:00."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Create weekday data with only 3 slots (normalization will fill to 13)
-        weekday_data = {
-            1: {"endtime": "06:00", "temperature": 18.0},
-            2: {"endtime": "22:00", "temperature": 21.0},
-            3: {"endtime": "23:00", "temperature": 18.0},
-        }
-
-        # Should succeed - normalization will fill remaining slots and ensure 24:00 at end
-        await climate.set_schedule_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data
-        )
-
-        # Verify it was normalized and filtered properly
-        result = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
-        # Filtering removes redundant 24:00 slots, so we get back fewer than 13
-        assert len(result) >= 3  # Should have at least our input slots
-        # Last slot should be 24:00
-        last_slot = result[max(result.keys())]
-        assert last_slot["endtime"] == "24:00"
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_simple_schedule_validation_gaps_at_day_boundaries(self, central_client_factory_with_homegear_client):
-        """Test simple schedule validation with periods at day boundaries."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Period starting at 00:00
-        simple_weekday_data = {
-            "base_temperature": 16.0,
-            "periods": [
-                {
-                    "starttime": "00:00",
-                    "endtime": "06:00",
-                    "temperature": 18.0,
-                },
-                {
-                    "starttime": "22:00",
-                    "endtime": "24:00",
-                    "temperature": 18.0,
-                },
-            ],
-        }
-
-        # Should work
-        await climate.set_simple_schedule_weekday(
-            profile=ScheduleProfile.P3,
-            weekday=WeekdayStr.MONDAY,
-            simple_weekday_data=simple_weekday_data,
-        )
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validation_endtime_normalization_handles_duplicates(
-        self, central_client_factory_with_homegear_client
-    ):
-        """Test that normalization handles duplicate ENDTIMEs by sorting."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Create weekday data with slots that need sorting
-        weekday_data = {
-            3: {"endtime": "24:00", "temperature": 18.0},
-            1: {"endtime": "06:00", "temperature": 18.0},
-            2: {"endtime": "12:00", "temperature": 21.0},
-        }
-
-        # Should succeed - normalization will sort and fill
-        await climate.set_schedule_weekday(
-            profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data
+            weekday_data=simple_weekday_data,
         )
 
 
@@ -2313,9 +1986,9 @@ class TestWeekProfileProperties:
         )
 
         if climate.device.week_profile:
-            # Access base schedule property (non-filtered)
+            # Access base schedule property (cache now stores Pydantic model)
             base_schedule = climate.device.week_profile._schedule_cache
-            assert isinstance(base_schedule, dict)
+            assert isinstance(base_schedule, ClimateSchedule)
 
     @pytest.mark.parametrize(
         (
@@ -2344,9 +2017,9 @@ class TestWeekProfileProperties:
             # Force reload
             await climate.device.week_profile.reload_and_cache_schedule(force=True)
 
-            # Cache should still be valid (might be same data)
+            # Cache should still be valid (might be same data), now Pydantic model
             new_cache = climate.device.week_profile._schedule_cache
-            assert isinstance(new_cache, dict)
+            assert isinstance(new_cache, ClimateSchedule)
 
 
 class TestComplexScheduleScenarios:
@@ -2410,7 +2083,7 @@ class TestComplexScheduleScenarios:
             }
 
         # Set the full week schedule
-        await climate.set_simple_schedule_profile(profile=ScheduleProfile.P5, simple_profile_data=full_week_schedule)
+        await climate.set_schedule_profile(profile=ScheduleProfile.P5, profile_data=full_week_schedule)
 
         # Note: With pessimistic cache and mock client, reading back won't return the exact
         # data we just set (mock doesn't update its state). We verify the operation succeeded.
@@ -2475,10 +2148,10 @@ class TestComplexScheduleScenarios:
         }
 
         # Set and verify
-        await climate.set_simple_schedule_weekday(
+        await climate.set_schedule_weekday(
             profile=ScheduleProfile.P3,
             weekday=WeekdayStr.WEDNESDAY,
-            simple_weekday_data=simple_weekday_data,
+            weekday_data=simple_weekday_data,
         )
 
         # Note: With pessimistic cache and mock client, reading back won't return the exact
@@ -2574,8 +2247,8 @@ class TestEdgeCasesAndErrorPaths:
             climate.device.week_profile._schedule_cache = {}
 
         profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P3)
-        # Should return empty or valid dict
-        assert isinstance(profile_data, dict)
+        # Should return empty or valid ClimateProfileSchedule
+        assert isinstance(profile_data, ClimateProfileSchedule)
 
     @pytest.mark.parametrize(
         (
@@ -2600,8 +2273,8 @@ class TestEdgeCasesAndErrorPaths:
             climate.device.week_profile._schedule_cache = {}
 
         weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P3, weekday=WeekdayStr.SUNDAY)
-        # Should return empty dict
-        assert isinstance(weekday_data, dict)
+        # Should return empty ClimateWeekdaySchedule
+        assert isinstance(weekday_data, ClimateWeekdaySchedule)
 
     @pytest.mark.parametrize(
         (
@@ -2621,10 +2294,12 @@ class TestEdgeCasesAndErrorPaths:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
-        # Create fresh weekday data for a profile that might not exist
+        # Create fresh weekday data in Simple format for a profile that might not exist
         weekday_data = {
-            1: {"endtime": "12:00", "temperature": 20.0},
-            2: {"endtime": "24:00", "temperature": 18.0},
+            "base_temperature": 18.0,
+            "periods": [
+                {"starttime": "00:00", "endtime": "12:00", "temperature": 20.0},
+            ],
         }
 
         # Set for a profile (P3)
@@ -2638,522 +2313,6 @@ class TestEdgeCasesAndErrorPaths:
 
         # Verify operation completed successfully - mock should have received put_paramset call
         assert mock_client.put_paramset.called
-
-
-class TestInverseScheduleConverters:
-    """Test inverse converter functions that convert full schedules to simplified format."""
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_profile_to_simple_invalid_base_temperature(self, central_client_factory_with_homegear_client):
-        """Test that profile_to_simple validates base temperature."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            profile_data = {
-                WeekdayStr.MONDAY: {
-                    1: {"endtime": "24:00", "temperature": 0.0},
-                }
-            }
-
-            with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_profile_to_simple(profile_data=profile_data)
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_profile_to_simple_multiple_weekdays(self, central_client_factory_with_homegear_client):
-        """Test converting a full profile to simple format with multiple weekdays."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            profile_data = {
-                WeekdayStr.MONDAY: {
-                    1: {"endtime": "06:00", "temperature": 18.0},
-                    2: {"endtime": "22:00", "temperature": 21.0},
-                    3: {"endtime": "24:00", "temperature": 18.0},
-                },
-                WeekdayStr.TUESDAY: {
-                    1: {"endtime": "07:00", "temperature": 18.0},
-                    2: {"endtime": "23:00", "temperature": 22.0},
-                    3: {"endtime": "24:00", "temperature": 18.0},
-                },
-            }
-
-            result = climate.device.week_profile._validate_and_convert_profile_to_simple(profile_data=profile_data)
-
-            # Should have both weekdays
-            assert WeekdayStr.MONDAY in result
-            assert WeekdayStr.TUESDAY in result
-            assert len(result[WeekdayStr.MONDAY].periods) == 2
-            assert len(result[WeekdayStr.TUESDAY].periods) == 2
-            assert result[WeekdayStr.MONDAY].periods[0].temperature == 18.0
-            assert result[WeekdayStr.TUESDAY].periods[0].temperature == 18.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_round_trip_conversion_profile(self, central_client_factory_with_homegear_client):
-        """Test round-trip conversion: simple -> full -> simple for profile."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Start with simple profile
-            original_simple_profile = {
-                WeekdayStr.MONDAY: {
-                    "base_temperature": 18.0,
-                    "periods": [
-                        {
-                            "starttime": "06:00",
-                            "endtime": "22:00",
-                            "temperature": 21.0,
-                        }
-                    ],
-                },
-                WeekdayStr.FRIDAY: {
-                    "base_temperature": 18.0,
-                    "periods": [
-                        {
-                            "starttime": "08:00",
-                            "endtime": "20:00",
-                            "temperature": 20.0,
-                        }
-                    ],
-                },
-            }
-
-            # Convert to full format
-            full_profile = climate.device.week_profile._validate_and_convert_simple_to_profile(
-                simple_profile_data=original_simple_profile
-            )
-
-            # Convert back to simple
-            result_simple_profile = climate.device.week_profile._validate_and_convert_profile_to_simple(
-                profile_data=full_profile
-            )
-
-            # Should have same weekdays
-            assert set(result_simple_profile.keys()) == set(original_simple_profile.keys())
-            # Note: Period count may differ due to different base_temperature identification,
-            # but the schedules are semantically equivalent (same temp at any given time)
-            for weekday in original_simple_profile:
-                # Verify we got periods back
-                assert len(result_simple_profile[weekday].periods) >= 0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_round_trip_conversion_schedule(self, central_client_factory_with_homegear_client):
-        """Test round-trip conversion: simple -> full -> simple for schedule."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Start with simple schedule
-            original_simple_schedule = {
-                ScheduleProfile.P1: {
-                    WeekdayStr.MONDAY: {
-                        "base_temperature": 18.0,
-                        "periods": [
-                            {
-                                "starttime": "06:00",
-                                "endtime": "22:00",
-                                "temperature": 21.0,
-                            }
-                        ],
-                    }
-                }
-            }
-
-            # Convert to full format
-            full_schedule = climate.device.week_profile._validate_and_convert_simple_to_schedule(
-                simple_schedule_data=original_simple_schedule
-            )
-
-            # Convert back to simple
-            result_simple_schedule = climate.device.week_profile._validate_and_convert_schedule_to_simple(
-                schedule_data=full_schedule
-            )
-
-            # Should match original
-            assert set(result_simple_schedule.keys()) == set(original_simple_schedule.keys())
-            assert ScheduleProfile.P1 in result_simple_schedule
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_round_trip_conversion_weekday(self, central_client_factory_with_homegear_client):
-        """Test round-trip conversion: simple -> full -> simple for weekday."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Start with simple format
-            original_simple = {
-                "base_temperature": 18.0,
-                "periods": [
-                    {
-                        "starttime": "06:00",
-                        "endtime": "08:00",
-                        "temperature": 21.0,
-                    },
-                    {
-                        "starttime": "18:00",
-                        "endtime": "22:00",
-                        "temperature": 21.0,
-                    },
-                ],
-            }
-
-            # Convert to full format
-            full_format = climate.device.week_profile._validate_and_convert_simple_to_weekday(
-                simple_weekday_data=original_simple
-            )
-
-            # Convert back to simple format
-            result_simple = climate.device.week_profile._validate_and_convert_weekday_to_simple(
-                weekday_data=full_format
-            )
-
-            # Should match original
-            assert len(result_simple.periods) == len(original_simple["periods"])
-            for i, period in enumerate(result_simple.periods):
-                assert period.starttime == original_simple["periods"][i]["starttime"]
-                assert period.endtime == original_simple["periods"][i]["endtime"]
-                assert period.temperature == original_simple["periods"][i]["temperature"]
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_schedule_to_simple_schedule_invalid_base_temperature(
-        self, central_client_factory_with_homegear_client
-    ):
-        """Test that schedule_to_simple_schedule validates base temperature."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            schedule_data = {
-                ScheduleProfile.P1: {
-                    WeekdayStr.MONDAY: {
-                        1: {"endtime": "24:00", "temperature": 999.0},
-                    }
-                }
-            }
-
-            with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_schedule_to_simple(schedule_data=schedule_data)
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_schedule_to_simple_schedule_multiple_profiles(self, central_client_factory_with_homegear_client):
-        """Test converting full schedule to simple format with multiple profiles."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            schedule_data = {
-                ScheduleProfile.P1: {
-                    WeekdayStr.MONDAY: {
-                        1: {"endtime": "06:00", "temperature": 18.0},
-                        2: {"endtime": "22:00", "temperature": 21.0},
-                        3: {"endtime": "24:00", "temperature": 18.0},
-                    },
-                },
-                ScheduleProfile.P2: {
-                    WeekdayStr.TUESDAY: {
-                        1: {"endtime": "08:00", "temperature": 18.0},
-                        2: {"endtime": "20:00", "temperature": 20.0},
-                        3: {"endtime": "24:00", "temperature": 18.0},
-                    },
-                },
-            }
-
-            result = climate.device.week_profile._validate_and_convert_schedule_to_simple(schedule_data=schedule_data)
-
-            # Should have both profiles
-            assert ScheduleProfile.P1 in result
-            assert ScheduleProfile.P2 in result
-            assert WeekdayStr.MONDAY in result[ScheduleProfile.P1]
-            assert WeekdayStr.TUESDAY in result[ScheduleProfile.P2]
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_weekday_to_simple_all_base_temperature(self, central_client_factory_with_homegear_client):
-        """Test converting weekday with all slots at base temperature."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # All slots at base temperature
-            weekday_data = {
-                1: {"endtime": "24:00", "temperature": 18.0},
-            }
-
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-
-            # Should produce empty list (no non-base periods)
-            assert len(result.periods) == 0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_weekday_to_simple_basic(self, central_client_factory_with_homegear_client):
-        """Test converting a full weekday to simple format with basic schedule."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Full weekday with one non-base temperature period
-            weekday_data = {
-                1: {"endtime": "06:00", "temperature": 18.0},
-                2: {"endtime": "22:00", "temperature": 21.0},
-                3: {"endtime": "24:00", "temperature": 18.0},
-            }
-
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-
-            # Should produce single entry from 06:00-22:00 at 21.0
-            assert len(result.periods) == 2
-            assert result.periods[0].starttime == "00:00"
-            assert result.periods[0].endtime == "06:00"
-            assert result.periods[0].temperature == 18.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_weekday_to_simple_different_temperatures(self, central_client_factory_with_homegear_client):
-        """Test converting weekday with different non-base temperatures."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Consecutive slots with different temperatures
-            weekday_data = {
-                1: {"endtime": "06:00", "temperature": 18.0},
-                2: {"endtime": "12:00", "temperature": 20.0},
-                3: {"endtime": "18:00", "temperature": 22.0},
-                4: {"endtime": "24:00", "temperature": 18.0},
-            }
-
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-
-            # Should produce two separate periods (different temps)
-            assert len(result.periods) == 2
-            assert result.periods[0].starttime == "06:00"
-            assert result.periods[0].endtime == "12:00"
-            assert result.periods[0].temperature == 20.0
-            assert result.periods[1].starttime == "12:00"
-            assert result.periods[1].endtime == "18:00"
-            assert result.periods[1].temperature == 22.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_weekday_to_simple_invalid_base_temperature(self, central_client_factory_with_homegear_client):
-        """Test that invalid base temperature raises ValidationException."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            weekday_data = {
-                1: {"endtime": "24:00", "temperature": 100.0},
-            }
-
-            # Base temperature out of range
-            with pytest.raises(ValidationException):
-                climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_weekday_to_simple_merges_consecutive_same_temp(self, central_client_factory_with_homegear_client):
-        """Test that consecutive slots with same non-base temperature are merged."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Multiple consecutive slots at same non-base temperature
-            weekday_data = {
-                1: {"endtime": "06:00", "temperature": 18.0},
-                2: {"endtime": "12:00", "temperature": 21.0},
-                3: {"endtime": "18:00", "temperature": 21.0},
-                4: {"endtime": "22:00", "temperature": 21.0},
-                5: {"endtime": "24:00", "temperature": 18.0},
-            }
-
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-
-            # Should merge into single entry from 06:00-22:00
-            assert len(result.periods) == 2
-            assert result.periods[1].starttime == "22:00"
-            assert result.periods[1].endtime == "24:00"
-            assert result.periods[1].temperature == 18.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_weekday_to_simple_multiple_periods(self, central_client_factory_with_homegear_client):
-        """Test converting weekday with multiple non-base temperature periods."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        if climate.device.week_profile:
-            # Full weekday with two non-base periods separated by base temperature
-            weekday_data = {
-                1: {"endtime": "06:00", "temperature": 18.0},
-                2: {"endtime": "08:00", "temperature": 21.0},
-                3: {"endtime": "18:00", "temperature": 18.0},
-                4: {"endtime": "22:00", "temperature": 21.0},
-                5: {"endtime": "24:00", "temperature": 18.0},
-            }
-
-            result = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-
-            # Should produce two entries
-            assert len(result.periods) == 2
-            assert result.periods[0].starttime == "06:00"
-            assert result.periods[0].endtime == "08:00"
-            assert result.periods[0].temperature == 21.0
-            assert result.periods[1].starttime == "18:00"
-            assert result.periods[1].endtime == "22:00"
-            assert result.periods[1].temperature == 21.0
 
 
 class TestWeekProfileHelperMethods:
@@ -3480,7 +2639,7 @@ class TestWeekProfileHelperMethods:
             schedule = climate.device.week_profile.schedule
 
             # Should return filtered schedule (no redundant 24:00 slots)
-            assert isinstance(schedule, dict)
+            assert isinstance(schedule, ClimateSchedule)
 
             # If there's data, verify it's filtered
             if schedule:
@@ -3490,9 +2649,9 @@ class TestWeekProfileHelperMethods:
                         # (unless all slots have different times)
                         if weekday_data:
                             # At least verify the data structure is correct
-                            for slot in weekday_data.values():
-                                assert "endtime" in slot
-                                assert "temperature" in slot
+                            for period in weekday_data.periods:
+                                assert hasattr(period, "endtime")
+                                assert hasattr(period, "temperature")
 
     @pytest.mark.parametrize(
         (
@@ -3520,442 +2679,3 @@ class TestWeekProfileHelperMethods:
             channel_address = climate.device.week_profile._validate_and_get_schedule_channel_address()
             assert channel_address is not None
             assert isinstance(channel_address, str)
-
-
-class TestValidateAndConvertMethods:
-    """Tests for _validate_and_convert_* methods in week_profile module."""
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_and_convert_profile_to_simple(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test _validate_and_convert_profile_to_simple method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimateWeekProfile
-        ), "Device should have ClimeateWeekProfile"
-
-        # Create full profile data
-        profile_data = {
-            WeekdayStr.MONDAY: {
-                1: {"endtime": "07:00", "temperature": 18.0},
-                2: {"endtime": "22:00", "temperature": 21.0},
-                3: {"endtime": "24:00", "temperature": 18.0},
-            },
-        }
-
-        # Normalize first
-        from aiohomematic.model.week_profile import _normalize_weekday_data
-
-        profile_data[WeekdayStr.MONDAY] = _normalize_weekday_data(weekday_data=profile_data[WeekdayStr.MONDAY])
-
-        # Convert full to simple profile format
-        simple_profile = climate.device.week_profile._validate_and_convert_profile_to_simple(profile_data=profile_data)
-
-        # Should have Monday
-        assert WeekdayStr.MONDAY in simple_profile
-        # Monday should have 1 entry (07:00-22:00 at 21.0)
-        monday_data = simple_profile[WeekdayStr.MONDAY].periods
-        assert len(monday_data) == 2
-        assert monday_data[0].starttime == "00:00"
-        assert monday_data[0].endtime == "07:00"
-        assert monday_data[0].temperature == 18.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_and_convert_schedule_to_simple(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test _validate_and_convert_schedule_to_simple method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimateWeekProfile
-        ), "Device should have ClimeateWeekProfile"
-
-        # Create full schedule data
-        schedule_data = {
-            ScheduleProfile.P1: {
-                WeekdayStr.MONDAY: {
-                    1: {"endtime": "06:00", "temperature": 18.0},
-                    2: {"endtime": "22:00", "temperature": 21.0},
-                    3: {"endtime": "24:00", "temperature": 18.0},
-                },
-            },
-        }
-
-        # Normalize first
-        from aiohomematic.model.week_profile import _normalize_weekday_data
-
-        schedule_data[ScheduleProfile.P1][WeekdayStr.MONDAY] = _normalize_weekday_data(
-            weekday_data=schedule_data[ScheduleProfile.P1][WeekdayStr.MONDAY]
-        )
-
-        # Convert full to simple schedule format
-        simple_schedule = climate.device.week_profile._validate_and_convert_schedule_to_simple(
-            schedule_data=schedule_data
-        )
-
-        # Should have P1 profile
-        assert ScheduleProfile.P1 in simple_schedule
-        # P1 should have Monday
-        assert WeekdayStr.MONDAY in simple_schedule[ScheduleProfile.P1]
-        # Monday should have 1 entry (06:00-22:00 at 21.0)
-        monday_data = simple_schedule[ScheduleProfile.P1][WeekdayStr.MONDAY].periods
-        assert len(monday_data) == 2
-        assert monday_data[1].starttime == "22:00"
-        assert monday_data[1].endtime == "24:00"
-        assert monday_data[1].temperature == 18.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_and_convert_simple_to_profile(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test _validate_and_convert_simple_to_profile method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimateWeekProfile
-        ), "Device should have ClimeateWeekProfile"
-
-        # Create simple profile data
-        simple_profile = {
-            WeekdayStr.MONDAY: {
-                "base_temperature": 18.0,
-                "periods": [
-                    {
-                        "starttime": "07:00",
-                        "endtime": "22:00",
-                        "temperature": 21.0,
-                    },
-                ],
-            },
-            WeekdayStr.TUESDAY: {
-                "base_temperature": 18.0,
-                "periods": [
-                    {
-                        "starttime": "08:00",
-                        "endtime": "20:00",
-                        "temperature": 20.0,
-                    },
-                ],
-            },
-        }
-
-        # Convert simple to full profile format
-        profile_data = climate.device.week_profile._validate_and_convert_simple_to_profile(
-            simple_profile_data=simple_profile
-        )
-
-        # Should have both weekdays
-        assert WeekdayStr.MONDAY in profile_data
-        assert WeekdayStr.TUESDAY in profile_data
-        # Each weekday should have 13 slots
-        assert len(profile_data[WeekdayStr.MONDAY]) == 13
-        assert len(profile_data[WeekdayStr.TUESDAY]) == 13
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_and_convert_simple_to_schedule(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test _validate_and_convert_simple_to_schedule method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimateWeekProfile
-        ), "Device should have ClimeateWeekProfile"
-
-        # Create simple schedule data
-        simple_schedule = {
-            ScheduleProfile.P1: {
-                WeekdayStr.MONDAY: {
-                    "base_temperature": 18.0,
-                    "periods": [
-                        {
-                            "starttime": "06:00",
-                            "endtime": "22:00",
-                            "temperature": 21.0,
-                        },
-                    ],
-                },
-            },
-            ScheduleProfile.P2: {
-                WeekdayStr.TUESDAY: {
-                    "base_temperature": 18.0,
-                    "periods": [
-                        {
-                            "starttime": "07:00",
-                            "endtime": "20:00",
-                            "temperature": 20.0,
-                        },
-                    ],
-                },
-            },
-        }
-
-        # Convert simple to full schedule format
-        schedule_data = climate.device.week_profile._validate_and_convert_simple_to_schedule(
-            simple_schedule_data=simple_schedule
-        )
-
-        # Should have both profiles
-        assert ScheduleProfile.P1 in schedule_data
-        assert ScheduleProfile.P2 in schedule_data
-        # Each profile should have weekdays with 13 slots
-        assert len(schedule_data[ScheduleProfile.P1][WeekdayStr.MONDAY]) == 13
-        assert len(schedule_data[ScheduleProfile.P2][WeekdayStr.TUESDAY]) == 13
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_and_convert_simple_to_weekday(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test _validate_and_convert_simple_to_weekday method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimateWeekProfile
-        ), "Device should have ClimeateWeekProfile"
-
-        # Create simple weekday data
-        simple_weekday = {
-            "base_temperature": 18.0,
-            "periods": [
-                {
-                    "starttime": "06:00",
-                    "endtime": "08:00",
-                    "temperature": 21.0,
-                },
-                {
-                    "starttime": "17:00",
-                    "endtime": "22:00",
-                    "temperature": 20.0,
-                },
-            ],
-        }
-
-        # Convert simple to full weekday format
-        weekday_data = climate.device.week_profile._validate_and_convert_simple_to_weekday(
-            simple_weekday_data=simple_weekday
-        )
-
-        # Should have 13 slots
-        assert len(weekday_data) == 13
-        # First slot: base temp until 06:00
-        assert weekday_data[1]["endtime"] == "06:00"
-        assert weekday_data[1]["temperature"] == 18.0
-        # Second slot: heated period 06:00-08:00
-        assert weekday_data[2]["endtime"] == "08:00"
-        assert weekday_data[2]["temperature"] == 21.0
-        # Third slot: base temp 08:00-17:00
-        assert weekday_data[3]["endtime"] == "17:00"
-        assert weekday_data[3]["temperature"] == 18.0
-        # Fourth slot: heated period 17:00-22:00
-        assert weekday_data[4]["endtime"] == "22:00"
-        assert weekday_data[4]["temperature"] == 20.0
-        # Remaining slots: base temp until 24:00
-        assert weekday_data[5]["endtime"] == "24:00"
-        assert weekday_data[5]["temperature"] == 18.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_and_convert_weekday_to_simple(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test _validate_and_convert_weekday_to_simple method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimateWeekProfile
-        ), "Device should have ClimeateWeekProfile"
-
-        # Create full weekday data (13 slots)
-        weekday_data = {
-            1: {"endtime": "06:00", "temperature": 18.0},
-            2: {"endtime": "08:00", "temperature": 21.0},
-            3: {"endtime": "17:00", "temperature": 18.0},
-            4: {"endtime": "22:00", "temperature": 20.0},
-            5: {"endtime": "24:00", "temperature": 18.0},
-            6: {"endtime": "24:00", "temperature": 18.0},
-            7: {"endtime": "24:00", "temperature": 18.0},
-            8: {"endtime": "24:00", "temperature": 18.0},
-            9: {"endtime": "24:00", "temperature": 18.0},
-            10: {"endtime": "24:00", "temperature": 18.0},
-            11: {"endtime": "24:00", "temperature": 18.0},
-            12: {"endtime": "24:00", "temperature": 18.0},
-            13: {"endtime": "24:00", "temperature": 18.0},
-        }
-
-        # Convert full to simple weekday format
-        simple_weekday = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=weekday_data)
-
-        # Should have 2 entries (only non-base temperature periods)
-        assert len(simple_weekday.periods) == 2
-        # First heated period: 06:00-08:00 at 21.0
-        assert simple_weekday.periods[0].starttime == "06:00"
-        assert simple_weekday.periods[0].endtime == "08:00"
-        assert simple_weekday.periods[0].temperature == 21.0
-        # Second heated period: 17:00-22:00 at 20.0
-        assert simple_weekday.periods[1].starttime == "17:00"
-        assert simple_weekday.periods[1].endtime == "22:00"
-        assert simple_weekday.periods[1].temperature == 20.0
-
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES_SCHEDULE, True, None, None),
-        ],
-    )
-    async def test_validate_conversion_round_trip(
-        self,
-        central_client_factory_with_homegear_client,
-    ):
-        """Test that conversion from simple to full and back preserves data."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
-        climate: CustomDpRfThermostat = cast(
-            CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
-        )
-
-        # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
-
-        assert climate.device.week_profile is not None and isinstance(
-            climate.device.week_profile, ClimateWeekProfile
-        ), "Device should have ClimeateWeekProfile"
-
-        # Original simple data
-        original_simple = {
-            "base_temperature": 18.0,
-            "periods": [
-                {
-                    "starttime": "06:00",
-                    "endtime": "08:00",
-                    "temperature": 21.0,
-                },
-                {
-                    "starttime": "17:00",
-                    "endtime": "22:00",
-                    "temperature": 20.0,
-                },
-            ],
-        }
-
-        # Convert simple -> full
-        full_data = climate.device.week_profile._validate_and_convert_simple_to_weekday(
-            simple_weekday_data=original_simple
-        )
-
-        # Convert full -> simple
-        result_simple = climate.device.week_profile._validate_and_convert_weekday_to_simple(weekday_data=full_data)
-
-        # Should match original (might be in different order, so check contents)
-        assert len(result_simple.periods) == len(original_simple["periods"])
-        for i, period in enumerate(result_simple.periods):
-            assert period.starttime == original_simple["periods"][i]["starttime"]
-            assert period.endtime == original_simple["periods"][i]["endtime"]
-            assert period.temperature == original_simple["periods"][i]["temperature"]

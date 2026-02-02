@@ -5,6 +5,33 @@
 ### Fixed
 
 - **LINK paramset validation**: Fixed `put_paramset` with `check_against_pd=True` for LINK paramsets. LINK paramsets are not cached during device initialization (by design), so validation is now automatically skipped for LINK calls to prevent "Parameter not found" errors. Fixes #2903.
+- **ClimateWeekProfile type signature**: Fixed incorrect type annotation in `convert_dict_to_raw_schedule()` - removed `ClimateSchedule` from union type since the method only accepts `_ClimateScheduleDictInternal` (13-slot format). The Pydantic model `ClimateSchedule` uses a different structure (simple format with `base_temperature` and `periods`).
+
+### Breaking Changes
+
+- **Climate schedule API unified to Pydantic models only**: The old dual-format API (TypedDict + Pydantic) has been removed. All schedule methods now use Pydantic models exclusively.
+
+  **Renamed methods in `BaseCustomDpClimate`:**
+
+  - `simple_schedule` property → `schedule`
+  - `get_schedule_simple_profile()` → removed (use `get_schedule_profile()`)
+  - `get_schedule_simple_schedule()` → `get_schedule()`
+  - `get_schedule_simple_weekday()` → `get_schedule_weekday()`
+  - `set_simple_schedule()` → `set_schedule()`
+  - `set_simple_schedule_profile()` → `set_schedule_profile()`
+  - `set_simple_schedule_weekday()` → `set_schedule_weekday()`
+
+  **Removed types from `const.py`:**
+
+  - `ScheduleSlotType` enum
+  - `ScheduleSlot` TypedDict
+  - `ClimateWeekdaySchedule` type alias (now Pydantic model in `schedule_models`)
+  - `ClimateProfileSchedule` type alias (now Pydantic model in `schedule_models`)
+  - `ClimateScheduleDict` type alias (now `ClimateSchedule` Pydantic model)
+  - `CLIMATE_MAX_SCHEDULER_TIME`, `CLIMATE_MIN_SCHEDULER_TIME`, `CLIMATE_RELEVANT_SLOT_TYPES`
+  - `CLIMATE_SCHEDULE_SLOT_IN_RANGE`, `CLIMATE_SCHEDULE_SLOT_RANGE`, `CLIMATE_SCHEDULE_TIME_RANGE`
+
+  **Migration:** Replace old TypedDict imports with Pydantic models from `aiohomematic.model.schedule_models`.
 
 ### Changed
 
@@ -35,7 +62,7 @@ Climate simple schedule validation now checks:
 
 ### Technical
 
-- **week_profile.py**: Simplified implementation by using Pydantic models directly instead of manual conversion functions (~180 lines of conversion code removed)
+- **week_profile.py**: Simplified implementation by using Pydantic models directly instead of manual conversion functions (~2300 lines removed)
 - Added Pydantic mypy plugin to `pyproject.toml` for improved type inference
 - Updated `WeekProfileProtocol` to accept any schedule type (removed `dict[Any, Any]` constraint)
 - Updated type annotations in `Device`, `DeviceWeekProfileProtocol`, and `BaseCustomDataPoint`

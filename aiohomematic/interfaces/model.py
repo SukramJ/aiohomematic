@@ -963,7 +963,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def schedule(self) -> dict[Any, Any]:
+    def schedule(self) -> Any:
         """Return cached schedule entries from device week profile."""
 
     @property
@@ -977,7 +977,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Return the unconfirmed values send for the data point."""
 
     @abstractmethod
-    async def get_schedule(self, *, force_load: bool = False) -> dict[Any, Any]:
+    async def get_schedule(self, *, force_load: bool = False) -> Any:
         """Get schedule from device week profile."""
 
     @abstractmethod
@@ -989,7 +989,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Check if the state changes due to kwargs."""
 
     @abstractmethod
-    async def set_schedule(self, *, schedule_data: dict[Any, Any]) -> None:
+    async def set_schedule(self, *, schedule_data: Any) -> None:
         """Set schedule on device week profile."""
 
     @abstractmethod

@@ -6,6 +6,7 @@
 
 - **LINK paramset validation**: Fixed `put_paramset` with `check_against_pd=True` for LINK paramsets. LINK paramsets are not cached during device initialization (by design), so validation is now automatically skipped for LINK calls to prevent "Parameter not found" errors. Fixes #2903.
 - **ClimateWeekProfile type signature**: Fixed incorrect type annotation in `convert_dict_to_raw_schedule()` - removed `ClimateSchedule` from union type since the method only accepts `_ClimateScheduleDictInternal` (13-slot format). The Pydantic model `ClimateSchedule` uses a different structure (simple format with `base_temperature` and `periods`).
+- **Schedule Pydantic models JSON serialization**: Added `_JsonSerializableMixin` to all schedule Pydantic models (`ClimateSchedule`, `ClimateProfileSchedule`, `ClimateWeekdaySchedule`, `ClimateSchedulePeriod`, `SimpleSchedule`, `SimpleScheduleEntry`) to support orjson/Home Assistant JSON serialization via `__json__()` method.
 
 ### Breaking Changes
 

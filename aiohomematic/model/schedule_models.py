@@ -37,12 +37,28 @@ entry = SimpleScheduleEntry(
 from __future__ import annotations
 
 import re
-from typing import Annotated, Final, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Final, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator, model_validator
 
 from aiohomematic import i18n
 from aiohomematic.const import AstroType, ScheduleActorChannel, ScheduleCondition, ScheduleField, TimeBase, WeekdayInt
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+class _JsonSerializableMixin:
+    """Mixin to make Pydantic models JSON-serializable for orjson/Home Assistant."""
+
+    def __json__(self: Any) -> dict[str, Any]:
+        """Return JSON-serializable dict for orjson compatibility."""
+        return cast(dict[str, Any], self.model_dump(mode="json"))
+
+    def __reduce__(self: Any) -> tuple[Callable[..., Any], tuple[dict[str, Any]]]:
+        """Support pickling by returning constructor and data."""
+        return (self.__class__.model_validate, (cast(dict[str, Any], self.model_dump()),))
+
 
 __all__ = [
     "ClimateProfileSchedule",
@@ -146,7 +162,7 @@ _CHANNEL_STR_TO_ENUM: Final[dict[str, ScheduleActorChannel]] = {
 _CHANNEL_ENUM_TO_STR: Final[dict[ScheduleActorChannel, str]] = {v: k for k, v in _CHANNEL_STR_TO_ENUM.items()}
 
 
-class SimpleScheduleEntry(BaseModel):
+class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
     """
     Human-readable schedule entry with automatic validation.
 
@@ -266,7 +282,7 @@ class SimpleScheduleEntry(BaseModel):
         return self
 
 
-class SimpleSchedule(BaseModel):
+class SimpleSchedule(_JsonSerializableMixin, BaseModel):
     """
     Complete schedule containing multiple entries.
 
@@ -635,7 +651,7 @@ def convert_simple_entry_to_raw_group(
 # =============================================================================
 
 
-class ClimateSchedulePeriod(BaseModel):
+class ClimateSchedulePeriod(_JsonSerializableMixin, BaseModel):
     """
     A single temperature period in a climate simple schedule.
 
@@ -703,7 +719,7 @@ class ClimateSchedulePeriod(BaseModel):
         return self
 
 
-class ClimateWeekdaySchedule(BaseModel):
+class ClimateWeekdaySchedule(_JsonSerializableMixin, BaseModel):
     """
     Schedule for a single weekday with base temperature and heating periods.
 
@@ -766,7 +782,7 @@ class ClimateWeekdaySchedule(BaseModel):
         return self
 
 
-class ClimateProfileSchedule(RootModel[dict[str, ClimateWeekdaySchedule]]):
+class ClimateProfileSchedule(_JsonSerializableMixin, RootModel[dict[str, ClimateWeekdaySchedule]]):
     """
     Schedule for all weekdays in a climate profile.
 
@@ -836,7 +852,7 @@ class ClimateProfileSchedule(RootModel[dict[str, ClimateWeekdaySchedule]]):
         return self.root.values()
 
 
-class ClimateSchedule(RootModel[dict[str, ClimateProfileSchedule]]):
+class ClimateSchedule(_JsonSerializableMixin, RootModel[dict[str, ClimateProfileSchedule]]):
     """
     Complete climate schedule with all profiles.
 

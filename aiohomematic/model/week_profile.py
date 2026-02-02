@@ -386,6 +386,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
 from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol
 from aiohomematic.model.schedule_models import (
+    ClimateWeekdaySchedule as ClimateWeekdayScheduleModel,
     SimpleSchedule,
     SimpleScheduleEntry,
     convert_raw_group_to_simple_entry,
@@ -1260,6 +1261,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         self, *, simple_profile_data: SimpleProfileSchedule
     ) -> ClimateProfileSchedule:
         """Convert simple profile TypedDict to full profile dict."""
+        # Validate each weekday individually
         profile_data: ClimateProfileSchedule = {}
         for day, simple_weekday_data in simple_profile_data.items():
             profile_data[day] = self._validate_and_convert_simple_to_weekday(simple_weekday_data=simple_weekday_data)
@@ -1269,6 +1271,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         self, *, simple_schedule_data: SimpleScheduleDict
     ) -> ClimateScheduleDict:
         """Convert simple schedule TypedDict to full schedule dict."""
+        # Validate each profile individually
         schedule_data: ClimateScheduleDict = {}
         for profile, profile_data in simple_schedule_data.items():
             schedule_data[profile] = self._validate_and_convert_simple_to_profile(simple_profile_data=profile_data)
@@ -1278,8 +1281,21 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
         self, *, simple_weekday_data: SimpleWeekdaySchedule
     ) -> ClimateWeekdaySchedule:
         """Convert simple weekday TypedDict to full weekday dict."""
-        base_temperature = simple_weekday_data["base_temperature"]
-        _weekday_data = simple_weekday_data["periods"]
+        # Pydantic validates automatically when creating the model
+        try:
+            validated_weekday = ClimateWeekdayScheduleModel(**simple_weekday_data)
+        except ValueError as ex:
+            raise ValidationException(str(ex)) from ex
+
+        base_temperature = validated_weekday.base_temperature
+        _weekday_data: list[dict[str, str | float]] = [
+            {
+                "starttime": p.starttime,
+                "endtime": p.endtime,
+                "temperature": p.temperature,
+            }
+            for p in validated_weekday.periods
+        ]
 
         if not self._min_temp <= base_temperature <= self._max_temp:
             raise ValidationException(
@@ -1302,17 +1318,15 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
             if (temperature := slot.get("temperature")) is None:
                 raise ValidationException(i18n.tr(key="exception.model.week_profile.validate.temperature_missing"))
 
-        sorted_periods = sorted(_weekday_data, key=lambda p: _convert_time_str_to_minutes(time_str=p["starttime"]))
+        sorted_periods = sorted(_weekday_data, key=lambda p: _convert_time_str_to_minutes(time_str=str(p["starttime"])))
         previous_endtime = CLIMATE_MIN_SCHEDULER_TIME
         slot_no = 1
         for slot in sorted_periods:
-            starttime = slot["starttime"]
-            endtime = slot["endtime"]
-            temperature = slot["temperature"]
+            starttime = str(slot["starttime"])
+            endtime = str(slot["endtime"])
+            temperature = float(slot["temperature"])
 
-            if _convert_time_str_to_minutes(time_str=str(starttime)) >= _convert_time_str_to_minutes(
-                time_str=str(endtime)
-            ):
+            if _convert_time_str_to_minutes(time_str=starttime) >= _convert_time_str_to_minutes(time_str=endtime):
                 raise ValidationException(
                     i18n.tr(
                         key="exception.model.week_profile.validate.start_before_end",
@@ -1321,7 +1335,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                     )
                 )
 
-            if _convert_time_str_to_minutes(time_str=str(starttime)) < _convert_time_str_to_minutes(
+            if _convert_time_str_to_minutes(time_str=starttime) < _convert_time_str_to_minutes(
                 time_str=previous_endtime
             ):
                 raise ValidationException(
@@ -1332,7 +1346,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                     )
                 )
 
-            if not self._min_temp <= float(temperature) <= self._max_temp:
+            if not self._min_temp <= temperature <= self._max_temp:
                 raise ValidationException(
                     i18n.tr(
                         key="exception.model.week_profile.validate.temperature_out_of_range_for_times",
@@ -1344,7 +1358,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                     )
                 )
 
-            if _convert_time_str_to_minutes(time_str=str(starttime)) > _convert_time_str_to_minutes(
+            if _convert_time_str_to_minutes(time_str=starttime) > _convert_time_str_to_minutes(
                 time_str=previous_endtime
             ):
                 weekday_data[slot_no] = {
@@ -1357,7 +1371,7 @@ class ClimateWeekProfile(WeekProfile[ClimateScheduleDict]):
                 "endtime": endtime,
                 "temperature": temperature,
             }
-            previous_endtime = str(endtime)
+            previous_endtime = endtime
             slot_no += 1
 
         return _fillup_weekday_data(base_temperature=base_temperature, weekday_data=weekday_data)

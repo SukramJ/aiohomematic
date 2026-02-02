@@ -45,6 +45,10 @@ from aiohomematic import i18n
 from aiohomematic.const import AstroType, ScheduleActorChannel, ScheduleCondition, ScheduleField, TimeBase, WeekdayInt
 
 __all__ = [
+    "ClimateProfileSchedule",
+    "ClimateSchedule",
+    "ClimateSchedulePeriod",
+    "ClimateWeekdaySchedule",
     "SimpleSchedule",
     "SimpleScheduleEntry",
 ]
@@ -624,3 +628,250 @@ def convert_simple_entry_to_raw_group(
         raw_group[ScheduleField.RAMP_TIME_FACTOR] = factor
 
     return raw_group
+
+
+# =============================================================================
+# Climate Schedule Pydantic Models
+# =============================================================================
+
+
+class ClimateSchedulePeriod(BaseModel):
+    """
+    A single temperature period in a climate simple schedule.
+
+    This model validates a temperature period with start time, end time, and
+    target temperature. Used for thermostats and climate devices.
+
+    Attributes:
+        starttime: Start time in "HH:MM" format (e.g., "06:00")
+        endtime: End time in "HH:MM" format (e.g., "22:00")
+        temperature: Target temperature in degrees Celsius
+
+    Example:
+        >>> period = ClimateSchedulePeriod(
+        ...     starttime="06:00",
+        ...     endtime="08:00",
+        ...     temperature=21.0,
+        ... )
+
+    """
+
+    model_config = ConfigDict(
+        frozen=True,
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
+
+    starttime: Annotated[
+        str,
+        Field(description="Start time in HH:MM format (00:00 - 24:00)"),
+    ]
+    endtime: Annotated[
+        str,
+        Field(description="End time in HH:MM format (00:00 - 24:00)"),
+    ]
+    temperature: Annotated[
+        float,
+        Field(description="Target temperature in degrees Celsius"),
+    ]
+
+    @field_validator("starttime", "endtime")
+    @classmethod
+    def validate_time_format(cls, v: str) -> str:  # kwonly: disable
+        """Validate time format HH:MM (00:00 - 24:00)."""
+        # Allow 24:00 as valid time for climate schedules
+        if v == "24:00":
+            return v
+        if not _TIME_PATTERN.match(v):
+            raise ValueError(i18n.tr(key="exception.model.schedule.invalid_time_format", time=v))
+        return v
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> ClimateSchedulePeriod:
+        """Ensure starttime is before endtime."""
+        start_minutes = _time_to_minutes(time_str=self.starttime)
+        end_minutes = _time_to_minutes(time_str=self.endtime)
+
+        if start_minutes >= end_minutes:
+            raise ValueError(
+                i18n.tr(
+                    key="exception.model.week_profile.validate.start_before_end",
+                    start=self.starttime,
+                    end=self.endtime,
+                )
+            )
+        return self
+
+
+class ClimateWeekdaySchedule(BaseModel):
+    """
+    Schedule for a single weekday with base temperature and heating periods.
+
+    This model validates a complete daily schedule for climate devices (thermostats).
+    It consists of a base temperature (used when no period is active) and a list of
+    temperature periods with specific start/end times.
+
+    Attributes:
+        base_temperature: Default temperature when no period is active
+        periods: List of temperature periods with start/end times
+
+    Example:
+        >>> schedule = ClimateWeekdaySchedule(
+        ...     base_temperature=18.0,
+        ...     periods=[
+        ...         ClimateSchedulePeriod(starttime="06:00", endtime="08:00", temperature=21.0),
+        ...         ClimateSchedulePeriod(starttime="17:00", endtime="22:00", temperature=21.0),
+        ...     ],
+        ... )
+
+    """
+
+    model_config = ConfigDict(
+        frozen=True,
+        extra="forbid",
+    )
+
+    base_temperature: Annotated[
+        float,
+        Field(description="Default temperature when no period is active"),
+    ]
+    periods: Annotated[
+        list[ClimateSchedulePeriod],
+        Field(default_factory=list, description="List of temperature periods"),
+    ]
+
+    @model_validator(mode="after")
+    def validate_non_overlapping_periods(self) -> ClimateWeekdaySchedule:
+        """Ensure periods do not overlap."""
+        if not self.periods:
+            return self
+
+        # Sort periods by start time
+        sorted_periods = sorted(self.periods, key=lambda p: _time_to_minutes(time_str=p.starttime))
+
+        # Check for overlaps
+        for i in range(len(sorted_periods) - 1):
+            current_end = _time_to_minutes(time_str=sorted_periods[i].endtime)
+            next_start = _time_to_minutes(time_str=sorted_periods[i + 1].starttime)
+
+            if current_end > next_start:
+                raise ValueError(
+                    i18n.tr(
+                        key="exception.model.week_profile.validate.overlap",
+                        start=sorted_periods[i + 1].starttime,
+                        end=sorted_periods[i].endtime,
+                    )
+                )
+
+        return self
+
+
+class ClimateProfileSchedule(BaseModel):
+    """
+    Schedule for all weekdays in a climate profile.
+
+    This model validates a complete weekly schedule for a single profile (e.g., P1).
+    It maps weekday names to their respective daily schedules.
+
+    Attributes:
+        schedules: Dictionary mapping weekday names to ClimateWeekdaySchedule
+
+    Example:
+        >>> profile = ClimateProfileSchedule(
+        ...     schedules={
+        ...         "MONDAY": ClimateWeekdaySchedule(base_temperature=18.0, periods=[...]),
+        ...         "TUESDAY": ClimateWeekdaySchedule(base_temperature=18.0, periods=[...]),
+        ...     }
+        ... )
+
+    """
+
+    model_config = ConfigDict(
+        frozen=True,
+        extra="forbid",
+    )
+
+    schedules: Annotated[
+        dict[str, ClimateWeekdaySchedule],
+        Field(description="Weekday schedules keyed by weekday name (MONDAY-SUNDAY)"),
+    ]
+
+    @field_validator("schedules")
+    @classmethod
+    def validate_weekday_keys(  # kwonly: disable
+        cls, v: dict[str, ClimateWeekdaySchedule]
+    ) -> dict[str, ClimateWeekdaySchedule]:
+        """Validate weekday names."""
+        valid_weekdays = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"}
+        for key in v:
+            if key not in valid_weekdays:
+                raise ValueError(i18n.tr(key="exception.model.schedule.invalid_weekday", weekday=key))
+        return v
+
+
+class ClimateSchedule(BaseModel):
+    """
+    Complete climate schedule with all profiles.
+
+    This model validates a complete device schedule with multiple profiles (P1-P6).
+    Each profile contains weekly schedules for climate devices (thermostats).
+
+    Attributes:
+        profiles: Dictionary mapping profile names to ClimateProfileSchedule
+
+    Example:
+        >>> schedule = ClimateSchedule(
+        ...     profiles={
+        ...         "P1": ClimateProfileSchedule(schedules={...}),
+        ...         "P2": ClimateProfileSchedule(schedules={...}),
+        ...     }
+        ... )
+
+    """
+
+    model_config = ConfigDict(
+        frozen=True,
+        extra="forbid",
+    )
+
+    profiles: Annotated[
+        dict[str, ClimateProfileSchedule],
+        Field(default_factory=dict, description="Profile schedules keyed by profile name (P1-P6)"),
+    ]
+
+    @field_validator("profiles")
+    @classmethod
+    def validate_profile_keys(  # kwonly: disable
+        cls, v: dict[str, ClimateProfileSchedule]
+    ) -> dict[str, ClimateProfileSchedule]:
+        """Validate profile names."""
+        valid_profiles = {"P1", "P2", "P3", "P4", "P5", "P6"}
+        for key in v:
+            if key not in valid_profiles:
+                raise ValueError(i18n.tr(key="exception.model.schedule.invalid_profile", profile=key))
+        return v
+
+
+# =============================================================================
+# Helper functions for climate schedule validation
+# =============================================================================
+
+
+def _time_to_minutes(*, time_str: str) -> int:
+    """
+    Convert time string to minutes since midnight.
+
+    Args:
+        time_str: Time in HH:MM format
+
+    Returns:
+        Minutes since midnight
+
+    """
+    if time_str == "24:00":
+        return 1440  # 24 * 60
+    if not (match := _TIME_PATTERN.match(time_str)):
+        raise ValueError(i18n.tr(key="exception.model.schedule.invalid_time_format", time=time_str))
+    hours = int(match.group(1))
+    minutes = int(match.group(2))
+    return hours * 60 + minutes

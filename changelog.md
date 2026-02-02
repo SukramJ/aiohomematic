@@ -1,23 +1,41 @@
-# Version 2026.2.1 (2026-02-01)
+# Version 2026.2.1 (2026-02-02)
 
 ## What's Changed
 
 ### Changed
 
+- **ClimateWeekProfile**: Simple schedule format now uses Pydantic models for automatic validation. The existing user-facing format remains unchanged (no breaking changes), but input validation is now more robust with clear error messages.
 - **DefaultWeekProfile**: Refactored schedule cache to use human-readable Pydantic models (`SimpleSchedule`, `SimpleScheduleEntry`) instead of complex dictionary format. The new format provides automatic validation, clear field names (e.g., `weekdays`, `time`, `level`, `duration`), and better developer experience.
 
 ### Added
 
-- **schedule_models**: New module `aiohomematic/model/schedule_models.py` with Pydantic models for device schedules:
+- **schedule_models**: New Pydantic models for climate device schedules:
+  - `ClimateSchedulePeriod`: Validates temperature periods with starttime, endtime, temperature
+  - `ClimateWeekdaySchedule`: Validates daily schedules with base_temperature and periods
+  - `ClimateProfileSchedule`: Validates weekly schedules (MONDAY-SUNDAY)
+  - `ClimateSchedule`: Validates complete profiles (P1-P6)
+- **schedule_models**: Pydantic models for non-climate device schedules:
   - `SimpleScheduleEntry`: Validated schedule entry with weekdays, time, condition, target_channels, level, duration, ramp_time
   - `SimpleSchedule`: Container for multiple schedule entries keyed by group number (1-24)
-  - Conversion functions between raw CCU format and human-readable format
+
+### Validation Improvements
+
+Climate simple schedule validation now checks:
+
+- Time format (HH:MM, supports 24:00 for end-of-day)
+- Required fields (starttime, endtime, temperature)
+- Time sequence (start < end)
+- No overlapping periods
+- Valid weekdays (MONDAY-SUNDAY)
+- Valid profiles (P1-P6)
 
 ### Technical
 
+- **week_profile.py**: Simplified implementation by using Pydantic models directly instead of manual conversion functions (~180 lines of conversion code removed)
 - Added Pydantic mypy plugin to `pyproject.toml` for improved type inference
 - Updated `WeekProfileProtocol` to accept any schedule type (removed `dict[Any, Any]` constraint)
 - Updated type annotations in `Device`, `DeviceWeekProfileProtocol`, and `BaseCustomDataPoint`
+- Added i18n keys for better error messages: `exception.model.schedule.invalid_weekday`, `exception.model.schedule.invalid_profile`
 
 # Version 2026.2.0 (2026-02-01)
 

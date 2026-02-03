@@ -337,46 +337,144 @@ The service returns the schedule data in the same format as used by `set_schedul
 
 The `schedule_data` is a dictionary where:
 
-- **Key**: String representing the entry number (e.g., "1", "2", "3")
-- **Value**: Dictionary with schedule entry details
+- **Key**: String representing the entry number ("1" to "24")
+- **Value**: Dictionary with schedule entry details (`SimpleScheduleEntry` fields)
 
-Each entry contains the following fields:
+Each entry is validated by the `SimpleScheduleEntry` Pydantic model and contains the following fields:
 
-#### Common Fields
+#### Required Fields
 
-- **weekdays**: List of weekdays when this schedule applies
-  - Valid values: `SUNDAY`, `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`
-- **time**: Start time in "HH:MM" format (24-hour)
-- **condition**: Trigger condition
-  - `fixed_time` - Trigger at specified time
-  - `astro_sunrise` - Trigger at sunrise (with optional offset)
-  - `astro_sunset` - Trigger at sunset (with optional offset)
-- **astro_type**: Astronomical event type (null for fixed_time)
-- **astro_offset_minutes**: Offset in minutes from astronomical event (0 for fixed_time)
-- **target_channels**: List of device channels to control (e.g., ["1_1"])
-- **duration**: How long to apply the setting (e.g., "1min", "5min")
-- **ramp_time**: Transition time for changes (e.g., "10s", "30s")
+##### weekdays
 
-#### Device-Specific Fields
+- **Type**: List of strings
+- **Description**: Days when this schedule triggers
+- **Valid values**: `"MONDAY"`, `"TUESDAY"`, `"WEDNESDAY"`, `"THURSDAY"`, `"FRIDAY"`, `"SATURDAY"`, `"SUNDAY"`
+- **Constraint**: At least one weekday required
+- **Example**: `["MONDAY", "FRIDAY"]` or `["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]`
 
-- **level**: Brightness level for lights, or valve position (0.0 to 1.0)
-- **level_2**: Secondary level (used by some devices, typically null)
+##### time
 
-#### Example Entry
+- **Type**: String
+- **Description**: Trigger time in 24-hour format
+- **Format**: `"HH:MM"` (hours: 00-23, minutes: 00-59)
+- **Example**: `"07:30"`, `"22:00"`, `"00:00"`
+
+##### target_channels
+
+- **Type**: List of strings
+- **Description**: Target actor channels to control
+- **Format**: Each channel as `"X_Y"` where X=1-8 (device channel), Y=1-3 (actor channel)
+- **Constraint**: At least one channel required
+- **Example**: `["1_1"]`, `["1_1", "2_1"]`
+
+##### level
+
+- **Type**: Float
+- **Description**: Output level for the target device
+- **Range**: 0.0 to 1.0
+- **Meaning by device type**:
+  - **Switch**: `0.0` = off, `1.0` = on
+  - **Light (dimmable)**: `0.0` = off, `1.0` = 100% brightness, `0.5` = 50% brightness
+  - **Cover**: `0.0` = closed, `1.0` = open
+  - **Valve**: `0.0` = closed, `1.0` = open
+- **Example**: `0.0`, `0.5`, `1.0`
+
+#### Optional Fields
+
+##### condition
+
+- **Type**: String
+- **Description**: Trigger condition type
+- **Valid values**:
+  - `"fixed_time"` (default) - Trigger at specified time
+  - `"astro"` - Trigger at astro event (sunrise/sunset)
+  - `"fixed_if_before_astro"` - Trigger at time if before astro event, otherwise at astro event
+  - `"fixed_if_after_astro"` - Trigger at time if after astro event, otherwise at astro event
+- **Default**: `"fixed_time"`
+- **Note**: When using astro conditions, `astro_type` must be set
+
+##### astro_type
+
+- **Type**: String or null
+- **Description**: Astronomical event type for astro-based conditions
+- **Valid values**: `"sunrise"`, `"sunset"`, `null`
+- **Default**: `null`
+- **Required when**: `condition` is not `"fixed_time"`
+
+##### astro_offset_minutes
+
+- **Type**: Integer
+- **Description**: Offset in minutes from the astronomical event
+- **Range**: -720 to 720 (-12 hours to +12 hours)
+- **Default**: `0`
+- **Example**: `30` (30 minutes after), `-60` (60 minutes before)
+
+##### level_2
+
+- **Type**: Float or null
+- **Description**: Secondary level for devices with dual outputs (e.g., cover slat position)
+- **Range**: 0.0 to 1.0
+- **Default**: `null`
+- **Used by**: Cover devices (for slat/blind position)
+
+##### duration
+
+- **Type**: String or null
+- **Description**: How long to keep the output active
+- **Format**: Number followed by unit: `"Xs"` (seconds), `"Xmin"` (minutes), `"Xh"` (hours)
+- **Default**: `null` (permanent/until next schedule)
+- **Examples**: `"10s"`, `"5min"`, `"1h"`, `"30min"`
+
+##### ramp_time
+
+- **Type**: String or null
+- **Description**: Transition/ramp time for dimmer devices
+- **Format**: Number followed by unit: `"Xms"` (milliseconds), `"Xs"` (seconds)
+- **Default**: `null` (instant change)
+- **Examples**: `"500ms"`, `"2s"`, `"10s"`
+- **Used by**: Dimmable lights
+
+#### Field Summary Table
+
+| Field                | Type        | Required | Range/Format           | Default      |
+| -------------------- | ----------- | -------- | ---------------------- | ------------ |
+| weekdays             | list[str]   | ✅       | MONDAY-SUNDAY          | -            |
+| time                 | str         | ✅       | HH:MM (00:00-23:59)    | -            |
+| target_channels      | list[str]   | ✅       | ["X_Y"]                | -            |
+| level                | float       | ✅       | 0.0-1.0                | -            |
+| condition            | str         | ❌       | fixed_time, astro, ... | "fixed_time" |
+| astro_type           | str \| null | ❌       | sunrise, sunset, null  | null         |
+| astro_offset_minutes | int         | ❌       | -720 to 720            | 0            |
+| level_2              | float\|null | ❌       | 0.0-1.0 or null        | null         |
+| duration             | str \| null | ❌       | "10s", "5min", "1h"    | null         |
+| ramp_time            | str \| null | ❌       | "500ms", "2s"          | null         |
+
+#### Complete Example
 
 ```yaml
 schedule_data:
-  "1":
+  "1": # Workday morning (fixed time)
     weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
     time: "06:30"
     condition: fixed_time
-    astro_type: null
-    astro_offset_minutes: 0
     target_channels: ["1_1"]
     level: 0.8 # 80% brightness
-    level_2: null
     duration: 1min
     ramp_time: 10s
+    astro_type: null
+    astro_offset_minutes: 0
+    level_2: null
+  "2": # Weekend morning (sunrise-based)
+    weekdays: [SATURDAY, SUNDAY]
+    time: "08:00" # Fallback time
+    condition: fixed_if_after_astro # Use 08:00 if after sunrise, else sunrise
+    astro_type: sunrise
+    astro_offset_minutes: 30 # 30 minutes after sunrise
+    target_channels: ["1_1"]
+    level: 0.5 # 50% brightness
+    duration: 30min
+    ramp_time: 5s
+    level_2: null
 ```
 
 ### Device Support Check

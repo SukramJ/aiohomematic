@@ -146,65 +146,55 @@ The system automatically:
 SCHEDULE SERVICES
 =================
 
-Core Operations:
-----------------
+Climate Schedule API (Pydantic Models):
+----------------------------------------
 
-Full Format Methods:
-~~~~~~~~~~~~~~~~~~~~
+All climate schedule methods use Pydantic models for validation and type safety.
+These methods provide automatic conversion between simple user format and internal 13-slot format.
 
-get_schedule(*, force_load: bool = False) -> ClimateScheduleDictInternal
-    Retrieves complete schedule from cache or device.
-    Returns filtered data (redundant 24:00 slots removed).
-
-get_profile(*, profile: ScheduleProfile, force_load: bool = False) -> ClimateProfileScheduleDictInternal
-    Retrieves single profile (e.g., P1) from cache or device.
-    Returns filtered data for the specified profile.
-
-get_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> ClimateWeekdayScheduleDictInternal
-    Retrieves single weekday schedule from a profile.
-    Returns filtered data for the specified weekday.
-
-set_schedule(*, schedule_data: ClimateScheduleDictInternal) -> None
-    Persists complete schedule to device.
-    Updates cache and publishes change events.
-
-set_profile(*, profile: ScheduleProfile, profile_data: ClimateProfileScheduleDictInternal) -> None
-    Persists single profile to device.
-    Validates, updates cache, and publishes change events.
-
-set_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, weekday_data: ClimateWeekdayScheduleDictInternal) -> None
-    Persists single weekday schedule to device.
-    Normalizes to 13 slots, validates, updates cache.
-
-Simple Format Methods:
-~~~~~~~~~~~~~~~~~~~~~~
-
-get_simple_schedule(*, force_load: bool = False) -> ClimateSchedule
-    Retrieves complete schedule in simplified format from cache or device.
+get_schedule(*, force_load: bool = False) -> ClimateSchedule
+    Retrieves complete schedule in Pydantic model format from cache or device.
     Automatically identifies base_temperature for each weekday.
-    Returns ClimateSchedule Pydantic model.
+    Returns ClimateSchedule Pydantic model (all profiles P1-P6).
 
-get_simple_profile(*, profile: ScheduleProfile, force_load: bool = False) -> ClimateProfileSchedule
-    Retrieves single profile in simplified format from cache or device.
+get_schedule_profile(*, profile: ScheduleProfile, force_load: bool = False) -> ClimateProfileSchedule
+    Retrieves single profile in Pydantic model format from cache or device.
     Automatically identifies base_temperature for each weekday.
-    Returns ClimateProfileSchedule Pydantic model.
+    Returns ClimateProfileSchedule Pydantic model (all weekdays for specified profile).
 
-get_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> ClimateWeekdaySchedule
-    Retrieves single weekday in simplified format from cache or device.
+get_schedule_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False) -> ClimateWeekdaySchedule
+    Retrieves single weekday in Pydantic model format from cache or device.
     Automatically identifies base_temperature.
     Returns ClimateWeekdaySchedule with base_temperature and periods list.
 
-set_simple_schedule(*, simple_schedule_data: ClimateSchedule) -> None
-    Persists complete schedule using simplified format to device.
-    Converts simple format to full 13-slot format automatically.
+set_schedule(*, schedule_data: ClimateSchedule) -> None
+    Persists complete schedule using Pydantic model to device.
+    Converts simple format (base_temperature + periods) to full 13-slot format automatically.
+    Updates cache and publishes change events.
 
-set_simple_profile(*, profile: ScheduleProfile, simple_profile_data: ClimateProfileSchedule) -> None
-    Persists single profile using simplified format to device.
+set_schedule_profile(*, profile: ScheduleProfile, profile_data: ClimateProfileSchedule) -> None
+    Persists single profile using Pydantic model to device.
     Converts simple format to full 13-slot format automatically.
+    Validates, updates cache, and publishes change events.
 
-set_simple_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, simple_weekday_data: ClimateWeekdaySchedule) -> None
-    Persists single weekday using simplified format to device.
-    Converts simple format to full 13-slot format automatically.
+set_schedule_weekday(*, profile: ScheduleProfile, weekday: WeekdayStr, weekday_data: ClimateWeekdaySchedule) -> None
+    Persists single weekday using Pydantic model to device.
+    Converts simple format (base_temperature + periods) to full 13-slot format automatically.
+    Normalizes to 13 slots, validates, updates cache.
+
+Non-Climate Schedule API (SimpleSchedule):
+-------------------------------------------
+
+Non-climate devices (switches, lights, covers, valves) use SimpleSchedule Pydantic model.
+
+get_schedule(*, force_load: bool = False) -> SimpleSchedule
+    Retrieves schedule in Pydantic model format from cache or device.
+    Returns SimpleSchedule with entries containing weekdays, time, level, duration, etc.
+
+set_schedule(*, schedule_data: SimpleSchedule) -> None
+    Persists schedule using Pydantic model to device.
+    Converts to CCU raw format automatically.
+    Updates cache and publishes change events.
 
 Utility Methods:
 ~~~~~~~~~~~~~~~~
@@ -265,12 +255,21 @@ Example:
 TYPICAL WORKFLOW EXAMPLES
 ==========================
 
-Reading a Schedule:
--------------------
-1. User calls get_weekday(profile=P1, weekday="MONDAY")
-2. System retrieves from cache or device (13 slots)
+Reading a Schedule (Internal/Low-level):
+----------------------------------------
+1. User calls _get_weekday_internal(profile=P1, weekday="MONDAY")
+2. System retrieves from cache or device (13 slots in TypedDict format)
 3. _filter_weekday_entries removes redundant 24:00 slots
-4. User receives clean data (e.g., 3-5 meaningful slots)
+4. User receives clean data (e.g., 3-5 meaningful slots in TypedDict format)
+
+Reading a Schedule (Public API):
+---------------------------------
+1. User calls get_schedule_weekday(profile=P1, weekday="MONDAY")
+2. System retrieves from cache or device (13 slots)
+3. System converts to Pydantic model:
+   - Identifies base_temperature
+   - Extracts periods (non-base-temp slots)
+4. User receives ClimateWeekdaySchedule(base_temperature=18.0, periods=[...])
 
 Setting a Schedule:
 -------------------
@@ -282,28 +281,47 @@ Setting a Schedule:
 4. System persists to device
 5. Cache is updated, events are published
 
-Using Simple Format:
---------------------
-1. User calls set_simple_weekday with:
+Using Pydantic Models (Climate):
+---------------------------------
+1. User calls set_schedule_weekday with:
    - profile: ScheduleProfile.P1
    - weekday: WeekdayStr.MONDAY
-   - simple_weekday_data: (18.0, [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}])
-                          ^^^^^ base_temperature is part of the tuple
-2. System extracts base_temperature (18.0) and periods from tuple
-3. System converts to full format:
+   - weekday_data: ClimateWeekdaySchedule(
+         base_temperature=18.0,
+         periods=[
+             ClimateSchedulePeriod(starttime="07:00", endtime="22:00", temperature=21.0)
+         ]
+     )
+2. System converts to full 13-slot format:
    - Slot 1: ENDTIME: "07:00", TEMP: 18.0 (base_temperature before start)
    - Slot 2: ENDTIME: "22:00", TEMP: 21.0 (user's period)
    - Slots 3-13: ENDTIME: "24:00", TEMP: 18.0 (base_temperature after end)
-4. System validates and persists
+3. System validates and persists to CCU
+4. Cache is updated, data_point_updated event is published
 
-Reading Simple Format:
-----------------------
-1. User calls get_simple_weekday(profile=P1, weekday="MONDAY")
-2. System retrieves full schedule from cache (13 slots)
+Using Pydantic Models (Non-Climate):
+-------------------------------------
+1. User calls set_schedule with:
+   - schedule_data: SimpleSchedule([
+         SimpleScheduleEntry(
+             weekdays=[Weekday.MONDAY],
+             time="07:00",
+             level=100,  # For switches: on/off, for lights: brightness, etc.
+             duration=60
+         )
+     ])
+2. System converts to CCU raw format with bitwise weekday encoding
+3. System validates and persists to CCU
+4. Cache is updated, data_point_updated event is published
+
+Reading Pydantic Format (Climate):
+-----------------------------------
+1. User calls get_schedule_weekday(profile=P1, weekday="MONDAY")
+2. System retrieves full schedule from cache (13 slots in TypedDict format)
 3. System identifies base_temperature using identify_base_temperature()
    - Analyzes time durations for each temperature
    - Returns temperature used for most minutes of the day
-4. System filters out base_temperature periods and returns:
+4. System filters out base_temperature periods and returns ClimateWeekdaySchedule:
    (18.0, [{STARTTIME: "07:00", ENDTIME: "22:00", TEMPERATURE: 21.0}])
    ^^^^^ identified base_temperature + list of non-base periods
 

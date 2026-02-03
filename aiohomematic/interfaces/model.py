@@ -91,9 +91,6 @@ if TYPE_CHECKING:
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
 
-# Type alias for all supported schedule data types (public API uses JSON-serializable dicts)
-ScheduleDataType: TypeAlias = ScheduleDict
-
 # =============================================================================
 # DataPoint Protocol Interfaces
 # =============================================================================
@@ -967,7 +964,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def schedule(self) -> ScheduleDataType:
+    def schedule(self) -> ScheduleDict:
         """Return cached schedule entries from device week profile."""
 
     @property
@@ -981,7 +978,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Return the unconfirmed values send for the data point."""
 
     @abstractmethod
-    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDataType:
+    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
         """Get schedule from device week profile."""
 
     @abstractmethod
@@ -993,7 +990,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Check if the state changes due to kwargs."""
 
     @abstractmethod
-    async def set_schedule(self, *, schedule_data: ScheduleDataType) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
         """Set schedule on device week profile."""
 
     @abstractmethod

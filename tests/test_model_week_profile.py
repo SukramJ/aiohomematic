@@ -20,7 +20,12 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDataPoint, CustomDpRfThermostat
-from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, SimpleScheduleEntry
+from aiohomematic.model.schedule_models import (
+    SCHEDULE_DOMAIN_CONTEXT_KEY,
+    ClimateSchedule,
+    SimpleSchedule,
+    SimpleScheduleEntry,
+)
 from aiohomematic.model.week_profile import (
     ClimateWeekProfile,
     DefaultWeekProfile,
@@ -2675,3 +2680,232 @@ class TestWeekProfileHelperMethods:
             channel_address = climate.device.week_profile._validate_and_get_schedule_channel_address()
             assert channel_address is not None
             assert isinstance(channel_address, str)
+
+
+class TestDomainSpecificScheduleValidation:
+    """Test domain-specific validation for SimpleScheduleEntry."""
+
+    def test_cover_schedule_duration_rejected(self):
+        """Test that COVER schedules reject duration."""
+        with pytest.raises(ValueError, match="duration.*not supported for cover"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.5,
+                            "duration": "10s",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.COVER},
+            )
+
+    def test_cover_schedule_level_2_allowed(self):
+        """Test that COVER schedules allow level_2."""
+        schedule = SimpleSchedule.model_validate(
+            {
+                "entries": {
+                    1: {
+                        "weekdays": ["MONDAY"],
+                        "time": "07:00",
+                        "target_channels": ["1_1"],
+                        "level": 0.5,
+                        "level_2": 0.3,
+                    }
+                }
+            },
+            context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.COVER},
+        )
+        assert schedule.entries[1].level_2 == 0.3
+
+    def test_cover_schedule_ramp_time_rejected(self):
+        """Test that COVER schedules reject ramp_time."""
+        with pytest.raises(ValueError, match="ramp_time.*not supported for cover"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.5,
+                            "ramp_time": "5s",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.COVER},
+            )
+
+    def test_direct_entry_validation_with_context(self):
+        """Test that SimpleScheduleEntry can be validated with context directly."""
+        # Valid SWITCH entry
+        entry = SimpleScheduleEntry.model_validate(
+            {"weekdays": ["MONDAY"], "time": "07:00", "target_channels": ["1_1"], "level": 1.0},
+            context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
+        )
+        assert entry.level == 1.0
+
+        # Invalid SWITCH entry (non-binary level)
+        with pytest.raises(ValueError, match="Switch level must be 0.0 or 1.0"):
+            SimpleScheduleEntry.model_validate(
+                {"weekdays": ["MONDAY"], "time": "07:00", "target_channels": ["1_1"], "level": 0.5},
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
+            )
+
+    def test_light_schedule_level_2_rejected(self):
+        """Test that LIGHT schedules reject level_2."""
+        with pytest.raises(ValueError, match="level_2.*not supported for light"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.8,
+                            "level_2": 0.5,
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LIGHT},
+            )
+
+    def test_light_schedule_ramp_time_allowed(self):
+        """Test that LIGHT schedules allow ramp_time."""
+        schedule = SimpleSchedule.model_validate(
+            {
+                "entries": {
+                    1: {
+                        "weekdays": ["MONDAY"],
+                        "time": "07:00",
+                        "target_channels": ["1_1"],
+                        "level": 0.8,
+                        "ramp_time": "5s",
+                    }
+                }
+            },
+            context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LIGHT},
+        )
+        assert schedule.entries[1].ramp_time == "5s"
+
+    def test_no_context_skips_domain_validation(self):
+        """Test that validation without context allows all fields (backward compatibility)."""
+        # Without context, non-binary level should be allowed for any entry
+        schedule = SimpleSchedule.model_validate(
+            {
+                "entries": {
+                    1: {
+                        "weekdays": ["MONDAY"],
+                        "time": "07:00",
+                        "target_channels": ["1_1"],
+                        "level": 0.5,
+                        "level_2": 0.3,
+                        "ramp_time": "5s",
+                        "duration": "10s",
+                    }
+                }
+            }
+        )
+        assert schedule.entries[1].level == 0.5
+        assert schedule.entries[1].level_2 == 0.3
+        assert schedule.entries[1].ramp_time == "5s"
+        assert schedule.entries[1].duration == "10s"
+
+    def test_switch_schedule_binary_level_valid(self):
+        """Test that SWITCH schedules accept binary level (0.0 or 1.0)."""
+        # Valid: level = 0.0
+        schedule = SimpleSchedule.model_validate(
+            {"entries": {1: {"weekdays": ["MONDAY"], "time": "07:00", "target_channels": ["1_1"], "level": 0.0}}},
+            context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
+        )
+        assert schedule.entries[1].level == 0.0
+
+        # Valid: level = 1.0
+        schedule = SimpleSchedule.model_validate(
+            {"entries": {1: {"weekdays": ["MONDAY"], "time": "07:00", "target_channels": ["1_1"], "level": 1.0}}},
+            context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
+        )
+        assert schedule.entries[1].level == 1.0
+
+    def test_switch_schedule_level_2_rejected(self):
+        """Test that SWITCH schedules reject level_2."""
+        with pytest.raises(ValueError, match="level_2.*not supported for switch"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 1.0,
+                            "level_2": 0.5,
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
+            )
+
+    def test_switch_schedule_non_binary_level_rejected(self):
+        """Test that SWITCH schedules reject non-binary level."""
+        with pytest.raises(ValueError, match="Switch level must be 0.0 or 1.0"):
+            SimpleSchedule.model_validate(
+                {"entries": {1: {"weekdays": ["MONDAY"], "time": "07:00", "target_channels": ["1_1"], "level": 0.5}}},
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
+            )
+
+    def test_switch_schedule_ramp_time_rejected(self):
+        """Test that SWITCH schedules reject ramp_time."""
+        with pytest.raises(ValueError, match="ramp_time.*not supported for switch"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 1.0,
+                            "ramp_time": "5s",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
+            )
+
+    def test_valve_schedule_level_2_rejected(self):
+        """Test that VALVE schedules reject level_2."""
+        with pytest.raises(ValueError, match="level_2.*not supported for valve"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.5,
+                            "level_2": 0.3,
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.VALVE},
+            )
+
+    def test_valve_schedule_ramp_time_rejected(self):
+        """Test that VALVE schedules reject ramp_time."""
+        with pytest.raises(ValueError, match="ramp_time.*not supported for valve"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.5,
+                            "ramp_time": "5s",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.VALVE},
+            )

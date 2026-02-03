@@ -39,13 +39,56 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Annotated, Any, Final, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, ValidationInfo, field_validator, model_validator
 
 from aiohomematic import i18n
-from aiohomematic.const import AstroType, ScheduleActorChannel, ScheduleCondition, ScheduleField, TimeBase, WeekdayInt
+from aiohomematic.const import (
+    AstroType,
+    DataPointCategory,
+    ScheduleActorChannel,
+    ScheduleCondition,
+    ScheduleField,
+    TimeBase,
+    WeekdayInt,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+# Schedule domains for domain-specific validation
+# Maps to DataPointCategory values that support schedules
+SCHEDULE_DOMAINS: Final[frozenset[DataPointCategory]] = frozenset(
+    {
+        DataPointCategory.SWITCH,
+        DataPointCategory.LIGHT,
+        DataPointCategory.COVER,
+        DataPointCategory.VALVE,
+    }
+)
+
+# Context key for passing domain information to Pydantic validators
+SCHEDULE_DOMAIN_CONTEXT_KEY: Final[str] = "schedule_domain"
+
+
+def _get_schedule_domain_from_context(*, info: ValidationInfo) -> DataPointCategory | None:
+    """
+    Extract schedule domain from Pydantic validation context.
+
+    Args:
+        info: Pydantic ValidationInfo containing optional context
+
+    Returns:
+        DataPointCategory if domain is set in context, None otherwise
+
+    """
+    if info.context is None:
+        return None
+    if (domain := info.context.get(SCHEDULE_DOMAIN_CONTEXT_KEY)) is None:
+        return None
+    if isinstance(domain, DataPointCategory) and domain in SCHEDULE_DOMAINS:
+        return domain
+    return None
 
 
 class _JsonSerializableMixin:
@@ -65,6 +108,8 @@ __all__ = [
     "ClimateSchedule",
     "ClimateSchedulePeriod",
     "ClimateWeekdaySchedule",
+    "SCHEDULE_DOMAIN_CONTEXT_KEY",
+    "SCHEDULE_DOMAINS",
     "SimpleSchedule",
     "SimpleScheduleEntry",
 ]
@@ -255,6 +300,72 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
             if not _CHANNEL_PATTERN.match(ch):
                 raise ValueError(i18n.tr(key="exception.model.schedule.invalid_channel_format", channel=ch))
         return v
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def validate_domain_constraints(  # kwonly: disable
+        cls, values: Any, handler: Any, info: ValidationInfo
+    ) -> SimpleScheduleEntry:
+        """
+        Validate domain-specific field constraints.
+
+        This validator checks that fields are appropriate for the device domain:
+        - SWITCH: level must be binary (0.0 or 1.0), no level_2, no ramp_time
+        - LIGHT: no level_2 (slat position is cover-only)
+        - COVER: no ramp_time, no duration (timing not applicable)
+        - VALVE: no level_2, no ramp_time
+
+        The domain is passed via validation context using SCHEDULE_DOMAIN_CONTEXT_KEY.
+        If no domain is provided, validation passes (backward compatibility).
+        """
+        # First, run the standard validation
+        result: SimpleScheduleEntry = cast(SimpleScheduleEntry, handler(values))
+
+        # Get domain from context (if provided)
+        domain = _get_schedule_domain_from_context(info=info)
+        if domain is None:
+            # No domain context - skip domain-specific validation
+            return result
+
+        # Domain-specific validation
+        if domain == DataPointCategory.SWITCH:
+            # Switches must have binary level (0.0 or 1.0)
+            if result.level not in (0.0, 1.0):
+                raise ValueError(
+                    i18n.tr(
+                        key="exception.model.schedule.switch_level_not_binary",
+                        level=result.level,
+                    )
+                )
+            # Switches don't support level_2 (slat position)
+            if result.level_2 is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="switch"))
+            # Switches don't support ramp_time (dimming)
+            if result.ramp_time is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="switch"))
+
+        elif domain == DataPointCategory.LIGHT:
+            # Lights don't support level_2 (slat position is cover-only)
+            if result.level_2 is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="light"))
+
+        elif domain == DataPointCategory.COVER:
+            # Covers don't support ramp_time
+            if result.ramp_time is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="cover"))
+            # Covers don't support duration
+            if result.duration is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.duration_not_supported", domain="cover"))
+
+        elif domain == DataPointCategory.VALVE:
+            # Valves don't support level_2 (slat position)
+            if result.level_2 is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="valve"))
+            # Valves don't support ramp_time
+            if result.ramp_time is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="valve"))
+
+        return result
 
     @field_validator("duration", "ramp_time")
     @classmethod

@@ -44,6 +44,7 @@ from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
+from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule
 from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -397,10 +398,17 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Set new profile."""
 
     @inspector
-    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDict | SimpleSchedule | ClimateSchedule) -> None:
         """Set the complete schedule to device (delegates to week profile)."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            await self._device.week_profile.set_schedule(schedule_data=schedule_data)
+            # Convert SimpleSchedule to ScheduleDict for climate profiles
+            if isinstance(schedule_data, SimpleSchedule):
+                schedule_dict = {
+                    str(key): entry.model_dump(mode="json") for key, entry in schedule_data.entries.items()
+                }
+                await self._device.week_profile.set_schedule(schedule_data=schedule_dict)
+            else:
+                await self._device.week_profile.set_schedule(schedule_data=schedule_data)
 
     @inspector
     async def set_schedule_profile(

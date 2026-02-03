@@ -5,11 +5,20 @@
 ### Fixed
 
 - **JSON control character sanitization**: Fixed `JSONDecodeError` when ReGa scripts (e.g., `fetch_all_device_data.fn`) return JSON containing unescaped control characters in device names or values. The `_sanitize_json_control_chars` function is now applied consistently to all JSON parsing from CCU responses, including script results in `_post_script` and nested JSON in `_get_serial`. The sanitization is now selective - it only escapes control characters **within JSON string values**, preserving structural whitespace (newlines between JSON objects, etc.) to avoid "unexpected content after document" errors.
-- **CustomDataPoint schedule conversion**: Fixed `get_schedule()` and `set_schedule()` methods in `CustomDataPoint` to correctly convert between `ScheduleDict` (string keys, dict values) and `SimpleSchedule` Pydantic model (integer keys, Pydantic values). Previously, `model_validate()` was called directly on the dict, which failed because the input format didn't match the expected Pydantic structure.
+- **CustomDataPoint schedule conversion**: Fixed `get_schedule()` and `set_schedule()` methods in `CustomDataPoint` to correctly convert between `ScheduleDict` (string keys, dict values) and `SimpleSchedule` Pydantic model (integer keys, Pydantic values). The methods now:
+  - Accept both `ScheduleDict` and `SimpleSchedule` as input to `set_schedule()`
+  - Properly delegate to `week_profile.get_schedule()` to ensure `ValidationException` is raised for unsupported devices
+  - Convert between formats correctly in both directions
 
 ### Documentation
 
-- **Week profile**: Added documentation for `get_schedule` service for non-climate devices (switch, light, cover, valve) with response format examples.
+- **Week profile**: Added comprehensive documentation for `SimpleScheduleEntry` fields in `week_profile.md`, including:
+  - Complete field reference with types, ranges, and validation rules
+  - Device-type-specific meanings for `level` field (switch, light, cover, valve)
+  - Condition types (`fixed_time`, `astro`, `fixed_if_before_astro`, `fixed_if_after_astro`)
+  - Duration and ramp_time format examples
+  - Field summary table and complete usage examples
+- **Week profile module docstring**: Updated to reflect API changes from version 2026.2.1 (removed "simple" prefix from method names)
 
 # Version 2026.2.1 (2026-02-02)
 

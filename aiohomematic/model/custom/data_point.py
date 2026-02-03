@@ -31,7 +31,7 @@ from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry
+from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, SimpleScheduleEntry
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -180,13 +180,14 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
 
     async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
         """Get schedule from device week profile."""
-        if self._device.week_profile:
-            # Convert SimpleSchedule back to ScheduleDict format
-            # SimpleSchedule has: entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)}
-            # ScheduleDict needs: {'1': {dict}, '2': {dict}}
-            simple_schedule = self._device.week_profile.schedule
-            return {str(key): entry.model_dump(mode="json") for key, entry in simple_schedule.entries.items()}
-        return {}
+        if not self._device.week_profile:
+            return {}
+        # This will raise ValidationException if schedule is not supported
+        simple_schedule = await self._device.week_profile.get_schedule(force_load=force_load)
+        # Convert SimpleSchedule back to ScheduleDict format
+        # SimpleSchedule has: entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)}
+        # ScheduleDict needs: {'1': {dict}, '2': {dict}}
+        return {str(key): entry.model_dump(mode="json") for key, entry in simple_schedule.entries.items()}
 
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
@@ -213,15 +214,20 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             await self._device.week_profile.reload_and_cache_schedule()
         self.publish_data_point_updated_event()
 
-    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDict | SimpleSchedule | ClimateSchedule) -> None:
         """Set schedule on device week profile."""
         if self._device.week_profile:
-            # Convert ScheduleDict (str keys, dict values) to SimpleSchedule (int keys, Pydantic values)
-            # Input: {'1': {'weekdays': [...], 'time': '01:00', ...}, '2': {...}}
-            # Output: SimpleSchedule(entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)})
-            simple_data = SimpleSchedule(
-                entries={int(key): SimpleScheduleEntry(**value) for key, value in schedule_data.items()}
-            )
+            # Accept ScheduleDict, SimpleSchedule, or ClimateSchedule
+            if isinstance(schedule_data, SimpleSchedule):
+                # Already a SimpleSchedule, use directly (for non-climate devices)
+                simple_data = schedule_data
+            else:
+                # Convert ScheduleDict (str keys, dict values) to SimpleSchedule (int keys, Pydantic values)
+                # Input: {'1': {'weekdays': [...], 'time': '01:00', ...}, '2': {...}}
+                # Output: SimpleSchedule(entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)})
+                simple_data = SimpleSchedule(
+                    entries={int(key): SimpleScheduleEntry(**value) for key, value in schedule_data.items()}
+                )
             await self._device.week_profile.set_schedule(schedule_data=simple_data)
 
     def unsubscribe_from_data_point_updated(self) -> None:

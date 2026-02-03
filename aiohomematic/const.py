@@ -17,7 +17,7 @@ import os
 import re
 import sys
 from types import MappingProxyType
-from typing import Any, Final, NamedTuple, Required, TypedDict
+from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
@@ -2168,15 +2168,6 @@ class ScheduleField(StrEnum):
 
 
 @unique
-class ScheduleSlotType(StrEnum):
-    """Enum for climate item type."""
-
-    ENDTIME = "ENDTIME"
-    STARTTIME = "STARTTIME"
-    TEMPERATURE = "TEMPERATURE"
-
-
-@unique
 class ScheduleProfile(StrEnum):
     """Enum for climate profiles."""
 
@@ -2228,100 +2219,14 @@ class WeekdayStr(StrEnum):
     SUNDAY = "SUNDAY"
 
 
-CLIMATE_MAX_SCHEDULER_TIME: Final = "24:00"
-CLIMATE_MIN_SCHEDULER_TIME: Final = "00:00"
-CLIMATE_RELEVANT_SLOT_TYPES: Final = ("endtime", "temperature")
-
-
-class ScheduleSlot(TypedDict):
-    """
-    A single time slot in a climate schedule.
-
-    Each slot defines when a temperature period ends and what temperature to maintain.
-    Climate devices use 13 slots per weekday, with unused slots filled with "24:00".
-
-    Attributes:
-        endtime: End time as string in "HH:MM" format (e.g., "06:00", "24:00")
-                 or as integer minutes since midnight (e.g., 360 for "06:00").
-                 The CCU always returns integers, but internal conversion may use strings.
-        temperature: Target temperature in degrees Celsius
-
-    Example:
-        {"endtime": "06:00", "temperature": 18.0}
-        {"endtime": 360, "temperature": 18.0}
-
-    """
-
-    endtime: str | int
-    temperature: float
-
-
-ClimateWeekdaySchedule = dict[int, ScheduleSlot]
-"""Schedule slots for a single weekday, keyed by slot number (1-13)."""
-
-ClimateProfileSchedule = dict[WeekdayStr, ClimateWeekdaySchedule]
-"""Schedule for all weekdays in a profile."""
-
-ClimateScheduleDict = dict[ScheduleProfile, ClimateProfileSchedule]
-"""Complete schedule with all profiles (P1-P6)."""
-CLIMATE_SCHEDULE_SLOT_IN_RANGE: Final = range(1, 14)
-CLIMATE_SCHEDULE_SLOT_RANGE: Final = range(1, 13)
-CLIMATE_SCHEDULE_TIME_RANGE: Final = range(1441)
-
-
-class SimpleSchedulePeriod(TypedDict):
-    """
-    A single temperature period in a simple schedule.
-
-    Uses lowercase string keys for JSON serialization compatibility with custom cards.
-
-    Attributes:
-        starttime: Start time in "HH:MM" format (e.g., "06:00")
-        endtime: End time in "HH:MM" format (e.g., "22:00")
-        temperature: Target temperature in degrees Celsius
-
-    """
-
-    starttime: str
-    endtime: str
-    temperature: float
-
-
-class SimpleWeekdaySchedule(TypedDict):
-    """
-    Schedule for a single weekday with base temperature and heating periods.
-
-    Attributes:
-        base_temperature: Default temperature when no period is active
-        periods: List of temperature periods with start/end times
-
-    Example:
-        {
-            "base_temperature": 18.0,
-            "periods": [
-                {"starttime": "06:00", "endtime": "08:00", "temperature": 21.0},
-                {"starttime": "17:00", "endtime": "22:00", "temperature": 21.0}
-            ]
-        }
-
-    """
-
-    base_temperature: float
-    periods: list[SimpleSchedulePeriod]
-
-
-# Type aliases for higher-level structures
-SimpleProfileSchedule = dict[WeekdayStr, SimpleWeekdaySchedule]
-"""Schedule for all weekdays in a profile."""
-
-SimpleScheduleDict = dict[ScheduleProfile, SimpleProfileSchedule]
-"""Complete schedule with all profiles."""
-
 DEFAULT_CLIMATE_FILL_TEMPERATURE: Final = 18.0
 DEFAULT_SCHEDULE_GROUP = dict[ScheduleField, Any]
 DEFAULT_SCHEDULE_DICT = dict[int, DEFAULT_SCHEDULE_GROUP]
 RAW_SCHEDULE_DICT = dict[str, float | int]
 SCHEDULE_PATTERN: Final = re.compile(r"^\d+_WP_")
+
+ScheduleDict: TypeAlias = dict[str, Any]
+"""JSON-serializable schedule dictionary for public API."""
 
 
 # Define public API for this module

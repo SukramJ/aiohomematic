@@ -59,6 +59,7 @@ from aiohomematic.const import (
     ProductGroup,
     ProgramData,
     RxMode,
+    ScheduleDict,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.operations import (
@@ -89,6 +90,9 @@ if TYPE_CHECKING:
     from aiohomematic.model.custom.mixins import StateChangeArgs
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
+
+# Type alias for all supported schedule data types (public API uses JSON-serializable dicts)
+ScheduleDataType: TypeAlias = ScheduleDict
 
 # =============================================================================
 # DataPoint Protocol Interfaces
@@ -963,7 +967,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def schedule(self) -> dict[Any, Any]:
+    def schedule(self) -> ScheduleDataType:
         """Return cached schedule entries from device week profile."""
 
     @property
@@ -977,7 +981,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Return the unconfirmed values send for the data point."""
 
     @abstractmethod
-    async def get_schedule(self, *, force_load: bool = False) -> dict[Any, Any]:
+    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDataType:
         """Get schedule from device week profile."""
 
     @abstractmethod
@@ -989,7 +993,7 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Check if the state changes due to kwargs."""
 
     @abstractmethod
-    async def set_schedule(self, *, schedule_data: dict[Any, Any]) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDataType) -> None:
         """Set schedule on device week profile."""
 
     @abstractmethod

@@ -106,11 +106,19 @@ def _collect_used_keys() -> set[str]:
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call) or not is_tr_call(node):
                 continue
-            if not node.args:
+            # Check positional argument first
+            if node.args:
+                key = extract_literal_key(node.args[0])
+                if key:
+                    keys.add(key)
                 continue
-            key = extract_literal_key(node.args[0])
-            if key:
-                keys.add(key)
+            # Check keyword argument 'key='
+            for kw in node.keywords:
+                if kw.arg == "key":
+                    key = extract_literal_key(kw.value)
+                    if key:
+                        keys.add(key)
+                    break
     return keys
 
 
@@ -192,8 +200,20 @@ def run(fix: bool, remove_unused: bool) -> int:
     de_keys = set(de.keys())
     de_missing = strings_keys_current - de_keys
     de_extra = de_keys - strings_keys_current
+
+    # Always report missing keys in de.json
     problems.extend(f"de.json missing key: {k}" for k in sorted(de_missing))
-    problems.extend(f"de.json has extra key not in strings.json: {k}" for k in sorted(de_extra))
+
+    if de_extra:
+        if remove_unused:
+            # Remove orphaned keys from de.json (keys that don't exist in strings.json)
+            for key in de_extra:
+                de.pop(key, None)
+            _dump_sorted_json(DE_JSON, de)
+            modified = True
+            warnings.extend(f"Removed orphaned key from de.json: {k}" for k in sorted(de_extra))
+        else:
+            problems.extend(f"de.json has extra key not in strings.json: {k}" for k in sorted(de_extra))
 
     # 5) ensure sorted JSON files
     def ensure_sorted(path: Path, current: dict[str, str]) -> None:

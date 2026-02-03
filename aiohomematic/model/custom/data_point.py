@@ -12,11 +12,21 @@ from collections.abc import Mapping
 import contextlib
 from datetime import datetime
 import logging
-from typing import Any, Final, Unpack, override
+from typing import Any, Final, Unpack, cast, override
 
-from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
+from aiohomematic.const import (
+    INIT_DATETIME,
+    CallSource,
+    DataPointKey,
+    DataPointUsage,
+    DeviceProfile,
+    Field,
+    Parameter,
+    ScheduleDict,
+)
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
+from aiohomematic.interfaces.model import ScheduleDataType
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
@@ -130,10 +140,10 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return all(dp.is_status_valid for dp in self._relevant_data_points)
 
     @property
-    def schedule(self) -> Any:
-        """Return cached schedule entries from device week profile."""
+    def schedule(self) -> ScheduleDict:
+        """Return cached schedule entries from device week profile as JSON-serializable dict."""
         if self._device.week_profile:
-            return self._device.week_profile.schedule
+            return cast(dict[str, Any], self._device.week_profile.schedule.model_dump(mode="json"))
         return {}
 
     @property
@@ -199,7 +209,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             await self._device.week_profile.reload_and_cache_schedule()
         self.publish_data_point_updated_event()
 
-    async def set_schedule(self, *, schedule_data: dict[Any, Any]) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDataType) -> None:
         """Set schedule on device week profile."""
         if self._device.week_profile:
             await self._device.week_profile.set_schedule(schedule_data=schedule_data)

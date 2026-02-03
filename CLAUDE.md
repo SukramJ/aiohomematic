@@ -1134,34 +1134,35 @@ Schedule data for climate devices (thermostats) is managed through a **pessimist
 # In aiohomematic/model/week_profile.py
 
 async def set_schedule(self, *, schedule_data: ClimateScheduleDict) -> None:
-    """
-    Set the complete schedule dictionary to device.
+   """
+   Set the complete schedule dictionary to device.
 
-    Note:
-        The cache is NOT updated optimistically. The cache will be refreshed
-        from CCU when CONFIG_PENDING = False is received, ensuring consistency
-        between cache and CCU state.
-    """
-    sca = self._validate_and_get_schedule_channel_address()
+   Note:
+       The cache is NOT updated optimistically. The cache will be refreshed
+       from CCU when CONFIG_PENDING = False is received, ensuring consistency
+       between cache and CCU state.
+   """
+   sca = self._validate_and_get_schedule_channel_address()
 
-    # Write to device - cache will be updated via CONFIG_PENDING event
-    await self._client.put_paramset(
-        channel_address=sca,
-        paramset_key_or_link_address=ParamsetKey.MASTER,
-        values=self.convert_dict_to_raw_schedule(schedule_data=schedule_data),
-    )
+   # Write to device - cache will be updated via CONFIG_PENDING event
+   await self._client.put_paramset(
+      channel_address=sca,
+      paramset_key_or_link_address=ParamsetKey.MASTER,
+      values=self.convert_dict_to_raw_schedule(schedule_data=schedule_data),
+   )
+
 
 async def reload_and_cache_schedule(self, *, force: bool = False) -> None:
-    """Reload schedules from CCU and update cache, publish events if changed."""
-    new_schedule = await self._get_schedule_profile()
-    old_schedule = self._schedule_cache
+   """Reload schedules from CCU and update cache, publish events if changed."""
+   new_schedule = await self._get_schedule_profile()
+   old_schedule = self._schedule_cache
 
-    # Update cache with CCU data
-    self._schedule_cache = new_schedule
+   # Update cache with CCU data
+   self._schedule_cache = new_schedule
 
-    # Only publish event if data actually changed
-    if old_schedule != new_schedule:
-        self._data_point.publish_data_point_updated_event()
+   # Only publish event if data actually changed
+   if old_schedule != new_schedule:
+      self._data_point.publish_data_point_updated_event()
 ```
 
 #### Integration with Home Assistant Climate Schedule Card

@@ -248,41 +248,81 @@ Set a week schedule for devices that support scheduling:
 ```yaml
 action: homematicip_local.set_schedule
 target:
-  entity_id: switch.garden_pump
+  entity_id: light.kitchen_spotlight
 data:
   schedule_data:
-    0: # Entry 0
-      start: "00:00"
-      end: "06:00"
-      value: false
-    1: # Entry 1
-      start: "06:00"
-      end: "22:00"
-      value: true
-    2: # Entry 2
-      start: "22:00"
-      end: "00:00"
-      value: false
+    "1": # Entry 1
+      weekdays:
+        - SUNDAY
+        - MONDAY
+        - TUESDAY
+        - WEDNESDAY
+        - THURSDAY
+        - FRIDAY
+      time: "06:00"
+      condition: fixed_time
+      target_channels:
+        - "1_1"
+      level: 0.5 # 50% brightness
+      level_2: null
+      duration: 1min
+      ramp_time: 10s
+    "2": # Entry 2
+      weekdays:
+        - SATURDAY
+      time: "08:00"
+      condition: fixed_time
+      target_channels:
+        - "1_1"
+      level: 0.3 # 30% brightness
+      level_2: null
+      duration: 1min
+      ramp_time: 10s
 ```
 
-### Get Schedule (Work in progress)
+### Get Schedule
 
 Get the current week schedule from a device:
 
 ```yaml
 action: homematicip_local.get_schedule
 target:
-  entity_id: switch.garden_pump
+  entity_id: light.kitchen_spotlight
+response_variable: current_schedule
 ```
 
 The service returns the schedule data in the same format as used by `set_schedule`:
 
 ```yaml
-# Response example
+# Response example stored in current_schedule
 {
-  "0": { "start": "00:00", "end": "06:00", "value": false },
-  "1": { "start": "06:00", "end": "22:00", "value": true },
-  "2": { "start": "22:00", "end": "00:00", "value": false },
+  "1":
+    {
+      "weekdays":
+        ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+      "time": "06:00",
+      "condition": "fixed_time",
+      "astro_type": null,
+      "astro_offset_minutes": 0,
+      "target_channels": ["1_1"],
+      "level": 0.5,
+      "level_2": null,
+      "duration": "1min",
+      "ramp_time": "10s",
+    },
+  "2":
+    {
+      "weekdays": ["SATURDAY"],
+      "time": "08:00",
+      "condition": "fixed_time",
+      "astro_type": null,
+      "astro_offset_minutes": 0,
+      "target_channels": ["1_1"],
+      "level": 0.3,
+      "level_2": null,
+      "duration": "1min",
+      "ramp_time": "10s",
+    },
 }
 ```
 
@@ -297,55 +337,46 @@ The service returns the schedule data in the same format as used by `set_schedul
 
 The `schedule_data` is a dictionary where:
 
-- **Key**: Integer index (sequential, starting from 0)
+- **Key**: String representing the entry number (e.g., "1", "2", "3")
 - **Value**: Dictionary with schedule entry details
 
-Each entry structure depends on the device type:
+Each entry contains the following fields:
 
-#### Boolean Devices (Switch, Basic Light)
+#### Common Fields
 
-```yaml
-schedule_data:
-  0:
-    start: "06:00"
-    end: "22:00"
-    value: true # on
-  1:
-    start: "22:00"
-    end: "06:00"
-    value: false # off
-```
+- **weekdays**: List of weekdays when this schedule applies
+  - Valid values: `SUNDAY`, `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`
+- **time**: Start time in "HH:MM" format (24-hour)
+- **condition**: Trigger condition
+  - `fixed_time` - Trigger at specified time
+  - `astro_sunrise` - Trigger at sunrise (with optional offset)
+  - `astro_sunset` - Trigger at sunset (with optional offset)
+- **astro_type**: Astronomical event type (null for fixed_time)
+- **astro_offset_minutes**: Offset in minutes from astronomical event (0 for fixed_time)
+- **target_channels**: List of device channels to control (e.g., ["1_1"])
+- **duration**: How long to apply the setting (e.g., "1min", "5min")
+- **ramp_time**: Transition time for changes (e.g., "10s", "30s")
 
-#### Dimmer Devices (Dimmable Light)
+#### Device-Specific Fields
 
-```yaml
-schedule_data:
-  0:
-    start: "06:00"
-    end: "08:00"
-    value: 50 # 50% brightness
-  1:
-    start: "08:00"
-    end: "22:00"
-    value: 100 # 100% brightness
-  2:
-    start: "22:00"
-    end: "06:00"
-    value: 0 # off
-```
+- **level**: Brightness level for lights, or valve position (0.0 to 1.0)
+- **level_2**: Secondary level (used by some devices, typically null)
 
-#### Cover Devices
+#### Example Entry
 
 ```yaml
 schedule_data:
-  0:
-    start: "07:00"
-    end: "07:01"
-    value: 100 # fully open
-  1:
-    start: "20:00"
-    end: "20:01"
-    value: 0 # fully closed
+  "1":
+    weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+    time: "06:30"
+    condition: fixed_time
+    astro_type: null
+    astro_offset_minutes: 0
+    target_channels: ["1_1"]
+    level: 0.8 # 80% brightness
+    level_2: null
+    duration: 1min
+    ramp_time: 10s
 ```
 
 ### Device Support Check
@@ -366,30 +397,47 @@ Not all devices support week profiles. Check the entity's attributes:
 | **Profiles** | P1-P6 profiles                      | Single schedule (device-specific) |
 | **Services** | set_schedule_simple_profile/weekday | set_schedule                      |
 
-### Example: Garden Irrigation Switch
+### Example: Garden Irrigation Valve
 
 ```yaml
 action: homematicip_local.set_schedule
 target:
-  entity_id: switch.garden_irrigation
+  entity_id: valve.garden_irrigation
 data:
   schedule_data:
-    0:
-      start: "06:00"
-      end: "06:30"
-      value: true # Morning watering
-    1:
-      start: "06:30"
-      end: "18:00"
-      value: false
-    2:
-      start: "18:00"
-      end: "18:30"
-      value: true # Evening watering
-    3:
-      start: "18:30"
-      end: "06:00"
-      value: false
+    "1": # Morning watering on weekdays
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+      time: "06:00"
+      condition: fixed_time
+      astro_type: null
+      astro_offset_minutes: 0
+      target_channels: ["1_1"]
+      level: 1.0 # Fully open
+      level_2: null
+      duration: 30min
+      ramp_time: 10s
+    "2": # Evening watering on weekdays
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+      time: "18:00"
+      condition: fixed_time
+      astro_type: null
+      astro_offset_minutes: 0
+      target_channels: ["1_1"]
+      level: 1.0 # Fully open
+      level_2: null
+      duration: 30min
+      ramp_time: 10s
+    "3": # Weekend watering
+      weekdays: [SATURDAY, SUNDAY]
+      time: "07:00"
+      condition: fixed_time
+      astro_type: null
+      astro_offset_minutes: 0
+      target_channels: ["1_1"]
+      level: 1.0 # Fully open
+      level_2: null
+      duration: 45min
+      ramp_time: 10s
 ```
 
 ### Example: Light Dimmer Schedule
@@ -400,26 +448,39 @@ target:
   entity_id: light.hallway_dimmer
 data:
   schedule_data:
-    0:
-      start: "00:00"
-      end: "06:00"
-      value: 0 # Night: off
-    1:
-      start: "06:00"
-      end: "08:00"
-      value: 30 # Morning: 30%
-    2:
-      start: "08:00"
-      end: "17:00"
-      value: 0 # Day: off
-    3:
-      start: "17:00"
-      end: "22:00"
-      value: 60 # Evening: 60%
-    4:
-      start: "22:00"
-      end: "00:00"
-      value: 20 # Night: 20%
+    "1": # Weekday morning
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+      time: "06:00"
+      condition: fixed_time
+      astro_type: null
+      astro_offset_minutes: 0
+      target_channels: ["1_1"]
+      level: 0.3 # 30% brightness
+      level_2: null
+      duration: 2h
+      ramp_time: 10s
+    "2": # Weekday evening
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+      time: "17:00"
+      condition: fixed_time
+      astro_type: null
+      astro_offset_minutes: 0
+      target_channels: ["1_1"]
+      level: 0.6 # 60% brightness
+      level_2: null
+      duration: 5h
+      ramp_time: 10s
+    "3": # Late night
+      weekdays: [SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY]
+      time: "22:00"
+      condition: fixed_time
+      astro_type: null
+      astro_offset_minutes: 0
+      target_channels: ["1_1"]
+      level: 0.2 # 20% brightness
+      level_2: null
+      duration: 1h
+      ramp_time: 10s
 ```
 
 ## Troubleshooting

@@ -26,12 +26,12 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
-from aiohomematic.interfaces.model import ScheduleDataType
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig
 from aiohomematic.model.data_point import BaseDataPoint
+from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -143,7 +143,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     def schedule(self) -> ScheduleDict:
         """Return cached schedule entries from device week profile as JSON-serializable dict."""
         if self._device.week_profile:
-            return cast(dict[str, Any], self._device.week_profile.schedule.model_dump(mode="json"))
+            return cast(ScheduleDict, self._device.week_profile.schedule.model_dump(mode="json"))
         return {}
 
     @property
@@ -178,10 +178,14 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
-    async def get_schedule(self, *, force_load: bool = False) -> Any:
+    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
         """Get schedule from device week profile."""
         if self._device.week_profile:
-            return await self._device.week_profile.get_schedule(force_load=force_load)
+            # Convert SimpleSchedule back to ScheduleDict format
+            # SimpleSchedule has: entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)}
+            # ScheduleDict needs: {'1': {dict}, '2': {dict}}
+            simple_schedule = self._device.week_profile.schedule
+            return {str(key): entry.model_dump(mode="json") for key, entry in simple_schedule.entries.items()}
         return {}
 
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
@@ -209,10 +213,16 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             await self._device.week_profile.reload_and_cache_schedule()
         self.publish_data_point_updated_event()
 
-    async def set_schedule(self, *, schedule_data: ScheduleDataType) -> None:
+    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
         """Set schedule on device week profile."""
         if self._device.week_profile:
-            await self._device.week_profile.set_schedule(schedule_data=schedule_data)
+            # Convert ScheduleDict (str keys, dict values) to SimpleSchedule (int keys, Pydantic values)
+            # Input: {'1': {'weekdays': [...], 'time': '01:00', ...}, '2': {...}}
+            # Output: SimpleSchedule(entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)})
+            simple_data = SimpleSchedule(
+                entries={int(key): SimpleScheduleEntry(**value) for key, value in schedule_data.items()}
+            )
+            await self._device.week_profile.set_schedule(schedule_data=simple_data)
 
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unregister all internal update handlers."""

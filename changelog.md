@@ -4,7 +4,8 @@
 
 ### Fixed
 
-- **JSON control character sanitization**: Fixed `JSONDecodeError` when ReGa scripts (e.g., `fetch_all_device_data.fn`) return JSON containing unescaped control characters in device names or values. The `_sanitize_json_control_chars` function is now applied consistently to all JSON parsing from CCU responses, including script results in `_post_script` and nested JSON in `_get_serial`.
+- **JSON control character sanitization**: Fixed `JSONDecodeError` when ReGa scripts (e.g., `fetch_all_device_data.fn`) return JSON containing unescaped control characters in device names or values. The `_sanitize_json_control_chars` function is now applied consistently to all JSON parsing from CCU responses, including script results in `_post_script` and nested JSON in `_get_serial`. The sanitization is now selective - it only escapes control characters **within JSON string values**, preserving structural whitespace (newlines between JSON objects, etc.) to avoid "unexpected content after document" errors.
+- **CustomDataPoint schedule conversion**: Fixed `get_schedule()` and `set_schedule()` methods in `CustomDataPoint` to correctly convert between `ScheduleDict` (string keys, dict values) and `SimpleSchedule` Pydantic model (integer keys, Pydantic values). Previously, `model_validate()` was called directly on the dict, which failed because the input format didn't match the expected Pydantic structure.
 
 ### Documentation
 

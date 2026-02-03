@@ -265,6 +265,27 @@ data:
       value: false
 ```
 
+### Get Schedule (Work in progress)
+
+Get the current week schedule from a device:
+
+```yaml
+action: homematicip_local.get_schedule
+target:
+  entity_id: switch.garden_pump
+```
+
+The service returns the schedule data in the same format as used by `set_schedule`:
+
+```yaml
+# Response example
+{
+  "0": { "start": "00:00", "end": "06:00", "value": false },
+  "1": { "start": "06:00", "end": "22:00", "value": true },
+  "2": { "start": "22:00", "end": "00:00", "value": false },
+}
+```
+
 ### Supported Domains
 
 - **switch** - Timed on/off schedules

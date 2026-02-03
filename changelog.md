@@ -1,3 +1,15 @@
+# Version 2026.2.2 (2026-02-03)
+
+## What's Changed
+
+### Fixed
+
+- **JSON control character sanitization**: Fixed `JSONDecodeError` when ReGa scripts (e.g., `fetch_all_device_data.fn`) return JSON containing unescaped control characters in device names or values. The `_sanitize_json_control_chars` function is now applied consistently to all JSON parsing from CCU responses, including script results in `_post_script` and nested JSON in `_get_serial`.
+
+### Documentation
+
+- **Week profile**: Added documentation for `get_schedule` service for non-climate devices (switch, light, cover, valve) with response format examples.
+
 # Version 2026.2.1 (2026-02-02)
 
 ## What's Changed

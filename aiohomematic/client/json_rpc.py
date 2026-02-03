@@ -1772,13 +1772,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             return await response.json(encoding=UTF_8)
         except ValueError as verr:
             _LOGGER.debug(
-                "DO_POST: ValueError [%s] Unable to parse JSON. Trying workaround",
+                "DO_POST: ValueError [%s] Unable to parse JSON. Trying around",
                 extract_exc_args(exc=verr),
             )
             # Workaround for bug in CCU: device names may contain unescaped control characters
             raw_data = (await response.read()).decode(encoding=UTF_8)
-            sanitized_data = _sanitize_json_control_chars(data=raw_data)
-            return compat.loads(data=sanitized_data)
+            return compat.loads(data=_sanitize_json_control_chars(data=raw_data))
 
     async def _get_program_descriptions(self) -> Mapping[str, str]:
         """Get all program descriptions from the backend via script."""
@@ -1830,7 +1829,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 # or an already-parsed dict. Support both.
                 if isinstance(json_result, str):
                     try:
-                        json_result = compat.loads(data=json_result)
+                        # Sanitize control characters before parsing (defense in depth)
+                        json_result = compat.loads(data=_sanitize_json_control_chars(data=json_result))
                     except Exception:
                         # Fall back to plain string handling; return last 10 chars
                         serial_exc = str(json_result)
@@ -1986,7 +1986,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         try:
             if not response[_JsonKey.ERROR] and (resp := response[_JsonKey.RESULT]) and isinstance(resp, str):
-                response[_JsonKey.RESULT] = compat.loads(data=resp)
+                # Sanitize control characters before parsing (same workaround as in _get_json_reponse)
+                # ReGa scripts may return JSON with unescaped control characters in device names/values
+                response[_JsonKey.RESULT] = compat.loads(data=_sanitize_json_control_chars(data=resp))
         finally:
             if not keep_session:
                 await self._do_logout(session_id=session_id)

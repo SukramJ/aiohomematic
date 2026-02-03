@@ -237,24 +237,196 @@ automation:
               temperature: 21.0
 ```
 
+## Non-Climate Devices (Switch, Light, Cover, Valve) (Work in progress)
+
+For devices other than climate (thermostats), a generic schedule service is available that supports switches, lights, covers, and valves with week profile capability.
+
+### Set Schedule
+
+Set a week schedule for devices that support scheduling:
+
+```yaml
+action: homematicip_local.set_schedule
+target:
+  entity_id: switch.garden_pump
+data:
+  schedule_data:
+    0: # Entry 0
+      start: "00:00"
+      end: "06:00"
+      value: false
+    1: # Entry 1
+      start: "06:00"
+      end: "22:00"
+      value: true
+    2: # Entry 2
+      start: "22:00"
+      end: "00:00"
+      value: false
+```
+
+### Supported Domains
+
+- **switch** - Timed on/off schedules
+- **light** - Timed on/off or dimmer schedules
+- **cover** - Position schedules
+- **valve** - Open/close schedules
+
+### Schedule Data Format
+
+The `schedule_data` is a dictionary where:
+
+- **Key**: Integer index (sequential, starting from 0)
+- **Value**: Dictionary with schedule entry details
+
+Each entry structure depends on the device type:
+
+#### Boolean Devices (Switch, Basic Light)
+
+```yaml
+schedule_data:
+  0:
+    start: "06:00"
+    end: "22:00"
+    value: true # on
+  1:
+    start: "22:00"
+    end: "06:00"
+    value: false # off
+```
+
+#### Dimmer Devices (Dimmable Light)
+
+```yaml
+schedule_data:
+  0:
+    start: "06:00"
+    end: "08:00"
+    value: 50 # 50% brightness
+  1:
+    start: "08:00"
+    end: "22:00"
+    value: 100 # 100% brightness
+  2:
+    start: "22:00"
+    end: "06:00"
+    value: 0 # off
+```
+
+#### Cover Devices
+
+```yaml
+schedule_data:
+  0:
+    start: "07:00"
+    end: "07:01"
+    value: 100 # fully open
+  1:
+    start: "20:00"
+    end: "20:01"
+    value: 0 # fully closed
+```
+
+### Device Support Check
+
+Not all devices support week profiles. Check the entity's attributes:
+
+```yaml
+# Example: Check if device supports schedules
+{{ state_attr('switch.garden_pump', 'has_schedule') }}
+```
+
+### Differences from Climate Schedules
+
+| Feature      | Climate Services                    | Generic set_schedule              |
+| ------------ | ----------------------------------- | --------------------------------- |
+| **Domains**  | climate only                        | switch, light, cover, valve       |
+| **Format**   | Simple format with base_temperature | Generic schedule_data dict        |
+| **Profiles** | P1-P6 profiles                      | Single schedule (device-specific) |
+| **Services** | set_schedule_simple_profile/weekday | set_schedule                      |
+
+### Example: Garden Irrigation Switch
+
+```yaml
+action: homematicip_local.set_schedule
+target:
+  entity_id: switch.garden_irrigation
+data:
+  schedule_data:
+    0:
+      start: "06:00"
+      end: "06:30"
+      value: true # Morning watering
+    1:
+      start: "06:30"
+      end: "18:00"
+      value: false
+    2:
+      start: "18:00"
+      end: "18:30"
+      value: true # Evening watering
+    3:
+      start: "18:30"
+      end: "06:00"
+      value: false
+```
+
+### Example: Light Dimmer Schedule
+
+```yaml
+action: homematicip_local.set_schedule
+target:
+  entity_id: light.hallway_dimmer
+data:
+  schedule_data:
+    0:
+      start: "00:00"
+      end: "06:00"
+      value: 0 # Night: off
+    1:
+      start: "06:00"
+      end: "08:00"
+      value: 30 # Morning: 30%
+    2:
+      start: "08:00"
+      end: "17:00"
+      value: 0 # Day: off
+    3:
+      start: "17:00"
+      end: "22:00"
+      value: 60 # Evening: 60%
+    4:
+      start: "22:00"
+      end: "00:00"
+      value: 20 # Night: 20%
+```
+
 ## Troubleshooting
 
 ### Schedule Not Applied
 
 1. **Check CONFIG_PENDING** - Wait for the device to confirm the change
-2. **Verify profile selection** - Ensure the correct profile (P1-P6) is active on the device
+2. **Verify profile selection** - Ensure the correct profile (P1-P6) is active on the device (climate only)
 3. **Check time format** - Use `"HH:MM"` format (24-hour, with quotes in YAML)
+4. **Device support** - Verify the device supports schedules (check `has_schedule` attribute)
 
 ### Reading Returns Empty
 
 - The device may not support schedules
 - Try reloading the device configuration
+- Check that the device has a week profile configured
 
 ### Copy Fails
 
 - Both devices must support schedules
-- Both devices must have the same number of profiles
+- Both devices must have the same number of profiles (climate only)
 - Check that devices are reachable
+
+### set_schedule Service Not Available
+
+- Service is only available for switch, light, cover, and valve domains
+- Climate devices use the `set_schedule_simple_profile` and `set_schedule_simple_weekday` services instead
+- Check that the device actually supports week profiles
 
 ## See Also
 

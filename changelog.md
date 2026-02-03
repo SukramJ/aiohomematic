@@ -1,3 +1,23 @@
+# Version 2026.2.3 (2026-02-03)
+
+## What's Changed
+
+### Added
+
+- **Domain-specific schedule validation**: Added validation for schedule data based on device category (SWITCH, LIGHT, COVER, VALVE). The validation enforces that only appropriate fields are used for each device type:
+
+  - **SWITCH**: Level must be binary (0.0 or 1.0), `level_2` and `ramp_time` are forbidden
+  - **LIGHT**: `level_2` (slat position) is forbidden
+  - **COVER**: `ramp_time` and `duration` are forbidden
+  - **VALVE**: `level_2` and `ramp_time` are forbidden
+
+  The validation is backward-compatible: when no domain context is provided (e.g., direct `SimpleSchedule.model_validate()` calls), all fields are accepted. Domain-specific validation is automatically applied when using `DefaultWeekProfile.set_schedule()`.
+
+  New exports from `schedule_models.py`:
+
+  - `SCHEDULE_DOMAIN_CONTEXT_KEY`: Context key for passing domain to Pydantic validators
+  - `SCHEDULE_DOMAINS`: frozenset of categories that support schedules
+
 # Version 2026.2.2 (2026-02-03)
 
 ## What's Changed

@@ -237,16 +237,27 @@ automation:
               temperature: 21.0
 ```
 
-## Non-Climate Devices (Switch, Light, Cover, Valve) (Work in progress)
+## Non-Climate Devices (Switch, Light, Cover, Valve)
 
-For devices other than climate (thermostats), a generic schedule service is available that supports switches, lights, covers, and valves with week profile capability.
+For devices other than climate (thermostats), domain-specific schedule services are available that support switches, lights, covers, and valves with week profile capability.
+
+### Domain-Specific Services
+
+Each domain has its own set of schedule services:
+
+| Domain     | Set Schedule Service                    | Get Schedule Service                    |
+| ---------- | --------------------------------------- | --------------------------------------- |
+| **switch** | `homematicip_local.switch_set_schedule` | `homematicip_local.switch_get_schedule` |
+| **light**  | `homematicip_local.light_set_schedule`  | `homematicip_local.light_get_schedule`  |
+| **cover**  | `homematicip_local.cover_set_schedule`  | `homematicip_local.cover_get_schedule`  |
+| **valve**  | `homematicip_local.valve_set_schedule`  | `homematicip_local.valve_get_schedule`  |
 
 ### Set Schedule
 
 Set a week schedule for devices that support scheduling:
 
 ```yaml
-action: homematicip_local.set_schedule
+action: homematicip_local.light_set_schedule
 target:
   entity_id: light.kitchen_spotlight
 data:
@@ -264,7 +275,6 @@ data:
       target_channels:
         - "1_1"
       level: 0.5 # 50% brightness
-      level_2: null
       duration: 1min
       ramp_time: 10s
     "2": # Entry 2
@@ -275,7 +285,6 @@ data:
       target_channels:
         - "1_1"
       level: 0.3 # 30% brightness
-      level_2: null
       duration: 1min
       ramp_time: 10s
 ```
@@ -285,13 +294,13 @@ data:
 Get the current week schedule from a device:
 
 ```yaml
-action: homematicip_local.get_schedule
+action: homematicip_local.light_get_schedule
 target:
   entity_id: light.kitchen_spotlight
 response_variable: current_schedule
 ```
 
-The service returns the schedule data in the same format as used by `set_schedule`:
+The service returns the schedule data in the same format as used by the set_schedule service:
 
 ```yaml
 # Response example stored in current_schedule
@@ -326,12 +335,23 @@ The service returns the schedule data in the same format as used by `set_schedul
 }
 ```
 
-### Supported Domains
+### Supported Domains and Field Restrictions
 
-- **switch** - Timed on/off schedules
-- **light** - Timed on/off or dimmer schedules
-- **cover** - Position schedules
-- **valve** - Open/close schedules
+Each domain supports different fields. Using unsupported fields will result in a validation error.
+
+| Field       |        Switch        |    Light     |       Cover        |    Valve     |
+| ----------- | :------------------: | :----------: | :----------------: | :----------: |
+| `level`     | ✅ (0.0 or 1.0 only) | ✅ (0.0-1.0) |    ✅ (0.0-1.0)    | ✅ (0.0-1.0) |
+| `level_2`   |          ❌          |      ❌      | ✅ (slat position) |      ❌      |
+| `duration`  |          ✅          |      ✅      |         ❌         |      ✅      |
+| `ramp_time` |          ❌          |      ✅      |         ❌         |      ❌      |
+
+**Important restrictions:**
+
+- **Switch**: The `level` field only accepts `0.0` (off) or `1.0` (on). Intermediate values like `0.5` are not allowed.
+- **Light**: Supports `ramp_time` for smooth dimming transitions. Does not support `level_2`.
+- **Cover**: Supports `level_2` for slat/blind position. Does not support `duration` or `ramp_time`.
+- **Valve**: Does not support `level_2` or `ramp_time`.
 
 ### Schedule Data Format
 
@@ -488,17 +508,41 @@ Not all devices support week profiles. Check the entity's attributes:
 
 ### Differences from Climate Schedules
 
-| Feature      | Climate Services                    | Generic set_schedule              |
+| Feature      | Climate Services                    | Non-Climate Services              |
 | ------------ | ----------------------------------- | --------------------------------- |
 | **Domains**  | climate only                        | switch, light, cover, valve       |
 | **Format**   | Simple format with base_temperature | Generic schedule_data dict        |
 | **Profiles** | P1-P6 profiles                      | Single schedule (device-specific) |
-| **Services** | set_schedule_simple_profile/weekday | set_schedule                      |
+| **Services** | set_schedule_simple_profile/weekday | {domain}\_set_schedule            |
+
+### Example: Switch Schedule
+
+```yaml
+action: homematicip_local.switch_set_schedule
+target:
+  entity_id: switch.garden_light
+data:
+  schedule_data:
+    "1": # Weekday evening
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+      time: "18:00"
+      condition: fixed_time
+      target_channels: ["1_1"]
+      level: 1.0 # On (only 0.0 or 1.0 allowed!)
+      duration: 4h
+    "2": # Weekend evening
+      weekdays: [SATURDAY, SUNDAY]
+      time: "17:00"
+      condition: fixed_time
+      target_channels: ["1_1"]
+      level: 1.0 # On
+      duration: 6h
+```
 
 ### Example: Garden Irrigation Valve
 
 ```yaml
-action: homematicip_local.set_schedule
+action: homematicip_local.valve_set_schedule
 target:
   entity_id: valve.garden_irrigation
 data:
@@ -507,41 +551,29 @@ data:
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
       time: "06:00"
       condition: fixed_time
-      astro_type: null
-      astro_offset_minutes: 0
       target_channels: ["1_1"]
       level: 1.0 # Fully open
-      level_2: null
       duration: 30min
-      ramp_time: 10s
     "2": # Evening watering on weekdays
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
       time: "18:00"
       condition: fixed_time
-      astro_type: null
-      astro_offset_minutes: 0
       target_channels: ["1_1"]
       level: 1.0 # Fully open
-      level_2: null
       duration: 30min
-      ramp_time: 10s
     "3": # Weekend watering
       weekdays: [SATURDAY, SUNDAY]
       time: "07:00"
       condition: fixed_time
-      astro_type: null
-      astro_offset_minutes: 0
       target_channels: ["1_1"]
       level: 1.0 # Fully open
-      level_2: null
       duration: 45min
-      ramp_time: 10s
 ```
 
 ### Example: Light Dimmer Schedule
 
 ```yaml
-action: homematicip_local.set_schedule
+action: homematicip_local.light_set_schedule
 target:
   entity_id: light.hallway_dimmer
 data:
@@ -550,35 +582,57 @@ data:
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
       time: "06:00"
       condition: fixed_time
-      astro_type: null
-      astro_offset_minutes: 0
       target_channels: ["1_1"]
       level: 0.3 # 30% brightness
-      level_2: null
       duration: 2h
-      ramp_time: 10s
+      ramp_time: 10s # Smooth transition (only for lights!)
     "2": # Weekday evening
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
       time: "17:00"
       condition: fixed_time
-      astro_type: null
-      astro_offset_minutes: 0
       target_channels: ["1_1"]
       level: 0.6 # 60% brightness
-      level_2: null
       duration: 5h
       ramp_time: 10s
     "3": # Late night
       weekdays: [SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY]
       time: "22:00"
       condition: fixed_time
-      astro_type: null
-      astro_offset_minutes: 0
       target_channels: ["1_1"]
       level: 0.2 # 20% brightness
-      level_2: null
       duration: 1h
       ramp_time: 10s
+```
+
+### Example: Cover/Blind Schedule
+
+```yaml
+action: homematicip_local.cover_set_schedule
+target:
+  entity_id: cover.living_room_blinds
+data:
+  schedule_data:
+    "1": # Morning - open blinds
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+      time: "07:00"
+      condition: fixed_time
+      target_channels: ["1_1"]
+      level: 1.0 # Fully open
+      level_2: 0.5 # Slats at 50% (only for covers!)
+    "2": # Midday - partial shade
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+      time: "12:00"
+      condition: fixed_time
+      target_channels: ["1_1"]
+      level: 0.7 # 70% open
+      level_2: 0.3 # Slats at 30%
+    "3": # Evening - close blinds
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+      time: "21:00"
+      condition: fixed_time
+      target_channels: ["1_1"]
+      level: 0.0 # Closed
+      level_2: 0.0 # Slats closed
 ```
 
 ## Troubleshooting
@@ -602,11 +656,19 @@ data:
 - Both devices must have the same number of profiles (climate only)
 - Check that devices are reachable
 
-### set_schedule Service Not Available
+### Schedule Service Not Available
 
-- Service is only available for switch, light, cover, and valve domains
+- Use domain-specific services: `switch_set_schedule`, `light_set_schedule`, `cover_set_schedule`, `valve_set_schedule`
 - Climate devices use the `set_schedule_simple_profile` and `set_schedule_simple_weekday` services instead
 - Check that the device actually supports week profiles
+
+### Validation Error: Unsupported Field
+
+If you receive an error like "level_2 not supported for switch" or "ramp_time not supported for cover":
+
+- Check the [field restrictions table](#supported-domains-and-field-restrictions) for your domain
+- Remove unsupported fields from your schedule data
+- For switches, ensure `level` is exactly `0.0` or `1.0` (not intermediate values)
 
 ## See Also
 

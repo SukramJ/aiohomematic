@@ -380,6 +380,7 @@ from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
 from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol
 from aiohomematic.model.schedule_models import (
+    SCHEDULE_DOMAIN_CONTEXT_KEY,
     ClimateProfileSchedule,
     ClimateSchedule,
     ClimateSchedulePeriod,
@@ -792,13 +793,29 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
         Args:
             schedule_data: SimpleSchedule with human-readable entries (Pydantic-validated)
 
+        Raises:
+            ValidationError: If schedule_data violates domain-specific constraints
+
         Note:
             The cache is NOT updated optimistically. The cache will be refreshed
             from CCU when CONFIG_PENDING = False is received, ensuring consistency
             between cache and CCU state.
 
+            Domain-specific validation is applied based on the device category:
+            - SWITCH: level must be 0.0 or 1.0, no level_2, no ramp_time
+            - LIGHT: no level_2
+            - COVER: no ramp_time, no duration
+            - VALVE: no level_2, no ramp_time
+
         """
         sca = self._validate_and_get_schedule_channel_address()
+
+        # Re-validate with domain context to enforce domain-specific constraints
+        # The context passes the device category to enable domain-aware validation
+        SimpleSchedule.model_validate(
+            schedule_data.model_dump(),
+            context={SCHEDULE_DOMAIN_CONTEXT_KEY: self._data_point.category},
+        )
 
         # Write to device - cache will be updated via CONFIG_PENDING event
         await self._client.put_paramset(

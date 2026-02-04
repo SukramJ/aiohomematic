@@ -160,6 +160,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         self._command_throttle: Final = CommandThrottle(
             interface_id=backend.interface_id,
             interval=central.config.timeout_config.command_throttle_interval,
+            burst_threshold=central.config.timeout_config.burst_threshold,
+            burst_window=central.config.timeout_config.burst_window,
         )
         self._modified_at: datetime = INIT_DATETIME
 

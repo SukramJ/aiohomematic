@@ -17,19 +17,21 @@
 
   - **CRITICAL** (priority 0): Security and access control commands (locks, sirens, alarms) bypass throttle entirely
   - **HIGH** (priority 1): Interactive user commands use normal throttle with high queue priority
-  - **LOW** (priority 2): Bulk operations and automations use normal throttle with low queue priority
+  - **LOW** (priority 2): Burst detection automatically downgrades commands when burst thresholds are exceeded
 
   New enum: `CommandPriority` in `aiohomematic.client`
 
-  CRITICAL priority is declared at the service-method level via `@bind_collector(priority=CommandPriority.CRITICAL)` on lock and siren service methods. Use `RequestContext` with `bulk_operation=True` flag to trigger LOW priority for bulk operations.
+  CRITICAL priority is declared at the service-method level via `@bind_collector(priority=CommandPriority.CRITICAL)` on lock and siren service methods.
+
+- **Command throttle**: Added configurable per-interface rate limiting for outgoing device commands (`set_value`, `put_paramset`). The throttle enforces a minimum delay between consecutive commands on the same RF interface to reduce duty-cycle usage and packet loss during bulk operations. Configure via `TimeoutConfig.command_throttle_interval` (default: `0.0` = disabled).
+
+  New class: `CommandThrottle` in `aiohomematic.client`
 
 ### Removed
 
 - **`CRITICAL_PRIORITY_PARAMETERS`**: Removed the frozenset from `aiohomematic.const`. CRITICAL priority is now declared exclusively via `@bind_collector(priority=CommandPriority.CRITICAL)` on service methods. The parameter-set-based detection was redundant since all lock/siren commands flow through decorated service methods.
 
-- **Command throttle**: Added configurable per-interface rate limiting for outgoing device commands (`set_value`, `put_paramset`). The throttle enforces a minimum delay between consecutive commands on the same RF interface to reduce duty-cycle usage and packet loss during bulk operations. Configure via `TimeoutConfig.command_throttle_interval` (default: `0.0` = disabled).
-
-  New class: `CommandThrottle` in `aiohomematic.client`
+- **Bulk operation context**: Removed `_is_bulk_operation_context()` from `BaseParameterDataPoint`. The `RequestContext` bulk operation flag was never used by the HA integration, making it dead code. The command throttle's built-in burst detection provides automatic LOW priority downgrade without requiring explicit context flags.
 
 ### Improved
 
@@ -43,6 +45,7 @@
 - **Type annotations**: Fixed missing `config` property in `CentralInfoProtocol` and `ConfigProviderProtocol`
 - **Cover target levels**: Fixed `_target_level` and `_target_tilt_level` properties to check for `None` before calling `float()`, preventing type errors
 - **Event bus access**: Fixed optimistic rollback event publishing to use `_event_bus_provider.event_bus` instead of non-existent `_event_bus` attribute
+- **Optimistic updates in collector path**: Fixed optimistic values interfering with `is_state_change()` checks in parent service methods. When using `CallParameterCollector`, optimistic values are now deferred until `send_data()` instead of being applied immediately in `send_value()`, preventing sibling data point reads from returning premature values
 
 # Version 2026.2.3 (2026-02-03)
 

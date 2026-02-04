@@ -36,6 +36,7 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from dataclasses import dataclass, field
 from enum import IntEnum
 import heapq
@@ -91,24 +92,38 @@ class CommandThrottle:
     """
 
     __slots__ = (
+        "_burst_count",
+        "_burst_threshold",
+        "_burst_timestamps",
+        "_burst_window",
+        "_critical_count",
         "_interface_id",
         "_interval",
         "_last_command_time",
-        "_queue",
         "_lock",
-        "_worker_task",
+        "_queue",
         "_stopped",
         "_throttled_count",
-        "_critical_count",
+        "_worker_task",
     )
 
-    def __init__(self, *, interface_id: str, interval: float) -> None:
+    def __init__(
+        self,
+        *,
+        interface_id: str,
+        interval: float,
+        burst_threshold: int = 5,
+        burst_window: float = 0.5,
+    ) -> None:
         """
         Initialize priority-aware command throttle.
 
         Args:
             interface_id: Interface identifier (e.g., "HmIP-RF")
             interval: Minimum delay between commands in seconds (0.0 = disabled)
+            burst_threshold: Number of commands within burst_window that triggers burst
+                detection (0 = disabled)
+            burst_window: Time window in seconds for burst detection
 
         """
         self._interface_id: Final = interface_id
@@ -118,9 +133,15 @@ class CommandThrottle:
         self._lock: Final = asyncio.Lock()
         self._stopped: bool = False
 
+        # Burst detection
+        self._burst_threshold: Final = burst_threshold
+        self._burst_window: Final = burst_window
+        self._burst_timestamps: deque[float] = deque()
+
         # Statistics
         self._throttled_count: int = 0
         self._critical_count: int = 0
+        self._burst_count: int = 0
 
         # Start background worker if throttling enabled
         self._worker_task: asyncio.Task[None] | None = None
@@ -137,8 +158,24 @@ class CommandThrottle:
             f"interval={self._interval:.3f}s, "
             f"queue_size={self.queue_size}, "
             f"throttled={self._throttled_count}, "
-            f"critical={self._critical_count})"
+            f"critical={self._critical_count}, "
+            f"burst={self._burst_count})"
         )
+
+    @property
+    def burst_count(self) -> int:
+        """Return number of burst downgrades."""
+        return self._burst_count
+
+    @property
+    def burst_threshold(self) -> int:
+        """Return configured burst threshold."""
+        return self._burst_threshold
+
+    @property
+    def burst_window(self) -> float:
+        """Return configured burst window in seconds."""
+        return self._burst_window
 
     @property
     def critical_count(self) -> int:
@@ -186,6 +223,7 @@ class CommandThrottle:
         Behavior:
         - Throttling disabled (interval=0.0): Return immediately
         - CRITICAL priority: Return immediately, bypass queue and throttle
+        - HIGH priority during burst: Downgraded to LOW, then enqueued
         - HIGH/LOW priority: Enqueue and wait for worker to grant permission
 
         Raises:
@@ -205,6 +243,20 @@ class CommandThrottle:
                 device_address,
             )
             return
+
+        # Burst detection: downgrade HIGH → LOW when burst detected
+        if priority == CommandPriority.HIGH and self._detect_burst():
+            self._burst_count += 1
+            _LOGGER.info(
+                i18n.tr(
+                    key="log.client.command_throttle.burst_downgrade",
+                    interface_id=self._interface_id,
+                    device_address=device_address,
+                    count=len(self._burst_timestamps),
+                    window=self._burst_window,
+                )
+            )
+            priority = CommandPriority.LOW
 
         # Check if stopped
         if self._stopped:
@@ -252,6 +304,21 @@ class CommandThrottle:
             cmd = heapq.heappop(self._queue)
             if not cmd.future.done():
                 cmd.future.set_exception(asyncio.CancelledError(i18n.tr(key="log.client.command_throttle.stopped")))
+
+    def _detect_burst(self) -> bool:
+        """Detect command burst using sliding window."""
+        if not self._burst_threshold:
+            return False
+
+        now = time.monotonic()
+        self._burst_timestamps.append(now)
+
+        # Evict old entries
+        cutoff = now - self._burst_window
+        while self._burst_timestamps and self._burst_timestamps[0] < cutoff:
+            self._burst_timestamps.popleft()
+
+        return len(self._burst_timestamps) > self._burst_threshold
 
     async def _worker(self) -> None:
         """

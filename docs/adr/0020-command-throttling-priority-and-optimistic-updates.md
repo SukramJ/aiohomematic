@@ -129,7 +129,7 @@ Rollback publishes an `OptimisticRollbackEvent` for Home Assistant notification 
 
 **Service-method-level, not device-type-based:** The original proposal included a `CRITICAL_PRIORITY_DEVICE_TYPES` frozenset for device-model-based priority. This was dropped because priority is a property of the operation (lock/unlock/alarm), not the device model.
 
-**Bulk operation via RequestContext, not context manager:** The original proposal included a `bulk_operation_context()` context manager on `CentralUnit`. Instead, bulk operations are detected via a `bulk_operation` flag in `RequestContext.extra`, which integrates cleanly with the existing request context propagation.
+**No bulk operation detection:** The original proposal included LOW priority for bulk operations (scenes, automations) detected via a `bulk_operation` flag in `RequestContext.extra`. This was removed because the HA integration never sets this flag, making it dead code. The command throttle's built-in burst detection already downgrades commands to LOW priority when burst thresholds are exceeded, providing automatic protection without requiring explicit context flags.
 
 **Optimistic updates always active:** Optimistic updates are an integral part of the command throttling system, providing immediate UI feedback while commands are queued. There is no separate feature flag.
 
@@ -145,7 +145,7 @@ Rollback publishes an `OptimisticRollbackEvent` for Home Assistant notification 
 
 **Files Modified:**
 
-- `aiohomematic/model/data_point.py` -- `CallParameterCollector` accepts `priority` floor, `bind_collector` accepts `priority` parameter, `get_command_priority()`, `_is_bulk_operation_context()`, `_get_value()`, `_rollback_optimistic_value()`, `_schedule_optimistic_rollback()`, optimistic state slots
+- `aiohomematic/model/data_point.py` -- `CallParameterCollector` accepts `priority` floor, `bind_collector` accepts `priority` parameter, `get_command_priority()`, `_get_value()`, `_rollback_optimistic_value()`, `_schedule_optimistic_rollback()`, optimistic state slots
 - `aiohomematic/model/generic/data_point.py` -- `send_value()` with optimistic update and priority detection phases
 - `aiohomematic/model/custom/lock.py` -- `@bind_collector(priority=CommandPriority.CRITICAL)` on all lock service methods
 - `aiohomematic/model/custom/siren.py` -- `@bind_collector(priority=CommandPriority.CRITICAL)` on siren turn_on/turn_off (except `CustomDpSoundPlayer`)

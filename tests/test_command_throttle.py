@@ -89,6 +89,90 @@ class TestCommandThrottle:
         # Note: HIGH commands may be processed immediately if no queue, so throttled_count might be 0
 
 
+class TestBurstDetection:
+    """Test burst detection in command throttle."""
+
+    async def test_burst_detection_disabled_when_threshold_zero(self) -> None:
+        """Test that burst detection is disabled when threshold is 0."""
+        throttle = CommandThrottle(
+            interface_id="TEST",
+            interval=0.05,
+            burst_threshold=0,
+            burst_window=2.0,
+        )
+
+        for _ in range(10):
+            await throttle.acquire(priority=CommandPriority.HIGH, device_address="TEST:1")
+
+        assert throttle.burst_count == 0
+
+    async def test_burst_detection_does_not_affect_critical(self) -> None:
+        """Test that CRITICAL commands are never downgraded by burst detection."""
+        throttle = CommandThrottle(
+            interface_id="TEST",
+            interval=0.05,
+            burst_threshold=3,
+            burst_window=2.0,
+        )
+
+        # Send 6 CRITICAL commands rapidly
+        for _ in range(6):
+            await throttle.acquire(priority=CommandPriority.CRITICAL, device_address="TEST:1")
+
+        assert throttle.burst_count == 0
+        assert throttle.critical_count == 6
+
+    async def test_burst_detection_downgrades_high_to_low(self) -> None:
+        """Test that HIGH commands are downgraded to LOW during burst."""
+        throttle = CommandThrottle(
+            interface_id="TEST",
+            interval=0.05,
+            burst_threshold=3,
+            burst_window=2.0,
+        )
+
+        # Send 6 HIGH commands rapidly — first 3 are within threshold, rest trigger burst
+        for _ in range(6):
+            await throttle.acquire(priority=CommandPriority.HIGH, device_address="TEST:1")
+
+        assert throttle.burst_count > 0
+
+    async def test_burst_detection_sliding_window_expires(self) -> None:
+        """Test that burst window expires and old commands are evicted."""
+        throttle = CommandThrottle(
+            interface_id="TEST",
+            interval=0.05,
+            burst_threshold=5,
+            burst_window=0.1,
+        )
+
+        # Send 3 commands
+        for _ in range(3):
+            await throttle.acquire(priority=CommandPriority.HIGH, device_address="TEST:1")
+
+        # Wait for burst window to expire
+        await asyncio.sleep(0.15)
+
+        # Send 3 more — should not trigger burst since window expired
+        for _ in range(3):
+            await throttle.acquire(priority=CommandPriority.HIGH, device_address="TEST:1")
+
+        assert throttle.burst_count == 0
+
+    def test_burst_properties(self) -> None:
+        """Test that burst properties return correct values."""
+        throttle = CommandThrottle(
+            interface_id="TEST",
+            interval=0.0,
+            burst_threshold=10,
+            burst_window=2.5,
+        )
+
+        assert throttle.burst_count == 0
+        assert throttle.burst_threshold == 10
+        assert throttle.burst_window == 2.5
+
+
 class TestCommandPriorityEnum:
     """Test CommandPriority enum."""
 

@@ -64,13 +64,7 @@ from aiohomematic.const import (
     ServiceScope,
     check_ignore_parameter_on_initial_load,
 )
-from aiohomematic.context import (
-    RequestContext,
-    get_request_context,
-    is_in_service,
-    reset_request_context,
-    set_request_context,
-)
+from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces import (
@@ -1082,22 +1076,13 @@ class BaseParameterDataPoint[
         """
         Determine command priority for throttling.
 
-        Priority Rules:
-        1. LOW: Bulk operations (scenes, automations)
-        2. HIGH: Default for interactive user commands
-
         CRITICAL priority is declared at the service-method level via
         ``@bind_collector(priority=CommandPriority.CRITICAL)``.
 
         Returns:
-            CommandPriority enum value (HIGH/LOW)
+            CommandPriority.HIGH for interactive user commands.
 
         """
-        # Check for LOW priority - bulk operations
-        if self._is_bulk_operation_context():
-            return CommandPriority.LOW
-
-        # Default: HIGH priority - interactive user commands
         return CommandPriority.HIGH
 
     def get_event_data(self, *, value: Any = None) -> EventData:
@@ -1443,23 +1428,6 @@ class BaseParameterDataPoint[
         if self._optimistic_value is not None:
             return self._optimistic_value
         return self._value
-
-    def _is_bulk_operation_context(self) -> bool:
-        """
-        Check if command is part of a bulk operation.
-
-        Bulk operations (scenes, automations with multiple devices) use LOW priority
-        to avoid overwhelming the RF network with simultaneous commands.
-
-        Returns:
-            True if RequestContext indicates bulk operation
-
-        """
-        if (ctx := get_request_context()) is None:
-            return False
-
-        # Check for bulk_operation flag in context
-        return ctx.extra.get("bulk_operation", False) is True
 
     def _publish_rollback_event(
         self,

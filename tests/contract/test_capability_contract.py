@@ -118,6 +118,7 @@ class _FakeCentral:
             timeout_config = SimpleNamespace(
                 callback_warn_interval=callback_warn_interval,
                 connectivity_error_threshold=3,
+                command_throttle_interval=0.0,
             )
 
         self.config = Cfg()

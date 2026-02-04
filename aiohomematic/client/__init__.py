@@ -13,6 +13,7 @@ Package structure
 - client_factory.py: ClientConfig for configuration and proxy creation
 - config.py: InterfaceConfig for per-interface connection settings
 - circuit_breaker.py: CircuitBreaker, CircuitBreakerConfig, CircuitState
+- command_throttle.py: CommandThrottle for rate-limiting device commands
 - state_machine.py: ClientStateMachine for connection state tracking
 - rpc_proxy.py: BaseRpcProxy, AioXmlRpcProxy for XML-RPC transport
 - json_rpc.py: AioJsonRpcAioHttpClient for JSON-RPC transport
@@ -25,6 +26,7 @@ Public API
 - Clients: InterfaceClient
 - Configuration: ClientConfig, InterfaceConfig
 - Circuit breaker: CircuitBreaker, CircuitBreakerConfig, CircuitState
+- Command throttle: CommandThrottle
 - State machine: ClientStateMachine, InvalidStateTransitionError
 - Transport: BaseRpcProxy, AioJsonRpcAioHttpClient
 - Coalescing: RequestCoalescer, make_coalesce_key
@@ -47,6 +49,7 @@ from aiohomematic import central as hmcu, i18n
 from aiohomematic.client.backends import create_backend
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client.client_factory import ClientConfig
+from aiohomematic.client.command_throttle import CommandThrottle
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.interface_client import InterfaceClient
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
@@ -66,6 +69,8 @@ __all__ = [
     "CircuitState",
     # Clients
     "InterfaceClient",
+    # Command throttle
+    "CommandThrottle",
     # Config
     "ClientConfig",
     "InterfaceConfig",

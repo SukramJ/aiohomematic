@@ -328,7 +328,7 @@ def get_xml_rpc_proxy(  # noqa: C901
                     method="getParamset",
                     params=(channel_address, paramset),
                 )
-                return result if result else {}
+                return result or {}
 
         async def listDevices(self) -> list[Any]:
             """Return a list of devices."""
@@ -736,7 +736,7 @@ class SessionPlayer:
         if self.supports_file_id(file_id=file_id):
             return DataOperationResult.NO_LOAD
 
-        if not os.path.exists(file_path):
+        if not os.path.exists(file_path):  # noqa: ASYNC240
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:

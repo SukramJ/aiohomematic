@@ -392,6 +392,49 @@ class DataPointStateChangedEvent(Event):
 
 
 @dataclass(frozen=True, slots=True)
+class OptimisticRollbackEvent(Event):
+    """
+    Optimistic value was rolled back.
+
+    Key is the DataPointKey.
+
+    This event is fired when an optimistic value is rolled back to the previous
+    confirmed value due to:
+    - CCU timeout (no confirmation within optimistic_update_timeout)
+    - Send error (exception during set_value)
+    - Value mismatch (CCU confirmed different value than sent)
+
+    Consumers (Home Assistant integration) can use this event to:
+    - Create persistent notifications for users
+    - Log warnings in system log
+    - Update device diagnostics
+    """
+
+    dpk: DataPointKey
+    """Data point key identifying the affected parameter."""
+
+    reason: str
+    """Reason for rollback (RollbackReason enum value)."""
+
+    rolled_back_value: Any
+    """Value that was rolled back (optimistic value that failed)."""
+
+    restored_value: Any
+    """Value that was restored (previous confirmed value)."""
+
+    error: str | None = None
+    """Error message (only set if reason is SEND_ERROR)."""
+
+    age_seconds: float = 0.0
+    """Age of optimistic value when rolled back (in seconds)."""
+
+    @property
+    def key(self) -> Any:
+        """Key identifier for this event."""
+        return self.dpk
+
+
+@dataclass(frozen=True, slots=True)
 class DeviceRemovedEvent(Event):
     """
     Device or data point has been removed from the system.
@@ -421,7 +464,7 @@ class DeviceRemovedEvent(Event):
     @property
     def key(self) -> Any:
         """Key identifier for this event."""
-        return self.device_address if self.device_address else self.unique_id
+        return self.device_address or self.unique_id
 
 
 # =============================================================================

@@ -636,7 +636,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         if self._dp_control_mode.value == _ModeHm.AWAY:
             return ClimateProfile.AWAY
         if self.mode == ClimateMode.AUTO:
-            return self._current_profile_name if self._current_profile_name else ClimateProfile.NONE
+            return self._current_profile_name or ClimateProfile.NONE
         return ClimateProfile.NONE
 
     @state_property
@@ -891,7 +891,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         if self._dp_set_point_mode.value == _ModeHmIP.AWAY:
             return ClimateProfile.AWAY
         if self.mode == ClimateMode.AUTO:
-            return self._current_profile_name if self._current_profile_name else ClimateProfile.NONE
+            return self._current_profile_name or ClimateProfile.NONE
         return ClimateProfile.NONE
 
     @state_property

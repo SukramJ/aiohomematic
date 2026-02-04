@@ -282,6 +282,11 @@ class CentralInfoProtocol(Protocol):
 
     @property
     @abstractmethod
+    def config(self) -> CentralConfigProtocol:
+        """Get central configuration."""
+
+    @property
+    @abstractmethod
     def info_payload(self) -> Mapping[str, Any]:
         """Return the info payload."""
 

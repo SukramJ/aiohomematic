@@ -9,6 +9,7 @@ from unittest.mock import call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpIrrigationValve
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
@@ -59,6 +60,7 @@ class TestIpIrrigationValve:
             parameter="STATE",
             value=True,
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
         assert valve.value is True
         await valve.close()
@@ -68,6 +70,7 @@ class TestIpIrrigationValve:
             parameter="STATE",
             value=False,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert valve.value is False
         await valve.open(on_time=60)
@@ -76,6 +79,7 @@ class TestIpIrrigationValve:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"ON_TIME": 60.0, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert valve.value is True
 
@@ -87,6 +91,7 @@ class TestIpIrrigationValve:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"ON_TIME": 35.4, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         await valve.open()

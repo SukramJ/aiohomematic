@@ -14,7 +14,7 @@ from typing import Any, Final, TypeAlias
 
 from aiohomematic import i18n
 from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
-from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
+from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey, RollbackReason
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
@@ -64,6 +64,40 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
+        # PHASE 3: CCU CONFIRMATION - Handle optimistic value confirmation
+        if self._optimistic_value is not None:
+            # Cancel rollback timer - CCU confirmed
+            if self._optimistic_timeout_handle:
+                self._optimistic_timeout_handle.cancel()
+                self._optimistic_timeout_handle = None
+
+            # Check for value mismatch
+            if self._optimistic_value != value:
+                age = self.optimistic_age or 0.0
+                _LOGGER.warning(
+                    i18n.tr(
+                        key="log.model.data_point.optimistic_mismatch",
+                        full_name=self.full_name,
+                        expected=self._optimistic_value,
+                        actual=value,
+                        age=age,
+                    )
+                )
+
+                # Publish rollback event (CCU rejected our value)
+                self._publish_rollback_event(
+                    reason=RollbackReason.VALUE_MISMATCH,
+                    rolled_back_value=self._optimistic_value,
+                    restored_value=value,
+                    error=None,
+                    age_seconds=age,
+                )
+
+            # Clear optimistic state (either confirmed or corrected)
+            self._optimistic_value = None
+            self._optimistic_previous_value = None
+            self._optimistic_sent_at = None
+
         self._device.client.last_value_send_tracker.remove_last_value_send(
             dpk=self.dpk,
             value=value,
@@ -129,21 +163,35 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             return set()
 
         converted_value = self._convert_value(value=prepared_value)
-        # if collector is set, then add value to collector
+
+        # COLLECTOR PATH: Defer optimistic update to collector.send_data()
+        # This prevents optimistic values from interfering with is_state_change()
+        # checks in parent turn_on() methods that read from sibling data points.
         if collector:
             collector.add_data_point(data_point=self, value=converted_value, collector_order=collector_order)
             return set()
 
-        # if collector is not set, then send value directly
+        # DIRECT SEND PATH: Apply optimistic update immediately
+        self.apply_optimistic_value(value=converted_value)
+
         if self._validate_state_change and not self.is_state_change(value=converted_value):
             return set()
 
-        return await self._client.set_value(
-            channel_address=self._channel.address,
-            paramset_key=self._paramset_key,
-            parameter=self._parameter,
-            value=converted_value,
-        )
+        # Detect command priority for throttling (CRITICAL/HIGH/LOW)
+        priority = self.get_command_priority()
+
+        try:
+            return await self._client.set_value(
+                channel_address=self._channel.address,
+                paramset_key=self._paramset_key,
+                parameter=self._parameter,
+                value=converted_value,
+                priority=priority,
+            )
+        except Exception as err:
+            # Immediate rollback on send error
+            self._rollback_optimistic_value(reason="send_error", error=str(err))
+            raise
 
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data_point."""

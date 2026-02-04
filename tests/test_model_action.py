@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpActionSelect
 
@@ -55,6 +56,7 @@ class TestActionSelectDataPoint:
             paramset_key=ParamsetKey.VALUES,
             parameter="LOCK_TARGET_LEVEL",
             value="OPEN",
+            priority=CommandPriority.HIGH,
         )
         await action_select.send_value(value=1)
         assert mock_client.method_calls[-1] == call.set_value(
@@ -62,6 +64,7 @@ class TestActionSelectDataPoint:
             paramset_key=ParamsetKey.VALUES,
             parameter="LOCK_TARGET_LEVEL",
             value=1,
+            priority=CommandPriority.HIGH,
         )
 
         call_count = len(mock_client.method_calls)

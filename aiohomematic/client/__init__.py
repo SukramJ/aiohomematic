@@ -49,7 +49,7 @@ from aiohomematic import central as hmcu, i18n
 from aiohomematic.client.backends import create_backend
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client.client_factory import ClientConfig
-from aiohomematic.client.command_throttle import CommandThrottle
+from aiohomematic.client.command_throttle import CommandPriority, CommandThrottle
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.interface_client import InterfaceClient
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
@@ -70,6 +70,7 @@ __all__ = [
     # Clients
     "InterfaceClient",
     # Command throttle
+    "CommandPriority",
     "CommandThrottle",
     # Config
     "ClientConfig",

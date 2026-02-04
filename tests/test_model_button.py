@@ -9,6 +9,7 @@ from unittest.mock import call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointUsage, ParamsetKey, ProgramData
 from aiohomematic.model.generic import DpButton
 from aiohomematic.model.hub import ProgramDpButton
@@ -55,6 +56,7 @@ class TestGenericButton:
             paramset_key=ParamsetKey.VALUES,
             parameter="RESET_MOTION",
             value=True,
+            priority=CommandPriority.HIGH,
         )
 
         call_count = len(mock_client.method_calls)

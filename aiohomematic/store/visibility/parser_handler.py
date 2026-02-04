@@ -94,7 +94,7 @@ class UnIgnoreRuleParser:
         for model, (channel_nos, parameters) in RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items():
             model_l = model.lower()
 
-            effective_channels = channel_nos if channel_nos else frozenset({None})
+            effective_channels = channel_nos or frozenset({None})
             for channel_no in effective_channels:
                 # Track relevant channels for MASTER paramset fetching
                 if model_l not in relevant_master_channels:

@@ -177,7 +177,7 @@ class HomegearBackend(BaseBackend):
                     extract_exc_args(exc=bhexc),
                     address,
                 )
-        return details if details else None
+        return details or None
 
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
         """Return metadata (Homegear stores device names here)."""

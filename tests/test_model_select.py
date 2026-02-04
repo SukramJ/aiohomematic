@@ -9,6 +9,7 @@ from unittest.mock import call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpSelect
 from aiohomematic.model.hub import SysvarDpSelect
@@ -123,6 +124,7 @@ class TestGenericSelect:
             paramset_key=ParamsetKey.VALUES,
             parameter="WINDOW_STATE",
             value=1,
+            priority=CommandPriority.HIGH,
         )
         assert select.value == "OPEN"
 
@@ -152,6 +154,7 @@ class TestGenericSelect:
             paramset_key=ParamsetKey.VALUES,
             parameter="WINDOW_STATE",
             value="OPEN",
+            priority=CommandPriority.HIGH,
         )
         assert select.value == "OPEN"
 

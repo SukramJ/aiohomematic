@@ -9,6 +9,7 @@ from unittest.mock import call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpTextDisplay
@@ -118,6 +119,7 @@ class TestTextDisplaySendText:
                 "DISPLAY_DATA_COMMIT": True,
             },
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -157,6 +159,7 @@ class TestTextDisplaySendText:
                 "DISPLAY_DATA_COMMIT": True,
             },
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -223,6 +226,7 @@ class TestTextDisplaySendText:
                 "DISPLAY_DATA_COMMIT": True,
             },
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -300,6 +304,7 @@ class TestTextDisplaySendText:
                 "DISPLAY_DATA_COMMIT": True,
             },
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
 
 

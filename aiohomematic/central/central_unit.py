@@ -807,12 +807,12 @@ class CentralUnit(
             ip_addr := await self._identify_ip_addr(port=self._config.connection_check_port)
         ):
             self._rpc_callback_ip = ip_addr
-            self._listen_ip_addr = self._config.listen_ip_addr if self._config.listen_ip_addr else ip_addr
+            self._listen_ip_addr = self._config.listen_ip_addr or ip_addr
 
         port_xml_rpc: int = (
             self._config.listen_port_xml_rpc
-            if self._config.listen_port_xml_rpc
-            else self._config.callback_port_xml_rpc or self._config.default_callback_port_xml_rpc
+            or self._config.callback_port_xml_rpc
+            or self._config.default_callback_port_xml_rpc
         )
         try:
             if self._config.enable_xml_rpc_server:

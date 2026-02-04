@@ -10,6 +10,7 @@ from unittest.mock import DEFAULT, call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpBlind, CustomDpCover, CustomDpGarage, CustomDpIpBlind, CustomDpWindowDrive
 from aiohomematic.model.custom.cover import (
@@ -77,6 +78,7 @@ class TestCustomDpCover:
             parameter="LEVEL",
             value=0.81,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert cover.current_position == 81
         assert cover.is_closed is False
@@ -87,6 +89,7 @@ class TestCustomDpCover:
             parameter="LEVEL",
             value=_OPEN_LEVEL,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert cover.current_position == 100
         await cover.close()
@@ -96,6 +99,7 @@ class TestCustomDpCover:
             parameter="LEVEL",
             value=_CLOSED_LEVEL,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert cover.current_position == 0
 
@@ -174,6 +178,7 @@ class TestCustomDpWindowDrive:
             parameter="LEVEL",
             value=0.81,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert cover.current_position == 81
         assert cover.is_closed is False
@@ -185,6 +190,7 @@ class TestCustomDpWindowDrive:
             parameter="LEVEL",
             value=_OPEN_LEVEL,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert cover.current_position == 100
         await cover.close()
@@ -194,6 +200,7 @@ class TestCustomDpWindowDrive:
             parameter="LEVEL",
             value=_WD_CLOSED_LEVEL,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert cover.current_position == 0
         assert cover._group_level == _WD_CLOSED_LEVEL
@@ -252,6 +259,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL_COMBINED",
             value="0xa2,0x00",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000144:1", parameter="LEVEL", value=0.81
@@ -265,6 +273,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL_COMBINED",
             value="0xc8,0xc8",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000144:1", parameter="LEVEL", value=_OPEN_LEVEL
@@ -284,6 +293,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL_COMBINED",
             value="0x00,0x00",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000144:1", parameter="LEVEL", value=_CLOSED_LEVEL
@@ -303,6 +313,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL_COMBINED",
             value="0x00,0xc8",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -319,6 +330,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL_COMBINED",
             value="0x00,0x5a",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000144:1", parameter="LEVEL_SLATS", value=0.45
@@ -332,6 +344,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL_COMBINED",
             value="0x00,0x00",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -348,6 +361,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL_COMBINED",
             value="0x14,0x28",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000144:1", parameter="LEVEL", value=0.1
@@ -364,6 +378,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
+            priority=CommandPriority.HIGH,
         )
         await cover.stop_tilt()
         assert mock_client.method_calls[-1] == call.set_value(
@@ -371,6 +386,7 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
+            priority=CommandPriority.HIGH,
         )
 
         await cover.open_tilt()
@@ -466,6 +482,7 @@ class TestCustomDpBlind:
                 paramset_key=ParamsetKey.VALUES,
                 parameter="LEVEL_COMBINED",
                 value="0xa2,0x26",
+                priority=CommandPriority.HIGH,
             )
             await central.event_coordinator.data_point_event(
                 interface_id=const.INTERFACE_ID, channel_address="VCU0000144:1", parameter="LEVEL", value=0.81
@@ -511,6 +528,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=0,L=81",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL", value=0.81
@@ -524,6 +542,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=100,L=100",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=_OPEN_TILT_LEVEL
@@ -540,6 +559,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=0,L=0",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=_CLOSED_LEVEL
@@ -556,6 +576,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=100,L=0",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=1.0
@@ -569,6 +590,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=45,L=0",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=0.45
@@ -582,6 +604,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=0,L=0",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL_2", value=_CLOSED_LEVEL
@@ -598,6 +621,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=20,L=10",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL", value=0.1
@@ -654,6 +678,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -696,6 +721,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=0,L=81",
+            priority=CommandPriority.HIGH,
         )
 
         # test unconfirmed values
@@ -724,6 +750,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=100,L=100",
+            priority=CommandPriority.HIGH,
         )
         assert cover._dp_level.unconfirmed_last_value_send == _OPEN_LEVEL
         assert cover._dp_level_2.unconfirmed_last_value_send == _OPEN_TILT_LEVEL
@@ -755,6 +782,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="COMBINED_PARAMETER",
             value="L2=0,L=0",
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU7807849:13", parameter="LEVEL", value=_CLOSED_LEVEL
@@ -817,6 +845,7 @@ class TestCustomDpIpBlind:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": 0.81},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL", value=0.81
@@ -830,6 +859,7 @@ class TestCustomDpIpBlind:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL_2": _OPEN_TILT_LEVEL, "LEVEL": _OPEN_LEVEL},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL_2", value=_OPEN_TILT_LEVEL
@@ -846,6 +876,7 @@ class TestCustomDpIpBlind:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": _CLOSED_LEVEL},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL_2", value=_CLOSED_LEVEL
@@ -862,6 +893,7 @@ class TestCustomDpIpBlind:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL_2": _OPEN_TILT_LEVEL, "LEVEL": _CLOSED_LEVEL},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL_2", value=1.0
@@ -875,6 +907,7 @@ class TestCustomDpIpBlind:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL_2": 0.45, "LEVEL": _CLOSED_LEVEL},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL_2", value=0.45
@@ -888,6 +921,7 @@ class TestCustomDpIpBlind:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL_2": _CLOSED_LEVEL, "LEVEL": _CLOSED_LEVEL},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL_2", value=_CLOSED_LEVEL
@@ -904,6 +938,7 @@ class TestCustomDpIpBlind:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"LEVEL_2": 0.2, "LEVEL": 0.1},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL", value=0.1
@@ -936,6 +971,7 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
+            priority=CommandPriority.HIGH,
         )
 
 
@@ -981,6 +1017,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3574044:1", parameter="DOOR_STATE", value=1
@@ -993,6 +1030,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3574044:1", parameter="DOOR_STATE", value=0
@@ -1006,6 +1044,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.PARTIAL_OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3574044:1", parameter="DOOR_STATE", value=2
@@ -1019,6 +1058,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU3574044:1", parameter="DOOR_STATE", value=0
@@ -1032,6 +1072,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await cover.stop()
         assert mock_client.method_calls[-1] == call.set_value(
@@ -1039,6 +1080,7 @@ class TestCustomDpGarage:
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.STOP,
+            priority=CommandPriority.HIGH,
         )
 
         await central.event_coordinator.data_point_event(
@@ -1126,6 +1168,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6166407:1", parameter="DOOR_STATE", value=1
@@ -1138,6 +1181,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6166407:1", parameter="DOOR_STATE", value=0
@@ -1151,6 +1195,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.PARTIAL_OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6166407:1", parameter="DOOR_STATE", value=2
@@ -1164,6 +1209,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU6166407:1", parameter="DOOR_STATE", value=0
@@ -1177,6 +1223,7 @@ class TestCustomDpGarage:
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await cover.stop()
         assert mock_client.method_calls[-1] == call.set_value(
@@ -1184,6 +1231,7 @@ class TestCustomDpGarage:
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.STOP,
+            priority=CommandPriority.HIGH,
         )
 
         await central.event_coordinator.data_point_event(

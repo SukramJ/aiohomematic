@@ -290,16 +290,40 @@ class CustomDpBlind(CustomDpCover):
 
     @property
     def _target_level(self) -> float | None:
-        """Return the level of last service call."""
+        """
+        Return target level if command is pending.
+
+        Uses optimistic value if available (preferred), falls back to
+        CommandTracker for backward compatibility when optimistic updates
+        are disabled.
+        """
+        # Prefer optimistic value (new mechanism)
+        if self._dp_level.is_optimistic and self._dp_level.value is not None:
+            return float(self._dp_level.value)
+
+        # Fallback to CommandTracker (when optimistic updates disabled)
         if (last_value_send := self._dp_level.unconfirmed_last_value_send) is not None:
             return float(last_value_send)
+
         return None
 
     @property
     def _target_tilt_level(self) -> float | None:
-        """Return the tilt level of last service call."""
+        """
+        Return target tilt level if command is pending.
+
+        Uses optimistic value if available (preferred), falls back to
+        CommandTracker for backward compatibility when optimistic updates
+        are disabled.
+        """
+        # Prefer optimistic value (new mechanism)
+        if self._dp_level_2.is_optimistic and self._dp_level_2.value is not None:
+            return float(self._dp_level_2.value)
+
+        # Fallback to CommandTracker (when optimistic updates disabled)
         if (last_value_send := self._dp_level_2.unconfirmed_last_value_send) is not None:
             return float(last_value_send)
+
         return None
 
     @state_property

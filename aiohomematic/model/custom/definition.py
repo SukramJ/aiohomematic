@@ -200,7 +200,7 @@ def _rebase_device_config_channels(
     return DeviceConfig(
         data_point_class=device_config.data_point_class,
         profile_type=device_config.profile_type,
-        channels=rebased_channels if rebased_channels else device_config.channels,
+        channels=rebased_channels or device_config.channels,
         extended=device_config.extended,
         schedule_channel_no=device_config.schedule_channel_no,
     )

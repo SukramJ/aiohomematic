@@ -118,6 +118,20 @@ class TimeoutConfig(BaseModel):
     probability of packet loss during bulk operations.
     """
 
+    burst_threshold: int = 5
+    """Number of commands within burst_window that triggers burst detection (default: 5).
+
+    When more than this many commands arrive within burst_window seconds on the same
+    interface, subsequent HIGH-priority commands are automatically downgraded to LOW
+    priority.  Set to 0 to disable burst detection.
+    """
+
+    burst_window: float = 0.5
+    """Time window in seconds for burst detection (default: 0.5s).
+
+    Commands are counted within a sliding window of this duration.
+    """
+
     optimistic_update_timeout: float = 30.0
     """Rollback timeout for optimistic state updates (default: 30.0 seconds).
 

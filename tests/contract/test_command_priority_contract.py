@@ -160,7 +160,6 @@ class TestPriorityDetectionContract:
         for param in normal_params:
             dp = MagicMock(spec=BaseParameterDataPoint)
             dp._parameter = param
-            dp._is_bulk_operation_context.return_value = False
 
             priority = BaseParameterDataPoint.get_command_priority(dp)
             assert priority == CommandPriority.HIGH, f"{param} should get HIGH priority (default), got {priority}"

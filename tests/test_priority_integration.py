@@ -44,7 +44,6 @@ class TestPriorityIntegration:
         """Test that normal parameters get HIGH priority by default."""
         dp = MagicMock(spec=BaseParameterDataPoint)
         dp._parameter = Parameter.LEVEL
-        dp._is_bulk_operation_context.return_value = False
 
         priority = BaseParameterDataPoint.get_command_priority(dp)
 
@@ -71,7 +70,6 @@ class TestPriorityWithOptimisticUpdates:
         """Test that priority is detected BEFORE optimistic value is set."""
         dp = MagicMock(spec=BaseParameterDataPoint)
         dp._parameter = Parameter.LEVEL
-        dp._is_bulk_operation_context.return_value = False
 
         priority = BaseParameterDataPoint.get_command_priority(dp)
         assert priority == CommandPriority.HIGH

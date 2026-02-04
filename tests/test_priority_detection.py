@@ -16,7 +16,6 @@ class TestPriorityDetection:
         """Test get_command_priority returns HIGH for normal parameters."""
         dp = MagicMock(spec=BaseParameterDataPoint)
         dp._parameter = Parameter.LEVEL
-        dp._is_bulk_operation_context.return_value = False
 
         result = BaseParameterDataPoint.get_command_priority(dp)
 
@@ -31,7 +30,6 @@ class TestPriorityDetection:
         """
         dp = MagicMock(spec=BaseParameterDataPoint)
         dp._parameter = Parameter.LOCK_TARGET_LEVEL
-        dp._is_bulk_operation_context.return_value = False
 
         result = BaseParameterDataPoint.get_command_priority(dp)
 
@@ -46,7 +44,6 @@ class TestPriorityDetection:
         """
         dp = MagicMock(spec=BaseParameterDataPoint)
         dp._parameter = Parameter.ACOUSTIC_ALARM_ACTIVE
-        dp._is_bulk_operation_context.return_value = False
 
         result = BaseParameterDataPoint.get_command_priority(dp)
 

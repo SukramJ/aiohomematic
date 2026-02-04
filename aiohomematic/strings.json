@@ -158,6 +158,7 @@
   "log.central.startup.tcp_timeout": "STARTUP: TCP port {host}:{port} not available after {timeout}s timeout",
   "log.central.validate_config_and_get_system_information.client_failed": "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION failed for client {interface}: {reason}",
   "log.client.circuit_breaker.state_transition": "CIRCUIT_BREAKER: {old_state} → {new_state} for {interface_id} (failures={failure_count}, successes={success_count})",
+  "log.client.command_throttle.burst_downgrade": "COMMAND_THROTTLE[{interface_id}]: Burst detected, downgrading to LOW priority (device={device_address}, commands={count} in {window:.1f}s)",
   "log.client.command_throttle.stopped": "CommandThrottle stopped",
   "log.client.command_throttle.stopping_worker": "COMMAND_THROTTLE[{interface_id}]: Stopping worker...",
   "log.client.command_throttle.worker_cancelled": "COMMAND_THROTTLE[{interface_id}]: Worker cancelled",

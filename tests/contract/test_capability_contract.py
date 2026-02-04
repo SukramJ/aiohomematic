@@ -119,6 +119,8 @@ class _FakeCentral:
                 callback_warn_interval=callback_warn_interval,
                 connectivity_error_threshold=3,
                 command_throttle_interval=0.0,
+                burst_threshold=5,
+                burst_window=1.0,
             )
 
         self.config = Cfg()

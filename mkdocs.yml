@@ -136,6 +136,8 @@ nav:
       - "0017 Startup Auth Error Handling": adr/0017-startup-auth-error-handling.md
       - "0018 Contract Tests": adr/0018_contract_tests.md
       - "0019 Derived Binary Sensors": adr/0019-derived-binary-sensors.md
+      - "0020 Command Throttling": adr/0020-command-throttling-priority-and-optimistic-updates.md
+      - "0021 Blind Command Lock": adr/0021-blind-command-processing-lock.md
 
 markdown_extensions:
   # Python Markdown

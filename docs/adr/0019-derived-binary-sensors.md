@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (2026-01-28)
+Accepted (2026-02-04)
 
 ---
 

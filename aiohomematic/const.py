@@ -21,7 +21,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.2.3"
+VERSION: Final = "2026.2.4"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -108,6 +108,15 @@ class TimeoutConfig(BaseModel):
 
     startup_max_init_retry_delay: float = 5 if _TEST_SPEEDUP else 30
     """Maximum delay between startup initialization retry attempts after backoff (default: 30s)."""
+
+    command_throttle_interval: float = 0.0
+    """Minimum interval between consecutive device commands per interface (default: 0.0 = disabled).
+
+    When set to a positive value (e.g. 0.5), outgoing ``set_value`` and ``put_paramset``
+    calls are rate-limited so that at least this many seconds elapse between consecutive
+    commands on the same RF interface.  This reduces duty-cycle usage and lowers the
+    probability of packet loss during bulk operations.
+    """
 
 
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()

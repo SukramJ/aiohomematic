@@ -22,6 +22,7 @@ from aiohomematic import i18n
 from aiohomematic.central.events import ClientStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
+from aiohomematic.client.command_throttle import CommandThrottle
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.state_change import wait_for_state_change_or_timeout
 from aiohomematic.client.state_machine import ClientStateMachine
@@ -94,6 +95,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     __slots__ = (
         "_backend",
         "_central",
+        "_command_throttle",
         "_connection_error_count",
         "_device_description_coalescer",
         "_interface_config",
@@ -155,6 +157,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             event_bus=central.event_bus,
             interface_id=backend.interface_id,
         )
+        self._command_throttle: Final = CommandThrottle(
+            interface_id=backend.interface_id,
+            interval=central.config.timeout_config.command_throttle_interval,
+        )
         self._modified_at: datetime = INIT_DATETIME
 
         # Subscribe to connection state changes
@@ -170,6 +176,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     available: Final = DelegatedProperty[bool](path="_state_machine.is_available")
     central: Final = DelegatedProperty[ClientDependenciesProtocol](path="_central")
+    command_throttle: Final = DelegatedProperty[CommandThrottle](path="_command_throttle")
     last_value_send_tracker: Final = DelegatedProperty[CommandTracker](path="_last_value_send_tracker")
     ping_pong_tracker: Final = DelegatedProperty[PingPongTracker](path="_ping_pong_tracker")
     state: Final = DelegatedProperty[ClientState](path="_state_machine.state")
@@ -854,6 +861,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 else:
                     raise ClientException(i18n.tr(key="exception.client.paramset_key.invalid"))
 
+            await self._command_throttle.acquire()
+
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
                     await self._backend.put_paramset(
@@ -1056,6 +1065,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 if check_against_pd
                 else value
             )
+
+            await self._command_throttle.acquire()
 
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):

@@ -87,7 +87,7 @@ asyncio.run(main())
 
 - [Contributing](contributor/contributing.md) - How to contribute
 - [Coding Standards](contributor/coding/naming.md) - Naming and style conventions
-- [ADRs](adr/0001-circuit-breaker-and-connection-state.md) - Architecture decisions
+- [ADRs](adr/index.md) - Architecture Decision Records
 - [Changelog](changelog.md) - Version history
 
 ## Supported Devices

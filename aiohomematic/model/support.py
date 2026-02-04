@@ -84,7 +84,7 @@ class ChannelNameData:
         self.device_name: Final = device_name
         self.channel_name: Final = self._get_channel_name(device_name=device_name, channel_name=channel_name)
         self.full_name = f"{device_name} {self.channel_name}".strip() if self.channel_name else device_name
-        self.sub_device_name = channel_name if channel_name else device_name
+        self.sub_device_name = channel_name or device_name
 
     @staticmethod
     def _get_channel_name(*, device_name: str, channel_name: str) -> str:
@@ -470,7 +470,7 @@ def generate_unique_id(
     if (
         address in (HUB_ADDRESS, INSTALL_MODE_ADDRESS, PROGRAM_ADDRESS, SYSVAR_ADDRESS)
         or address.startswith("INT000")
-        or address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES
+        or address.split(ADDRESS_SEPARATOR, maxsplit=1)[0] in VIRTUAL_REMOTE_ADDRESSES
     ):
         return f"{config_provider.config.central_id}_{unique_id}".lower()
     return f"{unique_id}".lower()
@@ -483,7 +483,7 @@ def generate_channel_unique_id(
 ) -> str:
     """Build unique identifier for a channel from address."""
     unique_id = address.replace(ADDRESS_SEPARATOR, "_").replace("-", "_")
-    if address.split(ADDRESS_SEPARATOR)[0] in VIRTUAL_REMOTE_ADDRESSES:
+    if address.split(ADDRESS_SEPARATOR, maxsplit=1)[0] in VIRTUAL_REMOTE_ADDRESSES:
         return f"{config_provider.config.central_id}_{unique_id}".lower()
     return unique_id.lower()
 

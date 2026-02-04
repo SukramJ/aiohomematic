@@ -9,6 +9,7 @@ from unittest.mock import call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpLock, CustomDpRfLock
 from aiohomematic.model.custom.lock import _LockTargetLevel
@@ -52,6 +53,7 @@ class TestRfLock:
             parameter="STATE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert lock.is_locked is False
         await lock.lock()
@@ -61,6 +63,7 @@ class TestRfLock:
             parameter="STATE",
             value=False,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert lock.is_locked is True
         await lock.open()
@@ -70,6 +73,7 @@ class TestRfLock:
             parameter="OPEN",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         assert lock.is_locking is None
@@ -146,6 +150,7 @@ class TestIpLock:
             parameter="LOCK_TARGET_LEVEL",
             value=_LockTargetLevel.LOCKED,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="LOCK_STATE", value=1
@@ -158,6 +163,7 @@ class TestIpLock:
             parameter="LOCK_TARGET_LEVEL",
             value=_LockTargetLevel.UNLOCKED,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="LOCK_STATE", value=2
@@ -170,6 +176,7 @@ class TestIpLock:
             parameter="LOCK_TARGET_LEVEL",
             value=_LockTargetLevel.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         assert lock.is_locking is None

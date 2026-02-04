@@ -9,6 +9,7 @@ from unittest.mock import call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpFloat, DpInteger
 from aiohomematic.model.hub import SysvarDpNumber
@@ -54,6 +55,7 @@ class TestGenericNumber:
             paramset_key=ParamsetKey.VALUES,
             parameter="SETPOINT",
             value=8.0,
+            priority=CommandPriority.HIGH,
         )
         assert efloat.value == 8.0
 
@@ -63,6 +65,7 @@ class TestGenericNumber:
             paramset_key=ParamsetKey.VALUES,
             parameter="SETPOINT",
             value=100.0,
+            priority=CommandPriority.HIGH,
         )
         assert efloat.value == 100.0
 
@@ -98,6 +101,7 @@ class TestGenericNumber:
             paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL",
             value=0.3,
+            priority=CommandPriority.HIGH,
         )
         assert efloat.value == 0.3
         await central.event_coordinator.data_point_event(
@@ -146,6 +150,7 @@ class TestGenericNumber:
             paramset_key=ParamsetKey.VALUES,
             parameter="SET_POINT_MODE",
             value=3,
+            priority=CommandPriority.HIGH,
         )
         assert einteger.value == 3
 
@@ -155,6 +160,7 @@ class TestGenericNumber:
             paramset_key=ParamsetKey.VALUES,
             parameter="SET_POINT_MODE",
             value=1,
+            priority=CommandPriority.HIGH,
         )
         assert einteger.value == 1
 
@@ -168,6 +174,7 @@ class TestGenericNumber:
             paramset_key=ParamsetKey.VALUES,
             parameter="SET_POINT_MODE",
             value=6,
+            priority=CommandPriority.HIGH,
         )
         # do not write. value above max
         assert einteger.value == 2

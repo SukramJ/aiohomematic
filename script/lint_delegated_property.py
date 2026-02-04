@@ -158,7 +158,7 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         """Track imports."""
         for alias in node.names:
-            name = alias.asname if alias.asname else alias.name
+            name = alias.asname or alias.name
             if self.in_type_checking:
                 self.type_checking_imports.add(name)
             else:
@@ -168,7 +168,7 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
     def visit_Import(self, node: ast.Import) -> None:
         """Track imports."""
         for alias in node.names:
-            name = alias.asname if alias.asname else alias.name
+            name = alias.asname or alias.name
             if self.in_type_checking:
                 self.type_checking_imports.add(name)
             else:

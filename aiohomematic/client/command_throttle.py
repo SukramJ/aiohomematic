@@ -1,29 +1,29 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Command throttle for rate-limiting outgoing device commands.
+Priority-aware command throttle for rate-limiting outgoing device commands.
 
 Overview
 --------
 CommandThrottle enforces a minimum delay between consecutive device commands
-sent to a Homematic backend.  This reduces RF duty-cycle usage and lowers the
-probability of packet loss when multiple devices are addressed in rapid
-succession on the same 868 MHz interface.
+sent to a Homematic backend, with support for three priority levels:
+
+- CRITICAL: Security and access control commands (bypass throttle and queue)
+- HIGH: Interactive user commands (normal throttle, high priority)
+- LOW: Bulk operations and automations (normal throttle, low priority)
 
 How It Works
 ------------
-1. Each ``set_value`` / ``put_paramset`` call acquires the throttle before
-   sending the command to the backend.
-2. If the minimum interval has not elapsed since the last command, the caller
-   is suspended (``asyncio.sleep``) for the remaining time.
-3. An ``asyncio.Lock`` serialises access so that only one command is in-flight
-   at a time when throttling is active.
+1. Each command acquires the throttle with a priority level
+2. CRITICAL commands bypass the queue and throttle entirely (<100ms)
+3. HIGH/LOW commands are enqueued in a priority queue (heapq)
+4. Background worker processes queue with throttle interval
+5. Within same priority, FIFO order is maintained
 
 Configuration
 -------------
-The throttle interval is configured via ``TimeoutConfig.command_throttle_interval``.
-A value of ``0.0`` (the default) disables throttling entirely – the lock is never
-acquired and no delay is introduced.
+The throttle interval is configured via TimeoutConfig.command_throttle_interval.
+A value of 0.0 (the default) disables throttling entirely.
 
 Thread Safety
 -------------
@@ -36,55 +36,123 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass, field
+from enum import IntEnum
+import heapq
 import logging
 import time
 from typing import Final
 
-__all__ = ["CommandThrottle"]
+from aiohomematic import i18n
+
+__all__ = ["CommandThrottle", "CommandPriority", "PrioritizedCommand"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
+class CommandPriority(IntEnum):
+    """
+    Command priority levels.
+
+    Lower numeric value = higher priority in queue.
+    """
+
+    CRITICAL = 0  # Security, access control - bypass throttle
+    HIGH = 1  # Interactive user commands - normal throttle
+    LOW = 2  # Bulk operations, automations - normal throttle
+
+
+@dataclass(frozen=True, order=True)
+class PrioritizedCommand:
+    """
+    Command wrapper for priority queue.
+
+    Ordering:
+    1. Priority (CRITICAL < HIGH < LOW)
+    2. Timestamp (FIFO within same priority)
+    """
+
+    priority: CommandPriority = field(compare=True)
+    timestamp: float = field(compare=True)
+    future: asyncio.Future[None] = field(compare=False, repr=False)
+    device_address: str = field(compare=False)
+
+
 class CommandThrottle:
     """
-    Rate-limiter for outgoing device commands on a single interface.
+    Priority-aware rate-limiter for device commands.
 
-    Ensures a configurable minimum interval between consecutive ``set_value``
-    and ``put_paramset`` calls to reduce RF contention and duty-cycle usage.
+    Features:
+    - Three priority levels (CRITICAL, HIGH, LOW)
+    - CRITICAL commands bypass throttle and queue
+    - HIGH/LOW commands respect throttle interval and queue
+    - Per-interface throttling to reduce RF duty cycle
+    - Background worker processes queue continuously
     """
 
     __slots__ = (
         "_interface_id",
         "_interval",
         "_last_command_time",
+        "_queue",
         "_lock",
+        "_worker_task",
+        "_stopped",
         "_throttled_count",
+        "_critical_count",
     )
 
-    def __init__(
-        self,
-        *,
-        interface_id: str,
-        interval: float,
-    ) -> None:
+    def __init__(self, *, interface_id: str, interval: float) -> None:
         """
-        Initialize the command throttle.
+        Initialize priority-aware command throttle.
 
         Args:
-            interface_id: Interface identifier for logging.
-            interval: Minimum seconds between consecutive commands.
-                      Use 0.0 to disable throttling.
+            interface_id: Interface identifier (e.g., "HmIP-RF")
+            interval: Minimum delay between commands in seconds (0.0 = disabled)
 
         """
         self._interface_id: Final = interface_id
         self._interval: Final = interval
-        self._lock: Final[asyncio.Lock] = asyncio.Lock()
         self._last_command_time: float = 0.0
+        self._queue: list[PrioritizedCommand] = []
+        self._lock: Final = asyncio.Lock()
+        self._stopped: bool = False
+
+        # Statistics
         self._throttled_count: int = 0
+        self._critical_count: int = 0
+
+        # Start background worker if throttling enabled
+        self._worker_task: asyncio.Task[None] | None = None
+        if self._interval > 0.0:
+            self._worker_task = asyncio.create_task(
+                self._worker(),
+                name=f"CommandThrottle-{interface_id}",
+            )
+
+    def __repr__(self) -> str:
+        """Return string representation."""
+        return (
+            f"CommandThrottle(interface={self._interface_id}, "
+            f"interval={self._interval:.3f}s, "
+            f"queue_size={self.queue_size}, "
+            f"throttled={self._throttled_count}, "
+            f"critical={self._critical_count})"
+        )
+
+    @property
+    def critical_count(self) -> int:
+        """Return number of critical commands that bypassed throttle."""
+        return self._critical_count
+
+    @property
+    def interface_id(self) -> str:
+        """Return interface identifier."""
+        return self._interface_id
 
     @property
     def interval(self) -> float:
-        """Return the configured throttle interval in seconds."""
+        """Return throttle interval in seconds."""
         return self._interval
 
     @property
@@ -93,30 +161,165 @@ class CommandThrottle:
         return self._interval > 0.0
 
     @property
+    def queue_size(self) -> int:
+        """Return current queue size."""
+        return len(self._queue)
+
+    @property
     def throttled_count(self) -> int:
-        """Return the number of commands that were delayed by the throttle."""
+        """Return number of throttled commands (statistics)."""
         return self._throttled_count
 
-    async def acquire(self) -> None:
+    async def acquire(
+        self,
+        *,
+        priority: CommandPriority = CommandPriority.HIGH,
+        device_address: str = "",
+    ) -> None:
         """
-        Acquire permission to send the next device command.
+        Acquire permission to send device command with priority.
 
-        If the minimum interval has not yet elapsed since the previous command,
-        this coroutine sleeps for the remaining time.  When throttling is
-        disabled (interval == 0.0) the method returns immediately.
+        Args:
+            priority: Command priority level
+            device_address: Device address (for logging/debugging)
+
+        Behavior:
+        - Throttling disabled (interval=0.0): Return immediately
+        - CRITICAL priority: Return immediately, bypass queue and throttle
+        - HIGH/LOW priority: Enqueue and wait for worker to grant permission
+
+        Raises:
+            asyncio.CancelledError: If throttle is stopped while waiting
+
         """
+        # Throttling disabled
         if not self._interval:
             return
 
+        # CRITICAL commands bypass everything
+        if priority == CommandPriority.CRITICAL:
+            self._critical_count += 1
+            _LOGGER.debug(
+                "COMMAND_THROTTLE[%s]: CRITICAL command bypassing queue (device=%s)",
+                self._interface_id,
+                device_address,
+            )
+            return
+
+        # Check if stopped
+        if self._stopped:
+            raise asyncio.CancelledError(i18n.tr(key="log.client.command_throttle.stopped"))
+
+        # HIGH/LOW commands go through priority queue
+        future: asyncio.Future[None] = asyncio.Future()
+        cmd = PrioritizedCommand(
+            priority=priority,
+            timestamp=time.monotonic(),
+            future=future,
+            device_address=device_address,
+        )
+
+        # Enqueue command
         async with self._lock:
-            if (elapsed := time.monotonic() - self._last_command_time) < self._interval:
-                delay = self._interval - elapsed
-                self._throttled_count += 1
-                _LOGGER.debug(
-                    "COMMAND_THROTTLE[%s]: Delaying command by %.3fs (throttled_count=%d)",
-                    self._interface_id,
-                    delay,
-                    self._throttled_count,
+            heapq.heappush(self._queue, cmd)
+            queue_size = len(self._queue)
+
+        _LOGGER.debug(
+            "COMMAND_THROTTLE[%s]: Enqueued %s command (device=%s, queue_size=%d)",
+            self._interface_id,
+            priority.name,
+            device_address,
+            queue_size,
+        )
+
+        # Wait for worker to grant permission
+        await future
+
+    def stop(self) -> None:
+        """Stop background worker and reject pending commands."""
+        if self._stopped:
+            return
+
+        _LOGGER.info(i18n.tr(key="log.client.command_throttle.stopping_worker", interface_id=self._interface_id))
+        self._stopped = True
+
+        # Cancel worker task
+        if self._worker_task:
+            self._worker_task.cancel()
+
+        # Reject all pending commands
+        while self._queue:
+            cmd = heapq.heappop(self._queue)
+            if not cmd.future.done():
+                cmd.future.set_exception(asyncio.CancelledError(i18n.tr(key="log.client.command_throttle.stopped")))
+
+    async def _worker(self) -> None:
+        """
+        Background worker that processes queue with throttling.
+
+        Worker Loop:
+        1. Wait for commands in queue
+        2. Pop highest priority command
+        3. Apply throttle delay if needed
+        4. Grant permission (resolve future)
+        5. Repeat
+        """
+        _LOGGER.info(
+            i18n.tr(
+                key="log.client.command_throttle.worker_started",
+                interface_id=self._interface_id,
+                interval=self._interval,
+            )
+        )
+
+        while not self._stopped:
+            try:
+                # Wait for commands
+                while not self._queue and not self._stopped:  # noqa: ASYNC110
+                    await asyncio.sleep(0.1)
+
+                # Check if stopped (can be set asynchronously during sleep)
+                if self._stopped:
+                    break  # type: ignore[unreachable]  # mypy doesn't track async state changes
+
+                # Pop highest priority command (FIFO within priority)
+                async with self._lock:
+                    if not self._queue:
+                        continue
+                    cmd = heapq.heappop(self._queue)
+                    queue_size = len(self._queue)
+
+                # Apply throttle delay if needed
+                if (elapsed := time.monotonic() - self._last_command_time) < self._interval:
+                    delay = self._interval - elapsed
+                    self._throttled_count += 1
+
+                    _LOGGER.debug(
+                        "COMMAND_THROTTLE[%s]: Delaying %s command by %.3fs (device=%s, queue_size=%d)",
+                        self._interface_id,
+                        cmd.priority.name,
+                        delay,
+                        cmd.device_address,
+                        queue_size,
+                    )
+
+                    await asyncio.sleep(delay)
+
+                # Update timestamp and grant permission
+                self._last_command_time = time.monotonic()
+
+                if not cmd.future.done():
+                    cmd.future.set_result(None)
+
+            except asyncio.CancelledError:
+                _LOGGER.info(
+                    i18n.tr(key="log.client.command_throttle.worker_cancelled", interface_id=self._interface_id)
                 )
-                await asyncio.sleep(delay)
-            self._last_command_time = time.monotonic()
+                break
+
+            except Exception:
+                _LOGGER.exception(
+                    i18n.tr(key="log.client.command_throttle.worker_error", interface_id=self._interface_id)
+                )
+
+        _LOGGER.info(i18n.tr(key="log.client.command_throttle.worker_stopped", interface_id=self._interface_id))

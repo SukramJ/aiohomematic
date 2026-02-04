@@ -56,6 +56,9 @@ from aiohomematic.const import (
     ProxyInitState,
     SystemInformation,
 )
+
+if TYPE_CHECKING:
+    from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 from aiohomematic.metrics._protocols import ClientProviderForMetricsProtocol
 
@@ -293,6 +296,7 @@ class ParamsetOperationsProtocol(Protocol):
         wait_for_callback: int | None = None,
         rx_mode: Any | None = None,
         check_against_pd: bool = False,
+        priority: CommandPriority | None = None,
     ) -> set[Any]:
         """Set paramsets manually."""
 
@@ -334,6 +338,7 @@ class ValueOperationsProtocol(Protocol):
         wait_for_callback: int | None = None,
         rx_mode: Any | None = None,
         check_against_pd: bool = False,
+        priority: CommandPriority | None = None,
     ) -> set[Any]:
         """Set single value on paramset VALUES."""
 

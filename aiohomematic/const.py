@@ -118,6 +118,14 @@ class TimeoutConfig(BaseModel):
     probability of packet loss during bulk operations.
     """
 
+    optimistic_update_timeout: float = 30.0
+    """Rollback timeout for optimistic state updates (default: 30.0 seconds).
+
+    Determines how long to wait for CCU confirmation before rolling back the optimistic value
+    to the previous confirmed state. If the CCU does not confirm the value within this timeout,
+    the local value is automatically reverted and a rollback event is published.
+    """
+
 
 DEFAULT_TIMEOUT_CONFIG: Final = TimeoutConfig()
 
@@ -1092,6 +1100,20 @@ class Operations(IntEnum):
     READ = 1
     WRITE = 2
     EVENT = 4
+
+
+@unique
+class RollbackReason(StrEnum):
+    """Enum for optimistic value rollback reasons."""
+
+    TIMEOUT = "timeout"
+    """CCU did not respond within optimistic_update_timeout."""
+
+    SEND_ERROR = "send_error"
+    """Exception occurred during send_value()."""
+
+    VALUE_MISMATCH = "mismatch"
+    """CCU confirmed different value than sent."""
 
 
 @unique

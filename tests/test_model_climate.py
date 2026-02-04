@@ -11,6 +11,7 @@ from unittest.mock import call
 from freezegun import freeze_time
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import (  # local import to keep test header minimal
     WAIT_FOR_CALLBACK,
     DataPointCategory,
@@ -117,6 +118,7 @@ class TestCustomDpSimpleRfThermostat:
             parameter="SETPOINT",
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert mock_client.method_calls[-1] == last_call
         assert climate.target_temperature == 12.0
@@ -239,6 +241,7 @@ class TestCustomDpRfThermostat:
             parameter="SET_TEMPERATURE",
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.target_temperature == 12.0
 
@@ -257,6 +260,7 @@ class TestCustomDpRfThermostat:
             parameter="MANU_MODE",
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -272,6 +276,7 @@ class TestCustomDpRfThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"MANU_MODE": 12.0, "SET_TEMPERATURE": 4.5},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         assert climate.mode == ClimateMode.OFF
@@ -284,6 +289,7 @@ class TestCustomDpRfThermostat:
             parameter="AUTO_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="CONTROL_MODE", value=0
@@ -307,6 +313,7 @@ class TestCustomDpRfThermostat:
             parameter="BOOST_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000050:4", parameter="CONTROL_MODE", value=3
@@ -323,6 +330,7 @@ class TestCustomDpRfThermostat:
             parameter="COMFORT_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await climate.set_profile(profile=ClimateProfile.ECO)
         assert mock_client.method_calls[-1] == call.set_value(
@@ -331,6 +339,7 @@ class TestCustomDpRfThermostat:
             parameter="LOWERING_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         await central.event_coordinator.data_point_event(
@@ -428,6 +437,7 @@ class TestCustomDpRfThermostat:
             parameter="SET_TEMPERATURE",
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.target_temperature == 12.0
 
@@ -446,6 +456,7 @@ class TestCustomDpRfThermostat:
             parameter="MANU_MODE",
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -463,6 +474,7 @@ class TestCustomDpRfThermostat:
             parameter="SET_TEMPERATURE",
             value=13.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate._old_manu_setpoint == 13.0
 
@@ -472,6 +484,7 @@ class TestCustomDpRfThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"MANU_MODE": 13.0, "SET_TEMPERATURE": 4.5},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         assert climate.mode == ClimateMode.OFF
@@ -484,6 +497,7 @@ class TestCustomDpRfThermostat:
             parameter="AUTO_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -504,6 +518,7 @@ class TestCustomDpRfThermostat:
             parameter="MANU_MODE",
             value=climate._temperature_for_heat_mode,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -526,6 +541,7 @@ class TestCustomDpRfThermostat:
             parameter="AUTO_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -553,6 +569,7 @@ class TestCustomDpRfThermostat:
             parameter="BOOST_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU0000341:2", parameter="CONTROL_MODE", value=3
@@ -569,6 +586,7 @@ class TestCustomDpRfThermostat:
             parameter="COMFORT_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await climate.set_profile(profile=ClimateProfile.ECO)
         assert mock_client.method_calls[-1] == call.set_value(
@@ -577,6 +595,7 @@ class TestCustomDpRfThermostat:
             parameter="LOWERING_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         await central.event_coordinator.data_point_event(
@@ -628,6 +647,7 @@ class TestCustomDpRfThermostat:
             parameter="WEEK_PROGRAM_POINTER",
             value=1,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         climate._dp_control_mode._current_value = _ModeHm.AUTO
         climate._dp_boost_mode._current_value = 0
@@ -641,6 +661,7 @@ class TestCustomDpRfThermostat:
             parameter="WEEK_PROGRAM_POINTER",
             value=2,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         climate._dp_control_mode._current_value = _ModeHm.AUTO
         climate._dp_boost_mode._current_value = 0
@@ -654,6 +675,7 @@ class TestCustomDpRfThermostat:
             parameter="WEEK_PROGRAM_POINTER",
             value=0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         climate._dp_control_mode._current_value = _ModeHm.AUTO
         climate._dp_boost_mode._current_value = 0
@@ -973,6 +995,7 @@ class TestCustomDpIpThermostat:
             parameter="SET_POINT_TEMPERATURE",
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.target_temperature == 12.0
 
@@ -992,6 +1015,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 4.5},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.mode == ClimateMode.OFF
         assert climate.activity == ClimateActivity.OFF
@@ -1002,6 +1026,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 5.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await climate.set_temperature(temperature=19.5)
         assert mock_client.method_calls[-1] == call.set_value(
@@ -1010,6 +1035,7 @@ class TestCustomDpIpThermostat:
             parameter="SET_POINT_TEMPERATURE",
             value=19.5,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -1039,6 +1065,7 @@ class TestCustomDpIpThermostat:
             parameter="BOOST_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1769958:1", parameter="BOOST_MODE", value=1
@@ -1051,6 +1078,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"BOOST_MODE": False, "CONTROL_MODE": 0},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -1083,6 +1111,7 @@ class TestCustomDpIpThermostat:
                 "SET_POINT_TEMPERATURE": climate._temperature_for_heat_mode,
             },
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
 
         await central.event_coordinator.data_point_event(
@@ -1106,6 +1135,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 19.5},
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -1128,6 +1158,7 @@ class TestCustomDpIpThermostat:
             parameter="ACTIVE_PROFILE",
             value=1,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
 
@@ -1262,6 +1293,7 @@ class TestCustomDpIpThermostat:
             parameter="SET_POINT_TEMPERATURE",
             value=12.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.target_temperature == 12.0
 
@@ -1282,6 +1314,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 4.5},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.mode == ClimateMode.OFF
         assert climate.activity == ClimateActivity.OFF
@@ -1292,6 +1325,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 5.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await climate.set_temperature(temperature=19.5)
         assert mock_client.method_calls[-1] == call.set_value(
@@ -1300,6 +1334,7 @@ class TestCustomDpIpThermostat:
             parameter="SET_POINT_TEMPERATURE",
             value=19.5,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -1329,6 +1364,7 @@ class TestCustomDpIpThermostat:
             parameter="BOOST_MODE",
             value=True,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU4105035:8", parameter="BOOST_MODE", value=1
@@ -1341,6 +1377,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"BOOST_MODE": False, "CONTROL_MODE": 0},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -1373,6 +1410,7 @@ class TestCustomDpIpThermostat:
                 "SET_POINT_TEMPERATURE": climate._temperature_for_heat_mode,
             },
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
 
         await central.event_coordinator.data_point_event(
@@ -1396,6 +1434,7 @@ class TestCustomDpIpThermostat:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"BOOST_MODE": False, "CONTROL_MODE": 1, "SET_POINT_TEMPERATURE": 19.5},
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
@@ -1418,6 +1457,7 @@ class TestCustomDpIpThermostat:
             parameter="ACTIVE_PROFILE",
             value=1,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert climate.profile == ClimateProfile.WEEK_PROGRAM_1
 

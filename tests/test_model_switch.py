@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpSwitch
@@ -63,6 +64,7 @@ class TestCustomSwitch:
             parameter="STATE",
             value=True,
             wait_for_callback=None,
+            priority=CommandPriority.HIGH,
         )
         assert switch.value is True
         await switch.turn_off()
@@ -72,6 +74,7 @@ class TestCustomSwitch:
             parameter="STATE",
             value=False,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert switch.value is False
         await switch.turn_on(on_time=60)
@@ -80,6 +83,7 @@ class TestCustomSwitch:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"ON_TIME": 60.0, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
         assert switch.value is True
 
@@ -91,6 +95,7 @@ class TestCustomSwitch:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={"ON_TIME": 35.4, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         await switch.turn_on()
@@ -241,6 +246,7 @@ class TestGenericSwitch:
             paramset_key=ParamsetKey.VALUES,
             parameter="STATE",
             value=True,
+            priority=CommandPriority.HIGH,
         )
         assert switch.value is True
         await switch.turn_off()
@@ -249,6 +255,7 @@ class TestGenericSwitch:
             paramset_key=ParamsetKey.VALUES,
             parameter="STATE",
             value=False,
+            priority=CommandPriority.HIGH,
         )
         assert switch.value is False
         await switch.turn_on(on_time=60)
@@ -263,6 +270,7 @@ class TestGenericSwitch:
             paramset_key=ParamsetKey.VALUES,
             parameter="STATE",
             value=True,
+            priority=CommandPriority.HIGH,
         )
         assert switch.value is True
         await switch.set_on_time(on_time=35.4)

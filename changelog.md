@@ -4,9 +4,45 @@
 
 ### Added
 
+- **Optimistic updates**: Added optimistic state updates for data points to provide instant UI feedback before CCU confirmation. Data points immediately update their state when `send_value()` is called, then rollback if the CCU rejects the value or times out. Configure rollback timeout via `TimeoutConfig.optimistic_update_timeout` (default: 30.0s).
+
+  New event: `OptimisticRollbackEvent` in `aiohomematic.central.events`
+
+  New properties on data points:
+
+  - `is_optimistic`: Check if data point has pending optimistic value
+  - `optimistic_age`: Get age of optimistic value in seconds
+
+- **Command priority queue**: Added three-tier priority system for command throttling to ensure security-critical commands bypass queues while bulk operations are deprioritized:
+
+  - **CRITICAL** (priority 0): Security and access control commands (locks, sirens, alarms) bypass throttle entirely
+  - **HIGH** (priority 1): Interactive user commands use normal throttle with high queue priority
+  - **LOW** (priority 2): Bulk operations and automations use normal throttle with low queue priority
+
+  New enum: `CommandPriority` in `aiohomematic.client`
+
+  CRITICAL priority is declared at the service-method level via `@bind_collector(priority=CommandPriority.CRITICAL)` on lock and siren service methods. Use `RequestContext` with `bulk_operation=True` flag to trigger LOW priority for bulk operations.
+
+### Removed
+
+- **`CRITICAL_PRIORITY_PARAMETERS`**: Removed the frozenset from `aiohomematic.const`. CRITICAL priority is now declared exclusively via `@bind_collector(priority=CommandPriority.CRITICAL)` on service methods. The parameter-set-based detection was redundant since all lock/siren commands flow through decorated service methods.
+
 - **Command throttle**: Added configurable per-interface rate limiting for outgoing device commands (`set_value`, `put_paramset`). The throttle enforces a minimum delay between consecutive commands on the same RF interface to reduce duty-cycle usage and packet loss during bulk operations. Configure via `TimeoutConfig.command_throttle_interval` (default: `0.0` = disabled).
 
   New class: `CommandThrottle` in `aiohomematic.client`
+
+### Improved
+
+- **Internationalization**: Added German and English translations for 8 new log messages in command throttle and optimistic updates subsystems
+- **Type safety**: Fixed multiple mypy strict mode violations including Future/Task type parameters, call_later signatures, and protocol definitions
+- **Code quality**: Removed lazy imports in production code, fixed import violations in test files to use public API
+
+### Fixed
+
+- **Syntax error**: Fixed unterminated triple-quoted string in `interfaces/central.py` that prevented module compilation
+- **Type annotations**: Fixed missing `config` property in `CentralInfoProtocol` and `ConfigProviderProtocol`
+- **Cover target levels**: Fixed `_target_level` and `_target_tilt_level` properties to check for `None` before calling `float()`, preventing type errors
+- **Event bus access**: Fixed optimistic rollback event publishing to use `_event_bus_provider.event_bus` instead of non-existent `_event_bus` attribute
 
 # Version 2026.2.3 (2026-02-03)
 

@@ -9,6 +9,7 @@ from unittest.mock import call
 
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 from aiohomematic.model.custom.siren import _SirenCommand
@@ -82,6 +83,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 30,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         await siren.turn_on(
@@ -99,6 +101,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 30,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         from aiohomematic.exceptions import ValidationException
@@ -128,6 +131,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         await siren.turn_off()
@@ -174,6 +178,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -212,6 +217,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         # Only override optical_alarm - acoustic_alarm should use pre-filled value
@@ -226,6 +232,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -263,6 +270,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -297,6 +305,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         # Only optical_alarm provided
@@ -311,6 +320,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
     @pytest.mark.asyncio
@@ -344,6 +354,7 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
 
@@ -410,6 +421,7 @@ class TestIpSirenSmoke:
             parameter="SMOKE_DETECTOR_COMMAND",
             value=_SirenCommand.ON,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         await siren.turn_off()
@@ -419,6 +431,7 @@ class TestIpSirenSmoke:
             parameter="SMOKE_DETECTOR_COMMAND",
             value=_SirenCommand.OFF,
             wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
         )
 
         call_count = len(mock_client.method_calls)

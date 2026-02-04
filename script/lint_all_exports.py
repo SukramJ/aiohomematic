@@ -261,7 +261,7 @@ def get_exported_symbols(init_path: Path) -> set[str]:
                 continue
 
             for alias in node.names:
-                name = alias.asname if alias.asname else alias.name
+                name = alias.asname or alias.name
                 # Skip private symbols and typing symbols
                 if not name.startswith("_") and name not in TYPING_SYMBOLS:
                     symbols.add(name)

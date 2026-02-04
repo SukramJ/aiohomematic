@@ -61,14 +61,8 @@ class ClientConfig:
         self.has_ping_pong: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
         self.has_push_updates: Final = self.interface not in client_deps.config.interfaces_requiring_periodic_refresh
         self.has_rpc_callback: Final = self.interface in INTERFACES_SUPPORTING_RPC_CALLBACK
-        callback_host: Final = (
-            client_deps.config.callback_host if client_deps.config.callback_host else client_deps.callback_ip_addr
-        )
-        callback_port = (
-            client_deps.config.callback_port_xml_rpc
-            if client_deps.config.callback_port_xml_rpc
-            else client_deps.listen_port_xml_rpc
-        )
+        callback_host: Final = client_deps.config.callback_host or client_deps.callback_ip_addr
+        callback_port = client_deps.config.callback_port_xml_rpc or client_deps.listen_port_xml_rpc
         init_url = f"{callback_host}:{callback_port}"
         self.init_url: Final = f"http://{init_url}"
 

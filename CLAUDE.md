@@ -2021,7 +2021,7 @@ ruff check --fix
 mypy
 
 # Run all checks
-pre-commit run --all-files
+prek run --all-files
 
 # Run tests
 pytest tests/

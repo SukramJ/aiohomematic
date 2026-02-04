@@ -22,7 +22,7 @@ from aiohomematic import i18n
 from aiohomematic.central.events import ClientStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
-from aiohomematic.client.command_throttle import CommandThrottle
+from aiohomematic.client.command_throttle import CommandPriority, CommandThrottle
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.state_change import wait_for_state_change_or_timeout
 from aiohomematic.client.state_machine import ClientStateMachine
@@ -832,8 +832,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
+        priority: CommandPriority | None = None,
     ) -> set[DP_KEY_VALUE]:
         """Set paramsets manually."""
+        # Default to HIGH priority if not specified
+        if priority is None:
+            priority = CommandPriority.HIGH
+
         # Determine if this is a LINK call (needed for early return logic)
         is_link_call = is_channel_address(address=paramset_key_or_link_address)
         checked_values = values
@@ -861,7 +866,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 else:
                     raise ClientException(i18n.tr(key="exception.client.paramset_key.invalid"))
 
-            await self._command_throttle.acquire()
+            # Acquire command throttle with priority
+            await self._command_throttle.acquire(priority=priority, device_address=channel_address)
 
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
@@ -1040,8 +1046,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         wait_for_callback: int | None = WAIT_FOR_CALLBACK,
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
+        priority: CommandPriority | None = None,
     ) -> set[DP_KEY_VALUE]:
         """Set single value on paramset VALUES."""
+        # Default to HIGH priority if not specified
+        if priority is None:
+            priority = CommandPriority.HIGH
+
         if paramset_key != ParamsetKey.VALUES:
             return await self.put_paramset(
                 channel_address=channel_address,
@@ -1050,6 +1061,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 wait_for_callback=wait_for_callback,
                 rx_mode=rx_mode,
                 check_against_pd=check_against_pd,
+                priority=priority,
             )
 
         dpk_values: set[DP_KEY_VALUE] = set()
@@ -1066,7 +1078,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 else value
             )
 
-            await self._command_throttle.acquire()
+            # Acquire command throttle with priority
+            await self._command_throttle.acquire(priority=priority, device_address=channel_address)
 
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
@@ -1314,14 +1327,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     def _get_init_url(self) -> str:
         """Return the init URL."""
-        callback_host = (
-            self._central.config.callback_host if self._central.config.callback_host else self._central.callback_ip_addr
-        )
-        callback_port = (
-            self._central.config.callback_port_xml_rpc
-            if self._central.config.callback_port_xml_rpc
-            else self._central.listen_port_xml_rpc
-        )
+        callback_host = self._central.config.callback_host or self._central.callback_ip_addr
+        callback_port = self._central.config.callback_port_xml_rpc or self._central.listen_port_xml_rpc
         return f"http://{callback_host}:{callback_port}"
 
     async def _get_paramset_description(

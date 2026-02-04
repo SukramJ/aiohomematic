@@ -29,14 +29,16 @@ import asyncio
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime, timedelta
-from functools import wraps
+from functools import partial, wraps
 from inspect import getfullargspec
 import logging
+import time
 from typing import Any, Final, TypeAlias, TypeVar, cast, overload, override
 
 from aiohomematic import i18n, support as hms
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent
+from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent, OptimisticRollbackEvent
+from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.const import (
     _OPTIONAL_PARAMETERS,
     DEFAULT_MULTIPLIER,
@@ -62,7 +64,13 @@ from aiohomematic.const import (
     ServiceScope,
     check_ignore_parameter_on_initial_load,
 )
-from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
+from aiohomematic.context import (
+    RequestContext,
+    get_request_context,
+    is_in_service,
+    reset_request_context,
+    set_request_context,
+)
 from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces import (
@@ -718,6 +726,10 @@ class BaseParameterDataPoint[
         "_min",
         "_multiplier",
         "_operations",
+        "_optimistic_previous_value",
+        "_optimistic_sent_at",
+        "_optimistic_timeout_handle",
+        "_optimistic_value",
         "_parameter",
         "_paramset_key",
         "_last_non_default_value",
@@ -775,6 +787,12 @@ class BaseParameterDataPoint[
         self._current_value: ParameterT | None = None
         self._last_non_default_value: ParameterT | None = None
         self._temporary_value: ParameterT | None = None
+
+        # Optimistic state management
+        self._optimistic_value: ParameterT | None = None
+        self._optimistic_previous_value: ParameterT | None = None
+        self._optimistic_timeout_handle: asyncio.TimerHandle | None = None
+        self._optimistic_sent_at: float | None = None
 
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
@@ -876,6 +894,11 @@ class BaseParameterDataPoint[
         return True  # Unknown types are considered valid
 
     @property
+    def is_optimistic(self) -> bool:
+        """Return True if current value is optimistic (not confirmed by CCU)."""
+        return self._optimistic_value is not None
+
+    @property
     def is_readable(self) -> bool:
         """Return, if data_point is readable."""
         return bool(self._operations & Operations.READ)
@@ -957,6 +980,13 @@ class BaseParameterDataPoint[
         return False if self._is_forced_sensor else bool(self._operations & Operations.WRITE)
 
     @property
+    def optimistic_age(self) -> float | None:
+        """Return age of optimistic value in seconds, or None if confirmed."""
+        if self._optimistic_sent_at is None:
+            return None
+        return time.monotonic() - self._optimistic_sent_at
+
+    @property
     def state_uncertain(self) -> bool:
         """Return the state uncertain status."""
         return self._state_uncertain
@@ -1003,6 +1033,20 @@ class BaseParameterDataPoint[
             and self._paramset_key == ParamsetKey.MASTER
         )
 
+    def apply_optimistic_value(self, *, value: ParameterT) -> None:
+        """
+        Set optimistic value and schedule rollback.
+
+        This is used by both direct sends and collector-based sends to
+        set the optimistic value, publish the update event, and schedule
+        the automatic rollback timer.
+        """
+        self._optimistic_previous_value = self._value
+        self._optimistic_value = value
+        self._optimistic_sent_at = time.monotonic()
+        self.publish_data_point_updated_event()
+        self._schedule_optimistic_rollback(timeout=self._central_info.config.timeout_config.optimistic_update_timeout)
+
     @abstractmethod
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this handler has subscribed."""
@@ -1033,6 +1077,28 @@ class BaseParameterDataPoint[
             DataPointCategory.SENSOR,
         )
         self._is_forced_sensor = True
+
+    def get_command_priority(self) -> CommandPriority:
+        """
+        Determine command priority for throttling.
+
+        Priority Rules:
+        1. LOW: Bulk operations (scenes, automations)
+        2. HIGH: Default for interactive user commands
+
+        CRITICAL priority is declared at the service-method level via
+        ``@bind_collector(priority=CommandPriority.CRITICAL)``.
+
+        Returns:
+            CommandPriority enum value (HIGH/LOW)
+
+        """
+        # Check for LOW priority - bulk operations
+        if self._is_bulk_operation_context():
+            return CommandPriority.LOW
+
+        # Default: HIGH priority - interactive user commands
+        return CommandPriority.HIGH
 
     def get_event_data(self, *, value: Any = None) -> EventData:
         """Get the event_data."""
@@ -1363,14 +1429,70 @@ class BaseParameterDataPoint[
 
     def _get_value(self) -> ParameterT | None:
         """
-        Return the value for readings. Override in subclasses for custom value processing.
+        Return the value for readings with optimistic priority.
+
+        Priority:
+        1. Optimistic value (if pending confirmation)
+        2. Confirmed value from DataCache (_value)
 
         Subclasses like DpSelect, DpSensor, DpBinarySensor override this to:
         - Convert integer indices to string values from VALUE_LIST
         - Apply value converters (e.g., RSSI negation)
         - Return defaults when value is None
         """
+        if self._optimistic_value is not None:
+            return self._optimistic_value
         return self._value
+
+    def _is_bulk_operation_context(self) -> bool:
+        """
+        Check if command is part of a bulk operation.
+
+        Bulk operations (scenes, automations with multiple devices) use LOW priority
+        to avoid overwhelming the RF network with simultaneous commands.
+
+        Returns:
+            True if RequestContext indicates bulk operation
+
+        """
+        if (ctx := get_request_context()) is None:
+            return False
+
+        # Check for bulk_operation flag in context
+        return ctx.extra.get("bulk_operation", False) is True
+
+    def _publish_rollback_event(
+        self,
+        *,
+        reason: str,
+        rolled_back_value: Any,
+        restored_value: Any,
+        error: str | None,
+        age_seconds: float,
+    ) -> None:
+        """
+        Publish rollback event for Home Assistant notification.
+
+        Args:
+            reason: Reason for rollback (RollbackReason enum value)
+            rolled_back_value: Value that was rolled back
+            restored_value: Value that was restored
+            error: Error message (if reason is send_error)
+            age_seconds: Age of optimistic value when rolled back
+
+        """
+
+        event = OptimisticRollbackEvent(
+            timestamp=datetime.now(),
+            dpk=self.dpk,
+            reason=reason,
+            rolled_back_value=rolled_back_value,
+            restored_value=restored_value,
+            error=error,
+            age_seconds=age_seconds,
+        )
+
+        self._event_bus_provider.event_bus.publish_sync(event=event)
 
     def _register_status_listener(self) -> None:
         """
@@ -1384,6 +1506,89 @@ class BaseParameterDataPoint[
         """Reset the temp storage."""
         self._temporary_value = None
         self._reset_temporary_timestamps()
+
+    def _rollback_optimistic_value(self, *, reason: str, error: str | None = None) -> None:
+        """
+        Rollback optimistic value to previous confirmed value.
+
+        Args:
+            reason: Reason for rollback (e.g., "timeout", "send_error", "mismatch")
+            error: Error message (if reason is send_error)
+
+        This method:
+        1. Logs the rollback with details
+        2. Clears optimistic state
+        3. Restores previous confirmed value
+        4. Publishes data_point_updated event (UI reverts)
+        5. Publishes rollback event for user notification (Step 1.7)
+
+        """
+        if self._optimistic_value is None:
+            return  # Already rolled back or confirmed
+
+        # Log rollback with age
+        age = self.optimistic_age or 0.0
+        _LOGGER.warning(
+            i18n.tr(
+                key="log.model.data_point.optimistic_rollback",
+                full_name=self.full_name,
+                optimistic_value=self._optimistic_value,
+                previous_value=self._optimistic_previous_value,
+                reason=reason,
+                age=age,
+            )
+        )
+
+        # Store values for event
+        rolled_back_value = self._optimistic_value
+        restored_value = self._optimistic_previous_value
+
+        # Clear optimistic state
+        self._optimistic_value = None
+        self._optimistic_sent_at = None
+        if self._optimistic_timeout_handle:
+            self._optimistic_timeout_handle.cancel()
+        self._optimistic_timeout_handle = None
+
+        # Restore previous value
+        self._current_value = self._optimistic_previous_value
+        self._optimistic_previous_value = None
+
+        # Publish event (Home Assistant UI reverts)
+        self.publish_data_point_updated_event()
+
+        # Publish rollback event for user notification
+        self._publish_rollback_event(
+            reason=reason,
+            rolled_back_value=rolled_back_value,
+            restored_value=restored_value,
+            error=error,
+            age_seconds=age,
+        )
+
+    def _schedule_optimistic_rollback(self, *, timeout: float) -> None:
+        """
+        Schedule rollback if CCU confirmation doesn't arrive.
+
+        Args:
+            timeout: Rollback timeout in seconds (default: 30s)
+
+        The rollback timer is automatically cancelled when:
+        - CCU confirms the value via event()
+        - A new optimistic value is set (overrides previous timer)
+        - Rollback is executed (timer fires or error occurs)
+
+        """
+        # Cancel existing timer if any
+        if self._optimistic_timeout_handle:
+            self._optimistic_timeout_handle.cancel()
+
+        # Schedule rollback
+        loop = asyncio.get_event_loop()
+        self._optimistic_timeout_handle = loop.call_later(
+            timeout,
+            partial(self._rollback_optimistic_value, reason="timeout", error=None),
+        )
 
     def _set_value(self, value: ParameterT) -> None:  # kwonly: disable
         """Set the local value."""
@@ -1418,14 +1623,19 @@ class CallParameterCollector:
 
     __slots__ = (
         "_client",
+        "_collected_data_points",
         "_paramsets",
+        "_priority",
     )
 
-    def __init__(self, *, client: ValueAndParamsetOperationsProtocol) -> None:
+    def __init__(self, *, client: ValueAndParamsetOperationsProtocol, priority: CommandPriority | None = None) -> None:
         """Initialize the generator."""
         self._client: Final[ValueAndParamsetOperationsProtocol] = client
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}
         self._paramsets: Final[dict[ParamsetKey, dict[int, dict[str, dict[str, Any]]]]] = {}
+        self._priority: CommandPriority | None = priority
+        # Track data points for deferred optimistic updates
+        self._collected_data_points: Final[list[tuple[BaseParameterDataPointAny, Any]]] = []
 
     def add_data_point(
         self,
@@ -1435,6 +1645,7 @@ class CallParameterCollector:
         collector_order: int,
     ) -> None:
         """Add a generic data_point."""
+        self._collected_data_points.append((data_point, value))
         if data_point.paramset_key not in self._paramsets:
             self._paramsets[data_point.paramset_key] = {}
         if collector_order not in self._paramsets[data_point.paramset_key]:
@@ -1444,10 +1655,19 @@ class CallParameterCollector:
         self._paramsets[data_point.paramset_key][collector_order][data_point.channel.address][data_point.parameter] = (
             value
         )
+        # Track highest priority across all collected data points
+        dp_priority = data_point.get_command_priority()
+        if self._priority is None or dp_priority.value < self._priority.value:
+            self._priority = dp_priority
 
     async def send_data(self, *, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
         """Send data to the backend."""
+        # Apply deferred optimistic updates before sending
+        for dp, value in self._collected_data_points:
+            dp.apply_optimistic_value(value=value)
+
         dpk_values: set[DP_KEY_VALUE] = set()
+        priority = self._priority or CommandPriority.HIGH
         for paramset_key, paramsets in self._paramsets.items():
             for _, paramset_no in sorted(paramsets.items()):
                 for channel_address, paramset in paramset_no.items():
@@ -1460,6 +1680,7 @@ class CallParameterCollector:
                                     parameter=parameter,
                                     value=value,
                                     wait_for_callback=wait_for_callback,
+                                    priority=priority,
                                 )
                             )
                     else:
@@ -1469,6 +1690,7 @@ class CallParameterCollector:
                                 paramset_key_or_link_address=paramset_key,
                                 values=paramset,
                                 wait_for_callback=wait_for_callback,
+                                priority=priority,
                             )
                         )
         return dpk_values
@@ -1482,6 +1704,7 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
     enabled: bool = True,
     log_level: int = logging.ERROR,
     scope: ServiceScope = ...,
+    priority: CommandPriority | None = None,
 ) -> CallableBC: ...
 
 
@@ -1492,6 +1715,7 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
     enabled: bool = True,
     log_level: int = logging.ERROR,
     scope: ServiceScope = ...,
+    priority: CommandPriority | None = None,
 ) -> Callable[[CallableBC], CallableBC]: ...
 
 
@@ -1502,6 +1726,7 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
     enabled: bool = True,
     log_level: int = logging.ERROR,
     scope: ServiceScope = ServiceScope.EXTERNAL,
+    priority: CommandPriority | None = None,
 ) -> Callable[[CallableBC], CallableBC] | CallableBC:
     """
     Decorate function to automatically add collector if not set.
@@ -1522,6 +1747,9 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
                 Appears in service_method_names.
             INTERNAL: Infrastructure methods for library operation.
                 Does NOT appear in service_method_names.
+        priority: Minimum command priority for this service method.
+            Acts as a floor -- individual data points can still elevate the
+            priority higher, but never below this value.
 
     """
 
@@ -1587,7 +1815,7 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
 
                 # No collector provided - create one automatically.
                 # args[0] is 'self' (the data point), which has channel.device.client
-                collector = CallParameterCollector(client=args[0].channel.device.client)
+                collector = CallParameterCollector(client=args[0].channel.device.client, priority=priority)
                 kwargs[_COLLECTOR_ARGUMENT_NAME] = collector
                 return_value = await func(*args, **kwargs)
                 # Send batched commands after function completes successfully

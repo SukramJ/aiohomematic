@@ -21,7 +21,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.2.5"
+VERSION: Final = "2026.2.6"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -2222,6 +2222,14 @@ class ScheduleProfile(StrEnum):
     P4 = "P4"
     P5 = "P5"
     P6 = "P6"
+
+
+@unique
+class ScheduleType(StrEnum):
+    """Enum for schedule type identifiers."""
+
+    CLIMATE = "climate"
+    DEFAULT = "default"
 
 
 @unique

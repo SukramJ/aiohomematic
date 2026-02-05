@@ -1,3 +1,39 @@
+# Version 2026.2.6 (2026-02-05)
+
+## What's Changed
+
+### Added
+
+- **WeekProfileSensor**: Added a device-level sensor that serves as the central interface for schedule data — both for climate and non-climate devices. One sensor per device exposes schedule metadata, target channel mappings, and delegates read/write operations to the underlying WeekProfile.
+
+  New classes and types:
+
+  - `WeekProfileSensor` in `aiohomematic.model.week_profile_sensor`
+  - `WeekProfileSensorProtocol` in `aiohomematic.interfaces`
+  - `ScheduleType` StrEnum in `aiohomematic.const` (`CLIMATE`, `DEFAULT`)
+  - `TargetChannelInfo` dataclass in `aiohomematic.model.schedule_models`
+
+  New device properties:
+
+  - `device.week_profile_sensor`: Access the sensor (or `None`)
+  - `device.channel_groups`: Channel group configurations keyed by group number
+
+  Sensor properties:
+
+  - `schedule_type`: Returns `ScheduleType.CLIMATE` or `ScheduleType.DEFAULT`
+  - `schedule`: Cached schedule as `ScheduleDict`
+  - `available_target_channels`: Human-readable target channel mapping (non-climate only)
+  - `min_temp` / `max_temp`: Temperature bounds (climate only)
+  - `value`: Number of active schedule entries (state property)
+
+  Schedule operations:
+
+  - `get_schedule()`, `set_schedule()`, `reload_schedule()`
+
+  The sensor coexists with existing climate CDP schedule access (Phase 9 coexistence).
+
+---
+
 # Version 2026.2.5 (2026-02-05)
 
 ## What's Changed

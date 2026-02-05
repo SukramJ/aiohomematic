@@ -564,7 +564,7 @@ class TestCentralDataPointsByCategory:
         central, _, _ = central_client_factory_with_homegear_client
         ebp_sensor = central.get_data_points(category=DataPointCategory.SENSOR)
         assert ebp_sensor
-        assert len(ebp_sensor) == 18
+        assert len(ebp_sensor) == 19
 
         def _device_changed(self, *args: Any, **kwargs: Any) -> None:
             """Handle device state changes."""
@@ -572,7 +572,7 @@ class TestCentralDataPointsByCategory:
         ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
         ebp_sensor2 = central.get_data_points(category=DataPointCategory.SENSOR, registered=False)
         assert ebp_sensor2
-        assert len(ebp_sensor2) == 17
+        assert len(ebp_sensor2) == 18
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -648,7 +648,7 @@ class TestCentralDeviceManagement:
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
         await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
         assert len(central.device_registry.devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 64
+        assert len(central.get_data_points(exclude_no_create=False)) == 65
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
@@ -678,7 +678,7 @@ class TestCentralDeviceManagement:
         """Test device delete_device."""
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.device_registry.devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 64
+        assert len(central.get_data_points(exclude_no_create=False)) == 65
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))

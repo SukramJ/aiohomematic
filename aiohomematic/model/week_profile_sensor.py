@@ -1,0 +1,265 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2026
+"""
+Week profile sensor for device-level schedule access.
+
+This module provides a device-level sensor that serves as the central interface
+for schedule data — both for climate and non-climate devices. It exposes schedule
+metadata, target channel mappings, and delegates read/write operations to the
+underlying WeekProfile.
+
+Public API of this module is defined by __all__.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+import logging
+from typing import Final, cast, override
+
+from aiohomematic.const import CallSource, DataPointCategory, DataPointUsage, ScheduleDict, ScheduleType, ServiceScope
+from aiohomematic.decorators import inspector
+from aiohomematic.interfaces import WeekProfileSensorProtocol
+from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
+from aiohomematic.model.data_point import BaseDataPoint
+from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, TargetChannelInfo
+from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, generate_unique_id
+from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
+from aiohomematic.property_decorators import Kind, hm_property
+
+__all__ = [
+    "WeekProfileSensor",
+    "create_week_profile_sensor",
+]
+
+_LOGGER: Final = logging.getLogger(__name__)
+
+_PARAMETER_NAME: Final = "WEEK_PROFILE"
+_MAX_SIMPLE_ENTRIES: Final = 24
+_MAX_CLIMATE_SLOTS_PER_DAY: Final = 13
+_CLIMATE_PROFILES: Final = 6
+_WEEKDAYS: Final = 7
+
+
+class WeekProfileSensor(BaseDataPoint, WeekProfileSensorProtocol):
+    """Device-level sensor exposing schedule data and metadata."""
+
+    __slots__ = (
+        "_available_target_channels",
+        "_week_profile",
+    )
+
+    _category = DataPointCategory.SENSOR
+
+    def __init__(
+        self,
+        *,
+        channel: ChannelProtocol,
+        week_profile: ClimateWeekProfile | DefaultWeekProfile,
+    ) -> None:
+        """Initialize the week profile sensor."""
+        unique_id = generate_unique_id(
+            config_provider=channel.device.config_provider,
+            address=channel.device.address,
+            parameter=_PARAMETER_NAME,
+            prefix="week_profile",
+        )
+        super().__init__(
+            channel=channel,
+            unique_id=unique_id,
+            is_in_multiple_channels=False,
+        )
+        self._week_profile: Final = week_profile
+        self._available_target_channels: Final[Mapping[str, TargetChannelInfo]] = (
+            self._build_target_channel_map() if isinstance(week_profile, DefaultWeekProfile) else {}
+        )
+
+    # --- Public Properties (for HA entity attributes) ---
+
+    @property
+    def available_target_channels(self) -> Mapping[str, TargetChannelInfo]:
+        """Return the target channel mapping (non-climate only)."""
+        return self._available_target_channels
+
+    @property
+    def max_entries(self) -> int:
+        """Return the maximum number of schedule entries."""
+        if isinstance(self._week_profile, ClimateWeekProfile):
+            return _MAX_CLIMATE_SLOTS_PER_DAY * _WEEKDAYS * _CLIMATE_PROFILES
+        return _MAX_SIMPLE_ENTRIES
+
+    @property
+    def max_temp(self) -> float | None:
+        """Return the maximum temperature (climate only)."""
+        if isinstance(self._week_profile, ClimateWeekProfile):
+            return self._week_profile.max_temp
+        return None
+
+    @property
+    def min_temp(self) -> float | None:
+        """Return the minimum temperature (climate only)."""
+        if isinstance(self._week_profile, ClimateWeekProfile):
+            return self._week_profile.min_temp
+        return None
+
+    @property
+    def schedule(self) -> ScheduleDict:
+        """Return the cached schedule data as JSON-serializable dict."""
+        return cast(ScheduleDict, self._week_profile.schedule.model_dump(mode="json"))
+
+    @property
+    def schedule_channel_address(self) -> str | None:
+        """Return the schedule channel address."""
+        return self._week_profile.schedule_channel_address
+
+    @property
+    def schedule_type(self) -> ScheduleType:
+        """Return the schedule type identifier."""
+        return ScheduleType.CLIMATE if isinstance(self._week_profile, ClimateWeekProfile) else ScheduleType.DEFAULT
+
+    @property
+    def usage(self) -> DataPointUsage:
+        """Return the data point usage."""
+        return DataPointUsage.DATA_POINT
+
+    @hm_property(kind=Kind.STATE)
+    def value(self) -> int:
+        """Return the number of active schedule entries."""
+        return self._count_active_entries()
+
+    # --- Schedule Operations (delegated to WeekProfile) ---
+
+    def fire_schedule_updated(self) -> None:
+        """Notify subscribers that the schedule has changed."""
+        self.publish_data_point_updated_event()
+
+    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
+        """Fetch and return the schedule from CCU."""
+        schedule = await self._week_profile.get_schedule(force_load=force_load)
+        return cast(ScheduleDict, schedule.model_dump(mode="json"))
+
+    @override
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
+        """Load the data point value. Schedule data is loaded via WeekProfile."""
+
+    async def reload_schedule(self) -> None:
+        """Reload schedule from CCU and update sensor state."""
+        await self._week_profile.reload_and_cache_schedule(force=True)
+        self.publish_data_point_updated_event()
+
+    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
+        """Write schedule data to CCU."""
+        await self._week_profile.set_schedule(schedule_data=schedule_data)  # type: ignore[arg-type]
+
+    # --- Internal ---
+
+    def _build_target_channel_map(self) -> dict[str, TargetChannelInfo]:
+        """Build the actor_sub -> TargetChannelInfo mapping."""
+        device = self._device
+        result: dict[str, TargetChannelInfo] = {}
+
+        sorted_groups = sorted(device.channel_groups.items())
+
+        for actor_idx, (_group_no, rebased_config) in enumerate(sorted_groups, start=1):
+            channels_in_group: list[tuple[int, str]] = []
+
+            if (pc := rebased_config.primary_channel) is not None:
+                channels_in_group.append((pc, "primary"))
+
+            channels_in_group.extend((sec_ch, "secondary") for sec_ch in rebased_config.secondary_channels)
+
+            for sub_idx, (ch_no, ch_type) in enumerate(channels_in_group, start=1):
+                key = f"{actor_idx}_{sub_idx}"
+                ch_address = f"{device.address}:{ch_no}"
+                ch_name = ""
+                if (channel := device.channels.get(ch_address)) is not None:
+                    ch_name = channel.name or ""
+
+                result[key] = TargetChannelInfo(
+                    channel_no=ch_no,
+                    channel_address=ch_address,
+                    name=ch_name,
+                    channel_type=ch_type,
+                )
+
+        return result
+
+    def _count_active_entries(self) -> int:
+        """Count the number of active/defined schedule entries."""
+        if isinstance(self._week_profile, ClimateWeekProfile):
+            return self._count_climate_entries()
+        return self._count_simple_entries()
+
+    def _count_climate_entries(self) -> int:
+        """Count defined temperature change points in a ClimateSchedule."""
+        schedule = cast(ClimateSchedule, self._week_profile.schedule)
+        count = 0
+        for profile in schedule.root.values():
+            for weekday in profile.root.values():
+                count += len(weekday.periods)
+        return count
+
+    def _count_simple_entries(self) -> int:
+        """Count non-empty entries in a SimpleSchedule."""
+        schedule = cast(SimpleSchedule, self._week_profile.schedule)
+        count = 0
+        for entry in schedule.entries.values():
+            if entry.target_channels:
+                count += 1
+        return count
+
+    @override
+    def _get_data_point_name(self) -> DataPointNameData:
+        """Create the name for the week profile sensor."""
+        return DataPointNameData(
+            device_name=self._device.name,
+            channel_name=self._channel.name or "",
+            parameter_name=_PARAMETER_NAME,
+        )
+
+    @override
+    def _get_data_point_usage(self) -> DataPointUsage:
+        """Generate the usage for the data point."""
+        return DataPointUsage.DATA_POINT
+
+    @override
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data point."""
+        return DataPointPathData(
+            interface=self._device.client.interface,
+            address=self._device.address,
+            channel_no=self._channel.no,
+            kind=self._category,
+        )
+
+    @override
+    def _get_signature(self) -> str:
+        """Return the signature of the data point."""
+        return f"{self._category}/{self._device.model}/{_PARAMETER_NAME}"
+
+
+@inspector(scope=ServiceScope.INTERNAL)
+def create_week_profile_sensor(*, device: DeviceProtocol) -> None:
+    """Create a WeekProfileSensor for the device if it has a week profile."""
+    if not device.has_week_profile:
+        return
+
+    if (week_profile := device.week_profile) is None:
+        return
+
+    if (schedule_channel := device.default_schedule_channel) is None:
+        return
+
+    if not isinstance(week_profile, (ClimateWeekProfile, DefaultWeekProfile)):
+        return
+
+    sensor = WeekProfileSensor(
+        channel=schedule_channel,
+        week_profile=week_profile,
+    )
+
+    # Bidirectional linkage
+    week_profile.set_sensor(sensor=sensor)
+
+    # Register on device
+    device.set_week_profile_sensor(sensor=sensor)

@@ -267,6 +267,7 @@ from aiohomematic.interfaces.model import (
     HubProtocol,
     HubSensorDataPointProtocol,
     WeekProfileProtocol,
+    WeekProfileSensorProtocol,
 )
 from aiohomematic.interfaces.operations import (
     CacheWithStatisticsProtocol,
@@ -386,6 +387,7 @@ __all__ = [
     "HubSensorDataPointProtocol",
     # Model week profile
     "WeekProfileProtocol",
+    "WeekProfileSensorProtocol",
     # Task scheduling
     "TaskSchedulerProtocol",
     # Utility protocols

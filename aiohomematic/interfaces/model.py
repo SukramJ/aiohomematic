@@ -60,6 +60,7 @@ from aiohomematic.const import (
     ProgramData,
     RxMode,
     ScheduleDict,
+    ScheduleType,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.operations import (
@@ -88,6 +89,8 @@ if TYPE_CHECKING:
     from aiohomematic.model.availability import AvailabilityInfo
     from aiohomematic.model.custom import DeviceConfig
     from aiohomematic.model.custom.mixins import StateChangeArgs
+    from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
+    from aiohomematic.model.schedule_models import TargetChannelInfo
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -939,6 +942,11 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def channel_group(self) -> RebasedChannelGroupConfig:
+        """Return the channel group configuration."""
+
+    @property
+    @abstractmethod
     def data_point_name_postfix(self) -> str:
         """Return the data point name postfix."""
 
@@ -1716,6 +1724,11 @@ class DeviceGroupManagementProtocol(Protocol):
 
     __slots__ = ()
 
+    @property
+    @abstractmethod
+    def channel_groups(self) -> Mapping[int, RebasedChannelGroupConfig]:
+        """Return the channel group configurations keyed by group number."""
+
     @abstractmethod
     def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:
         """Add a channel to a group."""
@@ -1813,9 +1826,18 @@ class DeviceWeekProfileProtocol(Protocol):
     def week_profile(self) -> WeekProfileProtocol[Any] | None:
         """Return the week profile."""
 
+    @property
+    @abstractmethod
+    def week_profile_sensor(self) -> WeekProfileSensorProtocol | None:
+        """Return the week profile sensor."""
+
     @abstractmethod
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the week profile."""
+
+    @abstractmethod
+    def set_week_profile_sensor(self, *, sensor: WeekProfileSensorProtocol) -> None:
+        """Set the week profile sensor reference."""
 
 
 class DeviceProvidersProtocol(Protocol):
@@ -2089,6 +2111,69 @@ class HubProtocol(Protocol):
 # =============================================================================
 # WeekProfile Protocol Interface
 # =============================================================================
+
+
+@runtime_checkable
+class WeekProfileSensorProtocol(BaseDataPointProtocol, Protocol):
+    """
+    Protocol for week profile sensor data points.
+
+    Provides device-level schedule access and metadata for both
+    climate and non-climate devices.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def available_target_channels(self) -> Mapping[str, TargetChannelInfo]:
+        """Return the target channel mapping (non-climate only)."""
+
+    @property
+    @abstractmethod
+    def max_entries(self) -> int:
+        """Return the maximum number of schedule entries."""
+
+    @property
+    @abstractmethod
+    def max_temp(self) -> float | None:
+        """Return the maximum temperature (climate only)."""
+
+    @property
+    @abstractmethod
+    def min_temp(self) -> float | None:
+        """Return the minimum temperature (climate only)."""
+
+    @property
+    @abstractmethod
+    def schedule(self) -> ScheduleDict:
+        """Return the cached schedule data as JSON-serializable dict."""
+
+    @property
+    @abstractmethod
+    def schedule_channel_address(self) -> str | None:
+        """Return the schedule channel address."""
+
+    @property
+    @abstractmethod
+    def schedule_type(self) -> ScheduleType:
+        """Return the schedule type identifier."""
+
+    @abstractmethod
+    def fire_schedule_updated(self) -> None:
+        """Notify subscribers that the schedule has changed."""
+
+    @abstractmethod
+    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
+        """Fetch and return the schedule from CCU."""
+
+    @abstractmethod
+    async def reload_schedule(self) -> None:
+        """Reload schedule from CCU and update sensor state."""
+
+    @abstractmethod
+    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
+        """Write schedule data to CCU."""
 
 
 @runtime_checkable

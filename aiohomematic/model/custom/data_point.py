@@ -99,6 +99,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             self.unsubscribe_from_data_point_updated()
 
     allow_undefined_generic_data_points: Final = DelegatedProperty[bool](path="_allow_undefined_generic_data_points")
+    channel_group: Final = DelegatedProperty[RebasedChannelGroupConfig](path="_channel_group")
     device_config: Final = DelegatedProperty[DeviceConfig](path="_device_config")
     group_no: Final = DelegatedProperty[int | None](path="_group_no")
 

@@ -55,6 +55,13 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             parameter_data=parameter_data,
         )
 
+    @staticmethod
+    def _values_mismatch(*, optimistic: Any, actual: Any) -> bool:
+        """Check if optimistic and actual values differ, rounding floats to 2 decimals."""
+        if isinstance(optimistic, float) and isinstance(actual, float):
+            return round(optimistic, 2) != round(actual, 2)
+        return optimistic != actual  # type: ignore[no-any-return]
+
     @hm_property(cached=True)
     def usage(self) -> DataPointUsage:
         """Return the data_point usage."""
@@ -68,37 +75,45 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         """Handle event for which this data_point has subscribed."""
         # PHASE 3: CCU CONFIRMATION - Handle optimistic value confirmation
         if self._optimistic_value is not None:
-            # Cancel rollback timer - CCU confirmed
-            if self._optimistic_timeout_handle:
-                self._optimistic_timeout_handle.cancel()
-                self._optimistic_timeout_handle = None
+            self._optimistic_pending_sends = max(0, self._optimistic_pending_sends - 1)
 
-            # Check for value mismatch
-            if self._optimistic_value != value:
-                age = self.optimistic_age or 0.0
-                _LOGGER.warning(
-                    i18n.tr(
-                        key="log.model.data_point.optimistic_mismatch",
-                        full_name=self.full_name,
-                        expected=self._optimistic_value,
-                        actual=value,
-                        age=age,
+            if self._optimistic_pending_sends > 0:
+                # Intermediate confirmation during burst — silently accept,
+                # keep timer and optimistic state for the final confirmation
+                pass
+            else:
+                # Final confirmation — evaluate mismatch and clear state
+                if self._optimistic_timeout_handle:
+                    self._optimistic_timeout_handle.cancel()
+                    self._optimistic_timeout_handle = None
+
+                # Check for value mismatch (round floats to 2 decimals to avoid
+                # false positives from CCU rounding, e.g. 0.3803… vs 0.38)
+                if self._values_mismatch(optimistic=self._optimistic_value, actual=value):
+                    age = self.optimistic_age or 0.0
+                    _LOGGER.debug(
+                        i18n.tr(
+                            key="log.model.data_point.optimistic_mismatch",
+                            full_name=self.full_name,
+                            expected=self._optimistic_value,
+                            actual=value,
+                            age=age,
+                        )
                     )
-                )
 
-                # Publish rollback event (CCU rejected our value)
-                self._publish_rollback_event(
-                    reason=RollbackReason.VALUE_MISMATCH,
-                    rolled_back_value=self._optimistic_value,
-                    restored_value=value,
-                    error=None,
-                    age_seconds=age,
-                )
+                    # Publish rollback event (CCU rejected our value)
+                    self._publish_rollback_event(
+                        reason=RollbackReason.VALUE_MISMATCH,
+                        rolled_back_value=self._optimistic_value,
+                        restored_value=value,
+                        error=None,
+                        age_seconds=age,
+                    )
 
-            # Clear optimistic state (either confirmed or corrected)
-            self._optimistic_value = None
-            self._optimistic_previous_value = None
-            self._optimistic_sent_at = None
+                # Clear optimistic state (either confirmed or corrected)
+                self._optimistic_value = None
+                self._optimistic_previous_value = None
+                self._optimistic_sent_at = None
 
         self._device.client.last_value_send_tracker.remove_last_value_send(
             dpk=self.dpk,

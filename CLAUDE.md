@@ -1811,6 +1811,34 @@ class Device(Protocol): ...  # Protocol
 class Device: ...  # Implementation - NAME COLLISION!
 ```
 
+**Protocol Inheritance Rule**:
+
+**MANDATORY**: Classes that implement a Protocol **MUST** explicitly inherit from it.
+
+Structural subtyping alone is not sufficient — explicit inheritance ensures:
+
+- mypy catches missing methods at class definition time, not at usage sites
+- `isinstance()` checks work reliably with `@runtime_checkable` protocols
+- The relationship between protocol and implementation is self-documenting
+- Refactoring a protocol immediately shows all affected classes
+
+```python
+# ✅ CORRECT - Explicit protocol inheritance
+class CommandThrottle(CommandThrottleProtocol):
+    """Priority-aware rate-limiter for device commands."""
+    ...
+
+# ❌ WRONG - Structural subtyping only (no inheritance)
+class CommandThrottle:  # Implements all methods but doesn't inherit
+    """Priority-aware rate-limiter for device commands."""
+    ...
+```
+
+**Known Exceptions**:
+
+- `LogContextMixin` cannot inherit from `LogContextProtocol` because Protocol base classes introduce `__weakref__` slots that conflict with `ABC` in multiple inheritance chains (e.g., `CallbackDataPoint(ABC, LogContextMixin)`).
+- `CalculatedDataPoint` cannot inherit from `CalculatedDataPointProtocol` because it is an abstract base class that does not implement `value`. Instead, the **concrete leaf subclasses** (`ApparentTemperature`, `DewPoint`, `DewPointSpread`, `Enthalpy`, `FrostPoint`, `VaporConcentration`, `OperatingVoltageLevel`, `DerivedBinarySensor`) inherit from `CalculatedDataPointProtocol` directly.
+
 #### Variables
 
 ```python

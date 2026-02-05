@@ -208,7 +208,7 @@ class StorageFactoryProtocol(Protocol):
         """
 
 
-class Storage:
+class Storage(StorageProtocol):
     """
     Local file-based storage implementation.
 
@@ -558,7 +558,7 @@ class Storage:
             ) from exc
 
 
-class LocalStorageFactory:
+class LocalStorageFactory(StorageFactoryProtocol):
     """
     Factory for creating local Storage instances.
 

@@ -19,6 +19,7 @@ from aiohomematic.interfaces import (
     CacheWithStatisticsProtocol,
     CentralInfoProtocol,
     ClientProviderProtocol,
+    DataCacheProviderProtocol,
     DataCacheWriterProtocol,
     DataPointProviderProtocol,
     DeviceProviderProtocol,
@@ -29,7 +30,7 @@ from aiohomematic.support import changed_within_seconds
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CentralDataCache(DataCacheWriterProtocol, CacheWithStatisticsProtocol):
+class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, CacheWithStatisticsProtocol):
     """Central cache for device/channel initial data."""
 
     __slots__ = (

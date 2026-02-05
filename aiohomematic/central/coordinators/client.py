@@ -27,6 +27,7 @@ from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, FailureReaso
 from aiohomematic.exceptions import AioHomematicException, AuthFailure, BaseHomematicException
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ClientCoordinationProtocol,
     ClientFactoryProtocol,
     ClientProtocol,
     ClientProviderProtocol,
@@ -42,7 +43,7 @@ from aiohomematic.support import extract_exc_args
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class ClientCoordinator(ClientProviderProtocol):
+class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
     """Coordinator for client lifecycle and operations."""
 
     __slots__ = (

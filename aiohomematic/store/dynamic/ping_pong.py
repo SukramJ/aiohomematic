@@ -26,6 +26,7 @@ from aiohomematic.const import (
     PingPongMismatchType,
 )
 from aiohomematic.interfaces import CentralInfoProtocol, EventBusProviderProtocol, IncidentRecorderProtocol
+from aiohomematic.interfaces.client import PingPongTrackerProtocol
 from aiohomematic.metrics import MetricKeys, emit_latency
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.types import IncidentSeverity, IncidentType, PingPongJournal, PongTracker
@@ -36,7 +37,7 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class PingPongTracker:
+class PingPongTracker(PingPongTrackerProtocol):
     """Tracker for ping/pong events to monitor connection health."""
 
     __slots__ = (

@@ -19,6 +19,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic.client.backends.capabilities import BackendCapabilities
+from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 from aiohomematic.const import (
     BackupData,
     CommandRxMode,
@@ -45,7 +46,7 @@ __all__ = ["BaseBackend"]
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class BaseBackend(ABC):
+class BaseBackend(BackendOperationsProtocol, ABC):
     """
     Abstract base class for backend implementations.
 

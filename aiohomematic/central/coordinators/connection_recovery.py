@@ -77,6 +77,7 @@ from aiohomematic.const import (
     RecoveryStage,
     get_json_rpc_default_port,
 )
+from aiohomematic.metrics._protocols import RecoveryProviderForMetricsProtocol
 from aiohomematic.store.types import IncidentSeverity, IncidentType
 
 if TYPE_CHECKING:
@@ -190,7 +191,7 @@ class InterfaceRecoveryState:
         return duration_ms
 
 
-class ConnectionRecoveryCoordinator:
+class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
     """
     Unified coordinator for connection recovery.
 

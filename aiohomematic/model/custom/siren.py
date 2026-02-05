@@ -329,7 +329,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         activity = self._dp_direction.value
         return activity is not None and activity in _ACTIVITY_STATES_ACTIVE
 
-    @bind_collector
+    @bind_collector(priority=CommandPriority.CRITICAL)
     async def play_sound(
         self,
         *,
@@ -390,7 +390,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
         await self._set_on_time_value(on_time=on_time, collector=collector)
 
-    @bind_collector
+    @bind_collector(priority=CommandPriority.CRITICAL)
     async def stop_sound(
         self,
         *,
@@ -400,7 +400,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         await self._dp_level.send_value(value=0.0, collector=collector)
         await self._dp_on_time_value.send_value(value=0, collector=collector)
 
-    @bind_collector
+    @bind_collector(priority=CommandPriority.CRITICAL)
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:
         """Turn the device off."""
         await self.stop_sound(collector=collector)

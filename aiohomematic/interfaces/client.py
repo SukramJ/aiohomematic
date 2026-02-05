@@ -517,6 +517,10 @@ class ClientSupportProtocol(Protocol):
     __slots__ = ()
 
     @property
+    def command_throttle(self) -> CommandThrottleProtocol:
+        """Return the command throttle."""
+
+    @property
     def last_value_send_tracker(self) -> CommandTrackerProtocol:
         """Return the last value send tracker."""
 
@@ -995,6 +999,60 @@ class CallbackAddressProviderProtocol(Protocol):
     @abstractmethod
     def listen_port_xml_rpc(self) -> int:
         """Get XML-RPC listen port."""
+
+
+@runtime_checkable
+class CommandThrottleProtocol(Protocol):
+    """Protocol for command throttle operations."""
+
+    @property
+    def burst_count(self) -> int:
+        """Return number of burst downgrades."""
+
+    @property
+    def burst_threshold(self) -> int:
+        """Return configured burst threshold."""
+
+    @property
+    def burst_window(self) -> float:
+        """Return configured burst window in seconds."""
+
+    @property
+    def critical_count(self) -> int:
+        """Return number of critical commands that bypassed throttle."""
+
+    @property
+    def interface_id(self) -> str:
+        """Return interface identifier."""
+
+    @property
+    def interval(self) -> float:
+        """Return throttle interval in seconds."""
+
+    @property
+    def is_enabled(self) -> bool:
+        """Return True if throttling is active."""
+
+    @property
+    def queue_size(self) -> int:
+        """Return current queue size."""
+
+    @property
+    def throttled_count(self) -> int:
+        """Return number of throttled commands."""
+
+    @abstractmethod
+    async def acquire(
+        self,
+        *,
+        priority: CommandPriority = ...,
+        device_address: str = "",
+    ) -> None:
+        """Acquire permission to send device command with priority."""
+
+    @abstractmethod
+    def stop(self) -> None:
+        """Stop background worker and reject pending commands."""
 
 
 @runtime_checkable

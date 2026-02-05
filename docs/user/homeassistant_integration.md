@@ -56,10 +56,10 @@ This integration works with any CCU-compatible Homematic hub:
 - Homegear
 - Home Assistant OS/Supervised with suitable add-on + communication device
 
-**Minimum CCU Firmware for HomematicIP:**
+**Minimum CCU Firmware:**
 
-- CCU2: 2.53.27
-- CCU3: 3.53.26
+- CCU2: 2.61.x
+- CCU3: 3.61.x
 
 ### Firewall and Ports
 
@@ -196,6 +196,22 @@ Access via **Configure advanced options** during setup or **Configure** after se
 | **Enable Sub-Devices**                | `false` | Split devices with multiple channel groups        |
 | **Use Group Channel for Cover State** | `true`  | Use group channel for cover position              |
 | **Restore Last Brightness**           | `false` | Lights turn on at last brightness instead of 100% |
+
+### Command Throttling
+
+Controls the minimum delay between consecutive device commands sent over each RF interface. This helps prevent packet loss and reduces RF duty cycle usage, especially during bulk operations such as automations that control many devices at once (e.g. "all lights off").
+
+| Setting                       | Default | Range       | Description                                              |
+| ----------------------------- | ------- | ----------- | -------------------------------------------------------- |
+| **Command Throttle Interval** | `0.1`s  | 0.0 - 5.0 s | Minimum pause between consecutive commands per interface |
+
+When set to a positive value, outgoing commands (`set_value`, `put_paramset`) are rate-limited so that at least the configured number of seconds elapse between consecutive commands on the same RF interface. Each interface (HmIP-RF, BidCos-RF, etc.) has its own independent throttle. Set to `0.0` to disable throttling entirely.
+
+!!! tip "When to increase throttling"  
+ If you notice that commands are occasionally lost when controlling many devices at once (e.g. a "good night" scene), try increasing the throttle interval. A value of `0.5`s is a good starting point for most installations.
+
+!!! note "RF Duty Cycle"
+Every Homematic RF interface has a legal limit on how much airtime it can use (duty cycle). Sending many commands in quick succession can temporarily exhaust this limit, causing the CCU to reject further commands until the duty cycle recovers. Throttling spreads commands over time to avoid hitting this limit.
 
 ---
 

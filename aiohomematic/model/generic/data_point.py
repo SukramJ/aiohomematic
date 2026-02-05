@@ -15,7 +15,7 @@ from typing import Any, Final, TypeAlias
 from aiohomematic import i18n
 from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.client.command_throttle import CommandPriority
-from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey, RollbackReason
+from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
 from aiohomematic.context import get_request_context
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
@@ -88,26 +88,18 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
                     self._optimistic_timeout_handle = None
 
                 # Check for value mismatch (round floats to 2 decimals to avoid
-                # false positives from CCU rounding, e.g. 0.3803… vs 0.38)
+                # false positives from CCU rounding, e.g. 0.3803… vs 0.38).
+                # Mismatch is logged at DEBUG only — no rollback event, because the
+                # CCU value is authoritative and silently accepted (not a real rollback).
                 if self._values_mismatch(optimistic=self._optimistic_value, actual=value):
-                    age = self.optimistic_age or 0.0
                     _LOGGER.debug(
                         i18n.tr(
                             key="log.model.data_point.optimistic_mismatch",
                             full_name=self.full_name,
                             expected=self._optimistic_value,
                             actual=value,
-                            age=age,
+                            age=self.optimistic_age or 0.0,
                         )
-                    )
-
-                    # Publish rollback event (CCU rejected our value)
-                    self._publish_rollback_event(
-                        reason=RollbackReason.VALUE_MISMATCH,
-                        rolled_back_value=self._optimistic_value,
-                        restored_value=value,
-                        error=None,
-                        age_seconds=age,
                     )
 
                 # Clear optimistic state (either confirmed or corrected)

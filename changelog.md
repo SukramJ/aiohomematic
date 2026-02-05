@@ -10,6 +10,8 @@
 
 - **Optimistic burst false rollbacks**: Fixed false `OptimisticRollbackEvent` and logbook entries during rapid command bursts (e.g., dimming a light through multiple values). Intermediate CCU confirmations are now silently accepted; mismatch is only evaluated on the final confirmation when all pending sends have been acknowledged.
 
+- **Optimistic mismatch no longer fires rollback events**: `VALUE_MISMATCH` no longer publishes `OptimisticRollbackEvent`. When the CCU confirms a different value (e.g., clamping to minimum dimming level), the CCU value is silently accepted as authoritative. Rollback events are now only published for actual rollbacks (`TIMEOUT`, `SEND_ERROR`). This eliminates noisy logbook entries during normal CCU value corrections.
+
 ---
 
 # Version 2026.2.4 (2026-02-05)

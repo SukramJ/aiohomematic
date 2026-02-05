@@ -1,3 +1,19 @@
+# Version 2026.2.5 (2026-02-05)
+
+## What's Changed
+
+### Fixed
+
+- **i18n format specs**: Fixed `i18n.tr()` silently dropping format specifiers like `{interval:.3f}` because all kwargs values were converted to `str` before `format_map()`. Float format specs require the original type. Placeholders with format specs now render correctly in log messages.
+
+- **Optimistic mismatch false positives**: Fixed false `OPTIMISTIC_MISMATCH` warnings when the CCU rounds float values (e.g., optimistic `0.3803…` vs CCU-confirmed `0.38`). Float values are now rounded to 2 decimal places before comparison.
+
+- **Optimistic burst false rollbacks**: Fixed false `OptimisticRollbackEvent` and logbook entries during rapid command bursts (e.g., dimming a light through multiple values). Intermediate CCU confirmations are now silently accepted; mismatch is only evaluated on the final confirmation when all pending sends have been acknowledged.
+
+- **Optimistic mismatch no longer fires rollback events**: `VALUE_MISMATCH` no longer publishes `OptimisticRollbackEvent`. When the CCU confirms a different value (e.g., clamping to minimum dimming level), the CCU value is silently accepted as authoritative. Rollback events are now only published for actual rollbacks (`TIMEOUT`, `SEND_ERROR`). This eliminates noisy logbook entries during normal CCU value corrections.
+
+---
+
 # Version 2026.2.4 (2026-02-05)
 
 ## What's Changed

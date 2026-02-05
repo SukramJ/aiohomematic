@@ -728,6 +728,7 @@ class BaseParameterDataPoint[
         "_min",
         "_multiplier",
         "_operations",
+        "_optimistic_pending_sends",
         "_optimistic_previous_value",
         "_optimistic_sent_at",
         "_optimistic_timeout_handle",
@@ -795,6 +796,7 @@ class BaseParameterDataPoint[
         self._optimistic_previous_value: ParameterT | None = None
         self._optimistic_timeout_handle: asyncio.TimerHandle | None = None
         self._optimistic_sent_at: float | None = None
+        self._optimistic_pending_sends: int = 0
 
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
@@ -1042,8 +1044,15 @@ class BaseParameterDataPoint[
         This is used by both direct sends and collector-based sends to
         set the optimistic value, publish the update event, and schedule
         the automatic rollback timer.
+
+        During bursts (rapid successive sends), only the first send captures
+        the previous value for rollback. Subsequent sends overwrite the
+        optimistic value but keep the original rollback target.
         """
-        self._optimistic_previous_value = self._value
+        # Only capture previous value on first send in a burst
+        if self._optimistic_pending_sends == 0:
+            self._optimistic_previous_value = self._value
+        self._optimistic_pending_sends += 1
         self._optimistic_value = value
         self._optimistic_sent_at = time.monotonic()
         self.publish_data_point_updated_event()
@@ -1522,6 +1531,7 @@ class BaseParameterDataPoint[
         # Clear optimistic state
         self._optimistic_value = None
         self._optimistic_sent_at = None
+        self._optimistic_pending_sends = 0
         if self._optimistic_timeout_handle:
             self._optimistic_timeout_handle.cancel()
         self._optimistic_timeout_handle = None

@@ -54,7 +54,7 @@ class _LocaleState:
 _state: _LocaleState = _LocaleState()
 
 
-class _SafeDict(dict[str, str]):
+class _SafeDict(dict[str, Any]):
     """Dict that leaves unknown placeholders untouched during format_map."""
 
     def __missing__(self, k: str) -> str:  # kwonly: disable
@@ -180,8 +180,7 @@ def tr(*, key: str, **kwargs: Any) -> str:
         return template
 
     try:
-        safe_kwargs: dict[str, str] = {str(k): str(v) for k, v in kwargs.items()}
-        return template.format_map(_SafeDict(safe_kwargs))
+        return template.format_map(_SafeDict(kwargs))
     except Exception:  # pragma: no cover - keep robust against bad format strings
         return template
 

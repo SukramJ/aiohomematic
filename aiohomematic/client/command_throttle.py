@@ -45,6 +45,7 @@ import time
 from typing import Final
 
 from aiohomematic import i18n
+from aiohomematic.exceptions import CommandSupersededError
 from aiohomematic.interfaces.client import CommandThrottleProtocol
 
 __all__ = ["CommandThrottle", "CommandPriority", "PrioritizedCommand"]
@@ -102,6 +103,7 @@ class CommandThrottle(CommandThrottleProtocol):
         "_interval",
         "_last_command_time",
         "_lock",
+        "_purged_count",
         "_queue",
         "_stopped",
         "_throttled_count",
@@ -143,6 +145,7 @@ class CommandThrottle(CommandThrottleProtocol):
         self._throttled_count: int = 0
         self._critical_count: int = 0
         self._burst_count: int = 0
+        self._purged_count: int = 0
 
         # Start background worker if throttling enabled
         self._worker_task: asyncio.Task[None] | None = None
@@ -160,7 +163,8 @@ class CommandThrottle(CommandThrottleProtocol):
             f"queue_size={self.queue_size}, "
             f"throttled={self._throttled_count}, "
             f"critical={self._critical_count}, "
-            f"burst={self._burst_count})"
+            f"burst={self._burst_count}, "
+            f"purged={self._purged_count})"
         )
 
     @property
@@ -199,6 +203,11 @@ class CommandThrottle(CommandThrottleProtocol):
         return self._interval > 0.0
 
     @property
+    def purged_count(self) -> int:
+        """Return number of purged commands."""
+        return self._purged_count
+
+    @property
     def queue_size(self) -> int:
         """Return current queue size."""
         return len(self._queue)
@@ -213,6 +222,7 @@ class CommandThrottle(CommandThrottleProtocol):
         *,
         priority: CommandPriority = CommandPriority.HIGH,
         device_address: str = "",
+        purge_addresses: frozenset[str] = frozenset(),
     ) -> None:
         """
         Acquire permission to send device command with priority.
@@ -220,10 +230,11 @@ class CommandThrottle(CommandThrottleProtocol):
         Args:
             priority: Command priority level
             device_address: Device address (for logging/debugging)
+            purge_addresses: Channel addresses to purge from queue (for CRITICAL commands)
 
         Behavior:
         - Throttling disabled (interval=0.0): Return immediately
-        - CRITICAL priority: Return immediately, bypass queue and throttle
+        - CRITICAL priority: Purge matching queue entries, bypass queue and throttle
         - HIGH priority during burst: Downgraded to LOW, then enqueued
         - HIGH/LOW priority: Enqueue and wait for worker to grant permission
 
@@ -238,6 +249,8 @@ class CommandThrottle(CommandThrottleProtocol):
         # CRITICAL commands bypass everything
         if priority == CommandPriority.CRITICAL:
             self._critical_count += 1
+            if purge_addresses:
+                await self._purge_commands(purge_addresses=purge_addresses)
             _LOGGER.debug(
                 "COMMAND_THROTTLE[%s]: CRITICAL command bypassing queue (device=%s)",
                 self._interface_id,
@@ -320,6 +333,34 @@ class CommandThrottle(CommandThrottleProtocol):
             self._burst_timestamps.popleft()
 
         return len(self._burst_timestamps) > self._burst_threshold
+
+    async def _purge_commands(self, *, purge_addresses: frozenset[str]) -> None:
+        """Cancel and remove pending commands matching any of the given channel addresses."""
+        async with self._lock:
+            remaining: list[PrioritizedCommand] = []
+            purged_count = 0
+
+            for cmd in self._queue:
+                if cmd.device_address in purge_addresses:
+                    if not cmd.future.done():
+                        cmd.future.set_exception(
+                            CommandSupersededError(f"Superseded by CRITICAL command (channel group: {purge_addresses})")
+                        )
+                    purged_count += 1
+                else:
+                    remaining.append(cmd)
+
+            if purged_count:
+                self._queue = remaining
+                heapq.heapify(self._queue)
+                self._purged_count += purged_count
+                _LOGGER.info(
+                    i18n.tr(
+                        key="log.client.command_throttle.purged_commands",
+                        interface_id=self._interface_id,
+                        purged_count=purged_count,
+                    )
+                )
 
     async def _worker(self) -> None:
         """

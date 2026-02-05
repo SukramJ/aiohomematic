@@ -11,6 +11,7 @@ import pytest
 
 from aiohomematic.client import CommandPriority, CommandThrottle, InterfaceClient, InterfaceConfig
 from aiohomematic.const import Interface, ParamsetKey, TimeoutConfig
+from aiohomematic.exceptions import CommandSupersededError
 
 
 class TestCommandThrottle:
@@ -546,3 +547,472 @@ class TestBurstDetectionIntegration:
             assert client.command_throttle.burst_count == 0
         finally:
             client.command_throttle.stop()
+
+
+# =============================================================================
+# Queue Purge Tests
+# =============================================================================
+
+
+class TestQueuePurge:
+    """Test queue purge when CRITICAL commands arrive."""
+
+    async def test_critical_no_purge_when_empty_addresses(self) -> None:
+        """Test that CRITICAL without purge_addresses does not purge anything."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+
+        import heapq
+        import time
+
+        from aiohomematic.client.command_throttle import PrioritizedCommand
+
+        f: asyncio.Future[None] = asyncio.Future()
+        async with throttle._lock:
+            heapq.heappush(
+                throttle._queue,
+                PrioritizedCommand(
+                    priority=CommandPriority.HIGH,
+                    timestamp=time.monotonic(),
+                    future=f,
+                    device_address="VCU:3",
+                ),
+            )
+
+        await throttle.acquire(priority=CommandPriority.CRITICAL, device_address="VCU:3")
+
+        # Queue untouched
+        assert throttle.queue_size == 1
+        assert throttle.purged_count == 0
+
+        throttle.stop()
+
+    async def test_critical_purge_does_not_affect_other_groups(self) -> None:
+        """Test that purge only affects commands in the specified channel group."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+
+        import heapq
+        import time
+
+        from aiohomematic.client.command_throttle import PrioritizedCommand
+
+        # Group 1: channels 3, 4
+        f_group1: asyncio.Future[None] = asyncio.Future()
+        async with throttle._lock:
+            heapq.heappush(
+                throttle._queue,
+                PrioritizedCommand(
+                    priority=CommandPriority.HIGH,
+                    timestamp=time.monotonic(),
+                    future=f_group1,
+                    device_address="VCU:3",
+                ),
+            )
+
+        # Group 2: channels 7, 8
+        f_group2: asyncio.Future[None] = asyncio.Future()
+        async with throttle._lock:
+            heapq.heappush(
+                throttle._queue,
+                PrioritizedCommand(
+                    priority=CommandPriority.HIGH,
+                    timestamp=time.monotonic(),
+                    future=f_group2,
+                    device_address="VCU:7",
+                ),
+            )
+
+        assert throttle.queue_size == 2
+
+        # CRITICAL for group 1 only
+        await throttle.acquire(
+            priority=CommandPriority.CRITICAL,
+            device_address="VCU:3",
+            purge_addresses=frozenset({"VCU:3", "VCU:4"}),
+        )
+
+        # Group 1 purged, group 2 remains
+        assert throttle.queue_size == 1
+        assert throttle.purged_count == 1
+
+        # Group 1 future should be superseded
+        assert f_group1.done()
+        with pytest.raises(CommandSupersededError):
+            f_group1.result()
+
+        # Group 2 future should still be pending
+        assert not f_group2.done()
+
+        throttle.stop()
+
+    async def test_critical_purges_matching_channel_group(self) -> None:
+        """Test that CRITICAL commands purge pending commands for same channel group."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+
+        # Enqueue several HIGH commands for channels in the same group
+        futures: list[asyncio.Future[None]] = []
+        for addr in ("VCU:3", "VCU:4", "VCU:3"):
+            f: asyncio.Future[None] = asyncio.Future()
+            futures.append(f)
+            async with throttle._lock:
+                import heapq
+                import time
+
+                from aiohomematic.client.command_throttle import PrioritizedCommand
+
+                cmd = PrioritizedCommand(
+                    priority=CommandPriority.HIGH,
+                    timestamp=time.monotonic(),
+                    future=f,
+                    device_address=addr,
+                )
+                heapq.heappush(throttle._queue, cmd)
+
+        assert throttle.queue_size == 3
+
+        # CRITICAL command with purge_addresses for the channel group
+        purge_addrs = frozenset({"VCU:3", "VCU:4"})
+        await throttle.acquire(
+            priority=CommandPriority.CRITICAL,
+            device_address="VCU:3",
+            purge_addresses=purge_addrs,
+        )
+
+        # All matching commands should be purged
+        assert throttle.queue_size == 0
+        assert throttle.purged_count == 3
+        assert throttle.critical_count == 1
+
+        # Futures should have CommandSupersededError
+        for f in futures:
+            assert f.done()
+            with pytest.raises(CommandSupersededError):
+                f.result()
+
+        throttle.stop()
+
+    async def test_purged_count_property(self) -> None:
+        """Test that purged_count property tracks correctly."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        assert throttle.purged_count == 0
+
+        import heapq
+        import time
+
+        from aiohomematic.client.command_throttle import PrioritizedCommand
+
+        # Add 2 commands
+        for addr in ("VCU:3", "VCU:4"):
+            f: asyncio.Future[None] = asyncio.Future()
+            async with throttle._lock:
+                heapq.heappush(
+                    throttle._queue,
+                    PrioritizedCommand(
+                        priority=CommandPriority.HIGH,
+                        timestamp=time.monotonic(),
+                        future=f,
+                        device_address=addr,
+                    ),
+                )
+
+        # Purge 2
+        await throttle.acquire(
+            priority=CommandPriority.CRITICAL,
+            device_address="VCU:3",
+            purge_addresses=frozenset({"VCU:3", "VCU:4"}),
+        )
+        assert throttle.purged_count == 2
+
+        # Add 1 more and purge it
+        f2: asyncio.Future[None] = asyncio.Future()
+        async with throttle._lock:
+            heapq.heappush(
+                throttle._queue,
+                PrioritizedCommand(
+                    priority=CommandPriority.HIGH,
+                    timestamp=time.monotonic(),
+                    future=f2,
+                    device_address="VCU:3",
+                ),
+            )
+
+        await throttle.acquire(
+            priority=CommandPriority.CRITICAL,
+            device_address="VCU:3",
+            purge_addresses=frozenset({"VCU:3"}),
+        )
+        assert throttle.purged_count == 3  # Cumulative
+
+        throttle.stop()
+
+    def test_repr_includes_purged_count(self) -> None:
+        """Test that __repr__ includes purged count."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.0)
+        assert "purged=0" in repr(throttle)
+
+
+class TestQueuePurgeIntegration:
+    """Integration tests: queue purge through InterfaceClient."""
+
+    @pytest.mark.asyncio
+    async def test_cover_stop_purges_queued_movement_commands(self) -> None:
+        """
+        End-to-end: Cover STOP purges queued movement commands.
+
+        Simulates a realistic blind actuator scenario:
+
+        1. User sends movement commands (LEVEL) → queued by throttle
+        2. User presses STOP → CRITICAL priority + channel group purge
+        3. Queued movements are cancelled (CommandSupersededError)
+        4. STOP bypasses throttle and reaches the backend immediately
+
+        Note on timing: The background worker pops one command from the queue
+        to apply throttle delay. That command is "in flight" (being delayed)
+        and cannot be purged. We therefore enqueue 3 commands: 1 gets popped
+        by the worker, 2 remain in the queue and get purged by STOP.
+        """
+        # Long throttle interval ensures movement commands stay queued
+        client, backend = _create_throttled_client(throttle_interval=5.0, burst_threshold=0)
+        throttle = client.command_throttle
+
+        # Channel group: blind actuator on channels 3 + 4
+        channel_group = frozenset({"VCU0000001:3", "VCU0000001:4"})
+
+        try:
+            # ── PHASE 1: First movement command goes through ─────────────
+            # The worker picks up the first command immediately (no prior delay).
+            first_cmd = asyncio.create_task(
+                client.set_value(
+                    channel_address="VCU0000001:4",
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter="LEVEL",
+                    value=1.0,
+                    wait_for_callback=None,
+                    priority=CommandPriority.HIGH,
+                )
+            )
+            await asyncio.sleep(0.2)  # Let worker pick it up
+            assert first_cmd.done(), "First command should complete immediately"
+            assert len(backend.calls) == 1
+
+            # ── PHASE 2: Queue up movement commands ──────────────────────
+            # These are blocked by the 5-second throttle interval.
+            # The worker will pop one (starts its 5s delay), leaving 2 in queue.
+            queued_cmd_1 = asyncio.create_task(
+                client.set_value(
+                    channel_address="VCU0000001:4",
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter="LEVEL",
+                    value=0.0,
+                    wait_for_callback=None,
+                    priority=CommandPriority.HIGH,
+                )
+            )
+            queued_cmd_2 = asyncio.create_task(
+                client.set_value(
+                    channel_address="VCU0000001:3",
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter="LEVEL",
+                    value=0.5,
+                    wait_for_callback=None,
+                    priority=CommandPriority.HIGH,
+                )
+            )
+            queued_cmd_3 = asyncio.create_task(
+                client.set_value(
+                    channel_address="VCU0000001:4",
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter="LEVEL",
+                    value=0.8,
+                    wait_for_callback=None,
+                    priority=CommandPriority.HIGH,
+                )
+            )
+            await asyncio.sleep(0.2)  # Let tasks enqueue + worker pop one
+
+            # Worker popped 1 command (throttle delay), 2 remain in queue.
+            # All 3 are still incomplete (waiting for throttle permission).
+            assert throttle.queue_size == 2, "Two commands should remain in queue"
+            assert not queued_cmd_1.done() or not queued_cmd_2.done(), "Commands should be waiting"
+
+            # ── PHASE 3: STOP command (CRITICAL + purge) ─────────────────
+            # This simulates what happens when bind_collector sets
+            # priority=CRITICAL and purge_addresses from get_channel_group_addresses().
+            await client.set_value(
+                channel_address="VCU0000001:4",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STOP",
+                value=True,
+                wait_for_callback=None,
+                priority=CommandPriority.CRITICAL,
+                purge_addresses=channel_group,
+            )
+
+            # ── PHASE 4: Verify results ──────────────────────────────────
+            # STOP bypassed the queue entirely
+            assert throttle.critical_count == 1, "STOP should be counted as CRITICAL"
+
+            # 2 queued movement commands were purged
+            assert throttle.purged_count == 2, "Both queued movements should be purged"
+            assert throttle.queue_size == 0, "Queue should be empty after purge"
+
+            # Purged tasks complete with empty result
+            # (InterfaceClient catches CommandSupersededError → returns set())
+            await asyncio.sleep(0.05)
+            done_cmds = [cmd for cmd in (queued_cmd_1, queued_cmd_2, queued_cmd_3) if cmd.done()]
+            assert len(done_cmds) == 2, "2 of 3 queued commands should be resolved (purged)"
+            for cmd in done_cmds:
+                assert await cmd == set(), "Purged command returns empty set"
+
+            # Backend received exactly 2 calls: first LEVEL + STOP.
+            # The purged LEVEL commands never reached the backend.
+            assert len(backend.calls) == 2, "Backend should see first LEVEL + STOP only"
+            assert backend.calls[0] == ("set_value", ("VCU0000001:4", "LEVEL", 1.0, None))
+            assert backend.calls[1] == ("set_value", ("VCU0000001:4", "STOP", True, None))
+
+        finally:
+            throttle.stop()
+
+    @pytest.mark.asyncio
+    async def test_put_paramset_with_purge_addresses(self) -> None:
+        """Test that purge_addresses is passed through put_paramset to throttle."""
+        client, backend = _create_throttled_client(throttle_interval=0.05)
+
+        try:
+            await client.put_paramset(
+                channel_address="dev1:3",
+                paramset_key_or_link_address=ParamsetKey.VALUES,
+                values={"LEVEL": 0.0},
+                wait_for_callback=None,
+                priority=CommandPriority.CRITICAL,
+                purge_addresses=frozenset({"dev1:3", "dev1:4"}),
+            )
+
+            assert len(backend.calls) == 1
+            assert backend.calls[0][0] == "put_paramset"
+            assert client.command_throttle.critical_count == 1
+        finally:
+            client.command_throttle.stop()
+
+    @pytest.mark.asyncio
+    async def test_set_value_with_purge_addresses(self) -> None:
+        """Test that purge_addresses is passed through set_value to throttle."""
+        client, backend = _create_throttled_client(throttle_interval=0.05)
+
+        try:
+            # Send a CRITICAL command with purge addresses
+            await client.set_value(
+                channel_address="dev1:3",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STOP",
+                value=True,
+                wait_for_callback=None,
+                priority=CommandPriority.CRITICAL,
+                purge_addresses=frozenset({"dev1:3", "dev1:4"}),
+            )
+
+            assert len(backend.calls) == 1
+            assert backend.calls[0][0] == "set_value"
+            assert client.command_throttle.critical_count == 1
+        finally:
+            client.command_throttle.stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_does_not_purge_other_channel_group(self) -> None:
+        """
+        End-to-end: STOP on channel group 1 does NOT affect channel group 2.
+
+        Simulates a 2-channel blind actuator where each channel group
+        operates independently. STOP on group 1 must leave group 2 alone.
+
+        Note on timing: The background worker pops one command from the
+        queue for throttle delay. We therefore enqueue 3 commands so that
+        after the worker pops one, 1 from group 1 and 1 from group 2
+        remain in the queue.
+        """
+        client, backend = _create_throttled_client(throttle_interval=5.0, burst_threshold=0)
+        throttle = client.command_throttle
+
+        # Two independent channel groups on the same device
+        group_1 = frozenset({"VCU0000001:3", "VCU0000001:4"})
+        # group_2 channels: 7, 8
+
+        try:
+            # ── Send initial command to start throttle timer ─────────────
+            first_cmd = asyncio.create_task(
+                client.set_value(
+                    channel_address="VCU0000001:4",
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter="LEVEL",
+                    value=1.0,
+                    wait_for_callback=None,
+                    priority=CommandPriority.HIGH,
+                )
+            )
+            await asyncio.sleep(0.2)
+            assert first_cmd.done()
+
+            # ── Queue commands for BOTH channel groups ───────────────────
+            # 3 commands: worker pops 1, leaving 2 in queue (1 per group).
+            queued_tasks: list[asyncio.Task[set[Any]]] = []
+            queued_tasks.append(
+                asyncio.create_task(
+                    client.set_value(
+                        channel_address="VCU0000001:4",
+                        paramset_key=ParamsetKey.VALUES,
+                        parameter="LEVEL",
+                        value=0.2,
+                        wait_for_callback=None,
+                        priority=CommandPriority.HIGH,
+                    )
+                )
+            )
+            queued_tasks.append(
+                asyncio.create_task(
+                    client.set_value(
+                        channel_address="VCU0000001:3",
+                        paramset_key=ParamsetKey.VALUES,
+                        parameter="LEVEL",
+                        value=0.0,
+                        wait_for_callback=None,
+                        priority=CommandPriority.HIGH,
+                    )
+                )
+            )
+            group2_cmd = asyncio.create_task(
+                client.set_value(
+                    channel_address="VCU0000001:7",
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter="LEVEL",
+                    value=0.5,
+                    wait_for_callback=None,
+                    priority=CommandPriority.HIGH,
+                )
+            )
+            queued_tasks.append(group2_cmd)
+            await asyncio.sleep(0.2)
+
+            # Worker popped 1 command, 2 remain in queue
+            assert throttle.queue_size == 2, "Two commands should remain in queue"
+
+            # ── STOP on group 1 only ─────────────────────────────────────
+            await client.set_value(
+                channel_address="VCU0000001:4",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STOP",
+                value=True,
+                wait_for_callback=None,
+                priority=CommandPriority.CRITICAL,
+                purge_addresses=group_1,
+            )
+
+            # ── Verify: group 1 purged, group 2 untouched ───────────────
+            # Only the group 1 command (VCU0000001:3) was purged.
+            # The group 2 command (VCU0000001:7) remains.
+            assert throttle.purged_count == 1, "Only group 1 command should be purged"
+            assert throttle.queue_size == 1, "Group 2 command should remain in queue"
+
+            # Group 2 command is still waiting for its turn
+            assert not group2_cmd.done(), "Group 2 command should still be waiting"
+
+        finally:
+            throttle.stop()

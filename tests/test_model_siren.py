@@ -83,7 +83,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 30,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
         await siren.turn_on(
@@ -101,7 +102,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 30,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
         from aiohomematic.exceptions import ValidationException
@@ -131,7 +133,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
         await siren.turn_off()
@@ -178,7 +181,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
     @pytest.mark.asyncio
@@ -217,7 +221,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
         # Only override optical_alarm - acoustic_alarm should use pre-filled value
@@ -232,7 +237,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
     @pytest.mark.asyncio
@@ -270,7 +276,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
     @pytest.mark.asyncio
@@ -305,7 +312,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
         # Only optical_alarm provided
@@ -320,7 +328,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
     @pytest.mark.asyncio
@@ -354,7 +363,8 @@ class TestIpSiren:
                 "DURATION_VALUE": 0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU8249617:3"}),
         )
 
 
@@ -421,7 +431,8 @@ class TestIpSirenSmoke:
             parameter="SMOKE_DETECTOR_COMMAND",
             value=_SirenCommand.ON,
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU2822385:1"}),
         )
 
         await siren.turn_off()
@@ -431,7 +442,8 @@ class TestIpSirenSmoke:
             parameter="SMOKE_DETECTOR_COMMAND",
             value=_SirenCommand.OFF,
             wait_for_callback=WAIT_FOR_CALLBACK,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU2822385:1"}),
         )
 
         call_count = len(mock_client.method_calls)

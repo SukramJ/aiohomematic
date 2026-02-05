@@ -116,6 +116,14 @@ class InternalBackendException(BaseHomematicException):
         super().__init__("InternalBackendException", *args)
 
 
+class CommandSupersededError(BaseHomematicException):
+    """Raised when a queued command is superseded by a higher-priority command."""
+
+    def __init__(self, *args: Any) -> None:
+        """Initialize the CommandSupersededError."""
+        super().__init__("CommandSupersededError", *args)
+
+
 class DescriptionNotFoundException(BaseHomematicException):
     """Exception raised when a device/channel description is not found in the cache."""
 

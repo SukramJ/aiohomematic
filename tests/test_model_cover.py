@@ -378,7 +378,8 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU0000144:1"}),
         )
         await cover.stop_tilt()
         assert mock_client.method_calls[-1] == call.set_value(
@@ -386,7 +387,8 @@ class TestCustomDpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU0000144:1"}),
         )
 
         await cover.open_tilt()
@@ -678,7 +680,8 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU1223813:3", "VCU1223813:4", "VCU1223813:5", "VCU1223813:6"}),
         )
 
     @pytest.mark.asyncio
@@ -971,7 +974,8 @@ class TestCustomDpIpBlind:
             paramset_key=ParamsetKey.VALUES,
             parameter="STOP",
             value=True,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU3560967:1"}),
         )
 
 
@@ -1080,7 +1084,8 @@ class TestCustomDpGarage:
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.STOP,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU3574044:1"}),
         )
 
         await central.event_coordinator.data_point_event(
@@ -1231,7 +1236,8 @@ class TestCustomDpGarage:
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
             value=_GarageDoorCommand.STOP,
-            priority=CommandPriority.HIGH,
+            priority=CommandPriority.CRITICAL,
+            purge_addresses=frozenset({"VCU6166407:1"}),
         )
 
         await central.event_coordinator.data_point_event(

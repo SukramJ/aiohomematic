@@ -297,6 +297,7 @@ class ParamsetOperationsProtocol(Protocol):
         rx_mode: Any | None = None,
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
+        purge_addresses: frozenset[str] = frozenset(),
     ) -> set[Any]:
         """Set paramsets manually."""
 
@@ -339,6 +340,7 @@ class ValueOperationsProtocol(Protocol):
         rx_mode: Any | None = None,
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
+        purge_addresses: frozenset[str] = frozenset(),
     ) -> set[Any]:
         """Set single value on paramset VALUES."""
 
@@ -1034,6 +1036,10 @@ class CommandThrottleProtocol(Protocol):
         """Return True if throttling is active."""
 
     @property
+    def purged_count(self) -> int:
+        """Return number of purged commands."""
+
+    @property
     def queue_size(self) -> int:
         """Return current queue size."""
 
@@ -1047,6 +1053,7 @@ class CommandThrottleProtocol(Protocol):
         *,
         priority: CommandPriority = ...,
         device_address: str = "",
+        purge_addresses: frozenset[str] = ...,
     ) -> None:
         """Acquire permission to send device command with priority."""
 

@@ -14,7 +14,9 @@ from typing import Any, Final, TypeAlias
 
 from aiohomematic import i18n
 from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey, RollbackReason
+from aiohomematic.context import get_request_context
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
@@ -178,9 +180,27 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             return set()
 
         # Detect command priority for throttling (CRITICAL/HIGH/LOW)
-        priority = self.get_command_priority()
+        ctx = get_request_context()
+        if ctx and isinstance(ctx_priority := ctx.extra.get(hme.CONTEXT_KEY_PRIORITY), CommandPriority):
+            priority = ctx_priority
+        else:
+            priority = self.get_command_priority()
+
+        # Get purge addresses from context (set by bind_collector for CRITICAL commands)
+        purge_addresses: frozenset[str] = (
+            ctx.extra.get(hme.CONTEXT_KEY_PURGE_ADDRESSES, frozenset()) if ctx else frozenset()
+        )
 
         try:
+            if purge_addresses:
+                return await self._client.set_value(
+                    channel_address=self._channel.address,
+                    paramset_key=self._paramset_key,
+                    parameter=self._parameter,
+                    value=converted_value,
+                    priority=priority,
+                    purge_addresses=purge_addresses,
+                )
             return await self._client.set_value(
                 channel_address=self._channel.address,
                 paramset_key=self._paramset_key,

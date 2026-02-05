@@ -178,6 +178,22 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
                 refreshed_at = data_point_refreshed_at
         return refreshed_at
 
+    def get_channel_group_addresses(self) -> frozenset[str]:
+        """Return all channel addresses in this custom data point's channel group."""
+        channels: set[int] = set()
+        if (pc := self._channel_group.primary_channel) is not None:
+            channels.add(pc)
+        channels.update(self._channel_group.secondary_channels)
+        if (sc := self._channel_group.state_channel) is not None:
+            channels.add(sc)
+        for ch_no in self._channel_group.channel_fields:
+            if ch_no is not None:
+                channels.add(ch_no)
+        for ch_no in self._channel_group.fixed_channel_fields:
+            channels.add(ch_no)
+        device_addr = self._device.address
+        return frozenset(f"{device_addr}:{ch}" for ch in channels)
+
     async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
         """Get schedule from device week profile."""
         if not self._device.week_profile:

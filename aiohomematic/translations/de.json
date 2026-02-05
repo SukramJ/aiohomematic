@@ -159,6 +159,7 @@
   "log.central.validate_config_and_get_system_information.client_failed": "VALIDATE_CONFIG_AND_GET_SYSTEM_INFORMATION fehlgeschlagen für Client {interface}: {reason}",
   "log.client.circuit_breaker.state_transition": "CIRCUIT_BREAKER: {old_state} → {new_state} für {interface_id} (Fehler={failure_count}, Erfolge={success_count})",
   "log.client.command_throttle.burst_downgrade": "COMMAND_THROTTLE[{interface_id}]: Burst erkannt, Priorität auf LOW herabgestuft (Gerät={device_address}, Befehle={count} in {window:.1f}s)",
+  "log.client.command_throttle.purged_commands": "COMMAND_THROTTLE[{interface_id}]: {purged_count} wartende(r) Befehl(e) für Kanalgruppe gelöscht",
   "log.client.command_throttle.stopped": "CommandThrottle gestoppt",
   "log.client.command_throttle.stopping_worker": "COMMAND_THROTTLE[{interface_id}]: Stoppe Worker...",
   "log.client.command_throttle.worker_cancelled": "COMMAND_THROTTLE[{interface_id}]: Worker abgebrochen",

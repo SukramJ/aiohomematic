@@ -56,7 +56,7 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.exceptions import BaseHomematicException, ClientException, ValidationException
+from aiohomematic.exceptions import BaseHomematicException, ClientException, CommandSupersededError, ValidationException
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import DelegatedProperty
@@ -835,6 +835,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
+        purge_addresses: frozenset[str] = frozenset(),
     ) -> set[DP_KEY_VALUE]:
         """Set paramsets manually."""
         # Default to HIGH priority if not specified
@@ -869,7 +870,9 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     raise ClientException(i18n.tr(key="exception.client.paramset_key.invalid"))
 
             # Acquire command throttle with priority
-            await self._command_throttle.acquire(priority=priority, device_address=channel_address)
+            await self._command_throttle.acquire(
+                priority=priority, device_address=channel_address, purge_addresses=purge_addresses
+            )
 
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
@@ -919,6 +922,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     device=device, dpk_values=dpk_values, wait_for_callback=wait_for_callback
                 )
 
+        except CommandSupersededError:
+            _LOGGER.debug(
+                "PUT_PARAMSET: Command for %s superseded by CRITICAL command",
+                channel_address,
+            )
+            return set()
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(
@@ -1049,6 +1058,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         rx_mode: CommandRxMode | None = None,
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
+        purge_addresses: frozenset[str] = frozenset(),
     ) -> set[DP_KEY_VALUE]:
         """Set single value on paramset VALUES."""
         # Default to HIGH priority if not specified
@@ -1064,6 +1074,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 rx_mode=rx_mode,
                 check_against_pd=check_against_pd,
                 priority=priority,
+                purge_addresses=purge_addresses,
             )
 
         dpk_values: set[DP_KEY_VALUE] = set()
@@ -1081,7 +1092,9 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             )
 
             # Acquire command throttle with priority
-            await self._command_throttle.acquire(priority=priority, device_address=channel_address)
+            await self._command_throttle.acquire(
+                priority=priority, device_address=channel_address, purge_addresses=purge_addresses
+            )
 
             if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
                 if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
@@ -1107,6 +1120,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 await self._wait_for_state_change(
                     device=device, dpk_values=dpk_values, wait_for_callback=wait_for_callback
                 )
+        except CommandSupersededError:
+            _LOGGER.debug(
+                "SET_VALUE: Command for %s/%s superseded by CRITICAL command",
+                channel_address,
+                parameter,
+            )
+            return set()
         except BaseHomematicException as bhexc:
             raise ClientException(
                 i18n.tr(

@@ -64,7 +64,13 @@ from aiohomematic.const import (
     ServiceScope,
     check_ignore_parameter_on_initial_load,
 )
-from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
+from aiohomematic.context import (
+    RequestContext,
+    get_request_context,
+    is_in_service,
+    reset_request_context,
+    set_request_context,
+)
 from aiohomematic.decorators import get_service_calls, inspector
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic.interfaces import (
@@ -127,6 +133,8 @@ _CONFIGURABLE_CHANNEL: Final[tuple[str, ...]] = (
     "MULTI_MODE_INPUT_TRANSMITTER",
 )
 _COLLECTOR_ARGUMENT_NAME: Final = "collector"
+CONTEXT_KEY_PRIORITY: Final = "command_priority"
+CONTEXT_KEY_PURGE_ADDRESSES: Final = "purge_addresses"
 _FIX_UNIT_REPLACE: Final[Mapping[str, str]] = {
     '"': "",
     "100%": "%",
@@ -1634,34 +1642,76 @@ class CallParameterCollector:
         for dp, value in self._collected_data_points:
             dp.apply_optimistic_value(value=value)
 
+        # Read purge_addresses from context if available
+        ctx = get_request_context()
+        purge_addresses: frozenset[str] = (
+            ctx.extra.get(CONTEXT_KEY_PURGE_ADDRESSES, frozenset()) if ctx else frozenset()
+        )
+
         dpk_values: set[DP_KEY_VALUE] = set()
-        priority = self._priority or CommandPriority.HIGH
+        priority = self._priority if self._priority is not None else CommandPriority.HIGH
         for paramset_key, paramsets in self._paramsets.items():
             for _, paramset_no in sorted(paramsets.items()):
                 for channel_address, paramset in paramset_no.items():
-                    if len(paramset) == 1:
-                        for parameter, value in paramset.items():
-                            dpk_values.update(
-                                await self._client.set_value(
-                                    channel_address=channel_address,
-                                    paramset_key=paramset_key,
-                                    parameter=parameter,
-                                    value=value,
-                                    wait_for_callback=wait_for_callback,
-                                    priority=priority,
-                                )
-                            )
-                    else:
-                        dpk_values.update(
-                            await self._client.put_paramset(
-                                channel_address=channel_address,
-                                paramset_key_or_link_address=paramset_key,
-                                values=paramset,
-                                wait_for_callback=wait_for_callback,
-                                priority=priority,
-                            )
+                    dpk_values.update(
+                        await self._send_paramset(
+                            channel_address=channel_address,
+                            paramset_key=paramset_key,
+                            paramset=paramset,
+                            wait_for_callback=wait_for_callback,
+                            priority=priority,
+                            purge_addresses=purge_addresses,
                         )
+                    )
         return dpk_values
+
+    async def _send_paramset(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        paramset: dict[str, Any],
+        wait_for_callback: int | None,
+        priority: CommandPriority,
+        purge_addresses: frozenset[str],
+    ) -> set[DP_KEY_VALUE]:
+        """Send a single paramset via set_value or put_paramset."""
+        if len(paramset) == 1:
+            parameter, value = next(iter(paramset.items()))
+            if purge_addresses:
+                return await self._client.set_value(
+                    channel_address=channel_address,
+                    paramset_key=paramset_key,
+                    parameter=parameter,
+                    value=value,
+                    wait_for_callback=wait_for_callback,
+                    priority=priority,
+                    purge_addresses=purge_addresses,
+                )
+            return await self._client.set_value(
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=parameter,
+                value=value,
+                wait_for_callback=wait_for_callback,
+                priority=priority,
+            )
+        if purge_addresses:
+            return await self._client.put_paramset(
+                channel_address=channel_address,
+                paramset_key_or_link_address=paramset_key,
+                values=paramset,
+                wait_for_callback=wait_for_callback,
+                priority=priority,
+                purge_addresses=purge_addresses,
+            )
+        return await self._client.put_paramset(
+            channel_address=channel_address,
+            paramset_key_or_link_address=paramset_key,
+            values=paramset,
+            wait_for_callback=wait_for_callback,
+            priority=priority,
+        )
 
 
 @overload
@@ -1755,6 +1805,13 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
             token: Token[RequestContext | None] | None = None
             if not is_in_service():
                 ctx = RequestContext(operation=f"service:{func.__name__}")
+                if priority is not None:
+                    extra: dict[str, Any] = {CONTEXT_KEY_PRIORITY: priority}
+                    if priority == CommandPriority.CRITICAL:
+                        cdp = args[0]
+                        if callable(getattr(cdp, "get_channel_group_addresses", None)):
+                            extra[CONTEXT_KEY_PURGE_ADDRESSES] = cdp.get_channel_group_addresses()
+                    ctx = ctx.with_extra(**extra)
                 token = set_request_context(ctx=ctx)
             try:
                 # Short-circuit if collector binding is disabled

@@ -1,4 +1,4 @@
-# Version 2026.2.4 (2026-02-04)
+# Version 2026.2.4 (2026-02-05)
 
 ## What's Changed
 
@@ -26,6 +26,14 @@
 - **Command throttle**: Added configurable per-interface rate limiting for outgoing device commands (`set_value`, `put_paramset`). The throttle enforces a minimum delay between consecutive commands on the same RF interface to reduce duty-cycle usage and packet loss during bulk operations. Configure via `TimeoutConfig.command_throttle_interval` (default: `0.0` = disabled).
 
   New class: `CommandThrottle` in `aiohomematic.client`
+
+- **CRITICAL queue purge**: When a CRITICAL command arrives (e.g., cover STOP, lock, siren), all pending queued commands for the same channel group are automatically purged from the throttle queue. This prevents queued movement commands from restarting a cover after STOP. Purged commands are cancelled with `CommandSupersededError` and return an empty result to callers. Channel group scope is respected — STOP on group 1 does not affect group 2 on the same device.
+
+  New exception: `CommandSupersededError` in `aiohomematic.exceptions`
+
+  New method: `CustomDataPoint.get_channel_group_addresses()` — returns all channel addresses in the data point's channel group
+
+  New parameter: `purge_addresses` on `set_value()`, `put_paramset()`, and `CommandThrottle.acquire()`
 
 ### Removed
 

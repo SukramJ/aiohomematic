@@ -39,7 +39,7 @@
 
   CRITICAL priority is declared at the service-method level via `@bind_collector(priority=CommandPriority.CRITICAL)` on lock and siren service methods.
 
-- **Command throttle**: Added configurable per-interface rate limiting for outgoing device commands (`set_value`, `put_paramset`). The throttle enforces a minimum delay between consecutive commands on the same RF interface to reduce duty-cycle usage and packet loss during bulk operations. Configure via `TimeoutConfig.command_throttle_interval` (default: `0.0` = disabled).
+- **Command throttle**: Added configurable per-interface rate limiting for outgoing device commands (`set_value`, `put_paramset`). The throttle enforces a minimum delay between consecutive commands on the same RF interface to ensure smooth operation and prevent packet loss during bulk operations. Configure via `TimeoutConfig.command_throttle_interval` (default: `0.0` = disabled).
 
   New class: `CommandThrottle` in `aiohomematic.client`
 

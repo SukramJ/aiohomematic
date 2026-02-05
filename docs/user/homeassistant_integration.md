@@ -199,7 +199,7 @@ Access via **Configure advanced options** during setup or **Configure** after se
 
 ### Command Throttling
 
-Controls the minimum delay between consecutive device commands sent over each RF interface. This helps prevent packet loss and reduces RF duty cycle usage, especially during bulk operations such as automations that control many devices at once (e.g. "all lights off").
+Controls the minimum delay between consecutive device commands sent over each RF interface. This ensures smooth operation and helps prevent packet loss, especially during bulk operations such as automations that control many devices at once (e.g. "all lights off").
 
 | Setting                       | Default | Range       | Description                                              |
 | ----------------------------- | ------- | ----------- | -------------------------------------------------------- |

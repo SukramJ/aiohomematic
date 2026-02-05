@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Final
 
 from aiohomematic.central.events.types import ClientStateChangedEvent
 from aiohomematic.const import ClientState, FailureReason
+from aiohomematic.interfaces.client import ClientStateMachineProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
@@ -111,7 +112,7 @@ class InvalidStateTransitionError(Exception):
         )
 
 
-class ClientStateMachine:
+class ClientStateMachine(ClientStateMachineProtocol):
     """
     State machine for client connection lifecycle.
 

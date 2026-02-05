@@ -14,7 +14,7 @@ import logging
 from typing import Final, override
 
 from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces import CalculatedDataPointProtocol, ChannelProtocol
 from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.generic import DpSelect
 from aiohomematic.property_decorators import state_property
@@ -101,7 +101,7 @@ class DerivedBinarySensorRegistry:
             cls._model_index[model_name].append(calculated_parameter)
 
 
-class DerivedBinarySensor(CalculatedDataPoint[bool | None]):
+class DerivedBinarySensor(CalculatedDataPoint[bool | None], CalculatedDataPointProtocol):
     """
     Calculated binary sensor derived from an enum data point.
 

@@ -11,7 +11,7 @@ import logging
 from typing import Any, Final, override
 
 from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces import CalculatedDataPointProtocol, ChannelProtocol
 from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.calculated.support import calculate_operating_voltage_level
@@ -28,7 +28,7 @@ _VOLTAGE_MAX: Final = "Voltage max"
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT]):
+class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT], CalculatedDataPointProtocol):
     """Implementation of a calculated sensor for operating voltage level."""
 
     __slots__ = (

@@ -28,13 +28,14 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
+from aiohomematic.interfaces.client import CommandTrackerProtocol
 from aiohomematic.store.types import CachedCommand, TrackerStatistics
 from aiohomematic.support import changed_within_seconds
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CommandTracker:
+class CommandTracker(CommandTrackerProtocol):
     """
     Tracker for sent commands with resource limits.
 

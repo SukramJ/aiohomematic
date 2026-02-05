@@ -53,6 +53,7 @@ from aiohomematic.interfaces import (
     ClientProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
+    EventSubscriptionManagerProtocol,
     GenericDataPointProtocol,
     GenericEventProtocol,
     HealthTrackerProtocol,
@@ -84,7 +85,9 @@ DeviceRemovedEventArgs = SystemEventArgs
 HubRefreshedEventArgs = SystemEventArgs
 
 
-class EventCoordinator(EventBusProviderProtocol, EventPublisherProtocol, LastEventTrackerProtocol):
+class EventCoordinator(
+    EventBusProviderProtocol, EventPublisherProtocol, EventSubscriptionManagerProtocol, LastEventTrackerProtocol
+):
     """Coordinator for event subscription and handling."""
 
     __slots__ = (

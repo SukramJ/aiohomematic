@@ -8,7 +8,7 @@ import logging
 from typing import Final
 
 from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter, ParameterType, ParamsetKey
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces import CalculatedDataPointProtocol, ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.calculated.support import (
@@ -52,7 +52,7 @@ class BaseClimateSensor[SensorT: float | None](CalculatedDataPoint[SensorT]):
         self._type = ParameterType.FLOAT
 
 
-class ApparentTemperature(BaseClimateSensor[float | None]):
+class ApparentTemperature(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
     """Implementation of a calculated sensor for apparent temperature."""
 
     __slots__ = ()
@@ -101,7 +101,7 @@ class ApparentTemperature(BaseClimateSensor[float | None]):
         return None
 
 
-class DewPoint(BaseClimateSensor[float | None]):
+class DewPoint(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
     """Implementation of a calculated sensor for dew point."""
 
     __slots__ = ()
@@ -129,7 +129,7 @@ class DewPoint(BaseClimateSensor[float | None]):
         return None
 
 
-class DewPointSpread(BaseClimateSensor[float | None]):
+class DewPointSpread(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
     """Implementation of a calculated sensor for dew point spread."""
 
     __slots__ = ()
@@ -157,7 +157,7 @@ class DewPointSpread(BaseClimateSensor[float | None]):
         return None
 
 
-class Enthalpy(BaseClimateSensor[float | None]):
+class Enthalpy(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
     """Implementation of a calculated sensor for enthalpy."""
 
     __slots__ = ()
@@ -185,7 +185,7 @@ class Enthalpy(BaseClimateSensor[float | None]):
         return None
 
 
-class FrostPoint(BaseClimateSensor[float | None]):
+class FrostPoint(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
     """Implementation of a calculated sensor for frost point."""
 
     __slots__ = ()
@@ -215,7 +215,7 @@ class FrostPoint(BaseClimateSensor[float | None]):
         return None
 
 
-class VaporConcentration(BaseClimateSensor[float | None]):
+class VaporConcentration(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
     """Implementation of a calculated sensor for vapor concentration."""
 
     __slots__ = ()

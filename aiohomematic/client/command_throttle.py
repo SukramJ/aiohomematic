@@ -45,6 +45,7 @@ import time
 from typing import Final
 
 from aiohomematic import i18n
+from aiohomematic.interfaces.client import CommandThrottleProtocol
 
 __all__ = ["CommandThrottle", "CommandPriority", "PrioritizedCommand"]
 
@@ -79,7 +80,7 @@ class PrioritizedCommand:
     device_address: str = field(compare=False)
 
 
-class CommandThrottle:
+class CommandThrottle(CommandThrottleProtocol):
     """
     Priority-aware rate-limiter for device commands.
 

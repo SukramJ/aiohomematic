@@ -533,6 +533,10 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
                 # Last subscription for this custom_id - safe to remove from tracking
                 self._registered_custom_ids.discard(custom_id)
                 self._subscription_counts.pop(custom_id, None)
+                # Reset ownership when the owning custom_id fully unsubscribes,
+                # allowing re-registration with a different custom_id (e.g. after entity_id rename).
+                if self._custom_id == custom_id:
+                    self._custom_id = None
             else:
                 self._subscription_counts[custom_id] = count
 

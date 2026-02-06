@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Week profile sensor for device-level schedule access.
+Week profile data point for device-level schedule access.
 
-This module provides a device-level sensor that serves as the central interface
+This module provides a device-level data point that serves as the central interface
 for schedule data — both for climate and non-climate devices. It exposes schedule
 metadata, target channel mappings, and delegates read/write operations to the
 underlying WeekProfile.
@@ -19,7 +19,7 @@ from typing import Final, cast, override
 
 from aiohomematic.const import CallSource, DataPointCategory, DataPointUsage, ScheduleDict, ScheduleType, ServiceScope
 from aiohomematic.decorators import inspector
-from aiohomematic.interfaces import WeekProfileSensorProtocol
+from aiohomematic.interfaces import WeekProfileDataPointProtocol
 from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, TargetChannelInfo
@@ -28,8 +28,8 @@ from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfi
 from aiohomematic.property_decorators import Kind, hm_property
 
 __all__ = [
-    "WeekProfileSensor",
-    "create_week_profile_sensor",
+    "WeekProfileDataPoint",
+    "create_week_profile_data_point",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -41,15 +41,15 @@ _CLIMATE_PROFILES: Final = 6
 _WEEKDAYS: Final = 7
 
 
-class WeekProfileSensor(BaseDataPoint, WeekProfileSensorProtocol):
-    """Device-level sensor exposing schedule data and metadata."""
+class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
+    """Device-level data point exposing schedule data and metadata."""
 
     __slots__ = (
         "_available_target_channels",
         "_week_profile",
     )
 
-    _category = DataPointCategory.SENSOR
+    _category = DataPointCategory.WEEK_PROFILE
 
     def __init__(
         self,
@@ -57,7 +57,7 @@ class WeekProfileSensor(BaseDataPoint, WeekProfileSensorProtocol):
         channel: ChannelProtocol,
         week_profile: ClimateWeekProfile | DefaultWeekProfile,
     ) -> None:
-        """Initialize the week profile sensor."""
+        """Initialize the week profile data point."""
         unique_id = generate_unique_id(
             config_provider=channel.device.config_provider,
             address=channel.device.address,
@@ -143,13 +143,16 @@ class WeekProfileSensor(BaseDataPoint, WeekProfileSensorProtocol):
         """Load the data point value. Schedule data is loaded via WeekProfile."""
 
     async def reload_schedule(self) -> None:
-        """Reload schedule from CCU and update sensor state."""
+        """Reload schedule from CCU and update data point state."""
         await self._week_profile.reload_and_cache_schedule(force=True)
         self.publish_data_point_updated_event()
 
     async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
         """Write schedule data to CCU."""
-        await self._week_profile.set_schedule(schedule_data=schedule_data)  # type: ignore[arg-type]
+        if isinstance(self._week_profile, DefaultWeekProfile):
+            await self._week_profile.set_schedule(schedule_data=SimpleSchedule.model_validate(schedule_data))
+        else:
+            await self._week_profile.set_schedule(schedule_data=schedule_data)
 
     # --- Internal ---
 
@@ -210,7 +213,7 @@ class WeekProfileSensor(BaseDataPoint, WeekProfileSensorProtocol):
 
     @override
     def _get_data_point_name(self) -> DataPointNameData:
-        """Create the name for the week profile sensor."""
+        """Create the name for the week profile data point."""
         return DataPointNameData(
             device_name=self._device.name,
             channel_name=self._channel.name or "",
@@ -239,8 +242,8 @@ class WeekProfileSensor(BaseDataPoint, WeekProfileSensorProtocol):
 
 
 @inspector(scope=ServiceScope.INTERNAL)
-def create_week_profile_sensor(*, device: DeviceProtocol) -> None:
-    """Create a WeekProfileSensor for the device if it has a week profile."""
+def create_week_profile_data_point(*, device: DeviceProtocol) -> None:
+    """Create a week profile data point for the device if it has a week profile."""
     if not device.has_week_profile:
         return
 
@@ -253,13 +256,13 @@ def create_week_profile_sensor(*, device: DeviceProtocol) -> None:
     if not isinstance(week_profile, (ClimateWeekProfile, DefaultWeekProfile)):
         return
 
-    sensor = WeekProfileSensor(
+    data_point = WeekProfileDataPoint(
         channel=schedule_channel,
         week_profile=week_profile,
     )
 
     # Bidirectional linkage
-    week_profile.set_sensor(sensor=sensor)
+    week_profile.set_week_profile_data_point(week_profile_data_point=data_point)
 
     # Register on device
-    device.set_week_profile_sensor(sensor=sensor)
+    device.set_week_profile_data_point(week_profile_data_point=data_point)

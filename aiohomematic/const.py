@@ -813,6 +813,7 @@ class DataPointCategory(StrEnum):
     UNDEFINED = "undefined"
     UPDATE = "update"
     VALVE = "valve"
+    WEEK_PROFILE = "week_profile"
 
 
 class DataPointKey(NamedTuple):
@@ -1645,6 +1646,7 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.TEXT_DISPLAY,
     DataPointCategory.UPDATE,
     DataPointCategory.VALVE,
+    DataPointCategory.WEEK_PROFILE,
 )
 
 PRIMARY_CLIENT_CANDIDATE_INTERFACES: Final[frozenset[Interface]] = frozenset(

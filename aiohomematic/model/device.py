@@ -127,10 +127,10 @@ from aiohomematic.interfaces import (
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
-    WeekProfileSensorProtocol,
+    WeekProfileDataPointProtocol,
 )
 from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
-from aiohomematic.model import event as hmev, week_profile as wp, week_profile_sensor as wps
+from aiohomematic.model import event as hmev, week_profile as wp, week_profile_data_point as wps
 from aiohomematic.model.availability import AvailabilityInfo
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
@@ -253,7 +253,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_update_data_point",
         "_value_cache",
         "_week_profile",
-        "_week_profile_sensor",
+        "_week_profile_data_point",
     )
 
     def __init__(self, *, context: DeviceContext) -> None:
@@ -338,7 +338,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._rooms: Final = self._device_details_provider.get_device_rooms(device_address=self._address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
         self._week_profile: wp.ClimateWeekProfile | wp.DefaultWeekProfile | None = None
-        self._week_profile_sensor: wps.WeekProfileSensor | None = None
+        self._week_profile_data_point: wps.WeekProfileDataPoint | None = None
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
             self._interface_id,
@@ -402,7 +402,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     update_data_point: Final = DelegatedProperty[DpUpdate | None](path="_update_data_point")
     value_cache: Final = DelegatedProperty["_ValueCache"](path="_value_cache")
     week_profile: Final = DelegatedProperty[wp.ClimateWeekProfile | wp.DefaultWeekProfile | None](path="_week_profile")
-    week_profile_sensor: Final = DelegatedProperty[wps.WeekProfileSensor | None](path="_week_profile_sensor")
+    week_profile_data_point: Final = DelegatedProperty[wps.WeekProfileDataPoint | None](path="_week_profile_data_point")
 
     @property
     def _dp_config_pending(self) -> DpBinarySensor | None:
@@ -682,7 +682,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Get all data points of the device."""
         all_data_points: list[CallbackDataPointProtocol] = [
             device_dp
-            for device_dp in (self._update_data_point, self._week_profile_sensor)
+            for device_dp in (self._update_data_point, self._week_profile_data_point)
             if device_dp
             and (category is None or device_dp.category == category)
             and ((exclude_no_create and device_dp.usage != DataPointUsage.NO_CREATE) or exclude_no_create is False)
@@ -922,9 +922,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
                     name=f"availability-forced-{self._address}",
                 )
 
-    def set_week_profile_sensor(self, *, sensor: WeekProfileSensorProtocol) -> None:
-        """Set the week profile sensor reference."""
-        self._week_profile_sensor = sensor  # type: ignore[assignment]
+    def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
+        """Set the week profile data point reference."""
+        self._week_profile_data_point = week_profile_data_point  # type: ignore[assignment]
 
     def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeCallback:
         """Subscribe update handler."""

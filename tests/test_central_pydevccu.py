@@ -149,8 +149,8 @@ class TestCentralPyDevCCU:
                 assert hasattr(cc, "__dict__") is False
             if device.update_data_point:
                 assert hasattr(device.update_data_point, "__dict__") is False
-            if device.week_profile_sensor:
-                assert hasattr(device.week_profile_sensor, "__dict__") is False
+            if device.week_profile_data_point:
+                assert hasattr(device.week_profile_data_point, "__dict__") is False
         for prg in central.hub_coordinator.program_data_points:
             assert hasattr(prg, "__dict__") is False
         for sv in central.hub_coordinator.sysvar_data_points:

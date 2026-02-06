@@ -564,7 +564,7 @@ class TestCentralDataPointsByCategory:
         central, _, _ = central_client_factory_with_homegear_client
         ebp_sensor = central.get_data_points(category=DataPointCategory.SENSOR)
         assert ebp_sensor
-        assert len(ebp_sensor) == 19
+        assert len(ebp_sensor) == 18
 
         def _device_changed(self, *args: Any, **kwargs: Any) -> None:
             """Handle device state changes."""
@@ -572,7 +572,10 @@ class TestCentralDataPointsByCategory:
         ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
         ebp_sensor2 = central.get_data_points(category=DataPointCategory.SENSOR, registered=False)
         assert ebp_sensor2
-        assert len(ebp_sensor2) == 18
+        assert len(ebp_sensor2) == 17
+
+        ebp_week_profile = central.get_data_points(category=DataPointCategory.WEEK_PROFILE)
+        assert len(ebp_week_profile) == 1
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

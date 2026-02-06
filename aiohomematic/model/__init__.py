@@ -77,14 +77,14 @@ from aiohomematic.model.availability import AvailabilityInfo
 from aiohomematic.model.calculated import create_calculated_data_points
 from aiohomematic.model.event import create_event_and_append_to_channel
 from aiohomematic.model.generic import create_data_point_and_append_to_channel
-from aiohomematic.model.week_profile_sensor import create_week_profile_sensor
+from aiohomematic.model.week_profile_data_point import create_week_profile_data_point
 
 __all__ = [
     # Data classes
     "AvailabilityInfo",
     # Factory
     "create_data_points_and_events",
-    "create_week_profile_sensor",
+    "create_week_profile_data_point",
 ]
 
 # Some parameters are marked as INTERNAL in the paramset and not considered by default,

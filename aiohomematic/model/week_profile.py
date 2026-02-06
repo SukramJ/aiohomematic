@@ -378,7 +378,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ClientException, ValidationException
-from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileProtocol, WeekProfileSensorProtocol
+from aiohomematic.interfaces import CustomDataPointProtocol, WeekProfileDataPointProtocol, WeekProfileProtocol
 from aiohomematic.model.schedule_models import (
     SCHEDULE_DOMAIN_CONTEXT_KEY,
     ClimateProfileSchedule,
@@ -463,7 +463,7 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
         "_device",
         "_schedule_cache",
         "_schedule_channel_no",
-        "_sensor",
+        "_week_profile_data_point",
     )
 
     def __init__(self, *, data_point: CustomDataPointProtocol) -> None:
@@ -473,7 +473,7 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
         self._client: Final = data_point.device.client
         self._schedule_channel_no: Final[int | None] = self._data_point.device_config.schedule_channel_no
         self._schedule_cache: SCHEDULE_DICT_T = self._create_empty_schedule()
-        self._sensor: WeekProfileSensorProtocol | None = None
+        self._week_profile_data_point: WeekProfileDataPointProtocol | None = None
 
     @staticmethod
     @abstractmethod
@@ -526,9 +526,9 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
     async def set_schedule(self, *, schedule_data: SCHEDULE_DICT_T) -> None:
         """Persist the provided schedule dictionary."""
 
-    def set_sensor(self, *, sensor: WeekProfileSensorProtocol) -> None:
-        """Set the sensor reference for event publishing."""
-        self._sensor = sensor
+    def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
+        """Set the week profile data point reference for event publishing."""
+        self._week_profile_data_point = week_profile_data_point
 
     def _filter_schedule_entries(self, *, schedule_data: SCHEDULE_DICT_T) -> SCHEDULE_DICT_T:
         """Filter schedule entries by removing invalid/not relevant entries."""
@@ -789,8 +789,8 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
         self._schedule_cache = new_schedule
 
         if old_schedule != new_schedule:
-            if self._sensor is not None:
-                self._sensor.fire_schedule_updated()
+            if self._week_profile_data_point is not None:
+                self._week_profile_data_point.fire_schedule_updated()
             self._data_point.publish_data_point_updated_event()
 
     @inspector
@@ -1145,8 +1145,8 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
                 "RELOAD_AND_CACHE_SCHEDULE: Schedule changed for %s, publishing events",
                 self._device.name,
             )
-            if self._sensor is not None:
-                self._sensor.fire_schedule_updated()
+            if self._week_profile_data_point is not None:
+                self._week_profile_data_point.fire_schedule_updated()
             # Publish data point updated event to trigger handlers
             self._data_point.publish_data_point_updated_event()
 

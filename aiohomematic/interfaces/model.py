@@ -1810,16 +1810,16 @@ class DeviceWeekProfileProtocol(Protocol):
 
     @property
     @abstractmethod
-    def week_profile_sensor(self) -> WeekProfileSensorProtocol | None:
-        """Return the week profile sensor."""
+    def week_profile_data_point(self) -> WeekProfileDataPointProtocol | None:
+        """Return the week profile data point."""
 
     @abstractmethod
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the week profile."""
 
     @abstractmethod
-    def set_week_profile_sensor(self, *, sensor: WeekProfileSensorProtocol) -> None:
-        """Set the week profile sensor reference."""
+    def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
+        """Set the week profile data point reference."""
 
 
 class DeviceProvidersProtocol(Protocol):
@@ -2096,9 +2096,9 @@ class HubProtocol(Protocol):
 
 
 @runtime_checkable
-class WeekProfileSensorProtocol(BaseDataPointProtocol, Protocol):
+class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
     """
-    Protocol for week profile sensor data points.
+    Protocol for week profile data points.
 
     Provides device-level schedule access and metadata for both
     climate and non-climate devices.

@@ -72,7 +72,7 @@ from aiohomematic.model import create_data_points_and_events
 from aiohomematic.model.custom import create_custom_data_points
 from aiohomematic.model.device import Device
 from aiohomematic.model.device_context import DeviceContext
-from aiohomematic.model.week_profile_sensor import create_week_profile_sensor
+from aiohomematic.model.week_profile_data_point import create_week_profile_data_point
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
@@ -402,7 +402,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                     if device:
                         create_data_points_and_events(device=device)
                         create_custom_data_points(device=device)
-                        create_week_profile_sensor(device=device)
+                        create_week_profile_data_point(device=device)
                         new_devices.add(device)
                         await self.device_registry.add_device(device=device)
                 except Exception as exc:

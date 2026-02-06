@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
-"""Tests for WeekProfileSensor."""
+"""Tests for WeekProfileDataPoint."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from aiohomematic.const import DataPointUsage, ScheduleType
 from aiohomematic.model.custom import CustomDpCover, CustomDpRfThermostat, CustomDpSwitch
 from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry, TargetChannelInfo
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
-from aiohomematic.model.week_profile_sensor import WeekProfileSensor
+from aiohomematic.model.week_profile_data_point import WeekProfileDataPoint
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES_SWITCH: set[str] = {"VCU2128127"}
@@ -23,8 +23,8 @@ TEST_DEVICES_CLIMATE: set[str] = {"VCU0000341"}
 # pylint: disable=protected-access
 
 
-class TestWeekProfileSensorDefault:
-    """Tests for WeekProfileSensor on non-climate devices."""
+class TestWeekProfileDataPointDefault:
+    """Tests for WeekProfileDataPoint on non-climate devices."""
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -38,20 +38,20 @@ class TestWeekProfileSensorDefault:
             (TEST_DEVICES_COVER, True, None, None),
         ],
     )
-    async def test_cover_sensor_properties(
+    async def test_cover_data_point_properties(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test sensor on cover device has correct properties."""
+        """Test data point on cover device has correct properties."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         cover: CustomDpCover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU1223813", 4))
-        sensor = cover.device.week_profile_sensor
-        assert sensor is not None
-        assert isinstance(sensor, WeekProfileSensor)
-        assert sensor.schedule_type == ScheduleType.DEFAULT
-        assert sensor.max_entries == 24
-        assert sensor.min_temp is None
-        assert sensor.max_temp is None
+        data_point = cover.device.week_profile_data_point
+        assert data_point is not None
+        assert isinstance(data_point, WeekProfileDataPoint)
+        assert data_point.schedule_type == ScheduleType.DEFAULT
+        assert data_point.max_entries == 24
+        assert data_point.min_temp is None
+        assert data_point.max_temp is None
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -65,19 +65,19 @@ class TestWeekProfileSensorDefault:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_default_sensor_fire_schedule_updated(
+    async def test_default_fire_schedule_updated(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test fire_schedule_updated notifies subscribers."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-        sensor = switch.device.week_profile_sensor
-        assert sensor is not None
+        data_point = switch.device.week_profile_data_point
+        assert data_point is not None
 
         handler = MagicMock()
-        sensor.subscribe_to_data_point_updated(handler=handler, custom_id="test")
-        sensor.fire_schedule_updated()
+        data_point.subscribe_to_data_point_updated(handler=handler, custom_id="test")
+        data_point.fire_schedule_updated()
         await central.looper.block_till_done()
         handler.assert_called_once()
 
@@ -93,24 +93,24 @@ class TestWeekProfileSensorDefault:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_default_sensor_properties(
+    async def test_default_properties(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test default sensor properties."""
+        """Test default data point properties."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-        sensor = switch.device.week_profile_sensor
-        assert sensor is not None
-        assert isinstance(sensor, WeekProfileSensor)
-        assert sensor.schedule_type == ScheduleType.DEFAULT
-        assert sensor.max_entries == 24
-        assert sensor.min_temp is None
-        assert sensor.max_temp is None
-        assert sensor.schedule_channel_address is not None
-        assert isinstance(sensor.value, int)
-        assert sensor.value >= 0
-        assert sensor.usage == DataPointUsage.DATA_POINT
+        data_point = switch.device.week_profile_data_point
+        assert data_point is not None
+        assert isinstance(data_point, WeekProfileDataPoint)
+        assert data_point.schedule_type == ScheduleType.DEFAULT
+        assert data_point.max_entries == 24
+        assert data_point.min_temp is None
+        assert data_point.max_temp is None
+        assert data_point.schedule_channel_address is not None
+        assert isinstance(data_point.value, int)
+        assert data_point.value >= 0
+        assert data_point.usage == DataPointUsage.DATA_POINT
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -124,16 +124,16 @@ class TestWeekProfileSensorDefault:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_default_sensor_schedule_property(
+    async def test_default_schedule_property(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test default sensor schedule property returns dict."""
+        """Test default data point schedule property returns dict."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-        sensor = switch.device.week_profile_sensor
-        assert sensor is not None
-        assert isinstance(sensor.schedule, dict)
+        data_point = switch.device.week_profile_data_point
+        assert data_point is not None
+        assert isinstance(data_point.schedule, dict)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -147,15 +147,15 @@ class TestWeekProfileSensorDefault:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_default_sensor_schedule_read_write(
+    async def test_default_schedule_read_write(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test default sensor schedule read and write."""
+        """Test default data point schedule read and write."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-        sensor = switch.device.week_profile_sensor
-        assert sensor is not None
+        data_point = switch.device.week_profile_data_point
+        assert data_point is not None
 
         schedule_payload = {
             "01_WP_FIXED_HOUR": 7,
@@ -169,7 +169,7 @@ class TestWeekProfileSensorDefault:
         }
         mock_client.get_paramset = AsyncMock(return_value=schedule_payload)
 
-        schedule = await sensor.get_schedule(force_load=True)
+        schedule = await data_point.get_schedule(force_load=True)
         assert isinstance(schedule, dict)
         assert "entries" in schedule
 
@@ -184,7 +184,7 @@ class TestWeekProfileSensorDefault:
                 )
             }
         )
-        await sensor.set_schedule(schedule_data=new_schedule)  # type: ignore[arg-type]
+        await data_point.set_schedule(schedule_data=new_schedule)  # type: ignore[arg-type]
         mock_client.put_paramset.assert_called()
 
     @pytest.mark.asyncio
@@ -199,17 +199,17 @@ class TestWeekProfileSensorDefault:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_default_sensor_target_channels(
+    async def test_default_target_channels(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test default sensor target channels mapping."""
+        """Test default data point target channels mapping."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-        sensor = switch.device.week_profile_sensor
-        assert sensor is not None
+        data_point = switch.device.week_profile_data_point
+        assert data_point is not None
 
-        target_channels = sensor.available_target_channels
+        target_channels = data_point.available_target_channels
         assert len(target_channels) > 0
         for key, info in target_channels.items():
             # Keys are in "N_M" format
@@ -223,8 +223,8 @@ class TestWeekProfileSensorDefault:
             assert info.channel_type in ("primary", "secondary")
 
 
-class TestWeekProfileSensorClimateNoSensor:
-    """Tests that climate devices without WEEK_PROFILE channels don't get sensors."""
+class TestWeekProfileDataPointClimateNoDataPoint:
+    """Tests that climate devices without WEEK_PROFILE channels don't get data points."""
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -238,25 +238,25 @@ class TestWeekProfileSensorClimateNoSensor:
             (TEST_DEVICES_CLIMATE, True, None, None),
         ],
     )
-    async def test_climate_no_sensor_when_no_schedule_channel(
+    async def test_climate_no_data_point_when_no_schedule_channel(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test that climate devices without WEEK_PROFILE channel don't get a sensor."""
+        """Test that climate devices without WEEK_PROFILE channel don't get a data point."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
-        # Climate device has week_profile but no sensor (no WEEK_PROFILE channel)
+        # Climate device has week_profile but no data point (no WEEK_PROFILE channel)
         assert climate.device.week_profile is not None
         assert isinstance(climate.device.week_profile, ClimateWeekProfile)
         assert climate.device.week_profile.has_schedule is True
         assert climate.device.default_schedule_channel is None
-        assert climate.device.week_profile_sensor is None
+        assert climate.device.week_profile_data_point is None
 
 
-class TestWeekProfileSensorLifecycle:
-    """Tests for WeekProfileSensor lifecycle and structural properties."""
+class TestWeekProfileDataPointLifecycle:
+    """Tests for WeekProfileDataPoint lifecycle and structural properties."""
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -270,19 +270,19 @@ class TestWeekProfileSensorLifecycle:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_sensor_bidirectional_linkage(
+    async def test_bidirectional_linkage(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test bidirectional linkage between sensor and week profile."""
+        """Test bidirectional linkage between data point and week profile."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-        sensor = switch.device.week_profile_sensor
-        assert sensor is not None
+        data_point = switch.device.week_profile_data_point
+        assert data_point is not None
         week_profile = switch.device.week_profile
         assert week_profile is not None
         assert isinstance(week_profile, DefaultWeekProfile)
-        assert week_profile._sensor is sensor
+        assert week_profile._week_profile_data_point is data_point
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -296,13 +296,13 @@ class TestWeekProfileSensorLifecycle:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_sensor_slots(
+    async def test_slots(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test that sensor uses __slots__ (no __dict__)."""
+        """Test that data point uses __slots__ (no __dict__)."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
-        sensor = switch.device.week_profile_sensor
-        assert sensor is not None
-        assert hasattr(sensor, "__dict__") is False
+        data_point = switch.device.week_profile_data_point
+        assert data_point is not None
+        assert hasattr(data_point, "__dict__") is False

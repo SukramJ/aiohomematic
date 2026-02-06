@@ -171,9 +171,9 @@ class WeekProfileSensor(BaseDataPoint, WeekProfileSensorProtocol):
             for sub_idx, (ch_no, ch_type) in enumerate(channels_in_group, start=1):
                 key = f"{actor_idx}_{sub_idx}"
                 ch_address = f"{device.address}:{ch_no}"
-                ch_name = ""
+                ch_name = f"Channel {ch_no}"
                 if (channel := device.channels.get(ch_address)) is not None:
-                    ch_name = channel.name or ""
+                    ch_name = channel.name or f"Channel {ch_no}"
 
                 result[key] = TargetChannelInfo(
                     channel_no=ch_no,

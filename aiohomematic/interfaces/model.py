@@ -967,16 +967,6 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def has_schedule(self) -> bool:
-        """Return if device supports schedule."""
-
-    @property
-    @abstractmethod
-    def schedule(self) -> ScheduleDict:
-        """Return cached schedule entries from device week profile."""
-
-    @property
-    @abstractmethod
     def state_uncertain(self) -> bool:
         """Return if the state is uncertain."""
 
@@ -986,20 +976,12 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Return the unconfirmed values send for the data point."""
 
     @abstractmethod
-    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
-        """Get schedule from device week profile."""
-
-    @abstractmethod
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data point with one of the keys is part of this data point."""
 
     @abstractmethod
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
-
-    @abstractmethod
-    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
-        """Set schedule on device week profile."""
 
     @abstractmethod
     def unsubscribe_from_data_point_updated(self) -> None:

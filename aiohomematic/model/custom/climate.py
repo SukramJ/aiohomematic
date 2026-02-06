@@ -226,6 +226,13 @@ class BaseCustomDpClimate(CustomDataPoint):
         return temp
 
     @property
+    def has_schedule(self) -> bool:
+        """Return if device supports schedule."""
+        if self._device.week_profile:
+            return self._device.week_profile.has_schedule
+        return False
+
+    @property
     def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
         """Return available schedule profiles."""
         if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):

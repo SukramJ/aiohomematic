@@ -32,6 +32,13 @@
 
   The sensor coexists with existing climate CDP schedule access (Phase 9 coexistence).
 
+### Changed
+
+- **Schedule access removed from non-climate CDPs**: `has_schedule`, `schedule`,
+  `get_schedule()`, and `set_schedule()` removed from `CustomDataPoint` base class
+  and `CustomDataPointProtocol`. Climate CDPs retain their own implementations.
+  Non-climate devices use `WeekProfileSensor` for schedule access (Phase 3 migration).
+
 ---
 
 # Version 2026.2.5 (2026-02-05)

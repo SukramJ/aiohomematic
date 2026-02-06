@@ -255,13 +255,12 @@ data:
 
 ### homematicip_local.set_schedule_active_profile
 
-Switches the active schedule profile on a climate device. This is the only schedule service that targets an entity.
+Switches the active schedule profile on a climate device.
 
 ```yaml
 action: homematicip_local.set_schedule_active_profile
-target:
-  entity_id: climate.living_room_thermostat
 data:
+  device_id: abcdefg...
   profile: P2
 ```
 

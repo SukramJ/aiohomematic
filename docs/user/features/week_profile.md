@@ -182,9 +182,8 @@ Switch the active schedule profile on a climate device:
 
 ```yaml
 action: homematicip_local.set_schedule_active_profile
-target:
-  entity_id: climate.living_room_thermostat
 data:
+  device_id: abcdefg...
   profile: P2
 ```
 

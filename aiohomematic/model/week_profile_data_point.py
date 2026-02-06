@@ -266,9 +266,7 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         self._schedule_profile_nos: Final = schedule_profile_nos
 
     active_profile: Final = DelegatedProperty[ScheduleProfile](path="_active_profile")
-    available_schedule_profiles: Final = DelegatedProperty[tuple[ScheduleProfile, ...]](
-        path="_week_profile.available_schedule_profiles"
-    )
+    available_profiles: Final = DelegatedProperty[tuple[ScheduleProfile, ...]](path="_week_profile.available_profiles")
     schedule_profile_nos: Final = DelegatedProperty[int](path="_schedule_profile_nos")
 
     @property

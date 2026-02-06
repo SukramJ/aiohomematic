@@ -2183,8 +2183,8 @@ class ClimateWeekProfileDataPointProtocol(WeekProfileDataPointProtocol, Protocol
 
     @property
     @abstractmethod
-    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
-        """Return available schedule profiles (P1-P6)."""
+    def available_profiles(self) -> tuple[ScheduleProfile, ...]:
+        """Return available profiles (P1-P6)."""
 
     @property
     @abstractmethod

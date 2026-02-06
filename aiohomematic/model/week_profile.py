@@ -990,7 +990,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
     min_temp: Final = DelegatedProperty[float](path="_min_temp")
 
     @property
-    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
+    def available_profiles(self) -> tuple[ScheduleProfile, ...]:
         """Return the available schedule profiles."""
         return tuple(ScheduleProfile(key) for key in self._schedule_cache)
 

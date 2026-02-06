@@ -127,11 +127,13 @@ from aiohomematic.interfaces import (
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
+    WeekProfileDataPointProtocol,
 )
 from aiohomematic.interfaces.central import FirmwareDataRefresherProtocol
-from aiohomematic.model import event as hmev, week_profile as wp
+from aiohomematic.model import event as hmev, week_profile as wp, week_profile_data_point as wps
 from aiohomematic.model.availability import AvailabilityInfo
 from aiohomematic.model.custom import data_point as hmce, definition as hmed
+from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.device_context import DeviceContext
 from aiohomematic.model.generic import DpBinarySensor
 from aiohomematic.model.support import (
@@ -251,6 +253,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_update_data_point",
         "_value_cache",
         "_week_profile",
+        "_week_profile_data_point",
     )
 
     def __init__(self, *, context: DeviceContext) -> None:
@@ -335,6 +338,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._rooms: Final = self._device_details_provider.get_device_rooms(device_address=self._address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
         self._week_profile: wp.ClimateWeekProfile | wp.DefaultWeekProfile | None = None
+        self._week_profile_data_point: wps.WeekProfileDataPoint | None = None
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
             self._interface_id,
@@ -398,6 +402,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     update_data_point: Final = DelegatedProperty[DpUpdate | None](path="_update_data_point")
     value_cache: Final = DelegatedProperty["_ValueCache"](path="_value_cache")
     week_profile: Final = DelegatedProperty[wp.ClimateWeekProfile | wp.DefaultWeekProfile | None](path="_week_profile")
+    week_profile_data_point: Final = DelegatedProperty[wps.WeekProfileDataPoint | None](path="_week_profile_data_point")
 
     @property
     def _dp_config_pending(self) -> DpBinarySensor | None:
@@ -455,6 +460,19 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         for channel in self._channels.values():
             data_points.extend(channel.calculated_data_points)
         return tuple(data_points)
+
+    @property
+    def channel_groups(self) -> Mapping[int, RebasedChannelGroupConfig]:
+        """Return the channel group configurations keyed by group number."""
+        result: dict[int, RebasedChannelGroupConfig] = {}
+        for channel in self._channels.values():
+            if (
+                (cdp := channel.custom_data_point) is not None
+                and cdp.group_no is not None
+                and cdp.group_no not in result
+            ):
+                result[cdp.group_no] = cdp.channel_group
+        return result
 
     @property
     def config_pending(self) -> bool:
@@ -662,17 +680,14 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         registered: bool | None = None,
     ) -> tuple[CallbackDataPointProtocol, ...]:
         """Get all data points of the device."""
-        all_data_points: list[CallbackDataPointProtocol] = []
-        if (
-            self._update_data_point
-            and (category is None or self._update_data_point.category == category)
-            and (
-                (exclude_no_create and self._update_data_point.usage != DataPointUsage.NO_CREATE)
-                or exclude_no_create is False
-            )
-            and (registered is None or self._update_data_point.is_registered == registered)
-        ):
-            all_data_points.append(self._update_data_point)
+        all_data_points: list[CallbackDataPointProtocol] = [
+            device_dp
+            for device_dp in (self._update_data_point, self._week_profile_data_point)
+            if device_dp
+            and (category is None or device_dp.category == category)
+            and ((exclude_no_create and device_dp.usage != DataPointUsage.NO_CREATE) or exclude_no_create is False)
+            and (registered is None or device_dp.is_registered == registered)
+        ]
         for channel in self._channels.values():
             all_data_points.extend(
                 channel.get_data_points(category=category, exclude_no_create=exclude_no_create, registered=registered)
@@ -906,6 +921,10 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
                     target=_publish_availability_event,
                     name=f"availability-forced-{self._address}",
                 )
+
+    def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
+        """Set the week profile data point reference."""
+        self._week_profile_data_point = week_profile_data_point  # type: ignore[assignment]
 
     def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeCallback:
         """Subscribe update handler."""

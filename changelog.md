@@ -1,3 +1,64 @@
+# Version 2026.2.6 (2026-02-05)
+
+## What's Changed
+
+### Added
+
+- **WeekProfileDataPoint**: Added device-level data points that serve as the central interface for schedule data — both for climate and non-climate devices. One data point per device exposes schedule metadata, target channel mappings, and delegates read/write operations to the underlying WeekProfile.
+
+  New classes and types:
+
+  - `WeekProfileDataPoint` / `ClimateWeekProfileDataPoint` in `aiohomematic.model.week_profile_data_point`
+  - `WeekProfileDataPointProtocol` / `ClimateWeekProfileDataPointProtocol` in `aiohomematic.interfaces`
+  - `ScheduleType` StrEnum in `aiohomematic.const` (`CLIMATE`, `DEFAULT`)
+  - `TargetChannelInfo` dataclass in `aiohomematic.model.schedule_models`
+
+  New device properties:
+
+  - `device.week_profile_data_point`: Access the data point (or `None`)
+  - `device.channel_groups`: Channel group configurations keyed by group number
+
+  Data point properties:
+
+  - `schedule_type`: Returns `ScheduleType.CLIMATE` or `ScheduleType.DEFAULT`
+  - `schedule`: Cached schedule as `ScheduleDict`
+  - `available_target_channels`: Human-readable target channel mapping (non-climate only)
+  - `min_temp` / `max_temp`: Temperature bounds (climate only)
+  - `value`: Number of active schedule entries (state property)
+
+  Schedule operations (both types):
+
+  - `get_schedule()`, `set_schedule()`, `reload_schedule()`, `fire_schedule_updated()`
+
+  Climate-specific operations (`ClimateWeekProfileDataPoint`):
+
+  - `get_schedule_profile()`, `set_schedule_profile()`
+  - `get_schedule_weekday()`, `set_schedule_weekday()`
+  - `copy_schedule()`, `copy_schedule_profile()`
+  - `available_schedule_profiles`, `schedule_profile_nos`
+
+### Changed
+
+- **Schedule access removed from climate CDPs** (breaking change): All schedule methods
+  and properties removed from `BaseCustomDpClimate`. Schedule operations are now exclusively
+  available via `device.week_profile_data_point`. Removed: `available_schedule_profiles`,
+  `schedule`, `get_schedule()`, `set_schedule()`, `get_schedule_profile()`,
+  `set_schedule_profile()`, `get_schedule_weekday()`, `set_schedule_weekday()`,
+  `copy_schedule()`, `copy_schedule_profile()`.
+
+- **Schedule access removed from non-climate CDPs**: `has_schedule`, `schedule`,
+  `get_schedule()`, and `set_schedule()` removed from `CustomDataPoint` base class
+  and `CustomDataPointProtocol`.
+
+- **Copy method refactoring**: `ClimateWeekProfile.copy_schedule` renamed to
+  `copy_schedule_to` and `copy_profile` renamed to `copy_profile_to`. Both now accept
+  `target_week_profile: ClimateWeekProfile` instead of `target_climate_data_point: BaseCustomDpClimate`.
+
+  See [Migration Guide](docs/migrations/week_profile_data_point_migration_2026_02.md)
+  for detailed upgrade instructions.
+
+---
+
 # Version 2026.2.5 (2026-02-05)
 
 ## What's Changed

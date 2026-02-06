@@ -10,7 +10,7 @@ Accepted (2026-02-04)
 
 ### Problem
 
-Version 2026.2.4 introduced basic command throttling (`CommandThrottle`) to reduce RF duty-cycle load by delaying consecutive commands to the same interface. The initial implementation used a simple FIFO queue with `asyncio.Lock`, which exposed four problems:
+Version 2026.2.4 introduced basic command throttling (`CommandThrottle`) to to ensure smooth operation and prevent packet loss during bulk operations by delaying consecutive commands to the same interface. The initial implementation used a simple FIFO queue with `asyncio.Lock`, which exposed four problems:
 
 1. **Missing Prioritization**: All commands were treated equally. When opening 15 covers with `command_throttle_interval=1.0`, a subsequent security-critical command (e.g., door lock/unlock) was delayed by up to 15 seconds behind the cover commands.
 

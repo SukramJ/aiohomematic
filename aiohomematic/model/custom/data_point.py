@@ -12,18 +12,9 @@ from collections.abc import Mapping
 import contextlib
 from datetime import datetime
 import logging
-from typing import Any, Final, Unpack, cast, override
+from typing import Any, Final, Unpack, override
 
-from aiohomematic.const import (
-    INIT_DATETIME,
-    CallSource,
-    DataPointKey,
-    DataPointUsage,
-    DeviceProfile,
-    Field,
-    Parameter,
-    ScheduleDict,
-)
+from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.custom import definition as hmed
@@ -31,7 +22,6 @@ from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, SimpleScheduleEntry
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -99,6 +89,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             self.unsubscribe_from_data_point_updated()
 
     allow_undefined_generic_data_points: Final = DelegatedProperty[bool](path="_allow_undefined_generic_data_points")
+    channel_group: Final = DelegatedProperty[RebasedChannelGroupConfig](path="_channel_group")
     device_config: Final = DelegatedProperty[DeviceConfig](path="_device_config")
     group_no: Final = DelegatedProperty[int | None](path="_group_no")
 
@@ -123,13 +114,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return len(self._data_points) > 0
 
     @property
-    def has_schedule(self) -> bool:
-        """Flag if device supports schedule."""
-        if self._device.week_profile:
-            return self._device.week_profile.has_schedule
-        return False
-
-    @property
     def is_refreshed(self) -> bool:
         """Return if all relevant data_point have been refreshed (received a value)."""
         return all(dp.is_refreshed for dp in self._relevant_data_points)
@@ -138,13 +122,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     def is_status_valid(self) -> bool:
         """Return if all relevant data points have valid status."""
         return all(dp.is_status_valid for dp in self._relevant_data_points)
-
-    @property
-    def schedule(self) -> ScheduleDict:
-        """Return cached schedule entries from device week profile as JSON-serializable dict."""
-        if self._device.week_profile:
-            return cast(ScheduleDict, self._device.week_profile.schedule.model_dump(mode="json"))
-        return {}
 
     @property
     def state_uncertain(self) -> bool:
@@ -194,17 +171,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         device_addr = self._device.address
         return frozenset(f"{device_addr}:{ch}" for ch in channels)
 
-    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
-        """Get schedule from device week profile."""
-        if not self._device.week_profile:
-            return {}
-        # This will raise ValidationException if schedule is not supported
-        simple_schedule = await self._device.week_profile.get_schedule(force_load=force_load)
-        # Convert SimpleSchedule back to ScheduleDict format
-        # SimpleSchedule has: entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)}
-        # ScheduleDict needs: {'1': {dict}, '2': {dict}}
-        return {str(key): entry.model_dump(mode="json") for key, entry in simple_schedule.entries.items()}
-
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data_point with one of the data points is part of this data_point."""
         result = [dp for dp in self._data_points.values() if dp.dpk in data_point_keys]
@@ -229,22 +195,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         if self._device.week_profile and self.usage == DataPointUsage.CDP_PRIMARY:
             await self._device.week_profile.reload_and_cache_schedule()
         self.publish_data_point_updated_event()
-
-    async def set_schedule(self, *, schedule_data: ScheduleDict | SimpleSchedule | ClimateSchedule) -> None:
-        """Set schedule on device week profile."""
-        if self._device.week_profile:
-            # Accept ScheduleDict, SimpleSchedule, or ClimateSchedule
-            if isinstance(schedule_data, SimpleSchedule):
-                # Already a SimpleSchedule, use directly (for non-climate devices)
-                simple_data = schedule_data
-            else:
-                # Convert ScheduleDict (str keys, dict values) to SimpleSchedule (int keys, Pydantic values)
-                # Input: {'1': {'weekdays': [...], 'time': '01:00', ...}, '2': {...}}
-                # Output: SimpleSchedule(entries={1: SimpleScheduleEntry(...), 2: SimpleScheduleEntry(...)})
-                simple_data = SimpleSchedule(
-                    entries={int(key): SimpleScheduleEntry(**value) for key, value in schedule_data.items()}
-                )
-            await self._device.week_profile.set_schedule(schedule_data=simple_data)
 
     def unsubscribe_from_data_point_updated(self) -> None:
         """Unregister all internal update handlers."""

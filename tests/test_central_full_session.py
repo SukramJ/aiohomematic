@@ -158,6 +158,8 @@ class TestCentralFullSession:
                 assert hasattr(cc, "__dict__") is False
             if device.update_data_point:
                 assert hasattr(device.update_data_point, "__dict__") is False
+            if device.week_profile_data_point:
+                assert hasattr(device.week_profile_data_point, "__dict__") is False
         for prg in central.hub_coordinator.program_data_points:
             assert hasattr(prg, "__dict__") is False
         for sv in central.hub_coordinator.sysvar_data_points:
@@ -177,7 +179,7 @@ class TestCentralFullSession:
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 277
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 151
-        assert usage_types[DataPointUsage.DATA_POINT] == 3998
+        assert usage_types[DataPointUsage.DATA_POINT] == 4057
         assert usage_types[DataPointUsage.NO_CREATE] == 4373
 
         assert len(ce_channels) == 133

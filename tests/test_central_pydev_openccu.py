@@ -158,6 +158,8 @@ class TestCentralPyDevOpenCCU:
                 assert hasattr(cc, "__dict__") is False
             if device.update_data_point:
                 assert hasattr(device.update_data_point, "__dict__") is False
+            if device.week_profile_data_point:
+                assert hasattr(device.week_profile_data_point, "__dict__") is False
         for prg in central.hub_coordinator.program_data_points:
             assert hasattr(prg, "__dict__") is False
         for sv in central.hub_coordinator.sysvar_data_points:
@@ -166,7 +168,7 @@ class TestCentralPyDevOpenCCU:
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 279
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 164
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 153
-        assert usage_types[DataPointUsage.DATA_POINT] == 4018
+        assert usage_types[DataPointUsage.DATA_POINT] == 4078
         assert usage_types[DataPointUsage.NO_CREATE] == 4396
 
         assert len(ce_channels) == 135

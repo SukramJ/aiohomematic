@@ -60,6 +60,9 @@ from aiohomematic.const import (
     ProgramData,
     RxMode,
     ScheduleDict,
+    ScheduleProfile,
+    ScheduleType,
+    WeekdayStr,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.operations import (
@@ -88,6 +91,8 @@ if TYPE_CHECKING:
     from aiohomematic.model.availability import AvailabilityInfo
     from aiohomematic.model.custom import DeviceConfig
     from aiohomematic.model.custom.mixins import StateChangeArgs
+    from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
+    from aiohomematic.model.schedule_models import TargetChannelInfo
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -939,6 +944,11 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def channel_group(self) -> RebasedChannelGroupConfig:
+        """Return the channel group configuration."""
+
+    @property
+    @abstractmethod
     def data_point_name_postfix(self) -> str:
         """Return the data point name postfix."""
 
@@ -959,16 +969,6 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def has_schedule(self) -> bool:
-        """Return if device supports schedule."""
-
-    @property
-    @abstractmethod
-    def schedule(self) -> ScheduleDict:
-        """Return cached schedule entries from device week profile."""
-
-    @property
-    @abstractmethod
     def state_uncertain(self) -> bool:
         """Return if the state is uncertain."""
 
@@ -978,20 +978,12 @@ class CustomDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Return the unconfirmed values send for the data point."""
 
     @abstractmethod
-    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
-        """Get schedule from device week profile."""
-
-    @abstractmethod
     def has_data_point_key(self, *, data_point_keys: set[DataPointKey]) -> bool:
         """Return if a data point with one of the keys is part of this data point."""
 
     @abstractmethod
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
-
-    @abstractmethod
-    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
-        """Set schedule on device week profile."""
 
     @abstractmethod
     def unsubscribe_from_data_point_updated(self) -> None:
@@ -1716,6 +1708,11 @@ class DeviceGroupManagementProtocol(Protocol):
 
     __slots__ = ()
 
+    @property
+    @abstractmethod
+    def channel_groups(self) -> Mapping[int, RebasedChannelGroupConfig]:
+        """Return the channel group configurations keyed by group number."""
+
     @abstractmethod
     def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:
         """Add a channel to a group."""
@@ -1813,9 +1810,18 @@ class DeviceWeekProfileProtocol(Protocol):
     def week_profile(self) -> WeekProfileProtocol[Any] | None:
         """Return the week profile."""
 
+    @property
+    @abstractmethod
+    def week_profile_data_point(self) -> WeekProfileDataPointProtocol | None:
+        """Return the week profile data point."""
+
     @abstractmethod
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the week profile."""
+
+    @abstractmethod
+    def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
+        """Set the week profile data point reference."""
 
 
 class DeviceProvidersProtocol(Protocol):
@@ -2089,6 +2095,133 @@ class HubProtocol(Protocol):
 # =============================================================================
 # WeekProfile Protocol Interface
 # =============================================================================
+
+
+@runtime_checkable
+class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
+    """
+    Protocol for week profile data points.
+
+    Provides device-level schedule access and metadata for both
+    climate and non-climate devices.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def available_target_channels(self) -> Mapping[str, TargetChannelInfo]:
+        """Return the target channel mapping (non-climate only)."""
+
+    @property
+    @abstractmethod
+    def max_entries(self) -> int:
+        """Return the maximum number of schedule entries."""
+
+    @property
+    @abstractmethod
+    def max_temp(self) -> float | None:
+        """Return the maximum temperature (climate only)."""
+
+    @property
+    @abstractmethod
+    def min_temp(self) -> float | None:
+        """Return the minimum temperature (climate only)."""
+
+    @property
+    @abstractmethod
+    def schedule(self) -> ScheduleDict:
+        """Return the cached schedule data as JSON-serializable dict."""
+
+    @property
+    @abstractmethod
+    def schedule_channel_address(self) -> str | None:
+        """Return the schedule channel address."""
+
+    @property
+    @abstractmethod
+    def schedule_type(self) -> ScheduleType:
+        """Return the schedule type identifier."""
+
+    @abstractmethod
+    def fire_schedule_updated(self) -> None:
+        """Notify subscribers that the schedule has changed."""
+
+    @abstractmethod
+    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
+        """Fetch and return the schedule from CCU."""
+
+    @abstractmethod
+    async def reload_schedule(self) -> None:
+        """Reload schedule from CCU and update sensor state."""
+
+    @abstractmethod
+    async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
+        """Write schedule data to CCU."""
+
+
+@runtime_checkable
+class ClimateWeekProfileDataPointProtocol(WeekProfileDataPointProtocol, Protocol):
+    """
+    Protocol for climate-specific week profile data point operations.
+
+    Extends WeekProfileDataPointProtocol with profile-level and weekday-level
+    schedule access, plus cross-device copy operations.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
+        """Return available schedule profiles (P1-P6)."""
+
+    @property
+    @abstractmethod
+    def schedule_profile_nos(self) -> int:
+        """Return the number of supported profiles."""
+
+    @abstractmethod
+    async def copy_schedule(self, *, target_data_point: ClimateWeekProfileDataPointProtocol) -> None:
+        """Copy entire schedule to target device's data point."""
+
+    @abstractmethod
+    async def copy_schedule_profile(
+        self,
+        *,
+        source_profile: ScheduleProfile,
+        target_profile: ScheduleProfile,
+        target_data_point: ClimateWeekProfileDataPointProtocol | None = None,
+    ) -> None:
+        """Copy a profile to another profile or target device."""
+
+    @abstractmethod
+    async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> ScheduleDict:
+        """Return a single profile as JSON-serializable dict."""
+
+    @abstractmethod
+    async def get_schedule_weekday(
+        self,
+        *,
+        profile: ScheduleProfile,
+        weekday: WeekdayStr,
+        force_load: bool = False,
+    ) -> ScheduleDict:
+        """Return a single weekday as JSON-serializable dict."""
+
+    @abstractmethod
+    async def set_schedule_profile(self, *, profile: ScheduleProfile, profile_data: ScheduleDict) -> None:
+        """Write a single profile to CCU."""
+
+    @abstractmethod
+    async def set_schedule_weekday(
+        self,
+        *,
+        profile: ScheduleProfile,
+        weekday: WeekdayStr,
+        weekday_data: ScheduleDict,
+    ) -> None:
+        """Write a single weekday to CCU."""
 
 
 @runtime_checkable

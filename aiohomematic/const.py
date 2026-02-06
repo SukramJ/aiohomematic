@@ -21,7 +21,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.2.5"
+VERSION: Final = "2026.2.6"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -813,6 +813,7 @@ class DataPointCategory(StrEnum):
     UNDEFINED = "undefined"
     UPDATE = "update"
     VALVE = "valve"
+    WEEK_PROFILE = "week_profile"
 
 
 class DataPointKey(NamedTuple):
@@ -1645,6 +1646,7 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.TEXT_DISPLAY,
     DataPointCategory.UPDATE,
     DataPointCategory.VALVE,
+    DataPointCategory.WEEK_PROFILE,
 )
 
 PRIMARY_CLIENT_CANDIDATE_INTERFACES: Final[frozenset[Interface]] = frozenset(
@@ -2222,6 +2224,14 @@ class ScheduleProfile(StrEnum):
     P4 = "P4"
     P5 = "P5"
     P6 = "P6"
+
+
+@unique
+class ScheduleType(StrEnum):
+    """Enum for schedule type identifiers."""
+
+    CLIMATE = "climate"
+    DEFAULT = "default"
 
 
 @unique

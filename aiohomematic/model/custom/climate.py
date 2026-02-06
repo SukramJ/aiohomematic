@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import IntEnum, StrEnum, unique
 import logging
-from typing import Any, Final, Unpack, cast, override
+from typing import Final, Unpack, cast, override
 
 from aiohomematic import i18n
 from aiohomematic.const import (
@@ -24,14 +24,10 @@ from aiohomematic.const import (
     InternalCustomID,
     Parameter,
     ParamsetKey,
-    ScheduleDict,
-    ScheduleProfile,
-    WeekdayStr,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
-from aiohomematic.model import week_profile as wp
 from aiohomematic.model.custom.capabilities.climate import (
     BASIC_CLIMATE_CAPABILITIES,
     IP_THERMOSTAT_CAPABILITIES,
@@ -44,7 +40,6 @@ from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
-from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule
 from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -225,34 +220,6 @@ class BaseCustomDpClimate(CustomDataPoint):
             return self.max_temp
         return temp
 
-    @property
-    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
-        """Return available schedule profiles."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            return self._device.week_profile.available_schedule_profiles
-        return ()
-
-    @property
-    def schedule_profile_nos(self) -> int:
-        """Return the number of supported profiles."""
-        return 0
-
-    @property
-    def schedule(self) -> ScheduleDict:
-        """
-        Return cached schedule as JSON-serializable dict.
-
-        This format uses string keys and is optimized for JSON serialization.
-        Ideal for custom card integration.
-
-        Returns:
-            Dict with base_temperature and periods per weekday.
-
-        """
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            return cast(dict[str, Any], self._device.week_profile.schedule.model_dump(mode="json"))
-        return {}
-
     @config_property
     def target_temperature_step(self) -> float:
         """Return the supported step of target temperature."""
@@ -315,28 +282,6 @@ class BaseCustomDpClimate(CustomDataPoint):
         return (ClimateProfile.NONE,)
 
     @inspector
-    async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
-        """Copy schedule to target device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            await self._device.week_profile.copy_schedule(target_climate_data_point=target_climate_data_point)
-
-    @inspector
-    async def copy_schedule_profile(
-        self,
-        *,
-        source_profile: ScheduleProfile,
-        target_profile: ScheduleProfile,
-        target_climate_data_point: BaseCustomDpClimate | None = None,
-    ) -> None:
-        """Copy schedule profile to target device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            await self._device.week_profile.copy_profile(
-                source_profile=source_profile,
-                target_profile=target_profile,
-                target_climate_data_point=target_climate_data_point,
-            )
-
-    @inspector
     async def disable_away_mode(self) -> None:
         """Disable the away mode on thermostat."""
 
@@ -347,34 +292,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     @inspector
     async def enable_away_mode_by_duration(self, *, hours: int, away_temperature: float) -> None:
         """Enable the away mode by duration on thermostat."""
-
-    @inspector
-    async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> ScheduleDict:
-        """Return schedule by climate profile as JSON-serializable dict (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            result = await self._device.week_profile.get_profile(profile=profile, force_load=force_load)
-            return cast(dict[str, Any], result.model_dump(mode="json"))
-        return {}
-
-    @inspector
-    async def get_schedule(self, *, force_load: bool = False) -> ScheduleDict:
-        """Return the complete schedule as JSON-serializable dict (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            result = await self._device.week_profile.get_schedule(force_load=force_load)
-            return cast(dict[str, Any], result.model_dump(mode="json"))
-        return {}
-
-    @inspector
-    async def get_schedule_weekday(
-        self, *, profile: ScheduleProfile, weekday: WeekdayStr, force_load: bool = False
-    ) -> ScheduleDict:
-        """Return schedule by climate profile and weekday as JSON-serializable dict (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            result = await self._device.week_profile.get_weekday(
-                profile=profile, weekday=weekday, force_load=force_load
-            )
-            return result.model_dump(mode="json")
-        return {}
 
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
@@ -396,46 +313,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     @bind_collector
     async def set_profile(self, *, profile: ClimateProfile, collector: CallParameterCollector | None = None) -> None:
         """Set new profile."""
-
-    @inspector
-    async def set_schedule(self, *, schedule_data: ScheduleDict | SimpleSchedule | ClimateSchedule) -> None:
-        """Set the complete schedule to device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            # Convert SimpleSchedule to ScheduleDict for climate profiles
-            if isinstance(schedule_data, SimpleSchedule):
-                schedule_dict = {
-                    str(key): entry.model_dump(mode="json") for key, entry in schedule_data.entries.items()
-                }
-                await self._device.week_profile.set_schedule(schedule_data=schedule_dict)
-            else:
-                await self._device.week_profile.set_schedule(schedule_data=schedule_data)
-
-    @inspector
-    async def set_schedule_profile(
-        self,
-        *,
-        profile: ScheduleProfile,
-        profile_data: ScheduleDict,
-    ) -> None:
-        """Set a profile to device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            await self._device.week_profile.set_profile(profile=profile, profile_data=profile_data)
-
-    @inspector
-    async def set_schedule_weekday(
-        self,
-        *,
-        profile: ScheduleProfile,
-        weekday: WeekdayStr,
-        weekday_data: ScheduleDict,
-    ) -> None:
-        """Store a weekday profile to device (delegates to week profile)."""
-        if self._device.week_profile and isinstance(self._device.week_profile, wp.ClimateWeekProfile):
-            await self._device.week_profile.set_weekday(
-                profile=profile,
-                weekday=weekday,
-                weekday_data=weekday_data,
-            )
 
     @bind_collector
     async def set_temperature(
@@ -600,6 +477,11 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                 profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i - 1
 
         return profiles
+
+    @property
+    def schedule_profile_nos(self) -> int:
+        """Return the number of supported profiles."""
+        return len(self._profiles)
 
     @state_property
     def activity(self) -> ClimateActivity | None:

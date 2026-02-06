@@ -160,7 +160,8 @@ class TestCustomSwitch:
         assert schedule.entries[1].weekdays == ["MONDAY"]
         assert schedule.entries[1].target_channels == ["1_1"]
         assert schedule.entries[1].level == 1.0
-        assert switch.has_schedule is True
+        assert switch.device.week_profile is not None
+        assert switch.device.week_profile.has_schedule is True
 
         # Create new schedule and write it
         new_schedule = SimpleSchedule(
@@ -173,7 +174,7 @@ class TestCustomSwitch:
                 )
             }
         )
-        await switch.set_schedule(schedule_data=new_schedule)
+        await switch.device.week_profile.set_schedule(schedule_data=new_schedule)
         mock_client.put_paramset.assert_called()
 
     @pytest.mark.asyncio
@@ -199,10 +200,11 @@ class TestCustomSwitch:
         mock_client.get_paramset = AsyncMock(return_value={"UNRELATED": 1})
         chn = switch.channel.device.channel_lookup.get_channel(channel_address="VCU2128127:9")
         chn._is_schedule_channel = False
+        assert switch.device.week_profile is not None
         with pytest.raises(ValidationException):
-            await switch.get_schedule(force_load=True)
+            await switch.device.week_profile.get_schedule(force_load=True)
 
-        assert switch.has_schedule is False
+        assert switch.device.week_profile.has_schedule is False
         assert mock_client.get_paramset.await_count == 0
 
 

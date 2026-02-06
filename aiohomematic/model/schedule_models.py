@@ -36,6 +36,7 @@ entry = SimpleScheduleEntry(
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import re
 from typing import TYPE_CHECKING, Annotated, Any, Final, Literal, cast
 
@@ -112,7 +113,19 @@ __all__ = [
     "SCHEDULE_DOMAINS",
     "SimpleSchedule",
     "SimpleScheduleEntry",
+    "TargetChannelInfo",
 ]
+
+
+@dataclass(frozen=True, slots=True)
+class TargetChannelInfo:
+    """Human-readable metadata for a schedule target channel."""
+
+    channel_no: int
+    channel_address: str
+    name: str
+    channel_type: str
+
 
 # Valid weekday literals for validation
 WeekdayLiteral = Literal["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]

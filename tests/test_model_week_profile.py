@@ -518,16 +518,17 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Should raise ValidationException
         with pytest.raises(ValidationException):
-            await climate.copy_schedule_profile(
+            await wp_dp.copy_schedule_profile(
                 source_profile=ScheduleProfile.P1,
                 target_profile=ScheduleProfile.P1,  # Same profile
-                target_climate_data_point=None,  # Same device
             )
 
     @pytest.mark.parametrize(
@@ -547,9 +548,11 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         simple_data = {
             "base_temperature": 999.0,
@@ -564,7 +567,7 @@ class TestScheduleOperations:
 
         # Should raise ValidationException for out of range base temperature
         with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
+            await wp_dp.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data=simple_data,
@@ -587,9 +590,11 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         simple_data = {
             "base_temperature": 18.0,
@@ -603,7 +608,7 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
+            await wp_dp.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data=simple_data,
@@ -626,9 +631,11 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         simple_data = {
             "base_temperature": 18.0,
@@ -642,7 +649,7 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
+            await wp_dp.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data=simple_data,
@@ -665,9 +672,11 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         simple_data = {
             "base_temperature": 18.0,
@@ -681,7 +690,7 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
+            await wp_dp.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data=simple_data,
@@ -704,9 +713,11 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         simple_data = {
             "base_temperature": 18.0,
@@ -725,7 +736,7 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
+            await wp_dp.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data=simple_data,
@@ -748,9 +759,11 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         simple_data = {
             "base_temperature": 18.0,
@@ -764,7 +777,7 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
+            await wp_dp.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data=simple_data,
@@ -787,9 +800,11 @@ class TestScheduleOperations:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         simple_data = {
             "base_temperature": 18.0,
@@ -803,7 +818,7 @@ class TestScheduleOperations:
         }
 
         with pytest.raises(ValidationException):
-            await climate.set_schedule_weekday(
+            await wp_dp.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data=simple_data,
@@ -877,11 +892,15 @@ class TestClimateWeekProfileIntegration:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule()
+        await wp_dp.get_schedule()
 
         # Access property
-        available_profiles = climate.available_schedule_profiles
+        available_profiles = wp_dp.available_schedule_profiles
         assert isinstance(available_profiles, tuple)
         assert len(available_profiles) > 0
 
@@ -902,9 +921,11 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Copy to same device should work if profile count matches
-        await climate.copy_schedule(target_climate_data_point=climate)
+        await wp_dp.copy_schedule(target_data_point=wp_dp)
 
     @pytest.mark.parametrize(
         (
@@ -923,11 +944,11 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Copy P1 to P2 on same device
-        await climate.copy_schedule_profile(
-            source_profile=ScheduleProfile.P1, target_profile=ScheduleProfile.P2, target_climate_data_point=None
-        )
+        await wp_dp.copy_schedule_profile(source_profile=ScheduleProfile.P1, target_profile=ScheduleProfile.P2)
 
     @pytest.mark.parametrize(
         (
@@ -946,14 +967,16 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Get schedule without forcing load (uses cache)
-        schedule = await climate.get_schedule()
+        schedule = await wp_dp.get_schedule()
         assert isinstance(schedule, dict)
         assert "P1" in schedule
 
         # Get schedule with force_load=True
-        schedule_forced = await climate.get_schedule(force_load=True)
+        schedule_forced = await wp_dp.get_schedule(force_load=True)
         assert isinstance(schedule_forced, dict)
 
     @pytest.mark.parametrize(
@@ -973,14 +996,16 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Get profile
-        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        profile_data = await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
         assert isinstance(profile_data, dict)
         assert "MONDAY" in profile_data
 
         # Get with force_load
-        profile_data_forced = await climate.get_schedule_profile(profile=ScheduleProfile.P1, force_load=True)
+        profile_data_forced = await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1, force_load=True)
         assert isinstance(profile_data_forced, dict)
 
     @pytest.mark.parametrize(
@@ -1000,15 +1025,17 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Get weekday data
-        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
+        weekday_data = await wp_dp.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
         assert isinstance(weekday_data, dict)
         assert "base_temperature" in weekday_data
         assert "periods" in weekday_data
 
         # Get with force_load
-        weekday_data_forced = await climate.get_schedule_weekday(
+        weekday_data_forced = await wp_dp.get_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, force_load=True
         )
         assert isinstance(weekday_data_forced, dict)
@@ -1030,9 +1057,11 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Access property - returns JSON-serializable dict
-        schedule = climate.schedule
+        schedule = wp_dp.schedule
         assert isinstance(schedule, dict)
 
     @pytest.mark.parametrize(
@@ -1052,12 +1081,14 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Get existing schedule
-        schedule = await climate.get_schedule()
+        schedule = await wp_dp.get_schedule()
 
         # Set schedule (same data to avoid breaking things)
-        await climate.set_schedule(schedule_data=schedule)
+        await wp_dp.set_schedule(schedule_data=schedule)
 
     @pytest.mark.parametrize(
         (
@@ -1076,12 +1107,14 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Get existing profile
-        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        profile_data = await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Set profile back (validation always happens with Pydantic models)
-        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
+        await wp_dp.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
 
     @pytest.mark.parametrize(
         (
@@ -1100,6 +1133,8 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Create simple schedule data
         simple_profile_data = {
@@ -1126,7 +1161,7 @@ class TestClimateWeekProfileIntegration:
         }
 
         # Set simple schedule
-        await climate.set_schedule_profile(profile=ScheduleProfile.P2, profile_data=simple_profile_data)
+        await wp_dp.set_schedule_profile(profile=ScheduleProfile.P2, profile_data=simple_profile_data)
 
     @pytest.mark.parametrize(
         (
@@ -1145,6 +1180,8 @@ class TestClimateWeekProfileIntegration:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Create simple weekday data
         simple_weekday_data = {
@@ -1159,7 +1196,7 @@ class TestClimateWeekProfileIntegration:
         }
 
         # Set simple weekday schedule
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P2,
             weekday=WeekdayStr.WEDNESDAY,
             weekday_data=simple_weekday_data,
@@ -1485,13 +1522,15 @@ class TestErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Clear cache
         if climate.device.week_profile:
             climate.device.week_profile._schedule_cache = {}
 
         # Get schedule without force_load - should load from device
-        schedule = await climate.get_schedule()
+        schedule = await wp_dp.get_schedule()
         assert isinstance(schedule, dict)
 
     @pytest.mark.parametrize(
@@ -1511,13 +1550,15 @@ class TestErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Clear cache
         if climate.device.week_profile:
             climate.device.week_profile._schedule_cache = {}
 
         # Get profile - should load from device
-        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        profile_data = await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
         assert isinstance(profile_data, dict)
 
     @pytest.mark.parametrize(
@@ -1537,13 +1578,15 @@ class TestErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Clear cache
         if climate.device.week_profile:
             climate.device.week_profile._schedule_cache = {}
 
         # Get weekday - should load from device
-        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
+        weekday_data = await wp_dp.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
         assert isinstance(weekday_data, dict)
 
     @pytest.mark.parametrize(
@@ -1563,6 +1606,8 @@ class TestErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Create new weekday data in Simple format
         weekday_data = {
@@ -1573,7 +1618,7 @@ class TestErrorPaths:
         }
 
         # Set weekday data
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P3, weekday=WeekdayStr.FRIDAY, weekday_data=weekday_data
         )
 
@@ -1601,6 +1646,8 @@ class TestErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Create weekday data in Simple format (base temperature only, no heating periods)
         weekday_data = {
@@ -1609,7 +1656,7 @@ class TestErrorPaths:
         }
 
         # Set weekday data (validation always happens with Pydantic)
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P2,
             weekday=WeekdayStr.SATURDAY,
             weekday_data=weekday_data,
@@ -1771,12 +1818,14 @@ class TestClimateWeekProfileAdditionalEdgeCases:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Get current schedule
-        schedule = await climate.get_schedule()
+        schedule = await wp_dp.get_schedule()
 
         # Set same schedule again (cache shouldn't trigger event)
-        await climate.set_schedule(schedule_data=schedule)
+        await wp_dp.set_schedule(schedule_data=schedule)
 
 
 class TestPropertyAccessAndValidation:
@@ -1848,12 +1897,14 @@ class TestPropertyAccessAndValidation:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Load schedule first
-        await climate.get_schedule()
+        await wp_dp.get_schedule()
 
         # Access schedule property directly - returns JSON-serializable dict
-        schedule = climate.schedule
+        schedule = wp_dp.schedule
         assert isinstance(schedule, dict)
         # Schedule is now a dict with periods instead of 13-slot structure
         # Verify we have valid data
@@ -1884,6 +1935,8 @@ class TestSimpleScheduleConversionMethods:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Simple schedule for multiple weekdays
         simple_profile_data = {
@@ -1920,7 +1973,7 @@ class TestSimpleScheduleConversionMethods:
         }
 
         # Set and verify
-        await climate.set_schedule_profile(profile=ScheduleProfile.P4, profile_data=simple_profile_data)
+        await wp_dp.set_schedule_profile(profile=ScheduleProfile.P4, profile_data=simple_profile_data)
 
     @pytest.mark.parametrize(
         (
@@ -1939,6 +1992,8 @@ class TestSimpleScheduleConversionMethods:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Simple schedule with gap: 06:00-08:00 and 18:00-22:00
         simple_weekday_data = {
@@ -1958,7 +2013,7 @@ class TestSimpleScheduleConversionMethods:
         }
 
         # Set and verify it works
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P3,
             weekday=WeekdayStr.SUNDAY,
             weekday_data=simple_weekday_data,
@@ -2008,9 +2063,11 @@ class TestWeekProfileProperties:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Get initial schedule
-        await climate.get_schedule()
+        await wp_dp.get_schedule()
 
         if climate.device.week_profile:
             dict(climate.device.week_profile._schedule_cache)
@@ -2043,6 +2100,8 @@ class TestComplexScheduleScenarios:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Create a full week schedule
         full_week_schedule = {}
@@ -2084,7 +2143,7 @@ class TestComplexScheduleScenarios:
             }
 
         # Set the full week schedule
-        await climate.set_schedule_profile(profile=ScheduleProfile.P5, profile_data=full_week_schedule)
+        await wp_dp.set_schedule_profile(profile=ScheduleProfile.P5, profile_data=full_week_schedule)
 
         # Note: With pessimistic cache and mock client, reading back won't return the exact
         # data we just set (mock doesn't update its state). We verify the operation succeeded.
@@ -2110,6 +2169,8 @@ class TestComplexScheduleScenarios:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Create schedule with 6 temperature changes
         simple_weekday_data = {
@@ -2149,7 +2210,7 @@ class TestComplexScheduleScenarios:
         }
 
         # Set and verify
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P3,
             weekday=WeekdayStr.WEDNESDAY,
             weekday_data=simple_weekday_data,
@@ -2242,12 +2303,14 @@ class TestEdgeCasesAndErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Try to get a profile that might not exist in the cache
         if climate.device.week_profile:
             climate.device.week_profile._schedule_cache = {}
 
-        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P3)
+        profile_data = await wp_dp.get_schedule_profile(profile=ScheduleProfile.P3)
         # Should return empty or valid dict
         assert isinstance(profile_data, dict)
 
@@ -2268,12 +2331,14 @@ class TestEdgeCasesAndErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Try to get weekday from non-existent profile
         if climate.device.week_profile:
             climate.device.week_profile._schedule_cache = {}
 
-        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P3, weekday=WeekdayStr.SUNDAY)
+        weekday_data = await wp_dp.get_schedule_weekday(profile=ScheduleProfile.P3, weekday=WeekdayStr.SUNDAY)
         # Should return empty dict
         assert isinstance(weekday_data, dict)
 
@@ -2294,6 +2359,8 @@ class TestEdgeCasesAndErrorPaths:
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
 
         # Create fresh weekday data in Simple format for a profile that might not exist
         weekday_data = {
@@ -2304,7 +2371,7 @@ class TestEdgeCasesAndErrorPaths:
         }
 
         # Set for a profile (P3)
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P3, weekday=WeekdayStr.SATURDAY, weekday_data=weekday_data
         )
 
@@ -2632,8 +2699,12 @@ class TestWeekProfileHelperMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         if climate.device.week_profile and isinstance(climate.device.week_profile, ClimateWeekProfile):
             # Get schedule via property

@@ -81,20 +81,12 @@ class TestCustomDpSimpleRfThermostat:
 
         assert climate.is_valid is False
         assert climate.service_method_names == (
-            "copy_schedule",
-            "copy_schedule_profile",
             "disable_away_mode",
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
-            "get_schedule",
-            "get_schedule_profile",
-            "get_schedule_weekday",
             "load_data_point_value",
             "set_mode",
             "set_profile",
-            "set_schedule",
-            "set_schedule_profile",
-            "set_schedule_weekday",
             "set_temperature",
         )
         assert climate.state_uncertain is False
@@ -202,20 +194,12 @@ class TestCustomDpRfThermostat:
         )
         assert climate.usage == DataPointUsage.CDP_PRIMARY
         assert climate.service_method_names == (
-            "copy_schedule",
-            "copy_schedule_profile",
             "disable_away_mode",
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
-            "get_schedule",
-            "get_schedule_profile",
-            "get_schedule_weekday",
             "load_data_point_value",
             "set_mode",
             "set_profile",
-            "set_schedule",
-            "set_schedule_profile",
-            "set_schedule_weekday",
             "set_temperature",
         )
         assert climate.min_temp == 5.0
@@ -406,20 +390,12 @@ class TestCustomDpRfThermostat:
         )
         assert climate.usage == DataPointUsage.CDP_PRIMARY
         assert climate.service_method_names == (
-            "copy_schedule",
-            "copy_schedule_profile",
             "disable_away_mode",
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
-            "get_schedule",
-            "get_schedule_profile",
-            "get_schedule_weekday",
             "load_data_point_value",
             "set_mode",
             "set_profile",
-            "set_schedule",
-            "set_schedule_profile",
-            "set_schedule_weekday",
             "set_temperature",
         )
         assert climate.min_temp == 5.0
@@ -704,20 +680,22 @@ class TestCustomDpRfThermostat:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
-        # Verify schedule is supported for this device
+        # Verify schedule is supported via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
         assert climate.device.week_profile is not None
         assert climate.device.week_profile.has_schedule is True
         # HM-TC-IT-WM-W-EU uses device address (not channel) for schedule
-        assert climate.device.week_profile.schedule_channel_address == "VCU0000341"
+        assert wp_dp.schedule_channel_address == "VCU0000341"
 
         # Read schedule profile P1 - should return data from session
-        profile_data = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        profile_data = await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
         assert len(profile_data) == 7  # 7 weekdays
         assert "MONDAY" in profile_data
         assert "SATURDAY" in profile_data
 
         # Read individual weekday schedule
-        weekday_data = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY)
+        weekday_data = await wp_dp.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY)
         # Verify weekday data structure (dict with base_temperature and periods)
         assert "base_temperature" in weekday_data
         assert "periods" in weekday_data
@@ -730,7 +708,7 @@ class TestCustomDpRfThermostat:
             assert "temperature" in first_period
 
         # Write schedule profile back (verifies put_paramset is called correctly)
-        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
+        await wp_dp.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
         # Verify put_paramset was called with MASTER paramset on device address
         # NOTE: set_schedule_profile normalizes weekday data to 13 slots (fills missing slots with 24:00)
         # Verify that put_paramset was called (actual values contain normalized 13-slot data)
@@ -748,7 +726,7 @@ class TestCustomDpRfThermostat:
             assert f"P1_TEMPERATURE_SATURDAY_{slot_no}" in values
 
         # Write individual weekday schedule
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY, weekday_data=weekday_data
         )
         # Verify put_paramset was called
@@ -801,8 +779,10 @@ class TestCustomDpRfThermostat:
             ],
         )
 
-        # Write schedule with integer temperatures
-        await climate.set_schedule_weekday(
+        # Write schedule with integer temperatures via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.SATURDAY, weekday_data=simple_weekday_data
         )
 
@@ -951,20 +931,12 @@ class TestCustomDpIpThermostat:
         )
         assert climate.usage == DataPointUsage.CDP_PRIMARY
         assert climate.service_method_names == (
-            "copy_schedule",
-            "copy_schedule_profile",
             "disable_away_mode",
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
-            "get_schedule",
-            "get_schedule_profile",
-            "get_schedule_weekday",
             "load_data_point_value",
             "set_mode",
             "set_profile",
-            "set_schedule",
-            "set_schedule_profile",
-            "set_schedule_weekday",
             "set_temperature",
         )
         assert climate.min_temp == 5.0
@@ -1245,20 +1217,12 @@ class TestCustomDpIpThermostat:
         )
         assert climate.usage == DataPointUsage.CDP_PRIMARY
         assert climate.service_method_names == (
-            "copy_schedule",
-            "copy_schedule_profile",
             "disable_away_mode",
             "enable_away_mode_by_calendar",
             "enable_away_mode_by_duration",
-            "get_schedule",
-            "get_schedule_profile",
-            "get_schedule_weekday",
             "load_data_point_value",
             "set_mode",
             "set_profile",
-            "set_schedule",
-            "set_schedule_profile",
-            "set_schedule_weekday",
             "set_temperature",
         )
         assert climate.min_temp == 5.0
@@ -1541,20 +1505,27 @@ class TestClimateIntegration:
             central_unit_pydevccu_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
         )
         assert climate_bwth
-        profile_data = await climate_bwth.get_schedule_profile(profile=ScheduleProfile.P1)
+
+        # Access schedule operations via week_profile_data_point
+        wp_dp_bwth = climate_bwth.device.week_profile_data_point
+        wp_dp_etrv = climate_etrv.device.week_profile_data_point
+        assert wp_dp_bwth is not None
+        assert wp_dp_etrv is not None
+
+        profile_data = await wp_dp_bwth.get_schedule_profile(profile=ScheduleProfile.P1)
         assert len(profile_data) == 7
-        weekday_data = await climate_bwth.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
+        weekday_data = await wp_dp_bwth.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
         # weekday_data is now a JSON-serializable dict with base_temperature and periods
         assert weekday_data["base_temperature"] is not None
         assert isinstance(weekday_data["periods"], list)
-        await climate_bwth.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
-        await climate_bwth.set_schedule_weekday(
+        await wp_dp_bwth.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=profile_data)
+        await wp_dp_bwth.set_schedule_weekday(
             profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY, weekday_data=weekday_data
         )
 
         # Test validation: temperature out of range (38.0 > max allowed)
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data={
@@ -1565,7 +1536,7 @@ class TestClimateIntegration:
 
         # Test validation: invalid time format (hour > 24)
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data={
@@ -1576,7 +1547,7 @@ class TestClimateIntegration:
 
         # Test validation: invalid time format (hour > 24)
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data={
@@ -1587,7 +1558,7 @@ class TestClimateIntegration:
 
         # Test validation: invalid endtime type (int instead of str)
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile=ScheduleProfile.P1,
                 weekday=WeekdayStr.MONDAY,
                 weekday_data={
@@ -1603,7 +1574,7 @@ class TestClimateIntegration:
                 ClimateSchedulePeriod(starttime="10:00", endtime="23:00", temperature=21.0),
             ],
         )
-        await climate_bwth.set_schedule_weekday(
+        await wp_dp_bwth.set_schedule_weekday(
             profile="P1",
             weekday="MONDAY",
             weekday_data=manual_week_profile_data,
@@ -1635,7 +1606,7 @@ class TestClimateIntegration:
             12: {"endtime": "24:00", "temperature": 16.0},
             13: {"endtime": "24:00", "temperature": 16.0},
         }
-        await climate_bwth.set_schedule_weekday(
+        await wp_dp_bwth.set_schedule_weekday(
             profile="P1",
             weekday="MONDAY",
             weekday_data=manual_simple_weekday_data,
@@ -1660,14 +1631,14 @@ class TestClimateIntegration:
             12: {"endtime": "24:00", "temperature": 16.0},
             13: {"endtime": "24:00", "temperature": 16.0},
         }
-        await climate_bwth.set_schedule_weekday(
+        await wp_dp_bwth.set_schedule_weekday(
             profile="P1",
             weekday="MONDAY",
             weekday_data=manual_simple_weekday_data2,
         )
 
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile="P1",
                 weekday="MONDAY",
                 weekday_data={
@@ -1679,14 +1650,14 @@ class TestClimateIntegration:
             )
 
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile="P1",
                 weekday="MONDAY",
                 weekday_data={"base_temperature": 34.0, "periods": []},
             )
 
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile="P1",
                 weekday="MONDAY",
                 weekday_data={
@@ -1699,7 +1670,7 @@ class TestClimateIntegration:
                 },
             )
 
-        await climate_bwth.set_schedule_profile(
+        await wp_dp_bwth.set_schedule_profile(
             profile="P1",
             profile_data={
                 "MONDAY": {
@@ -1721,7 +1692,7 @@ class TestClimateIntegration:
             },
         )
 
-        await climate_bwth.set_schedule_profile(
+        await wp_dp_bwth.set_schedule_profile(
             profile="P1",
             profile_data={
                 "MONDAY": {"base_temperature": 16.0, "periods": []},
@@ -1762,13 +1733,13 @@ class TestClimateIntegration:
             12: {"endtime": "16:00", "temperature": 17.0},
             13: {"endtime": "24:00", "temperature": 16.0},
         }
-        await climate_bwth.set_schedule_weekday(
+        await wp_dp_bwth.set_schedule_weekday(
             profile="P1",
             weekday="MONDAY",
             weekday_data=manual_simple_weekday_data3,
         )
 
-        await climate_bwth.set_schedule_weekday(
+        await wp_dp_bwth.set_schedule_weekday(
             profile="P1",
             weekday="MONDAY",
             weekday_data={
@@ -1791,7 +1762,7 @@ class TestClimateIntegration:
 
         # 14 entries
         with pytest.raises(ValidationException):
-            await climate_bwth.set_schedule_weekday(
+            await wp_dp_bwth.set_schedule_weekday(
                 profile="P1",
                 weekday="MONDAY",
                 weekday_data={
@@ -1815,18 +1786,18 @@ class TestClimateIntegration:
                 },
             )
 
-        await climate_bwth.copy_schedule_profile(source_profile=ScheduleProfile.P1, target_profile=ScheduleProfile.P2)
+        await wp_dp_bwth.copy_schedule_profile(source_profile=ScheduleProfile.P1, target_profile=ScheduleProfile.P2)
 
-        await climate_bwth.copy_schedule_profile(
+        await wp_dp_bwth.copy_schedule_profile(
             source_profile=ScheduleProfile.P1,
             target_profile=ScheduleProfile.P2,
-            target_climate_data_point=climate_etrv,
+            target_data_point=wp_dp_etrv,
         )
 
-        await climate_bwth.copy_schedule(target_climate_data_point=climate_bwth)
+        await wp_dp_bwth.copy_schedule(target_data_point=wp_dp_bwth)
 
         with pytest.raises(ValidationException):
-            await climate_bwth.copy_schedule(target_climate_data_point=climate_etrv)
+            await wp_dp_bwth.copy_schedule(target_data_point=wp_dp_etrv)
 
 
 class TestClimateHelperMethods:
@@ -1854,11 +1825,15 @@ class TestClimateHelperMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Check available profiles
-        available = climate.available_schedule_profiles
+        available = wp_dp.available_schedule_profiles
         assert isinstance(available, tuple)
         # Should have at least P1 after loading it
         assert len(available) > 0, "Should have at least one profile after loading"
@@ -2180,11 +2155,15 @@ class TestClimateSimpleScheduleMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Get simple schedule - returns JSON-serializable dict
-        simple_schedule = await climate.get_schedule()
+        simple_schedule = await wp_dp.get_schedule()
 
         assert isinstance(simple_schedule, dict)
         # Should have profiles as keys
@@ -2223,11 +2202,15 @@ class TestClimateSimpleScheduleMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Get simple profile - returns JSON-serializable dict
-        simple_profile = await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        simple_profile = await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         assert isinstance(simple_profile, dict)
         # Simple profile has weekdays as keys
@@ -2262,11 +2245,15 @@ class TestClimateSimpleScheduleMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Get simple weekday - returns JSON-serializable dict
-        simple_weekday = await climate.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
+        simple_weekday = await wp_dp.get_schedule_weekday(profile=ScheduleProfile.P1, weekday=WeekdayStr.MONDAY)
 
         assert isinstance(simple_weekday, dict)
         assert "base_temperature" in simple_weekday
@@ -2303,8 +2290,12 @@ class TestClimateSimpleScheduleMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Create simple schedule data
         simple_schedule = {
@@ -2328,7 +2319,7 @@ class TestClimateSimpleScheduleMethods:
         }
 
         # Set simple schedule
-        await climate.set_schedule(schedule_data=simple_schedule)
+        await wp_dp.set_schedule(schedule_data=simple_schedule)
 
         # Verify put_paramset was called
         assert mock_client.put_paramset.called
@@ -2355,8 +2346,12 @@ class TestClimateSimpleScheduleMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Create simple profile data
         simple_profile = {
@@ -2383,7 +2378,7 @@ class TestClimateSimpleScheduleMethods:
         }
 
         # Set simple profile
-        await climate.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=simple_profile)
+        await wp_dp.set_schedule_profile(profile=ScheduleProfile.P1, profile_data=simple_profile)
 
         # Verify put_paramset was called
         assert mock_client.put_paramset.called
@@ -2410,8 +2405,12 @@ class TestClimateSimpleScheduleMethods:
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
 
+        # Access schedule operations via week_profile_data_point
+        wp_dp = climate.device.week_profile_data_point
+        assert wp_dp is not None
+
         # Load schedule first
-        await climate.get_schedule_profile(profile=ScheduleProfile.P1)
+        await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Create simple weekday data
         simple_weekday = {
@@ -2431,7 +2430,7 @@ class TestClimateSimpleScheduleMethods:
         }
 
         # Set simple weekday
-        await climate.set_schedule_weekday(
+        await wp_dp.set_schedule_weekday(
             profile=ScheduleProfile.P1,
             weekday=WeekdayStr.MONDAY,
             weekday_data=simple_weekday,

@@ -238,21 +238,22 @@ class TestWeekProfileDataPointClimateNoDataPoint:
             (TEST_DEVICES_CLIMATE, True, None, None),
         ],
     )
-    async def test_climate_no_data_point_when_no_schedule_channel(
+    async def test_climate_data_point_resolved_via_schedule_channel_no(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test that climate devices without WEEK_PROFILE channel don't get a data point."""
+        """Test that climate devices resolve schedule channel via schedule_channel_no."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
-        # Climate device has week_profile but no data point (no WEEK_PROFILE channel)
+        # Climate device has no WEEK_PROFILE channel type but resolves via schedule_channel_no
         assert climate.device.week_profile is not None
         assert isinstance(climate.device.week_profile, ClimateWeekProfile)
         assert climate.device.week_profile.has_schedule is True
         assert climate.device.default_schedule_channel is None
-        assert climate.device.week_profile_data_point is None
+        # Path 2: schedule_channel_no resolves the channel for climate devices
+        assert climate.device.week_profile_data_point is not None
 
 
 class TestWeekProfileDataPointLifecycle:

@@ -245,6 +245,7 @@ from aiohomematic.interfaces.model import (
     ChannelManagementProtocol,
     ChannelMetadataAndGroupingProtocol,
     ChannelProtocol,
+    ClimateWeekProfileDataPointProtocol,
     CustomDataPointProtocol,
     # Device sub-protocols
     DeviceChannelAccessProtocol,
@@ -386,6 +387,7 @@ __all__ = [
     "HubProtocol",
     "HubSensorDataPointProtocol",
     # Model week profile
+    "ClimateWeekProfileDataPointProtocol",
     "WeekProfileDataPointProtocol",
     "WeekProfileProtocol",
     # Task scheduling

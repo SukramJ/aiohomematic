@@ -575,7 +575,7 @@ class TestCentralDataPointsByCategory:
         assert len(ebp_sensor2) == 17
 
         ebp_week_profile = central.get_data_points(category=DataPointCategory.WEEK_PROFILE)
-        assert len(ebp_week_profile) == 1
+        assert len(ebp_week_profile) == 2
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -643,7 +643,7 @@ class TestCentralDeviceManagement:
         """Test add_device."""
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.device_registry.devices) == 1
-        assert len(central.get_data_points(exclude_no_create=False)) == 33
+        assert len(central.get_data_points(exclude_no_create=False)) == 34
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
@@ -651,7 +651,7 @@ class TestCentralDeviceManagement:
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
         await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
         assert len(central.device_registry.devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 65
+        assert len(central.get_data_points(exclude_no_create=False)) == 66
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
@@ -681,7 +681,7 @@ class TestCentralDeviceManagement:
         """Test device delete_device."""
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.device_registry.devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 65
+        assert len(central.get_data_points(exclude_no_create=False)) == 66
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
@@ -690,7 +690,7 @@ class TestCentralDeviceManagement:
 
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
         assert len(central.device_registry.devices) == 1
-        assert len(central.get_data_points(exclude_no_create=False)) == 33
+        assert len(central.get_data_points(exclude_no_create=False)) == 34
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9

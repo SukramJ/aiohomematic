@@ -199,10 +199,10 @@ set_schedule(*, schedule_data: SimpleSchedule) -> None
 Utility Methods:
 ~~~~~~~~~~~~~~~~
 
-copy_schedule(*, target_climate_data_point: BaseCustomDpClimate | None = None) -> None
+copy_schedule_to(*, target_week_profile: ClimateWeekProfile) -> None
     Copies entire schedule from this device to another.
 
-copy_profile(*, source_profile: ScheduleProfile, target_profile: ScheduleProfile, target_climate_data_point: BaseCustomDpClimate | None = None) -> None
+copy_profile_to(*, source_profile: ScheduleProfile, target_profile: ScheduleProfile, target_week_profile: ClimateWeekProfile | None = None) -> None
     Copies single profile to another profile/device.
 
 
@@ -1006,15 +1006,14 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return self._schedule_cache
 
     @inspector
-    async def copy_profile(
+    async def copy_profile_to(
         self,
         *,
         source_profile: ScheduleProfile,
         target_profile: ScheduleProfile,
-        target_climate_data_point: BaseCustomDpClimate | None = None,
+        target_week_profile: ClimateWeekProfile | None = None,
     ) -> None:
-        """Copy schedule profile to target device."""
-        same_device = False
+        """Copy schedule profile to target week profile."""
         if not self.has_schedule:
             raise ValidationException(
                 i18n.tr(
@@ -1022,51 +1021,40 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
                     name=self._device.name,
                 )
             )
-        if target_climate_data_point is None:
-            target_climate_data_point = self._data_point
-        if self._data_point is target_climate_data_point:
-            same_device = True
+        same_device = target_week_profile is None or target_week_profile is self
+        if target_week_profile is None:
+            target_week_profile = self
 
         if same_device and (source_profile == target_profile or (source_profile is None or target_profile is None)):
             raise ValidationException(i18n.tr(key="exception.model.week_profile.copy_schedule.same_device_invalid"))
 
-        # get_profile now returns Pydantic model
         source_profile_data = await self.get_profile(profile=source_profile)
 
-        if not target_climate_data_point.device.has_week_profile:
+        if not target_week_profile.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
-                    address=self._device.name,
+                    name=target_week_profile._device.name,  # pylint: disable=protected-access
                 )
             )
-        if target_climate_data_point.device.week_profile and isinstance(
-            target_climate_data_point.device.week_profile, ClimateWeekProfile
-        ):
-            # Use the new set_profile API which accepts Pydantic models
-            await target_climate_data_point.device.week_profile.set_profile(
-                profile=target_profile,
-                profile_data=source_profile_data,
-            )
+        await target_week_profile.set_profile(
+            profile=target_profile,
+            profile_data=source_profile_data,
+        )
 
     @inspector
-    async def copy_schedule(self, *, target_climate_data_point: BaseCustomDpClimate) -> None:
-        """Copy schedule to target device."""
-        if self._data_point.schedule_profile_nos != target_climate_data_point.schedule_profile_nos:
-            raise ValidationException(i18n.tr(key="exception.model.week_profile.copy_schedule.profile_count_mismatch"))
+    async def copy_schedule_to(self, *, target_week_profile: ClimateWeekProfile) -> None:
+        """Copy entire schedule to target week profile."""
         raw_schedule = await self._get_raw_schedule()
-        if not target_climate_data_point.device.has_week_profile:
+        if not target_week_profile.has_schedule:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.schedule.unsupported",
-                    address=self._device.name,
+                    name=target_week_profile._device.name,  # pylint: disable=protected-access
                 )
             )
-        if (
-            self._data_point.device.week_profile
-            and (sca := self._data_point.device.week_profile.schedule_channel_address) is not None
-        ):
-            await self._client.put_paramset(
+        if (sca := target_week_profile.schedule_channel_address) is not None:
+            await target_week_profile._client.put_paramset(  # pylint: disable=protected-access
                 channel_address=sca,
                 paramset_key_or_link_address=ParamsetKey.MASTER,
                 values=raw_schedule,

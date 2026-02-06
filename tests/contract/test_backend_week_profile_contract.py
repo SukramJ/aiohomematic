@@ -935,125 +935,95 @@ class TestSimpleScheduleDataTransformationContract:
 # =============================================================================
 
 
-class TestClimateCustomDataPointScheduleAPIContract:
+class TestClimateWeekProfileDataPointScheduleAPIContract:
     """
-    Contract: Climate custom data points must provide stable schedule API.
+    Contract: ClimateWeekProfileDataPoint must provide stable schedule API.
 
-    This test ensures that all climate custom data points expose a consistent
-    and stable schedule management interface for thermostats.
-
-    Climate Custom DataPoints:
-    - CustomDpRfThermostat (BidCos-RF thermostats)
-    - CustomDpIpThermostat (HmIP-RF thermostats)
-    - CustomDpIpHeatingGroupSwitchState (Heating group)
+    Schedule operations have been moved from climate CDPs to the device-level
+    ClimateWeekProfileDataPoint. This contract validates the new API surface.
     """
 
-    def test_climate_custom_datapoint_available_profiles_property(self) -> None:
-        """Contract: Climate custom data points expose available schedule profiles."""
-        from aiohomematic.model.custom import BaseCustomDpClimate
-
-        # Verify available_schedule_profiles property exists
-        assert hasattr(BaseCustomDpClimate, "available_schedule_profiles")
-
-    def test_climate_custom_datapoint_has_has_schedule_property(self) -> None:
-        """Contract: Climate custom data points expose has_schedule property."""
-        from aiohomematic.model.custom import BaseCustomDpClimate
-
-        # Verify has_schedule property exists
-        assert hasattr(BaseCustomDpClimate, "has_schedule")
-
-    def test_climate_custom_datapoint_has_schedule_methods(self) -> None:
-        """Contract: Climate custom data points have required schedule methods."""
-        from aiohomematic.interfaces import WeekProfileProtocol
-
-        # Verify all required schedule methods exist
-        assert "get_schedule" in dir(WeekProfileProtocol)
-        assert "set_schedule" in dir(WeekProfileProtocol)
-        assert "reload_and_cache_schedule" in dir(WeekProfileProtocol)
-
-    def test_climate_custom_datapoint_has_schedule_property(self) -> None:
-        """Contract: Climate custom data points have schedule property (read-only)."""
-        from aiohomematic.interfaces import WeekProfileProtocol
-
-        # Verify WeekProfileProtocol defines schedule property
-        assert "schedule" in dir(WeekProfileProtocol)
-
-    def test_climate_custom_datapoint_schedule_data_structures(self) -> None:
-        """
-        Contract: Climate custom data points use stable data structures.
-
-        This test ensures the schedule property returns ClimateSchedule Pydantic model.
-        """
+    def test_climate_schedule_data_structures(self) -> None:
+        """Contract: Climate schedule uses stable Pydantic data structures."""
         from pydantic import RootModel
 
         from aiohomematic.model.schedule_models import ClimateSchedule
 
-        # Verify ClimateSchedule is a RootModel (dict-like behavior)
         assert issubclass(ClimateSchedule, RootModel)
 
-    def test_climate_custom_datapoint_schedule_method_signatures(self) -> None:
-        """
-        Contract: Climate schedule methods have stable signatures.
+    def test_climate_week_profile_data_point_available_profiles_property(self) -> None:
+        """Contract: ClimateWeekProfileDataPoint exposes available schedule profiles."""
+        from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 
-        This test documents the expected method signatures for climate schedules.
-        """
+        assert hasattr(ClimateWeekProfileDataPoint, "available_schedule_profiles")
+
+    def test_climate_week_profile_data_point_copy_methods(self) -> None:
+        """Contract: ClimateWeekProfileDataPoint supports copy operations."""
+        from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
+
+        assert hasattr(ClimateWeekProfileDataPoint, "copy_schedule")
+        assert hasattr(ClimateWeekProfileDataPoint, "copy_schedule_profile")
+        assert callable(ClimateWeekProfileDataPoint.copy_schedule)
+        assert callable(ClimateWeekProfileDataPoint.copy_schedule_profile)
+
+    def test_climate_week_profile_data_point_profile_methods(self) -> None:
+        """Contract: ClimateWeekProfileDataPoint supports profile-level operations."""
+        from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
+
+        assert hasattr(ClimateWeekProfileDataPoint, "get_schedule_profile")
+        assert hasattr(ClimateWeekProfileDataPoint, "set_schedule_profile")
+        assert callable(ClimateWeekProfileDataPoint.get_schedule_profile)
+        assert callable(ClimateWeekProfileDataPoint.set_schedule_profile)
+
+    def test_climate_week_profile_data_point_schedule_method_signatures(self) -> None:
+        """Contract: ClimateWeekProfileDataPoint schedule methods have stable signatures."""
         import inspect
 
-        from aiohomematic.model.custom import BaseCustomDpClimate
-
-        # get_schedule signature
-        get_schedule_sig = inspect.signature(BaseCustomDpClimate.get_schedule)
-        assert "force_load" in get_schedule_sig.parameters
-        assert get_schedule_sig.parameters["force_load"].default is False
-
-        # set_schedule signature
-        set_schedule_sig = inspect.signature(BaseCustomDpClimate.set_schedule)
-        assert "schedule_data" in set_schedule_sig.parameters
+        from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 
         # get_schedule_profile signature
-        get_profile_sig = inspect.signature(BaseCustomDpClimate.get_schedule_profile)
+        get_profile_sig = inspect.signature(ClimateWeekProfileDataPoint.get_schedule_profile)
         assert "profile" in get_profile_sig.parameters
         assert "force_load" in get_profile_sig.parameters
 
         # set_schedule_profile signature
-        set_profile_sig = inspect.signature(BaseCustomDpClimate.set_schedule_profile)
+        set_profile_sig = inspect.signature(ClimateWeekProfileDataPoint.set_schedule_profile)
         assert "profile" in set_profile_sig.parameters
         assert "profile_data" in set_profile_sig.parameters
 
-    def test_climate_custom_datapoint_schedule_profile_methods(self) -> None:
-        """Contract: Climate custom data points support profile-level operations."""
-        from aiohomematic.model.custom import BaseCustomDpClimate
+        # get_schedule_weekday signature
+        get_weekday_sig = inspect.signature(ClimateWeekProfileDataPoint.get_schedule_weekday)
+        assert "profile" in get_weekday_sig.parameters
+        assert "weekday" in get_weekday_sig.parameters
 
-        # Verify profile-level methods exist
-        assert hasattr(BaseCustomDpClimate, "get_schedule_profile")
-        assert hasattr(BaseCustomDpClimate, "set_schedule_profile")
-        assert callable(BaseCustomDpClimate.get_schedule_profile)
-        assert callable(BaseCustomDpClimate.set_schedule_profile)
+        # set_schedule_weekday signature
+        set_weekday_sig = inspect.signature(ClimateWeekProfileDataPoint.set_schedule_weekday)
+        assert "profile" in set_weekday_sig.parameters
+        assert "weekday" in set_weekday_sig.parameters
+        assert "weekday_data" in set_weekday_sig.parameters
 
-    def test_climate_custom_datapoint_schedule_returns_dict(self) -> None:
-        """Contract: Climate schedule methods return/accept ScheduleDict."""
-        import inspect
+    def test_climate_week_profile_data_point_weekday_methods(self) -> None:
+        """Contract: ClimateWeekProfileDataPoint supports weekday-level operations."""
+        from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 
-        from aiohomematic.model.custom import BaseCustomDpClimate
+        assert hasattr(ClimateWeekProfileDataPoint, "get_schedule_weekday")
+        assert hasattr(ClimateWeekProfileDataPoint, "set_schedule_weekday")
+        assert callable(ClimateWeekProfileDataPoint.get_schedule_weekday)
+        assert callable(ClimateWeekProfileDataPoint.set_schedule_weekday)
 
-        # get_schedule returns ScheduleDict (dict[str, Any])
-        get_schedule_sig = inspect.signature(BaseCustomDpClimate.get_schedule)
-        # Return type should be annotated (checked at runtime with typing)
-        assert get_schedule_sig.return_annotation is not inspect.Signature.empty
+    def test_week_profile_protocol_has_schedule_methods(self) -> None:
+        """Contract: WeekProfileProtocol has required schedule methods."""
+        from aiohomematic.interfaces import WeekProfileProtocol
 
-        # set_schedule accepts ScheduleDict
-        set_schedule_sig = inspect.signature(BaseCustomDpClimate.set_schedule)
-        assert "schedule_data" in set_schedule_sig.parameters
+        assert "get_schedule" in dir(WeekProfileProtocol)
+        assert "set_schedule" in dir(WeekProfileProtocol)
+        assert "reload_and_cache_schedule" in dir(WeekProfileProtocol)
 
-    def test_climate_custom_datapoint_schedule_weekday_methods(self) -> None:
-        """Contract: Climate custom data points support weekday-level operations."""
-        from aiohomematic.model.custom import BaseCustomDpClimate
+    def test_week_profile_protocol_has_schedule_property(self) -> None:
+        """Contract: WeekProfileProtocol defines schedule property."""
+        from aiohomematic.interfaces import WeekProfileProtocol
 
-        # Verify weekday-level methods exist
-        assert hasattr(BaseCustomDpClimate, "get_schedule_weekday")
-        assert hasattr(BaseCustomDpClimate, "set_schedule_weekday")
-        assert callable(BaseCustomDpClimate.get_schedule_weekday)
-        assert callable(BaseCustomDpClimate.set_schedule_weekday)
+        assert "schedule" in dir(WeekProfileProtocol)
 
 
 # =============================================================================
@@ -1142,28 +1112,28 @@ class TestCustomDataPointScheduleChannelContract:
 
 class TestClimateScheduleServiceMethodContract:
     """
-    Contract: Climate custom data points expose schedule operations as service methods.
+    Contract: Climate schedule operations are exposed on ClimateWeekProfileDataPoint.
 
-    This ensures that schedule operations are accessible as service methods
-    for integration with Home Assistant and other platforms.
+    This ensures that schedule operations are accessible on the week profile
+    data point for integration with Home Assistant and other platforms.
     """
 
-    def test_climate_schedule_methods_exist_on_custom_datapoint(self) -> None:
+    def test_climate_schedule_methods_exist_on_week_profile_data_point(self) -> None:
         """
-        Contract: Climate schedule methods are exposed on custom data points.
+        Contract: Climate schedule methods are exposed on ClimateWeekProfileDataPoint.
 
         This test verifies that key schedule methods are available on the
-        custom data point class for use by integrations.
+        week profile data point class for use by integrations.
         """
-        from aiohomematic.model.custom import BaseCustomDpClimate
+        from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 
         # Verify core schedule methods exist
-        assert hasattr(BaseCustomDpClimate, "get_schedule")
-        assert hasattr(BaseCustomDpClimate, "set_schedule")
-        assert hasattr(BaseCustomDpClimate, "get_schedule_profile")
-        assert hasattr(BaseCustomDpClimate, "set_schedule_profile")
-        assert hasattr(BaseCustomDpClimate, "get_schedule_weekday")
-        assert hasattr(BaseCustomDpClimate, "set_schedule_weekday")
+        assert hasattr(ClimateWeekProfileDataPoint, "get_schedule")
+        assert hasattr(ClimateWeekProfileDataPoint, "set_schedule")
+        assert hasattr(ClimateWeekProfileDataPoint, "get_schedule_profile")
+        assert hasattr(ClimateWeekProfileDataPoint, "set_schedule_profile")
+        assert hasattr(ClimateWeekProfileDataPoint, "get_schedule_weekday")
+        assert hasattr(ClimateWeekProfileDataPoint, "set_schedule_weekday")
 
 
 # =============================================================================
@@ -1195,10 +1165,10 @@ class TestScheduleCacheBehaviorContract:
         This enforces the pessimistic cache strategy - users cannot
         directly modify the cache, only via set_schedule() + CCU round-trip.
         """
-        from aiohomematic.model.custom import BaseCustomDpClimate
+        from aiohomematic.model.week_profile_data_point import WeekProfileDataPoint
 
         # Get property descriptor
-        schedule_prop = getattr(BaseCustomDpClimate, "schedule", None)
+        schedule_prop = getattr(WeekProfileDataPoint, "schedule", None)
         assert schedule_prop is not None
 
         # Verify it's a property (has fget but no fset)

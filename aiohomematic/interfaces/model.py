@@ -60,7 +60,9 @@ from aiohomematic.const import (
     ProgramData,
     RxMode,
     ScheduleDict,
+    ScheduleProfile,
     ScheduleType,
+    WeekdayStr,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.operations import (
@@ -2156,6 +2158,70 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
         """Write schedule data to CCU."""
+
+
+@runtime_checkable
+class ClimateWeekProfileDataPointProtocol(WeekProfileDataPointProtocol, Protocol):
+    """
+    Protocol for climate-specific week profile data point operations.
+
+    Extends WeekProfileDataPointProtocol with profile-level and weekday-level
+    schedule access, plus cross-device copy operations.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
+        """Return available schedule profiles (P1-P6)."""
+
+    @property
+    @abstractmethod
+    def schedule_profile_nos(self) -> int:
+        """Return the number of supported profiles."""
+
+    @abstractmethod
+    async def copy_schedule(self, *, target_data_point: ClimateWeekProfileDataPointProtocol) -> None:
+        """Copy entire schedule to target device's data point."""
+
+    @abstractmethod
+    async def copy_schedule_profile(
+        self,
+        *,
+        source_profile: ScheduleProfile,
+        target_profile: ScheduleProfile,
+        target_data_point: ClimateWeekProfileDataPointProtocol | None = None,
+    ) -> None:
+        """Copy a profile to another profile or target device."""
+
+    @abstractmethod
+    async def get_schedule_profile(self, *, profile: ScheduleProfile, force_load: bool = False) -> ScheduleDict:
+        """Return a single profile as JSON-serializable dict."""
+
+    @abstractmethod
+    async def get_schedule_weekday(
+        self,
+        *,
+        profile: ScheduleProfile,
+        weekday: WeekdayStr,
+        force_load: bool = False,
+    ) -> ScheduleDict:
+        """Return a single weekday as JSON-serializable dict."""
+
+    @abstractmethod
+    async def set_schedule_profile(self, *, profile: ScheduleProfile, profile_data: ScheduleDict) -> None:
+        """Write a single profile to CCU."""
+
+    @abstractmethod
+    async def set_schedule_weekday(
+        self,
+        *,
+        profile: ScheduleProfile,
+        weekday: WeekdayStr,
+        weekday_data: ScheduleDict,
+    ) -> None:
+        """Write a single weekday to CCU."""
 
 
 @runtime_checkable

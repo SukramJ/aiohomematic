@@ -159,7 +159,7 @@ class TestCentralPyDevCCU:
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 279
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 164
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 153
-        assert usage_types[DataPointUsage.DATA_POINT] == 4058
+        assert usage_types[DataPointUsage.DATA_POINT] == 4078
         assert usage_types[DataPointUsage.NO_CREATE] == 4396
 
         assert len(ce_channels) == 135
@@ -189,7 +189,7 @@ class TestCentralPyDevCCU:
         assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
         assert central.client_coordinator.primary_client.model == "PyDevCCU"
         assert len(central.device_registry.devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 70
+        assert len(central.get_data_points(exclude_no_create=False)) == 72
 
         usage_types: dict[DataPointUsage, int] = {}
         for dp in central.get_data_points(exclude_no_create=False):
@@ -201,5 +201,5 @@ class TestCentralPyDevCCU:
 
         assert usage_types[DataPointUsage.NO_CREATE] == 45
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
-        assert usage_types[DataPointUsage.DATA_POINT] == 16
+        assert usage_types[DataPointUsage.DATA_POINT] == 18
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 5

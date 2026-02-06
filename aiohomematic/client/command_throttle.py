@@ -98,6 +98,7 @@ class CommandThrottle(CommandThrottleProtocol):
         "_burst_threshold",
         "_burst_timestamps",
         "_burst_window",
+        "_command_available",
         "_critical_count",
         "_interface_id",
         "_interval",
@@ -134,6 +135,7 @@ class CommandThrottle(CommandThrottleProtocol):
         self._last_command_time: float = 0.0
         self._queue: list[PrioritizedCommand] = []
         self._lock: Final = asyncio.Lock()
+        self._command_available: Final = asyncio.Event()
         self._stopped: bool = False
 
         # Burst detection
@@ -285,10 +287,11 @@ class CommandThrottle(CommandThrottleProtocol):
             device_address=device_address,
         )
 
-        # Enqueue command
+        # Enqueue command and wake worker
         async with self._lock:
             heapq.heappush(self._queue, cmd)
             queue_size = len(self._queue)
+            self._command_available.set()
 
         _LOGGER.debug(
             "COMMAND_THROTTLE[%s]: Enqueued %s command (device=%s, queue_size=%d)",
@@ -308,6 +311,7 @@ class CommandThrottle(CommandThrottleProtocol):
 
         _LOGGER.info(i18n.tr(key="log.client.command_throttle.stopping_worker", interface_id=self._interface_id))
         self._stopped = True
+        self._command_available.set()
 
         # Cancel worker task
         if self._worker_task:
@@ -383,13 +387,13 @@ class CommandThrottle(CommandThrottleProtocol):
 
         while not self._stopped:
             try:
-                # Wait for commands
-                while not self._queue and not self._stopped:  # noqa: ASYNC110
-                    await asyncio.sleep(0.1)
+                # Wait for commands if queue is empty
+                if not self._queue:
+                    await self._command_available.wait()
+                    self._command_available.clear()
 
-                # Check if stopped (can be set asynchronously during sleep)
-                if self._stopped:
-                    break  # type: ignore[unreachable]  # mypy doesn't track async state changes
+                    if self._stopped:
+                        break  # type: ignore[unreachable]  # mypy doesn't track async state changes
 
                 # Pop highest priority command (FIFO within priority)
                 async with self._lock:

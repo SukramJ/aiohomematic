@@ -92,7 +92,7 @@ body:
       label: Welche Art von Installation verwendest Du als Homematic-Backend?
       options:
         - OpenCCU Einzeln
-        - OpenCCU HA-Addon
+        - OpenCCU HA-App
         - piVCCU/Debmatic
         - CCU3
         - CCU2

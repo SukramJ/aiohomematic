@@ -1920,7 +1920,7 @@ class SystemInformation:
     version: str = ""
     hostname: str = ""
     ccu_type: CCUType = CCUType.UNKNOWN
-    is_ha_addon: bool = False
+    is_ha_app: bool = False
 
     @property
     def has_backup(self) -> bool:
@@ -1932,10 +1932,10 @@ class SystemInformation:
         """
         Return True if backend supports system update functionality.
 
-        Note: HA-Addons do not support system updates through this integration
+        Note: HA-Apps do not support system updates through this integration
         as updates are managed by the HA Supervisor.
         """
-        return self.ccu_type == CCUType.OPENCCU and not self.is_ha_addon
+        return self.ccu_type == CCUType.OPENCCU and not self.is_ha_app
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

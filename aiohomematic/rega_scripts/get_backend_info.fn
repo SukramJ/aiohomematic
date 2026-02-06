@@ -8,7 +8,7 @@
 string sVersion = "";
 string sProduct = "";
 string sHostname = "";
-string sIsHaAddon = "false";
+string sIsHaApp = "false";
 
 system.Exec("grep VERSION= /VERSION | tr -d '[:space:]' | cut -d= -f2", &sVersion);
 sVersion = sVersion.Trim();
@@ -24,20 +24,20 @@ if ((!sProduct.Contains("ccu")) && (!sProduct == "debmatic")) {
 system.Exec("hostname", &sHostname);
 sHostname = sHostname.Trim();
 
-!# Detect if running as HA-Addon
+!# Detect if running as HA-App
 !# Check for HM_RUNNING_IN_HA environment variable first, then SUPERVISOR_TOKEN as fallback
 string sHaEnv = "";
 system.Exec("printenv HM_RUNNING_IN_HA 2>/dev/null || true", &sHaEnv);
 sHaEnv = sHaEnv.Trim();
 if (sHaEnv == "1") {
-    sIsHaAddon = "true";
+    sIsHaApp = "true";
 } else {
     string sSupervisorToken = "";
     system.Exec("printenv SUPERVISOR_TOKEN 2>/dev/null || true", &sSupervisorToken);
     sSupervisorToken = sSupervisorToken.Trim();
     if (sSupervisorToken.Length() > 0) {
-        sIsHaAddon = "true";
+        sIsHaApp = "true";
     }
 }
 
-Write('{"version":"' # sVersion # '","product":"' # sProduct # '","hostname":"' # sHostname # '","is_ha_addon":' # sIsHaAddon # '}');
+Write('{"version":"' # sVersion # '","product":"' # sProduct # '","hostname":"' # sHostname # '","is_ha_app":' # sIsHaApp # '}');

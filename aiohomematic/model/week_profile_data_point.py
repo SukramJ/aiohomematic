@@ -47,7 +47,7 @@ __all__ = [
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-_PARAMETER_NAME: Final = "WEEK_PROFILE"
+_PARAMETER_NAME: Final = "SCHEDULE"
 _MAX_SIMPLE_ENTRIES: Final = 24
 _MAX_CLIMATE_SLOTS_PER_DAY: Final = 13
 _CLIMATE_PROFILES: Final = 6

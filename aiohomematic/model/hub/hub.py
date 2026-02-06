@@ -765,7 +765,7 @@ class Hub(HubProtocol):
         if not (client := self._primary_client_provider.primary_client):
             return
 
-        # Only supported on standalone OpenCCU (not HA-Addons)
+        # Only supported on standalone OpenCCU (not HA-App)
         if not client.system_information.has_system_update:
             return
 

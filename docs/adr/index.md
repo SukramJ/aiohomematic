@@ -28,3 +28,4 @@ This directory contains Architecture Decision Records (ADRs) for the aiohomemati
 | [0019](0019-derived-binary-sensors.md)                             | Derived Binary Sensors from Enum Data Points                  | Accepted               |
 | [0020](0020-command-throttling-priority-and-optimistic-updates.md) | Command Throttling with Priority Queue and Optimistic Updates | Accepted               |
 | [0021](0021-blind-command-processing-lock.md)                      | Blind Command Processing Lock and Target Preservation         | Accepted               |
+| [0022](0022-week-profile-data-point.md)                            | Unified Schedule Access via WeekProfileDataPoint              | Accepted               |

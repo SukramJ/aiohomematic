@@ -68,10 +68,10 @@
   Uses `asyncio.Event` for efficient wake-on-enqueue, reducing idle CPU usage and
   improving command latency.
 
-- **WeekProfileDataPoint parameter name collision**: Changed internal parameter name
-  from `WEEK_PROFILE` to `SCHEDULE` to avoid `full_name` collision with generic
-  `WEEK_PROFILE` data points on the same channel, which caused duplicate entity
-  registration errors in Home Assistant.
+- **CallbackDataPoint ownership reset on unsubscribe**: When the owning `custom_id`
+  fully unsubscribes from a data point, `_custom_id` is now reset to `None`. This allows
+  re-registration with a different `custom_id` (e.g. after an entity_id rename in
+  Home Assistant), preventing `AioHomematicException` on resubscription.
 
 ---
 

@@ -1,4 +1,4 @@
-# Version 2026.2.6 (2026-02-05)
+# Version 2026.2.6 (2026-02-06)
 
 ## What's Changed
 
@@ -54,8 +54,24 @@
   `copy_schedule_to` and `copy_profile` renamed to `copy_profile_to`. Both now accept
   `target_week_profile: ClimateWeekProfile` instead of `target_climate_data_point: BaseCustomDpClimate`.
 
+- **HA-Addon renamed to HA-App** (breaking change): `SystemInformation.is_ha_addon`
+  renamed to `is_ha_app`. The rega script `get_backend_info.fn` now returns
+  `is_ha_app` instead of `is_ha_addon` in the JSON response.
+
   See [Migration Guide](docs/migrations/week_profile_data_point_migration_2026_02.md)
   for detailed upgrade instructions.
+
+### Fixed
+
+- **CommandThrottle busy-wait replaced with asyncio.Event**: The background worker
+  in `CommandThrottle` no longer polls with `asyncio.sleep(0.1)` (ASYNC110 violation).
+  Uses `asyncio.Event` for efficient wake-on-enqueue, reducing idle CPU usage and
+  improving command latency.
+
+- **WeekProfileDataPoint parameter name collision**: Changed internal parameter name
+  from `WEEK_PROFILE` to `SCHEDULE` to avoid `full_name` collision with generic
+  `WEEK_PROFILE` data points on the same channel, which caused duplicate entity
+  registration errors in Home Assistant.
 
 ---
 

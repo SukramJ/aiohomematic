@@ -57,6 +57,7 @@ from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
 from aiohomematic.central.events import RequestCoalescedEvent
 from aiohomematic.metrics import MetricKeys, emit_counter
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
@@ -108,20 +109,13 @@ class RequestCoalescer:
         self._total_requests: int = 0
         self._executed_requests: int = 0
 
-    @property
-    def executed_requests(self) -> int:
-        """Return the number of executed requests (not coalesced)."""
-        return self._executed_requests
+    executed_requests: Final = DelegatedProperty[int](path="_executed_requests")
+    total_requests: Final = DelegatedProperty[int](path="_total_requests")
 
     @property
     def pending_count(self) -> int:
         """Return the number of pending requests."""
         return len(self._pending)
-
-    @property
-    def total_requests(self) -> int:
-        """Return the total number of requests received."""
-        return self._total_requests
 
     def clear(self) -> None:
         """

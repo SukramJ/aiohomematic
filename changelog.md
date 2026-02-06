@@ -73,6 +73,14 @@
   re-registration with a different `custom_id` (e.g. after an entity_id rename in
   Home Assistant), preventing `AioHomematicException` on resubscription.
 
+### Refactoring
+
+- **DelegatedProperty expansion**: Replaced 56 boilerplate `@property` methods with
+  `DelegatedProperty` descriptors across 23 files (central, client, model, store layers).
+  This reduces repetitive delegation code while preserving the same runtime behavior.
+  Properties that are overridden in subclasses (`category`, `state_uncertain`) remain
+  as `@property` methods.
+
 ---
 
 # Version 2026.2.5 (2026-02-05)

@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING, Any, Final
 import uuid
 
 from aiohomematic.const import INCIDENT_STORE_MAX_PER_TYPE
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.store.types import IncidentSeverity, IncidentSnapshot, IncidentType
 
@@ -109,6 +110,8 @@ class IncidentStore(BasePersistentCache, IncidentRecorderProtocol):
         self._incidents_by_type: dict[IncidentType, list[IncidentSnapshot]] = {}
         self._loaded: bool = False
 
+    is_loaded: Final = DelegatedProperty[bool](path="_loaded")
+
     @property
     def incident_count(self) -> int:
         """Return the total number of stored incidents (in-memory only)."""
@@ -122,11 +125,6 @@ class IncidentStore(BasePersistentCache, IncidentRecorderProtocol):
             all_incidents.extend(incidents)
         all_incidents.sort(key=lambda i: i.timestamp_iso)
         return all_incidents
-
-    @property
-    def is_loaded(self) -> bool:
-        """Return True if historical incidents have been loaded from disk."""
-        return self._loaded
 
     def clear_incidents(self) -> None:
         """Clear all incidents from memory (does not affect persistence)."""

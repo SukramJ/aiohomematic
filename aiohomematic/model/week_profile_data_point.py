@@ -37,7 +37,7 @@ from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, TargetChannelInfo
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, generate_unique_id
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
-from aiohomematic.property_decorators import Kind, hm_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property
 
 __all__ = [
     "ClimateWeekProfileDataPoint",
@@ -87,12 +87,10 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             self._build_target_channel_map() if isinstance(week_profile, DefaultWeekProfile) else {}
         )
 
-    # --- Public Properties (for HA entity attributes) ---
-
-    @property
-    def available_target_channels(self) -> Mapping[str, TargetChannelInfo]:
-        """Return the target channel mapping (non-climate only)."""
-        return self._available_target_channels
+    available_target_channels: Final = DelegatedProperty[Mapping[str, TargetChannelInfo]](
+        path="_available_target_channels"
+    )
+    schedule_channel_address: Final = DelegatedProperty[str | None](path="_week_profile.schedule_channel_address")
 
     @property
     def max_entries(self) -> int:
@@ -121,11 +119,6 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         return cast(ScheduleDict, self._week_profile.schedule.model_dump(mode="json"))
 
     @property
-    def schedule_channel_address(self) -> str | None:
-        """Return the schedule channel address."""
-        return self._week_profile.schedule_channel_address
-
-    @property
     def schedule_type(self) -> ScheduleType:
         """Return the schedule type identifier."""
         return ScheduleType.CLIMATE if isinstance(self._week_profile, ClimateWeekProfile) else ScheduleType.DEFAULT
@@ -139,8 +132,6 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
     def value(self) -> int:
         """Return the number of active schedule entries."""
         return self._count_active_entries()
-
-    # --- Schedule Operations (delegated to WeekProfile) ---
 
     def fire_schedule_updated(self) -> None:
         """Notify subscribers that the schedule has changed."""
@@ -166,8 +157,6 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             await self._week_profile.set_schedule(schedule_data=SimpleSchedule.model_validate(schedule_data))
         else:
             await self._week_profile.set_schedule(schedule_data=schedule_data)
-
-    # --- Internal ---
 
     def _build_target_channel_map(self) -> dict[str, TargetChannelInfo]:
         """Build the actor_sub -> TargetChannelInfo mapping."""
@@ -257,7 +246,10 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
 class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPointProtocol):
     """Climate-specific week profile data point with profile/weekday operations."""
 
-    __slots__ = ("_schedule_profile_nos",)
+    __slots__ = (
+        "_active_profile",
+        "_schedule_profile_nos",
+    )
 
     _week_profile: ClimateWeekProfile  # type: ignore[misc]
 
@@ -270,17 +262,19 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
     ) -> None:
         """Initialize the climate week profile data point."""
         super().__init__(channel=channel, week_profile=week_profile)
+        self._active_profile: ScheduleProfile = ScheduleProfile.P1
         self._schedule_profile_nos: Final = schedule_profile_nos
 
-    @property
-    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
-        """Return available schedule profiles."""
-        return self._week_profile.available_schedule_profiles
+    active_profile: Final = DelegatedProperty[ScheduleProfile](path="_active_profile")
+    available_schedule_profiles: Final = DelegatedProperty[tuple[ScheduleProfile, ...]](
+        path="_week_profile.available_schedule_profiles"
+    )
+    schedule_profile_nos: Final = DelegatedProperty[int](path="_schedule_profile_nos")
 
     @property
-    def schedule_profile_nos(self) -> int:
-        """Return the number of supported profiles."""
-        return self._schedule_profile_nos
+    def active_schedule(self) -> ScheduleDict | None:
+        """Return the active profile data."""
+        return self.schedule.get(self._active_profile)
 
     @inspector
     async def copy_schedule(self, *, target_data_point: ClimateWeekProfileDataPointProtocol) -> None:
@@ -325,6 +319,10 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         """Return a single weekday as JSON-serializable dict."""
         result = await self._week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
         return result.model_dump(mode="json")
+
+    def set_active_profile(self, *, profile: ScheduleProfile) -> None:
+        """Set the active profile."""
+        self._active_profile = profile
 
     @override
     async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:

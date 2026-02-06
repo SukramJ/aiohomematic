@@ -242,6 +242,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     set_path: Final = DelegatedProperty[str](path="_path_data.set_path")
     signature: Final = DelegatedProperty[str](path="_signature")
     state_path: Final = DelegatedProperty[str](path="_path_data.state_path")
+    unique_id = DelegatedProperty[str](path="_unique_id", kind=Kind.CONFIG)
 
     @property
     def _should_publish_data_point_updated_callback(self) -> bool:
@@ -250,7 +251,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
 
     @property
     def category(self) -> DataPointCategory:
-        """Return, the category of the data point."""
+        """Return the category of the data_point."""
         return self._category
 
     @property
@@ -305,11 +306,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     @abstractmethod
     def name(self) -> str:
         """Return the name of the data_point."""
-
-    @config_property
-    def unique_id(self) -> str:
-        """Return the unique_id."""
-        return self._unique_id
 
     @state_property
     def additional_information(self) -> dict[str, Any]:
@@ -996,7 +992,7 @@ class BaseParameterDataPoint[
 
     @property
     def state_uncertain(self) -> bool:
-        """Return the state uncertain status."""
+        """Return if the state is uncertain."""
         return self._state_uncertain
 
     @property

@@ -24,6 +24,7 @@ from aiohomematic import client as hmcl, compat, i18n
 from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import get_device_address, log_boundary_error
 
@@ -545,6 +546,10 @@ class AsyncXmlRpcServer:
             cls._instances[key] = instance
         return cls._instances[key]
 
+    listen_ip_addr: Final = DelegatedProperty[str](path="_ip_addr")
+    listen_port: Final = DelegatedProperty[int](path="_actual_port")
+    started: Final = DelegatedProperty[bool](path="_started")
+
     @property
     def _event_bus(self) -> EventBus | None:
         """Return event bus from first registered central (for metrics)."""
@@ -553,24 +558,9 @@ class AsyncXmlRpcServer:
         return None
 
     @property
-    def listen_ip_addr(self) -> str:
-        """Return the listening IP address."""
-        return self._ip_addr
-
-    @property
-    def listen_port(self) -> int:
-        """Return the actual listening port."""
-        return self._actual_port
-
-    @property
     def no_central_assigned(self) -> bool:
         """Return True if no central is registered."""
         return len(self._centrals) == 0
-
-    @property
-    def started(self) -> bool:
-        """Return True if server is running."""
-        return self._started
 
     def add_central(
         self,

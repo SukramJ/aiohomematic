@@ -1181,6 +1181,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     custom_data_point: Final = DelegatedProperty[hmce.CustomDataPoint | None](path="_custom_data_point")
     description: Final = DelegatedProperty[DeviceDescription](path="_channel_description")
     device: Final = DelegatedProperty[DeviceProtocol](path="_device", log_context=True)
+    event_groups: Final = DelegatedProperty[dict[DeviceTriggerEventType, hmev.ChannelEventGroup]](path="_event_groups")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
     function: Final = DelegatedProperty[str | None](path="_function")
     is_schedule_channel: Final = DelegatedProperty[bool](path="_is_schedule_channel")
@@ -1210,11 +1211,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     def data_point_paths(self) -> tuple[str, ...]:
         """Return the data point paths."""
         return tuple(self._state_path_to_dpk.keys())
-
-    @property
-    def event_groups(self) -> dict[DeviceTriggerEventType, hmev.ChannelEventGroup]:
-        """Return the event groups for this channel, keyed by DeviceTriggerEventType."""
-        return self._event_groups
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:

@@ -21,7 +21,9 @@ from typing import TYPE_CHECKING, Any, Final
 from aiohomematic import i18n
 from aiohomematic.central.events import ClientStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
+from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
+from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.client.command_throttle import CommandPriority, CommandThrottle
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.state_change import wait_for_state_change_or_timeout
@@ -72,8 +74,6 @@ from aiohomematic.support import (
 )
 
 if TYPE_CHECKING:
-    from aiohomematic.client.backends.capabilities import BackendCapabilities
-    from aiohomematic.client.circuit_breaker import CircuitBreaker
     from aiohomematic.client.config import InterfaceConfig
     from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 
@@ -176,38 +176,22 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """Provide information."""
         return f"interface_id: {self.interface_id}"
 
+    all_circuit_breakers_closed: Final = DelegatedProperty[bool](path="_backend.all_circuit_breakers_closed")
     available: Final = DelegatedProperty[bool](path="_state_machine.is_available")
+    capabilities: Final = DelegatedProperty[BackendCapabilities](path="_backend.capabilities")
     central: Final = DelegatedProperty[ClientDependenciesProtocol](path="_central")
+    circuit_breaker: Final = DelegatedProperty[CircuitBreaker | None](path="_backend.circuit_breaker")
     command_throttle: Final = DelegatedProperty[CommandThrottle](path="_command_throttle")
+    interface: Final = DelegatedProperty[Interface](path="_backend.interface")
+    interface_id: Final = DelegatedProperty[str](path="_backend.interface_id")
     last_value_send_tracker: Final = DelegatedProperty[CommandTracker](path="_last_value_send_tracker")
+    model: Final = DelegatedProperty[str](path="_backend.model")
     ping_pong_tracker: Final = DelegatedProperty[PingPongTracker](path="_ping_pong_tracker")
+    request_coalescer: Final = DelegatedProperty[RequestCoalescer | None](path="_paramset_description_coalescer")
     state: Final = DelegatedProperty[ClientState](path="_state_machine.state")
     state_machine: Final = DelegatedProperty[ClientStateMachine](path="_state_machine")
-
-    @property
-    def all_circuit_breakers_closed(self) -> bool:
-        """Return True if all circuit breakers are in closed state."""
-        return self._backend.all_circuit_breakers_closed
-
-    @property
-    def capabilities(self) -> BackendCapabilities:
-        """Return the capability flags for this backend."""
-        return self._backend.capabilities
-
-    @property
-    def circuit_breaker(self) -> CircuitBreaker | None:
-        """Return the primary circuit breaker for metrics access."""
-        return self._backend.circuit_breaker
-
-    @property
-    def interface(self) -> Interface:
-        """Return the interface type."""
-        return self._backend.interface
-
-    @property
-    def interface_id(self) -> str:
-        """Return the interface identifier."""
-        return self._backend.interface_id
+    system_information: Final = DelegatedProperty[SystemInformation](path="_backend.system_information")
+    version: Final = DelegatedProperty[str](path="_version")
 
     @property
     def is_initialized(self) -> bool:
@@ -219,11 +203,6 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         )
 
     @property
-    def model(self) -> str:
-        """Return the backend model."""
-        return self._backend.model
-
-    @property
     def modified_at(self) -> datetime:
         """Return the last update datetime value."""
         return self._modified_at
@@ -232,21 +211,6 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     def modified_at(self, value: datetime) -> None:
         """Write the last update datetime value."""
         self._modified_at = value
-
-    @property
-    def request_coalescer(self) -> RequestCoalescer | None:
-        """Return the request coalescer for metrics access."""
-        return self._paramset_description_coalescer
-
-    @property
-    def system_information(self) -> SystemInformation:
-        """Return system information."""
-        return self._backend.system_information
-
-    @property
-    def version(self) -> str:
-        """Return the version."""
-        return self._version
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""

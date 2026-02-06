@@ -150,6 +150,7 @@ class CircuitBreaker:
         self._total_requests: int = 0
         self._last_failure_time: datetime | None = None
 
+    last_failure_time: Final = DelegatedProperty[datetime | None](path="_last_failure_time")
     state: Final = DelegatedProperty[CircuitState](path="_state")
     total_requests: Final = DelegatedProperty[int](path="_total_requests")
 
@@ -177,11 +178,6 @@ class CircuitBreaker:
 
         # HALF_OPEN - allow one request through
         return True
-
-    @property
-    def last_failure_time(self) -> datetime | None:
-        """Return the timestamp of the last failure."""
-        return self._last_failure_time
 
     def record_failure(self) -> None:
         """

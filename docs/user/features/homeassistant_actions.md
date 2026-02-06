@@ -115,14 +115,69 @@ Removes a central link from the backend. Disables button-press events.
 
 ---
 
-## Climate Schedule Operations
+## Schedule Operations
+
+All schedule services are **device-based** — they target a device by `device_id` or `device_address` instead of entity. This unified approach works for all device types (climate, switch, light, cover, valve).
 
 !!! warning "Storage Warning"
 Too much writing to the device could damage your device's storage.
 
-### homematicip_local.set_schedule_simple_profile
+### homematicip_local.get_schedule
 
-Sends a complete schedule for a climate profile using a **simplified format**.
+Returns the complete schedule from a device. Works for both climate and non-climate devices.
+
+```yaml
+action: homematicip_local.get_schedule
+data:
+  device_id: abcdefg...
+```
+
+### homematicip_local.set_schedule
+
+Sets the complete schedule on a device. For non-climate devices, use `schedule_data` with entry dict format.
+
+```yaml
+action: homematicip_local.set_schedule
+data:
+  device_id: abcdefg...
+  schedule_data:
+    "1":
+      weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+      time: "18:00"
+      condition: fixed_time
+      target_channels: ["1_1"]
+      level: 1.0
+      duration: 4h
+```
+
+### homematicip_local.get_schedule_profile
+
+Returns a single climate schedule profile in simplified format. Climate devices only.
+
+The service analyzes the schedule and determines `base_temperature` as the most frequently used temperature. Only periods that deviate are returned.
+
+```yaml
+action: homematicip_local.get_schedule_profile
+data:
+  device_id: abcdefg...
+  profile: P1
+```
+
+### homematicip_local.get_schedule_weekday
+
+Returns the schedule for a specific weekday of a climate profile in simplified format.
+
+```yaml
+action: homematicip_local.get_schedule_weekday
+data:
+  device_id: abcdefg...
+  profile: P1
+  weekday: MONDAY
+```
+
+### homematicip_local.set_schedule_profile
+
+Sends a complete schedule for a climate profile using a **simplified format**. Climate devices only.
 
 **How it works:**
 
@@ -134,10 +189,9 @@ Sends a complete schedule for a climate profile using a **simplified format**.
 **Example:**
 
 ```yaml
-action: homematicip_local.set_schedule_simple_profile
-target:
-  entity_id: climate.living_room_thermostat
+action: homematicip_local.set_schedule_profile
 data:
+  device_id: abcdefg...
   profile: P1
   simple_profile_data:
     MONDAY:
@@ -164,17 +218,16 @@ data:
     # Add other weekdays as needed
 ```
 
-### homematicip_local.set_schedule_simple_weekday
+### homematicip_local.set_schedule_weekday
 
-Sends schedule for a single weekday using simplified format.
+Sends schedule for a single weekday using simplified format. Climate devices only.
 
 **Example:**
 
 ```yaml
-action: homematicip_local.set_schedule_simple_weekday
-target:
-  entity_id: climate.living_room_thermostat
+action: homematicip_local.set_schedule_weekday
 data:
+  device_id: abcdefg...
   profile: P3
   weekday: MONDAY
   base_temperature: 16
@@ -200,15 +253,17 @@ data:
 - 19:00-22:00: 22°C (period 3)
 - 22:00-24:00: 16°C (base_temperature)
 
-### homematicip_local.get_schedule_simple_profile
+### homematicip_local.set_schedule_active_profile
 
-Returns the schedule of a climate profile in simplified format.
+Switches the active schedule profile on a climate device. This is the only schedule service that targets an entity.
 
-The service analyzes the schedule and determines `base_temperature` as the most frequently used temperature. Only periods that deviate are returned.
-
-### homematicip_local.get_schedule_simple_weekday
-
-Returns the schedule for a specific weekday in simplified format.
+```yaml
+action: homematicip_local.set_schedule_active_profile
+target:
+  entity_id: climate.living_room_thermostat
+data:
+  profile: P2
+```
 
 ### homematicip_local.copy_schedule
 
@@ -216,8 +271,15 @@ Copies the complete schedule (all profiles P1-P6, all weekdays) from one climate
 
 **Requirements:**
 
-- Both devices must support schedules
+- Both devices must support climate schedules
 - Both devices must support the same number of profiles
+
+```yaml
+action: homematicip_local.copy_schedule
+data:
+  device_id: abcdefg...
+  target_device_id: hijklmn...
+```
 
 ### homematicip_local.copy_schedule_profile
 
@@ -229,28 +291,14 @@ Copies a single schedule profile from one device to another (or to a different p
 - Copy P1 from Device A to P1 on Device B
 - Copy P3 from Device A to P1 on Device B
 
-### Raw Schedule Operations
-
-The following actions work with the raw 13-slot schedule format used internally by Homematic devices. For most users, the simplified format above is easier to use.
-
-#### homematicip_local.get_schedule_profile
-
-Returns the complete schedule of a climate profile in raw format (all 13 slots per weekday).
-
-#### homematicip_local.get_schedule_weekday
-
-Returns the schedule for a specific weekday in raw format.
-
-#### homematicip_local.set_schedule_profile
-
-Sets the complete schedule for a climate profile using raw format.
-
-!!! warning "Advanced Use"
-The raw format requires all 13 time slots per weekday. Consider using `set_schedule_simple_profile` instead.
-
-#### homematicip_local.set_schedule_weekday
-
-Sets the schedule for a specific weekday using raw format.
+```yaml
+action: homematicip_local.copy_schedule_profile
+data:
+  device_id: abcdefg...
+  source_profile: P1
+  target_profile: P2
+  target_device_id: hijklmn... # Optional: omit if copying within same device
+```
 
 ---
 

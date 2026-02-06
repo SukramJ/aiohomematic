@@ -209,39 +209,19 @@ class CacheCoordinator(SessionRecorderProviderProtocol, CacheProviderForMetricsP
         )
 
     data_cache: Final = DelegatedProperty[CentralDataCache](path="_data_cache")
+    data_cache_size: Final = DelegatedProperty[int](path="_data_cache.size")
+    data_cache_statistics: Final = DelegatedProperty[CacheStatistics](path="_data_cache.statistics")
     device_descriptions: Final = DelegatedProperty[DeviceDescriptionRegistry](path="_device_descriptions_registry")
+    device_descriptions_size: Final = DelegatedProperty[int](path="_device_descriptions_registry.size")
     device_details: Final = DelegatedProperty[DeviceDetailsCache](path="_device_details_cache")
     incident_store: Final = DelegatedProperty[IncidentStore](path="_incident_store")
     parameter_visibility: Final = DelegatedProperty[ParameterVisibilityRegistry](path="_parameter_visibility_registry")
     paramset_descriptions: Final = DelegatedProperty[ParamsetDescriptionRegistry](
         path="_paramset_descriptions_registry"
     )
+    paramset_descriptions_size: Final = DelegatedProperty[int](path="_paramset_descriptions_registry.size")
     recorder: Final = DelegatedProperty[SessionRecorder](path="_session_recorder")
-
-    @property
-    def data_cache_size(self) -> int:
-        """Return data cache size."""
-        return self._data_cache.size
-
-    @property
-    def data_cache_statistics(self) -> CacheStatistics:
-        """Return data cache statistics."""
-        return self._data_cache.statistics
-
-    @property
-    def device_descriptions_size(self) -> int:
-        """Return device descriptions cache size."""
-        return self._device_descriptions_registry.size
-
-    @property
-    def paramset_descriptions_size(self) -> int:
-        """Return paramset descriptions cache size."""
-        return self._paramset_descriptions_registry.size
-
-    @property
-    def visibility_cache_size(self) -> int:
-        """Return visibility cache size."""
-        return self._parameter_visibility_registry.size
+    visibility_cache_size: Final = DelegatedProperty[int](path="_parameter_visibility_registry.size")
 
     async def clear_all(
         self,

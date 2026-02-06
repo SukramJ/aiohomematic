@@ -44,6 +44,7 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.exceptions import BaseHomematicException
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import extract_exc_args
 
@@ -99,6 +100,8 @@ class CcuBackend(BaseBackend):
         self._json_rpc: Final = json_rpc
         self._device_details_provider: Final = device_details_provider
 
+    circuit_breaker: Final = DelegatedProperty[CircuitBreaker](path="_proxy.circuit_breaker")
+
     @property
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
@@ -108,11 +111,6 @@ class CcuBackend(BaseBackend):
         if self._proxy_read is not self._proxy and self._proxy_read.circuit_breaker.state != CircuitState.CLOSED:
             return False
         return self._json_rpc.circuit_breaker.state == CircuitState.CLOSED
-
-    @property
-    def circuit_breaker(self) -> CircuitBreaker:
-        """Return the primary circuit breaker for metrics access."""
-        return self._proxy.circuit_breaker
 
     @property
     def model(self) -> str:

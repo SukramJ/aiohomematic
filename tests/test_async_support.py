@@ -116,6 +116,8 @@ class TestLooper:
         # Should be tracked until done
         assert future in looper._tasks
         assert await future == 10
+        # Yield to the event loop so the done-callback can fire
+        await asyncio.sleep(0)
         # After completion the done handler should have removed it
         assert future not in looper._tasks
 

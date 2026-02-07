@@ -379,7 +379,7 @@ BaseDataPoint is the core class for all device parameters and controls.
 - **`set_simple_schedule_profile`** - Set simple schedule profile
 - **`set_simple_schedule_weekday`** - Set simple weekday schedule
 - **`copy_schedule_profile`** - Copy schedule profile
-- **`available_schedule_profiles`** - Available schedule profiles
+- **`available_profiles`** - Available schedule profiles
 - **`supports_schedule`** - Check schedule support
 - **`profile`** - Current profile
 - **`profiles`** - Available profiles

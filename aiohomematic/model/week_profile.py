@@ -14,7 +14,7 @@ conversion between CCU raw paramset format and structured Python dictionaries, p
 validation, filtering, and normalization of schedule data.
 
 Two main implementations:
-- ClimeateWeekProfile: Manages climate device schedules (thermostats)
+- ClimateWeekProfile: Manages climate device schedules (thermostats)
 - DefaultWeekProfile: Manages non-climate device schedules (switches, lights, covers, valves)
 
 
@@ -390,6 +390,7 @@ from aiohomematic.model.schedule_models import (
     convert_raw_group_to_simple_entry,
     convert_simple_entry_to_raw_group,
 )
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.model.custom import BaseCustomDpClimate
@@ -985,20 +986,13 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         # Cast to ClimateScheduleDictInternal since we built it with all required keys
         return cast(_ClimateScheduleDictInternal, schedule_data)
 
+    max_temp: Final = DelegatedProperty[float](path="_max_temp")
+    min_temp: Final = DelegatedProperty[float](path="_min_temp")
+
     @property
-    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
+    def available_profiles(self) -> tuple[ScheduleProfile, ...]:
         """Return the available schedule profiles."""
         return tuple(ScheduleProfile(key) for key in self._schedule_cache)
-
-    @property
-    def max_temp(self) -> float:
-        """Return the maximum temperature."""
-        return self._max_temp
-
-    @property
-    def min_temp(self) -> float:
-        """Return the minimum temperature."""
-        return self._min_temp
 
     @property
     def schedule(self) -> ClimateSchedule:

@@ -29,6 +29,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.converter import CONVERTABLE_PARAMETERS, convert_combined_parameter_to_paramset
 from aiohomematic.interfaces.client import CommandTrackerProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.types import CachedCommand, TrackerStatistics
 from aiohomematic.support import changed_within_seconds
 
@@ -68,15 +69,12 @@ class CommandTracker(CommandTrackerProtocol):
         # Hysteresis flag to prevent repeated warning logs
         self._warning_logged: bool = False
 
+    statistics: Final = DelegatedProperty[TrackerStatistics](path="_stats")
+
     @property
     def size(self) -> int:
         """Return the current tracker size."""
         return len(self._last_send_command)
-
-    @property
-    def statistics(self) -> TrackerStatistics:
-        """Return the tracker statistics."""
-        return self._stats
 
     def add_combined_parameter(
         self, *, parameter: str, channel_address: str, combined_parameter: str

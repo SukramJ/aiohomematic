@@ -113,6 +113,8 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
 
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
+    interface: Final = DelegatedProperty[Interface](path="_interface")
+    interface_id: Final = DelegatedProperty[str](path="_interface_id")
     name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
 
@@ -140,16 +142,6 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
     def description(self) -> str | None:
         """Return data point description."""
         return f"Connectivity status for {self._interface.value} interface"
-
-    @property
-    def interface(self) -> Interface:
-        """Return the interface type."""
-        return self._interface
-
-    @property
-    def interface_id(self) -> str:
-        """Return the interface ID."""
-        return self._interface_id
 
     @property
     def legacy_name(self) -> str | None:

@@ -2173,8 +2173,23 @@ class ClimateWeekProfileDataPointProtocol(WeekProfileDataPointProtocol, Protocol
 
     @property
     @abstractmethod
-    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
-        """Return available schedule profiles (P1-P6)."""
+    def available_profiles(self) -> tuple[ScheduleProfile, ...]:
+        """Return available profiles (P1-P6)."""
+
+    @property
+    @abstractmethod
+    def current_profile_schedule(self) -> ScheduleDict | None:
+        """Return the schedule data for the current profile."""
+
+    @property
+    @abstractmethod
+    def current_schedule_profile(self) -> ScheduleProfile:
+        """Return the current schedule profile."""
+
+    @property
+    @abstractmethod
+    def device_active_profile_index(self) -> int | None:
+        """Return the 1-based profile index from the device parameter."""
 
     @property
     @abstractmethod
@@ -2208,6 +2223,10 @@ class ClimateWeekProfileDataPointProtocol(WeekProfileDataPointProtocol, Protocol
         force_load: bool = False,
     ) -> ScheduleDict:
         """Return a single weekday as JSON-serializable dict."""
+
+    @abstractmethod
+    def set_current_schedule_profile(self, *, profile: ScheduleProfile) -> None:
+        """Set the current schedule profile."""
 
     @abstractmethod
     async def set_schedule_profile(self, *, profile: ScheduleProfile, profile_data: ScheduleDict) -> None:

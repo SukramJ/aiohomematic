@@ -44,7 +44,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_hub_data_point_name_data,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind
 from aiohomematic.support import PayloadMixin, parse_sys_var
 
 
@@ -102,6 +102,7 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
         self._state_uncertain: bool = True
         self._primary_client_provider: Final = primary_client_provider
 
+    available = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
     channel: Final = DelegatedProperty[ChannelProtocol | None](path="_channel")
     description: Final = DelegatedProperty[str | None](path="_description", kind=Kind.CONFIG)
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
@@ -114,11 +115,6 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
     def translation_key(self) -> str:
         """Return translation key for Home Assistant."""
         return generate_translation_key(name=self._category.value)
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self._central_info.available
 
     @override
     def _get_signature(self) -> str:
@@ -186,6 +182,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
     min: Final = DelegatedProperty[float | int | None](path="_min", kind=Kind.CONFIG)
     previous_value: Final = DelegatedProperty[SYSVAR_TYPE](path="_previous_value")
     unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    value = DelegatedProperty[Any | None](path="_value", kind=Kind.STATE)
     values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.STATE)
     vid: Final = DelegatedProperty[str](path="_vid", kind=Kind.CONFIG)
 
@@ -203,11 +200,6 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
     def data_type(self, data_type: HubValueType) -> None:
         """Write data_type."""
         self._data_type = data_type
-
-    @state_property
-    def value(self) -> Any | None:
-        """Return the value."""
-        return self._value
 
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""

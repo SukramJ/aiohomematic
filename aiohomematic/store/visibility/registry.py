@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.const import ParamsetKey
 from aiohomematic.interfaces import ParameterVisibilityProviderProtocol
 from aiohomematic.model.custom import get_required_parameters
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.visibility.model_validator import ModelVisibilityValidator
 from aiohomematic.store.visibility.parameter_decider import ParameterVisibilityDecider
 from aiohomematic.store.visibility.parser_handler import UnIgnoreRuleParser
@@ -106,10 +107,7 @@ class ParameterVisibilityRegistry(ParameterVisibilityProviderProtocol):
             required_parameters=frozenset(get_required_parameters()),
         )
 
-    @property
-    def size(self) -> int:
-        """Return total size of memoization caches."""
-        return self._parameter_decider.size
+    size: Final = DelegatedProperty[int](path="_parameter_decider.size")
 
     def clear_memoization_caches(self) -> None:
         """Clear the per-instance memoization caches to free memory."""

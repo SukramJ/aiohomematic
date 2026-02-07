@@ -955,7 +955,7 @@ class TestClimateWeekProfileDataPointScheduleAPIContract:
         """Contract: ClimateWeekProfileDataPoint exposes available schedule profiles."""
         from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 
-        assert hasattr(ClimateWeekProfileDataPoint, "available_schedule_profiles")
+        assert hasattr(ClimateWeekProfileDataPoint, "available_profiles")
 
     def test_climate_week_profile_data_point_copy_methods(self) -> None:
         """Contract: ClimateWeekProfileDataPoint supports copy operations."""

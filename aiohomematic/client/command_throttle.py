@@ -47,6 +47,7 @@ from typing import Final
 from aiohomematic import i18n
 from aiohomematic.exceptions import CommandSupersededError
 from aiohomematic.interfaces.client import CommandThrottleProtocol
+from aiohomematic.property_decorators import DelegatedProperty
 
 __all__ = ["CommandThrottle", "CommandPriority", "PrioritizedCommand"]
 
@@ -169,35 +170,14 @@ class CommandThrottle(CommandThrottleProtocol):
             f"purged={self._purged_count})"
         )
 
-    @property
-    def burst_count(self) -> int:
-        """Return number of burst downgrades."""
-        return self._burst_count
-
-    @property
-    def burst_threshold(self) -> int:
-        """Return configured burst threshold."""
-        return self._burst_threshold
-
-    @property
-    def burst_window(self) -> float:
-        """Return configured burst window in seconds."""
-        return self._burst_window
-
-    @property
-    def critical_count(self) -> int:
-        """Return number of critical commands that bypassed throttle."""
-        return self._critical_count
-
-    @property
-    def interface_id(self) -> str:
-        """Return interface identifier."""
-        return self._interface_id
-
-    @property
-    def interval(self) -> float:
-        """Return throttle interval in seconds."""
-        return self._interval
+    burst_count: Final = DelegatedProperty[int](path="_burst_count")
+    burst_threshold: Final = DelegatedProperty[int](path="_burst_threshold")
+    burst_window: Final = DelegatedProperty[float](path="_burst_window")
+    critical_count: Final = DelegatedProperty[int](path="_critical_count")
+    interface_id: Final = DelegatedProperty[str](path="_interface_id")
+    interval: Final = DelegatedProperty[float](path="_interval")
+    purged_count: Final = DelegatedProperty[int](path="_purged_count")
+    throttled_count: Final = DelegatedProperty[int](path="_throttled_count")
 
     @property
     def is_enabled(self) -> bool:
@@ -205,19 +185,9 @@ class CommandThrottle(CommandThrottleProtocol):
         return self._interval > 0.0
 
     @property
-    def purged_count(self) -> int:
-        """Return number of purged commands."""
-        return self._purged_count
-
-    @property
     def queue_size(self) -> int:
         """Return current queue size."""
         return len(self._queue)
-
-    @property
-    def throttled_count(self) -> int:
-        """Return number of throttled commands (statistics)."""
-        return self._throttled_count
 
     async def acquire(
         self,

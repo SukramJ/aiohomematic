@@ -33,6 +33,7 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.exceptions import BaseHomematicException
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import extract_exc_args
 
@@ -79,6 +80,8 @@ class HomegearBackend(BaseBackend):
         self._proxy_read: Final = proxy_read
         self._version: Final = version
 
+    circuit_breaker: Final = DelegatedProperty[CircuitBreaker](path="_proxy.circuit_breaker")
+
     @property
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
@@ -88,11 +91,6 @@ class HomegearBackend(BaseBackend):
         if self._proxy_read is not self._proxy:
             return self._proxy_read.circuit_breaker.state == CircuitState.CLOSED
         return True
-
-    @property
-    def circuit_breaker(self) -> CircuitBreaker:
-        """Return the primary circuit breaker for metrics access."""
-        return self._proxy.circuit_breaker
 
     @property
     def model(self) -> str:

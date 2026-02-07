@@ -71,6 +71,7 @@ import zipfile
 from slugify import slugify
 
 from aiohomematic import compat
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import TaskSchedulerProtocol
@@ -296,20 +297,9 @@ class Storage(StorageProtocol):
         self._base_directory: Final = directory
         self._file_path: Final = os.path.join(directory, f"{key}.json")
 
-    @property
-    def file_path(self) -> str:
-        """Return the full file path."""
-        return self._file_path
-
-    @property
-    def key(self) -> str:
-        """Return the storage key identifier."""
-        return self._key
-
-    @property
-    def version(self) -> int:
-        """Return the storage version."""
-        return self._version
+    file_path: Final = DelegatedProperty[str](path="_file_path")
+    key: Final = DelegatedProperty[str](path="_key")
+    version: Final = DelegatedProperty[int](path="_version")
 
     async def delay_save(
         self,

@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Any, Final
 from slugify import slugify
 
 from aiohomematic.const import FILE_NAME_TS_PATTERN, INIT_DATETIME, DataOperationResult
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import hash_sha256
 
 if TYPE_CHECKING:
@@ -95,6 +96,8 @@ class BasePersistentCache(ABC):
         self._last_hash_saved: str = ""
         self.last_save_triggered: datetime = INIT_DATETIME
 
+    storage_key: Final = DelegatedProperty[str](path="_storage.key")
+
     @property
     def _should_save(self) -> bool:
         """Determine if save operation should proceed."""
@@ -119,11 +122,6 @@ class BasePersistentCache(ABC):
     def has_unsaved_changes(self) -> bool:
         """Return True if content changed since last save."""
         return self.content_hash != self._last_hash_saved
-
-    @property
-    def storage_key(self) -> str:
-        """Return the storage key."""
-        return self._storage.key
 
     async def clear(self) -> None:
         """Remove storage and clear content."""

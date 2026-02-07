@@ -599,6 +599,58 @@ if (latency := self._observer.get_latency(key=key)) is None:
 
 This pattern reduces code duplication and makes the code more Pythonic.
 
+#### DelegatedProperty for Simple Read-Only Properties
+
+**MANDATORY**: Use `DelegatedProperty` instead of `@property` for read-only properties that simply return a (nested) attribute without any logic.
+
+`DelegatedProperty` (defined in `aiohomematic/property_decorators.py`) is a descriptor that replaces boilerplate delegation properties. It supports `kind` categorization, optional caching, and structured log context — the same features as `config_property`, `state_property`, etc.
+
+```python
+# ❌ WRONG - boilerplate @property for simple delegation
+@property
+def interface(self) -> Interface:
+    """Return the interface type."""
+    return self._config.interface
+
+@property
+def burst_count(self) -> int:
+    """Return number of burst downgrades."""
+    return self._burst_count
+
+# ✅ CORRECT - use DelegatedProperty
+interface: Final = DelegatedProperty[Interface](path="_config.interface", kind=Kind.CONFIG)
+burst_count: Final = DelegatedProperty[int](path="_burst_count", kind=Kind.STATE)
+```
+
+**When to use DelegatedProperty:**
+
+- The property body is **only** `return self._attr` or `return self._attr.nested.path`
+- No conditionals, calculations, method calls, or side effects
+- The property is read-only (no setter)
+
+**When NOT to use DelegatedProperty:**
+
+- The property has any logic (conditionals, defaults, type conversions)
+- The property has a setter
+- The property is in a Protocol class (just a signature)
+- The property already uses `@config_property`, `@state_property`, `@info_property`, or `@simple_property`
+
+**Kind assignment:**
+
+- `Kind.CONFIG` — Immutable values set at init (e.g., `interface`, `interface_id`, `capabilities`, `min_temp`)
+- `Kind.STATE` — Values that change at runtime (e.g., `burst_count`, `state_uncertain`, `started`)
+- `Kind.INFO` — Informational metadata (e.g., `system_information`, `statistics`, `circuit_breaker`)
+
+**Important**: Do NOT add type annotations on the left side — the generic parameter provides the type:
+
+```python
+# ❌ WRONG - type annotation confuses mypy
+interface: Interface = DelegatedProperty[Interface](path="_config.interface")
+
+# ✅ CORRECT - Final without type annotation
+interface: Final = DelegatedProperty[Interface](path="_config.interface")
+```
+
 ### Formatting (ruff format)
 
 ```bash

@@ -80,6 +80,7 @@ class PingPongTracker(PingPongTrackerProtocol):
         self._journal: Final = PingPongJournal()
 
     allowed_delta: Final = DelegatedProperty[int](path="_allowed_delta")
+    journal: Final = DelegatedProperty[PingPongJournal](path="_journal")
 
     @property
     def has_connection_issue(self) -> bool:
@@ -87,11 +88,6 @@ class PingPongTracker(PingPongTrackerProtocol):
         if self._connection_state is None:
             return False
         return self._connection_state.is_rpc_proxy_issue(interface_id=self._interface_id)
-
-    @property
-    def journal(self) -> PingPongJournal:
-        """Return the diagnostic journal for this tracker."""
-        return self._journal
 
     @property
     def size(self) -> int:

@@ -24,6 +24,7 @@ from aiohomematic.interfaces import (
     DataPointProviderProtocol,
     DeviceProviderProtocol,
 )
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.types import CacheName, CacheStatistics
 from aiohomematic.support import changed_within_seconds
 
@@ -65,6 +66,8 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         # getValue calls when device creation takes longer than MAX_CACHE_AGE
         self._is_initializing: bool = True
 
+    statistics: Final = DelegatedProperty[CacheStatistics](path="_stats")
+
     @property
     def name(self) -> CacheName:
         """Return the cache name."""
@@ -74,11 +77,6 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
     def size(self) -> int:
         """Return total number of entries in cache."""
         return sum(len(cache) for cache in self._value_cache.values())
-
-    @property
-    def statistics(self) -> CacheStatistics:
-        """Return the cache statistics."""
-        return self._stats
 
     def add_data(self, *, interface: Interface, all_device_data: Mapping[str, Any]) -> None:
         """Add data to cache."""

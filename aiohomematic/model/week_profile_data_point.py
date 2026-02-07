@@ -14,6 +14,7 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from collections.abc import Mapping
+import contextlib
 import logging
 from typing import Any, Final, cast, override
 
@@ -23,6 +24,7 @@ from aiohomematic.const import (
     CallSource,
     DataPointCategory,
     DataPointUsage,
+    Parameter,
     ScheduleDict,
     ScheduleProfile,
     ScheduleType,
@@ -32,12 +34,18 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ClimateWeekProfileDataPointProtocol, WeekProfileDataPointProtocol
-from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
+from aiohomematic.interfaces.model import (
+    CallbackDataPointProtocol,
+    ChannelProtocol,
+    DeviceProtocol,
+    GenericDataPointProtocolAny,
+)
 from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, TargetChannelInfo
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, generate_unique_id
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
-from aiohomematic.property_decorators import Kind, hm_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 __all__ = [
     "ClimateWeekProfileDataPoint",
@@ -87,12 +95,10 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             self._build_target_channel_map() if isinstance(week_profile, DefaultWeekProfile) else {}
         )
 
-    # --- Public Properties (for HA entity attributes) ---
-
-    @property
-    def available_target_channels(self) -> Mapping[str, TargetChannelInfo]:
-        """Return the target channel mapping (non-climate only)."""
-        return self._available_target_channels
+    available_target_channels: Final = DelegatedProperty[Mapping[str, TargetChannelInfo]](
+        path="_available_target_channels"
+    )
+    schedule_channel_address: Final = DelegatedProperty[str | None](path="_week_profile.schedule_channel_address")
 
     @property
     def max_entries(self) -> int:
@@ -121,11 +127,6 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         return cast(ScheduleDict, self._week_profile.schedule.model_dump(mode="json"))
 
     @property
-    def schedule_channel_address(self) -> str | None:
-        """Return the schedule channel address."""
-        return self._week_profile.schedule_channel_address
-
-    @property
     def schedule_type(self) -> ScheduleType:
         """Return the schedule type identifier."""
         return ScheduleType.CLIMATE if isinstance(self._week_profile, ClimateWeekProfile) else ScheduleType.DEFAULT
@@ -139,8 +140,6 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
     def value(self) -> int:
         """Return the number of active schedule entries."""
         return self._count_active_entries()
-
-    # --- Schedule Operations (delegated to WeekProfile) ---
 
     def fire_schedule_updated(self) -> None:
         """Notify subscribers that the schedule has changed."""
@@ -166,8 +165,6 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             await self._week_profile.set_schedule(schedule_data=SimpleSchedule.model_validate(schedule_data))
         else:
             await self._week_profile.set_schedule(schedule_data=schedule_data)
-
-    # --- Internal ---
 
     def _build_target_channel_map(self) -> dict[str, TargetChannelInfo]:
         """Build the actor_sub -> TargetChannelInfo mapping."""
@@ -257,7 +254,12 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
 class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPointProtocol):
     """Climate-specific week profile data point with profile/weekday operations."""
 
-    __slots__ = ("_schedule_profile_nos",)
+    __slots__ = (
+        "_current_schedule_profile",
+        "_dp_profile_pointer",
+        "_schedule_profile_nos",
+        "_unsubscribe_callbacks",
+    )
 
     _week_profile: ClimateWeekProfile  # type: ignore[misc]
 
@@ -270,17 +272,63 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
     ) -> None:
         """Initialize the climate week profile data point."""
         super().__init__(channel=channel, week_profile=week_profile)
+        self._current_schedule_profile: ScheduleProfile = ScheduleProfile.P1
+        self._dp_profile_pointer: GenericDataPointProtocolAny | None = None
         self._schedule_profile_nos: Final = schedule_profile_nos
+        self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
+
+    def __del__(self) -> None:
+        """Clean up subscriptions."""
+        with contextlib.suppress(Exception):
+            for unsub in self._unsubscribe_callbacks:
+                unsub()
+            self._unsubscribe_callbacks.clear()
+
+    @staticmethod
+    def _map_to_schedule_profile(*, value: Any) -> ScheduleProfile | None:
+        """Map a device parameter value to ScheduleProfile."""
+        if value is None:
+            return None
+        # IP: ACTIVE_PROFILE is int (1-6) → P1-P6
+        if isinstance(value, int):
+            try:
+                return ScheduleProfile(f"P{value}")
+            except ValueError:
+                return None
+        # RF: WEEK_PROGRAM_POINTER is str ("0", "1", ...) → P1-P6
+        str_val = str(value)
+        if (idx := int(str_val) if str_val.isnumeric() else None) is not None:
+            try:
+                return ScheduleProfile(f"P{idx + 1}")
+            except ValueError:
+                return None
+        return None
+
+    available_profiles: Final = DelegatedProperty[tuple[ScheduleProfile, ...]](path="_week_profile.available_profiles")
+    current_schedule_profile: Final = DelegatedProperty[ScheduleProfile](
+        path="_current_schedule_profile", kind=Kind.STATE
+    )
+    schedule_profile_nos: Final = DelegatedProperty[int](path="_schedule_profile_nos")
 
     @property
-    def available_schedule_profiles(self) -> tuple[ScheduleProfile, ...]:
-        """Return available schedule profiles."""
-        return self._week_profile.available_schedule_profiles
+    def current_profile_schedule(self) -> ScheduleDict | None:
+        """Return the schedule data for the current profile."""
+        return self.schedule.get(self._current_schedule_profile)
 
     @property
-    def schedule_profile_nos(self) -> int:
-        """Return the number of supported profiles."""
-        return self._schedule_profile_nos
+    def device_active_profile_index(self) -> int | None:
+        """Return the 1-based profile index from the device parameter."""
+        if self._dp_profile_pointer is None or self._dp_profile_pointer.value is None:
+            return None
+        value = self._dp_profile_pointer.value
+        # IP: ACTIVE_PROFILE is int (1-6) → return directly
+        if isinstance(value, int):
+            return value
+        # RF: WEEK_PROGRAM_POINTER is str ("0", "1", "2") → convert to 1-based
+        str_val = str(value)
+        if str_val.isnumeric():
+            return int(str_val) + 1
+        return None
 
     @inspector
     async def copy_schedule(self, *, target_data_point: ClimateWeekProfileDataPointProtocol) -> None:
@@ -326,6 +374,35 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         result = await self._week_profile.get_weekday(profile=profile, weekday=weekday, force_load=force_load)
         return result.model_dump(mode="json")
 
+    def set_climate_data_point(self, *, climate_data_point: CallbackDataPointProtocol) -> None:
+        """Link climate CDP for schedule change notifications."""
+        self._unsubscribe_callbacks.append(
+            self.subscribe_to_internal_data_point_updated(handler=climate_data_point.publish_data_point_updated_event)
+        )
+
+    def set_current_schedule_profile(self, *, profile: ScheduleProfile) -> None:
+        """Set the current schedule profile."""
+        if self._current_schedule_profile == profile:
+            return
+        self._current_schedule_profile = profile
+        self.publish_data_point_updated_event()
+
+    def set_profile_pointer_data_point(self, *, data_point: GenericDataPointProtocolAny) -> None:
+        """Bind the profile pointer generic data point for automatic sync."""
+        self._dp_profile_pointer = data_point
+
+        # Read initial value
+        if (
+            data_point.value is not None
+            and (profile := self._map_to_schedule_profile(value=data_point.value)) is not None
+        ):
+            self._current_schedule_profile = profile
+
+        # Generic DP → CWPDP (profile sync)
+        self._unsubscribe_callbacks.append(
+            data_point.subscribe_to_internal_data_point_updated(handler=self._on_profile_pointer_updated)
+        )
+
     @override
     async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
         """Write complete schedule to CCU."""
@@ -346,6 +423,16 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
     ) -> None:
         """Write a single weekday to CCU."""
         await self._week_profile.set_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
+
+    def _on_profile_pointer_updated(self, **kwargs: Any) -> None:
+        """Handle profile pointer DP updates to sync current_schedule_profile."""
+        if self._dp_profile_pointer is None:
+            return
+        new_profile = self._map_to_schedule_profile(value=self._dp_profile_pointer.value)
+        if new_profile is None or self._current_schedule_profile == new_profile:
+            return
+        self._current_schedule_profile = new_profile
+        self.publish_data_point_updated_event()
 
 
 def _extract_climate_week_profile(
@@ -404,6 +491,16 @@ def create_week_profile_data_point(*, device: DeviceProtocol) -> None:
     # Bidirectional linkage
     week_profile.set_week_profile_data_point(week_profile_data_point=data_point)
 
+    # Climate-specific bindings
+    if isinstance(data_point, ClimateWeekProfileDataPoint):
+        # Bind profile pointer Generic DP for automatic sync
+        if (profile_dp := _find_profile_pointer_dp(device=device)) is not None:
+            data_point.set_profile_pointer_data_point(data_point=profile_dp)
+
+        # Link Climate CDP for schedule change notifications
+        if (climate_cdp := _find_climate_custom_data_point(device=device)) is not None:
+            data_point.set_climate_data_point(climate_data_point=climate_cdp)
+
     # Register on device
     device.set_week_profile_data_point(week_profile_data_point=data_point)
 
@@ -430,6 +527,25 @@ def _has_schedule_channel_no(*, dp: Any) -> bool:
         and dp.device_config is not None
         and dp.device_config.schedule_channel_no is not None
     )
+
+
+def _find_profile_pointer_dp(*, device: DeviceProtocol) -> GenericDataPointProtocolAny | None:
+    """Find the ACTIVE_PROFILE or WEEK_PROGRAM_POINTER generic DP on the device."""
+    for param in (Parameter.ACTIVE_PROFILE, Parameter.WEEK_PROGRAM_POINTER):
+        for channel in device.channels.values():
+            if (dp := channel.get_generic_data_point(parameter=param)) is not None:
+                return dp
+    return None
+
+
+def _find_climate_custom_data_point(*, device: DeviceProtocol) -> CallbackDataPointProtocol | None:
+    """Find the climate custom data point on the device."""
+    for channel in device.channels.values():
+        if (dp := channel.custom_data_point) is None:
+            continue
+        if _has_schedule_channel_no(dp=dp):
+            return dp
+    return None
 
 
 def _get_schedule_profile_nos(*, device: DeviceProtocol) -> int:

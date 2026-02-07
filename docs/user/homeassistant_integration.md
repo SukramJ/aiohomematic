@@ -346,7 +346,7 @@ See [Actions](features/homeassistant_actions.md) for the complete action referen
 
 - Device value operations (`get_device_value`, `set_device_value`)
 - Paramset operations (`get_paramset`, `put_paramset`)
-- Climate scheduling (`set_schedule_simple_profile`, `copy_schedule`)
+- Schedule management (`set_schedule`, `set_schedule_profile`, `copy_schedule`)
 - Siren control (`turn_on_siren`, `play_sound`)
 - System variables (`get_variable_value`, `set_variable_value`)
 - And more...

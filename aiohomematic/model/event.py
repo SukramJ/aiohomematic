@@ -252,12 +252,8 @@ class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
     event_types: Final = DelegatedProperty[tuple[str, ...]](path="_event_types")
     events: Final = DelegatedProperty[tuple[GenericEventProtocolAny, ...]](path="_events")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
+    last_triggered_event: Final = DelegatedProperty[GenericEventProtocolAny | None](path="_last_triggered_event")
     name: Final = DelegatedProperty[str](path="_name_data.channel_name")
-
-    @property
-    def last_triggered_event(self) -> GenericEventProtocolAny | None:
-        """Return the last event that was triggered."""
-        return self._last_triggered_event
 
     @property
     def translation_key(self) -> str:

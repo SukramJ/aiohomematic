@@ -37,6 +37,7 @@ from aiohomematic.const import (
     SystemUpdateData,
     SystemVariableData,
 )
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.client.circuit_breaker import CircuitBreaker
@@ -75,15 +76,15 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         self._capabilities = capabilities
         self._system_information: SystemInformation
 
+    capabilities: Final = DelegatedProperty[BackendCapabilities](path="_capabilities")
+    interface: Final = DelegatedProperty[Interface](path="_interface")
+    interface_id: Final = DelegatedProperty[str](path="_interface_id")
+    system_information: Final = DelegatedProperty[SystemInformation](path="_system_information")
+
     @property
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
         return True
-
-    @property
-    def capabilities(self) -> BackendCapabilities:
-        """Return the capability flags for this backend."""
-        return self._capabilities
 
     @property
     def circuit_breaker(self) -> CircuitBreaker | None:
@@ -91,25 +92,10 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         return None
 
     @property
-    def interface(self) -> Interface:
-        """Return the interface type."""
-        return self._interface
-
-    @property
-    def interface_id(self) -> str:
-        """Return the interface identifier."""
-        return self._interface_id
-
-    @property
     @abstractmethod
     def model(self) -> str:
         """Return the backend model name."""
         ...
-
-    @property
-    def system_information(self) -> SystemInformation:
-        """Return system information."""
-        return self._system_information
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept inbox device (unsupported by default)."""

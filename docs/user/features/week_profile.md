@@ -1,8 +1,14 @@
 # Week Profile / Schedule Management
 
-This guide explains how to manage heating schedules (week profiles) for climate devices in Home Assistant using the Homematic(IP) Local integration.
+This guide explains how to manage heating schedules (week profiles) and device schedules in Home Assistant using the Homematic(IP) Local integration.
 
 ## Overview
+
+Homematic devices with week profile support expose a **Week Profile sensor** entity that shows the number of active schedule entries and provides schedule metadata as attributes.
+
+All schedule services are **device-based** — they target a device by `device_id` or `device_address`, not by entity.
+
+### Climate Devices
 
 Homematic thermostats support up to **6 schedule profiles** (P1-P6), each containing a weekly schedule with individual settings for each day.
 
@@ -12,7 +18,34 @@ Homematic thermostats support up to **6 schedule profiles** (P1-P6), each contai
 | **Days**     | MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY |
 | **Format**   | Simple format with base temperature and heating periods        |
 
-## Simple Format
+### Non-Climate Devices (Switch, Light, Cover, Valve)
+
+Devices with week profile capability support a single schedule with up to 24 entries.
+
+| Feature     | Description                                       |
+| ----------- | ------------------------------------------------- |
+| **Entries** | Up to 24 schedule entries                         |
+| **Format**  | Generic schedule_data dict with time/level/target |
+
+---
+
+## Device Identification
+
+All schedule services accept either `device_id` or `device_address` to identify the device:
+
+```yaml
+# Option 1: By device_id (from HA device registry)
+data:
+  device_id: abcdefg...
+
+# Option 2: By device_address (Homematic address)
+data:
+  device_address: "001F58A9876543"
+```
+
+---
+
+## Climate Schedule Format
 
 The simple format is designed for easy schedule management. Instead of defining every time slot, you specify:
 
@@ -44,17 +77,18 @@ The system automatically fills gaps with the base temperature:
 | 17:00 - 22:00 | 21.0°C      | period 2                      |
 | 22:00 - 24:00 | 17.0°C      | base_temperature              |
 
-## Actions
+---
+
+## Climate Schedule Actions
 
 ### Set Complete Profile
 
 Set the schedule for all weekdays of a profile:
 
 ```yaml
-action: homematicip_local.set_schedule_simple_profile
-target:
-  entity_id: climate.living_room_thermostat
+action: homematicip_local.set_schedule_profile
 data:
+  device_id: abcdefg...
   profile: P1
   simple_profile_data:
     MONDAY:
@@ -83,10 +117,9 @@ data:
 Set the schedule for one specific day:
 
 ```yaml
-action: homematicip_local.set_schedule_simple_weekday
-target:
-  entity_id: climate.living_room_thermostat
+action: homematicip_local.set_schedule_weekday
 data:
+  device_id: abcdefg...
   profile: P1
   weekday: MONDAY
   base_temperature: 17.0
@@ -101,21 +134,24 @@ data:
 
 ### Read Schedule
 
-Get the current schedule in simple format:
+Get the current schedule:
 
 ```yaml
-# Get complete profile
-action: homematicip_local.get_schedule_simple_profile
-target:
-  entity_id: climate.living_room_thermostat
+# Get complete schedule (all profiles)
+action: homematicip_local.get_schedule
 data:
+  device_id: abcdefg...
+
+# Get single profile
+action: homematicip_local.get_schedule_profile
+data:
+  device_id: abcdefg...
   profile: P1
 
 # Get single weekday
-action: homematicip_local.get_schedule_simple_weekday
-target:
-  entity_id: climate.living_room_thermostat
+action: homematicip_local.get_schedule_weekday
 data:
+  device_id: abcdefg...
   profile: P1
   weekday: MONDAY
 ```
@@ -127,140 +163,44 @@ Copy schedules between devices or profiles:
 ```yaml
 # Copy complete schedule (all profiles) from source to target device
 action: homematicip_local.copy_schedule
-target:
-  entity_id: climate.target_thermostat
 data:
-  source_entity_id: climate.source_thermostat
+  device_id: abcdefg...
+  target_device_id: hijklmn...
 
 # Copy single profile (within same device or to another)
 action: homematicip_local.copy_schedule_profile
-target:
-  entity_id: climate.target_thermostat
 data:
-  source_entity_id: climate.source_thermostat  # Optional: omit if copying within same device
+  device_id: abcdefg...
   source_profile: P1
   target_profile: P2
+  target_device_id: hijklmn...  # Optional: omit if copying within same device
 ```
 
-## Common Schedules
+### Set Current Schedule Profile
 
-### Workday Schedule
+Switch the current schedule profile on a climate device:
 
 ```yaml
-base_temperature: 17.0
-periods:
-  - starttime: "06:00"
-    endtime: "07:30"
-    temperature: 21.0
-  - starttime: "17:00"
-    endtime: "22:00"
-    temperature: 21.0
+action: homematicip_local.set_current_schedule_profile
+data:
+  device_id: abcdefg...
+  profile: P2
 ```
 
-### Weekend Schedule
+---
 
-```yaml
-base_temperature: 17.0
-periods:
-  - starttime: "08:00"
-    endtime: "23:00"
-    temperature: 21.0
-```
+## Non-Climate Schedule Actions
 
-### Home Office Schedule
-
-```yaml
-base_temperature: 17.0
-periods:
-  - starttime: "07:00"
-    endtime: "22:00"
-    temperature: 21.0
-```
-
-### Night Setback Only
-
-```yaml
-base_temperature: 21.0
-periods:
-  - starttime: "23:00"
-    endtime: "06:00"
-    temperature: 17.0
-```
-
-## Tips
-
-### Base Temperature Selection
-
-The `base_temperature` should be:
-
-- The temperature you want most of the time
-- Usually your "setback" or "economy" temperature
-- Typically 16-18°C for energy savings
-
-### Period Design
-
-- **Keep periods simple** - 2-4 periods per day is usually sufficient
-- **Avoid tiny gaps** - If two periods are close, consider merging them
-- **Round times** - Use 15 or 30 minute increments for easier management
-
-### Copying Best Practices
-
-1. **Create a template device** - Set up one thermostat perfectly, then copy to others
-2. **Copy profiles, not devices** - Use `copy_schedule_profile` for more control
-3. **Verify after copying** - Use `get_schedule_simple_profile` to confirm
-
-## Automation Example
-
-Set a weekend schedule every Friday evening:
-
-```yaml
-automation:
-  - alias: "Switch to weekend schedule"
-    trigger:
-      - platform: time
-        at: "18:00"
-    condition:
-      - condition: time
-        weekday:
-          - fri
-    action:
-      - action: homematicip_local.set_schedule_simple_weekday
-        target:
-          entity_id: climate.living_room_thermostat
-        data:
-          profile: P1
-          weekday: SATURDAY
-          base_temperature: 17.0
-          simple_weekday_list:
-            - starttime: "08:00"
-              endtime: "23:00"
-              temperature: 21.0
-```
-
-## Non-Climate Devices (Switch, Light, Cover, Valve)
-
-For devices other than climate (thermostats), domain-specific schedule services are available that support switches, lights, covers, and valves with week profile capability.
-
-### Domain-Specific Services
-
-Each domain has its own set of schedule services:
-
-| Domain     | Set Schedule Service                    | Get Schedule Service                    |
-| ---------- | --------------------------------------- | --------------------------------------- |
-| **switch** | `homematicip_local.switch_set_schedule` | `homematicip_local.switch_get_schedule` |
-| **light**  | `homematicip_local.light_set_schedule`  | `homematicip_local.light_get_schedule`  |
-| **cover**  | `homematicip_local.cover_set_schedule`  | `homematicip_local.cover_get_schedule`  |
-| **valve**  | `homematicip_local.valve_set_schedule`  | `homematicip_local.valve_get_schedule`  |
+Non-climate devices (switch, light, cover, valve) use the unified `get_schedule` and `set_schedule` services.
 
 ### Set Schedule
 
 Set a week schedule for devices that support scheduling:
 
 ```yaml
-action: homematicip_local.light_set_schedule
-target:
-  entity_id: light.kitchen_spotlight
+action: homematicip_local.set_schedule
 data:
+  device_id: abcdefg...
   schedule_data:
     "1": # Entry 1
       weekdays:
@@ -294,9 +234,9 @@ data:
 Get the current week schedule from a device:
 
 ```yaml
-action: homematicip_local.light_get_schedule
-target:
-  entity_id: light.kitchen_spotlight
+action: homematicip_local.get_schedule
+data:
+  device_id: abcdefg...
 response_variable: current_schedule
 ```
 
@@ -497,31 +437,110 @@ schedule_data:
     level_2: null
 ```
 
-### Device Support Check
+---
 
-Not all devices support week profiles. Check the entity's attributes:
+## Common Climate Schedules
+
+### Workday Schedule
 
 ```yaml
-# Example: Check if device supports schedules
-{{ state_attr('switch.garden_pump', 'has_schedule') }}
+base_temperature: 17.0
+periods:
+  - starttime: "06:00"
+    endtime: "07:30"
+    temperature: 21.0
+  - starttime: "17:00"
+    endtime: "22:00"
+    temperature: 21.0
 ```
 
-### Differences from Climate Schedules
+### Weekend Schedule
 
-| Feature      | Climate Services                    | Non-Climate Services              |
-| ------------ | ----------------------------------- | --------------------------------- |
-| **Domains**  | climate only                        | switch, light, cover, valve       |
-| **Format**   | Simple format with base_temperature | Generic schedule_data dict        |
-| **Profiles** | P1-P6 profiles                      | Single schedule (device-specific) |
-| **Services** | set_schedule_simple_profile/weekday | {domain}\_set_schedule            |
+```yaml
+base_temperature: 17.0
+periods:
+  - starttime: "08:00"
+    endtime: "23:00"
+    temperature: 21.0
+```
+
+### Home Office Schedule
+
+```yaml
+base_temperature: 17.0
+periods:
+  - starttime: "07:00"
+    endtime: "22:00"
+    temperature: 21.0
+```
+
+### Night Setback Only
+
+```yaml
+base_temperature: 21.0
+periods:
+  - starttime: "23:00"
+    endtime: "06:00"
+    temperature: 17.0
+```
+
+## Tips
+
+### Base Temperature Selection
+
+The `base_temperature` should be:
+
+- The temperature you want most of the time
+- Usually your "setback" or "economy" temperature
+- Typically 16-18°C for energy savings
+
+### Period Design
+
+- **Keep periods simple** - 2-4 periods per day is usually sufficient
+- **Avoid tiny gaps** - If two periods are close, consider merging them
+- **Round times** - Use 15 or 30 minute increments for easier management
+
+### Copying Best Practices
+
+1. **Create a template device** - Set up one thermostat perfectly, then copy to others
+2. **Copy profiles, not devices** - Use `copy_schedule_profile` for more control
+3. **Verify after copying** - Use `get_schedule_profile` to confirm
+
+---
+
+## Automation Examples
+
+### Switch climate profile on Friday evening
+
+```yaml
+automation:
+  - alias: "Switch to weekend schedule"
+    trigger:
+      - platform: time
+        at: "18:00"
+    condition:
+      - condition: time
+        weekday:
+          - fri
+    action:
+      - action: homematicip_local.set_schedule_weekday
+        data:
+          device_id: abcdefg...
+          profile: P1
+          weekday: SATURDAY
+          base_temperature: 17.0
+          simple_weekday_list:
+            - starttime: "08:00"
+              endtime: "23:00"
+              temperature: 21.0
+```
 
 ### Example: Switch Schedule
 
 ```yaml
-action: homematicip_local.switch_set_schedule
-target:
-  entity_id: switch.garden_light
+action: homematicip_local.set_schedule
 data:
+  device_id: abcdefg...
   schedule_data:
     "1": # Weekday evening
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
@@ -542,10 +561,9 @@ data:
 ### Example: Garden Irrigation Valve
 
 ```yaml
-action: homematicip_local.valve_set_schedule
-target:
-  entity_id: valve.garden_irrigation
+action: homematicip_local.set_schedule
 data:
+  device_id: abcdefg...
   schedule_data:
     "1": # Morning watering on weekdays
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
@@ -573,10 +591,9 @@ data:
 ### Example: Light Dimmer Schedule
 
 ```yaml
-action: homematicip_local.light_set_schedule
-target:
-  entity_id: light.hallway_dimmer
+action: homematicip_local.set_schedule
 data:
+  device_id: abcdefg...
   schedule_data:
     "1": # Weekday morning
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
@@ -607,10 +624,9 @@ data:
 ### Example: Cover/Blind Schedule
 
 ```yaml
-action: homematicip_local.cover_set_schedule
-target:
-  entity_id: cover.living_room_blinds
+action: homematicip_local.set_schedule
 data:
+  device_id: abcdefg...
   schedule_data:
     "1": # Morning - open blinds
       weekdays: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
@@ -635,6 +651,19 @@ data:
       level_2: 0.0 # Slats closed
 ```
 
+---
+
+## Differences: Climate vs. Non-Climate
+
+| Feature      | Climate Services                            | Non-Climate Services           |
+| ------------ | ------------------------------------------- | ------------------------------ |
+| **Devices**  | Thermostats only                            | Switch, light, cover, valve    |
+| **Format**   | Simple format with base_temperature         | Generic schedule_data dict     |
+| **Profiles** | P1-P6 profiles                              | Single schedule (device-level) |
+| **Services** | set_schedule_profile / set_schedule_weekday | set_schedule                   |
+
+---
+
 ## Troubleshooting
 
 ### Schedule Not Applied
@@ -642,7 +671,7 @@ data:
 1. **Check CONFIG_PENDING** - Wait for the device to confirm the change
 2. **Verify profile selection** - Ensure the correct profile (P1-P6) is active on the device (climate only)
 3. **Check time format** - Use `"HH:MM"` format (24-hour, with quotes in YAML)
-4. **Device support** - Verify the device supports schedules (check `has_schedule` attribute)
+4. **Device support** - Verify the device supports schedules (check Week Profile sensor entity)
 
 ### Reading Returns Empty
 
@@ -656,12 +685,6 @@ data:
 - Both devices must have the same number of profiles (climate only)
 - Check that devices are reachable
 
-### Schedule Service Not Available
-
-- Use domain-specific services: `switch_set_schedule`, `light_set_schedule`, `cover_set_schedule`, `valve_set_schedule`
-- Climate devices use the `set_schedule_simple_profile` and `set_schedule_simple_weekday` services instead
-- Check that the device actually supports week profiles
-
 ### Validation Error: Unsupported Field
 
 If you receive an error like "level_2 not supported for switch" or "ramp_time not supported for cover":
@@ -672,5 +695,5 @@ If you receive an error like "level_2 not supported for switch" or "ramp_time no
 
 ## See Also
 
-- [Actions Reference](homeassistant_actions.md#climate-schedule-operations)
+- [Actions Reference](homeassistant_actions.md#schedule-operations)
 - [Climate Entities](../homeassistant_integration.md)

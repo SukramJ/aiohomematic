@@ -36,6 +36,7 @@ from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy
 from aiohomematic.model.schedule_models import ClimateSchedulePeriod, ClimateWeekdaySchedule
 from aiohomematic.model.week_profile import _convert_time_str_to_minutes
+from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -1815,11 +1816,11 @@ class TestClimateHelperMethods:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_available_schedule_profiles(
+    async def test_available_profiles(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test available_schedule_profiles property."""
+        """Test available_profiles property."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
@@ -1828,12 +1829,13 @@ class TestClimateHelperMethods:
         # Access schedule operations via week_profile_data_point
         wp_dp = climate.device.week_profile_data_point
         assert wp_dp is not None
+        assert isinstance(wp_dp, ClimateWeekProfileDataPoint)
 
         # Load schedule first
         await wp_dp.get_schedule_profile(profile=ScheduleProfile.P1)
 
         # Check available profiles
-        available = wp_dp.available_schedule_profiles
+        available = wp_dp.available_profiles
         assert isinstance(available, tuple)
         # Should have at least P1 after loading it
         assert len(available) > 0, "Should have at least one profile after loading"

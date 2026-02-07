@@ -35,7 +35,18 @@
   - `get_schedule_profile()`, `set_schedule_profile()`
   - `get_schedule_weekday()`, `set_schedule_weekday()`
   - `copy_schedule()`, `copy_schedule_profile()`
-  - `available_schedule_profiles`, `schedule_profile_nos`
+  - `available_profiles`, `schedule_profile_nos`
+
+- **Automatic profile sync from device**: `ClimateWeekProfileDataPoint` now binds the
+  device's `ACTIVE_PROFILE` (IP) or `WEEK_PROGRAM_POINTER` (RF) generic data point.
+  `current_schedule_profile` updates automatically when the thermostat switches profiles.
+
+- **Climate CDP notification on schedule change**: When schedule data changes (e.g., after
+  `CONFIG_PENDING=False` reload), the linked Climate CDP is automatically notified via an
+  internal subscription, causing the HA Climate Entity to update.
+
+- **`device_active_profile_index` property**: Returns the 1-based profile index from the
+  device parameter (`int | None`). RF values are normalised from 0-based to 1-based.
 
 ### Changed
 
@@ -50,6 +61,12 @@
   `get_schedule()`, and `set_schedule()` removed from `CustomDataPoint` base class
   and `CustomDataPointProtocol`.
 
+- **Climate profile property renames** (breaking change): On `ClimateWeekProfileDataPointProtocol`,
+  `active_profile` → `current_schedule_profile`, `active_schedule` → `current_profile_schedule`,
+  `set_active_profile()` → `set_current_schedule_profile()`. This avoids a naming conflict with
+  the device parameter `ACTIVE_PROFILE`. `copy_schedule` and `copy_schedule_profile` parameter
+  renamed from `target_climate_data_point` to `target_data_point`.
+
 - **Copy method refactoring**: `ClimateWeekProfile.copy_schedule` renamed to
   `copy_schedule_to` and `copy_profile` renamed to `copy_profile_to`. Both now accept
   `target_week_profile: ClimateWeekProfile` instead of `target_climate_data_point: BaseCustomDpClimate`.
@@ -57,9 +74,6 @@
 - **HA-Addon renamed to HA-App** (breaking change): `SystemInformation.is_ha_addon`
   renamed to `is_ha_app`. The rega script `get_backend_info.fn` now returns
   `is_ha_app` instead of `is_ha_addon` in the JSON response.
-
-  See [Migration Guide](docs/migrations/week_profile_data_point_migration_2026_02.md)
-  for detailed upgrade instructions.
 
 ### Fixed
 

@@ -53,16 +53,19 @@ WeekProfileDataPoint(BaseDataPoint)                       (handles Default)
 
 **ClimateWeekProfileDataPoint** (climate devices, extends above):
 
-| Member                        | Type         | Purpose                        |
-| ----------------------------- | ------------ | ------------------------------ |
-| `available_schedule_profiles` | property     | Available profiles (P1-P6)     |
-| `schedule_profile_nos`        | property     | Number of supported profiles   |
-| `get_schedule_profile()`      | async method | Read single profile            |
-| `set_schedule_profile()`      | async method | Write single profile           |
-| `get_schedule_weekday()`      | async method | Read single weekday            |
-| `set_schedule_weekday()`      | async method | Write single weekday           |
-| `copy_schedule()`             | async method | Copy schedule to target device |
-| `copy_schedule_profile()`     | async method | Copy profile to target         |
+| Member                        | Type         | Purpose                           |
+| ----------------------------- | ------------ | --------------------------------- |
+| `available_profiles`          | property     | Available profiles (P1-P6)        |
+| `current_schedule_profile`    | property     | Current active schedule profile   |
+| `current_profile_schedule`    | property     | Schedule data for current profile |
+| `device_active_profile_index` | property     | 1-based device profile index      |
+| `schedule_profile_nos`        | property     | Number of supported profiles      |
+| `get_schedule_profile()`      | async method | Read single profile               |
+| `set_schedule_profile()`      | async method | Write single profile              |
+| `get_schedule_weekday()`      | async method | Read single weekday               |
+| `set_schedule_weekday()`      | async method | Write single weekday              |
+| `copy_schedule()`             | async method | Copy schedule to target device    |
+| `copy_schedule_profile()`     | async method | Copy profile to target            |
 
 ### Factory: Two-Path Channel Resolution
 

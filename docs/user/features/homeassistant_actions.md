@@ -253,12 +253,12 @@ data:
 - 19:00-22:00: 22°C (period 3)
 - 22:00-24:00: 16°C (base_temperature)
 
-### homematicip_local.set_schedule_active_profile
+### homematicip_local.set_current_schedule_profile
 
-Switches the active schedule profile on a climate device.
+Switches the current schedule profile on a climate device.
 
 ```yaml
-action: homematicip_local.set_schedule_active_profile
+action: homematicip_local.set_current_schedule_profile
 data:
   device_id: abcdefg...
   profile: P2

@@ -43,6 +43,7 @@ from aiohomematic.model.week_profile import (
     identify_base_temperature,
     is_schedule_active,
 )
+from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES_SCHEDULE: set[str] = {"VCU0000341"}
@@ -885,8 +886,8 @@ class TestClimateWeekProfileIntegration:
             (TEST_DEVICES_SCHEDULE, True, None, None),
         ],
     )
-    async def test_available_schedule_profiles_property(self, central_client_factory_with_homegear_client):
-        """Test available_schedule_profiles property."""
+    async def test_available_profiles_property(self, central_client_factory_with_homegear_client):
+        """Test available_profiles property."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
@@ -900,7 +901,8 @@ class TestClimateWeekProfileIntegration:
         await wp_dp.get_schedule()
 
         # Access property
-        available_profiles = wp_dp.available_schedule_profiles
+        assert isinstance(wp_dp, ClimateWeekProfileDataPoint)
+        available_profiles = wp_dp.available_profiles
         assert isinstance(available_profiles, tuple)
         assert len(available_profiles) > 0
 

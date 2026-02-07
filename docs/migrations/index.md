@@ -18,9 +18,8 @@ aiohomematic follows these principles for breaking changes:
 
 ### 2026.x
 
-| Version  | Change                                        | Migration                                                                      |
-| -------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
-| 2026.2.6 | Schedule access moved to WeekProfileDataPoint | [WeekProfileDataPoint Migration](week_profile_data_point_migration_2026_02.md) |
+| Version | Change | Migration |
+| ------- | ------ | --------- |
 
 ### 2025.x
 

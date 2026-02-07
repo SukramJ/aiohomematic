@@ -176,12 +176,12 @@ data:
   target_device_id: hijklmn...  # Optional: omit if copying within same device
 ```
 
-### Set Active Profile
+### Set Current Schedule Profile
 
-Switch the active schedule profile on a climate device:
+Switch the current schedule profile on a climate device:
 
 ```yaml
-action: homematicip_local.set_schedule_active_profile
+action: homematicip_local.set_current_schedule_profile
 data:
   device_id: abcdefg...
   profile: P2

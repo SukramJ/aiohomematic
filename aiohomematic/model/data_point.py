@@ -12,7 +12,7 @@ Highlights:
   (modified/refreshed) and manage subscription to update and removal events.
 - BaseDataPoint/ BaseParameterDataPoint: Concrete foundations for channel-bound
   data points, including type/flag handling, unit and multiplier normalization,
-  value conversion, temporary write buffering, and path/name metadata.
+  value conversion, unconfirmed write buffering, and path/name metadata.
 - CallParameterCollector: Helper to batch multiple set/put operations and wait
   for events, optimizing command dispatch.
 - bind_collector: Decorator to bind a collector to service methods conveniently.
@@ -191,8 +191,8 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         "_signature",
         "_subscription_counts",
         "_task_scheduler",
-        "_temporary_modified_at",
-        "_temporary_refreshed_at",
+        "_unconfirmed_modified_at",
+        "_unconfirmed_refreshed_at",
         "_unique_id",
     )
 
@@ -225,8 +225,8 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         self._modified_at: datetime = INIT_DATETIME
         self._refreshed_at: datetime = INIT_DATETIME
         self._signature: Final = self._get_signature()
-        self._temporary_modified_at: datetime = INIT_DATETIME
-        self._temporary_refreshed_at: datetime = INIT_DATETIME
+        self._unconfirmed_modified_at: datetime = INIT_DATETIME
+        self._unconfirmed_refreshed_at: datetime = INIT_DATETIME
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -320,8 +320,8 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     @state_property
     def modified_at(self) -> datetime:
         """Return the last update datetime value."""
-        if self._temporary_modified_at > self._modified_at:
-            return self._temporary_modified_at
+        if self._unconfirmed_modified_at > self._modified_at:
+            return self._unconfirmed_modified_at
         return self._modified_at
 
     @state_property
@@ -341,8 +341,8 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     @state_property
     def refreshed_at(self) -> datetime:
         """Return the last refresh datetime value."""
-        if self._temporary_refreshed_at > self._refreshed_at:
-            return self._temporary_refreshed_at
+        if self._unconfirmed_refreshed_at > self._refreshed_at:
+            return self._unconfirmed_refreshed_at
         return self._refreshed_at
 
     @state_property
@@ -564,10 +564,10 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     def _get_signature(self) -> str:
         """Return the signature of the data_point."""
 
-    def _reset_temporary_timestamps(self) -> None:
-        """Reset the temporary timestamps."""
-        self._set_temporary_modified_at(modified_at=INIT_DATETIME)
-        self._set_temporary_refreshed_at(refreshed_at=INIT_DATETIME)
+    def _reset_unconfirmed_timestamps(self) -> None:
+        """Reset the unconfirmed timestamps."""
+        self._set_unconfirmed_modified_at(modified_at=INIT_DATETIME)
+        self._set_unconfirmed_refreshed_at(refreshed_at=INIT_DATETIME)
 
     def _set_modified_at(self, *, modified_at: datetime) -> None:
         """Set modified_at to current datetime."""
@@ -578,14 +578,14 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Set refreshed_at to current datetime."""
         self._refreshed_at = refreshed_at
 
-    def _set_temporary_modified_at(self, *, modified_at: datetime) -> None:
-        """Set temporary_modified_at to current datetime."""
-        self._temporary_modified_at = modified_at
-        self._set_temporary_refreshed_at(refreshed_at=modified_at)
+    def _set_unconfirmed_modified_at(self, *, modified_at: datetime) -> None:
+        """Set unconfirmed_modified_at to current datetime."""
+        self._unconfirmed_modified_at = modified_at
+        self._set_unconfirmed_refreshed_at(refreshed_at=modified_at)
 
-    def _set_temporary_refreshed_at(self, *, refreshed_at: datetime) -> None:
-        """Set temporary_refreshed_at to current datetime."""
-        self._temporary_refreshed_at = refreshed_at
+    def _set_unconfirmed_refreshed_at(self, *, refreshed_at: datetime) -> None:
+        """Set unconfirmed_refreshed_at to current datetime."""
+        self._unconfirmed_refreshed_at = refreshed_at
 
 
 class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
@@ -745,7 +745,7 @@ class BaseParameterDataPoint[
         "_status_unsubscriber",
         "_status_value",
         "_status_value_list",
-        "_temporary_value",
+        "_unconfirmed_value",
         "_translation_key",
         "_type",
         "_unit",
@@ -789,7 +789,7 @@ class BaseParameterDataPoint[
         )
         self._current_value: ParameterT | None = None
         self._last_non_default_value: ParameterT | None = None
-        self._temporary_value: ParameterT | None = None
+        self._unconfirmed_value: ParameterT | None = None
 
         # Optimistic state management
         self._optimistic_value: ParameterT | None = None
@@ -851,7 +851,7 @@ class BaseParameterDataPoint[
     @property
     def _value(self) -> ParameterT | None:
         """Return the value of the data_point."""
-        return self._temporary_value if self._temporary_refreshed_at > self._refreshed_at else self._current_value
+        return self._unconfirmed_value if self._unconfirmed_refreshed_at > self._refreshed_at else self._current_value
 
     @property
     def category(self) -> DataPointCategory:
@@ -1205,23 +1205,23 @@ class BaseParameterDataPoint[
         self._status_value = new_status
         self.publish_data_point_updated_event()
 
-    def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
-        """Update the temporary value of the data_point."""
-        self._reset_temporary_value()
+    def write_unconfirmed_value(self, *, value: Any, write_at: datetime) -> None:
+        """Update the unconfirmed value of the data point."""
+        self._reset_unconfirmed_value()
 
         old_value = self._value
         temp_value = self._convert_value(value=value)
         if old_value == temp_value:
-            self._set_temporary_refreshed_at(refreshed_at=write_at)
+            self._set_unconfirmed_refreshed_at(refreshed_at=write_at)
         else:
-            self._set_temporary_modified_at(modified_at=write_at)
-            self._temporary_value = temp_value
+            self._set_unconfirmed_modified_at(modified_at=write_at)
+            self._unconfirmed_value = temp_value
             self._state_uncertain = True
         self.publish_data_point_updated_event(old_value=old_value, new_value=temp_value)
 
     def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT | None, ParameterT | None]:
         """Update value of the data_point."""
-        self._reset_temporary_value()
+        self._reset_unconfirmed_value()
 
         old_value = self._current_value
         if value == NO_CACHE_ENTRY:
@@ -1487,10 +1487,10 @@ class BaseParameterDataPoint[
         STATUS updates would need to be triggered externally.
         """
 
-    def _reset_temporary_value(self) -> None:
-        """Reset the temp storage."""
-        self._temporary_value = None
-        self._reset_temporary_timestamps()
+    def _reset_unconfirmed_value(self) -> None:
+        """Reset the unconfirmed value storage."""
+        self._unconfirmed_value = None
+        self._reset_unconfirmed_timestamps()
 
     def _rollback_optimistic_value(self, *, reason: str, error: str | None = None) -> None:
         """
@@ -1535,6 +1535,9 @@ class BaseParameterDataPoint[
         if self._optimistic_timeout_handle:
             self._optimistic_timeout_handle.cancel()
         self._optimistic_timeout_handle = None
+
+        # Clear unconfirmed value so it cannot override the restored value
+        self._reset_unconfirmed_value()
 
         # Restore previous value
         self._current_value = self._optimistic_previous_value

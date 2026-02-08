@@ -87,7 +87,7 @@ Always run checks before committing:
 
 ```bash
 # Run all pre-commit hooks
-pre-commit run --all-files
+prek run --all-files
 
 # Run tests
 pytest tests/

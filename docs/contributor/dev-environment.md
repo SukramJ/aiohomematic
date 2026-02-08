@@ -26,7 +26,7 @@ pip install -r requirements.txt
 pip install -r requirements_test.txt
 
 # Install pre-commit hooks
-pre-commit install
+prek install
 ```
 
 ### Verify Setup
@@ -91,7 +91,7 @@ pytest -m "not slow" tests/
 
 ```bash
 # Run all pre-commit hooks
-pre-commit run --all-files
+prek run --all-files
 
 # Individual tools
 ruff check --fix        # Lint and auto-fix

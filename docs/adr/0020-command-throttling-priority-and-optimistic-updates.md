@@ -160,7 +160,10 @@ Data points update their value locally **before** the command is sent to the CCU
 **Value Resolution** in `_get_value()`:
 
 1. Return `_optimistic_value` if set (pending confirmation)
-2. Fall back to confirmed value from `DataCache`
+2. Return `_unconfirmed_value` if more recent than confirmed value (polling fallback)
+3. Fall back to `_current_value` (CCU-confirmed ground truth)
+
+> For the full three-tier value model (optimistic → unconfirmed → confirmed), see [docs/architecture/value_resolution.md](../architecture/value_resolution.md).
 
 **Properties exposed:**
 
@@ -177,7 +180,7 @@ Three rollback triggers:
 | Timeout        | 30s default  | Restore previous value, publish rollback event |
 | Value mismatch | On CCU event | Log warning (CCU value takes precedence)       |
 
-Rollback publishes an `OptimisticRollbackEvent` for Home Assistant notification and restores the previous confirmed value, triggering a `data_point_updated` event so the UI reverts.
+Rollback publishes an `OptimisticRollbackEvent` for Home Assistant notification and restores the previous confirmed value, triggering a `data_point_updated` event so the UI reverts. Rollback also clears the `_unconfirmed_value` to prevent the unconfirmed tier from overriding the restored value (see [value_resolution.md](../architecture/value_resolution.md)).
 
 ### Key Design Choices
 

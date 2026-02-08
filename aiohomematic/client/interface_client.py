@@ -860,13 +860,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             if is_link_call:
                 return set()
 
-            # Store the sent values and write temporary values for UI feedback
+            # Store the sent values and write unconfirmed values for UI feedback
             dpk_values = self._last_value_send_tracker.add_put_paramset(
                 channel_address=channel_address,
                 paramset_key=ParamsetKey(paramset_key_or_link_address),
                 values=checked_values,
             )
-            self._write_temporary_value(dpk_values=dpk_values)
+            self._write_unconfirmed_value(dpk_values=dpk_values)
 
             # Schedule master paramset polling for BidCos interfaces
             if (
@@ -1070,11 +1070,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             else:
                 await self._backend.set_value(channel_address=channel_address, parameter=parameter, value=checked_value)
 
-            # Store the sent value and write temporary value for UI feedback
+            # Store the sent value and write unconfirmed value for UI feedback
             dpk_values = self._last_value_send_tracker.add_set_value(
                 channel_address=channel_address, parameter=parameter, value=checked_value
             )
-            self._write_temporary_value(dpk_values=dpk_values)
+            self._write_unconfirmed_value(dpk_values=dpk_values)
 
             if wait_for_callback is not None and (
                 device := self._central.device_coordinator.get_device(
@@ -1435,8 +1435,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             device=device, dpk_values=dpk_values, wait_for_callback=wait_for_callback
         )
 
-    def _write_temporary_value(self, *, dpk_values: set[DP_KEY_VALUE]) -> None:
-        """Write temporary values to polling data points for immediate UI feedback."""
+    def _write_unconfirmed_value(self, *, dpk_values: set[DP_KEY_VALUE]) -> None:
+        """Write unconfirmed values to polling data points for immediate UI feedback."""
         for dpk, value in dpk_values:
             if (
                 data_point := self._central.get_generic_data_point(
@@ -1445,4 +1445,4 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     paramset_key=dpk.paramset_key,
                 )
             ) and data_point.requires_polling:
-                data_point.write_temporary_value(value=value, write_at=datetime.now())
+                data_point.write_unconfirmed_value(value=value, write_at=datetime.now())

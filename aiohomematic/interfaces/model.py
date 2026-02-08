@@ -718,8 +718,8 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
         """Update the status from a STATUS parameter event."""
 
     @abstractmethod
-    def write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
-        """Update the temporary value of the data point."""
+    def write_unconfirmed_value(self, *, value: Any, write_at: datetime) -> None:
+        """Update the unconfirmed value of the data point."""
 
     @abstractmethod
     def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT, ParameterT]:

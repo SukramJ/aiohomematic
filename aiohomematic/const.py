@@ -21,7 +21,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.2.6"
+VERSION: Final = "2026.2.7"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (

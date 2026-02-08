@@ -35,7 +35,7 @@ pip install -r requirements.txt
 pip install -r requirements_test.txt
 
 # Install pre-commit hooks
-pre-commit install
+prek install
 ```
 
 ### 3. Create a Branch
@@ -54,7 +54,7 @@ All commits are checked by pre-commit hooks:
 
 ```bash
 # Run all hooks manually
-pre-commit run --all-files
+prek run --all-files
 
 # Run specific tools
 ruff check --fix          # Lint
@@ -89,7 +89,7 @@ def get_device(self, address):
 ### 1. Before Creating a PR
 
 - [ ] All tests pass: `pytest tests/`
-- [ ] Pre-commit hooks pass: `pre-commit run --all-files`
+- [ ] Pre-commit hooks pass: `prek run --all-files`
 - [ ] No mypy errors
 - [ ] Documentation updated (if applicable)
 - [ ] Changelog updated (if applicable)

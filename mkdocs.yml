@@ -91,6 +91,7 @@ nav:
       - Overview: architecture.md
       - Data Flow: architecture/data_flow.md
       - Sequence Diagrams: architecture/sequence_diagrams.md
+      - Value Resolution: architecture/value_resolution.md
       - Caching: architecture/caching.md
       - Event System:
           - Overview: architecture/events/index.md
@@ -138,6 +139,7 @@ nav:
       - "0019 Derived Binary Sensors": adr/0019-derived-binary-sensors.md
       - "0020 Command Throttling": adr/0020-command-throttling-priority-and-optimistic-updates.md
       - "0021 Blind Command Lock": adr/0021-blind-command-processing-lock.md
+      - "0022 Week Profile Data Point": adr/0022-week-profile-data-point.md
 
 markdown_extensions:
   # Python Markdown

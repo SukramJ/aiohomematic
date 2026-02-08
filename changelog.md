@@ -1,3 +1,36 @@
+# Version 2026.2.7 (2026-02-07)
+
+## What's Changed
+
+### Changed
+
+- **Rename `_temporary_value` to `_unconfirmed_value`**: All internal references to
+  `_temporary_value`, `_temporary_refreshed_at`, `_temporary_modified_at`,
+  `write_temporary_value`, `_reset_temporary_value`, and related methods have been
+  renamed to `_unconfirmed_*` / `write_unconfirmed_value` / `_reset_unconfirmed_value`.
+  This clarifies the role of the second value tier in the three-tier resolution model
+  (optimistic → unconfirmed → confirmed). Affected files: `data_point.py`,
+  `hub/data_point.py`, `interface_client.py`, `interfaces/model.py`.
+
+### Fixed
+
+- **Optimistic rollback now clears unconfirmed value**: `_rollback_optimistic_value()`
+  now calls `_reset_unconfirmed_value()` before restoring the previous confirmed value.
+  Previously, the unconfirmed value survived the rollback and would override the restored
+  value through the timestamp comparison in `_value`, undermining the rollback entirely.
+
+### Documentation
+
+- **Three-tier value resolution architecture doc**: New `docs/architecture/value_resolution.md`
+  describing the full value resolution mechanism (optimistic → unconfirmed → confirmed),
+  including timing, scope, interaction between tiers, rollback behaviour, and the hub
+  sysvar variant.
+
+- **Updated ADR 0020**: Added unconfirmed value tier to the value resolution description
+  and documented that rollback clears the unconfirmed value.
+
+---
+
 # Version 2026.2.6 (2026-02-06)
 
 ## What's Changed

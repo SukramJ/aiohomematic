@@ -131,7 +131,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         "_max",
         "_min",
         "_previous_value",
-        "_temporary_value",
+        "_unconfirmed_value",
         "_unit",
         "_values",
         "_vid",
@@ -175,7 +175,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         self._unit: Final = data.unit
         self._current_value: SYSVAR_TYPE = data.value
         self._previous_value: SYSVAR_TYPE = None
-        self._temporary_value: SYSVAR_TYPE = None
+        self._unconfirmed_value: SYSVAR_TYPE = None
 
     is_extended: Final = DelegatedProperty[bool](path="_is_extended")
     max: Final = DelegatedProperty[float | int | None](path="_max", kind=Kind.CONFIG)
@@ -189,7 +189,7 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
     @property
     def _value(self) -> Any | None:
         """Return the value."""
-        return self._temporary_value if self._temporary_refreshed_at > self._refreshed_at else self._current_value
+        return self._unconfirmed_value if self._unconfirmed_refreshed_at > self._refreshed_at else self._current_value
 
     @property
     def data_type(self) -> HubValueType | None:
@@ -212,11 +212,11 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
             await client.set_system_variable(
                 legacy_name=self._legacy_name, value=parse_sys_var(data_type=self._data_type, raw_value=value)
             )
-        self._write_temporary_value(value=value, write_at=datetime.now())
+        self._write_unconfirmed_value(value=value, write_at=datetime.now())
 
     def write_value(self, *, value: Any, write_at: datetime) -> None:
         """Set variable value on the backend."""
-        self._reset_temporary_value()
+        self._reset_unconfirmed_value()
 
         old_value = self._current_value
         new_value = self._convert_value(old_value=old_value, new_value=value)
@@ -251,21 +251,21 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         """Return the path data of the data_point."""
         return SysvarPathData(vid=self._vid)
 
-    def _reset_temporary_value(self) -> None:
-        """Reset the temp storage."""
-        self._temporary_value = None
-        self._reset_temporary_timestamps()
+    def _reset_unconfirmed_value(self) -> None:
+        """Reset the unconfirmed value storage."""
+        self._unconfirmed_value = None
+        self._reset_unconfirmed_timestamps()
 
-    def _write_temporary_value(self, *, value: Any, write_at: datetime) -> None:
-        """Update the temporary value of the data_point."""
-        self._reset_temporary_value()
+    def _write_unconfirmed_value(self, *, value: Any, write_at: datetime) -> None:
+        """Update the unconfirmed value of the data point."""
+        self._reset_unconfirmed_value()
 
         temp_value = self._convert_value(old_value=self._current_value, new_value=value)
         if self._value == temp_value:
-            self._set_temporary_refreshed_at(refreshed_at=write_at)
+            self._set_unconfirmed_refreshed_at(refreshed_at=write_at)
         else:
-            self._set_temporary_modified_at(modified_at=write_at)
-            self._temporary_value = temp_value
+            self._set_unconfirmed_modified_at(modified_at=write_at)
+            self._unconfirmed_value = temp_value
             self._state_uncertain = True
         self.publish_data_point_updated_event()
 

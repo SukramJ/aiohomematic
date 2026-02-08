@@ -283,7 +283,7 @@ class _FakeCentral:
         key = f"{channel_address}:{parameter}:{paramset_key}"
         dp = MagicMock()
         dp.requires_polling = requires_polling
-        dp.write_temporary_value = MagicMock()
+        dp.write_unconfirmed_value = MagicMock()
         self._data_points[key] = dp
         return dp
 
@@ -655,11 +655,11 @@ class TestInterfaceClientPutParamset:
 
 
 class TestInterfaceClientTemporaryValues:
-    """Test temporary value writing for immediate UI feedback."""
+    """Test unconfirmed value writing for immediate UI feedback."""
 
     @pytest.mark.asyncio
-    async def test_put_paramset_writes_temporary_values(self) -> None:
-        """Test put_paramset writes temporary values to all polling data points."""
+    async def test_put_paramset_writes_unconfirmed_values(self) -> None:
+        """Test put_paramset writes unconfirmed values to all polling data points."""
         central = _FakeCentral()
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
@@ -685,13 +685,13 @@ class TestInterfaceClientTemporaryValues:
             wait_for_callback=None,
         )
 
-        # Verify write_temporary_value was called for both
-        dp_level.write_temporary_value.assert_called_once()
-        dp_state.write_temporary_value.assert_called_once()
+        # Verify write_unconfirmed_value was called for both
+        dp_level.write_unconfirmed_value.assert_called_once()
+        dp_state.write_unconfirmed_value.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_set_value_skips_temporary_for_non_polling(self) -> None:
-        """Test set_value does not write temporary value to non-polling data points."""
+    async def test_set_value_skips_unconfirmed_for_non_polling(self) -> None:
+        """Test set_value does not write unconfirmed value to non-polling data points."""
         central = _FakeCentral()
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
@@ -712,12 +712,12 @@ class TestInterfaceClientTemporaryValues:
             wait_for_callback=None,
         )
 
-        # Verify write_temporary_value was NOT called
-        dp.write_temporary_value.assert_not_called()
+        # Verify write_unconfirmed_value was NOT called
+        dp.write_unconfirmed_value.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_set_value_writes_temporary_value(self) -> None:
-        """Test set_value writes temporary value to polling data points."""
+    async def test_set_value_writes_unconfirmed_value(self) -> None:
+        """Test set_value writes unconfirmed value to polling data points."""
         central = _FakeCentral()
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
@@ -738,9 +738,9 @@ class TestInterfaceClientTemporaryValues:
             wait_for_callback=None,
         )
 
-        # Verify write_temporary_value was called
-        dp.write_temporary_value.assert_called_once()
-        call_args = dp.write_temporary_value.call_args
+        # Verify write_unconfirmed_value was called
+        dp.write_unconfirmed_value.assert_called_once()
+        call_args = dp.write_unconfirmed_value.call_args
         assert call_args.kwargs["value"] == 0.75
 
 

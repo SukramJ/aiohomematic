@@ -150,7 +150,7 @@ Reference GitHub issues and PRs:
 Before creating a release:
 
 - [ ] All tests pass: `pytest tests/`
-- [ ] All linters pass: `pre-commit run --all-files`
+- [ ] All linters pass: `prek run --all-files`
 - [ ] No mypy errors
 - [ ] Changelog entry is complete
 - [ ] VERSION constant is updated

@@ -852,6 +852,66 @@ async def test_factory_default_parameters():
         await server.stop()
 
 
+@pytest.mark.asyncio
+async def test_concurrent_start_race_condition():
+    """
+    Test that concurrent start() calls don't cause 'address in use' errors.
+
+    This test verifies the fix for a race condition where multiple central units
+    (e.g., two OpenCCU instances) calling start() concurrently would both see
+    _started=False and both try to bind to the same port, causing OSError.
+
+    The fix uses an asyncio.Lock to serialize start() calls.
+    """
+    server = AsyncXmlRpcServer(ip_addr="127.0.0.1", port=0)
+
+    try:
+        # Simulate multiple centrals calling start() concurrently
+        # Without the lock fix, this would cause "address in use" errors
+        results = await asyncio.gather(
+            server.start(),
+            server.start(),
+            server.start(),
+            return_exceptions=True,
+        )
+
+        # All calls should succeed (no exceptions)
+        for result in results:
+            assert result is None, f"Expected None, got {result}"
+
+        # Server should be started exactly once
+        assert server.started is True
+        assert server.listen_port != 0
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_factory_calls():
+    """
+    Test that concurrent factory calls share the same server instance.
+
+    Multiple central units starting at the same time should all get the same
+    singleton server, and the server should only bind to the port once.
+    """
+    # Use gather to simulate concurrent factory calls
+    servers = await asyncio.gather(
+        create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0),
+        create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0),
+        create_async_xml_rpc_server(ip_addr="127.0.0.1", port=0),
+    )
+
+    try:
+        # All should return the same singleton instance
+        assert servers[0] is servers[1]
+        assert servers[1] is servers[2]
+
+        # Server should be started
+        assert servers[0].started is True
+    finally:
+        await servers[0].stop()
+
+
 # --- Health Check Endpoint Tests ---
 
 

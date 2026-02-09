@@ -29,6 +29,12 @@
 
 ### Fixed
 
+- **XML-RPC server race condition on multi-hub startup**: Fixed a race condition in
+  `AsyncXmlRpcServer.start()` that caused "address in use" errors when multiple central
+  units (e.g., two OpenCCU instances) started concurrently. The singleton server is now
+  protected by an `asyncio.Lock` to ensure only one coroutine can bind to the port at a
+  time. Also added proper cleanup of partial state if binding fails.
+
 - **Optimistic rollback now clears unconfirmed value**: `_rollback_optimistic_value()`
   now calls `_reset_unconfirmed_value()` before restoring the previous confirmed value.
   Previously, the unconfirmed value survived the rollback and would override the restored

@@ -52,6 +52,7 @@ Before diving into specific issues, verify these basics:
 - [Entity shows "unavailable"](#entity-unavailable)
 - [Values not updating](#values-not-updating)
 - [Button events not working](#button-events-not-working)
+- [Missing parameters after firmware update](paramset_inconsistency.md)
 
 ### Performance Issues
 

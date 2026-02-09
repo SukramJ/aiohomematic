@@ -121,6 +121,15 @@ class IntegrationIssue:
             device_addresses=("CUX2800001", "CUX2800002"),
         )
 
+        # Creating a paramset inconsistency issue
+        issue = IntegrationIssue(
+            issue_type=IntegrationIssueType.PARAMSET_INCONSISTENCY,
+            severity=IntegrationIssueSeverity.WARNING,
+            interface_id="ccu-HmIP-RF",
+            device_addresses=("VCU0000001",),
+            missing_parameters=("VCU0000001:5:CHANNEL_OPERATION_MODE",),
+        )
+
         # Accessing computed properties for HA integration
         issue.issue_id  # "ping_pong_mismatch_ccu-HmIP-RF"
         issue.translation_key  # "ping_pong_mismatch"
@@ -145,7 +154,10 @@ class IntegrationIssue:
     """Mismatch count (only for PING_PONG_MISMATCH issues)."""
 
     device_addresses: tuple[str, ...] | None = None
-    """Affected device addresses (only for INCOMPLETE_DEVICE_DATA issues)."""
+    """Affected device addresses (only for INCOMPLETE_DEVICE_DATA and PARAMSET_INCONSISTENCY issues)."""
+
+    missing_parameters: tuple[str, ...] | None = None
+    """Missing parameter names (only for PARAMSET_INCONSISTENCY issues)."""
 
     @property
     def issue_id(self) -> str:
@@ -168,6 +180,9 @@ class IntegrationIssue:
         if self.device_addresses is not None:
             result["device_count"] = str(len(self.device_addresses))
             result["device_addresses"] = ", ".join(self.device_addresses)
+        if self.missing_parameters is not None:
+            result["parameter_count"] = str(len(self.missing_parameters))
+            result["missing_parameters"] = ", ".join(self.missing_parameters)
         return result
 
 

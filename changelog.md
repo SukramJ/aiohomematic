@@ -1,6 +1,21 @@
-# Version 2026.2.7 (2026-02-07)
+# Version 2026.2.7 (2026-02-09)
 
 ## What's Changed
+
+### Added
+
+- **Paramset consistency checker**: Automatically detects missing parameters on HmIP/HmIPW
+  devices after firmware updates. The HmIPServer (crRFD) on the CCU sometimes fails to
+  refresh its stored parameter data after a firmware update, creating a mismatch between
+  `getParamsetDescription()` (schema) and `getParamset()` (actual values). The checker
+  runs as a background task after device creation and reports inconsistencies via:
+  - Home Assistant Repairs (as `IntegrationIssue` with type `PARAMSET_INCONSISTENCY`)
+  - Log warnings with affected device addresses and missing parameters
+  - Diagnostics data (via `IncidentStore`)
+    A factory reset of the affected device on the CCU resolves the issue.
+    See [troubleshooting documentation](docs/troubleshooting/paramset_inconsistency.md)
+    and [ADR-0023](docs/adr/0023-paramset-consistency-checker.md) for details.
+    Based on [Homematic forum discussion](https://homematic-forum.de/forum/viewtopic.php?t=77531).
 
 ### Changed
 

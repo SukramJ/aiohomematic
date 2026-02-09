@@ -192,6 +192,7 @@
   "log.client.json_rpc.trigger_firmware_update.success": "TRIGGER_FIRMWARE_UPDATE: {message}",
   "log.client.reconnect.reconnected": "RECONNECT: re-connected client {interface_id}",
   "log.core.signal.shutdown": "Got signal: {sig}. Shutting down central",
+  "log.device.paramset_consistency.inconsistency_detected": "PARAMSET_CONSISTENCY: Device {device_address} on interface {interface_id} has {count} parameter(s) in description but not in MASTER paramset: {parameters}. A factory reset on the device may resolve this issue. See: https://homematic-forum.de/forum/viewtopic.php?t=77531",
   "log.metrics.observer.counter_key_limit": "METRICS OBSERVER: Counter key limit reached, dropping: {metric_key}",
   "log.metrics.observer.gauge_key_limit": "METRICS OBSERVER: Gauge key limit reached, dropping: {metric_key}",
   "log.metrics.observer.latency_key_limit": "METRICS OBSERVER: Latency key limit reached, dropping: {metric_key}",

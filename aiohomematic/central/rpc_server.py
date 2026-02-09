@@ -12,6 +12,7 @@ This is the standard XML-RPC server implementation (see ADR 0012).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from typing import TYPE_CHECKING, Any, Final
@@ -516,6 +517,8 @@ class AsyncXmlRpcServer:
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
         self._started: bool = False
+        # Lock to prevent concurrent start() calls (race condition fix)
+        self._start_lock: Final = asyncio.Lock()
 
         # Register RPC functions
         self._rpc_functions: Final = AsyncRPCFunctions(rpc_server=self)
@@ -593,34 +596,47 @@ class AsyncXmlRpcServer:
 
     async def start(self) -> None:
         """Start the HTTP server."""
-        if self._started:
-            return
+        # Use lock to prevent race condition when multiple centrals start concurrently.
+        # Without the lock, both centrals would see _started=False and both try to bind
+        # to the same port, causing "address in use" errors.
+        async with self._start_lock:
+            if self._started:
+                return
 
-        self._runner = web.AppRunner(
-            self._app,
-            access_log=None,  # Disable access logging
-        )
-        await self._runner.setup()
+            self._runner = web.AppRunner(
+                self._app,
+                access_log=None,  # Disable access logging
+            )
+            await self._runner.setup()
 
-        self._site = web.TCPSite(
-            self._runner,
-            self._ip_addr,
-            self._requested_port,
-            reuse_address=True,
-        )
-        await self._site.start()
+            self._site = web.TCPSite(
+                self._runner,
+                self._ip_addr,
+                self._requested_port,
+                reuse_address=True,
+            )
+            try:
+                await self._site.start()
+            except OSError:
+                # Clean up on failure to prevent resource leaks
+                await self._cleanup_partial_start()
+                raise
 
-        # Get actual port (important when PORT_ANY is used)
-        # pylint: disable=protected-access
-        if self._site._server and hasattr(self._site._server, "sockets") and (sockets := self._site._server.sockets):
-            self._actual_port = sockets[0].getsockname()[1]
+            # Get actual port (important when PORT_ANY is used)
+            # pylint: disable=protected-access
+            if (
+                self._site._server
+                and hasattr(self._site._server, "sockets")
+                and (sockets := self._site._server.sockets)
+            ):
+                self._actual_port = sockets[0].getsockname()[1]
 
-        self._started = True
-        _LOGGER.debug(
-            "AsyncXmlRpcServer started on %s:%d",
-            self._ip_addr,
-            self._actual_port,
-        )
+            self._started = True
+            _LOGGER.debug(
+                "AsyncXmlRpcServer started on %s:%d",
+                self._ip_addr,
+                self._actual_port,
+            )
 
     async def stop(self) -> None:
         """Stop the HTTP server."""
@@ -651,6 +667,18 @@ class AsyncXmlRpcServer:
     async def _cancel_background_tasks(self) -> None:
         """Cancel all background tasks and wait for them to complete."""
         await self._rpc_functions.cancel_background_tasks()
+
+    async def _cleanup_partial_start(self) -> None:
+        """Clean up resources after a failed start() to prevent resource leaks."""
+        if self._site:
+            with contextlib.suppress(Exception):
+                await self._site.stop()
+            self._site = None
+
+        if self._runner:
+            with contextlib.suppress(Exception):
+                await self._runner.cleanup()
+            self._runner = None
 
     async def _handle_health_check(
         self,

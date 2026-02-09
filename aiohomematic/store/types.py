@@ -455,6 +455,9 @@ class IncidentType(StrEnum):
     CIRCUIT_BREAKER_RECOVERED = "CIRCUIT_BREAKER_RECOVERED"
     """Circuit breaker recovered after successful test requests."""
 
+    PARAMSET_INCONSISTENCY = "PARAMSET_INCONSISTENCY"
+    """Parameter exists in description but missing from actual paramset (HmIPServer bug)."""
+
 
 @unique
 class IncidentSeverity(StrEnum):

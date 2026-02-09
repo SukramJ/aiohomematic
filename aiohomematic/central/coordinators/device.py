@@ -40,6 +40,7 @@ from aiohomematic.const import (
     IntegrationIssueSeverity,
     IntegrationIssueType,
     ParamsetKey,
+    ProductGroup,
     SourceOfDeviceCreation,
     SystemEventType,
 )
@@ -62,6 +63,7 @@ from aiohomematic.interfaces import (
     EventPublisherProtocol,
     EventSubscriptionManagerProtocol,
     FileOperationsProtocol,
+    IncidentRecorderProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
@@ -74,6 +76,7 @@ from aiohomematic.model.device import Device
 from aiohomematic.model.device_context import DeviceContext
 from aiohomematic.model.week_profile_data_point import create_week_profile_data_point
 from aiohomematic.property_decorators import DelegatedProperty
+from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import extract_exc_args
 
 if TYPE_CHECKING:
@@ -100,6 +103,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         "_event_publisher",
         "_event_subscription_manager",
         "_file_operations",
+        "_incident_recorder",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_task_scheduler",
@@ -120,6 +124,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         event_publisher: EventPublisherProtocol,
         event_subscription_manager: EventSubscriptionManagerProtocol,
         file_operations: FileOperationsProtocol,
+        incident_recorder: IncidentRecorderProtocol | None = None,
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
         task_scheduler: TaskSchedulerProtocol,
@@ -141,6 +146,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             event_publisher: Provider for event publisher access
             event_subscription_manager: Manager for event subscriptions
             file_operations: Provider for file operations
+            incident_recorder: Optional incident recorder for diagnostics
             parameter_visibility_provider: Provider for parameter visibility rules
             paramset_description_provider: Provider for paramset descriptions
             task_scheduler: Scheduler for async tasks
@@ -158,6 +164,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         self._event_publisher: Final = event_publisher
         self._event_subscription_manager: Final = event_subscription_manager
         self._file_operations: Final = file_operations
+        self._incident_recorder: Final = incident_recorder
         self._parameter_visibility_provider: Final = parameter_visibility_provider
         self._paramset_description_provider: Final = paramset_description_provider
         self._task_scheduler: Final = task_scheduler
@@ -1003,6 +1010,10 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                     await self._coordinator_provider.cache_coordinator.device_details.load()
                     await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
                     await self.create_devices(new_device_addresses=new_device_addresses, source=source)
+                    self._schedule_paramset_consistency_check(
+                        interface_id=interface_id,
+                        new_device_addresses=new_device_addresses,
+                    )
                 return
 
             # Here we block the automatic creation of new devices, if required
@@ -1063,6 +1074,136 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 await self._coordinator_provider.cache_coordinator.device_details.load()
                 await self._coordinator_provider.cache_coordinator.load_data_cache(interface=client.interface)
                 await self.create_devices(new_device_addresses=new_device_addresses, source=source)
+                self._schedule_paramset_consistency_check(
+                    interface_id=interface_id,
+                    new_device_addresses=new_device_addresses,
+                )
+
+    async def _check_paramset_consistency(
+        self,
+        *,
+        interface_id: str,
+        device_addresses: set[str],
+    ) -> None:
+        """
+        Check consistency between paramset descriptions and actual paramsets.
+
+        For HmIP devices, the HmIPServer (crRFD) can have stale device files
+        after firmware updates, causing getParamsetDescription() to list
+        parameters that getParamset() does not return. This method detects
+        such inconsistencies and reports them via IncidentStore and
+        IntegrationIssue.
+
+        Only checks MASTER paramsets as this is where the inconsistency
+        manifests. VALUES paramsets are volatile and not affected.
+
+        See: https://homematic-forum.de/forum/viewtopic.php?t=77531
+
+        Args:
+            interface_id: Interface identifier.
+            device_addresses: Device addresses to check.
+
+        """
+        if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
+            return
+
+        client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+        paramset_cache = self._coordinator_provider.cache_coordinator.paramset_descriptions
+
+        all_inconsistencies: dict[str, list[str]] = {}
+
+        for device_address in device_addresses:
+            if (device := self.device_registry.get_device(address=device_address)) is None:
+                continue
+
+            # Only check HmIP devices (the bug is specific to HmIPServer/crRFD)
+            if device.product_group not in (ProductGroup.HMIP, ProductGroup.HMIPW):
+                continue
+
+            for channel in device.channels.values():
+                channel_address = channel.address
+
+                # Get cached MASTER paramset description
+                master_desc = paramset_cache.get_paramset_descriptions(
+                    interface_id=interface_id,
+                    channel_address=channel_address,
+                    paramset_key=ParamsetKey.MASTER,
+                )
+                if not master_desc:
+                    continue
+
+                # Filter to parameters with OPERATIONS > 0 (visible/writable parameters).
+                # Parameters with OPERATIONS=0 are internal and may legitimately
+                # be absent from the actual paramset.
+                expected_params = {name for name, data in master_desc.items() if data.get("OPERATIONS", 0) > 0}
+                if not expected_params:
+                    continue
+
+                try:
+                    actual_paramset = await client.get_paramset(
+                        channel_address=channel_address,
+                        paramset_key=ParamsetKey.MASTER,
+                    )
+                except Exception:
+                    continue  # Device unavailable, skip
+
+                actual_params = set(actual_paramset.keys())
+                if missing := expected_params - actual_params:
+                    all_inconsistencies.setdefault(device_address, []).extend(
+                        f"{channel_address}:{p}" for p in sorted(missing)
+                    )
+
+        if not all_inconsistencies:
+            return
+
+        # Log warnings for each affected device
+        for dev_addr, missing_params in all_inconsistencies.items():
+            _LOGGER.warning(
+                i18n.tr(
+                    key="log.device.paramset_consistency.inconsistency_detected",
+                    device_address=dev_addr,
+                    interface_id=interface_id,
+                    count=str(len(missing_params)),
+                    parameters=", ".join(missing_params),
+                )
+            )
+
+        # Record incidents for diagnostics
+        if (incident_recorder := self._incident_recorder) is not None:
+            for dev_addr, missing_params in all_inconsistencies.items():
+                await incident_recorder.record_incident(
+                    incident_type=IncidentType.PARAMSET_INCONSISTENCY,
+                    severity=IncidentSeverity.WARNING,
+                    message=(
+                        f"Device {dev_addr} has {len(missing_params)} parameter(s) in description "
+                        f"but not in actual paramset (firmware update required?)"
+                    ),
+                    interface_id=interface_id,
+                    context={
+                        "device_address": dev_addr,
+                        "missing_parameters": missing_params,
+                        "resolution": "Perform factory reset on device via CCU WebUI",
+                    },
+                )
+
+        # Publish integration issue for Home Assistant repair
+        all_missing: list[str] = []
+        for params in all_inconsistencies.values():
+            all_missing.extend(params)
+
+        issue = IntegrationIssue(
+            issue_type=IntegrationIssueType.PARAMSET_INCONSISTENCY,
+            severity=IntegrationIssueSeverity.WARNING,
+            interface_id=interface_id,
+            device_addresses=tuple(all_inconsistencies.keys()),
+            missing_parameters=tuple(all_missing),
+        )
+        await self._event_bus_provider.event_bus.publish(
+            event=SystemStatusChangedEvent(
+                timestamp=datetime.now(),
+                issues=(issue,),
+            )
+        )
 
     def _identify_devices_missing_paramsets(
         self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
@@ -1232,6 +1373,35 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 await client.rename_channel(rega_id=rega_id, new_name=channel_name)
 
             await asyncio.sleep(0.1)
+
+    def _schedule_paramset_consistency_check(
+        self,
+        *,
+        interface_id: str,
+        new_device_addresses: Mapping[str, set[str]],
+    ) -> None:
+        """
+        Schedule a background paramset consistency check for newly created devices.
+
+        The check runs asynchronously after device creation to avoid delaying
+        device availability. It only checks HmIP devices where the HmIPServer
+        bug can manifest.
+
+        Args:
+            interface_id: Interface identifier.
+            new_device_addresses: Mapping of interface IDs to device addresses.
+
+        """
+        if (device_addresses := new_device_addresses.get(interface_id)) is None:
+            return
+
+        self._task_scheduler.create_task(
+            target=self._check_paramset_consistency(
+                interface_id=interface_id,
+                device_addresses=device_addresses,
+            ),
+            name=f"paramset_consistency_check_{interface_id}",
+        )
 
     def _store_delayed_device_descriptions(self, *, device_descriptions: tuple[DeviceDescription, ...]) -> None:
         """Store device descriptions for delayed creation."""

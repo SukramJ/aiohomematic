@@ -192,6 +192,7 @@
   "log.client.json_rpc.trigger_firmware_update.success": "TRIGGER_FIRMWARE_UPDATE: {message}",
   "log.client.reconnect.reconnected": "RECONNECT: Client {interface_id} wurde erneut verbunden",
   "log.core.signal.shutdown": "Signal empfangen: {sig}. Zentrale wird heruntergefahren",
+  "log.device.paramset_consistency.inconsistency_detected": "PARAMSET_CONSISTENCY: Gerät {device_address} auf Interface {interface_id} hat {count} Parameter in der Beschreibung, die im MASTER-Paramset fehlen: {parameters}. Ein Werksreset des Geräts kann das Problem beheben. Siehe: https://homematic-forum.de/forum/viewtopic.php?t=77531",
   "log.metrics.observer.counter_key_limit": "METRICS OBSERVER: Zähler-Schlüsselgrenze erreicht, verworfen: {metric_key}",
   "log.metrics.observer.gauge_key_limit": "METRICS OBSERVER: Messwert-Schlüsselgrenze erreicht, verworfen: {metric_key}",
   "log.metrics.observer.latency_key_limit": "METRICS OBSERVER: Latenz-Schlüsselgrenze erreicht, verworfen: {metric_key}",

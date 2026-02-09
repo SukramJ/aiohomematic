@@ -175,6 +175,7 @@ class CentralUnit(
             event_publisher=self._event_coordinator,
             event_subscription_manager=self._event_coordinator,
             file_operations=self,
+            incident_recorder=self._cache_coordinator.incident_store,
             parameter_visibility_provider=self._cache_coordinator.parameter_visibility,
             paramset_description_provider=self._cache_coordinator.paramset_descriptions,
             task_scheduler=self.looper,

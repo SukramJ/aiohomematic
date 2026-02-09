@@ -1386,6 +1386,7 @@ class IntegrationIssueType(StrEnum):
     PING_PONG_MISMATCH = "ping_pong_mismatch"
     FETCH_DATA_FAILED = "fetch_data_failed"
     INCOMPLETE_DEVICE_DATA = "incomplete_device_data"
+    PARAMSET_INCONSISTENCY = "paramset_inconsistency"
 
 
 @unique

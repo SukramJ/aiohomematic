@@ -44,7 +44,7 @@ from aiohomematic.store.persistent.device import DeviceDescriptionRegistry
 from aiohomematic.store.persistent.incident import IncidentStore
 from aiohomematic.store.persistent.paramset import ParamsetDescriptionRegistry
 from aiohomematic.store.persistent.session import SessionRecorder
-from aiohomematic.support import delete_file
+from aiohomematic.support.file_ops import delete_file
 
 _LOGGER: Final = logging.getLogger(__name__)
 

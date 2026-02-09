@@ -16,12 +16,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
+from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.const import (
     BackupData,
+    CircuitState,
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,
@@ -39,9 +41,6 @@ from aiohomematic.const import (
 )
 from aiohomematic.property_decorators import DelegatedProperty
 
-if TYPE_CHECKING:
-    from aiohomematic.client.circuit_breaker import CircuitBreaker
-
 __all__ = ["BaseBackend"]
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -58,6 +57,7 @@ class BaseBackend(BackendOperationsProtocol, ABC):
 
     __slots__ = (
         "_capabilities",
+        "_circuit_breakers",
         "_interface",
         "_interface_id",
         "_system_information",
@@ -69,11 +69,13 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         interface: Interface,
         interface_id: str,
         capabilities: BackendCapabilities,
+        circuit_breakers: tuple[CircuitBreaker, ...] = (),
     ) -> None:
         """Initialize the base backend."""
         self._interface: Final = interface
         self._interface_id: Final = interface_id
         self._capabilities = capabilities
+        self._circuit_breakers: Final = circuit_breakers
         self._system_information: SystemInformation
 
     capabilities: Final = DelegatedProperty[BackendCapabilities](path="_capabilities")
@@ -84,12 +86,12 @@ class BaseBackend(BackendOperationsProtocol, ABC):
     @property
     def all_circuit_breakers_closed(self) -> bool:
         """Return True if all circuit breakers are in closed state."""
-        return True
+        return all(cb.state == CircuitState.CLOSED for cb in self._circuit_breakers)
 
     @property
     def circuit_breaker(self) -> CircuitBreaker | None:
         """Return the primary circuit breaker for metrics access."""
-        return None
+        return self._circuit_breakers[0] if self._circuit_breakers else None
 
     @property
     @abstractmethod
@@ -272,6 +274,8 @@ class BaseBackend(BackendOperationsProtocol, ABC):
 
     def reset_circuit_breakers(self) -> None:
         """Reset all circuit breakers to closed state."""
+        for cb in self._circuit_breakers:
+            cb.reset()
 
     async def set_install_mode(
         self,

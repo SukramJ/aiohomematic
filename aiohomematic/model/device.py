@@ -15,6 +15,8 @@ Key classes
 
 Other components
 ----------------
+- _DeviceAvailability: Availability state management (UN_REACH, forced availability).
+- _DeviceFirmware: Firmware version tracking and update operations.
 - _ValueCache: Lazy loading and caching of parameter values to minimize RPCs.
   Accessed externally via ``device.value_cache``.
 - _DefinitionExporter: Internal utility to export device and paramset descriptions.
@@ -144,15 +146,9 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.model.update import DpUpdate
 from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, info_property, state_property
-from aiohomematic.support import (
-    CacheEntry,
-    LogContextMixin,
-    PayloadMixin,
-    extract_exc_args,
-    get_channel_address,
-    get_channel_no,
-    get_rx_modes,
-)
+from aiohomematic.support import CacheEntry, extract_exc_args, get_rx_modes
+from aiohomematic.support.address import get_channel_address, get_channel_no
+from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
 from aiohomematic.type_aliases import (
     DeviceUpdatedHandler,
     FirmwareUpdateHandler,
@@ -178,8 +174,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     1. **Metadata & Identity**: Device address, model, name, manufacturer, interface.
     2. **Channel Hierarchy**: Channel creation, grouping, data point lookup.
     3. **Value Caching**: Lazy loading via ``_ValueCache`` (accessed via ``value_cache``).
-    4. **Availability & State**: UN_REACH/STICKY_UN_REACH handling, forced availability.
-    5. **Firmware Management**: Firmware version, available updates, update operations.
+    4. **Availability & State**: Delegates to ``_DeviceAvailability`` helper.
+    5. **Firmware Management**: Delegates to ``_DeviceFirmware`` helper.
     6. **Links & Export**: Central link management for press events, definition export.
     7. **Week Profile**: Schedule support for climate devices.
 
@@ -209,6 +205,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     __slots__ = (
         "_address",
+        "_availability",
         "_cached_allow_undefined_generic_data_points",
         "_cached_has_sub_devices",
         "_cached_relevant_for_central_link_management",
@@ -230,7 +227,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_event_publisher",
         "_event_subscription_manager",
         "_file_operations",
-        "_forced_availability",
+        "_firmware",
         "_group_channels",
         "_has_custom_data_point_definition",
         "_rega_id",
@@ -305,7 +302,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         )
 
         self._modified_at: datetime = INIT_DATETIME
-        self._forced_availability: ForcedDeviceAvailability = ForcedDeviceAvailability.NOT_SET
         self._model: Final[str] = self._device_description["TYPE"]
         self._ignore_on_initial_load: Final[bool] = check_ignore_model_on_initial_load(model=self._model)
         self._is_updatable: Final = self._device_description.get("UPDATABLE") or False
@@ -335,6 +331,10 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             except DescriptionNotFoundException:
                 _LOGGER.warning(i18n.tr(key="log.model.device.channel_description_not_found", address=address))
         self._value_cache: Final[_ValueCache] = _ValueCache(device=self)
+        self._availability: Final[_DeviceAvailability] = _DeviceAvailability(device=self)
+        self._firmware: Final[_DeviceFirmware] = _DeviceFirmware(
+            device=self, device_description=self._device_description
+        )
         self._rooms: Final = self._device_details_provider.get_device_rooms(device_address=self._address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
         self._week_profile: wp.ClimateWeekProfile | wp.DefaultWeekProfile | None = None
@@ -404,54 +404,19 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     week_profile: Final = DelegatedProperty[wp.ClimateWeekProfile | wp.DefaultWeekProfile | None](path="_week_profile")
     week_profile_data_point: Final = DelegatedProperty[wps.WeekProfileDataPoint | None](path="_week_profile_data_point")
 
-    @property
-    def _dp_config_pending(self) -> DpBinarySensor | None:
-        """Return the CONFIG_PENDING data point."""
-        return cast(
-            DpBinarySensor | None,
-            self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.CONFIG_PENDING),
-        )
-
-    @property
-    def _dp_sticky_un_reach(self) -> DpBinarySensor | None:
-        """Return the STICKY_UN_REACH data point."""
-        return cast(
-            DpBinarySensor | None,
-            self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.STICKY_UN_REACH),
-        )
-
-    @property
-    def _dp_un_reach(self) -> DpBinarySensor | None:
-        """Return the UN_REACH data point."""
-        return cast(
-            DpBinarySensor | None,
-            self.get_generic_data_point(channel_address=f"{self._address}:0", parameter=Parameter.UN_REACH),
-        )
+    # -- 1. Metadata & Identity --
 
     @property
     def availability(self) -> AvailabilityInfo:
-        """
-        Return bundled availability information for the device.
-
-        Provides a unified view of:
-        - Reachability (from UNREACH/STICKY_UNREACH)
-        - Last updated timestamp (from most recent data point)
-        - Battery level (from OperatingVoltageLevel or BATTERY_STATE)
-        - Low battery indicator (from LOW_BAT)
-        - Signal strength (from RSSI_DEVICE)
-        """
-        return AvailabilityInfo(
-            is_reachable=self._get_is_reachable(),
-            last_updated=self._get_last_updated(),
-            battery_level=self._get_battery_level(),
-            low_battery=self._get_low_battery(),
-            signal_strength=self._get_signal_strength(),
-        )
+        """Return bundled availability information for the device."""
+        return self._availability.get_availability_info()
 
     @property
     def available_firmware(self) -> str | None:
         """Return the available firmware of the device."""
-        return str(self._device_description.get("AVAILABLE_FIRMWARE", ""))
+        return self._firmware.available_firmware
+
+    # -- 2. Channel Hierarchy --
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
@@ -477,9 +442,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @property
     def config_pending(self) -> bool:
         """Return if a config change of the device is pending."""
-        if self._dp_config_pending is not None and self._dp_config_pending.value is not None:
-            return self._dp_config_pending.value is True
-        return False
+        return self._availability.is_config_pending()
 
     @property
     def custom_data_points(self) -> tuple[hmce.CustomDataPoint, ...]:
@@ -509,12 +472,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @property
     def firmware_updatable(self) -> bool:
         """Return the firmware update state of the device."""
-        return self._device_description.get("FIRMWARE_UPDATABLE") or False
+        return self._firmware.firmware_updatable
 
     @property
     def firmware_update_state(self) -> DeviceFirmwareState:
         """Return the firmware update state of the device."""
-        return DeviceFirmwareState(self._device_description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
+        return self._firmware.firmware_update_state
 
     @property
     def generic_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
@@ -553,15 +516,17 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             channel: channel.link_peer_channels for channel in self._channels.values() if channel.link_peer_channels
         }
 
+    # -- 4. Availability & State --
+
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        return self._get_is_reachable()
+        return self._availability.is_reachable()
 
     @info_property
     def firmware(self) -> str:
         """Return the firmware of the device."""
-        return self._device_description.get("FIRMWARE") or "0.0"
+        return self._firmware.firmware
 
     @info_property
     def identifier(self) -> str:
@@ -622,6 +587,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             self._channel_to_group[group_no] = group_no
         if channel_no not in self._channel_to_group:
             self._channel_to_group[channel_no] = group_no
+
+    # -- 6. Links & Export --
 
     @inspector
     async def create_central_links(self) -> None:
@@ -758,6 +725,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
         return None
 
+    # -- 7. Week Profile --
+
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the device schedule."""
         # Only initialize if week_profile supports schedule
@@ -774,6 +743,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             return False
 
         return len([s for s, m in self._channel_to_group.items() if m == self._channel_to_group.get(channel_no)]) > 1
+
+    # -- 3. Value Caching --
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def load_value_cache(self) -> None:
@@ -829,36 +800,15 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             name=f"device-updated-{self._address}",
         )
 
+    # -- 5. Firmware Management --
+
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
-        old_available_firmware = self.available_firmware
-        old_firmware = self.firmware
-        old_firmware_update_state = self.firmware_update_state
-        old_firmware_updatable = self.firmware_updatable
-
+        self._firmware.refresh_data()
+        # Keep _device_description in sync for on_config_changed and other methods
         self._device_description = self._device_description_provider.get_device_description(
             interface_id=self._interface_id, address=self._address
         )
-
-        if (
-            old_available_firmware != self.available_firmware
-            or old_firmware != self.firmware
-            or old_firmware_update_state != self.firmware_update_state
-            or old_firmware_updatable != self.firmware_updatable
-        ):
-            # Publish to EventBus asynchronously
-            async def _publish_firmware_updated() -> None:
-                await self._event_bus_provider.event_bus.publish(
-                    event=FirmwareStateChangedEvent(
-                        timestamp=datetime.now(),
-                        device_address=self._address,
-                    )
-                )
-
-            self._task_scheduler.create_task(
-                target=_publish_firmware_updated,
-                name=f"firmware-updated-{self._address}",
-            )
 
     @inspector
     async def reload_device_config(self) -> None:
@@ -897,30 +847,32 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Set the availability of the device."""
-        if self._forced_availability != forced_availability:
-            old_available = self.available
-            self._forced_availability = forced_availability
+        if self._availability.forced_availability == forced_availability:
+            return
+
+        availability_changed = self._availability.set_forced(forced_availability=forced_availability)
+
+        # Always refresh data points when forced_availability value changes
+        for dp in self.generic_data_points:
+            dp.publish_data_point_updated_event()
+
+        # Only publish lifecycle event if availability actually changed
+        if availability_changed:
             new_available = self.available
 
-            for dp in self.generic_data_points:
-                dp.publish_data_point_updated_event()
-
-            # Publish availability event if availability actually changed
-            if old_available != new_available:
-
-                async def _publish_availability_event() -> None:
-                    await self._event_bus_provider.event_bus.publish(
-                        event=DeviceLifecycleEvent(
-                            timestamp=datetime.now(),
-                            event_type=DeviceLifecycleEventType.AVAILABILITY_CHANGED,
-                            availability_changes=((self._address, new_available),),
-                        )
+            async def _publish_availability_event() -> None:
+                await self._event_bus_provider.event_bus.publish(
+                    event=DeviceLifecycleEvent(
+                        timestamp=datetime.now(),
+                        event_type=DeviceLifecycleEventType.AVAILABILITY_CHANGED,
+                        availability_changes=((self._address, new_available),),
                     )
-
-                self._task_scheduler.create_task(
-                    target=_publish_availability_event,
-                    name=f"availability-forced-{self._address}",
                 )
+
+            self._task_scheduler.create_task(
+                target=_publish_availability_event,
+                name=f"availability-forced-{self._address}",
+            )
 
     def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
         """Set the week profile data point reference."""
@@ -942,103 +894,12 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     def subscribe_to_firmware_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeCallback:
         """Subscribe firmware update handler."""
-
-        # Create adapter that filters for this device's events
-        def event_handler(*, event: FirmwareStateChangedEvent) -> None:
-            if event.device_address == self._address:
-                handler()
-
-        return self._event_bus_provider.event_bus.subscribe(
-            event_type=FirmwareStateChangedEvent,
-            event_key=self._address,
-            handler=event_handler,
-        )
+        return self._firmware.subscribe_to_updated(handler=handler)
 
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
         """Update the firmware of the Homematic device."""
-        update_result = await self._client.update_device_firmware(device_address=self._address)
-
-        async def refresh_data() -> None:
-            for refresh_interval in refresh_after_update_intervals:
-                await asyncio.sleep(refresh_interval)
-                await self._device_data_refresher.refresh_firmware_data(device_address=self._address)
-
-        if refresh_after_update_intervals:
-            self._task_scheduler.create_task(target=refresh_data, name="refresh_firmware_data")
-
-        return update_result
-
-    def _get_battery_level(self) -> int | None:
-        """Return battery level percentage (0-100)."""
-        # First try OperatingVoltageLevel calculated data point on channel 0
-        if (
-            ovl := self.get_calculated_data_point(
-                channel_address=f"{self._address}:0",
-                parameter=CalculatedParameter.OPERATING_VOLTAGE_LEVEL,
-            )
-        ) is not None and ovl.value is not None:
-            return int(ovl.value)
-
-        # Fallback to BATTERY_STATE if available (channel 0)
-        # BATTERY_STATE is typically 0-100 percentage or voltage
-        # If value > 10, assume it's already a percentage
-        # If value <= 10, assume it's voltage and can't be converted without battery info
-        if (
-            (
-                dp := self.get_generic_data_point(
-                    channel_address=f"{self._address}:0",
-                    parameter=Parameter.BATTERY_STATE,
-                )
-            )
-            is not None
-            and dp.value is not None
-            and (value := float(dp.value)) > 10
-        ):
-            return int(value)
-        return None
-
-    def _get_is_reachable(self) -> bool:
-        """Return if device is reachable."""
-        if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
-            return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
-        if (un_reach := self._dp_un_reach) is None:
-            un_reach = self._dp_sticky_un_reach
-        if un_reach is not None and un_reach.value is not None:
-            return not un_reach.value
-        return True
-
-    def _get_last_updated(self) -> datetime | None:
-        """Return the most recent data point modification time."""
-        latest = INIT_DATETIME
-        for channel in self._channels.values():
-            for dp in channel.get_data_points(exclude_no_create=False):
-                latest = max(latest, dp.modified_at)
-        return latest if latest > INIT_DATETIME else None
-
-    def _get_low_battery(self) -> bool | None:
-        """Return low battery indicator from LOW_BAT parameter."""
-        # Check channels 0, 1, 2 for LOW_BAT (different devices use different channels)
-        for channel_no in (0, 1, 2):
-            if (
-                dp := self.get_generic_data_point(
-                    channel_address=f"{self._address}:{channel_no}",
-                    parameter=Parameter.LOW_BAT,
-                )
-            ) is not None and dp.value is not None:
-                return dp.value is True
-        return None
-
-    def _get_signal_strength(self) -> int | None:
-        """Return signal strength in dBm from RSSI_DEVICE."""
-        if (
-            dp := self.get_generic_data_point(
-                channel_address=f"{self._address}:0",
-                parameter=Parameter.RSSI_DEVICE,
-            )
-        ) is not None and dp.value is not None:
-            return int(dp.value)
-        return None
+        return await self._firmware.update(refresh_after_update_intervals=refresh_after_update_intervals)
 
     def _identify_manufacturer(self) -> Manufacturer:
         """Identify the manufacturer of a device."""
@@ -1654,6 +1515,273 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     def _set_modified_at(self) -> None:
         self._modified_at = datetime.now()
+
+
+class _DeviceAvailability:
+    """
+    Availability state management for a device.
+
+    Compute device reachability from UN_REACH/STICKY_UN_REACH parameters,
+    battery level, low battery indicator, signal strength, and last update
+    timestamp. Support forced availability overrides.
+
+    External access
+    ---------------
+    Used internally by ``Device.availability``, ``Device.available``, and
+    ``Device.set_forced_availability()``.
+    """
+
+    __slots__ = (
+        "_device",
+        "_forced_availability",
+    )
+
+    def __init__(self, *, device: DeviceProtocol) -> None:
+        """Initialize availability state."""
+        self._device: Final = device
+        self._forced_availability: ForcedDeviceAvailability = ForcedDeviceAvailability.NOT_SET
+
+    @property
+    def _dp_config_pending(self) -> DpBinarySensor | None:
+        """Return the CONFIG_PENDING data point."""
+        return cast(
+            DpBinarySensor | None,
+            self._device.get_generic_data_point(
+                channel_address=f"{self._device.address}:0", parameter=Parameter.CONFIG_PENDING
+            ),
+        )
+
+    @property
+    def _dp_sticky_un_reach(self) -> DpBinarySensor | None:
+        """Return the STICKY_UN_REACH data point."""
+        return cast(
+            DpBinarySensor | None,
+            self._device.get_generic_data_point(
+                channel_address=f"{self._device.address}:0", parameter=Parameter.STICKY_UN_REACH
+            ),
+        )
+
+    @property
+    def _dp_un_reach(self) -> DpBinarySensor | None:
+        """Return the UN_REACH data point."""
+        return cast(
+            DpBinarySensor | None,
+            self._device.get_generic_data_point(
+                channel_address=f"{self._device.address}:0", parameter=Parameter.UN_REACH
+            ),
+        )
+
+    @property
+    def forced_availability(self) -> ForcedDeviceAvailability:
+        """Return the forced availability state."""
+        return self._forced_availability
+
+    def get_availability_info(self) -> AvailabilityInfo:
+        """Return bundled availability information."""
+        return AvailabilityInfo(
+            is_reachable=self.is_reachable(),
+            last_updated=self._get_last_updated(),
+            battery_level=self._get_battery_level(),
+            low_battery=self._get_low_battery(),
+            signal_strength=self._get_signal_strength(),
+        )
+
+    def is_config_pending(self) -> bool:
+        """Return if a config change of the device is pending."""
+        if (dp := self._dp_config_pending) is not None and dp.value is not None:
+            return dp.value is True
+        return False
+
+    def is_reachable(self) -> bool:
+        """Return if device is reachable."""
+        if self._forced_availability != ForcedDeviceAvailability.NOT_SET:
+            return self._forced_availability == ForcedDeviceAvailability.FORCE_TRUE
+        if (un_reach := self._dp_un_reach) is None:
+            un_reach = self._dp_sticky_un_reach
+        if un_reach is not None and un_reach.value is not None:
+            return not un_reach.value
+        return True
+
+    def set_forced(self, *, forced_availability: ForcedDeviceAvailability) -> bool:
+        """
+        Set forced availability. Return True if availability actually changed.
+
+        The caller (Device) is responsible for publishing events if True is returned.
+        """
+        if self._forced_availability == forced_availability:
+            return False
+        old_available = self.is_reachable()
+        self._forced_availability = forced_availability
+        return old_available != self.is_reachable()
+
+    def _get_battery_level(self) -> int | None:
+        """Return battery level percentage (0-100)."""
+        # First try OperatingVoltageLevel calculated data point on channel 0
+        ch0_address = f"{self._device.address}:0"
+        if (
+            (ch0 := self._device.get_channel(channel_address=ch0_address)) is not None
+            and (
+                ovl := ch0.get_calculated_data_point(
+                    parameter=CalculatedParameter.OPERATING_VOLTAGE_LEVEL,
+                )
+            )
+            is not None
+            and ovl.value is not None
+        ):
+            return int(ovl.value)
+
+        # Fallback to BATTERY_STATE if available (channel 0)
+        # BATTERY_STATE is typically 0-100 percentage or voltage
+        # If value > 10, assume it's already a percentage
+        # If value <= 10, assume it's voltage and can't be converted without battery info
+        if (
+            (
+                dp := self._device.get_generic_data_point(
+                    channel_address=f"{self._device.address}:0",
+                    parameter=Parameter.BATTERY_STATE,
+                )
+            )
+            is not None
+            and dp.value is not None
+            and (value := float(dp.value)) > 10
+        ):
+            return int(value)
+        return None
+
+    def _get_last_updated(self) -> datetime | None:
+        """Return the most recent data point modification time."""
+        latest = INIT_DATETIME
+        for channel in self._device.channels.values():
+            for dp in channel.get_data_points(exclude_no_create=False):
+                latest = max(latest, dp.modified_at)
+        return latest if latest > INIT_DATETIME else None
+
+    def _get_low_battery(self) -> bool | None:
+        """Return low battery indicator from LOW_BAT parameter."""
+        # Check channels 0, 1, 2 for LOW_BAT (different devices use different channels)
+        for channel_no in (0, 1, 2):
+            if (
+                dp := self._device.get_generic_data_point(
+                    channel_address=f"{self._device.address}:{channel_no}",
+                    parameter=Parameter.LOW_BAT,
+                )
+            ) is not None and dp.value is not None:
+                return dp.value is True
+        return None
+
+    def _get_signal_strength(self) -> int | None:
+        """Return signal strength in dBm from RSSI_DEVICE."""
+        if (
+            dp := self._device.get_generic_data_point(
+                channel_address=f"{self._device.address}:0",
+                parameter=Parameter.RSSI_DEVICE,
+            )
+        ) is not None and dp.value is not None:
+            return int(dp.value)
+        return None
+
+
+class _DeviceFirmware:
+    """
+    Firmware management for a device.
+
+    Handle firmware version tracking, update state monitoring, and
+    firmware update operations. Publish FirmwareStateChangedEvent
+    when firmware state changes.
+
+    External access
+    ---------------
+    Used internally by ``Device.refresh_firmware_data()``,
+    ``Device.update_firmware()``, and ``Device.subscribe_to_firmware_updated()``.
+    """
+
+    __slots__ = (
+        "_device",
+        "_device_description",
+    )
+
+    def __init__(self, *, device: DeviceProtocol, device_description: DeviceDescription) -> None:
+        """Initialize firmware management."""
+        self._device: Final = device
+        self._device_description: DeviceDescription = device_description
+
+    @property
+    def available_firmware(self) -> str | None:
+        """Return the available firmware of the device."""
+        return str(self._device_description.get("AVAILABLE_FIRMWARE", ""))
+
+    @property
+    def firmware(self) -> str:
+        """Return the firmware of the device."""
+        return self._device_description.get("FIRMWARE") or "0.0"
+
+    @property
+    def firmware_updatable(self) -> bool:
+        """Return the firmware update state of the device."""
+        return self._device_description.get("FIRMWARE_UPDATABLE") or False
+
+    @property
+    def firmware_update_state(self) -> DeviceFirmwareState:
+        """Return the firmware update state of the device."""
+        return DeviceFirmwareState(self._device_description.get("FIRMWARE_UPDATE_STATE") or DeviceFirmwareState.UNKNOWN)
+
+    def refresh_data(self) -> None:
+        """Refresh firmware data from device description provider."""
+        old_available_firmware = self.available_firmware
+        old_firmware = self.firmware
+        old_firmware_update_state = self.firmware_update_state
+        old_firmware_updatable = self.firmware_updatable
+        self._device_description = self._device.device_description_provider.get_device_description(
+            interface_id=self._device.interface_id, address=self._device.address
+        )
+        if (
+            old_available_firmware != self.available_firmware
+            or old_firmware != self.firmware
+            or old_firmware_update_state != self.firmware_update_state
+            or old_firmware_updatable != self.firmware_updatable
+        ):
+            self._publish_firmware_changed()
+
+    def subscribe_to_updated(self, *, handler: FirmwareUpdateHandler) -> UnsubscribeCallback:
+        """Subscribe firmware update handler."""
+
+        # Create adapter that filters for this device's events
+        def event_handler(*, event: FirmwareStateChangedEvent) -> None:
+            if event.device_address == self._device.address:
+                handler()
+
+        return self._device.event_bus_provider.event_bus.subscribe(
+            event_type=FirmwareStateChangedEvent,
+            event_key=self._device.address,
+            handler=event_handler,
+        )
+
+    async def update(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:
+        """Update the firmware of the Homematic device."""
+        update_result = await self._device.client.update_device_firmware(device_address=self._device.address)
+
+        async def refresh_data() -> None:
+            for refresh_interval in refresh_after_update_intervals:
+                await asyncio.sleep(refresh_interval)
+                await self._device.device_data_refresher.refresh_firmware_data(device_address=self._device.address)
+
+        if refresh_after_update_intervals:
+            self._device.task_scheduler.create_task(target=refresh_data, name="refresh_firmware_data")
+
+        return update_result
+
+    def _publish_firmware_changed(self) -> None:
+        """Publish firmware state changed event."""
+
+        async def _publish() -> None:
+            await self._device.event_bus_provider.event_bus.publish(
+                event=FirmwareStateChangedEvent(
+                    timestamp=datetime.now(),
+                    device_address=self._device.address,
+                )
+            )
+
+        self._device.task_scheduler.create_task(target=_publish, name=f"firmware-updated-{self._device.address}")
 
 
 class _ValueCache:

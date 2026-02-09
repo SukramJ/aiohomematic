@@ -49,16 +49,16 @@ from aiohomematic.const import (
     SystemEventType,
 )
 from aiohomematic.interfaces import (
-    BaseParameterDataPointProtocolAny,
     ClientProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
     EventSubscriptionManagerProtocol,
     GenericDataPointProtocol,
     GenericEventProtocol,
-    HealthTrackerProtocol,
     LastEventTrackerProtocol,
 )
+from aiohomematic.interfaces.central import HealthTrackerProtocol
+from aiohomematic.interfaces.model import BaseParameterDataPointProtocolAny
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")

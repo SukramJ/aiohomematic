@@ -60,7 +60,7 @@ from aiohomematic.central.events import DataPointValueReceivedEvent
 from aiohomematic.const import ParamsetKey
 from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.support import get_device_address
+from aiohomematic.support.address import get_device_address
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 # Type alias for update callback

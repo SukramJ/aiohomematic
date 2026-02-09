@@ -74,38 +74,26 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
     async def event(self, *, value: Any, received_at: datetime) -> None:
         """Handle event for which this data_point has subscribed."""
         # PHASE 3: CCU CONFIRMATION - Handle optimistic value confirmation
-        if self._optimistic_value is not None:
-            self._optimistic_pending_sends = max(0, self._optimistic_pending_sends - 1)
+        if self._optimistic.is_active and self._optimistic.confirm_one():
+            # Final confirmation — evaluate mismatch and clear state
 
-            if self._optimistic_pending_sends > 0:
-                # Intermediate confirmation during burst — silently accept,
-                # keep timer and optimistic state for the final confirmation
-                pass
-            else:
-                # Final confirmation — evaluate mismatch and clear state
-                if self._optimistic_timeout_handle:
-                    self._optimistic_timeout_handle.cancel()
-                    self._optimistic_timeout_handle = None
-
-                # Check for value mismatch (round floats to 2 decimals to avoid
-                # false positives from CCU rounding, e.g. 0.3803… vs 0.38).
-                # Mismatch is logged at DEBUG only — no rollback event, because the
-                # CCU value is authoritative and silently accepted (not a real rollback).
-                if self._values_mismatch(optimistic=self._optimistic_value, actual=value):
-                    _LOGGER.debug(
-                        i18n.tr(
-                            key="log.model.data_point.optimistic_mismatch",
-                            full_name=self.full_name,
-                            expected=self._optimistic_value,
-                            actual=value,
-                            age=self.optimistic_age or 0.0,
-                        )
+            # Check for value mismatch (round floats to 2 decimals to avoid
+            # false positives from CCU rounding, e.g. 0.3803… vs 0.38).
+            # Mismatch is logged at DEBUG only — no rollback event, because the
+            # CCU value is authoritative and silently accepted (not a real rollback).
+            if self._values_mismatch(optimistic=self._optimistic.value, actual=value):
+                _LOGGER.debug(
+                    i18n.tr(
+                        key="log.model.data_point.optimistic_mismatch",
+                        full_name=self.full_name,
+                        expected=self._optimistic.value,
+                        actual=value,
+                        age=self._optimistic.age or 0.0,
                     )
+                )
 
-                # Clear optimistic state (either confirmed or corrected)
-                self._optimistic_value = None
-                self._optimistic_previous_value = None
-                self._optimistic_sent_at = None
+            # Clear optimistic state (either confirmed or corrected)
+            self._optimistic.clear()
 
         self._device.client.last_value_send_tracker.remove_last_value_send(
             dpk=self.dpk,

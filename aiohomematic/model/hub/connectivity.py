@@ -27,16 +27,16 @@ from aiohomematic.interfaces import (
     ConfigProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
-    HealthTrackerProtocol,
     HubBinarySensorDataPointProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.interfaces.central import HealthTrackerProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
-from aiohomematic.support import PayloadMixin
+from aiohomematic.support.mixins import PayloadMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 

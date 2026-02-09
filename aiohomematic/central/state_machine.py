@@ -51,7 +51,7 @@ from typing import TYPE_CHECKING, Final
 from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.central.events.types import CentralStateChangedEvent
 from aiohomematic.const import CentralState, FailureReason
-from aiohomematic.interfaces import CentralStateMachineProtocol
+from aiohomematic.interfaces.central import CentralStateMachineProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:

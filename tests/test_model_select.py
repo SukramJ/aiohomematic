@@ -40,7 +40,7 @@ class TestGenericSelect:
         central, mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
-            central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
         )
         assert select.usage == DataPointUsage.NO_CREATE
         assert select.unit is None
@@ -66,7 +66,7 @@ class TestGenericSelect:
         central, mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
-            central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
         )
 
         await select.send_value(value=3)
@@ -90,7 +90,7 @@ class TestGenericSelect:
         central, mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
-            central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
         )
 
         await select.send_value(value=1)
@@ -115,7 +115,7 @@ class TestGenericSelect:
         central, mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
-            central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
         )
 
         await select.send_value(value=1)
@@ -145,7 +145,7 @@ class TestGenericSelect:
         central, mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
-            central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
         )
 
         await select.send_value(value="OPEN")
@@ -180,7 +180,7 @@ class TestGenericSelect:
         central, mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
-            central.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
         )
         # When WINDOW_STATE is un-ignored, usage should be DATA_POINT
         assert select.is_un_ignored is True

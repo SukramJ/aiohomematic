@@ -82,6 +82,7 @@ asyncio.run(main())
 - [Consumer API](developer/consumer_api.md) - API patterns for integrations
 - [API Reference](reference/api/index.md) - Auto-generated API docs
 - [Architecture](architecture.md) - System design overview
+- [Protocol Selection Guide](architecture/protocol_selection_guide.md) - Choosing the right protocol interface
 
 ### For Contributors
 

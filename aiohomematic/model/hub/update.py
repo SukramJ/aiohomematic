@@ -29,7 +29,7 @@ from aiohomematic.interfaces import (
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
 from aiohomematic.property_decorators import DelegatedProperty, Kind
-from aiohomematic.support import PayloadMixin
+from aiohomematic.support.mixins import PayloadMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 

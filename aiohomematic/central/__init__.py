@@ -74,6 +74,7 @@ from aiohomematic.central.connection_state import CentralConnectionState, Connec
 from aiohomematic.central.decorators import callback_backend_system, callback_event
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.health import CentralHealth, ConnectionHealth, HealthTracker
+from aiohomematic.central.query_facade import DeviceQueryFacade
 from aiohomematic.central.registry import CENTRAL_REGISTRY
 from aiohomematic.central.scheduler import BackgroundScheduler, SchedulerJob
 
@@ -96,6 +97,8 @@ __all__ = [
     "CentralHealth",
     "ConnectionHealth",
     "HealthTracker",
+    # Query
+    "DeviceQueryFacade",
     # Registry
     "DeviceRegistry",
     # Scheduler

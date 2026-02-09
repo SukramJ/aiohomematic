@@ -16,7 +16,7 @@ from typing import Any, Final, cast
 
 from aiohomematic.const import ParameterData, ParamsetKey
 from aiohomematic.store.patches.paramset_patches import PARAMSET_PATCHES, ParamsetPatch
-from aiohomematic.support import get_split_channel_address
+from aiohomematic.support.address import get_split_channel_address
 
 __all__ = [
     "ParamsetPatchMatcher",

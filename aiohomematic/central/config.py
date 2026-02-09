@@ -54,20 +54,14 @@ from aiohomematic.const import (
 )
 from aiohomematic.exceptions import AioHomematicConfigException, AioHomematicException, BaseHomematicException
 from aiohomematic.store import StorageFactoryProtocol
-from aiohomematic.support import (
-    _check_or_create_directory_sync,
-    check_password,
-    extract_exc_args,
-    is_host,
-    is_ipv4_address,
-    is_port,
-)
+from aiohomematic.support import check_password, extract_exc_args, is_host, is_ipv4_address, is_port
+from aiohomematic.support.file_ops import _check_or_create_directory_sync
 
 
 class CentralConfig(BaseModel):
     """Configuration for CentralUnit initialization and behavior."""
 
-    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True, extra="allow")
+    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True, extra="forbid")
 
     # Required fields
     central_id: str

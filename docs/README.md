@@ -72,6 +72,7 @@ docs/
 │       └── testing_with_events.md
 │
 ├── architecture/               # Technical deep-dives
+│   ├── protocol_selection_guide.md
 │   ├── data_flow.md
 │   ├── sequence_diagrams.md
 │   ├── caching.md

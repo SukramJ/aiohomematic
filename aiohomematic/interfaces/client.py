@@ -68,7 +68,7 @@ if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
     from aiohomematic.client import AioJsonRpcAioHttpClient, InterfaceConfig
     from aiohomematic.client.backends.capabilities import BackendCapabilities
-    from aiohomematic.interfaces.central import CentralConfigProtocol
+    from aiohomematic.interfaces.central import CentralConfigProtocol, DeviceQueryFacadeProtocol
     from aiohomematic.interfaces.model import DeviceProtocol
     from aiohomematic.store.persistent import SessionRecorder
 
@@ -78,6 +78,7 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
+@runtime_checkable
 class ClientStateMachineProtocol(Protocol):
     """
     Protocol for client state machine operations.
@@ -104,6 +105,7 @@ class ClientStateMachineProtocol(Protocol):
         """Return the current state."""
 
 
+@runtime_checkable
 class ClientIdentityProtocol(Protocol):
     """
     Protocol for client identification.
@@ -142,6 +144,7 @@ class ClientIdentityProtocol(Protocol):
         """Return the version id of the client."""
 
 
+@runtime_checkable
 class ClientConnectionProtocol(Protocol):
     """
     Protocol for client connection state management.
@@ -194,6 +197,7 @@ class ClientConnectionProtocol(Protocol):
         """Reset all circuit breakers to closed state."""
 
 
+@runtime_checkable
 class ClientLifecycleProtocol(Protocol):
     """
     Protocol for client lifecycle operations.
@@ -203,22 +207,23 @@ class ClientLifecycleProtocol(Protocol):
 
     __slots__ = ()
 
-    async def deinitialize_proxy(self) -> ProxyInitState:
+    async def deinit_proxy(self) -> ProxyInitState:
         """De-init to stop the backend from sending events for this remote."""
 
     async def init_client(self) -> None:
         """Initialize the client."""
 
-    async def initialize_proxy(self) -> ProxyInitState:
+    async def init_proxy(self) -> ProxyInitState:
         """Initialize the proxy has to tell the backend where to send the events."""
 
-    async def reinitialize_proxy(self) -> ProxyInitState:
+    async def reinit_proxy(self) -> ProxyInitState:
         """Reinit Proxy."""
 
     async def stop(self) -> None:
         """Stop depending services."""
 
 
+@runtime_checkable
 class DeviceDiscoveryOperationsProtocol(Protocol):
     """
     Protocol for device discovery operations.
@@ -245,6 +250,7 @@ class DeviceDiscoveryOperationsProtocol(Protocol):
         """List devices of the backend."""
 
 
+@runtime_checkable
 class ParamsetOperationsProtocol(Protocol):
     """
     Protocol for paramset operations.
@@ -305,6 +311,7 @@ class ParamsetOperationsProtocol(Protocol):
         """Update paramsets descriptions for provided device_address."""
 
 
+@runtime_checkable
 class ValueOperationsProtocol(Protocol):
     """
     Protocol for value read/write operations.
@@ -345,6 +352,7 @@ class ValueOperationsProtocol(Protocol):
         """Set single value on paramset VALUES."""
 
 
+@runtime_checkable
 class LinkOperationsProtocol(Protocol):
     """
     Protocol for device linking operations.
@@ -368,6 +376,7 @@ class LinkOperationsProtocol(Protocol):
         """Remove a link between two devices."""
 
 
+@runtime_checkable
 class FirmwareOperationsProtocol(Protocol):
     """
     Protocol for firmware update operations.
@@ -385,6 +394,7 @@ class FirmwareOperationsProtocol(Protocol):
         """Update the firmware of a Homematic device."""
 
 
+@runtime_checkable
 class SystemVariableOperationsProtocol(Protocol):
     """
     Protocol for system variable operations.
@@ -408,6 +418,7 @@ class SystemVariableOperationsProtocol(Protocol):
         """Set a system variable on the backend."""
 
 
+@runtime_checkable
 class ProgramOperationsProtocol(Protocol):
     """
     Protocol for program operations.
@@ -431,6 +442,7 @@ class ProgramOperationsProtocol(Protocol):
         """Set the program state on the backend."""
 
 
+@runtime_checkable
 class BackupOperationsProtocol(Protocol):
     """
     Protocol for backup operations.
@@ -450,6 +462,7 @@ class BackupOperationsProtocol(Protocol):
         """Create a backup on the CCU and download it."""
 
 
+@runtime_checkable
 class MetadataOperationsProtocol(Protocol):
     """
     Protocol for metadata and system operations.
@@ -508,6 +521,7 @@ class MetadataOperationsProtocol(Protocol):
         """Write the metadata for an object."""
 
 
+@runtime_checkable
 class ClientSupportProtocol(Protocol):
     """
     Protocol for client support operations.
@@ -817,19 +831,14 @@ class DeviceLookupProtocol(Protocol):
     Implemented by CentralUnit.
     """
 
+    @property
+    @abstractmethod
+    def query_facade(self) -> DeviceQueryFacadeProtocol:
+        """Return the query facade."""
+
     @abstractmethod
     def get_device(self, *, address: str) -> DeviceProtocol | None:
         """Get device by address."""
-
-    @abstractmethod
-    def get_generic_data_point(
-        self,
-        *,
-        channel_address: str,
-        parameter: str,
-        paramset_key: ParamsetKey,
-    ) -> Any | None:
-        """Get generic data point."""
 
 
 @runtime_checkable
@@ -1209,18 +1218,13 @@ class ClientDependenciesProtocol(Protocol):
 
     @property
     @abstractmethod
+    def query_facade(self) -> DeviceQueryFacadeProtocol:
+        """Return the query facade."""
+
+    @property
+    @abstractmethod
     def state(self) -> CentralState:
         """Return the current central state from the state machine."""
-
-    @abstractmethod
-    def get_generic_data_point(
-        self,
-        *,
-        channel_address: str,
-        parameter: str,
-        paramset_key: ParamsetKey,
-    ) -> Any | None:
-        """Return generic data point."""
 
     @abstractmethod
     async def save_files(

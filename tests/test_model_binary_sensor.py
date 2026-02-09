@@ -42,7 +42,7 @@ class TestGenericBinarySensor:
         central, mock_client, _ = central_client_factory_with_homegear_client
         binary_sensor: DpBinarySensor = cast(
             DpBinarySensor,
-            central.get_generic_data_point(channel_address="VCU5864966:1", parameter="STATE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU5864966:1", parameter="STATE"),
         )
         assert binary_sensor.usage == DataPointUsage.DATA_POINT
         assert binary_sensor.value is False

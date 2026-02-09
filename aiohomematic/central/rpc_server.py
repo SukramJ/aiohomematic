@@ -27,7 +27,8 @@ from aiohomematic.interfaces.central import RpcServerCentralProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.schemas import normalize_device_description
-from aiohomematic.support import get_device_address, log_boundary_error
+from aiohomematic.support import log_boundary_error
+from aiohomematic.support.address import get_device_address
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable

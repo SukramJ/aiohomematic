@@ -9,8 +9,8 @@ These tests define the stable API contract for InterfaceClient lifecycle methods
 Any change that breaks these tests requires a MAJOR version bump.
 
 The contract ensures that:
-1. initialize_proxy transitions state correctly
-2. deinitialize_proxy cleans up state correctly
+1. init_proxy transitions state correctly
+2. deinit_proxy cleans up state correctly
 3. reconnect applies exponential backoff
 4. stop unsubscribes and transitions to STOPPED
 5. Lifecycle methods respect capability flags
@@ -179,8 +179,8 @@ class TestReconnectBackoffContract:
 class TestLifecycleStateTransitionsContract:
     """Contract: Lifecycle methods use correct state transitions."""
 
-    def test_deinitialize_proxy_uses_disconnected(self) -> None:
-        """Contract: deinitialize_proxy transitions to DISCONNECTED."""
+    def test_deinit_proxy_uses_disconnected(self) -> None:
+        """Contract: deinit_proxy transitions to DISCONNECTED."""
         assert ClientState.DISCONNECTED.value == "disconnected"
 
     def test_failure_uses_failed(self) -> None:
@@ -193,8 +193,8 @@ class TestLifecycleStateTransitionsContract:
         assert ClientState.INITIALIZING.value == "initializing"
         assert ClientState.INITIALIZED.value == "initialized"
 
-    def test_initialize_proxy_uses_connecting(self) -> None:
-        """Contract: initialize_proxy transitions to CONNECTING then CONNECTED."""
+    def test_init_proxy_uses_connecting(self) -> None:
+        """Contract: init_proxy transitions to CONNECTING then CONNECTED."""
         assert ClientState.CONNECTING.value == "connecting"
         assert ClientState.CONNECTED.value == "connected"
 
@@ -226,20 +226,20 @@ class TestCapabilityGatedLifecycleContract:
 
     def test_rpc_callback_false_skips_deinit(self) -> None:
         """
-        Contract: When rpc_callback=False, deinitialize_proxy skips XML-RPC deinit.
+        Contract: When rpc_callback=False, deinit_proxy skips XML-RPC deinit.
 
         With rpc_callback=False:
-        - deinitialize_proxy should still transition to DISCONNECTED
+        - deinit_proxy should still transition to DISCONNECTED
         - But no deinit() RPC call is made
         - Returns DE_INIT_SUCCESS immediately
         """
 
     def test_rpc_callback_false_skips_init(self) -> None:
         """
-        Contract: When rpc_callback=False, initialize_proxy skips XML-RPC init.
+        Contract: When rpc_callback=False, init_proxy skips XML-RPC init.
 
         With rpc_callback=False:
-        - initialize_proxy should still transition to CONNECTED
+        - init_proxy should still transition to CONNECTED
         - But it should use list_devices instead of init() call
         - No XML-RPC callback URL is registered
         """

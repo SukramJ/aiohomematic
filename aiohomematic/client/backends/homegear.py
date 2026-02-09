@@ -17,11 +17,9 @@ from typing import TYPE_CHECKING, Any, Final, cast
 
 from aiohomematic.client.backends.base import BaseBackend
 from aiohomematic.client.backends.capabilities import HOMEGEAR_CAPABILITIES
-from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.const import (
     DUMMY_SERIAL,
     Backend,
-    CircuitState,
     CommandRxMode,
     DescriptionMarker,
     DeviceDescription,
@@ -33,7 +31,6 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.exceptions import BaseHomematicException
-from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.schemas import normalize_device_description
 from aiohomematic.support import extract_exc_args
 
@@ -71,26 +68,19 @@ class HomegearBackend(BaseBackend):
         """Initialize the Homegear backend."""
         # Build capabilities based on config
         capabilities = HOMEGEAR_CAPABILITIES.model_copy(update={"push_updates": has_push_updates})
+        # Collect unique circuit breakers for centralized health tracking
+        cbs = [proxy.circuit_breaker]
+        if proxy_read is not proxy:
+            cbs.append(proxy_read.circuit_breaker)
         super().__init__(
             interface=interface,
             interface_id=interface_id,
             capabilities=capabilities,
+            circuit_breakers=tuple(cbs),
         )
         self._proxy: Final = proxy
         self._proxy_read: Final = proxy_read
         self._version: Final = version
-
-    circuit_breaker: Final = DelegatedProperty[CircuitBreaker](path="_proxy.circuit_breaker")
-
-    @property
-    def all_circuit_breakers_closed(self) -> bool:
-        """Return True if all circuit breakers are in closed state."""
-        if self._proxy.circuit_breaker.state != CircuitState.CLOSED:
-            return False
-        # Check proxy_read only if it's a different object
-        if self._proxy_read is not self._proxy:
-            return self._proxy_read.circuit_breaker.state == CircuitState.CLOSED
-        return True
 
     @property
     def model(self) -> str:
@@ -255,13 +245,6 @@ class HomegearBackend(BaseBackend):
             await self._proxy.putParamset(channel_address, paramset_key, values, rx_mode)
         else:
             await self._proxy.putParamset(channel_address, paramset_key, values)
-
-    def reset_circuit_breakers(self) -> None:
-        """Reset all circuit breakers to closed state."""
-        self._proxy.circuit_breaker.reset()
-        # Reset proxy_read only if it's a different object
-        if self._proxy_read is not self._proxy:
-            self._proxy_read.circuit_breaker.reset()
 
     async def set_system_variable(self, *, name: str, value: Any) -> bool:
         """Set system variable via Homegear's setSystemVariable."""

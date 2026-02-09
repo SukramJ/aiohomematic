@@ -21,7 +21,7 @@ import logging
 from typing import Final
 
 from aiohomematic.interfaces import CentralInfoProtocol, ChannelProtocol, ClientProviderProtocol, DeviceProtocol
-from aiohomematic.support import get_device_address
+from aiohomematic.support.address import get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
 

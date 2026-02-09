@@ -41,22 +41,17 @@ from aiohomematic.model.support import (
 )
 from aiohomematic.support import (
     CacheEntry,
-    _check_or_create_directory_sync,
     build_xml_rpc_headers,
     build_xml_rpc_uri,
     changed_within_seconds,
     check_password,
     cleanup_text_from_html_tags,
-    delete_file,
     element_matches_key,
     extract_exc_args,
     find_free_port,
-    get_channel_no,
     get_rx_modes,
     get_tls_context,
     hash_sha256,
-    is_channel_address,
-    is_device_address,
     is_host,
     is_ipv4_address,
     log_boundary_error,
@@ -64,6 +59,8 @@ from aiohomematic.support import (
     supports_rx_mode,
     to_bool,
 )
+from aiohomematic.support.address import get_channel_no, is_channel_address, is_device_address
+from aiohomematic.support.file_ops import _check_or_create_directory_sync, delete_file
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
 

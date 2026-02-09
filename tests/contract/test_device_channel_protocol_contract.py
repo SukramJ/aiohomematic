@@ -17,31 +17,31 @@ from aiohomematic.interfaces import (
     # Channel protocols (public)
     ChannelDataPointAccessProtocol,
     ChannelIdentityProtocol,
-    ChannelManagementProtocol,
-    ChannelMetadataAndGroupingProtocol,
     ChannelProtocol,
     # Device protocols (public)
     DeviceChannelAccessProtocol,
-    DeviceConfigurationProtocol,
     DeviceIdentityProtocol,
-    DeviceOperationsProtocol,
     DeviceProtocol,
-    DeviceProvidersProtocol,
-    DeviceStateProtocol,
 )
 from aiohomematic.interfaces.model import (
     # Channel protocols (internal)
     ChannelGroupingProtocol,
     ChannelLifecycleProtocol,
     ChannelLinkManagementProtocol,
+    ChannelManagementProtocol,
+    ChannelMetadataAndGroupingProtocol,
     ChannelMetadataProtocol,
     # Device protocols (internal)
     DeviceAvailabilityProtocol,
+    DeviceConfigurationProtocol,
     DeviceFirmwareProtocol,
     DeviceGroupManagementProtocol,
     DeviceLifecycleProtocol,
     DeviceLinkManagementProtocol,
+    DeviceOperationsProtocol,
+    DeviceProvidersProtocol,
     DeviceRemovalInfoProtocol,
+    DeviceStateProtocol,
     DeviceWeekProfileProtocol,
 )
 

@@ -261,7 +261,7 @@ class TestIntegrativeNaming:
         all_unique_ids: dict[str, str] = {}  # uid -> description for debugging
         duplicates: list[str] = []
 
-        for dp in central.get_data_points():
+        for dp in central.query_facade.get_data_points():
             if dp.unique_id in all_unique_ids:
                 duplicates.append(f"{dp.unique_id} (first: {all_unique_ids[dp.unique_id]}, duplicate: {dp.full_name})")
             else:
@@ -406,7 +406,7 @@ class TestHubDataPointNaming:
         central_id = central.config.central_id
 
         # Hub data points should have central_id in their unique_id
-        for dp in central.get_data_points():
+        for dp in central.query_facade.get_data_points():
             # Hub data points use special addresses that require central_id
             if any(addr in dp.unique_id for addr in ["hub", "program", "sysvar"]):
                 assert dp.unique_id.startswith(central_id), (

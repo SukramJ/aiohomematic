@@ -35,7 +35,7 @@ from aiohomematic.schemas import normalize_paramset_description
 from aiohomematic.store.patches import ParamsetPatchMatcher
 from aiohomematic.store.persistent.base import BasePersistentCache
 from aiohomematic.store.types import InterfaceParamsetMap
-from aiohomematic.support import get_split_channel_address
+from aiohomematic.support.address import get_split_channel_address
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import ConfigProviderProtocol

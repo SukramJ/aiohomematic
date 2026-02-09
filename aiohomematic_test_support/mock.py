@@ -473,7 +473,7 @@ def get_mock(
         captured at mock creation time, not the current value on the wrapped instance.
         This causes test failures when the wrapped instance's state changes after
         the mock is created (e.g., client.available changes from False to True
-        after initialize_proxy() is called).
+        after init_proxy() is called).
 
     Solution:
         Create a dynamic MagicMock subclass with property descriptors that delegate
@@ -598,38 +598,25 @@ async def get_session_player(*, file_name: str) -> SessionPlayer:
 class SessionPlayer:
     """Player for sessions."""
 
-    _store: dict[str, dict[str, dict[str, dict[str, dict[int, Any]]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
-    )
-
     def __init__(self, *, file_id: str) -> None:
         """Initialize the session player."""
         self._file_id = file_id
-
-    @classmethod
-    def clear_all(cls) -> None:
-        """Clear all cached session data from all file IDs."""
-        cls._store.clear()
-
-    @classmethod
-    def clear_file(cls, *, file_id: str) -> None:
-        """Clear cached session data for a specific file ID."""
-        cls._store.pop(file_id, None)
-
-    @classmethod
-    def get_loaded_file_ids(cls) -> list[str]:
-        """Return list of currently loaded file IDs."""
-        return list(cls._store.keys())
-
-    @classmethod
-    def get_memory_usage(cls) -> int:
-        """Return approximate memory usage of cached session data in bytes."""
-        return sys.getsizeof(cls._store)
+        self._store: dict[str, dict[str, dict[str, dict[str, dict[int, Any]]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
+        )
 
     @property
     def _secondary_file_ids(self) -> list[str]:
         """Return the secondary store for the given file_id."""
         return [fid for fid in self._store if fid != self._file_id]
+
+    def clear_all(self) -> None:
+        """Clear all cached session data from all file IDs."""
+        self._store.clear()
+
+    def clear_file(self, *, file_id: str) -> None:
+        """Clear cached session data for a specific file ID."""
+        self._store.pop(file_id, None)
 
     def get_latest_response_by_method(self, *, rpc_type: str, method: str) -> list[tuple[Any, Any]]:
         """Return latest non-expired responses for a given (rpc_type, method)."""
@@ -724,6 +711,14 @@ class SessionPlayer:
             return bucket_by_ts[latest_ts]
         except ValueError:
             return None
+
+    def get_loaded_file_ids(self) -> list[str]:
+        """Return list of currently loaded file IDs."""
+        return list(self._store.keys())
+
+    def get_memory_usage(self) -> int:
+        """Return approximate memory usage of cached session data in bytes."""
+        return sys.getsizeof(self._store)
 
     async def load(self, *, file_path: str, file_id: str) -> DataOperationResult:
         """

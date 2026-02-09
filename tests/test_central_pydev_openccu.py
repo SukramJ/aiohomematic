@@ -107,7 +107,7 @@ class TestCentralPyDevOpenCCU:
             assert pub_config_props
 
         data_point_types = {}
-        for dp in central.get_data_points(exclude_no_create=False):
+        for dp in central.query_facade.get_data_points(exclude_no_create=False):
             if hasattr(dp, "hmtype"):
                 if dp.hmtype not in data_point_types:
                     data_point_types[dp.hmtype] = {}
@@ -123,18 +123,18 @@ class TestCentralPyDevOpenCCU:
                 assert pub_config_props
 
         parameters: list[tuple[str, int]] = []
-        for dp in central.get_data_points(exclude_no_create=False):
+        for dp in central.query_facade.get_data_points(exclude_no_create=False):
             if hasattr(dp, "parameter") and (dp.parameter, dp._operations) not in parameters:
                 parameters.append((dp.parameter, dp._operations))
         parameters = sorted(parameters)
 
         units = set()
-        for dp in central.get_data_points(exclude_no_create=False):
+        for dp in central.query_facade.get_data_points(exclude_no_create=False):
             if hasattr(dp, "unit"):
                 units.add(dp.unit)
 
         usage_types: dict[DataPointUsage, int] = {}
-        for dp in central.get_data_points(exclude_no_create=False):
+        for dp in central.query_facade.get_data_points(exclude_no_create=False):
             if hasattr(dp, "usage"):
                 if dp.usage not in usage_types:
                     usage_types[dp.usage] = 0
@@ -191,4 +191,4 @@ class TestCentralPyDevOpenCCU:
             interface_id=const.OPENCCU_INTERFACE_ID, addresses=del_addresses
         )
         assert len(central.device_registry.devices) == 0
-        assert len(central.get_data_points(exclude_no_create=False)) == 0
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 0

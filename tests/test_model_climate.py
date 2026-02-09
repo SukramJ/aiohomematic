@@ -1499,11 +1499,11 @@ class TestClimateIntegration:
 
         climate_bwth: BaseCustomDpClimate = cast(
             BaseCustomDpClimate,
-            central_unit_pydevccu_mini.get_custom_data_point(address="VCU1769958", channel_no=1),
+            central_unit_pydevccu_mini.query_facade.get_custom_data_point(address="VCU1769958", channel_no=1),
         )
         climate_etrv: BaseCustomDpClimate = cast(
             BaseCustomDpClimate,
-            central_unit_pydevccu_mini.get_custom_data_point(address="VCU3609622", channel_no=1),
+            central_unit_pydevccu_mini.query_facade.get_custom_data_point(address="VCU3609622", channel_no=1),
         )
         assert climate_bwth
 

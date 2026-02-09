@@ -40,7 +40,7 @@ class TestGenericSensor:
         """Test DpSensor state value mapping with enumeration values."""
         central, _, _ = central_client_factory_with_homegear_client
         sensor: DpSensor = cast(
-            DpSensor, central.get_generic_data_point(channel_address="VCU7981740:1", parameter="STATE")
+            DpSensor, central.query_facade.get_generic_data_point(channel_address="VCU7981740:1", parameter="STATE")
         )
         assert sensor.usage == DataPointUsage.DATA_POINT
         assert sensor.unit is None
@@ -74,7 +74,7 @@ class TestGenericSensor:
         """Test DpSensor voltage and RSSI value handling and conversion."""
         central, _, _ = central_client_factory_with_homegear_client
         sensor: DpSensor = cast(
-            DpSensor, central.get_generic_data_point(channel_address="VCU3941846:6", parameter="VOLTAGE")
+            DpSensor, central.query_facade.get_generic_data_point(channel_address="VCU3941846:6", parameter="VOLTAGE")
         )
         assert sensor.usage == DataPointUsage.DATA_POINT
         assert sensor.unit == "V"
@@ -91,7 +91,7 @@ class TestGenericSensor:
 
         sensor2: DpSensor = cast(
             DpSensor,
-            central.get_generic_data_point(channel_address="VCU3941846:0", parameter="RSSI_DEVICE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU3941846:0", parameter="RSSI_DEVICE"),
         )
         assert sensor2.usage == DataPointUsage.DATA_POINT
         assert sensor2.unit == "dBm"
@@ -120,7 +120,7 @@ class TestGenericSensor:
 
         sensor3: DpSensor = cast(
             DpSensor,
-            central.get_generic_data_point(channel_address="VCU8205532:1", parameter="CONCENTRATION"),
+            central.query_facade.get_generic_data_point(channel_address="VCU8205532:1", parameter="CONCENTRATION"),
         )
         assert sensor3.usage == DataPointUsage.DATA_POINT
         assert sensor3.unit == "ppm"

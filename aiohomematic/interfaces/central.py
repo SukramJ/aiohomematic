@@ -20,12 +20,14 @@ from aiohomematic.const import (
     BackupData,
     CentralState,
     ClientState,
+    DataPointCategory,
     DescriptionMarker,
     DeviceFirmwareState,
     DeviceTriggerEventType,
     EventData,
     FailureReason,
     Interface,
+    Operations,
     OptionalSettings,
     ParamsetKey,
     ScheduleTimerConfig,
@@ -46,8 +48,11 @@ if TYPE_CHECKING:
     from aiohomematic.client import InterfaceConfig
     from aiohomematic.interfaces import (
         CallbackDataPointProtocol,
+        ChannelEventGroupProtocol,
         ChannelProtocol,
+        CustomDataPointProtocol,
         GenericDataPointProtocolAny,
+        GenericEventProtocolAny,
         GenericSysvarDataPointProtocol,
     )
     from aiohomematic.metrics import MetricsObserver
@@ -422,6 +427,97 @@ class EventPublisherProtocol(Protocol):
     @abstractmethod
     def publish_system_event(self, *, system_event: SystemEventType, **kwargs: Unpack[SystemEventArgs]) -> None:
         """Publish a backend system event."""
+
+
+@runtime_checkable
+class DeviceQueryFacadeProtocol(Protocol):
+    """
+    Protocol for the device query facade.
+
+    Provides read-only lookup methods for devices, data points, and events.
+    Implemented by DeviceQueryFacade.
+    """
+
+    @abstractmethod
+    def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
+        """Return the hm custom_data_point."""
+
+    @abstractmethod
+    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
+        """Return Homematic data_point by custom_id."""
+
+    @abstractmethod
+    def get_data_points(
+        self,
+        *,
+        category: DataPointCategory | None = None,
+        interface: Interface | None = None,
+        exclude_no_create: bool = True,
+        registered: bool | None = None,
+    ) -> tuple[CallbackDataPointProtocol, ...]:
+        """Return all externally registered data points."""
+
+    @abstractmethod
+    def get_event(
+        self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
+    ) -> GenericEventProtocolAny | None:
+        """Return the hm event."""
+
+    @abstractmethod
+    def get_event_groups(
+        self,
+        *,
+        event_type: DeviceTriggerEventType,
+        registered: bool | None = None,
+    ) -> tuple[ChannelEventGroupProtocol, ...]:
+        """Return all channel event groups for the given event type."""
+
+    @abstractmethod
+    def get_events(
+        self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
+    ) -> tuple[tuple[GenericEventProtocolAny, ...], ...]:
+        """Return all channel event data points."""
+
+    @abstractmethod
+    def get_generic_data_point(
+        self,
+        *,
+        channel_address: str | None = None,
+        parameter: str | None = None,
+        paramset_key: ParamsetKey | None = None,
+        state_path: str | None = None,
+    ) -> GenericDataPointProtocolAny | None:
+        """Get data_point by channel_address and parameter."""
+
+    @abstractmethod
+    async def get_install_mode(self, *, interface: Interface) -> int:
+        """Return the remaining time in install mode for an interface."""
+
+    @abstractmethod
+    def get_parameters(
+        self,
+        *,
+        paramset_key: ParamsetKey,
+        operations: tuple[Operations, ...],
+        full_format: bool = False,
+        un_ignore_candidates_only: bool = False,
+        use_channel_wildcard: bool = False,
+    ) -> tuple[str, ...]:
+        """Return all parameters from VALUES paramset."""
+
+    @abstractmethod
+    def get_readable_generic_data_points(
+        self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
+    ) -> tuple[GenericDataPointProtocolAny, ...]:
+        """Return the readable generic data points."""
+
+    @abstractmethod
+    def get_state_paths(self, *, rpc_callback_supported: bool | None = None) -> tuple[str, ...]:
+        """Return the data point paths."""
+
+    @abstractmethod
+    def get_un_ignore_candidates(self, *, include_master: bool = False) -> list[str]:
+        """Return the candidates for un_ignore."""
 
 
 @runtime_checkable

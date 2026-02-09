@@ -272,6 +272,10 @@ class _FakeCentral:
     def listen_port_xml_rpc(self) -> int:
         return self._listen_port_xml_rpc
 
+    @property
+    def query_facade(self) -> Any:
+        return self
+
     def add_channel(self, channel_address: str) -> None:
         self._channels[channel_address] = SimpleNamespace(
             get_readable_data_points=lambda paramset_key: (),

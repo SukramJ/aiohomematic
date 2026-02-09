@@ -1,3 +1,104 @@
+# Version 2026.2.8 (2026-02-09)
+
+## What's Changed
+
+### Refactored
+
+- **Extract `DeviceQueryFacade` from `CentralUnit`** (P1): Moved 12 query methods
+  (`get_data_points`, `get_events`, `get_generic_data_point`, `get_custom_data_point`,
+  `get_data_point_by_custom_id`, `get_event`, `get_event_groups`,
+  `get_readable_generic_data_points`, `get_state_paths`, `get_install_mode`,
+  `get_un_ignore_candidates`, `get_parameters`) into a new `DeviceQueryFacade` class
+  (~348 LOC). CentralUnit retains one-line delegates for API compatibility.
+
+- **Centralize circuit breaker management in `BaseBackend`**: Circuit breakers are now
+  collected and managed by the base backend class via a `circuit_breakers` tuple.
+  `all_circuit_breakers_closed`, `circuit_breaker`, and `reset_circuit_breakers` are
+  implemented once in `BaseBackend`, eliminating duplicate logic in `CcuBackend`,
+  `HomegearBackend`, and `JsonCcuBackend`.
+
+- **Replace `hasattr` introspection in `ConnectionHealth.update_from_client`**: The method
+  now accepts `ClientConnectionProtocol` instead of `Any` and reads `client.state` via
+  the public API instead of reaching into `_state_machine`, `_proxy._circuit_breaker`, and
+  `_json_rpc_client._circuit_breaker`.
+
+- **Thread-safe `RequestCoalescer`**: The check-and-register operation is now protected
+  by an `asyncio.Lock`, making it safe under Python 3.13+ free-threading. The lock is
+  released before awaiting the actual request to allow concurrent coalescing.
+
+- **Extract `OptimisticValueTracker` from `BaseParameterDataPoint`**: Consolidated 5
+  optimistic-update-related slots into a single pure state management class
+  (`aiohomematic/model/optimistic.py`, ~136 LOC). Manages apply, confirm, and rollback
+  lifecycle with burst support and automatic rollback timeouts — no event publishing,
+  logging, or I/O.
+
+- **Extract `_DeviceAvailability` and `_DeviceFirmware` from `Device`**: Moved
+  availability state management (UN_REACH, STICKY_UN_REACH, forced availability) and
+  firmware version tracking / update operations into dedicated helper classes within
+  `device.py`, reducing the main `Device` class complexity.
+
+- **Split `support.py` into `support/` package**: The monolithic `support.py` module is
+  now a package with three focused submodules:
+
+  - `address.py`: Address parsing/validation with `@lru_cache`
+  - `file_ops.py`: Async file system operations
+  - `mixins.py`: `LogContextMixin` and `PayloadMixin` for structured logging
+
+  The package re-exports all public symbols, so external imports remain unchanged.
+
+- **Rename proxy lifecycle methods on `InterfaceClient`**: `initialize_proxy()` →
+  `init_proxy()`, `deinitialize_proxy()` → `deinit_proxy()`,
+  `reinitialize_proxy()` → `reinit_proxy()`.
+
+### Added
+
+- **`cleanup()` method on `CentralDataCache`**: Forces an expiration check on all
+  interfaces, callable from scheduler or tests.
+
+- **`@runtime_checkable` on client and model sub-protocols**: Added to
+  `ClientStateMachineProtocol`, `ClientIdentityProtocol`, `ClientConnectionProtocol`,
+  `ClientLifecycleProtocol`, `DeviceDiscoveryOperationsProtocol`,
+  `ParamsetOperationsProtocol`, `ValueOperationsProtocol`, `LinkOperationsProtocol`,
+  `FirmwareOperationsProtocol`, `SystemVariableOperationsProtocol`,
+  `ProgramOperationsProtocol`, `BackupOperationsProtocol`, and several channel/device
+  sub-protocols.
+
+- **`_migrate_schema()` hook re-enabled in `BasePersistentCache.load()`** (P12): Schema
+  version mismatches now attempt migration via `_migrate_schema()` before falling back to
+  `VERSION_MISMATCH`. Default raises `NotImplementedError` so existing behaviour is
+  preserved.
+
+### Documentation
+
+- **Device class section comments** (P8): Added 7 section markers
+  (`# -- 1. Metadata & Identity --` through `# -- 7. Week Profile --`) to organize
+  the Device class body.
+
+- **DataPoint hierarchy diagram** (P9): Added class hierarchy documentation to
+  `data_point.py` showing the 5-level parameter-backed chain and 2-level calculated chain.
+
+- **Cache concurrency model** (P10): Added `Concurrency` section to `CentralDataCache`,
+  `CommandTracker`, `PingPongTracker`, and `DeviceDetailsCache` documenting the
+  single-event-loop assumption and PEP 703 implications.
+
+- **Lazy cache expiration** (P11): Documented the intentional lazy expiration strategy
+  and `_is_initializing` lifecycle in `CentralDataCache`.
+
+- **Protocol selection guide** (`docs/architecture/protocol_selection_guide.md`):
+  Decision tree for choosing among 115 protocol interfaces by use case, with guidance on
+  naming conventions and interface segregation principles.
+
+### Testing
+
+- **Benchmark test suite** (`tests/benchmarks/`): Performance baseline tests for
+  `CentralDataCache`, `CircuitBreaker`, `EventBus`, and `RequestCoalescer`.
+
+- **Error-path test suite** (`tests/test_error_paths.py`, ~585 LOC): Comprehensive
+  resilience tests covering `RequestCoalescer` burst scenarios, circuit breaker
+  integration, cache expiration edge cases, and shutdown cleanup.
+
+---
+
 # Version 2026.2.7 (2026-02-09)
 
 ## What's Changed
@@ -618,7 +719,7 @@ See ADR-0018 for architectural context.
 
 - **Recovery fails for individual clients when others exist**: Fixed an issue where recovery for CUxD or CCU-Jack clients would fail with "Clients bereits erstellt" when other clients (HmIP-RF, BidCos-RF, etc.) were already created. The `ConnectionRecoveryCoordinator._stage_reconnect()` now calls `_create_client(interface_config=...)` directly for the specific failing interface instead of `_create_clients()` which requires no existing clients.
 
-- **Client state machine blocks recovery from INITIALIZED state**: Fixed an issue where clients stuck in `INITIALIZED` state (initialized but never connected) could not be recovered. The state machine now allows `INITIALIZED → DISCONNECTED` transitions, enabling `deinitialize_proxy()` to reset the client state for reconnection attempts. This was causing `InvalidStateTransitionError: Invalid state transition from initialized to disconnected`.
+- **Client state machine blocks recovery from INITIALIZED state**: Fixed an issue where clients stuck in `INITIALIZED` state (initialized but never connected) could not be recovered. The state machine now allows `INITIALIZED → DISCONNECTED` transitions, enabling `deinit_proxy()` to reset the client state for reconnection attempts. This was causing `InvalidStateTransitionError: Invalid state transition from initialized to disconnected`.
 
 - **TCP check fails for JSON-RPC-only interfaces**: Fixed an issue where CUxD and CCU-Jack client creation would always fail at startup because the TCP pre-flight check was attempted on port 0. These interfaces use JSON-RPC (via the central JSON port 443/80) and don't have individual XML-RPC ports. The TCP check is now skipped for interfaces with `port=0`.
 
@@ -1266,7 +1367,7 @@ See ADR-0018 for architectural context.
 
 ### Fixed
 
-- **Fix list_device() returning empty list treated as error**: The `initialize_proxy()` method now correctly handles empty device lists from interfaces that don't support RPC callbacks. Previously, an empty device list was incorrectly treated as a connection failure because the code used a truthy check (`if device_descriptions :=`) instead of a None check. Now uses `is not None` to properly distinguish between "no devices" (success) and "list_devices failed" (failure).
+- **Fix list_device() returning empty list treated as error**: The `init_proxy()` method now correctly handles empty device lists from interfaces that don't support RPC callbacks. Previously, an empty device list was incorrectly treated as a connection failure because the code used a truthy check (`if device_descriptions :=`) instead of a None check. Now uses `is not None` to properly distinguish between "no devices" (success) and "list_devices failed" (failure).
 
 ---
 
@@ -1299,7 +1400,7 @@ See ADR-0018 for architectural context.
 
 ### Fixed
 
-- **Fix state machine transition error on unload**: Allow transition from `FAILED` to `DISCONNECTED` state. This fixes `InvalidStateTransitionError` when unloading the Home Assistant integration while a client is in failed state. Previously, `deinitialize_proxy()` could not cleanly shut down a failed client.
+- **Fix state machine transition error on unload**: Allow transition from `FAILED` to `DISCONNECTED` state. This fixes `InvalidStateTransitionError` when unloading the Home Assistant integration while a client is in failed state. Previously, `deinit_proxy()` could not cleanly shut down a failed client.
 
 ---
 
@@ -1436,8 +1537,8 @@ See ADR-0018 for architectural context.
 
   - **Affected files**:
 
-    - `aiohomematic/client/ccu.py`: Added callback detection in `initialize_proxy()`
-    - `aiohomematic/client/interface_client.py`: Added callback detection in `initialize_proxy()`
+    - `aiohomematic/client/ccu.py`: Added callback detection in `init_proxy()`
+    - `aiohomematic/client/interface_client.py`: Added callback detection in `init_proxy()`
 
   - **Impact**: VirtualDevices (heating groups) should now initialize reliably on OpenCCU/RaspberryMatic systems
 

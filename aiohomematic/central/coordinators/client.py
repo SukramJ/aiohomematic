@@ -34,9 +34,9 @@ from aiohomematic.interfaces import (
     ConfigProviderProtocol,
     CoordinatorProviderProtocol,
     EventBusProviderProtocol,
-    HealthTrackerProtocol,
     SystemInfoProviderProtocol,
 )
+from aiohomematic.interfaces.central import HealthTrackerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import extract_exc_args
 
@@ -536,7 +536,7 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
     async def _de_init_clients(self) -> None:
         """De-initialize all clients."""
         for name, client in self._clients.items():
-            if await client.deinitialize_proxy():
+            if await client.deinit_proxy():
                 _LOGGER.debug("DE_INIT_CLIENTS: Proxy de-initialized: %s", name)
 
     def _get_primary_client(self) -> ClientProtocol | None:
@@ -566,7 +566,7 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
                 del self._clients[client.interface_id]
                 continue
 
-            if await client.initialize_proxy() == ProxyInitState.INIT_SUCCESS:
+            if await client.init_proxy() == ProxyInitState.INIT_SUCCESS:
                 _LOGGER.debug(
                     "INIT_CLIENTS: client %s initialized for %s", client.interface_id, self._central_info.name
                 )

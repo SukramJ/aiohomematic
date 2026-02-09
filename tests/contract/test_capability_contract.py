@@ -577,8 +577,8 @@ class TestRpcCallbackCapabilityContract:
     (CUxD/CCU-Jack) don't attempt to call init() on a proxy that doesn't exist.
     """
 
-    async def test_initialize_proxy_calls_init_when_rpc_callback_true(self) -> None:
-        """CONTRACT: initialize_proxy() MUST call backend.init_proxy() when rpc_callback=True."""
+    async def test_init_proxy_calls_init_when_rpc_callback_true(self) -> None:
+        """CONTRACT: init_proxy() MUST call backend.init_proxy() when rpc_callback=True."""
         central = _FakeCentral()
         backend = _create_fake_backend(
             interface=Interface.HMIP_RF,
@@ -589,14 +589,14 @@ class TestRpcCallbackCapabilityContract:
         # Initialize state machine to INITIALIZED
         client._state_machine._state = ClientState.INITIALIZED
 
-        await client.initialize_proxy()
+        await client.init_proxy()
 
         # Should call init_proxy
         backend.init_proxy.assert_called_once()
 
-    async def test_initialize_proxy_skips_init_when_rpc_callback_false(self) -> None:
+    async def test_init_proxy_skips_init_when_rpc_callback_false(self) -> None:
         """
-        CONTRACT: initialize_proxy() MUST NOT call backend.init_proxy() when rpc_callback=False.
+        CONTRACT: init_proxy() MUST NOT call backend.init_proxy() when rpc_callback=False.
 
         Instead, it should directly list devices and transition to CONNECTED.
         """
@@ -607,14 +607,14 @@ class TestRpcCallbackCapabilityContract:
         # Initialize state machine to INITIALIZED
         client._state_machine._state = ClientState.INITIALIZED
 
-        result = await client.initialize_proxy()
+        result = await client.init_proxy()
 
         # Should succeed without calling init_proxy
         assert result == ProxyInitState.INIT_SUCCESS
         backend.init_proxy.assert_not_called()
         backend.list_devices.assert_called_once()
 
-    async def test_initialize_proxy_transitions_correctly_when_rpc_callback_false(
+    async def test_init_proxy_transitions_correctly_when_rpc_callback_false(
         self,
     ) -> None:
         """
@@ -629,7 +629,7 @@ class TestRpcCallbackCapabilityContract:
         # Initialize state machine to INITIALIZED
         client._state_machine._state = ClientState.INITIALIZED
 
-        await client.initialize_proxy()
+        await client.init_proxy()
 
         # Should be in CONNECTED state
         assert client.state == ClientState.CONNECTED
@@ -971,7 +971,7 @@ class TestJsonRpcOnlyBehaviorContract:
 
         # 2. Initialize
         client._state_machine._state = ClientState.INITIALIZED
-        result = await client.initialize_proxy()
+        result = await client.init_proxy()
         assert result == ProxyInitState.INIT_SUCCESS
         assert client.state == ClientState.CONNECTED
 

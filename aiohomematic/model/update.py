@@ -20,7 +20,7 @@ from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
-from aiohomematic.support import PayloadMixin
+from aiohomematic.support.mixins import PayloadMixin
 from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeCallback
 
 __all__ = ["DpUpdate"]

@@ -45,7 +45,8 @@ from aiohomematic.model.support import (
     get_hub_data_point_name_data,
 )
 from aiohomematic.property_decorators import DelegatedProperty, Kind
-from aiohomematic.support import PayloadMixin, parse_sys_var
+from aiohomematic.support import parse_sys_var
+from aiohomematic.support.mixins import PayloadMixin
 
 
 class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):

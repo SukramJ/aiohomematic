@@ -41,8 +41,8 @@ Example Usage
 
 Thread Safety
 -------------
-RequestCoalescer is designed for single-threaded asyncio use.
-All operations assume they run in the same event loop.
+RequestCoalescer uses an asyncio.Lock to protect the check-and-register
+operation, making it safe even in free-threading scenarios (Python 3.13+).
 
 """
 
@@ -53,7 +53,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Final, TypeVar
 
 from aiohomematic.central.events import RequestCoalescedEvent
 from aiohomematic.metrics import MetricKeys, emit_counter
@@ -105,6 +105,7 @@ class RequestCoalescer:
         self._name: Final = name
         self._event_bus = event_bus
         self._interface_id = interface_id or name
+        self._lock = asyncio.Lock()
         self._pending: dict[str, _PendingRequest] = {}
         self._total_requests: int = 0
         self._executed_requests: int = 0
@@ -144,6 +145,9 @@ class RequestCoalescer:
         Otherwise, it executes the request and shares the result with
         any other callers that arrive while execution is in progress.
 
+        The check-and-register operation is protected by an asyncio.Lock
+        to ensure atomicity even in free-threading scenarios.
+
         Args:
         ----
             key: Unique key identifying the request (e.g., "method:arg1:arg2")
@@ -160,28 +164,34 @@ class RequestCoalescer:
         """
         self._total_requests += 1
 
-        # Check if there's already a pending request for this key
-        if key in self._pending:
-            pending = self._pending[key]
-            pending.waiter_count += 1
-            # Coalescing is a significant event worth tracking (shows efficiency)
-            self._emit_coalesced_counter()
-            _LOGGER.debug(
-                "COALESCER[%s]: Coalescing request for key=%s (waiters=%d)",
-                self._name,
-                key,
-                pending.waiter_count,
-            )
-            # Emit coalesce event
-            self._emit_coalesce_event(key=key, coalesced_count=pending.waiter_count)
-            return cast(T, await pending.future)
+        # Atomically check-and-register under lock to prevent duplicate execution.
+        # The lock is released before any await to allow concurrent coalescing.
+        existing_future: asyncio.Future[T] | None = None
+        async with self._lock:
+            if key in self._pending:
+                pending = self._pending[key]
+                pending.waiter_count += 1
+                self._emit_coalesced_counter()
+                _LOGGER.debug(
+                    "COALESCER[%s]: Coalescing request for key=%s (waiters=%d)",
+                    self._name,
+                    key,
+                    pending.waiter_count,
+                )
+                self._emit_coalesce_event(key=key, coalesced_count=pending.waiter_count)
+                existing_future = pending.future
+            else:
+                # Create a new pending request
+                loop = asyncio.get_running_loop()
+                future: asyncio.Future[T] = loop.create_future()
+                self._pending[key] = _PendingRequest(future=future)
+                self._executed_requests += 1
 
-        # Create a new pending request
-        loop = asyncio.get_running_loop()
-        future: asyncio.Future[T] = loop.create_future()
-        self._pending[key] = _PendingRequest(future=future)
-        self._executed_requests += 1
+        # Await outside lock to allow other requests to coalesce
+        if existing_future is not None:
+            return await existing_future
 
+        # Execute the actual request (outside lock)
         _LOGGER.debug(
             "COALESCER[%s]: Executing request for key=%s",
             self._name,

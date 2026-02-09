@@ -89,6 +89,7 @@ nav:
       - Release Process: contributor/release_process.md
   - Architecture:
       - Overview: architecture.md
+      - Protocol Selection Guide: architecture/protocol_selection_guide.md
       - Data Flow: architecture/data_flow.md
       - Sequence Diagrams: architecture/sequence_diagrams.md
       - Value Resolution: architecture/value_resolution.md

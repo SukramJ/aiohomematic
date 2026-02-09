@@ -20,7 +20,8 @@ from aiohomematic.const import ServiceScope
 from aiohomematic.context import RequestContext, is_in_service, reset_request_context, set_request_context
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_latency
-from aiohomematic.support import LogContextMixin, log_boundary_error
+from aiohomematic.support import log_boundary_error
+from aiohomematic.support.mixins import LogContextMixin
 from aiohomematic.type_aliases import CallableAny, ServiceMethodMap
 
 _LOGGER_PERFORMANCE: Final = logging.getLogger(f"{__package__}.performance")

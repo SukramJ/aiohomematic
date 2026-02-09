@@ -43,7 +43,7 @@ class TestGenericNumber:
         central, mock_client, _ = central_client_factory_with_homegear_client
         efloat: DpFloat = cast(
             DpFloat,
-            central.get_generic_data_point(channel_address="VCU0000054:2", parameter="SETPOINT"),
+            central.query_facade.get_generic_data_point(channel_address="VCU0000054:2", parameter="SETPOINT"),
         )
         assert efloat.usage == DataPointUsage.NO_CREATE
         assert efloat.unit == "°C"
@@ -89,7 +89,7 @@ class TestGenericNumber:
         central, mock_client, _ = central_client_factory_with_homegear_client
         efloat: DpFloat = cast(
             DpFloat,
-            central.get_generic_data_point(channel_address="VCU0000011:3", parameter="LEVEL"),
+            central.query_facade.get_generic_data_point(channel_address="VCU0000011:3", parameter="LEVEL"),
         )
         assert efloat.usage == DataPointUsage.NO_CREATE
         assert efloat.unit == "%"
@@ -136,7 +136,7 @@ class TestGenericNumber:
         central, mock_client, _ = central_client_factory_with_homegear_client
         einteger: DpInteger = cast(
             DpInteger,
-            central.get_generic_data_point(channel_address="VCU4984404:1", parameter="SET_POINT_MODE"),
+            central.query_facade.get_generic_data_point(channel_address="VCU4984404:1", parameter="SET_POINT_MODE"),
         )
         assert einteger.usage == DataPointUsage.NO_CREATE
         assert einteger.unit is None

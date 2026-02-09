@@ -29,6 +29,7 @@ from aiohomematic.central.coordinators import (
 from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
 from aiohomematic.central.health import CentralHealth, HealthTracker
+from aiohomematic.central.query_facade import DeviceQueryFacade
 from aiohomematic.central.registry import CENTRAL_REGISTRY
 from aiohomematic.central.scheduler import BackgroundScheduler
 from aiohomematic.central.state_machine import CentralStateMachine
@@ -37,21 +38,17 @@ from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
     DEFAULT_LOCALE,
-    IGNORE_FOR_UN_IGNORE_PARAMETERS,
     IP_ANY_V4,
     LOCAL_HOST,
     PORT_ANY,
     PRIMARY_CLIENT_CANDIDATE_INTERFACES,
-    UN_IGNORE_WILDCARD,
     BackupData,
     CentralState,
     ClientState,
     DataPointCategory,
-    DeviceTriggerEventType,
     FailureReason,
     ForcedDeviceAvailability,
     Interface,
-    Operations,
     ParamsetKey,
     SystemInformation,
 )
@@ -61,10 +58,7 @@ from aiohomematic.interfaces.central import CentralConfigProtocol, CentralProtoc
 from aiohomematic.interfaces.client import ClientProtocol
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
-    ChannelEventGroupProtocol,
-    CustomDataPointProtocol,
     DeviceProtocol,
-    GenericDataPointProtocol,
     GenericDataPointProtocolAny,
     GenericEventProtocolAny,
 )
@@ -72,14 +66,8 @@ from aiohomematic.metrics import MetricsAggregator, MetricsObserver
 from aiohomematic.model.hub import InstallModeDpType
 from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property
 from aiohomematic.store import LocalStorageFactory, StorageFactoryProtocol
-from aiohomematic.support import (
-    LogContextMixin,
-    PayloadMixin,
-    extract_exc_args,
-    get_channel_no,
-    get_device_address,
-    get_ip_addr,
-)
+from aiohomematic.support import extract_exc_args, get_ip_addr
+from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -92,10 +80,44 @@ class CentralUnit(
     """Central unit that collects everything to handle communication from/to the backend."""
 
     def __init__(self, *, central_config: CentralConfigProtocol) -> None:
-        """Initialize the central unit."""
-        # Keep the config for the central
+        """
+        Initialize the central unit.
+
+        Dependency Graph (initialization order)::
+
+            config, url, looper
+                 │
+                 ▼
+            event_bus ──────────────────────────────────┐
+                 │                                      │
+                 ▼                                      │
+            state_machine ─── health_tracker            │
+                                                        │
+            storage_factory                             │
+                 │                                      │
+                 ▼                                      │
+            client_coordinator ─┬─ cache_coordinator    │
+                                │       │               │
+                                ▼       ▼               │
+                        event_coordinator               │
+                                │                       │
+                                ▼                       │
+            connection_state ── json_rpc_client ◄───────┘
+                                                        │
+            device_registry ── device_coordinator ◄─────┤
+                                      │                 │
+                                      ▼                 │
+                            hub_coordinator ◄───────────┤
+                                      │                 │
+                                      ▼                 │
+            scheduler, recovery_coordinator ◄───────────┘
+                                      │
+                                      ▼
+                      metrics_observer, metrics_aggregator
+
+        """
+        # -- 1. Core configuration and runtime --
         self._config: Final[CentralConfigProtocol] = central_config
-        # Apply locale for translations
         try:
             i18n.set_locale(locale=self._config.locale)
         except Exception:  # pragma: no cover - keep init robust
@@ -104,9 +126,8 @@ class CentralUnit(
         self._model: str | None = None
         self._looper = Looper()
         self._xml_rpc_server: rpc.AsyncXmlRpcServer | None = None
-        self._json_rpc_client: AioJsonRpcAioHttpClient | None = None
 
-        # Initialize event bus and state machine early (needed by coordinators)
+        # -- 2. Event infrastructure (needed by all coordinators) --
         self._event_bus: Final = EventBus(
             enable_event_logging=_LOGGER.isEnabledFor(logging.DEBUG),
             task_scheduler=self.looper,
@@ -121,14 +142,14 @@ class CentralUnit(
             event_bus=self._event_bus,
         )
 
-        # Initialize storage factory (use provided or create local)
+        # -- 3. Storage --
         self._storage_factory: Final[StorageFactoryProtocol] = central_config.storage_factory or LocalStorageFactory(
             base_directory=central_config.storage_directory,
             central_name=central_config.name,
             task_scheduler=self.looper,
         )
 
-        # Initialize coordinators
+        # -- 4. Core coordinators (order matters: client → cache → event) --
         self._client_coordinator: Final = ClientCoordinator(
             client_factory=self,
             central_info=self,
@@ -157,7 +178,22 @@ class CentralUnit(
             task_scheduler=self.looper,
         )
 
+        # -- 5. Connection state and JSON-RPC client --
         self._connection_state: Final = CentralConnectionState(event_bus_provider=self)
+        self._json_rpc_client: Final = AioJsonRpcAioHttpClient(
+            username=self._config.username,
+            password=self._config.password,
+            device_url=self._url,
+            connection_state=self._connection_state,
+            client_session=self._config.client_session,
+            tls=self._config.tls,
+            verify_tls=self._config.verify_tls,
+            session_recorder=self._cache_coordinator.recorder,
+            event_bus=self._event_bus,
+            incident_recorder=self._cache_coordinator.incident_store,
+        )
+
+        # -- 6. Device management (depends on cache + event coordinators) --
         self._device_registry: Final = DeviceRegistry(
             central_info=self,
             client_provider=self._client_coordinator,
@@ -195,6 +231,16 @@ class CentralUnit(
             task_scheduler=self.looper,
         )
 
+        # -- 7. Query facade (depends on device + cache + client + hub coordinators) --
+        self._query_facade: Final = DeviceQueryFacade(
+            device_registry=self._device_registry,
+            device_coordinator=self._device_coordinator,
+            cache_coordinator=self._cache_coordinator,
+            client_coordinator=self._client_coordinator,
+            hub_coordinator=self._hub_coordinator,
+        )
+
+        # -- 8. Scheduling and recovery --
         CENTRAL_REGISTRY.register(name=self.name, central=self)
         self._scheduler: Final = BackgroundScheduler(
             central_info=self,
@@ -207,8 +253,6 @@ class CentralUnit(
             hub_data_fetcher=self._hub_coordinator,
             event_bus_provider=self,
         )
-
-        # Unified connection recovery coordinator (event-driven)
         self._connection_recovery_coordinator: Final = ConnectionRecoveryCoordinator(
             central_info=self,
             config_provider=self,
@@ -221,10 +265,8 @@ class CentralUnit(
             state_machine=self._central_state_machine,
         )
 
-        # Metrics observer for event-driven metrics (single source of truth)
+        # -- 9. Observability --
         self._metrics_observer: Final = MetricsObserver(event_bus=self._event_bus)
-
-        # Metrics aggregator for detailed observability (queries observer + components)
         self._metrics_aggregator: Final = MetricsAggregator(
             central_name=self.name,
             client_provider=self._client_coordinator,
@@ -238,13 +280,12 @@ class CentralUnit(
             recovery_provider=self._connection_recovery_coordinator,
         )
 
-        # Subscribe to system status events to update central state machine
+        # -- 10. Event subscriptions and runtime state --
         self._unsubscribe_system_status = self.event_bus.subscribe(
             event_type=SystemStatusChangedEvent,
-            event_key=None,  # Subscribe to all system status events
+            event_key=None,
             handler=self._on_system_status_event,
         )
-
         self._version: str | None = None
         self._rpc_callback_ip: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
@@ -273,12 +314,14 @@ class CentralUnit(
     health_tracker: Final = DelegatedProperty[HealthTracker](path="_health_tracker")
     hub_coordinator: Final = DelegatedProperty[HubCoordinator](path="_hub_coordinator")
     interfaces: Final = DelegatedProperty[frozenset[Interface]](path="_client_coordinator.interfaces")
+    json_rpc_client: Final = DelegatedProperty[AioJsonRpcAioHttpClient](path="_json_rpc_client")
     listen_ip_addr: Final = DelegatedProperty[str](path="_listen_ip_addr")
     listen_port_xml_rpc: Final = DelegatedProperty[int](path="_listen_port_xml_rpc")
     looper: Final = DelegatedProperty[Looper](path="_looper")
     metrics: Final = DelegatedProperty[MetricsObserver](path="_metrics_observer")
     metrics_aggregator: Final = DelegatedProperty[MetricsAggregator](path="_metrics_aggregator")
     name: Final = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
+    query_facade: Final = DelegatedProperty[DeviceQueryFacade](path="_query_facade")
     state: Final = DelegatedProperty[CentralState](path="_central_state_machine.state")
     url: Final = DelegatedProperty[str](path="_url", kind=Kind.INFO, log_context=True)
 
@@ -297,31 +340,6 @@ class CentralUnit(
         if primary_client := self._client_coordinator.primary_client:
             return primary_client.capabilities.ping_pong
         return False
-
-    @property
-    def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
-        """Return the json rpc client."""
-        if not self._json_rpc_client:
-            # Use primary client's interface_id for health tracking
-            primary_interface_id = (
-                self._client_coordinator.primary_client.interface_id
-                if self._client_coordinator.primary_client
-                else None
-            )
-            self._json_rpc_client = AioJsonRpcAioHttpClient(
-                username=self._config.username,
-                password=self._config.password,
-                device_url=self._url,
-                connection_state=self._connection_state,
-                interface_id=primary_interface_id,
-                client_session=self._config.client_session,
-                tls=self._config.tls,
-                verify_tls=self._config.verify_tls,
-                session_recorder=self._cache_coordinator.recorder,
-                event_bus=self._event_bus,
-                incident_recorder=self._cache_coordinator.incident_store,
-            )
-        return self._json_rpc_client
 
     @property
     def system_information(self) -> SystemInformation:
@@ -404,273 +422,15 @@ class CentralUnit(
             interface_config=interface_config,
         )
 
-    def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
-        """Return the hm custom_data_point."""
-        if device := self._device_coordinator.get_device(address=address):
-            return device.get_custom_data_point(channel_no=channel_no)
-        return None
-
     def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
         """Return Homematic data_point by custom_id."""
-        for dp in self.get_data_points(registered=True):
-            if dp.custom_id == custom_id:
-                return dp
-        return None
-
-    def get_data_points(
-        self,
-        *,
-        category: DataPointCategory | None = None,
-        interface: Interface | None = None,
-        exclude_no_create: bool = True,
-        registered: bool | None = None,
-    ) -> tuple[CallbackDataPointProtocol, ...]:
-        """Return all externally registered data points."""
-        all_data_points: list[CallbackDataPointProtocol] = []
-        for device in self._device_registry.devices:
-            if interface and interface != device.interface:
-                continue
-            all_data_points.extend(
-                device.get_data_points(category=category, exclude_no_create=exclude_no_create, registered=registered)
-            )
-        return tuple(all_data_points)
-
-    def get_event(
-        self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None
-    ) -> GenericEventProtocolAny | None:
-        """Return the hm event."""
-        if channel_address is None:
-            for dev in self._device_registry.devices:
-                if event := dev.get_generic_event(parameter=parameter, state_path=state_path):
-                    return event
-            return None
-
-        if device := self._device_coordinator.get_device(address=channel_address):
-            return device.get_generic_event(channel_address=channel_address, parameter=parameter, state_path=state_path)
-        return None
-
-    def get_event_groups(
-        self,
-        *,
-        event_type: DeviceTriggerEventType,
-        registered: bool | None = None,
-    ) -> tuple[ChannelEventGroupProtocol, ...]:
-        """
-        Return all channel event groups for the given event type.
-
-        Each ChannelEventGroup is a virtual data point bound to its channel,
-        providing unified access for Home Assistant entity creation.
-
-        Args:
-            event_type: The event type to filter by.
-            registered: Filter by registration status (None = all).
-
-        Returns:
-            Tuple of ChannelEventGroup instances.
-
-        """
-        groups: list[ChannelEventGroupProtocol] = []
-        for device in self._device_registry.devices:
-            for channel in device.channels.values():
-                if (event_group := channel.event_groups.get(event_type)) is None:
-                    continue
-                # Filter by registration status
-                if registered is not None and event_group.is_registered != registered:
-                    continue
-                groups.append(event_group)
-        return tuple(groups)
-
-    def get_events(
-        self, *, event_type: DeviceTriggerEventType, registered: bool | None = None
-    ) -> tuple[tuple[GenericEventProtocolAny, ...], ...]:
-        """Return all channel event data points."""
-        hm_channel_events: list[tuple[GenericEventProtocolAny, ...]] = []
-        for device in self._device_registry.devices:
-            for channel_events in device.get_events(event_type=event_type).values():
-                if registered is None or (channel_events[0].is_registered == registered):
-                    hm_channel_events.append(channel_events)
-                    continue
-        return tuple(hm_channel_events)
-
-    def get_generic_data_point(
-        self,
-        *,
-        channel_address: str | None = None,
-        parameter: str | None = None,
-        paramset_key: ParamsetKey | None = None,
-        state_path: str | None = None,
-    ) -> GenericDataPointProtocolAny | None:
-        """Get data_point by channel_address and parameter."""
-        if channel_address is None:
-            for dev in self._device_registry.devices:
-                if dp := dev.get_generic_data_point(
-                    parameter=parameter, paramset_key=paramset_key, state_path=state_path
-                ):
-                    return dp
-            return None
-
-        if device := self._device_coordinator.get_device(address=channel_address):
-            return device.get_generic_data_point(
-                channel_address=channel_address, parameter=parameter, paramset_key=paramset_key, state_path=state_path
-            )
-        return None
-
-    async def get_install_mode(self, *, interface: Interface) -> int:
-        """
-        Return the remaining time in install mode for an interface.
-
-        Args:
-            interface: The interface to query (HMIP_RF or BIDCOS_RF).
-
-        Returns:
-            Remaining time in seconds, or 0 if not in install mode.
-
-        """
-        try:
-            client = self._client_coordinator.get_client(interface=interface)
-            return await client.get_install_mode()
-        except AioHomematicException:
-            return 0
-
-    def get_parameters(
-        self,
-        *,
-        paramset_key: ParamsetKey,
-        operations: tuple[Operations, ...],
-        full_format: bool = False,
-        un_ignore_candidates_only: bool = False,
-        use_channel_wildcard: bool = False,
-    ) -> tuple[str, ...]:
-        """
-        Return all parameters from VALUES paramset.
-
-        Performance optimized to minimize repeated lookups and computations
-        when iterating over all channels and parameters.
-        """
-        parameters: set[str] = set()
-
-        # Precompute operations mask to avoid repeated checks in the inner loop
-        op_mask: int = 0
-        for op in operations:
-            op_mask |= int(op)
-
-        raw_psd = self._cache_coordinator.paramset_descriptions.raw_paramset_descriptions
-        ignore_set = IGNORE_FOR_UN_IGNORE_PARAMETERS
-
-        # Prepare optional helpers only if needed
-        get_model = self._cache_coordinator.device_descriptions.get_model if full_format else None
-        model_cache: dict[str, str | None] = {}
-        channel_no_cache: dict[str, int | None] = {}
-
-        for channels in raw_psd.values():
-            for channel_address, channel_paramsets in channels.items():
-                # Resolve model lazily and cache per device address when full_format is requested
-                model: str | None = None
-                if get_model is not None:
-                    dev_addr = get_device_address(address=channel_address)
-                    if (model := model_cache.get(dev_addr)) is None:
-                        model = get_model(device_address=dev_addr)
-                        model_cache[dev_addr] = model
-
-                if (paramset := channel_paramsets.get(paramset_key)) is None:
-                    continue
-
-                for parameter, parameter_data in paramset.items():
-                    # Fast bitmask check: ensure all requested ops are present
-                    if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
-                        continue
-
-                    if un_ignore_candidates_only:
-                        # Cheap check first to avoid expensive dp lookup when possible
-                        if parameter in ignore_set:
-                            continue
-                        dp = self.get_generic_data_point(
-                            channel_address=channel_address,
-                            parameter=parameter,
-                            paramset_key=paramset_key,
-                        )
-                        if dp and dp.enabled_default and not dp.is_un_ignored:
-                            continue
-
-                    if not full_format:
-                        parameters.add(parameter)
-                        continue
-
-                    if use_channel_wildcard:
-                        channel_repr: int | str | None = UN_IGNORE_WILDCARD
-                    elif channel_address in channel_no_cache:
-                        channel_repr = channel_no_cache[channel_address]
-                    else:
-                        channel_repr = get_channel_no(address=channel_address)
-                        channel_no_cache[channel_address] = channel_repr
-
-                    # Build the full parameter string
-                    if channel_repr is None:
-                        parameters.add(f"{parameter}:{paramset_key}@{model}:")
-                    else:
-                        parameters.add(f"{parameter}:{paramset_key}@{model}:{channel_repr}")
-
-        return tuple(parameters)
+        return self._query_facade.get_data_point_by_custom_id(custom_id=custom_id)
 
     def get_readable_generic_data_points(
         self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
     ) -> tuple[GenericDataPointProtocolAny, ...]:
         """Return the readable generic data points."""
-        return tuple(
-            ge
-            for ge in self.get_data_points(interface=interface)
-            if (
-                isinstance(ge, GenericDataPointProtocol)
-                and ge.is_readable
-                and ((paramset_key and ge.paramset_key == paramset_key) or paramset_key is None)
-            )
-        )
-
-    def get_state_paths(self, *, rpc_callback_supported: bool | None = None) -> tuple[str, ...]:
-        """Return the data point paths."""
-        data_point_paths: list[str] = []
-        for device in self._device_registry.devices:
-            if rpc_callback_supported is None or device.client.capabilities.rpc_callback == rpc_callback_supported:
-                data_point_paths.extend(device.data_point_paths)
-        data_point_paths.extend(self.hub_coordinator.data_point_paths)
-        return tuple(data_point_paths)
-
-    def get_un_ignore_candidates(self, *, include_master: bool = False) -> list[str]:
-        """Return the candidates for un_ignore."""
-        candidates = sorted(
-            # 1. request simple parameter list for values parameters
-            self.get_parameters(
-                paramset_key=ParamsetKey.VALUES,
-                operations=(Operations.READ, Operations.EVENT),
-                un_ignore_candidates_only=True,
-            )
-            # 2. request full_format parameter list with channel wildcard for values parameters
-            + self.get_parameters(
-                paramset_key=ParamsetKey.VALUES,
-                operations=(Operations.READ, Operations.EVENT),
-                full_format=True,
-                un_ignore_candidates_only=True,
-                use_channel_wildcard=True,
-            )
-            # 3. request full_format parameter list for values parameters
-            + self.get_parameters(
-                paramset_key=ParamsetKey.VALUES,
-                operations=(Operations.READ, Operations.EVENT),
-                full_format=True,
-                un_ignore_candidates_only=True,
-            )
-        )
-        if include_master:
-            # 4. request full_format parameter list for master parameters
-            candidates += sorted(
-                self.get_parameters(
-                    paramset_key=ParamsetKey.MASTER,
-                    operations=(Operations.READ,),
-                    full_format=True,
-                    un_ignore_candidates_only=True,
-                )
-            )
-        return candidates
+        return self._query_facade.get_readable_generic_data_points(paramset_key=paramset_key, interface=interface)
 
     async def init_install_mode(self) -> Mapping[Interface, InstallModeDpType]:
         """
@@ -857,41 +617,7 @@ class CentralUnit(
             self.state,
             {c.interface_id: c.state.value for c in clients},
         )
-        # Note: all() returns True for empty iterables, so we must check clients exist
-        all_connected = bool(clients) and all(client.state == ClientState.CONNECTED for client in clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in clients)
-        if all_connected and self._central_state_machine.can_transition_to(target=CentralState.RUNNING):
-            self._central_state_machine.transition_to(
-                target=CentralState.RUNNING,
-                reason="all clients connected",
-            )
-        elif (
-            any_connected
-            and not all_connected
-            and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED)
-        ):
-            # Build map of disconnected interfaces with their failure reasons
-            degraded_interfaces: dict[str, FailureReason] = {
-                client.interface_id: (
-                    reason
-                    if (reason := client.state_machine.failure_reason) != FailureReason.NONE
-                    else FailureReason.UNKNOWN
-                )
-                for client in clients
-                if client.state != ClientState.CONNECTED
-            }
-            self._central_state_machine.transition_to(
-                target=CentralState.DEGRADED,
-                reason=f"clients not connected: {', '.join(degraded_interfaces.keys())}",
-                degraded_interfaces=degraded_interfaces,
-            )
-        elif not any_connected and self._central_state_machine.can_transition_to(target=CentralState.FAILED):
-            self._central_state_machine.transition_to(
-                target=CentralState.FAILED,
-                reason="no clients connected",
-                failure_reason=self._client_coordinator.last_failure_reason,
-                failure_interface_id=self._client_coordinator.last_failure_interface_id,
-            )
+        self._evaluate_central_state(trigger="start() completed", from_start=True)
 
     async def stop(self) -> None:
         """Stop processing of the central unit."""
@@ -908,7 +634,7 @@ class CentralUnit(
         self._metrics_observer.stop()
         self._connection_recovery_coordinator.stop()
         await self._client_coordinator.stop_clients()
-        if self._json_rpc_client and self._json_rpc_client.is_activated:
+        if self._json_rpc_client.is_activated:
             await self._json_rpc_client.logout()
             await self._json_rpc_client.stop()
 
@@ -1008,6 +734,94 @@ class CentralUnit(
                 system_information = client.system_information
         return system_information
 
+    def _build_degraded_interfaces_map(self) -> dict[str, FailureReason]:
+        """Build map of disconnected interfaces with their failure reasons."""
+        return {
+            client.interface_id: (
+                reason
+                if (reason := client.state_machine.failure_reason) != FailureReason.NONE
+                else FailureReason.UNKNOWN
+            )
+            for client in self._client_coordinator.clients
+            if client.state != ClientState.CONNECTED
+        }
+
+    def _determine_failure_info(self) -> tuple[FailureReason, str | None]:
+        """Determine failure reason and interface from failed clients."""
+        for client in self._client_coordinator.clients:
+            if client.state_machine.is_failed and client.state_machine.failure_reason != FailureReason.NONE:
+                return client.state_machine.failure_reason, client.interface_id
+        return FailureReason.NETWORK, None
+
+    def _evaluate_central_state(self, *, trigger: str, from_start: bool = False) -> None:
+        """
+        Evaluate and transition central state based on current client states.
+
+        This method consolidates the state evaluation logic used by both start()
+        and _on_system_status_event() to avoid duplication.
+
+        Args:
+            trigger: Description of what triggered the evaluation (used in reason strings).
+            from_start: If True, called from start() after initialization.
+                Allows transitions from INITIALIZING without recovery or state guards.
+                If False, called from event handler with stricter guards:
+                DEGRADED only from RUNNING, FAILED only from RUNNING/DEGRADED,
+                and RUNNING blocked while recovery is in progress.
+
+        """
+        current_state = self._central_state_machine.state
+        clients = self._client_coordinator.clients
+        # Note: all() returns True for empty iterables, so we must check clients exist
+        all_connected = bool(clients) and all(client.state == ClientState.CONNECTED for client in clients)
+        any_connected = any(client.state == ClientState.CONNECTED for client in clients)
+
+        # RUNNING: All clients connected
+        # from_start: no recovery check needed (recovery not started yet)
+        # event handler: don't transition to RUNNING while recovery is in progress
+        if (
+            all_connected
+            and (from_start or not self._connection_recovery_coordinator.in_recovery)
+            and self._central_state_machine.can_transition_to(target=CentralState.RUNNING)
+        ):
+            self._central_state_machine.transition_to(
+                target=CentralState.RUNNING,
+                reason=f"all clients connected ({trigger})",
+            )
+        # DEGRADED: Some clients disconnected
+        # from_start: allowed from INITIALIZING
+        # event handler: only from RUNNING (to avoid interfering with recovery)
+        elif (
+            any_connected
+            and not all_connected
+            and (from_start or current_state == CentralState.RUNNING)
+            and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED)
+        ):
+            degraded_interfaces = self._build_degraded_interfaces_map()
+            self._central_state_machine.transition_to(
+                target=CentralState.DEGRADED,
+                reason=f"clients not connected: {', '.join(degraded_interfaces.keys())}",
+                degraded_interfaces=degraded_interfaces,
+            )
+        # FAILED: No clients connected
+        # from_start: allowed from INITIALIZING, uses coordinator's cached failure info
+        # event handler: only from RUNNING/DEGRADED, determines failure from client states
+        elif (
+            not any_connected
+            and (from_start or current_state in (CentralState.RUNNING, CentralState.DEGRADED))
+            and self._central_state_machine.can_transition_to(target=CentralState.FAILED)
+        ):
+            if from_start:
+                failure_reason = self._client_coordinator.last_failure_reason
+                failure_interface_id = self._client_coordinator.last_failure_interface_id
+            else:
+                failure_reason, failure_interface_id = self._determine_failure_info()
+            self._central_state_machine.transition_to(
+                target=CentralState.FAILED,
+                reason=f"no clients connected ({trigger})",
+                failure_reason=failure_reason,
+                failure_interface_id=failure_interface_id,
+            )
+
     async def _identify_ip_addr(self, *, port: int) -> str:
         ip_addr: str | None = None
         while ip_addr is None:
@@ -1086,65 +900,10 @@ class CentralUnit(
                 interface_id,
             )
 
-        # Determine overall central state based on all client states
-        clients = self._client_coordinator.clients
-        # Note: all() returns True for empty iterables, so we must check clients exist
-        all_connected = bool(clients) and all(client.state == ClientState.CONNECTED for client in clients)
-        any_connected = any(client.state == ClientState.CONNECTED for client in clients)
-
-        # Only transition if central is in a state that allows it
-        if (current_state := self._central_state_machine.state) not in (CentralState.STARTING, CentralState.STOPPED):
-            # Don't transition to RUNNING if recovery is still in progress for any interface.
-            # The ConnectionRecoveryCoordinator will handle the transition when all recoveries complete.
-            if (
-                all_connected
-                and not self._connection_recovery_coordinator.in_recovery
-                and self._central_state_machine.can_transition_to(target=CentralState.RUNNING)
-            ):
-                self._central_state_machine.transition_to(
-                    target=CentralState.RUNNING,
-                    reason=f"all clients connected (triggered by {interface_id})",
-                )
-            elif (
-                any_connected
-                and not all_connected
-                and current_state == CentralState.RUNNING
-                and self._central_state_machine.can_transition_to(target=CentralState.DEGRADED)
-            ):
-                # Only transition to DEGRADED from RUNNING when some (but not all) clients connected
-                degraded_interfaces: dict[str, FailureReason] = {
-                    client.interface_id: (
-                        reason
-                        if (reason := client.state_machine.failure_reason) != FailureReason.NONE
-                        else FailureReason.UNKNOWN
-                    )
-                    for client in clients
-                    if client.state != ClientState.CONNECTED
-                }
-                self._central_state_machine.transition_to(
-                    target=CentralState.DEGRADED,
-                    reason=f"clients not connected: {', '.join(degraded_interfaces.keys())}",
-                    degraded_interfaces=degraded_interfaces,
-                )
-            elif (
-                not any_connected
-                and current_state in (CentralState.RUNNING, CentralState.DEGRADED)
-                and self._central_state_machine.can_transition_to(target=CentralState.FAILED)
-            ):
-                # All clients failed - get failure reason from first failed client
-                failure_reason = FailureReason.NETWORK  # Default for disconnection
-                failure_interface_id: str | None = None
-                for client in clients:
-                    if client.state_machine.is_failed and client.state_machine.failure_reason != FailureReason.NONE:
-                        failure_reason = client.state_machine.failure_reason
-                        failure_interface_id = client.interface_id
-                        break
-                self._central_state_machine.transition_to(
-                    target=CentralState.FAILED,
-                    reason="all clients disconnected",
-                    failure_reason=failure_reason,
-                    failure_interface_id=failure_interface_id,
-                )
+        # Determine overall central state based on all client states.
+        # Only transition if central is in a state that allows it.
+        if self._central_state_machine.state not in (CentralState.STARTING, CentralState.STOPPED):
+            self._evaluate_central_state(trigger=f"triggered by {interface_id}")
 
     def _start_scheduler(self) -> None:
         """Start the background scheduler."""

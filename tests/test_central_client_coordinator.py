@@ -46,11 +46,11 @@ class _FakeClient:
         self.capabilities.push_updates = True
         self.system_information.available_interfaces = frozenset([interface])
 
-    async def deinitialize_proxy(self) -> bool:
+    async def deinit_proxy(self) -> bool:
         """Deinitialize proxy."""
         return True
 
-    async def initialize_proxy(self) -> ProxyInitState:
+    async def init_proxy(self) -> ProxyInitState:
         """Initialize proxy."""
         return ProxyInitState.INIT_SUCCESS
 
@@ -544,8 +544,8 @@ class TestClientCoordinatorLifecycle:
         # Mock the stop and deinitialize methods
         client1.stop = AsyncMock()  # type: ignore[method-assign]
         client2.stop = AsyncMock()  # type: ignore[method-assign]
-        client1.deinitialize_proxy = AsyncMock(return_value=True)  # type: ignore[method-assign]
-        client2.deinitialize_proxy = AsyncMock(return_value=True)  # type: ignore[method-assign]
+        client1.deinit_proxy = AsyncMock(return_value=True)  # type: ignore[method-assign]
+        client2.deinit_proxy = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
         coordinator._clients["BidCos-RF"] = client1  # type: ignore[assignment]
         coordinator._clients["HmIP-RF"] = client2  # type: ignore[assignment]
@@ -556,8 +556,8 @@ class TestClientCoordinatorLifecycle:
         # All clients should be stopped
         client1.stop.assert_called_once()
         client2.stop.assert_called_once()
-        client1.deinitialize_proxy.assert_called_once()
-        client2.deinitialize_proxy.assert_called_once()
+        client1.deinit_proxy.assert_called_once()
+        client2.deinit_proxy.assert_called_once()
 
         # Clients should be cleared (use public API)
         assert not coordinator.has_clients
@@ -670,7 +670,7 @@ class TestClientCoordinatorIntegration:
             # Add a mock client for stop test
             client = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF)
             client.stop = AsyncMock()  # type: ignore[method-assign]
-            client.deinitialize_proxy = AsyncMock(return_value=True)  # type: ignore[method-assign]
+            client.deinit_proxy = AsyncMock(return_value=True)  # type: ignore[method-assign]
             coordinator._clients["BidCos-RF"] = client  # type: ignore[assignment]
 
             # Stop clients
@@ -862,19 +862,19 @@ class TestClientCoordinatorEdgeCases:
             system_info_provider=central,
         )  # type: ignore[arg-type]
 
-        # Add clients with mock deinitialize_proxy
+        # Add clients with mock deinit_proxy
         client1 = MagicMock()
-        client1.deinitialize_proxy = AsyncMock(return_value=True)
+        client1.deinit_proxy = AsyncMock(return_value=True)
         client2 = MagicMock()
-        client2.deinitialize_proxy = AsyncMock(return_value=True)
+        client2.deinit_proxy = AsyncMock(return_value=True)
 
         coordinator._clients["BidCos-RF"] = client1
         coordinator._clients["HmIP-RF"] = client2
 
         await coordinator._de_init_clients()
 
-        client1.deinitialize_proxy.assert_called_once()
-        client2.deinitialize_proxy.assert_called_once()
+        client1.deinit_proxy.assert_called_once()
+        client2.deinit_proxy.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_init_clients_interface_not_available(self) -> None:

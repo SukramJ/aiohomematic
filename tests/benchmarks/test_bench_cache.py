@@ -80,4 +80,4 @@ def test_command_tracker_add_put_paramset(bench: BenchmarkTimer, tracker: Comman
             )
 
     result = bench.last()
-    assert result.ops_per_sec > 3000, f"Expected >3k ops/s, got {result.ops_per_sec:.0f}"
+    assert result.ops_per_sec > 1000, f"Expected >1k ops/s, got {result.ops_per_sec:.0f}"

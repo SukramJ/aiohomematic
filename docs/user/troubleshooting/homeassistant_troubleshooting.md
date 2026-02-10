@@ -3,7 +3,7 @@
 This document helps you quickly analyze and resolve typical problems when using aiohomematic with Home Assistant (integration: Homematic(IP) Local). The notes apply to CCU (CCU2/3, OpenCCU, piVCCU/Debmatic) and Homegear unless stated otherwise.
 
 !!! note
-If you're unfamiliar with terms like Integration, Add-on, Backend, Interface, or Channel, please read the [Glossary](../../reference/glossary.md) first.
+If you're unfamiliar with terms like Integration, App, Backend, Interface, or Channel, please read the [Glossary](../../reference/glossary.md) first.
 
 Contents:
 

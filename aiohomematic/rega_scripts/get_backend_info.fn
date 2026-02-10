@@ -2,7 +2,7 @@
 !#
 !# This script retrieves backend information and identifies the CCU type.
 !# Product is normalized to CCU (CCU2/CCU3/debmatic) or OpenCCU
-!# Also detects if running as Home Assistant Add-on
+!# Also detects if running as Home Assistant App
 !#
 
 string sVersion = "";

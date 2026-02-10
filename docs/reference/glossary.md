@@ -14,17 +14,17 @@ Dieses Glossar definiert wichtige Begriffe, die in der Homematic(IP) Local Integ
 
 **DE:** Eine Integration ist eine Komponente, die Home Assistant mit externen Diensten, Geräten oder Plattformen verbindet. Homematic(IP) Local ist eine **Integration**, die Home Assistant über ein CCU-Backend mit Homematic-Geräten verbindet. Integrationen werden unter Einstellungen → Geräte & Dienste konfiguriert.
 
-### Add-on
+### App (formerly Add-on)
 
-**EN:** An add-on is a self-contained application that runs alongside Home Assistant OS or Supervised installations. Add-ons are managed through Settings → Add-ons. Examples: OpenCCU Add-on (runs the CCU software), File Editor, Terminal. **Add-ons are NOT the same as integrations** – OpenCCU Add-on provides the backend, while Homematic(IP) Local is the integration that connects to it.
+**EN:** An app is a self-contained application that runs alongside Home Assistant OS or Supervised installations. Apps are managed through Settings → Apps. Examples: OpenCCU App (runs the CCU software), File Editor, Terminal. **Apps are NOT the same as integrations** – OpenCCU App provides the backend, while Homematic(IP) Local is the integration that connects to it. (Note: "Add-on" was renamed to "App" in [Home Assistant 2026.2](https://www.home-assistant.io/blog/2026/02/04/release-20262/#add-ons-are-now-called-apps).)
 
-**DE:** Ein Add-on ist eine eigenständige Anwendung, die neben Home Assistant OS oder Supervised-Installationen läuft. Add-ons werden über Einstellungen → Add-ons verwaltet. Beispiele: OpenCCU Add-on (führt die CCU-Software aus), Datei-Editor, Terminal. **Add-ons sind NICHT dasselbe wie Integrationen** – das OpenCCU Add-on stellt das Backend bereit, während Homematic(IP) Local die Integration ist, die sich damit verbindet.
+**DE:** Eine App ist eine eigenständige Anwendung, die neben Home Assistant OS oder Supervised-Installationen läuft. Apps werden über Einstellungen → Apps verwaltet. Beispiele: OpenCCU App (führt die CCU-Software aus), Datei-Editor, Terminal. **Apps sind NICHT dasselbe wie Integrationen** – die OpenCCU App stellt das Backend bereit, während Homematic(IP) Local die Integration ist, die sich damit verbindet. (Hinweis: „Add-on" wurde in [Home Assistant 2026.2](https://www.home-assistant.io/blog/2026/02/04/release-20262/#add-ons-are-now-called-apps) in „App" umbenannt.)
 
 ### Plugin ⚠️
 
-**EN:** "Plugin" is **not an official Home Assistant term**. Please use "Integration" or "Add-on" depending on what you mean. Using "Plugin" in bug reports causes confusion.
+**EN:** "Plugin" is **not an official Home Assistant term**. Please use "Integration" or "App" depending on what you mean. Using "Plugin" in bug reports causes confusion.
 
-**DE:** "Plugin" ist **kein offizieller Home Assistant Begriff**. Bitte verwende "Integration" oder "Add-on" je nach Bedeutung. Die Verwendung von "Plugin" in Fehlerberichten führt zu Verwirrung.
+**DE:** "Plugin" ist **kein offizieller Home Assistant Begriff**. Bitte verwende "Integration" oder "App" je nach Bedeutung. Die Verwendung von "Plugin" in Fehlerberichten führt zu Verwirrung.
 
 ### HACS (Home Assistant Community Store)
 
@@ -50,9 +50,9 @@ Dieses Glossar definiert wichtige Begriffe, die in der Homematic(IP) Local Integ
 
 ### OpenCCU
 
-**EN:** Open-source implementation of the CCU software, typically run on Raspberry Pi or as a virtual machine. Can also run as a Home Assistant Add-on.
+**EN:** Open-source implementation of the CCU software, typically run on Raspberry Pi or as a virtual machine. Can also run as a Home Assistant App.
 
-**DE:** Open-Source-Implementierung der CCU-Software, die typischerweise auf Raspberry Pi oder als virtuelle Maschine läuft. Kann auch als Home Assistant Add-on ausgeführt werden.
+**DE:** Open-Source-Implementierung der CCU-Software, die typischerweise auf Raspberry Pi oder als virtuelle Maschine läuft. Kann auch als Home Assistant App ausgeführt werden.
 
 ### piVCCU / Debmatic
 
@@ -160,7 +160,7 @@ Dieses Glossar definiert wichtige Begriffe, die in der Homematic(IP) Local Integ
 | -------------- | ----------------------------------- |
 | ~~Plugin~~     | ❌ Don't use / Nicht verwenden      |
 | Integration    | ✅ Homematic(IP) Local integration  |
-| Add-on         | ✅ OpenCCU Add-on                   |
+| App            | ✅ OpenCCU App                      |
 | Backend        | ✅ CCU3, OpenCCU, etc.              |
 | Entity         | ✅ Sensor, Switch in Home Assistant |
 | Device         | ✅ Physical Homematic device        |

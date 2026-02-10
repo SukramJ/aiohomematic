@@ -67,7 +67,7 @@ For faster updates, you can set up CCU-Jack's MQTT bridge to forward events to H
 **Note**: CCU-Jack includes its own MQTT broker. To integrate with Home Assistant, you configure a bridge to forward events.
 
 1. **Install CCU-Jack** on your CCU (if not already installed)
-2. **Set up an MQTT broker** in Home Assistant (e.g., Mosquitto add-on)
+2. **Set up an MQTT broker** in Home Assistant (e.g., Mosquitto app)
 3. **Configure CCU-Jack MQTT Bridge** to forward events:
    - In `ccu-jack.cfg`, set `"MQTT.Bridge.Enable": true`
    - Configure the remote broker address (your HA Mosquitto)

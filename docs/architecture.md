@@ -2,7 +2,7 @@
 
 This document describes the high-level architecture of aiohomematic, focusing on the main components and how they interact at runtime. It is intended for contributors and integrators who want to understand data flow, responsibilities, and the boundaries between modules.
 
-> **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs Add-on), see the [Glossary](reference/glossary.md).
+> **Terminology:** For definitions of Homematic-specific terms (Backend, Interface, Device, Channel, Parameter) and Home Assistant terms (Integration vs App), see the [Glossary](reference/glossary.md).
 
 ## Component Overview
 

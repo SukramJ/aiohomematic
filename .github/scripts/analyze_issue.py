@@ -842,8 +842,8 @@ Version check result for this issue:
 
 Terminology (from our Glossary):
 - Integration: A Home Assistant component connecting to external services. Homematic(IP) Local is an INTEGRATION.
-- Add-on: A separate application running alongside Home Assistant (e.g., OpenCCU Add-on). NOT the same as Integration.
-- Plugin: NOT an official Home Assistant term - users should use "Integration" or "Add-on" instead.
+- App: A separate application running alongside Home Assistant (e.g., OpenCCU App). NOT the same as Integration. (Formerly called "Add-on", renamed in HA 2026.2.)
+- Plugin: NOT an official Home Assistant term - users should use "Integration" or "App" instead.
 - Backend: The CCU hardware/software (OpenCCU, CCU3, Debmatic, Homegear) that manages Homematic devices.
 - Interface: Communication channel to device types (HmIP-RF, BidCos-RF, BidCos-Wired, VirtualDevices/CUxD, Groups).
 - Device: Physical or virtual Homematic device with unique address containing channels.
@@ -878,7 +878,7 @@ When analyzing device availability issues, you MUST follow these priority rules:
 
 Your task:
 1. Analyze the issue content and determine if it's complete and well-formed
-2. Check for terminology misuse (e.g., "Plugin" instead of "Integration", confusion between Integration and Add-on)
+2. Check for terminology misuse (e.g., "Plugin" instead of "Integration", "Add-on" instead of "App", confusion between Integration and App)
 3. Identify any missing required information
 4. USE THE DEEP ANALYSIS RESULTS above - this is VERIFIED data from the actual files!
    - The "prioritized_findings" list is already sorted by priority

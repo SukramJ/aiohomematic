@@ -54,7 +54,7 @@ This integration works with any CCU-compatible Homematic hub:
 - OpenCCU (formerly RaspberryMatic)
 - Debmatic
 - Homegear
-- Home Assistant OS/Supervised with suitable add-on + communication device
+- Home Assistant OS/Supervised with suitable app + communication device
 
 **Minimum CCU Firmware:**
 

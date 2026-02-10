@@ -160,15 +160,22 @@ class BasePersistentCache(ABC):
 
         _LOGGER.debug("CACHE_LOAD: Loaded data for %s (keys: %s)", self.storage_key, list(data.keys()))
 
-        # Check schema version - if outdated, return VERSION_MISMATCH for coordinated cache clearing
+        # Check schema version - if outdated, attempt migration before falling back to cache clear
         if (loaded_version := data.get("_schema_version", 1)) < self.SCHEMA_VERSION:
             _LOGGER.info(  # i18n-log: ignore
-                "CACHE_LOAD: Schema version outdated for %s (loaded=%s, current=%s)",
+                "CACHE_LOAD: Schema outdated for %s (loaded=%s, current=%s), attempting migration",
                 self.storage_key,
                 loaded_version,
                 self.SCHEMA_VERSION,
             )
-            return DataOperationResult.VERSION_MISMATCH
+            try:
+                data = self._migrate_schema(data=data, from_version=loaded_version)
+            except Exception:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "CACHE_LOAD: Migration failed for %s, clearing cache",
+                    self.storage_key,
+                )
+                return DataOperationResult.VERSION_MISMATCH
 
         # Remove schema version before processing
         data.pop("_schema_version", None)
@@ -251,10 +258,16 @@ class BasePersistentCache(ABC):
         """
         Migrate data from older schema version.
 
-        Note: This method is no longer called by the base load() implementation.
-        Schema version mismatches now trigger coordinated cache clearing via
-        VERSION_MISMATCH result. This method is kept for backward compatibility
-        but should not be relied upon.
+        Called by ``load()`` when the loaded schema version is older than
+        ``SCHEMA_VERSION``. Subclasses override this to implement incremental
+        migrations.
+
+        The default implementation raises ``NotImplementedError`` so that
+        subclasses without a migration path fall back to ``VERSION_MISMATCH``
+        (coordinated cache clearing). Subclasses that implement migration
+        should return the migrated data dict.
+
+        On any exception, ``load()`` falls back to ``VERSION_MISMATCH``.
 
         Args:
             data: Raw data loaded from storage.
@@ -263,8 +276,11 @@ class BasePersistentCache(ABC):
         Returns:
             Migrated data dict.
 
+        Raises:
+            NotImplementedError: When no migration is implemented (default).
+
         """
-        return data
+        raise NotImplementedError
 
     @abstractmethod
     def _process_loaded_content(self, *, data: dict[str, Any]) -> None:

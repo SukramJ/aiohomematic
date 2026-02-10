@@ -366,7 +366,7 @@ class TestHomematicAPILifecycle:
             central_id="test",
         )
 
-        with patch.object(config, "create_central", return_value=mock_central) as mock_create:
+        with patch.object(CentralConfig, "create_central", return_value=mock_central) as mock_create:
             api = HomematicAPI(config=config)
             await api.start()
 

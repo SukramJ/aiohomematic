@@ -33,7 +33,6 @@ from aiohomematic.interfaces import (
     EventPublisherProtocol,
     GenericProgramDataPointProtocol,
     GenericSysvarDataPointProtocol,
-    HealthTrackerProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
     MetricsProviderProtocol,
@@ -42,6 +41,7 @@ from aiohomematic.interfaces import (
     PrimaryClientProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.interfaces.central import HealthTrackerProtocol
 from aiohomematic.model.hub import ConnectivityDpType, Hub, InstallModeDpType, MetricsDpType, ProgramDpType
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback

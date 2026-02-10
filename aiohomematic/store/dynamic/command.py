@@ -50,6 +50,16 @@ class CommandTracker(CommandTrackerProtocol):
 
     The 20% eviction rate balances memory reclamation against the cost of repeated
     evictions (avoiding evicting just 1 entry repeatedly).
+
+    Concurrency
+    -----------
+    This class assumes single asyncio event-loop execution. All dictionary
+    operations are atomic under cooperative multitasking (no preemption
+    between synchronous instructions). Composite operations (check-then-update)
+    are safe because no ``await`` occurs between the check and the mutation.
+
+    If Python free-threading (PEP 703) is adopted, these operations will
+    need ``asyncio.Lock`` protection for composite sequences.
     """
 
     __slots__ = (

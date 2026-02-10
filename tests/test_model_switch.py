@@ -230,7 +230,7 @@ class TestGenericSwitch:
         """Test generic DpSwitch basic functionality."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: DpSwitch = cast(
-            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+            DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
         )
         assert switch.usage == DataPointUsage.NO_CREATE
         assert switch.service_method_names == (

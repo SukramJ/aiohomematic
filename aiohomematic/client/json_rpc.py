@@ -115,16 +115,16 @@ from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import (
-    LogContextMixin,
-    cleanup_script_for_session_recorder,
     cleanup_text_from_html_tags,
     element_matches_key,
     extract_exc_args,
     get_tls_context,
-    is_device_address,
     log_boundary_error,
     parse_sys_var,
 )
+from aiohomematic.support.address import is_device_address
+from aiohomematic.support.file_ops import cleanup_script_for_session_recorder
+from aiohomematic.support.mixins import LogContextMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -283,7 +283,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         password: str,
         device_url: str,
         connection_state: hmcu.CentralConnectionState,
-        interface_id: str | None = None,
         client_session: ClientSession | None = None,
         tls: bool = False,
         verify_tls: bool = False,
@@ -320,13 +319,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         # Incident recorder for diagnostic events
         self._incident_recorder = incident_recorder
-        self._interface_id: Final = interface_id
 
         # Circuit breaker for preventing retry-storms during backend outages
         # Use interface_id for health tracking; fall back to URL for logging only
         self._circuit_breaker: Final = CircuitBreaker(
             config=circuit_breaker_config,
-            interface_id=interface_id or self._url,
+            interface_id=self._url,
             connection_state=connection_state,
             issuer=self,
             event_bus=event_bus,
@@ -2033,7 +2031,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         # Sanitize error message to remove sensitive information
         sanitized_message = sanitize_error_message(message=error_message)
 
-        interface_id = self._interface_id or self._url
+        interface_id = self._url
 
         # Use WARNING for expected errors to reduce log noise
         severity = IncidentSeverity.WARNING if is_expected else IncidentSeverity.ERROR

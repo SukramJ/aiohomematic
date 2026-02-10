@@ -7,10 +7,49 @@ This module defines the abstract base classes and concrete building blocks for
 representing Homematic parameters as data points, handling their lifecycle,
 I/O, and event propagation.
 
-Highlights:
+Class hierarchy
+---------------
+The data point class hierarchy has **5 levels** for parameter-backed data
+points and **2 levels** for calculated data points. Each level adds meaningful
+specialization — this is intentional and not an over-abstraction.
+
+**Parameter-backed data points (5 levels)**::
+
+    CallbackDataPoint (ABC)
+    │  Subscriptions, timestamps, event publishing
+    │
+    └── BaseDataPoint
+        │  Channel/device context, timer, naming, usage
+        │
+        └── BaseParameterDataPoint[ParameterT, InputParameterT]
+            │  Typed value, unit/multiplier, RPC I/O,
+            │  optimistic updates, unconfirmed write buffering
+            │
+            └── generic.DpSwitch / DpSensor / DpSelect / …
+                │  Category-specific value logic (VALUE_LIST, converters)
+                │
+                └── custom.CustomDpIpBlind / CustomDpIpThermostat / …
+                    Composite entity with multiple sub-data-points
+
+**Calculated data points (2 levels)**::
+
+    CallbackDataPoint (ABC)
+    │  (same base as above)
+    │
+    └── CalculatedDataPoint (ABC)
+        │  Source subscriptions, no RPC I/O
+        │
+        └── ApparentTemperature / DewPoint / OperatingVoltageLevel / …
+
+The calculated path is shorter because calculated data points derive values
+from other data points (via subscriptions) and never perform RPC calls,
+so the BaseParameterDataPoint layer (RPC I/O, optimistic updates) is not needed.
+
+Highlights
+----------
 - CallbackDataPoint: Base for objects that expose subscriptions and timestamps
   (modified/refreshed) and manage subscription to update and removal events.
-- BaseDataPoint/ BaseParameterDataPoint: Concrete foundations for channel-bound
+- BaseDataPoint / BaseParameterDataPoint: Concrete foundations for channel-bound
   data points, including type/flag handling, unit and multiplier normalization,
   value conversion, unconfirmed write buffering, and path/name metadata.
 - CallParameterCollector: Helper to batch multiple set/put operations and wait
@@ -32,7 +71,6 @@ from datetime import datetime, timedelta
 from functools import partial, wraps
 from inspect import getfullargspec
 import logging
-import time
 from typing import Any, Final, TypeAlias, TypeVar, cast, overload, override
 
 from aiohomematic import i18n, support as hms
@@ -88,6 +126,7 @@ from aiohomematic.interfaces import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.client import ValueAndParamsetOperationsProtocol
+from aiohomematic.model.optimistic import OptimisticValueTracker
 from aiohomematic.model.support import (
     DataPointNameData,
     DataPointPathData,
@@ -104,7 +143,8 @@ from aiohomematic.property_decorators import (
     hm_property,
     state_property,
 )
-from aiohomematic.support import LogContextMixin, PayloadMixin, log_boundary_error
+from aiohomematic.support import log_boundary_error
+from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
 from aiohomematic.type_aliases import (
     CallableAny,
     DataPointUpdatedHandler,
@@ -728,11 +768,7 @@ class BaseParameterDataPoint[
         "_min",
         "_multiplier",
         "_operations",
-        "_optimistic_pending_sends",
-        "_optimistic_previous_value",
-        "_optimistic_sent_at",
-        "_optimistic_timeout_handle",
-        "_optimistic_value",
+        "_optimistic",
         "_parameter",
         "_paramset_key",
         "_last_non_default_value",
@@ -792,11 +828,7 @@ class BaseParameterDataPoint[
         self._unconfirmed_value: ParameterT | None = None
 
         # Optimistic state management
-        self._optimistic_value: ParameterT | None = None
-        self._optimistic_previous_value: ParameterT | None = None
-        self._optimistic_timeout_handle: asyncio.TimerHandle | None = None
-        self._optimistic_sent_at: float | None = None
-        self._optimistic_pending_sends: int = 0
+        self._optimistic: Final[OptimisticValueTracker[ParameterT]] = OptimisticValueTracker()
 
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
@@ -900,7 +932,7 @@ class BaseParameterDataPoint[
     @property
     def is_optimistic(self) -> bool:
         """Return True if current value is optimistic (not confirmed by CCU)."""
-        return self._optimistic_value is not None
+        return self._optimistic.is_active
 
     @property
     def is_readable(self) -> bool:
@@ -986,9 +1018,7 @@ class BaseParameterDataPoint[
     @property
     def optimistic_age(self) -> float | None:
         """Return age of optimistic value in seconds, or None if confirmed."""
-        if self._optimistic_sent_at is None:
-            return None
-        return time.monotonic() - self._optimistic_sent_at
+        return self._optimistic.age
 
     @property
     def state_uncertain(self) -> bool:
@@ -1049,12 +1079,7 @@ class BaseParameterDataPoint[
         the previous value for rollback. Subsequent sends overwrite the
         optimistic value but keep the original rollback target.
         """
-        # Only capture previous value on first send in a burst
-        if self._optimistic_pending_sends == 0:
-            self._optimistic_previous_value = self._value
-        self._optimistic_pending_sends += 1
-        self._optimistic_value = value
-        self._optimistic_sent_at = time.monotonic()
+        self._optimistic.apply(value=value, current_value=self._value)
         self.publish_data_point_updated_event()
         self._schedule_optimistic_rollback(timeout=self._central_info.config.timeout_config.optimistic_update_timeout)
 
@@ -1442,8 +1467,8 @@ class BaseParameterDataPoint[
         - Apply value converters (e.g., RSSI negation)
         - Return defaults when value is None
         """
-        if self._optimistic_value is not None:
-            return self._optimistic_value
+        if self._optimistic.is_active:
+            return self._optimistic.value
         return self._value
 
     def _publish_rollback_event(
@@ -1508,40 +1533,30 @@ class BaseParameterDataPoint[
         5. Publishes rollback event for user notification (Step 1.7)
 
         """
-        if self._optimistic_value is None:
+        if not self._optimistic.is_active:
             return  # Already rolled back or confirmed
 
         # Log rollback with age
-        age = self.optimistic_age or 0.0
+        age = self._optimistic.age or 0.0
         _LOGGER.warning(
             i18n.tr(
                 key="log.model.data_point.optimistic_rollback",
                 full_name=self.full_name,
-                optimistic_value=self._optimistic_value,
-                previous_value=self._optimistic_previous_value,
+                optimistic_value=self._optimistic.value,
+                previous_value=self._optimistic.previous_value,
                 reason=reason,
                 age=age,
             )
         )
 
-        # Store values for event
-        rolled_back_value = self._optimistic_value
-        restored_value = self._optimistic_previous_value
-
-        # Clear optimistic state
-        self._optimistic_value = None
-        self._optimistic_sent_at = None
-        self._optimistic_pending_sends = 0
-        if self._optimistic_timeout_handle:
-            self._optimistic_timeout_handle.cancel()
-        self._optimistic_timeout_handle = None
+        # Rollback optimistic state
+        rolled_back_value, restored_value = self._optimistic.rollback()
 
         # Clear unconfirmed value so it cannot override the restored value
         self._reset_unconfirmed_value()
 
         # Restore previous value
-        self._current_value = self._optimistic_previous_value
-        self._optimistic_previous_value = None
+        self._current_value = restored_value
 
         # Publish event (Home Assistant UI reverts)
         self.publish_data_point_updated_event()
@@ -1568,15 +1583,9 @@ class BaseParameterDataPoint[
         - Rollback is executed (timer fires or error occurs)
 
         """
-        # Cancel existing timer if any
-        if self._optimistic_timeout_handle:
-            self._optimistic_timeout_handle.cancel()
-
-        # Schedule rollback
-        loop = asyncio.get_event_loop()
-        self._optimistic_timeout_handle = loop.call_later(
-            timeout,
-            partial(self._rollback_optimistic_value, reason="timeout", error=None),
+        self._optimistic.schedule_rollback(
+            timeout=timeout,
+            callback=partial(self._rollback_optimistic_value, reason="timeout", error=None),
         )
 
     def _set_value(self, value: ParameterT) -> None:  # kwonly: disable

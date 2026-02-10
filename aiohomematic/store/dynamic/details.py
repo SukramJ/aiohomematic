@@ -24,13 +24,26 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.support import changed_within_seconds, get_device_address
+from aiohomematic.support import changed_within_seconds
+from aiohomematic.support.address import get_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
 class DeviceDetailsCache(DeviceDetailsProviderProtocol, DeviceDetailsWriterProtocol):
-    """Cache for device/channel details."""
+    """
+    Cache for device/channel details.
+
+    Concurrency
+    -----------
+    This class assumes single asyncio event-loop execution. All dictionary
+    operations are atomic under cooperative multitasking (no preemption
+    between synchronous instructions). Composite operations (check-then-update)
+    are safe because no ``await`` occurs between the check and the mutation.
+
+    If Python free-threading (PEP 703) is adopted, these operations will
+    need ``asyncio.Lock`` protection for composite sequences.
+    """
 
     __slots__ = (
         "_central_info",

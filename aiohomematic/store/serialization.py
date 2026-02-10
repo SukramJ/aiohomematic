@@ -20,7 +20,7 @@ import ast
 from datetime import datetime
 from typing import Any, Final
 
-from aiohomematic.support import cleanup_script_for_session_recorder
+from aiohomematic.support.file_ops import cleanup_script_for_session_recorder
 
 _SCRIPT_KEY: Final = "script"
 

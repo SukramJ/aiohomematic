@@ -1128,6 +1128,7 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
 # =============================================================================
 
 
+@runtime_checkable
 class ChannelIdentityProtocol(Protocol):
     """
     Protocol for channel identification.
@@ -1173,6 +1174,7 @@ class ChannelIdentityProtocol(Protocol):
         """Return the unique_id of the channel."""
 
 
+@runtime_checkable
 class ChannelDataPointAccessProtocol(Protocol):
     """
     Protocol for channel data point access.
@@ -1253,6 +1255,7 @@ class ChannelDataPointAccessProtocol(Protocol):
         """Return the list of readable data points."""
 
 
+@runtime_checkable
 class ChannelGroupingProtocol(Protocol):
     """
     Protocol for channel group management.
@@ -1288,6 +1291,7 @@ class ChannelGroupingProtocol(Protocol):
         """Return the link peer channels."""
 
 
+@runtime_checkable
 class ChannelMetadataProtocol(Protocol):
     """
     Protocol for channel metadata access.
@@ -1338,6 +1342,7 @@ class ChannelMetadataProtocol(Protocol):
         """Return all rooms of the channel."""
 
 
+@runtime_checkable
 class ChannelLinkManagementProtocol(Protocol):
     """
     Protocol for channel central link management.
@@ -1364,6 +1369,7 @@ class ChannelLinkManagementProtocol(Protocol):
         """Subscribe to link peer changed event."""
 
 
+@runtime_checkable
 class ChannelLifecycleProtocol(Protocol):
     """
     Protocol for channel lifecycle management.
@@ -1471,6 +1477,7 @@ class ChannelProtocol(
 # =============================================================================
 
 
+@runtime_checkable
 class DeviceIdentityProtocol(Protocol):
     """
     Protocol for device identification.
@@ -1521,6 +1528,7 @@ class DeviceIdentityProtocol(Protocol):
         """Return the sub model of the device."""
 
 
+@runtime_checkable
 class DeviceChannelAccessProtocol(Protocol):
     """
     Protocol for device channel and data point access.
@@ -1600,6 +1608,7 @@ class DeviceChannelAccessProtocol(Protocol):
         """Identify channel within a text."""
 
 
+@runtime_checkable
 class DeviceAvailabilityProtocol(Protocol):
     """
     Protocol for device availability state.
@@ -1629,6 +1638,7 @@ class DeviceAvailabilityProtocol(Protocol):
         """Set the availability of the device."""
 
 
+@runtime_checkable
 class DeviceFirmwareProtocol(Protocol):
     """
     Protocol for device firmware management.
@@ -1676,6 +1686,7 @@ class DeviceFirmwareProtocol(Protocol):
         """Update the device firmware."""
 
 
+@runtime_checkable
 class DeviceLinkManagementProtocol(Protocol):
     """
     Protocol for device central link management.
@@ -1699,6 +1710,7 @@ class DeviceLinkManagementProtocol(Protocol):
         """Remove central links."""
 
 
+@runtime_checkable
 class DeviceGroupManagementProtocol(Protocol):
     """
     Protocol for device channel group management.
@@ -1726,6 +1738,7 @@ class DeviceGroupManagementProtocol(Protocol):
         """Return if multiple channels are in the group."""
 
 
+@runtime_checkable
 class DeviceConfigurationProtocol(Protocol):
     """
     Protocol for device configuration and metadata.
@@ -1786,6 +1799,7 @@ class DeviceConfigurationProtocol(Protocol):
         """Return the rx modes."""
 
 
+@runtime_checkable
 class DeviceWeekProfileProtocol(Protocol):
     """
     Protocol for device week profile support.
@@ -1824,6 +1838,7 @@ class DeviceWeekProfileProtocol(Protocol):
         """Set the week profile data point reference."""
 
 
+@runtime_checkable
 class DeviceProvidersProtocol(Protocol):
     """
     Protocol for device dependency providers.
@@ -1914,6 +1929,7 @@ class DeviceProvidersProtocol(Protocol):
         """Return the value cache."""
 
 
+@runtime_checkable
 class DeviceLifecycleProtocol(Protocol):
     """
     Protocol for device lifecycle management.

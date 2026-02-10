@@ -804,6 +804,7 @@ def detect_template_language(issue_body: str) -> str:
 
     return "en"
 
+
 CLAUDE_ANALYSIS_PROMPT = """You are an AI assistant helping to analyze GitHub issues for the AioHomematic and Homematic(IP) Local projects.
 
 **CRITICAL - Response Language:**

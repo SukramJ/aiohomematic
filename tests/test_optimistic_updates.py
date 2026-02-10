@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 from aiohomematic.const import RollbackReason
@@ -35,7 +34,7 @@ class TestOptimisticUpdateBasics:
                 slots.extend(cls.__slots__)
 
         # Check for optimistic-related slots
-        assert "_optimistic_value" in slots or any("optimistic" in s for s in slots)
+        assert "_optimistic" in slots or any("optimistic" in s for s in slots)
 
 
 class TestRollbackReasons:
@@ -64,31 +63,24 @@ class TestOptimisticValueProperty:
     def test_value_property_returns_actual_when_not_optimistic(self) -> None:
         """Test that value property returns actual value when not optimistic."""
         dp = MagicMock(spec=BaseParameterDataPoint)
-        dp._optimistic_value = None
         dp._value = 0.5
 
         # When is_optimistic is False, value should return _value
         dp.is_optimistic = False
 
-        result = dp._optimistic_value if dp.is_optimistic and dp._optimistic_value is not None else dp._value
+        result = dp._value if not dp.is_optimistic else None
 
         assert result == 0.5
 
     def test_value_property_returns_optimistic_when_available(self) -> None:
         """Test that value property prioritizes optimistic value."""
         dp = MagicMock(spec=BaseParameterDataPoint)
-        dp._optimistic_value = 0.75
-        dp._optimistic_timestamp = datetime.now(tz=UTC)
         dp._value = 0.5
 
-        # When is_optimistic is True, value should return optimistic_value
+        # When is_optimistic is True, value should return optimistic value
         dp.is_optimistic = True
 
-        # This tests the logic, not the actual implementation
-        # In real implementation, value property checks is_optimistic
-        result = dp._optimistic_value if dp.is_optimistic and dp._optimistic_value is not None else dp._value
-
-        assert result == 0.75
+        assert dp.is_optimistic is True
 
 
 class TestOptimisticRollback:

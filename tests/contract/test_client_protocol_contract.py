@@ -32,17 +32,17 @@ from aiohomematic.interfaces import (
     ClientProviderProtocol,
     ClientSupportProtocol,
     DeviceDiscoveryOperationsProtocol,
-    MaintenanceOperationsProtocol,
     MetadataOperationsProtocol,
     PrimaryClientProviderProtocol,
-    SystemManagementOperationsProtocol,
 )
 from aiohomematic.interfaces.client import (
     BackupOperationsProtocol,
     FirmwareOperationsProtocol,
     LinkOperationsProtocol,
+    MaintenanceOperationsProtocol,
     ParamsetOperationsProtocol,
     ProgramOperationsProtocol,
+    SystemManagementOperationsProtocol,
     SystemVariableOperationsProtocol,
     ValueAndParamsetOperationsProtocol,
     ValueOperationsProtocol,
@@ -182,21 +182,21 @@ class TestClientLifecycleProtocolContract:
     These methods are essential for client initialization and shutdown.
     """
 
-    def test_has_deinitialize_proxy_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have deinitialize_proxy method."""
-        assert "deinitialize_proxy" in dir(ClientLifecycleProtocol)
+    def test_has_deinit_proxy_method(self) -> None:
+        """CONTRACT: ClientLifecycleProtocol MUST have deinit_proxy method."""
+        assert "deinit_proxy" in dir(ClientLifecycleProtocol)
 
     def test_has_init_client_method(self) -> None:
         """CONTRACT: ClientLifecycleProtocol MUST have init_client method."""
         assert "init_client" in dir(ClientLifecycleProtocol)
 
-    def test_has_initialize_proxy_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have initialize_proxy method."""
-        assert "initialize_proxy" in dir(ClientLifecycleProtocol)
+    def test_has_init_proxy_method(self) -> None:
+        """CONTRACT: ClientLifecycleProtocol MUST have init_proxy method."""
+        assert "init_proxy" in dir(ClientLifecycleProtocol)
 
-    def test_has_reinitialize_proxy_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have reinitialize_proxy method."""
-        assert "reinitialize_proxy" in dir(ClientLifecycleProtocol)
+    def test_has_reinit_proxy_method(self) -> None:
+        """CONTRACT: ClientLifecycleProtocol MUST have reinit_proxy method."""
+        assert "reinit_proxy" in dir(ClientLifecycleProtocol)
 
     def test_has_stop_method(self) -> None:
         """CONTRACT: ClientLifecycleProtocol MUST have stop method."""
@@ -677,8 +677,8 @@ class TestClientProtocolFullApiContract:
             # ClientLifecycleProtocol
             "init_client",
             "stop",
-            "initialize_proxy",
-            "deinitialize_proxy",
+            "init_proxy",
+            "deinit_proxy",
             # DeviceDiscoveryOperationsProtocol
             "list_devices",
             "get_device_description",

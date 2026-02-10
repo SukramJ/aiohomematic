@@ -339,7 +339,7 @@ class TestCuxdCcuJackCapabilities:
         CUxD/CCU-Jack don't have XML-RPC callback support.
         They don't call init() on any XML-RPC server.
 
-        REGRESSION: If rpc_callback=True, initialize_proxy() would try to
+        REGRESSION: If rpc_callback=True, init_proxy() would try to
         call backend.init_proxy() which doesn't make sense for JSON-RPC-only.
         """
         assert JSON_CCU_CAPABILITIES.rpc_callback is False, (

@@ -121,7 +121,7 @@ class TestDataPointCallbacks:
         """Test generic data point handler registration and events."""
         central, _, factory = central_client_factory_with_homegear_client
         switch: DpSwitch = cast(
-            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+            DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
         )
         assert switch.usage == DataPointUsage.NO_CREATE
 
@@ -227,7 +227,7 @@ class TestDataPointLoading:
         """Test generic data point value loading."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: DpSwitch = cast(
-            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+            DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
         )
         await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
         assert mock_client.method_calls[-1] == call.get_value(
@@ -260,7 +260,7 @@ class TestWrappedDataPoint:
         """Test wrapped data point category and forced sensor behavior."""
         central, _, _ = central_client_factory_with_homegear_client
         wrapped_data_point: DpSensor = cast(
-            DpSensor, central.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL")
+            DpSensor, central.query_facade.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL")
         )
         assert wrapped_data_point.default_category() == "number"
         assert wrapped_data_point._is_forced_sensor is True
@@ -295,7 +295,7 @@ class TestIgnoreOnInitialLoad:
         """
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: DpSwitch = cast(
-            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+            DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
         )
         assert switch.value is None
 
@@ -340,7 +340,7 @@ class TestIgnoreOnInitialLoad:
         central, mock_client, _ = central_client_factory_with_homegear_client
         # Get a data point to test
         switch: DpSwitch = cast(
-            DpSwitch, central.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+            DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
         )
         assert switch.value is None
 

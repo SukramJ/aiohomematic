@@ -197,6 +197,8 @@ Consumers can depend on specific sub-protocols for narrower interface contracts,
 
 These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.
 
+For a comprehensive guide on choosing the right protocol for your use case, including decision trees, hierarchy diagrams, and common patterns, see the [Protocol Selection Guide](architecture/protocol_selection_guide.md).
+
 ## Responsibilities and boundaries
 
 - Central vs Client

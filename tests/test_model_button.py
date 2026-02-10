@@ -42,7 +42,7 @@ class TestGenericButton:
         central, mock_client, _ = central_client_factory_with_homegear_client
         button: DpButton = cast(
             DpButton,
-            central.get_generic_data_point(channel_address="VCU1437294:1", parameter="RESET_MOTION"),
+            central.query_facade.get_generic_data_point(channel_address="VCU1437294:1", parameter="RESET_MOTION"),
         )
         assert button.usage == DataPointUsage.DATA_POINT
         assert button.available is True

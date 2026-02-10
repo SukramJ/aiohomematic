@@ -41,7 +41,7 @@ class TestActionSelectDataPoint:
         central, mock_client, _ = central_client_factory_with_homegear_client
         action_select: DpActionSelect = cast(
             DpActionSelect,
-            central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
+            central.query_facade.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
         )
         assert action_select.category == DataPointCategory.ACTION_SELECT
         assert action_select.usage == DataPointUsage.NO_CREATE
@@ -91,7 +91,7 @@ class TestActionSelectDataPoint:
         central, _, _ = central_client_factory_with_homegear_client
         action_select: DpActionSelect = cast(
             DpActionSelect,
-            central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
+            central.query_facade.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
         )
         # Set value locally
         action_select.value = "UNLOCKED"
@@ -122,7 +122,7 @@ class TestActionSelectDataPoint:
         central, _, _ = central_client_factory_with_homegear_client
         action_select: DpActionSelect = cast(
             DpActionSelect,
-            central.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
+            central.query_facade.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
         )
 
         # Track event emissions

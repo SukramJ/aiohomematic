@@ -93,7 +93,7 @@ _VALID_TRANSITIONS: Final[dict[ClientState, frozenset[ClientState]]] = {
             ClientState.INITIALIZING,  # Retry initialization
             ClientState.CONNECTING,  # Retry connection
             ClientState.RECONNECTING,  # Automatic reconnection attempt
-            ClientState.DISCONNECTED,  # Graceful shutdown via deinitialize_proxy
+            ClientState.DISCONNECTED,  # Graceful shutdown via deinit_proxy
         }
     ),
 }

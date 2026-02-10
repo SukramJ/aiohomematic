@@ -50,7 +50,7 @@ from aiohomematic.model.support import (
     get_hub_data_point_name_data,
 )
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
-from aiohomematic.support import PayloadMixin
+from aiohomematic.support.mixins import PayloadMixin
 
 if TYPE_CHECKING:
     from aiohomematic.metrics import MetricsObserver

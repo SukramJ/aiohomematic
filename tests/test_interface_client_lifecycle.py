@@ -4,7 +4,7 @@
 Tests for InterfaceClient lifecycle methods.
 
 These tests verify the connection lifecycle operations:
-- initialize_proxy / deinitialize_proxy / reinitialize_proxy
+- init_proxy / deinit_proxy / reinit_proxy
 - check_connection_availability
 - is_callback_alive
 - is_connected
@@ -417,11 +417,11 @@ class TestInterfaceClientInit:
 
 
 class TestInterfaceClientInitializeProxy:
-    """Test initialize_proxy lifecycle method."""
+    """Test init_proxy lifecycle method."""
 
     @pytest.mark.asyncio
-    async def test_initialize_proxy_failure(self) -> None:
-        """initialize_proxy should return INIT_FAILED on error."""
+    async def test_init_proxy_failure(self) -> None:
+        """init_proxy should return INIT_FAILED on error."""
         central = _FakeCentral()
         backend = _FakeBackend()
         backend._init_proxy_should_fail = True
@@ -429,14 +429,14 @@ class TestInterfaceClientInitializeProxy:
 
         # First init_client to get to INITIALIZED state
         await client.init_client()
-        result = await client.initialize_proxy()
+        result = await client.init_proxy()
 
         assert result == ProxyInitState.INIT_FAILED
         assert client.state == ClientState.FAILED
 
     @pytest.mark.asyncio
-    async def test_initialize_proxy_no_callback_list_devices_fails(self) -> None:
-        """initialize_proxy without callback should fail if list_devices returns None."""
+    async def test_init_proxy_no_callback_list_devices_fails(self) -> None:
+        """init_proxy without callback should fail if list_devices returns None."""
         central = _FakeCentral()
         backend = _FakeBackend()
         backend.capabilities.rpc_callback = False
@@ -445,14 +445,14 @@ class TestInterfaceClientInitializeProxy:
 
         # First init_client to get to INITIALIZED state
         await client.init_client()
-        result = await client.initialize_proxy()
+        result = await client.init_proxy()
 
         assert result == ProxyInitState.INIT_FAILED
         assert client.state == ClientState.FAILED
 
     @pytest.mark.asyncio
-    async def test_initialize_proxy_no_callback_support(self) -> None:
-        """initialize_proxy without callback support should still succeed."""
+    async def test_init_proxy_no_callback_support(self) -> None:
+        """init_proxy without callback support should still succeed."""
         central = _FakeCentral()
         backend = _FakeBackend()
         backend.capabilities.rpc_callback = False
@@ -461,7 +461,7 @@ class TestInterfaceClientInitializeProxy:
 
         # First init_client to get to INITIALIZED state
         await client.init_client()
-        result = await client.initialize_proxy()
+        result = await client.init_proxy()
 
         assert result == ProxyInitState.INIT_SUCCESS
         assert client.state == ClientState.CONNECTED
@@ -471,28 +471,28 @@ class TestInterfaceClientInitializeProxy:
         assert any(call[0] == "list_devices" for call in backend.calls)
 
     @pytest.mark.asyncio
-    async def test_initialize_proxy_sets_modified_at(self) -> None:
-        """initialize_proxy should update modified_at timestamp."""
+    async def test_init_proxy_sets_modified_at(self) -> None:
+        """init_proxy should update modified_at timestamp."""
         client = _create_interface_client()
         assert client.modified_at == INIT_DATETIME
 
         # First init_client to get to INITIALIZED state
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
 
         assert client.modified_at != INIT_DATETIME
         assert client.modified_at <= datetime.now()
 
     @pytest.mark.asyncio
-    async def test_initialize_proxy_success(self) -> None:
-        """initialize_proxy should call backend and transition to CONNECTED."""
+    async def test_init_proxy_success(self) -> None:
+        """init_proxy should call backend and transition to CONNECTED."""
         central = _FakeCentral()
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
         # First init_client to get to INITIALIZED state
         await client.init_client()
-        result = await client.initialize_proxy()
+        result = await client.init_proxy()
 
         assert result == ProxyInitState.INIT_SUCCESS
         assert client.state == ClientState.CONNECTED
@@ -501,40 +501,40 @@ class TestInterfaceClientInitializeProxy:
 
 
 class TestInterfaceClientDeinitializeProxy:
-    """Test deinitialize_proxy lifecycle method."""
+    """Test deinit_proxy lifecycle method."""
 
     @pytest.mark.asyncio
-    async def test_deinitialize_proxy_failure(self) -> None:
-        """deinitialize_proxy should return DE_INIT_FAILED on error."""
+    async def test_deinit_proxy_failure(self) -> None:
+        """deinit_proxy should return DE_INIT_FAILED on error."""
         central = _FakeCentral()
         backend = _FakeBackend()
         backend._deinit_proxy_should_fail = True
         client = _create_interface_client(central, backend)
 
-        # First init_client and initialize_proxy
+        # First init_client and init_proxy
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         backend.calls.clear()
 
-        result = await client.deinitialize_proxy()
+        result = await client.deinit_proxy()
 
         assert result == ProxyInitState.DE_INIT_FAILED
 
     @pytest.mark.asyncio
-    async def test_deinitialize_proxy_no_callback_support(self) -> None:
-        """deinitialize_proxy without callback support should succeed immediately."""
+    async def test_deinit_proxy_no_callback_support(self) -> None:
+        """deinit_proxy without callback support should succeed immediately."""
         central = _FakeCentral()
         backend = _FakeBackend()
         backend.capabilities.rpc_callback = False
         backend._list_devices_result = ({"ADDRESS": "dev1", "TYPE": "TEST", "PARAMSETS": ["VALUES"]},)
         client = _create_interface_client(central, backend)
 
-        # First init_client and initialize_proxy to get to CONNECTED
+        # First init_client and init_proxy to get to CONNECTED
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         backend.calls.clear()
 
-        result = await client.deinitialize_proxy()
+        result = await client.deinit_proxy()
 
         assert result == ProxyInitState.DE_INIT_SUCCESS
         assert client.state == ClientState.DISCONNECTED
@@ -542,45 +542,45 @@ class TestInterfaceClientDeinitializeProxy:
         assert not any(call[0] == "deinit_proxy" for call in backend.calls)
 
     @pytest.mark.asyncio
-    async def test_deinitialize_proxy_resets_modified_at(self) -> None:
-        """deinitialize_proxy should reset modified_at to INIT_DATETIME."""
+    async def test_deinit_proxy_resets_modified_at(self) -> None:
+        """deinit_proxy should reset modified_at to INIT_DATETIME."""
         client = _create_interface_client()
 
-        # First init_client and initialize_proxy
+        # First init_client and init_proxy
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         assert client.modified_at != INIT_DATETIME
 
-        await client.deinitialize_proxy()
+        await client.deinit_proxy()
         assert client.modified_at == INIT_DATETIME
 
     @pytest.mark.asyncio
-    async def test_deinitialize_proxy_skipped_when_not_initialized(self) -> None:
-        """deinitialize_proxy should skip if never initialized."""
+    async def test_deinit_proxy_skipped_when_not_initialized(self) -> None:
+        """deinit_proxy should skip if never initialized."""
         central = _FakeCentral()
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
         # Don't initialize - modified_at is INIT_DATETIME
-        result = await client.deinitialize_proxy()
+        result = await client.deinit_proxy()
 
         assert result == ProxyInitState.DE_INIT_SKIPPED
         # Should NOT have called deinit_proxy
         assert not any(call[0] == "deinit_proxy" for call in backend.calls)
 
     @pytest.mark.asyncio
-    async def test_deinitialize_proxy_success(self) -> None:
-        """deinitialize_proxy should call backend and transition to DISCONNECTED."""
+    async def test_deinit_proxy_success(self) -> None:
+        """deinit_proxy should call backend and transition to DISCONNECTED."""
         central = _FakeCentral()
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
-        # First init_client and initialize_proxy
+        # First init_client and init_proxy
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         backend.calls.clear()
 
-        result = await client.deinitialize_proxy()
+        result = await client.deinit_proxy()
 
         assert result == ProxyInitState.DE_INIT_SUCCESS
         assert client.state == ClientState.DISCONNECTED
@@ -633,9 +633,9 @@ class TestInterfaceClientCheckConnectionAvailability:
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
-        # First init_client and initialize_proxy to enable ping_pong handling
+        # First init_client and init_proxy to enable ping_pong handling
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         backend.calls.clear()
 
         result = await client.check_connection_availability(handle_ping_pong=True)
@@ -747,9 +747,9 @@ class TestInterfaceClientIsConnected:
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
-        # First init_client and initialize_proxy to get to CONNECTED state
+        # First init_client and init_proxy to get to CONNECTED state
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         assert client.state == ClientState.CONNECTED
 
         # Then fail
@@ -783,7 +783,7 @@ class TestInterfaceClientStateTransitions:
         client = _create_interface_client()
 
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
 
         assert client.available is True
 
@@ -799,7 +799,7 @@ class TestInterfaceClientStateTransitions:
         client = _create_interface_client()
 
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
 
         assert client.is_initialized is True
 
@@ -819,7 +819,7 @@ class TestInterfaceClientStateTransitions:
         await client.init_client()
         assert client.state == ClientState.INITIALIZED
 
-        await client.initialize_proxy()
+        await client.init_proxy()
         assert client.state == ClientState.CONNECTED
 
     @pytest.mark.asyncio
@@ -828,10 +828,10 @@ class TestInterfaceClientStateTransitions:
         client = _create_interface_client()
 
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         assert client.state == ClientState.CONNECTED
 
-        await client.deinitialize_proxy()
+        await client.deinit_proxy()
         assert client.state == ClientState.DISCONNECTED
 
 
@@ -959,16 +959,16 @@ class TestInterfaceClientReconnect:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_reinitialize_proxy(self) -> None:
-        """reinitialize_proxy should deinitialize then initialize."""
+    async def test_reinit_proxy(self) -> None:
+        """reinit_proxy should deinitialize then initialize."""
         backend = _FakeBackend()
         client = _create_interface_client(backend=backend)
 
         await client.init_client()
-        await client.initialize_proxy()
+        await client.init_proxy()
         backend.calls.clear()
 
-        result = await client.reinitialize_proxy()
+        result = await client.reinit_proxy()
 
         assert result == ProxyInitState.INIT_SUCCESS
         # Should have called deinit then init

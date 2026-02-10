@@ -137,7 +137,7 @@ class CircuitBreaker:
 
         """
         self._config: Final = config or CircuitBreakerConfig()
-        self._interface_id: Final = interface_id
+        self._interface_id = interface_id
         self._connection_state: Final = connection_state
         self._issuer: Final = issuer
         self._event_bus: Final = event_bus

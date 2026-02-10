@@ -38,7 +38,19 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class PingPongTracker(PingPongTrackerProtocol):
-    """Tracker for ping/pong events to monitor connection health."""
+    """
+    Tracker for ping/pong events to monitor connection health.
+
+    Concurrency
+    -----------
+    This class assumes single asyncio event-loop execution. All dictionary
+    operations are atomic under cooperative multitasking (no preemption
+    between synchronous instructions). Composite operations (check-then-update)
+    are safe because no ``await`` occurs between the check and the mutation.
+
+    If Python free-threading (PEP 703) is adopted, these operations will
+    need ``asyncio.Lock`` protection for composite sequences.
+    """
 
     __slots__ = (
         "_allowed_delta",

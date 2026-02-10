@@ -3,6 +3,14 @@
 """
 Helper functions used within aiohomematic.
 
+This package provides cross-cutting utilities organized into submodules:
+
+- **address**: Device/channel address parsing and validation.
+- **file_ops**: File system operations (create directory, delete file, etc.).
+- **mixins**: LogContextMixin and PayloadMixin for structured logging and introspection.
+
+Functions and classes that don't fit a specific submodule remain here.
+
 Public API of this module is defined by __all__.
 """
 
@@ -15,12 +23,10 @@ import contextlib
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
-import glob
 import hashlib
 import inspect
 from ipaddress import IPv4Address, IPv6Address
 import logging
-import os
 import random
 import re
 import socket
@@ -30,10 +36,7 @@ from typing import Any, Final
 
 from aiohomematic import compat, i18n
 from aiohomematic.const import (
-    ADDRESS_SEPARATOR,
     CCU_PASSWORD_PATTERN,
-    CHANNEL_ADDRESS_PATTERN,
-    DEVICE_ADDRESS_PATTERN,
     HOSTNAME_PATTERN,
     HTMLTAG_PATTERN,
     INIT_DATETIME,
@@ -47,11 +50,10 @@ from aiohomematic.const import (
     CommandRxMode,
     DeviceDescription,
     HubValueType,
-    ParamsetKey,
     RxMode,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, ValidationException
-from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, get_hm_property_by_log_context, hm_property
+from aiohomematic.support.address import is_device_address
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -91,53 +93,6 @@ def build_xml_rpc_headers(
     cred_bytes = f"{username}:{password}".encode()
     base64_message = base64.b64encode(cred_bytes).decode(ISO_8859_1)
     return [("Authorization", f"Basic {base64_message}")]
-
-
-def delete_file(directory: str, file_name: str) -> None:  # kwonly: disable
-    """Delete the file. File can contain a wildcard."""
-    if os.path.exists(directory):
-        for file_path in glob.glob(os.path.join(directory, file_name)):
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-
-
-def cleanup_script_for_session_recorder(*, script: str) -> str:
-    """
-    Cleanup the script for session recording.
-
-    Keep only the first line (script name) and lines starting with '!# param:'.
-    The first line contains the script identifier (e.g., '!# name: script.fn' or '!# script.fn').
-    """
-
-    if not (lines := script.splitlines()):
-        return ""
-    # Keep the first line (script name) and all param lines
-    result = [lines[0]]
-    result.extend(line for line in lines[1:] if line.startswith("!# param:"))
-    return "\n".join(result)
-
-
-def _check_or_create_directory_sync(*, directory: str) -> bool:
-    """Check / create directory (internal sync implementation)."""
-    if not directory:
-        return False
-    if not os.path.exists(directory):
-        try:
-            os.makedirs(directory)
-        except OSError as oserr:
-            raise AioHomematicException(
-                i18n.tr(
-                    key="exception.support.check_or_create_directory.failed",
-                    directory=directory,
-                    reason=oserr.strerror,
-                )
-            ) from oserr
-    return True
-
-
-async def check_or_create_directory(*, directory: str) -> bool:
-    """Check / create directory asynchronously."""
-    return await asyncio.to_thread(_check_or_create_directory_sync, directory=directory)
 
 
 def extract_device_addresses_from_device_descriptions(
@@ -212,52 +167,6 @@ _DEFAULT_SSL_CONTEXT: Final = _create_tls_context(verify_tls=True)
 def get_tls_context(*, verify_tls: bool) -> ssl.SSLContext:
     """Return tls verified/unverified context."""
     return _DEFAULT_SSL_CONTEXT if verify_tls else _DEFAULT_NO_VERIFY_SSL_CONTEXT
-
-
-def get_channel_address(*, device_address: str, channel_no: int | None) -> str:
-    """Return the channel address."""
-    return device_address if channel_no is None else f"{device_address}:{channel_no}"
-
-
-def get_device_address(*, address: str) -> str:
-    """Return the device part of an address."""
-    return get_split_channel_address(channel_address=address)[0]
-
-
-def get_channel_no(*, address: str) -> int | None:
-    """Return the channel part of an address."""
-    return get_split_channel_address(channel_address=address)[1]
-
-
-def is_channel_address(*, address: str) -> bool:
-    """Check if it is a channel address."""
-    return CHANNEL_ADDRESS_PATTERN.match(address) is not None
-
-
-def is_device_address(*, address: str) -> bool:
-    """Check if it is a device address."""
-    return DEVICE_ADDRESS_PATTERN.match(address) is not None
-
-
-def is_paramset_key(*, paramset_key: ParamsetKey | str) -> bool:
-    """Check if it is a paramset key."""
-    return isinstance(paramset_key, ParamsetKey) or (isinstance(paramset_key, str) and paramset_key in ParamsetKey)
-
-
-@lru_cache(maxsize=4096)
-def get_split_channel_address(*, channel_address: str) -> tuple[str, int | None]:
-    """
-    Return the device part of an address.
-
-    Cached to avoid redundant parsing across layers when repeatedly handling
-    the same channel addresses.
-    """
-    if ADDRESS_SEPARATOR in channel_address:
-        device_address, channel_no = channel_address.split(ADDRESS_SEPARATOR)
-        if channel_no in (None, "None"):
-            return device_address, None
-        return device_address, int(channel_no)
-    return channel_address, None
 
 
 def changed_within_seconds(*, last_change: datetime, max_age: int = MAX_CACHE_AGE) -> bool:
@@ -639,52 +548,6 @@ def log_boundary_error(
         chosen_level = logging.WARNING if isinstance(err, BaseHomematicException) else logging.ERROR
 
     logger.log(chosen_level, log_message)
-
-
-class LogContextMixin:
-    """Mixin to add log context methods to class."""
-
-    __slots__ = ("_cached_log_context",)
-
-    @hm_property(cached=True)
-    def log_context(self) -> Mapping[str, Any]:
-        """Return the log context for this object."""
-        return {
-            key: value for key, value in get_hm_property_by_log_context(data_object=self).items() if value is not None
-        }
-
-
-class PayloadMixin:
-    """Mixin to add payload methods to class."""
-
-    __slots__ = ()
-
-    @property
-    def config_payload(self) -> Mapping[str, Any]:
-        """Return the config payload."""
-        return {
-            key: value
-            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.CONFIG).items()
-            if value is not None
-        }
-
-    @property
-    def info_payload(self) -> Mapping[str, Any]:
-        """Return the info payload."""
-        return {
-            key: value
-            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.INFO).items()
-            if value is not None
-        }
-
-    @property
-    def state_payload(self) -> Mapping[str, Any]:
-        """Return the state payload."""
-        return {
-            key: value
-            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.STATE).items()
-            if value is not None
-        }
 
 
 # Define public API for this module

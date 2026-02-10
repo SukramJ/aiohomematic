@@ -302,9 +302,9 @@ class TestConnectionHealth:
         """Test updating health from client."""
         health = ConnectionHealth(interface_id="test", interface=Interface.HMIP_RF)
 
-        # Mock client with state machine
+        # Mock client with public state property
         client = MagicMock()
-        client._state_machine.state = ClientState.CONNECTED
+        client.state = ClientState.CONNECTED
 
         health.update_from_client(client=client)
         assert health.client_state == ClientState.CONNECTED
@@ -403,7 +403,7 @@ class TestCentralHealth:
         """Test initial central health state."""
         health = CentralHealth()
         assert health.central_state == CentralState.STARTING
-        assert health.client_health == {}
+        assert not health.client_health
         assert health.primary_interface is None
 
     def test_overall_health_score_average(self) -> None:
@@ -584,7 +584,7 @@ class TestHealthTracker:
         tracker = HealthTracker(central_name="test")
         state_machine = MagicMock()
         tracker.set_state_machine(state_machine=state_machine)
-        assert tracker._state_machine == state_machine
+        assert tracker._state_machine == state_machine  # pylint: disable=protected-access
 
     def test_unregister_client(self) -> None:
         """Test unregistering a client."""
@@ -599,7 +599,7 @@ class TestHealthTracker:
         tracker.register_client(interface_id="c1", interface=Interface.HMIP_RF)
 
         client = MagicMock()
-        client._state_machine.state = ClientState.CONNECTED
+        client.state = ClientState.CONNECTED
 
         tracker.update_all_from_clients(clients={"c1": client})
 

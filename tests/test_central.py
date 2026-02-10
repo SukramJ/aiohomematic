@@ -163,10 +163,10 @@ class TestCentralBasics:
     ) -> None:
         """Test central/device get_data_points."""
         central, _, _ = central_client_factory_with_homegear_client
-        dps = central.get_data_points()
+        dps = central.query_facade.get_data_points()
         assert dps
 
-        dps_reg = central.get_data_points(registered=True)
+        dps_reg = central.query_facade.get_data_points(registered=True)
         assert dps_reg == ()
 
     @pytest.mark.asyncio
@@ -230,7 +230,9 @@ class TestCentralUnIgnore:
                 )
                 is expected_result
             )
-            dp = central.get_generic_data_point(channel_address=f"VCU8537918:{channel_no}", parameter=parameter)
+            dp = central.query_facade.get_generic_data_point(
+                channel_address=f"VCU8537918:{channel_no}", parameter=parameter
+            )
             if expected_result:
                 assert dp
                 assert dp.usage == DataPointUsage.DATA_POINT
@@ -281,7 +283,9 @@ class TestCentralUnIgnore:
                 )
                 is expected_result
             )
-            if dp := central.get_generic_data_point(channel_address=f"VCU3609622:{channel_no}", parameter=parameter):
+            if dp := central.query_facade.get_generic_data_point(
+                channel_address=f"VCU3609622:{channel_no}", parameter=parameter
+            ):
                 assert dp.usage == DataPointUsage.DATA_POINT
         finally:
             await central.stop()
@@ -322,7 +326,7 @@ class TestCentralUnIgnore:
                 )
                 is expected_result
             )
-            dp = central.get_generic_data_point(
+            dp = central.query_facade.get_generic_data_point(
                 channel_address=f"VCU0000341:{channel_no}" if channel_no else "VCU0000341", parameter=parameter
             )
             if expected_result:
@@ -409,7 +413,7 @@ class TestCentralUnIgnore:
                 )
                 is expected_result
             )
-            dp = central.get_generic_data_point(
+            dp = central.query_facade.get_generic_data_point(
                 channel_address=f"VCU0000137:{channel_no}" if channel_no else "VCU0000137", parameter=parameter
             )
             if expected_result:
@@ -451,7 +455,7 @@ class TestCentralParameters:
     ) -> None:
         """Test all_parameters."""
         central = await factory_with_homegear_client.init(address_device_translation=TEST_DEVICES).get_default_central()
-        parameters = central.get_parameters(
+        parameters = central.query_facade.get_parameters(
             paramset_key=ParamsetKey.VALUES,
             operations=operations,
             full_format=full_format,
@@ -487,7 +491,7 @@ class TestCentralParameters:
         central = await factory_with_homegear_client.init(
             address_device_translation=TEST_DEVICES, un_ignore_list=["ACTIVE_PROFILE"]
         ).get_default_central()
-        parameters = central.get_parameters(
+        parameters = central.query_facade.get_parameters(
             paramset_key=ParamsetKey.VALUES,
             operations=operations,
             full_format=full_format,
@@ -516,7 +520,7 @@ class TestCentralParameters:
         central, _, _ = central_client_factory_with_homegear_client
 
         # Get candidates with include_master=True
-        candidates_with_master = central.get_un_ignore_candidates(include_master=True)
+        candidates_with_master = central.query_facade.get_un_ignore_candidates(include_master=True)
         assert candidates_with_master
         assert len(candidates_with_master) > 0
 
@@ -524,7 +528,7 @@ class TestCentralParameters:
         assert any(ParamsetKey.MASTER in candidate for candidate in candidates_with_master)
 
         # Get candidates with include_master=False (default)
-        candidates_without_master = central.get_un_ignore_candidates(include_master=False)
+        candidates_without_master = central.query_facade.get_un_ignore_candidates(include_master=False)
         assert candidates_without_master
 
         # Verify MASTER params are excluded when include_master=False
@@ -562,7 +566,7 @@ class TestCentralDataPointsByCategory:
     ) -> None:
         """Test data_points_by_category."""
         central, _, _ = central_client_factory_with_homegear_client
-        ebp_sensor = central.get_data_points(category=DataPointCategory.SENSOR)
+        ebp_sensor = central.query_facade.get_data_points(category=DataPointCategory.SENSOR)
         assert ebp_sensor
         assert len(ebp_sensor) == 18
 
@@ -570,11 +574,11 @@ class TestCentralDataPointsByCategory:
             """Handle device state changes."""
 
         ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
-        ebp_sensor2 = central.get_data_points(category=DataPointCategory.SENSOR, registered=False)
+        ebp_sensor2 = central.query_facade.get_data_points(category=DataPointCategory.SENSOR, registered=False)
         assert ebp_sensor2
         assert len(ebp_sensor2) == 17
 
-        ebp_week_profile = central.get_data_points(category=DataPointCategory.WEEK_PROFILE)
+        ebp_week_profile = central.query_facade.get_data_points(category=DataPointCategory.WEEK_PROFILE)
         assert len(ebp_week_profile) == 2
 
     @pytest.mark.asyncio
@@ -643,7 +647,7 @@ class TestCentralDeviceManagement:
         """Test add_device."""
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.device_registry.devices) == 1
-        assert len(central.get_data_points(exclude_no_create=False)) == 34
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 34
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
@@ -651,7 +655,7 @@ class TestCentralDeviceManagement:
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
         await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
         assert len(central.device_registry.devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 66
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 66
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
@@ -681,7 +685,7 @@ class TestCentralDeviceManagement:
         """Test device delete_device."""
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.device_registry.devices) == 2
-        assert len(central.get_data_points(exclude_no_create=False)) == 66
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 66
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
@@ -690,7 +694,7 @@ class TestCentralDeviceManagement:
 
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=["VCU2128127"])
         assert len(central.device_registry.devices) == 1
-        assert len(central.get_data_points(exclude_no_create=False)) == 34
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 34
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 9
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID)) == 9
@@ -732,15 +736,15 @@ class TestCentralDeviceManagement:
         )
 
         assert len(central.device_registry.devices) == 3
-        assert len(central.get_data_points()) == 350
+        assert len(central.query_facade.get_data_points()) == 350
         await central.device_coordinator.delete_devices(
             interface_id=const.INTERFACE_ID, addresses=["VCU4264293", "VCU0000057"]
         )
         assert len(central.device_registry.devices) == 1
-        assert len(central.get_data_points()) == 100
+        assert len(central.query_facade.get_data_points()) == 100
         await central.device_coordinator.delete_device(interface_id=const.INTERFACE_ID, device_address="VCU0000001")
         assert len(central.device_registry.devices) == 0
-        assert len(central.get_data_points()) == 0
+        assert len(central.query_facade.get_data_points()) == 0
         assert central.device_coordinator.get_virtual_remotes() == ()
 
         await central.device_coordinator.delete_device(
@@ -886,10 +890,12 @@ class TestCentralCallbacksAndServices:
         assert len(mock_client.method_calls) == init_len_method_calls + 23
 
         assert (
-            central.get_generic_data_point(channel_address="VCU6354483:0", parameter="DUTY_CYCLE").parameter
+            central.query_facade.get_generic_data_point(
+                channel_address="VCU6354483:0", parameter="DUTY_CYCLE"
+            ).parameter
             == "DUTY_CYCLE"
         )
-        assert central.get_generic_data_point(channel_address="VCU6354483", parameter="DUTY_CYCLE") is None
+        assert central.query_facade.get_generic_data_point(channel_address="VCU6354483", parameter="DUTY_CYCLE") is None
 
     @pytest.mark.asyncio
     async def test_central_without_interface_config(self, factory_with_homegear_client: FactoryWithClient) -> None:
@@ -910,7 +916,7 @@ class TestCentralCallbacksAndServices:
             assert central.available is True
             assert central.system_information.serial is None
             assert len(central.device_registry.devices) == 0
-            assert len(central.get_data_points()) == 0
+            assert len(central.query_facade.get_data_points()) == 0
 
             assert await central.hub_coordinator.get_system_variable(legacy_name="SysVar_Name") is None
             assert central.device_coordinator.get_device(address="VCU4264293") is None
@@ -1077,9 +1083,9 @@ class TestCentralCaches:
         """Test central getter."""
         central, _, _ = central_client_factory_with_homegear_client
         assert central.device_coordinator.get_device(address="123") is None
-        assert central.get_custom_data_point(address="123", channel_no=1) is None
-        assert central.get_generic_data_point(channel_address="123", parameter=1) is None
-        assert central.get_event(channel_address="123", parameter=1) is None
+        assert central.query_facade.get_custom_data_point(address="123", channel_no=1) is None
+        assert central.query_facade.get_generic_data_point(channel_address="123", parameter=1) is None
+        assert central.query_facade.get_event(channel_address="123", parameter=1) is None
         assert central.hub_coordinator.get_program_data_point(pid="123") is None
         assert central.hub_coordinator.get_sysvar_data_point(legacy_name="123") is None
 

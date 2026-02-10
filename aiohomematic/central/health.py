@@ -53,13 +53,14 @@ from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
-from aiohomematic.interfaces import CentralHealthProtocol, ConnectionHealthProtocol, HealthTrackerProtocol
+from aiohomematic.interfaces.central import CentralHealthProtocol, ConnectionHealthProtocol, HealthTrackerProtocol
 from aiohomematic.metrics import MetricKeys, emit_health
 from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.central.events import EventBus
     from aiohomematic.central.state_machine import CentralStateMachine
+    from aiohomematic.interfaces.client import ClientConnectionProtocol
 
 
 def _convert_value(*, value: Any) -> Any:
@@ -331,35 +332,22 @@ class ConnectionHealth(ConnectionHealthProtocol):
         """
         return _dataclass_to_dict(obj=self)
 
-    def update_from_client(self, *, client: Any) -> None:
+    def update_from_client(self, *, client: ClientConnectionProtocol) -> None:
         """
-        Update health from client state.
+        Update health snapshot from client public API.
 
         Args:
-            client: The client to read state from (ClientCCU or similar)
+            client: The client to read state from
 
         Note:
-            This method uses hasattr checks because the client's internal
-            attributes (_state_machine, _proxy, _json_rpc_client) are not
-            part of the ClientProtocol interface. A proper protocol will
-            be added in Phase 1.4.
+            This is a point-in-time snapshot for serialization and display.
+            The authoritative sources remain the client state machine and
+            circuit breakers themselves. Circuit breaker states are tracked
+            indirectly via all_circuit_breakers_closed; individual circuit
+            states are updated through dedicated HealthTracker methods.
 
         """
-        # Update client state from state machine
-        # pylint: disable=protected-access
-        if hasattr(client, "_state_machine"):
-            self.client_state = client._state_machine.state
-
-        # Update circuit breaker states
-        if hasattr(client, "_proxy") and hasattr(client._proxy, "_circuit_breaker"):
-            self.xml_rpc_circuit = client._proxy._circuit_breaker.state
-
-        if (
-            hasattr(client, "_json_rpc_client")
-            and client._json_rpc_client is not None
-            and hasattr(client._json_rpc_client, "_circuit_breaker")
-        ):
-            self.json_rpc_circuit = client._json_rpc_client._circuit_breaker.state
+        self.client_state = client.state
 
 
 @dataclass(slots=True)
@@ -683,12 +671,12 @@ class HealthTracker(HealthTrackerProtocol):
         """
         self._central_health.unregister_client(interface_id=interface_id)
 
-    def update_all_from_clients(self, *, clients: dict[str, Any]) -> None:
+    def update_all_from_clients(self, *, clients: Mapping[str, ClientConnectionProtocol]) -> None:
         """
         Update health for all clients.
 
         Args:
-            clients: Dictionary of interface_id -> client
+            clients: Mapping of interface_id -> client
 
         """
         for interface_id, client in clients.items():

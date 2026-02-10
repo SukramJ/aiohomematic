@@ -359,6 +359,11 @@ class _FakeCentral:
         """Return XML-RPC listen port."""
         return self._listen_port_xml_rpc
 
+    @property
+    def query_facade(self) -> Any:
+        """Return self as query facade."""
+        return self
+
     def get_device(self, *, address: str) -> Any:
         """Return device by address."""
         dev_addr = address.split(":")[0] if ":" in address else address

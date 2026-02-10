@@ -64,14 +64,9 @@ from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
 from aiohomematic.store.types import IncidentSeverity, IncidentType
-from aiohomematic.support import (
-    LogContextMixin,
-    extract_exc_args,
-    get_device_address,
-    is_channel_address,
-    is_paramset_key,
-    supports_rx_mode,
-)
+from aiohomematic.support import extract_exc_args, supports_rx_mode
+from aiohomematic.support.address import get_device_address, is_channel_address, is_paramset_key
+from aiohomematic.support.mixins import LogContextMixin
 
 if TYPE_CHECKING:
     from aiohomematic.client.config import InterfaceConfig
@@ -279,7 +274,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return None
         return await self._backend.create_backup_and_download(max_wait_time=max_wait_time, poll_interval=poll_interval)
 
-    async def deinitialize_proxy(self) -> ProxyInitState:
+    async def deinit_proxy(self) -> ProxyInitState:
         """De-initialize the proxy."""
         if not self._backend.capabilities.rpc_callback:
             self._state_machine.transition_to(target=ClientState.DISCONNECTED, reason="no callback support")
@@ -644,7 +639,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             )
             raise
 
-    async def initialize_proxy(self) -> ProxyInitState:
+    async def init_proxy(self) -> ProxyInitState:
         """Initialize the proxy."""
         self._state_machine.transition_to(target=ClientState.CONNECTING)
         if not self._backend.capabilities.rpc_callback:
@@ -932,7 +927,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             )
             await asyncio.sleep(delay)
 
-            if await self.reinitialize_proxy() == ProxyInitState.INIT_SUCCESS:
+            if await self.reinit_proxy() == ProxyInitState.INIT_SUCCESS:
                 self.reset_circuit_breakers()
                 self._reconnect_attempts = 0
                 self._connection_error_count = 0
@@ -946,10 +941,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             self._reconnect_attempts += 1
         return False
 
-    async def reinitialize_proxy(self) -> ProxyInitState:
+    async def reinit_proxy(self) -> ProxyInitState:
         """Reinitialize proxy."""
-        await self.deinitialize_proxy()
-        return await self.initialize_proxy()
+        await self.deinit_proxy()
+        return await self.init_proxy()
 
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Remove a link between two devices."""
@@ -1439,7 +1434,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """Write unconfirmed values to polling data points for immediate UI feedback."""
         for dpk, value in dpk_values:
             if (
-                data_point := self._central.get_generic_data_point(
+                data_point := self._central.query_facade.get_generic_data_point(
                     channel_address=dpk.channel_address,
                     parameter=dpk.parameter,
                     paramset_key=dpk.paramset_key,

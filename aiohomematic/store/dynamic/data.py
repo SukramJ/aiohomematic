@@ -5,6 +5,10 @@ Central data cache for device/channel parameter values.
 
 This module provides CentralDataCache which stores recently fetched device/channel
 parameter values from interfaces for quick lookup and periodic refresh.
+
+Cache expiration is **lazy** (checked on read via ``get_data()`` → ``_is_empty()``).
+This avoids background task overhead for a small number of interface-keyed entries.
+Stale data causes a cache miss → refresh cycle (self-healing).
 """
 
 from __future__ import annotations
@@ -32,7 +36,38 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, CacheWithStatisticsProtocol):
-    """Central cache for device/channel initial data."""
+    """
+    Central cache for device/channel initial data.
+
+    Expiration
+    ----------
+    Cache expiration is **lazy**: staleness is checked on every read via
+    ``get_data()`` → ``_is_empty()``. When an interface's data exceeds
+    ``MAX_CACHE_AGE``, the interface bucket is cleared and the caller
+    receives ``NO_CACHE_ENTRY``, triggering a fresh ``getValue`` call.
+    This design avoids a dedicated background sweep for a small number
+    of interface-keyed entries and is self-healing (stale → miss → refresh).
+
+    Initialization lifecycle
+    ------------------------
+    ``_is_initializing`` is ``True`` at construction and set to ``False``
+    by ``set_initialization_complete()`` after device creation finishes.
+    While ``True``, cache expiration is suppressed to prevent premature
+    ``getValue`` calls when device creation takes longer than
+    ``MAX_CACHE_AGE``.  If startup fails and the central stops, the flag
+    remains ``True`` — this is benign because ``stop()`` clears the cache
+    entirely via ``clear()``.
+
+    Concurrency
+    -----------
+    This class assumes single asyncio event-loop execution. All dictionary
+    operations are atomic under cooperative multitasking (no preemption
+    between synchronous instructions). Composite operations (check-then-update)
+    are safe because no ``await`` occurs between the check and the mutation.
+
+    If Python free-threading (PEP 703) is adopted, these operations will
+    need ``asyncio.Lock`` protection for composite sequences.
+    """
 
     __slots__ = (
         "_central_info",
@@ -82,6 +117,11 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         """Add data to cache."""
         self._value_cache[interface] = all_device_data
         self._refreshed_at[interface] = datetime.now()
+
+    def cleanup(self) -> None:
+        """Force expiration check on all interfaces."""
+        for interface in list(self._value_cache):
+            self._is_empty(interface=interface)
 
     def clear(self, *, interface: Interface | None = None) -> None:
         """Clear the cache."""

@@ -21,7 +21,7 @@ from aiohomematic.interfaces import DeviceDescriptionProviderProtocol, DeviceDes
 from aiohomematic.interfaces.model import DeviceRemovalInfoProtocol
 from aiohomematic.schemas import normalize_device_description
 from aiohomematic.store.persistent.base import BasePersistentCache
-from aiohomematic.support import get_device_address
+from aiohomematic.support.address import get_device_address
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import ConfigProviderProtocol

@@ -30,7 +30,7 @@ from aiohomematic.model.support import (
     get_custom_data_point_name,
 )
 from aiohomematic.property_decorators import DelegatedProperty, state_property
-from aiohomematic.support import get_channel_address
+from aiohomematic.support.address import get_channel_address
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)

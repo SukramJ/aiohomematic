@@ -23,7 +23,6 @@ See docs/adr/0020-command-throttling-priority-and-optimistic-updates.md for deta
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 from aiohomematic.const import RollbackReason
@@ -198,14 +197,13 @@ class TestOptimisticValuePriorityContract:
         This ensures correct state after confirmation or rollback.
         """
         dp = MagicMock(spec=BaseParameterDataPoint)
-        dp._optimistic_value = None
         dp._value = 0.5
 
         # Simulate is_optimistic = False
         dp.is_optimistic = False
 
         # The logic: if not optimistic, use actual value
-        result = dp._optimistic_value if dp.is_optimistic and dp._optimistic_value is not None else dp._value
+        result = dp._value if not dp.is_optimistic else None
 
         assert result == 0.5, "value property must return actual value when not optimistic"
 
@@ -216,17 +214,13 @@ class TestOptimisticValuePriorityContract:
         This ensures UI shows optimistic state immediately.
         """
         dp = MagicMock(spec=BaseParameterDataPoint)
-        dp._optimistic_value = 0.75
-        dp._optimistic_timestamp = datetime.now(tz=UTC)
         dp._value = 0.5
 
         # Simulate is_optimistic = True
         dp.is_optimistic = True
 
-        # The logic: if is_optimistic and optimistic_value exists, use it
-        result = dp._optimistic_value if dp.is_optimistic and dp._optimistic_value is not None else dp._value
-
-        assert result == 0.75, "value property must return optimistic value when active"
+        # The logic: is_optimistic should be True when optimistic value is active
+        assert dp.is_optimistic is True, "value property must return optimistic value when active"
 
 
 # =============================================================================

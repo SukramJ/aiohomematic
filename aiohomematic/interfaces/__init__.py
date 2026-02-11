@@ -175,6 +175,7 @@ from aiohomematic.interfaces.central import (
     CentralProtocol,
     ChannelLookupProtocol,
     ConfigProviderProtocol,
+    ConfigurationFacadeProtocol,
     DataCacheProviderProtocol,
     DataPointProviderProtocol,
     DeviceDataRefresherProtocol,
@@ -281,6 +282,7 @@ __all__ = [
     # Central identity
     "CentralInfoProtocol",
     "ConfigProviderProtocol",
+    "ConfigurationFacadeProtocol",
     "SystemInfoProviderProtocol",
     # Client composite
     "ClientProtocol",

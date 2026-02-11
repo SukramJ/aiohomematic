@@ -29,6 +29,7 @@ from aiohomematic.const import (
     Interface,
     Operations,
     OptionalSettings,
+    ParameterData,
     ParamsetKey,
     ScheduleTimerConfig,
     SystemEventType,
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
         EventCoordinator,
         SystemEventArgs,
     )
+    from aiohomematic.central.coordinators.configuration import ConfigurableChannel, PutParamsetResult
     from aiohomematic.central.events import EventBus
     from aiohomematic.client import InterfaceConfig
     from aiohomematic.interfaces import (
@@ -1036,6 +1038,79 @@ class MetricsProviderProtocol(Protocol):
     @abstractmethod
     def metrics(self) -> MetricsObserver:
         """Return the metrics observer."""
+
+
+@runtime_checkable
+class ConfigurationFacadeProtocol(Protocol):
+    """
+    Protocol for the device configuration facade.
+
+    Provides high-level access to paramset descriptions, reading, and writing
+    without exposing internal coordinator structure.
+
+    Implemented by ConfigurationCoordinator.
+    """
+
+    @abstractmethod
+    def get_all_paramset_descriptions(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+    ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:
+        """Return all paramset descriptions for a channel, keyed by paramset key."""
+
+    @abstractmethod
+    def get_configurable_channels(
+        self,
+        *,
+        interface_id: str,
+        device_address: str,
+    ) -> tuple[ConfigurableChannel, ...]:
+        """Return all channels of a device that have configurable paramsets."""
+
+    @abstractmethod
+    def get_parameter_data(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        parameter: str,
+    ) -> ParameterData | None:
+        """Return the parameter description for a single parameter."""
+
+    @abstractmethod
+    async def get_paramset(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+    ) -> dict[str, Any]:
+        """Read the current paramset values from the backend."""
+
+    @abstractmethod
+    def get_paramset_description(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+    ) -> Mapping[str, ParameterData]:
+        """Return the paramset description for a channel."""
+
+    @abstractmethod
+    async def put_paramset(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        values: dict[str, Any],
+        validate: bool = True,
+    ) -> PutParamsetResult:
+        """Write paramset values to the backend with optional validation."""
 
 
 # =============================================================================

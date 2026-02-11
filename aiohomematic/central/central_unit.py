@@ -21,6 +21,7 @@ from aiohomematic.central.connection_state import CentralConnectionState
 from aiohomematic.central.coordinators import (
     CacheCoordinator,
     ClientCoordinator,
+    ConfigurationCoordinator,
     ConnectionRecoveryCoordinator,
     DeviceCoordinator,
     EventCoordinator,
@@ -108,6 +109,9 @@ class CentralUnit(
                                       │                 │
                                       ▼                 │
                             hub_coordinator ◄───────────┤
+                                      │                 │
+                                      ▼                 │
+            query_facade, configuration_coordinator     │
                                       │                 │
                                       ▼                 │
             scheduler, recovery_coordinator ◄───────────┘
@@ -239,6 +243,11 @@ class CentralUnit(
             client_coordinator=self._client_coordinator,
             hub_coordinator=self._hub_coordinator,
         )
+        self._configuration_coordinator: Final = ConfigurationCoordinator(
+            client_provider=self._client_coordinator,
+            device_description_provider=self._cache_coordinator.device_descriptions,
+            paramset_description_provider=self._cache_coordinator.paramset_descriptions,
+        )
 
         # -- 8. Scheduling and recovery --
         CENTRAL_REGISTRY.register(name=self.name, central=self)
@@ -301,6 +310,7 @@ class CentralUnit(
     central_state_machine: Final = DelegatedProperty[CentralStateMachine](path="_central_state_machine")
     client_coordinator: Final = DelegatedProperty[ClientCoordinator](path="_client_coordinator")
     config: Final = DelegatedProperty[CentralConfigProtocol](path="_config")
+    configuration: Final = DelegatedProperty[ConfigurationCoordinator](path="_configuration_coordinator")
     connection_recovery_coordinator: Final = DelegatedProperty[ConnectionRecoveryCoordinator](
         path="_connection_recovery_coordinator"
     )

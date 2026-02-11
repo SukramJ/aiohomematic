@@ -1,3 +1,37 @@
+# Version 2026.2.9 (2026-02-11)
+
+## What's Changed
+
+### Added
+
+- **`parameter_tools` module**: New standalone module (`aiohomematic/parameter_tools.py`)
+  providing pure-function utilities for working with `ParameterData` descriptions,
+  independent of DataPoint instances:
+
+  - **ParameterHelper**: Flag and operation checks (`is_parameter_visible`,
+    `is_parameter_writable`, `has_parameter_events`), enum resolution
+    (`resolve_enum_value`, `resolve_enum_index`), and step size calculation
+    (`get_parameter_step`).
+  - **ParameterValidator**: Value validation (`validate_value`, `validate_paramset`)
+    and type coercion (`coerce_value`) against parameter descriptions without
+    requiring a DataPoint instance.
+  - **ParamsetDiff**: Type-aware comparison of two paramset snapshots
+    (`diff_paramset`) with proper float equality handling.
+
+- **`ConfigurationCoordinator`**: New high-level facade
+  (`aiohomematic/central/coordinators/configuration.py`) for device configuration
+  operations, exposed as `central.configuration`. Provides:
+
+  - `get_paramset_description()` / `get_all_paramset_descriptions()`: Read parameter
+    definitions for a channel.
+  - `get_paramset()` / `put_paramset()`: Read and write paramset values with optional
+    built-in validation.
+  - `get_configurable_channels()`: Discover configurable channels for a device.
+  - `get_parameter_data()`: Look up a single parameter description.
+
+- **`ConfigurationFacadeProtocol`**: Protocol interface for the configuration facade,
+  enabling dependency injection and testability for consumers.
+
 # Version 2026.2.8 (2026-02-09)
 
 ## What's Changed

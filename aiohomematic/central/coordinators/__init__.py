@@ -8,6 +8,7 @@ of the central unit's functionality:
 
 - CacheCoordinator: Cache management (device descriptions, paramsets, data)
 - ClientCoordinator: Client lifecycle and connection management
+- ConfigurationCoordinator: Device configuration facade (paramset read/write)
 - ConnectionRecoveryCoordinator: Unified connection recovery and retry management
 - DeviceCoordinator: Device discovery and creation
 - EventCoordinator: Event handling and system event processing
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 from aiohomematic.central.coordinators.cache import CacheCoordinator
 from aiohomematic.central.coordinators.client import ClientCoordinator
+from aiohomematic.central.coordinators.configuration import ConfigurationCoordinator
 from aiohomematic.central.coordinators.connection_recovery import ConnectionRecoveryCoordinator
 from aiohomematic.central.coordinators.device import DeviceCoordinator
 from aiohomematic.central.coordinators.event import EventCoordinator, SystemEventArgs
@@ -29,6 +31,7 @@ __all__ = [
     # Coordinators
     "CacheCoordinator",
     "ClientCoordinator",
+    "ConfigurationCoordinator",
     "ConnectionRecoveryCoordinator",
     "DeviceCoordinator",
     "EventCoordinator",

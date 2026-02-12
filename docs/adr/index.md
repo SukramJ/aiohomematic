@@ -29,3 +29,5 @@ This directory contains Architecture Decision Records (ADRs) for the aiohomemati
 | [0020](0020-command-throttling-priority-and-optimistic-updates.md) | Command Throttling with Priority Queue and Optimistic Updates | Accepted               |
 | [0021](0021-blind-command-processing-lock.md)                      | Blind Command Processing Lock and Target Preservation         | Accepted               |
 | [0022](0022-week-profile-data-point.md)                            | Unified Schedule Access via WeekProfileDataPoint              | Accepted               |
+| [0023](0023-paramset-consistency-checker.md)                       | Paramset Consistency Checker                                  | Implemented            |
+| [0024](0024-ccu-translation-extraction.md)                         | CCU Translation Extraction                                    | Implemented            |

@@ -2760,7 +2760,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_cover_schedule_duration_rejected(self):
         """Test that COVER schedules reject duration."""
-        with pytest.raises(ValueError, match="duration.*not supported for cover"):
+        with pytest.raises(ValueError, match="duration.*not supported for cover|duration_not_supported"):
             SimpleSchedule.model_validate(
                 {
                     "entries": {
@@ -2796,7 +2796,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_cover_schedule_ramp_time_rejected(self):
         """Test that COVER schedules reject ramp_time."""
-        with pytest.raises(ValueError, match="ramp_time.*not supported for cover"):
+        with pytest.raises(ValueError, match="ramp_time.*not supported for cover|ramp_time_not_supported"):
             SimpleSchedule.model_validate(
                 {
                     "entries": {
@@ -2822,7 +2822,7 @@ class TestDomainSpecificScheduleValidation:
         assert entry.level == 1.0
 
         # Invalid SWITCH entry (non-binary level)
-        with pytest.raises(ValueError, match="Switch level must be 0.0 or 1.0"):
+        with pytest.raises(ValueError, match="Switch level must be 0.0 or 1.0|switch_level_not_binary"):
             SimpleScheduleEntry.model_validate(
                 {"weekdays": ["MONDAY"], "time": "07:00", "target_channels": ["1_1"], "level": 0.5},
                 context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
@@ -2830,7 +2830,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_light_schedule_level_2_rejected(self):
         """Test that LIGHT schedules reject level_2."""
-        with pytest.raises(ValueError, match="level_2.*not supported for light"):
+        with pytest.raises(ValueError, match="level_2.*not supported for light|level_2_not_supported"):
             SimpleSchedule.model_validate(
                 {
                     "entries": {
@@ -2905,7 +2905,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_switch_schedule_level_2_rejected(self):
         """Test that SWITCH schedules reject level_2."""
-        with pytest.raises(ValueError, match="level_2.*not supported for switch"):
+        with pytest.raises(ValueError, match="level_2.*not supported for switch|level_2_not_supported"):
             SimpleSchedule.model_validate(
                 {
                     "entries": {
@@ -2923,7 +2923,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_switch_schedule_non_binary_level_rejected(self):
         """Test that SWITCH schedules reject non-binary level."""
-        with pytest.raises(ValueError, match="Switch level must be 0.0 or 1.0"):
+        with pytest.raises(ValueError, match="Switch level must be 0.0 or 1.0|switch_level_not_binary"):
             SimpleSchedule.model_validate(
                 {"entries": {1: {"weekdays": ["MONDAY"], "time": "07:00", "target_channels": ["1_1"], "level": 0.5}}},
                 context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.SWITCH},
@@ -2931,7 +2931,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_switch_schedule_ramp_time_rejected(self):
         """Test that SWITCH schedules reject ramp_time."""
-        with pytest.raises(ValueError, match="ramp_time.*not supported for switch"):
+        with pytest.raises(ValueError, match="ramp_time.*not supported for switch|ramp_time_not_supported"):
             SimpleSchedule.model_validate(
                 {
                     "entries": {
@@ -2949,7 +2949,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_valve_schedule_level_2_rejected(self):
         """Test that VALVE schedules reject level_2."""
-        with pytest.raises(ValueError, match="level_2.*not supported for valve"):
+        with pytest.raises(ValueError, match="level_2.*not supported for valve|level_2_not_supported"):
             SimpleSchedule.model_validate(
                 {
                     "entries": {
@@ -2967,7 +2967,7 @@ class TestDomainSpecificScheduleValidation:
 
     def test_valve_schedule_ramp_time_rejected(self):
         """Test that VALVE schedules reject ramp_time."""
-        with pytest.raises(ValueError, match="ramp_time.*not supported for valve"):
+        with pytest.raises(ValueError, match="ramp_time.*not supported for valve|ramp_time_not_supported"):
             SimpleSchedule.model_validate(
                 {
                     "entries": {

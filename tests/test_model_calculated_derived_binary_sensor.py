@@ -16,7 +16,7 @@ from aiohomematic.model.calculated import DerivedBinarySensor, DerivedBinarySens
 class _FakeCentral:
     def __init__(self) -> None:
         self.name = "CentralTest"
-        self.config = type("Cfg", (), {"central_id": "CentralTest"})()
+        self.config = type("Cfg", (), {"central_id": "CentralTest", "locale": "en"})()
         self.paramset_descriptions = type("PS", (), {"is_in_multiple_channels": lambda *_args, **_kw: False})()
         self.device_details = type("DD", (), {"get_name": lambda *_args, **_kw: None})()
 
@@ -102,6 +102,7 @@ class _FakeChannel:
         self.device = device
         self.no = no
         self.address = f"{device.address}:{no}"
+        self.type_name = "FAKE_CHANNEL_TYPE"
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
 
     def get_generic_data_point(self, *, parameter: str, paramset_key: ParamsetKey | None):

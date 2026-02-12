@@ -1,3 +1,47 @@
+# Version 2026.2.10 (2026-02-11)
+
+## What's Changed
+
+### Added
+
+- **CCU translation extraction**: New script (`script/extract_ccu_translations.py`)
+  that extracts human-readable translations from the OpenCCU/RaspberryMatic WebUI
+  for channel types, device models, parameter names, and parameter enum values.
+  Supports local OCCU checkout (`OCCU_PATH`) and remote CCU fetch (`CCU_URL`).
+  Resolves the two-level stringtable indirection, URL-decodes Latin-1 characters,
+  and strips HTML from values.
+
+- **CCU translations loader module**: New module (`aiohomematic/ccu_translations.py`)
+  providing typed lookup functions for CCU-sourced translations:
+
+  - `get_channel_type_label()`: Channel type labels (e.g. `BLIND` -> "Jalousieaktor")
+  - `get_device_model_label()`: Device model descriptions with `sub_model` fallback
+    for abbreviated HmIP keys (e.g. `PS`, `SMO`, `BSM`)
+  - `get_parameter_label()`: Parameter labels with channel-specific fallback
+  - `get_parameter_value_label()`: Enum value labels with channel-specific fallback
+
+  All lookups are thread-safe (double-checked locking) and asyncio event loop safe
+  (lazy initialization, then pure dict reads with zero I/O).
+
+- **Generated translation files**: 8 JSON files under `aiohomematic/translations/ccu_extract/`
+  (4 categories x 2 locales: de, en) with 2500+ translation entries total.
+
+- **CCU translation custom override layer**: New `aiohomematic/translations/ccu_custom/`
+  directory with identically-named JSON files (empty by default). Keys in `ccu_custom/`
+  override or supplement keys from `ccu_extract/` at load time and survive re-extraction.
+
+- **Labels for calculated data points**: Calculated data points (dew point, enthalpy,
+  frost point, etc.) now resolve human-readable labels via `ccu_translations`, matching
+  the behavior of parameter-backed data points. Custom translations for all 10 calculated
+  parameters are provided in `ccu_custom/parameters_{de,en}.json`.
+
+### Documentation
+
+- **ADR-0024**: Architecture Decision Record for CCU translation extraction
+  (`docs/adr/0024-ccu-translation-extraction.md`)
+
+---
+
 # Version 2026.2.9 (2026-02-11)
 
 ## What's Changed

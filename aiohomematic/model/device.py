@@ -54,7 +54,7 @@ import random
 from typing import Any, Final, cast
 import zipfile
 
-from aiohomematic import compat, i18n
+from aiohomematic import ccu_translations, compat, i18n
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.events import (
     DeviceLifecycleEvent,
@@ -236,6 +236,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_interface",
         "_interface_id",
         "_is_updatable",
+        "_label",
         "_manufacturer",
         "_model",
         "_modified_at",
@@ -321,6 +322,14 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             device_address=self._address,
             model=self._model,
         )
+        self._label: Final = (
+            ccu_translations.get_device_model_label(
+                model=self._model,
+                sub_model=self._sub_model,
+                locale=self._config_provider.config.locale,
+            )
+            or self._name
+        )
         channel_addresses = tuple(
             [self._address] + [address for address in self._device_description.get("CHILDREN", []) if address != ""]
         )
@@ -384,6 +393,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     interface: Final = DelegatedProperty[Interface](path="_interface")
     interface_id: Final = DelegatedProperty[str](path="_interface_id", log_context=True)
     is_updatable: Final = DelegatedProperty[bool](path="_is_updatable")
+    label: Final = DelegatedProperty[str](path="_label", kind=Kind.INFO)
     manufacturer: Final = DelegatedProperty[str](path="_manufacturer", kind=Kind.INFO)
     model: Final = DelegatedProperty[str](path="_model", kind=Kind.INFO, log_context=True)
     name: Final = DelegatedProperty[str](path="_name", kind=Kind.INFO)
@@ -404,8 +414,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     week_profile: Final = DelegatedProperty[wp.ClimateWeekProfile | wp.DefaultWeekProfile | None](path="_week_profile")
     week_profile_data_point: Final = DelegatedProperty[wps.WeekProfileDataPoint | None](path="_week_profile_data_point")
 
-    # -- 1. Metadata & Identity --
-
     @property
     def availability(self) -> AvailabilityInfo:
         """Return bundled availability information for the device."""
@@ -415,8 +423,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     def available_firmware(self) -> str | None:
         """Return the available firmware of the device."""
         return self._firmware.available_firmware
-
-    # -- 2. Channel Hierarchy --
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
@@ -516,8 +522,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             channel: channel.link_peer_channels for channel in self._channels.values() if channel.link_peer_channels
         }
 
-    # -- 4. Availability & State --
-
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
@@ -587,8 +591,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             self._channel_to_group[group_no] = group_no
         if channel_no not in self._channel_to_group:
             self._channel_to_group[channel_no] = group_no
-
-    # -- 6. Links & Export --
 
     @inspector
     async def create_central_links(self) -> None:
@@ -725,8 +727,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
         return None
 
-    # -- 7. Week Profile --
-
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the device schedule."""
         # Only initialize if week_profile supports schedule
@@ -743,8 +743,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             return False
 
         return len([s for s, m in self._channel_to_group.items() if m == self._channel_to_group.get(channel_no)]) > 1
-
-    # -- 3. Value Caching --
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def load_value_cache(self) -> None:
@@ -799,8 +797,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             target=_publish_device_updated,
             name=f"device-updated-{self._address}",
         )
-
-    # -- 5. Firmware Management --
 
     def refresh_firmware_data(self) -> None:
         """Refresh firmware data of the device."""
@@ -963,6 +959,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_generic_events",
         "_rega_id",
         "_is_schedule_channel",
+        "_label",
         "_link_peer_addresses",
         "_link_source_categories",
         "_link_source_roles",
@@ -991,6 +988,13 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             interface_id=self._device.interface_id, address=channel_address
         )
         self._type_name: Final[str] = self._channel_description["TYPE"]
+        self._label: Final = (
+            ccu_translations.get_channel_type_label(
+                channel_type=self._type_name,
+                locale=self._device.config_provider.config.locale,
+            )
+            or self._name_data.channel_name
+        )
         self._is_schedule_channel: Final[bool] = WEEK_PROFILE_PATTERN.match(self._type_name) is not None
         self._paramset_keys: Final = tuple(
             ParamsetKey(paramset_key) for paramset_key in self._channel_description["PARAMSETS"]
@@ -1046,6 +1050,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
     function: Final = DelegatedProperty[str | None](path="_function")
     is_schedule_channel: Final = DelegatedProperty[bool](path="_is_schedule_channel")
+    label: Final = DelegatedProperty[str](path="_label", kind=Kind.INFO)
     link_peer_addresses: Final = DelegatedProperty[tuple[str, ...]](path="_link_peer_addresses")
     link_peer_source_categories: Final = DelegatedProperty[tuple[str, ...]](path="_link_source_categories")
     link_peer_target_categories: Final = DelegatedProperty[tuple[str, ...]](path="_link_target_categories")

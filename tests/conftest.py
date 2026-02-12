@@ -67,6 +67,14 @@ def _load_session_player_sync(file_name: str) -> SessionPlayer:
 
 
 @pytest.fixture(autouse=True)
+def _reset_locale_lock() -> None:
+    """Reset the i18n locale lock before each test so tests can call set_locale() freely."""
+    from aiohomematic.i18n import _reset_locale_for_testing
+
+    _reset_locale_for_testing()
+
+
+@pytest.fixture(autouse=True)
 def teardown():
     """Clean up."""
     patch.stopall()

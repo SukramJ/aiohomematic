@@ -8,6 +8,7 @@ import pytest
 
 from aiohomematic import i18n
 from aiohomematic.central import CentralConfig
+from aiohomematic.i18n import _reset_locale_for_testing
 
 
 class TestI18nBasicTranslation:
@@ -54,8 +55,7 @@ class TestI18nLocaleManagement:
 
     def test_catalog_caching(self) -> None:
         """Test that catalogs are cached and reused."""
-        # Set locale twice to test cache hit path
-        i18n.set_locale(locale="de")
+        # Set locale to test cache hit path
         i18n.set_locale(locale="de")
         text = i18n.tr(key="exception.create_central.failed", reason="Test")
         assert "Test" in text
@@ -65,6 +65,7 @@ class TestI18nLocaleManagement:
         i18n.set_locale(locale="de")
         assert i18n.get_locale() == "de"
 
+        _reset_locale_for_testing()
         i18n.set_locale(locale="en")
         assert i18n.get_locale() == "en"
 
@@ -83,6 +84,7 @@ class TestI18nLocaleManagement:
         i18n.set_locale(locale="en")
         text_en = i18n.tr(key="exception.create_central.failed", reason="Error")
 
+        _reset_locale_for_testing()
         i18n.set_locale(locale="de")
         text_de = i18n.tr(key="exception.create_central.failed", reason="Fehler")
 
@@ -175,3 +177,21 @@ class TestI18nLocalizedExceptions:
             password="",  # invalid
             username="",  # invalid
         )
+
+
+class TestI18nLocaleImmutability:
+    """Test locale immutability guard."""
+
+    def test_reset_locale_for_testing(self) -> None:
+        """Test that _reset_locale_for_testing allows set_locale again."""
+        i18n.set_locale(locale="de")
+        _reset_locale_for_testing()
+        # Should not raise
+        i18n.set_locale(locale="en")
+        assert i18n.get_locale() == "en"
+
+    def test_set_locale_locks_after_first_call(self) -> None:
+        """Test that set_locale raises RuntimeError on second call."""
+        i18n.set_locale(locale="de")
+        with pytest.raises(RuntimeError, match="Locale is already set"):
+            i18n.set_locale(locale="en")

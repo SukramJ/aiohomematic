@@ -40,7 +40,7 @@ from aiohomematic.model.calculated.support import (
 class _FakeCentral:
     def __init__(self) -> None:
         self.name = "CentralTest"
-        self.config = type("Cfg", (), {"central_id": "CentralTest"})()
+        self.config = type("Cfg", (), {"central_id": "CentralTest", "locale": "en"})()
         # Minimal helpers used by name generation (not used here)
         self.paramset_descriptions = type("PS", (), {"is_in_multiple_channels": lambda *_args, **_kw: False})()
         self.device_details = type("DD", (), {"get_name": lambda *_args, **_kw: None})()
@@ -173,6 +173,7 @@ class _FakeChannel:
         self.address = address
         self.no = int(address.split(":")[-1]) if ":" in address else 1
         self.name = f"FakeChannel {address}"
+        self.type_name = "FAKE_CHANNEL_TYPE"
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
 
     def add_fake(self, dp: _FakeGenericDP) -> None:

@@ -1,0 +1,21 @@
+{
+  "accesspoint_generic_receiver": "Access Point Generischer Empfänger",
+  "ddc": "Direkte Gerätekommunikation",
+  "digital_analog_input": "Digital-/Analogeingang",
+  "digital_analog_output": "Digital-/Analogausgang",
+  "digital_input": "Digitaleingang",
+  "digital_output": "Digitalausgang",
+  "ecokey": "ecoKey",
+  "generic": "Generischer Kanal",
+  "input_output": "Ein-/Ausgang",
+  "kwl_controller_transmitter": "Lüftungssteuerung",
+  "passage_detector": "Durchgangszähler",
+  "passage_detector_direction_transmitter": "Durchgangszähler Richtung",
+  "shading_receiver": "Beschattungsempfänger",
+  "shading_week_profile": "Beschattungs-Wochenprofil",
+  "simple_switch_receiver": "Einfacher Schaltempfänger",
+  "temp_humidity_particulate_matter_transmitter": "Temperatur-/Feuchte-/Feinstaubsensor",
+  "window": "Fensterkanal",
+  "ws_cs": "Wetterstation Kombinationssensor",
+  "ws_th": "Wetterstation Temperatur/Feuchte"
+}

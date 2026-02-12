@@ -73,7 +73,7 @@ from inspect import getfullargspec
 import logging
 from typing import Any, Final, TypeAlias, TypeVar, cast, overload, override
 
-from aiohomematic import i18n, support as hms
+from aiohomematic import ccu_translations, i18n, support as hms
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent, OptimisticRollbackEvent
 from aiohomematic.client.command_throttle import CommandPriority
@@ -764,6 +764,7 @@ class BaseParameterDataPoint[
         "_ignore_on_initial_load",
         "_is_forced_sensor",
         "_is_un_ignored",
+        "_label",
         "_max",
         "_min",
         "_multiplier",
@@ -785,6 +786,7 @@ class BaseParameterDataPoint[
         "_translation_key",
         "_type",
         "_unit",
+        "_value_labels",
         "_values",
         "_visible",
     )
@@ -823,6 +825,11 @@ class BaseParameterDataPoint[
             parameter=self._parameter,
             custom_only=True,
         )
+        self._label: Final[str | None] = ccu_translations.get_parameter_label(
+            parameter=self._parameter,
+            channel_type=channel.type_name,
+            locale=channel.device.config_provider.config.locale,
+        )
         self._current_value: ParameterT | None = None
         self._last_non_default_value: ParameterT | None = None
         self._unconfirmed_value: ParameterT | None = None
@@ -833,6 +840,19 @@ class BaseParameterDataPoint[
         self._state_uncertain: bool = True
         self._is_forced_sensor: bool = False
         self._assign_parameter_data(parameter_data=parameter_data)
+        self._value_labels: Final[dict[str, str | None] | None] = (
+            {
+                v: ccu_translations.get_parameter_value_label(
+                    parameter=self._parameter,
+                    value=v,
+                    channel_type=channel.type_name,
+                    locale=channel.device.config_provider.config.locale,
+                )
+                for v in self._values
+            }
+            if self._values is not None
+            else None
+        )
 
         # Initialize STATUS parameter support
         self._status_parameter: str | None = self._detect_status_parameter()
@@ -864,6 +884,7 @@ class BaseParameterDataPoint[
     ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
     is_forced_sensor: Final = DelegatedProperty[bool](path="_is_forced_sensor")
     is_un_ignored: Final = DelegatedProperty[bool](path="_is_un_ignored")
+    label: Final = DelegatedProperty[str | None](path="_label", kind=Kind.INFO)
     last_non_default_value: Final = DelegatedProperty[ParameterT | None](path="_last_non_default_value")
     max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
     min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
@@ -877,6 +898,7 @@ class BaseParameterDataPoint[
     status_parameter: Final = DelegatedProperty[str | None](path="_status_parameter")
     translation_key: Final = DelegatedProperty[str](path="_translation_key")
     unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
+    value_labels: Final = DelegatedProperty[dict[str, str | None] | None](path="_value_labels", kind=Kind.CONFIG)
     values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
     visible: Final = DelegatedProperty[bool](path="_visible")
 

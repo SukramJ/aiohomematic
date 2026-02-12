@@ -52,6 +52,7 @@ class _LocaleState:
 # Single atomic reference to immutable state
 # Assignment in Python is atomic, so no lock needed for reads
 _state: _LocaleState = _LocaleState()
+_locale_locked: bool = False
 
 
 class _SafeDict(dict[str, Any]):
@@ -137,8 +138,15 @@ def set_locale(*, locale: str | None = None) -> None:
     None or empty -> defaults to "en".
     Updates the active catalog reference immediately so subsequent `tr()` calls
     reflect the new locale without requiring background preload.
+
+    May only be called once per process lifetime (locale is immutable after first set).
+    Raises RuntimeError on subsequent calls.
     """
-    global _state  # noqa: PLW0603  # pylint: disable=global-statement
+    global _state, _locale_locked  # noqa: PLW0603  # pylint: disable=global-statement
+
+    if _locale_locked:
+        # i18n-exc: ignore-next
+        raise RuntimeError("Locale is already set and cannot be changed. Locale is immutable after first set_locale().")
 
     new_locale = (locale or DEFAULT_LOCALE).strip() or DEFAULT_LOCALE
     merged = _get_catalog(locale=new_locale)
@@ -152,6 +160,7 @@ def set_locale(*, locale: str | None = None) -> None:
         base_loaded=state.base_loaded,
     )
     _state = new_state
+    _locale_locked = True
 
 
 def get_locale() -> str:
@@ -212,6 +221,19 @@ def schedule_preload_locale(*, locale: str) -> asyncio.Task[None] | None:
         return None
 
     return loop.create_task(preload_locale(locale=locale))
+
+
+def _reset_locale_for_testing() -> None:
+    """
+    Reset the locale lock and state to defaults.
+
+    Internal API for test infrastructure only. Allows tests to call
+    set_locale() freely without interference from the immutability guard.
+    """
+    global _state, _locale_locked  # noqa: PLW0603  # pylint: disable=global-statement
+
+    _locale_locked = False
+    _state = _LocaleState()
 
 
 # Eager initialization at import time to avoid any later I/O on first use

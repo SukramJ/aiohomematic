@@ -609,6 +609,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
+    def label(self) -> str | None:
+        """Return the human-readable label for the parameter."""
+
+    @property
+    @abstractmethod
     def last_non_default_value(self) -> ParameterT | None:
         """Return the last meaningful (non-default) value of the data point."""
 
@@ -681,6 +686,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
     @abstractmethod
     def unit(self) -> str | None:
         """Return unit value."""
+
+    @property
+    @abstractmethod
+    def value_labels(self) -> dict[str, str | None] | None:
+        """Return translated labels for all enum values."""
 
     @property
     @abstractmethod
@@ -1048,6 +1058,11 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def label(self) -> str | None:
+        """Return the human-readable label for the parameter."""
+
+    @property
+    @abstractmethod
     def max(self) -> Any:
         """Return max value."""
 
@@ -1147,6 +1162,11 @@ class ChannelIdentityProtocol(Protocol):
     @abstractmethod
     def full_name(self) -> str:
         """Return the full name of the channel."""
+
+    @property
+    @abstractmethod
+    def label(self) -> str:
+        """Return the human-readable label for the channel."""
 
     @property
     @abstractmethod
@@ -1506,6 +1526,11 @@ class DeviceIdentityProtocol(Protocol):
     @abstractmethod
     def interface_id(self) -> str:
         """Return the interface_id of the device."""
+
+    @property
+    @abstractmethod
+    def label(self) -> str:
+        """Return the human-readable label for the device."""
 
     @property
     @abstractmethod

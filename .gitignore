@@ -1,7 +1,7 @@
 *.pyc
 *.xml
-*.json
 *.tar.gz
+.env
 
 # Setuptools distribution folder.
 /dist/
@@ -34,3 +34,6 @@ venv
 *.pdf
 /tmp
 site/
+/tests/aiohomematic_storage
+/aiohomematic_storage
+aiohomematic_test_support/data/*.json

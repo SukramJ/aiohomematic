@@ -18,6 +18,15 @@
   its position, and surrounding context are now logged at WARNING level to aid
   diagnosis.
 
+### Added
+
+- **Translated data point name variants**: `DataPointNameData` now provides
+  `translated_name` and `translated_full_name` properties that use the CCU
+  parameter translation instead of the mechanical title-cased conversion.
+  Exposed as `translated_name` / `translated_full_name` on `BaseDataPoint`
+  and `BaseDataPointProtocol`. When no translation is available, the values
+  fall back to `name` / `full_name`.
+
 ### Changed
 
 - **CCU translation API**: Renamed functions and properties for semantic accuracy:

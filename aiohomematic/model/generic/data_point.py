@@ -12,7 +12,7 @@ from datetime import datetime
 import logging
 from typing import Any, Final, TypeAlias
 
-from aiohomematic import i18n
+from aiohomematic import ccu_translations, i18n
 from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
@@ -213,6 +213,11 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         return get_data_point_name_data(
             channel=self._channel,
             parameter=self._parameter,
+            parameter_translation=ccu_translations.get_parameter_translation(
+                parameter=self._parameter,
+                channel_type=self._channel.type_name,
+                locale=self._channel.device.config_provider.config.locale,
+            ),
         )
 
     def _get_data_point_usage(self) -> DataPointUsage:

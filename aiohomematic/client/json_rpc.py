@@ -132,9 +132,9 @@ _LOGGER: Final = logging.getLogger(__name__)
 # This allows us to sanitize control characters only within string values, not in JSON structure.
 _JSON_STRING_PATTERN: Final = re.compile(r'"(?:[^"\\]|\\.)*"')
 
-# Pattern to match unescaped control characters (U+0000 to U+001F) in strings.
+# Pattern to match unescaped control characters (U+0000 to U+001F, U+007F) in strings.
 # These must be escaped as \uXXXX per RFC 8259.
-_CONTROL_CHAR_PATTERN: Final = re.compile(r"[\x00-\x1f]")
+_CONTROL_CHAR_PATTERN: Final = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _sanitize_json_control_chars(*, data: str) -> str:
@@ -166,6 +166,31 @@ def _sanitize_json_control_chars(*, data: str) -> str:
 
     # Replace each JSON string with a sanitized version
     return _JSON_STRING_PATTERN.sub(escape_control_chars_in_string, data)
+
+
+# Pattern to extract character position from JSON decode error messages.
+# Matches formats like "(char 10957)" used by orjson and stdlib json.
+_JSON_ERROR_CHAR_POS_PATTERN: Final = re.compile(r"\(char (\d+)\)")
+
+
+def _log_json_parse_error_context(*, data: str, script_name: str, error: Exception) -> None:
+    """Log context around a JSON parse error for diagnostics."""
+    context = ""
+    if match := _JSON_ERROR_CHAR_POS_PATTERN.search(str(error)):
+        pos = int(match.group(1))
+        if 0 <= pos < len(data):
+            start = max(0, pos - 40)
+            end = min(len(data), pos + 20)
+            char = data[pos]
+            context = f" at position {pos} (U+{ord(char):04X} {char!r}). Context: ...{data[start:end]!r}..."
+    _LOGGER.warning(
+        i18n.tr(
+            key="log.client.json_rpc.post_script.json_parse_error",
+            script_name=script_name,
+            context=context,
+            error=error,
+        )
+    )
 
 
 @unique
@@ -1998,7 +2023,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             if not response[_JsonKey.ERROR] and (resp := response[_JsonKey.RESULT]) and isinstance(resp, str):
                 # Sanitize control characters before parsing (same workaround as in _get_json_reponse)
                 # ReGa scripts may return JSON with unescaped control characters in device names/values
-                response[_JsonKey.RESULT] = compat.loads(data=_sanitize_json_control_chars(data=resp))
+                sanitized = _sanitize_json_control_chars(data=resp)
+                try:
+                    response[_JsonKey.RESULT] = compat.loads(data=sanitized)
+                except JSONDecodeError as jderr:
+                    _log_json_parse_error_context(data=sanitized, script_name=script_name, error=jderr)
+                    raise
         finally:
             if not keep_session:
                 await self._do_logout(session_id=session_id)

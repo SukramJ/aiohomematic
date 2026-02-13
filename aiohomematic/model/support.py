@@ -108,9 +108,18 @@ class DataPointNameData(ChannelNameData):
     __slots__ = (
         "name",
         "parameter_name",
+        "translated_full_name",
+        "translated_name",
     )
 
-    def __init__(self, *, device_name: str, channel_name: str, parameter_name: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        device_name: str,
+        channel_name: str,
+        parameter_name: str | None = None,
+        parameter_translation: str | None = None,
+    ) -> None:
         """Initialize the DataPointNameData class."""
         super().__init__(device_name=device_name, channel_name=channel_name)
 
@@ -119,6 +128,20 @@ class DataPointNameData(ChannelNameData):
         )
         self.full_name = f"{device_name} {self.name}".strip() if self.name else device_name
         self.parameter_name = parameter_name
+
+        # Translated variants: use parameter_translation instead of parameter_name.
+        # Only the parameter part is translated, channel_name stays as-is.
+        if parameter_translation:
+            translated_dp_name = self._get_data_point_name(
+                device_name=device_name, channel_name=channel_name, parameter_name=parameter_translation
+            )
+            self.translated_name: str = translated_dp_name
+            self.translated_full_name: str = (
+                f"{device_name} {translated_dp_name}".strip() if translated_dp_name else device_name
+            )
+        else:
+            self.translated_name = self.name
+            self.translated_full_name = self.full_name
 
     @staticmethod
     def _get_channel_parameter_name(*, channel_name: str, parameter_name: str | None) -> str:
@@ -312,6 +335,7 @@ def get_data_point_name_data(
     *,
     channel: ChannelProtocol,
     parameter: str,
+    parameter_translation: str | None = None,
 ) -> DataPointNameData:
     """Get name for data_point."""
     if channel_name := _get_base_name_from_channel_or_device(channel=channel):
@@ -328,12 +352,14 @@ def get_data_point_name_data(
                 device_name=channel.device.name,
                 channel_name=c_name,
                 parameter_name=f"{p_name}{c_postfix}",
+                parameter_translation=f"{parameter_translation}{c_postfix}" if parameter_translation else None,
             )
         else:
             data_point_name = DataPointNameData(
                 device_name=channel.device.name,
                 channel_name=channel_name,
                 parameter_name=p_name,
+                parameter_translation=parameter_translation,
             )
         return data_point_name
 
@@ -385,6 +411,7 @@ def get_event_name(
     *,
     channel: ChannelProtocol,
     parameter: str,
+    parameter_translation: str | None = None,
 ) -> DataPointNameData:
     """Get name for event."""
     if channel_name := _get_base_name_from_channel_or_device(channel=channel):
@@ -395,12 +422,14 @@ def get_event_name(
                 device_name=channel.device.name,
                 channel_name=c_name,
                 parameter_name=p_name,
+                parameter_translation=parameter_translation,
             )
         else:
             event_name = DataPointNameData(
                 device_name=channel.device.name,
                 channel_name=channel_name,
                 parameter_name=p_name,
+                parameter_translation=parameter_translation,
             )
         return event_name
 

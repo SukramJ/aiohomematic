@@ -690,6 +690,8 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
     room: Final = DelegatedProperty[str | None](path="_channel.room")
     rooms: Final = DelegatedProperty[set[str]](path="_channel.rooms")
     timer_on_time = DelegatedProperty[float | None](path="_timer_on_time")
+    translated_full_name: Final = DelegatedProperty[str](path="_data_point_name_data.translated_full_name")
+    translated_name: Final = DelegatedProperty[str](path="_data_point_name_data.translated_name", kind=Kind.CONFIG)
 
     @property
     def timer_on_time_running(self) -> bool:

@@ -524,6 +524,16 @@ class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
     def timer_on_time_running(self) -> bool:
         """Return if on_time is running."""
 
+    @property
+    @abstractmethod
+    def translated_full_name(self) -> str:
+        """Return the translated full name of the data point."""
+
+    @property
+    @abstractmethod
+    def translated_name(self) -> str:
+        """Return the translated name of the data point."""
+
     @abstractmethod
     def force_usage(self, *, forced_usage: DataPointUsage) -> None:
         """Set the data point usage."""

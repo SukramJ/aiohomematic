@@ -295,7 +295,15 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     @override
     def _get_data_point_name(self) -> DataPointNameData:
         """Create the name for the data point."""
-        return get_data_point_name_data(channel=self._channel, parameter=self._calculated_parameter)
+        return get_data_point_name_data(
+            channel=self._channel,
+            parameter=self._calculated_parameter,
+            parameter_translation=ccu_translations.get_parameter_translation(
+                parameter=self._calculated_parameter,
+                channel_type=self._channel.type_name,
+                locale=self._channel.device.config_provider.config.locale,
+            ),
+        )
 
     @override
     def _get_data_point_usage(self) -> DataPointUsage:

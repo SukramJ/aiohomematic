@@ -237,6 +237,63 @@ class TestDataPointNameDataPatterns:
         assert name_data.name == "Heizung Temperature"
         assert name_data.full_name == "Thermostat Heizung Temperature"
 
+    def test_translated_name_empty_data_point(self) -> None:
+        """Test translated fields on empty DataPointNameData."""
+        dp_empty = DataPointNameData.empty()
+        assert dp_empty.translated_name == ""
+        assert dp_empty.translated_full_name == ""
+
+    def test_translated_name_with_channel_postfix(self) -> None:
+        """Test translated_name preserves channel postfix (e.g., ch3)."""
+        name_data = DataPointNameData(
+            device_name="Thermostat",
+            channel_name="Heizung",
+            parameter_name="Temperature Offset ch3",
+            parameter_translation="Temperatur-Offset ch3",
+        )
+        assert name_data.translated_name == "Heizung Temperatur-Offset ch3"
+        assert name_data.translated_full_name == "Thermostat Heizung Temperatur-Offset ch3"
+
+    def test_translated_name_with_device_prefix_stripping(self) -> None:
+        """Test translated_name strips device prefix correctly."""
+        name_data = DataPointNameData(
+            device_name="Wohnzimmer",
+            channel_name="Wohnzimmer Licht",
+            parameter_name="STATE",
+            parameter_translation="Zustand",
+        )
+        # Original
+        assert name_data.name == "Licht STATE"
+        assert name_data.full_name == "Wohnzimmer Licht STATE"
+        # Translated
+        assert name_data.translated_name == "Licht Zustand"
+        assert name_data.translated_full_name == "Wohnzimmer Licht Zustand"
+
+    def test_translated_name_with_translation(self) -> None:
+        """Test translated_name when parameter_translation is provided."""
+        name_data = DataPointNameData(
+            device_name="Thermostat",
+            channel_name="Heizung",
+            parameter_name="Temperature Offset",
+            parameter_translation="Temperatur-Offset",
+        )
+        # Original names unchanged
+        assert name_data.name == "Heizung Temperature Offset"
+        assert name_data.full_name == "Thermostat Heizung Temperature Offset"
+        # Translated variants use the translation for the parameter part
+        assert name_data.translated_name == "Heizung Temperatur-Offset"
+        assert name_data.translated_full_name == "Thermostat Heizung Temperatur-Offset"
+
+    def test_translated_name_without_translation(self) -> None:
+        """Test translated_name falls back to name when no translation provided."""
+        name_data = DataPointNameData(
+            device_name="Thermostat",
+            channel_name="Heizung",
+            parameter_name="Temperature Offset",
+        )
+        assert name_data.translated_name == name_data.name
+        assert name_data.translated_full_name == name_data.full_name
+
 
 # =============================================================================
 # PART 3: Integrative Tests with Device Details

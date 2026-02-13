@@ -32,7 +32,7 @@ from datetime import datetime
 import logging
 from typing import Any, Final, override
 
-from aiohomematic import i18n, support as hms
+from aiohomematic import ccu_translations, i18n, support as hms
 from aiohomematic.async_support import loop_check
 from aiohomematic.const import (
     CLICK_EVENTS,
@@ -127,6 +127,11 @@ class GenericEvent(BaseParameterDataPointAny, GenericEventProtocolAny):
         return get_event_name(
             channel=self._channel,
             parameter=self._parameter,
+            parameter_translation=ccu_translations.get_parameter_translation(
+                parameter=self._parameter,
+                channel_type=self._channel.type_name,
+                locale=self._channel.device.config_provider.config.locale,
+            ),
         )
 
     def _get_data_point_usage(self) -> DataPointUsage:

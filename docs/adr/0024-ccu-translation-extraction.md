@@ -147,12 +147,12 @@ model ID first, then falls back to sub_model.
 
 `aiohomematic/ccu_translations.py` provides four typed lookup functions:
 
-| Function                      | Lookup Key                         | Fallback |
-| ----------------------------- | ---------------------------------- | -------- |
-| `get_channel_type_label()`    | channel_type                       | None     |
-| `get_device_model_label()`    | model, then sub_model              | None     |
-| `get_parameter_label()`       | CHANNEL\|PARAM, then PARAM         | None     |
-| `get_parameter_value_label()` | CHANNEL\|PARAM=VAL, then PARAM=VAL | None     |
+| Function                            | Lookup Key                         | Fallback |
+| ----------------------------------- | ---------------------------------- | -------- |
+| `get_channel_type_translation()`    | channel_type                       | None     |
+| `get_device_model_description()`    | model, then sub_model              | None     |
+| `get_parameter_translation()`       | CHANNEL\|PARAM, then PARAM         | None     |
+| `get_parameter_value_translation()` | CHANNEL\|PARAM=VAL, then PARAM=VAL | None     |
 
 All functions use keyword-only arguments and accept a `locale` parameter (default: `en`).
 JSON files are loaded lazily on first access and served from memory afterwards.
@@ -218,13 +218,14 @@ and fall back to ISO-8859-1 on decode error.
               │                     │                     │
               ▼                     ▼                     ▼
        Device.__init__       Channel.__init__     BaseParameterDataPoint
-       ._label = get_        ._label = get_       .__init__
-       device_model_label()  channel_type_label()  ._label = get_
-              │                     │              parameter_label()
-              ▼                     ▼                     │
-       device.label          channel.label               ▼
-       (DelegatedProperty)   (DelegatedProperty)  data_point.label
-              │                     │              (DelegatedProperty)
+       ._model_description   ._type_translation    .__init__
+       = get_device_model_   = get_channel_type_   ._translation = get_
+       description()         translation()         parameter_translation()
+              │                     │                     │
+              ▼                     ▼                     ▼
+       device.model_         channel.type_         data_point.translation
+       description           translation           (DelegatedProperty)
+              │                     │                     │
               └─────────────────────┼─────────────────────┘
                                     │
                      ┌──────────────┴──────────────┐
@@ -237,40 +238,40 @@ and fall back to ISO-8859-1 on decode error.
 
 ### Model Integration
 
-Device, Channel, and BaseParameterDataPoint each expose a `label` property that
+Device, Channel, and BaseParameterDataPoint each expose a translation property that
 resolves a human-readable name from the CCU translations at init time:
 
-| Class                    | Lookup function            | Fallback          |
-| ------------------------ | -------------------------- | ----------------- |
-| `Device`                 | `get_device_model_label()` | `device.name`     |
-| `Channel`                | `get_channel_type_label()` | `channel.name`    |
-| `BaseParameterDataPoint` | `get_parameter_label()`    | `parameter` (raw) |
+| Class                    | Lookup function                  | Fallback          |
+| ------------------------ | -------------------------------- | ----------------- |
+| `Device`                 | `get_device_model_description()` | `device.name`     |
+| `Channel`                | `get_channel_type_translation()` | `channel.name`    |
+| `BaseParameterDataPoint` | `get_parameter_translation()`    | `parameter` (raw) |
 
-Labels are resolved once during `__init__` and stored as `Final` attributes, since
+Translations are resolved once during `__init__` and stored as `Final` attributes, since
 the locale is immutable after the first `set_locale()` call (see Locale Immutability
 below). Protocol interfaces (`DeviceIdentityProtocol`, `ChannelIdentityProtocol`,
-`BaseParameterDataPointProtocol`) declare the `label` property so consumers can depend
+`BaseParameterDataPointProtocol`) declare the translation property so consumers can depend
 on it via narrow protocols.
 
 ### Locale Immutability
 
 The locale is set once during `CentralUnit` initialization and never changes afterwards.
 To enforce this invariant, `i18n.set_locale()` raises `RuntimeError` on any subsequent
-call. This guarantees that labels resolved at init time remain correct for the entire
+call. This guarantees that translations resolved at init time remain correct for the entire
 process lifetime.
 
 A `_reset_locale_for_testing()` internal function allows tests to bypass the lock.
 
 ### Integration Points
 
-- **Device/Channel/DataPoint `label` property**: Consumers (e.g., Home Assistant
-  integration, configuration UIs) access `device.label`, `channel.label`, or
-  `data_point.label` for human-readable names without calling translation functions
+- **Device/Channel/DataPoint translation properties**: Consumers (e.g., Home Assistant
+  integration, configuration UIs) access `device.model_description`, `channel.type_translation`, or
+  `data_point.translation` for human-readable names without calling translation functions
   directly.
-- **aiohomematic-config**: The `LabelResolver` uses `get_parameter_label()` and
-  `get_parameter_value_label()` to generate form labels for the configuration UI.
+- **aiohomematic-config**: The `LabelResolver` uses `get_parameter_translation()` and
+  `get_parameter_value_translation()` to generate form labels for the configuration UI.
 - **ConfigurationCoordinator**: `ConfigurableChannel` can be enriched with labels
-  via `get_channel_type_label()`.
+  via `get_channel_type_translation()`.
 - **Diagnostic logging**: Device and channel descriptions can use translated names
   for more readable log output.
 

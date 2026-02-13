@@ -609,11 +609,6 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
-    def label(self) -> str | None:
-        """Return the human-readable label for the parameter."""
-
-    @property
-    @abstractmethod
     def last_non_default_value(self) -> ParameterT | None:
         """Return the last meaningful (non-default) value of the data point."""
 
@@ -674,6 +669,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
+    def translation(self) -> str | None:
+        """Return the human-readable translation for the parameter."""
+
+    @property
+    @abstractmethod
     def translation_key(self) -> str:
         """Return translation key for data point."""
 
@@ -689,8 +689,8 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
-    def value_labels(self) -> dict[str, str | None] | None:
-        """Return translated labels for all enum values."""
+    def value_translations(self) -> dict[str, str | None] | None:
+        """Return translated names for all enum values."""
 
     @property
     @abstractmethod
@@ -1058,11 +1058,6 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def label(self) -> str | None:
-        """Return the human-readable label for the parameter."""
-
-    @property
-    @abstractmethod
     def max(self) -> Any:
         """Return max value."""
 
@@ -1095,6 +1090,11 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     def state_uncertain(self) -> bool:
         """Return if the state is uncertain."""
+
+    @property
+    @abstractmethod
+    def translation(self) -> str | None:
+        """Return the human-readable translation for the parameter."""
 
     @property
     @abstractmethod
@@ -1165,11 +1165,6 @@ class ChannelIdentityProtocol(Protocol):
 
     @property
     @abstractmethod
-    def label(self) -> str:
-        """Return the human-readable label for the channel."""
-
-    @property
-    @abstractmethod
     def name(self) -> str:
         """Return the name of the channel."""
 
@@ -1187,6 +1182,11 @@ class ChannelIdentityProtocol(Protocol):
     @abstractmethod
     def type_name(self) -> str:
         """Return the type name of the channel."""
+
+    @property
+    @abstractmethod
+    def type_translation(self) -> str:
+        """Return the human-readable translation for the channel type."""
 
     @property
     @abstractmethod
@@ -1529,11 +1529,6 @@ class DeviceIdentityProtocol(Protocol):
 
     @property
     @abstractmethod
-    def label(self) -> str:
-        """Return the human-readable label for the device."""
-
-    @property
-    @abstractmethod
     def manufacturer(self) -> str:
         """Return the manufacturer of the device."""
 
@@ -1541,6 +1536,11 @@ class DeviceIdentityProtocol(Protocol):
     @abstractmethod
     def model(self) -> str:
         """Return the model of the device."""
+
+    @property
+    @abstractmethod
+    def model_description(self) -> str:
+        """Return the human-readable description for the device model."""
 
     @property
     @abstractmethod

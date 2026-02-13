@@ -3,7 +3,7 @@
 """
 Loader for CCU-sourced translation data.
 
-Provide access to human-readable labels for channel types, device models,
+Provide access to human-readable translations for channel types, device models,
 parameter names, and parameter enum values extracted from the OpenCCU WebUI.
 
 The auto-generated JSON files live in ``translations/ccu_extract/`` and are
@@ -27,10 +27,10 @@ import threading
 from typing import Final
 
 __all__ = [
-    "get_channel_type_label",
-    "get_device_model_label",
-    "get_parameter_label",
-    "get_parameter_value_label",
+    "get_channel_type_translation",
+    "get_device_model_description",
+    "get_parameter_translation",
+    "get_parameter_value_translation",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -101,13 +101,13 @@ def _get_locale(*, locale: str) -> str:
     return lang if lang in _SUPPORTED_LOCALES else _DEFAULT_LOCALE
 
 
-def get_channel_type_label(*, channel_type: str, locale: str = "en") -> str | None:
-    """Return human-readable label for a channel type."""
+def get_channel_type_translation(*, channel_type: str, locale: str = "en") -> str | None:
+    """Return human-readable translation for a channel type."""
     lang = _get_locale(locale=locale)
     return _store.get(category="channel_types", locale=lang).get(channel_type.lower())
 
 
-def get_device_model_label(
+def get_device_model_description(
     *,
     model: str,
     sub_model: str | None = None,
@@ -133,14 +133,14 @@ def get_device_model_label(
     return None
 
 
-def get_parameter_label(
+def get_parameter_translation(
     *,
     parameter: str,
     channel_type: str | None = None,
     locale: str = "en",
 ) -> str | None:
     """
-    Return human-readable label for a parameter.
+    Return human-readable translation for a parameter.
 
     Try channel-specific lookup first (CHANNEL_TYPE|PARAMETER),
     then fall back to global parameter lookup.
@@ -156,7 +156,7 @@ def get_parameter_label(
     return translations.get(parameter.lower())
 
 
-def get_parameter_value_label(
+def get_parameter_value_translation(
     *,
     parameter: str,
     value: str,
@@ -164,7 +164,7 @@ def get_parameter_value_label(
     locale: str = "en",
 ) -> str | None:
     """
-    Return human-readable label for a parameter enum value.
+    Return human-readable translation for a parameter enum value.
 
     Try channel-specific lookup first (CHANNEL_TYPE|PARAMETER=VALUE),
     then fall back to global lookup (PARAMETER=VALUE).

@@ -18,6 +18,19 @@
   its position, and surrounding context are now logged at WARNING level to aid
   diagnosis.
 
+### Changed
+
+- **CCU translation API**: Renamed functions and properties for semantic accuracy:
+  - `get_device_model_label()` → `get_device_model_description()`
+  - `get_channel_type_label()` → `get_channel_type_translation()`
+  - `get_parameter_label()` → `get_parameter_translation()`
+  - `get_parameter_value_label()` → `get_parameter_value_translation()`
+  - `Device.label` → `Device.model_description`
+  - `Channel.label` → `Channel.type_translation`
+  - `BaseParameterDataPoint.label` → `BaseParameterDataPoint.translation`
+  - `BaseParameterDataPoint.value_labels` → `BaseParameterDataPoint.value_translations`
+  - `CalculatedDataPoint.label` → `CalculatedDataPoint.translation`
+
 # Version 2026.2.10 (2026-02-11)
 
 ## What's Changed

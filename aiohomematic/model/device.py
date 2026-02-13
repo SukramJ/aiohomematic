@@ -236,7 +236,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_interface",
         "_interface_id",
         "_is_updatable",
-        "_label",
+        "_model_description",
         "_manufacturer",
         "_model",
         "_modified_at",
@@ -322,8 +322,8 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             device_address=self._address,
             model=self._model,
         )
-        self._label: Final = (
-            ccu_translations.get_device_model_label(
+        self._model_description: Final = (
+            ccu_translations.get_device_model_description(
                 model=self._model,
                 sub_model=self._sub_model,
                 locale=self._config_provider.config.locale,
@@ -393,9 +393,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     interface: Final = DelegatedProperty[Interface](path="_interface")
     interface_id: Final = DelegatedProperty[str](path="_interface_id", log_context=True)
     is_updatable: Final = DelegatedProperty[bool](path="_is_updatable")
-    label: Final = DelegatedProperty[str](path="_label", kind=Kind.INFO)
     manufacturer: Final = DelegatedProperty[str](path="_manufacturer", kind=Kind.INFO)
     model: Final = DelegatedProperty[str](path="_model", kind=Kind.INFO, log_context=True)
+    model_description: Final = DelegatedProperty[str](path="_model_description", kind=Kind.INFO)
     name: Final = DelegatedProperty[str](path="_name", kind=Kind.INFO)
     parameter_visibility_provider: Final = DelegatedProperty[ParameterVisibilityProviderProtocol](
         path="_parameter_visibility_provider"
@@ -959,7 +959,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_generic_events",
         "_rega_id",
         "_is_schedule_channel",
-        "_label",
+        "_type_translation",
         "_link_peer_addresses",
         "_link_source_categories",
         "_link_source_roles",
@@ -988,8 +988,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             interface_id=self._device.interface_id, address=channel_address
         )
         self._type_name: Final[str] = self._channel_description["TYPE"]
-        self._label: Final = (
-            ccu_translations.get_channel_type_label(
+        self._type_translation: Final = (
+            ccu_translations.get_channel_type_translation(
                 channel_type=self._type_name,
                 locale=self._device.config_provider.config.locale,
             )
@@ -1050,7 +1050,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
     function: Final = DelegatedProperty[str | None](path="_function")
     is_schedule_channel: Final = DelegatedProperty[bool](path="_is_schedule_channel")
-    label: Final = DelegatedProperty[str](path="_label", kind=Kind.INFO)
     link_peer_addresses: Final = DelegatedProperty[tuple[str, ...]](path="_link_peer_addresses")
     link_peer_source_categories: Final = DelegatedProperty[tuple[str, ...]](path="_link_source_categories")
     link_peer_target_categories: Final = DelegatedProperty[tuple[str, ...]](path="_link_target_categories")
@@ -1061,6 +1060,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     rega_id: Final = DelegatedProperty[int](path="_rega_id")
     rooms: Final = DelegatedProperty[set[str]](path="_rooms")
     type_name: Final = DelegatedProperty[str](path="_type_name")
+    type_translation: Final = DelegatedProperty[str](path="_type_translation", kind=Kind.INFO)
     unique_id: Final = DelegatedProperty[str](path="_unique_id")
 
     @property

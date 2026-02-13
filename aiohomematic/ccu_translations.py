@@ -20,9 +20,10 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
-from pathlib import Path
+import pkgutil
 import threading
 from typing import Final
 
@@ -34,13 +35,12 @@ __all__ = [
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
-_TRANSLATIONS_DIR: Final = Path(__file__).parent / "translations"
-_EXTRACT_DIR: Final = _TRANSLATIONS_DIR / "ccu_extract"
-_CUSTOM_DIR: Final = _TRANSLATIONS_DIR / "ccu_custom"
+_PACKAGE: Final = "aiohomematic"
 
 _SUPPORTED_LOCALES: Final = frozenset({"de", "en"})
 _DEFAULT_LOCALE: Final = "en"
 _CATEGORIES: Final = ("channel_types", "device_models", "parameters", "parameter_values")
+_SUBDIRS: Final = ("ccu_extract", "ccu_custom")
 
 
 class _TranslationStore:
@@ -62,16 +62,19 @@ class _TranslationStore:
     def get(self, *, category: str, locale: str) -> dict[str, str]:
         """Return translation dict for category and locale."""
         if not self._loaded:
-            self._load()
+            self.load()
         return self._data.get(f"{category}_{locale}", {})
 
-    def _load(self) -> None:
+    def load(self) -> None:
         """
         Load all translation files (double-checked locking).
 
         For each category/locale pair, load from ``ccu_extract/`` first,
         then merge ``ccu_custom/`` on top so that custom keys override or
         supplement extracted keys.
+
+        Use pkgutil.get_data() instead of Path.read_text() to avoid
+        blocking file I/O detection in Home Assistant's event loop.
         """
         with self._lock:
             if self._loaded:
@@ -81,18 +84,24 @@ class _TranslationStore:
                     key = f"{category}_{locale}"
                     filename = f"{key}.json"
                     merged: dict[str, str] = {}
-                    for directory in (_EXTRACT_DIR, _CUSTOM_DIR):
-                        file_path = directory / filename
+                    for subdir in _SUBDIRS:
+                        resource = f"translations/{subdir}/{filename}"
                         try:
-                            raw: dict[str, str] = json.loads(file_path.read_text(encoding="utf-8"))
+                            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=resource)):
+                                continue
+                            raw: dict[str, str] = json.loads(data_bytes)
                             merged.update({k.lower(): v for k, v in raw.items()})
                         except (FileNotFoundError, json.JSONDecodeError) as err:
-                            _LOGGER.debug("Failed to load %s: %s", file_path, err)
+                            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
                     self._data[key] = merged
             self._loaded = True
 
 
 _store: Final = _TranslationStore()
+
+# Eager initialization at import time to avoid any later I/O on first use.
+with contextlib.suppress(Exception):
+    _store.load()
 
 
 def _get_locale(*, locale: str) -> str:

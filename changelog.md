@@ -1,3 +1,23 @@
+# Version 2026.2.11 (2026-02-13)
+
+## What's Changed
+
+### Improved
+
+- **Robust JSON parsing with stdlib fallback**: When `orjson` fails to parse
+  JSON from CCU Rega scripts (e.g., due to non-standard literals like `NaN` or
+  `Infinity`), the parser now falls through to Python's stdlib `json` module
+  which handles these edge cases gracefully.
+
+- **Extended control character sanitization**: The JSON sanitizer now also
+  escapes the DEL character (U+007F) in string values, in addition to the
+  existing U+0000–U+001F range.
+
+- **Diagnostic logging for JSON parse errors**: When a Rega script response
+  fails to parse as JSON, the exact problematic character (Unicode codepoint),
+  its position, and surrounding context are now logged at WARNING level to aid
+  diagnosis.
+
 # Version 2026.2.10 (2026-02-11)
 
 ## What's Changed

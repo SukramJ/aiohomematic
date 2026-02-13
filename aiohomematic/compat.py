@@ -128,8 +128,11 @@ def loads(*, data: bytes | str) -> Any:
     if _USE_ORJSON and _orjson is not None:
         try:
             return _orjson.loads(data)
-        except _orjson.JSONDecodeError as exc:
-            raise JSONDecodeError(str(exc)) from exc
+        except _orjson.JSONDecodeError:
+            # Fall through to stdlib json for lenient parsing.
+            # stdlib json handles edge cases that orjson rejects
+            # (e.g., NaN, Infinity literals from CCU Rega scripts).
+            pass
 
     try:
         if isinstance(data, bytes):

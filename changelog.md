@@ -1,3 +1,14 @@
+# Version 2026.2.12 (2026-02-13)
+
+## What's Changed
+
+### Improved
+
+- **CCU translation loading via pkgutil**: Replaced `Path.read_text()` with
+  `pkgutil.get_data()` for loading CCU translation files. This avoids blocking
+  file I/O detection in Home Assistant's event loop. Translations are now
+  eagerly initialized at import time to prevent any later I/O on first use.
+
 # Version 2026.2.11 (2026-02-13)
 
 ## What's Changed
@@ -17,15 +28,6 @@
   fails to parse as JSON, the exact problematic character (Unicode codepoint),
   its position, and surrounding context are now logged at WARNING level to aid
   diagnosis.
-
-### Added
-
-- **Translated data point name variants**: `DataPointNameData` now provides
-  `translated_name` and `translated_full_name` properties that use the CCU
-  parameter translation instead of the mechanical title-cased conversion.
-  Exposed as `translated_name` / `translated_full_name` on `BaseDataPoint`
-  and `BaseDataPointProtocol`. When no translation is available, the values
-  fall back to `name` / `full_name`.
 
 ### Changed
 

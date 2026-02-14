@@ -429,7 +429,7 @@ class TestGetConfigurableChannels:
         """Test invalid paramset key strings are filtered out."""
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
-                "VCU0000001:1": {"TYPE": "SWITCH", "PARAMSETS": ["MASTER", "INVALID_KEY"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER", "INVALID_KEY"]},
             },
         )
 
@@ -444,7 +444,7 @@ class TestGetConfigurableChannels:
         """Test channel without TYPE gets empty string."""
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
-                "VCU0000001:1": {"PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"FLAGS": 1, "PARAMSETS": ["MASTER"]},
             },
         )
 
@@ -460,8 +460,8 @@ class TestGetConfigurableChannels:
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
                 "VCU0000001": {"TYPE": "DEVICE", "PARAMSETS": []},
-                "VCU0000001:0": {"TYPE": "MAINTENANCE", "PARAMSETS": ["MASTER", "VALUES"]},
-                "VCU0000001:1": {"TYPE": "SWITCH", "PARAMSETS": ["MASTER", "VALUES"]},
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 1, "PARAMSETS": ["MASTER", "VALUES"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER", "VALUES"]},
             },
         )
 
@@ -475,13 +475,29 @@ class TestGetConfigurableChannels:
         assert channels[0].paramset_keys == (ParamsetKey.MASTER, ParamsetKey.VALUES)
         assert channels[1].address == "VCU0000001:1"
 
+    def test_skips_channels_without_flags(self) -> None:
+        """Test channels without FLAGS key are skipped."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 1
+        assert channels[0].address == "VCU0000001:1"
+
     def test_skips_channels_without_paramsets(self) -> None:
         """Test channels without paramset keys are skipped."""
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
                 "VCU0000001": {"TYPE": "DEVICE", "PARAMSETS": []},
-                "VCU0000001:0": {"TYPE": "MAINTENANCE", "PARAMSETS": []},
-                "VCU0000001:1": {"TYPE": "SWITCH", "PARAMSETS": ["MASTER"]},
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 1, "PARAMSETS": []},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
             },
         )
 
@@ -496,8 +512,56 @@ class TestGetConfigurableChannels:
         """Test device-level entry (no colon) is skipped."""
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
-                "VCU0000001": {"TYPE": "DEVICE", "PARAMSETS": ["MASTER"]},
-                "VCU0000001:1": {"TYPE": "SWITCH", "PARAMSETS": ["VALUES"]},
+                "VCU0000001": {"TYPE": "DEVICE", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["VALUES"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 1
+        assert channels[0].address == "VCU0000001:1"
+
+    def test_skips_internal_channels(self) -> None:
+        """Test channels with INTERNAL flag are skipped."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 3, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 1
+        assert channels[0].address == "VCU0000001:1"
+
+    def test_skips_invisible_channels(self) -> None:
+        """Test channels without VISIBLE flag are skipped."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 0, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 1
+        assert channels[0].address == "VCU0000001:1"
+
+    def test_skips_week_program_channels(self) -> None:
+        """Test WEEK_PROGRAM channels are excluded."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:2": {"TYPE": "WEEK_PROGRAM", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
             },
         )
 
@@ -512,9 +576,9 @@ class TestGetConfigurableChannels:
         """Test channels are sorted by address."""
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
-                "VCU0000001:3": {"TYPE": "C", "PARAMSETS": ["MASTER"]},
-                "VCU0000001:1": {"TYPE": "A", "PARAMSETS": ["MASTER"]},
-                "VCU0000001:2": {"TYPE": "B", "PARAMSETS": ["MASTER"]},
+                "VCU0000001:3": {"TYPE": "C", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "A", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:2": {"TYPE": "B", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
             },
         )
 

@@ -23,6 +23,11 @@
   override keys to ensure custom translations take precedence over extracted
   channel-specific translations.
 
+- **Configurable channel filtering**: `get_configurable_channels` now applies
+  CCU-compatible filtering rules: channels must have the VISIBLE flag set and
+  must not have the INTERNAL flag. WEEK_PROGRAM channels are excluded as they
+  are handled by schedule cards.
+
 # Version 2026.2.12 (2026-02-13)
 
 ## What's Changed

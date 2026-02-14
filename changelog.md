@@ -1,3 +1,28 @@
+# Version 2026.2.13 (2026-02-14)
+
+## What's Changed
+
+### Improved
+
+- **Extraction script fixes**: Fixed multiple bugs in `extract_ccu_translations.py`
+  that caused ~215 parameter translations to be missed:
+
+  - Added `translate.lang.extension.js` and `translate.lang.js` as extraction sources
+  - Added MASTER_LANG device-specific translation files as additional source
+  - Fixed comment regex that destroyed `://` URLs inside string values
+  - Fixed regex to target `langJSON` specifically (ignoring `HMIdentifier` blocks)
+  - Added parsing of `langJSON` alias assignments after jQuery.extend blocks
+  - Added handling of invalid JS escape sequences (`\'`, `\.`) for JSON compatibility
+  - Added `channelDescription.js` and `deviceDescription.js` to template resolution
+  - Parameters: 793 → 858 (+65), parameter values: ~1130 → 1315 (+185),
+    unresolved: 248 → 33
+
+- **Custom translation cleanup**: Removed 17 redundant entries from
+  `ccu_custom/parameters_*.json` and `ccu_custom/parameter_values_*.json` that are
+  now correctly provided by the improved extraction. Added 67 channel-qualified
+  override keys to ensure custom translations take precedence over extracted
+  channel-specific translations.
+
 # Version 2026.2.12 (2026-02-13)
 
 ## What's Changed

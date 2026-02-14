@@ -42,9 +42,14 @@ _JS_FILES = (
     "translate.lang.notTranslated.js",
     "translate.lang.label.js",
     "translate.lang.option.js",
+    "translate.lang.extension.js",
+    "translate.lang.js",
     "translate.lang.channelDescription.js",
     "translate.lang.deviceDescription.js",
 )
+
+# Device-specific MASTER parameter translation files
+_MASTER_LANG_DIR = "config/easymodes/MASTER_LANG"
 
 # Stringtable mapping file (same for all locales)
 _STRINGTABLE_MAPPING_PATH = "config/stringtable_de.txt"
@@ -53,23 +58,60 @@ _STRINGTABLE_MAPPING_PATH = "config/stringtable_de.txt"
 _LOCALES = ("de", "en")
 
 # Sentinel keys to exclude
-_SENTINEL_KEYS = frozenset({"theEnd", "The END", "dummy", "comment"})
+_SENTINEL_KEYS = frozenset({"theEnd", "The END", "dummy", "comment", "noMoreKeys"})
 
 # Default output directory (relative to project root)
 _DEFAULT_OUTPUT_DIR = "aiohomematic/translations/ccu_extract"
 
-# Regex to extract the inner JSON object from jQuery.extend(true, langJSON, { "locale": { ... } })
+# Regex to extract the outer JSON object from jQuery.extend(true, langJSON, { ... })
+# Specifically targets langJSON (not HMIdentifier or other targets)
+# Captures the full outer object: { "de": {...}, "en": {...} }
 _JQUERY_EXTEND_RE = re.compile(
-    r'jQuery\.extend\s*\(\s*true\s*,\s*\w+\s*,\s*\{\s*"(?:de|en)"\s*:\s*(\{.*\})\s*\}\s*\)',
+    r"jQuery\.extend\s*\(\s*true\s*,\s*langJSON\s*,\s*(\{.*\})\s*\)",
     re.DOTALL,
 )
 
 # Regex to find ${templateVar} references
 _TEMPLATE_VAR_RE = re.compile(r"\$\{(\w+)\}")
 
+# Regex to parse langJSON alias assignments: langJSON.de.key = langJSON.de.otherKey;
+_ALIAS_ASSIGNMENT_RE = re.compile(
+    r"langJSON\.(?:de|en)\.(\w+)\s*=\s*langJSON\.(?:de|en)\.(\w+)\s*;",
+)
 
-def parse_jquery_extend(content: str) -> dict[str, str]:
-    """Extract key-value pairs from a jQuery.extend JavaScript file."""
+
+_VALID_JSON_ESCAPES = frozenset(
+    {
+        '\\"',
+        "\\\\",
+        "\\/",
+        "\\b",
+        "\\f",
+        "\\n",
+        "\\r",
+        "\\t",
+    }
+)
+
+
+def _fix_js_escape(match: re.Match[str]) -> str:
+    """Fix a JS escape sequence for JSON compatibility."""
+    escape = match.group(0)
+    # Keep valid JSON escapes and unicode escapes (\uXXXX)
+    if escape in _VALID_JSON_ESCAPES or escape.startswith("\\u"):
+        return escape
+    # Invalid JSON escape (e.g. \', \.) - remove the backslash
+    return escape[1:]
+
+
+def parse_jquery_extend(content: str, *, locale: str) -> dict[str, str]:
+    """
+    Extract key-value pairs from a jQuery.extend JavaScript file.
+
+    The regex captures the outer object from jQuery.extend(true, langJSON, {...}).
+    This outer object contains locale sub-keys (e.g. {"de": {...}, "en": {...}}).
+    The ``locale`` parameter selects which sub-dict to return.
+    """
     match = _JQUERY_EXTEND_RE.search(content)
     if not match:
         return {}
@@ -79,21 +121,53 @@ def parse_jquery_extend(content: str) -> dict[str, str]:
     # Fix JS-specific issues for JSON parsing:
     # Remove trailing commas before }
     json_str = re.sub(r",\s*}", "}", json_str)
-    # Remove single-line comments
-    json_str = re.sub(r"//.*?$", "", json_str, flags=re.MULTILINE)
+    # Remove JS comments (// ...) but preserve :// in URLs
+    json_str = re.sub(r"(?<!:)//.*$", "", json_str, flags=re.MULTILINE)
+    # Replace bare JS variable references as values with empty strings
+    # (e.g., HMIdentifier.de.BidCosRF or langJSON.de.dialogHint)
+    json_str = re.sub(
+        r":\s*(?:HMIdentifier|langJSON)\.\w+\.\w+",
+        ': ""',
+        json_str,
+    )
     # Handle string concatenation with JS variables ("str" + Identifier.x -> "str")
     json_str = re.sub(r'"\s*\+\s*[A-Za-z_]\w*(?:\.\w+)*', '"', json_str)
     # Handle string concatenation ("a" + "b" -> "ab")
     json_str = re.sub(r'"\s*\+\s*"', "", json_str)
+    # Fix JS escape sequences invalid in JSON (\' -> ', \. -> .)
+    # Process escape pairs as units: \\ stays (valid JSON), \' -> ', etc.
+    json_str = re.sub(r"\\(?:\\|.)", _fix_js_escape, json_str)
 
     try:
-        raw: dict[str, str] = json.loads(json_str)
+        raw: dict[str, object] = json.loads(json_str)
     except json.JSONDecodeError as err:
         print(f"  WARNING: JSON parse error: {err}", file=sys.stderr)
         return {}
 
-    # Filter sentinel entries
-    return {k: v for k, v in raw.items() if k not in _SENTINEL_KEYS and v}
+    # Extract locale-specific sub-dict from the outer object
+    if locale in raw and isinstance(raw[locale], dict):
+        translations: dict[str, str] = raw[locale]
+    else:
+        # Fallback: treat as flat dict (shouldn't happen with langJSON target)
+        translations = {k: v for k, v in raw.items() if isinstance(v, str)}
+
+    # Filter sentinel entries and empty values
+    return {k: v for k, v in translations.items() if k not in _SENTINEL_KEYS and v}
+
+
+def parse_alias_assignments(content: str, translations: dict[str, str]) -> dict[str, str]:
+    """
+    Parse langJSON.locale.key = langJSON.locale.otherKey; assignments.
+
+    Resolve aliases against the existing translations dict and return new entries.
+    """
+    aliases: dict[str, str] = {}
+    for match in _ALIAS_ASSIGNMENT_RE.finditer(content):
+        target_key = match.group(1)
+        source_key = match.group(2)
+        if (resolved := translations.get(source_key)) is not None:
+            aliases[target_key] = resolved
+    return aliases
 
 
 def clean_value(value: str) -> str:
@@ -257,6 +331,35 @@ def write_json(output_dir: Path, filename: str, data: dict[str, str]) -> int:
     return len(sorted_data)
 
 
+def load_master_lang_files(
+    occu_path: Path,
+    locale: str,
+) -> dict[str, str]:
+    """
+    Load device-specific MASTER parameter translations from MASTER_LANG JS files.
+
+    Parse all .js files in config/easymodes/MASTER_LANG/ that contain
+    jQuery.extend(true, langJSON, ...) blocks for the given locale.
+    """
+    master_lang_dir = occu_path / "WebUI" / "www" / _MASTER_LANG_DIR
+    merged: dict[str, str] = {}
+
+    if not master_lang_dir.is_dir():
+        return merged
+
+    for js_file in sorted(master_lang_dir.glob("*.js")):
+        try:
+            content = js_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            content = js_file.read_text(encoding="iso-8859-1")
+
+        parsed = parse_jquery_extend(content, locale=locale)
+        if parsed:
+            merged.update(parsed)
+
+    return merged
+
+
 def load_sources_local(
     occu_path: Path,
 ) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str]]:
@@ -270,16 +373,38 @@ def load_sources_local(
     for locale in _LOCALES:
         locale_data[locale] = {}
         lang_dir = _JS_LANG_DIR.format(locale=locale)
+
+        # Track raw file contents for alias parsing
+        raw_contents: dict[str, str] = {}
+
         for js_file in _JS_FILES:
             relative_path = f"{lang_dir}/{js_file}"
             try:
                 content = load_local_file(occu_path, relative_path)
-                parsed = parse_jquery_extend(content)
+                raw_contents[js_file] = content
+                parsed = parse_jquery_extend(content, locale=locale)
                 locale_data[locale][js_file] = parsed
                 print(f"  {locale}/{js_file}: {len(parsed)} entries")
             except FileNotFoundError:
                 print(f"  WARNING: {relative_path} not found, skipping", file=sys.stderr)
                 locale_data[locale][js_file] = {}
+
+        # Parse alias assignments from stringtable.js (langJSON.de.x = langJSON.de.y)
+        if st_content := raw_contents.get("translate.lang.stringtable.js"):
+            # Build lookup from all parsed translations so far
+            all_parsed: dict[str, str] = {}
+            for parsed_dict in locale_data[locale].values():
+                all_parsed.update(parsed_dict)
+            aliases = parse_alias_assignments(st_content, all_parsed)
+            if aliases:
+                locale_data[locale]["translate.lang.stringtable.js"].update(aliases)
+                print(f"  {locale}/stringtable aliases: {len(aliases)} entries")
+
+        # Load MASTER_LANG device-specific translations
+        master_translations = load_master_lang_files(occu_path, locale)
+        if master_translations:
+            locale_data[locale]["_master_lang"] = master_translations
+            print(f"  {locale}/MASTER_LANG: {len(master_translations)} entries")
 
     # Load stringtable mapping
     mapping_content = load_local_file(occu_path, _STRINGTABLE_MAPPING_PATH)
@@ -302,16 +427,41 @@ def load_sources_remote(
     for locale in _LOCALES:
         locale_data[locale] = {}
         lang_dir = _JS_LANG_DIR.format(locale=locale)
+
+        raw_contents: dict[str, str] = {}
+
         for js_file in _JS_FILES:
             relative_path = f"{lang_dir}/{js_file}"
             try:
                 content = fetch_remote_file(ccu_url, relative_path)
-                parsed = parse_jquery_extend(content)
+                raw_contents[js_file] = content
+                parsed = parse_jquery_extend(content, locale=locale)
                 locale_data[locale][js_file] = parsed
                 print(f"  {locale}/{js_file}: {len(parsed)} entries")
             except Exception as err:
                 print(f"  WARNING: Failed to fetch {relative_path}: {err}", file=sys.stderr)
                 locale_data[locale][js_file] = {}
+
+        # Parse alias assignments
+        if st_content := raw_contents.get("translate.lang.stringtable.js"):
+            all_parsed: dict[str, str] = {}
+            for parsed_dict in locale_data[locale].values():
+                all_parsed.update(parsed_dict)
+            aliases = parse_alias_assignments(st_content, all_parsed)
+            if aliases:
+                locale_data[locale]["translate.lang.stringtable.js"].update(aliases)
+                print(f"  {locale}/stringtable aliases: {len(aliases)} entries")
+
+        # Load MASTER_LANG files from remote
+        for js_filename in _MASTER_LANG_JS_FILES:
+            relative_path = f"{_MASTER_LANG_DIR}/{js_filename}"
+            try:
+                content = fetch_remote_file(ccu_url, relative_path)
+                parsed = parse_jquery_extend(content, locale=locale)
+                if parsed:
+                    locale_data[locale].setdefault("_master_lang", {}).update(parsed)
+            except Exception:
+                pass  # MASTER_LANG files are optional
 
     # Load stringtable mapping
     try:
@@ -325,6 +475,27 @@ def load_sources_remote(
     return locale_data, stringtable_mapping
 
 
+# Known MASTER_LANG JS files (for remote fetching where glob is not available)
+_MASTER_LANG_JS_FILES = (
+    "HEATINGTHERMOSTATE_2ND_GEN.js",
+    "HEATINGTHERMOSTATE_2ND_GEN_HELP.js",
+    "HM-LC-BLIND.js",
+    "HM_CC_TC.js",
+    "HM_ES_PMSw.js",
+    "HM_ES_TX_WM.js",
+    "HM_ES_TX_WM_HELP.js",
+    "HM_SEC_SIR_WM.js",
+    "HmIP-FAL_MIOB.js",
+    "HmIP-ParamHelp.js",
+    "HmIP-Weather.js",
+    "HmIPW_WGD.js",
+    "HmIPWeeklyDeviceProgram.js",
+    "KEY_4Dis.js",
+    "MOTION_DETECTOR.js",
+    "UNIVERSAL_LIGHT_EFFECT.js",
+)
+
+
 def merge_translation_dicts(
     locale_data: dict[str, dict[str, str]],
 ) -> dict[str, str]:
@@ -335,6 +506,11 @@ def merge_translation_dicts(
         "translate.lang.label.js",
         "translate.lang.option.js",
         "translate.lang.notTranslated.js",
+        "translate.lang.extension.js",
+        "translate.lang.js",
+        "translate.lang.channelDescription.js",
+        "translate.lang.deviceDescription.js",
+        "_master_lang",
     ):
         if js_file in locale_data:
             merged.update(locale_data[js_file])

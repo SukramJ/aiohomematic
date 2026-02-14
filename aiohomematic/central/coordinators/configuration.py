@@ -21,7 +21,7 @@ import inspect
 import logging
 from typing import Any, Final
 
-from aiohomematic.const import CallSource, ParameterData, ParamsetKey
+from aiohomematic.const import CallSource, Flag, ParameterData, ParamsetKey
 from aiohomematic.interfaces import (
     ClientProviderProtocol,
     DeviceDescriptionProviderProtocol,
@@ -112,6 +112,11 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
 
         A channel is considered configurable when its device description
         lists at least one paramset key (typically MASTER and/or VALUES).
+
+        Channels are filtered using the same rules as the CCU WebUI:
+        - Channel FLAGS must have VISIBLE set
+        - Channel FLAGS must not have INTERNAL set
+        - WEEK_PROGRAM channels are excluded (handled by schedule cards)
         """
         device_with_channels = self._device_description_provider.get_device_with_channels(
             interface_id=interface_id,
@@ -122,13 +127,25 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
             # Skip the device-level entry (no colon in address)
             if get_device_address(address=address) == address and ":" not in address:
                 continue
+
+            channel_type = description.get("TYPE", "")
+
+            # Skip channels not visible or internal (CCU-compatible FLAGS check)
+            channel_flags: int = description.get("FLAGS") or 0
+            if not (channel_flags & Flag.VISIBLE) or (channel_flags & Flag.INTERNAL):
+                continue
+
+            # Skip WEEK_PROGRAM channels (handled by schedule cards)
+            if channel_type == "WEEK_PROGRAM":
+                continue
+
             raw_paramsets = description.get("PARAMSETS", [])
             paramset_keys = tuple(ParamsetKey(ps) for ps in raw_paramsets if ps in {pk.value for pk in ParamsetKey})
             if paramset_keys:
                 channels.append(
                     ConfigurableChannel(
                         address=address,
-                        channel_type=description.get("TYPE", ""),
+                        channel_type=channel_type,
                         paramset_keys=paramset_keys,
                     )
                 )

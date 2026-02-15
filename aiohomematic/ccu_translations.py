@@ -52,10 +52,11 @@ class _TranslationStore:
     making them safe to call from the asyncio event loop.
     """
 
-    __slots__ = ("_data", "_loaded", "_lock")
+    __slots__ = ("_data", "_loaded", "_lock", "_value_indices")
 
     def __init__(self) -> None:
         self._data: Final[dict[str, dict[str, str]]] = {}
+        self._value_indices: Final[dict[str, dict[str, str]]] = {}
         self._loaded: bool = False
         self._lock: Final = threading.Lock()
 
@@ -64,6 +65,10 @@ class _TranslationStore:
         if not self._loaded:
             self.load()
         return self._data.get(f"{category}_{locale}", {})
+
+    def get_value_fallback(self, *, value: str, locale: str) -> str | None:
+        """Return a generic translation for a standalone value."""
+        return self._value_indices.get(f"parameter_values_{locale}", {}).get(value.lower())
 
     def load(self) -> None:
         """
@@ -94,6 +99,18 @@ class _TranslationStore:
                         except (FileNotFoundError, json.JSONDecodeError) as err:
                             _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
                     self._data[key] = merged
+            # Build value-only indices for parameter_values:
+            # Maps each enum value to its shortest (most generic) translation.
+            for locale in _SUPPORTED_LOCALES:
+                if (pv_key := f"parameter_values_{locale}") in self._data:
+                    value_index: dict[str, str] = {}
+                    for k, v in self._data[pv_key].items():
+                        if "=" not in k:
+                            continue
+                        val = k.rsplit("=", maxsplit=1)[1]
+                        if val not in value_index or len(v) < len(value_index[val]):
+                            value_index[val] = v
+                    self._value_indices[pv_key] = value_index
             self._loaded = True
 
 
@@ -176,7 +193,8 @@ def get_parameter_value_translation(
     Return human-readable translation for a parameter enum value.
 
     Try channel-specific lookup first (CHANNEL_TYPE|PARAMETER=VALUE),
-    then fall back to global lookup (PARAMETER=VALUE).
+    then fall back to global lookup (PARAMETER=VALUE),
+    then fall back to value-only lookup (shortest match for VALUE).
     """
     lang = _get_locale(locale=locale)
     translations = _store.get(category="parameter_values", locale=lang)
@@ -185,5 +203,9 @@ def get_parameter_value_translation(
     if channel_type and (label := translations.get(f"{channel_type}|{parameter}={value}".lower())) is not None:
         return label
 
-    # Fall back to global
-    return translations.get(f"{parameter}={value}".lower())
+    # Fall back to parameter-specific
+    if (label := translations.get(f"{parameter}={value}".lower())) is not None:
+        return label
+
+    # Fall back to value-only (generic, shortest translation)
+    return _store.get_value_fallback(value=value, locale=lang)

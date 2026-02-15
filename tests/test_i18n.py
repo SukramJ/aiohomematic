@@ -190,8 +190,15 @@ class TestI18nLocaleImmutability:
         i18n.set_locale(locale="en")
         assert i18n.get_locale() == "en"
 
-    def test_set_locale_locks_after_first_call(self) -> None:
-        """Test that set_locale raises RuntimeError on second call."""
+    def test_set_locale_keeps_original_on_different_locale(self) -> None:
+        """Test that set_locale keeps original locale when called with a different one."""
         i18n.set_locale(locale="de")
-        with pytest.raises(RuntimeError, match="Locale is already set"):
-            i18n.set_locale(locale="en")
+        i18n.set_locale(locale="en")
+        assert i18n.get_locale() == "de"
+
+    def test_set_locale_same_locale_is_idempotent(self) -> None:
+        """Test that set_locale with same locale is a no-op."""
+        i18n.set_locale(locale="de")
+        # Same locale: no error
+        i18n.set_locale(locale="de")
+        assert i18n.get_locale() == "de"

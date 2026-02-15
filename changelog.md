@@ -32,6 +32,15 @@
   override keys to ensure custom translations take precedence over extracted
   channel-specific translations.
 
+- **Value-only translation fallback**: `get_parameter_value_translation` now
+  has a three-tier lookup: channel-specific → parameter-specific → value-only.
+  The new value-only fallback builds an index of standalone enum values mapped
+  to their shortest (most generic) translation, so shared values like `true`,
+  `false`, or weekday names resolve even for unknown parameters.
+
+- **Weekday translations**: Added `show_weekday` value translations
+  (Monday–Sunday) to `ccu_custom/parameter_values_*.json` (EN + DE).
+
 - **Configurable channel filtering**: `get_configurable_channels` now applies
   CCU-compatible filtering rules: channels must have the VISIBLE flag set and
   must not have the INTERNAL flag. WEEK_PROGRAM channels are excluded as they

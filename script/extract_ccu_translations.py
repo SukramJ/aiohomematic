@@ -54,6 +54,13 @@ _MASTER_LANG_DIR = "config/easymodes/MASTER_LANG"
 # Stringtable mapping file (same for all locales)
 _STRINGTABLE_MAPPING_PATH = "config/stringtable_de.txt"
 
+# PNAME files with direct parameter name -> label mappings (per locale)
+_PNAME_DIR = "config/easymodes/etc/localization/{locale}"
+_PNAME_FILES = ("PNAME.txt",)
+
+# Easymode TCL directory for extracting parameter -> template var mappings
+_EASYMODE_DIR = "config/easymodes"
+
 # Supported locales
 _LOCALES = ("de", "en")
 
@@ -187,9 +194,82 @@ def clean_value(value: str) -> str:
     decoded = decoded.replace("&Ouml;", "Ö")
     decoded = decoded.replace("&Uuml;", "Ü")
     decoded = decoded.replace("&szlig;", "ß")
+    decoded = decoded.replace("&quot;", '"')
+    decoded = decoded.replace("&lt;", "<")
+    decoded = decoded.replace("&gt;", ">")
     # Normalize whitespace
     decoded = " ".join(decoded.split())
     return decoded.strip()
+
+
+# Regex to extract "KEY" : "VALUE" pairs from PNAME-style files
+# Values may contain escaped quotes (\") so we match \\ or \" as valid content
+_PNAME_ENTRY_RE = re.compile(r'"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"')
+
+# Regex to extract 'set param PARAM_NAME' from easymode TCL files
+_TCL_SET_PARAM_RE = re.compile(r"set\s+param\s+([A-Z][A-Z0-9_]*)")
+
+# Regex to extract ${stringTableXxx} or ${lblXxx} template references in TCL
+_TCL_TEMPLATE_REF_RE = re.compile(r"\$\{((?:stringTable|lbl)\w+)\}")
+
+
+def parse_pname_file(content: str) -> dict[str, str]:
+    r"""
+    Parse a PNAME.txt file with direct parameter name -> label mappings.
+
+    Format: "PARAMETER_NAME" : "<span class=\\"translated\\">Label text</span>",
+    Return cleaned parameter -> label dict.
+    """
+    result: dict[str, str] = {}
+    for match in _PNAME_ENTRY_RE.finditer(content):
+        key = match.group(1).strip()
+        value = match.group(2).strip()
+        if not key or not value or key == "at":
+            continue
+        # Unescape JS string escapes (\" -> ", \\ -> \)
+        value = value.replace('\\"', '"').replace("\\\\", "\\")
+        cleaned = clean_value(value)
+        if cleaned:
+            result[key] = cleaned
+    return result
+
+
+def parse_easymode_tcl_mappings(easymode_dir: Path) -> dict[str, str]:
+    """
+    Extract parameter -> template variable mappings from easymode TCL files.
+
+    Parse all *_master.tcl files for 'set param PARAM_NAME' followed by
+    a ${stringTableXxx} or ${lblXxx} template reference within the next
+    few lines. Return a mapping from parameter name to template variable name.
+    """
+    mappings: dict[str, str] = {}
+
+    for tcl_file in sorted(easymode_dir.rglob("*_master.tcl")):
+        try:
+            content = tcl_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            content = tcl_file.read_text(encoding="iso-8859-1")
+
+        lines = content.splitlines()
+        for i, line in enumerate(lines):
+            param_match = _TCL_SET_PARAM_RE.search(line)
+            if not param_match:
+                continue
+            param_name = param_match.group(1)
+            if param_name in mappings:
+                continue
+
+            # Search next 10 lines for the template variable reference
+            for j in range(i + 1, min(i + 11, len(lines))):
+                # Stop if we hit the next 'set param'
+                if _TCL_SET_PARAM_RE.search(lines[j]):
+                    break
+                template_match = _TCL_TEMPLATE_REF_RE.search(lines[j])
+                if template_match:
+                    mappings[param_name] = template_match.group(1)
+                    break
+
+    return mappings
 
 
 def parse_stringtable_mapping(content: str) -> dict[str, str]:
@@ -360,15 +440,45 @@ def load_master_lang_files(
     return merged
 
 
+def load_pname_files(
+    occu_path: Path,
+    locale: str,
+) -> dict[str, str]:
+    """
+    Load direct parameter name -> label mappings from PNAME files.
+
+    Parse PNAME.txt files in config/easymodes/etc/localization/{locale}/.
+    """
+    pname_dir = occu_path / "WebUI" / "www" / _PNAME_DIR.format(locale=locale)
+    merged: dict[str, str] = {}
+
+    for pname_file in _PNAME_FILES:
+        file_path = pname_dir / pname_file
+        if not file_path.is_file():
+            continue
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            content = file_path.read_text(encoding="iso-8859-1")
+
+        parsed = parse_pname_file(content)
+        if parsed:
+            merged.update(parsed)
+            print(f"  {locale}/PNAME/{pname_file}: {len(parsed)} entries")
+
+    return merged
+
+
 def load_sources_local(
     occu_path: Path,
-) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str]]:
+) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]:
     """
     Load all translation sources from a local OCCU checkout.
 
-    Return (locale_data, stringtable_mapping).
+    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings).
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
+    pname_data: dict[str, dict[str, str]] = {}
 
     for locale in _LOCALES:
         locale_data[locale] = {}
@@ -406,23 +516,35 @@ def load_sources_local(
             locale_data[locale]["_master_lang"] = master_translations
             print(f"  {locale}/MASTER_LANG: {len(master_translations)} entries")
 
+        # Load PNAME direct parameter label files
+        pname_translations = load_pname_files(occu_path, locale)
+        if pname_translations:
+            pname_data[locale] = pname_translations
+
     # Load stringtable mapping
     mapping_content = load_local_file(occu_path, _STRINGTABLE_MAPPING_PATH)
     stringtable_mapping = parse_stringtable_mapping(mapping_content)
     print(f"  stringtable mapping: {len(stringtable_mapping)} entries")
 
-    return locale_data, stringtable_mapping
+    # Parse easymode TCL files for parameter -> template variable mappings
+    easymode_dir = occu_path / "WebUI" / "www" / _EASYMODE_DIR
+    easymode_mappings = parse_easymode_tcl_mappings(easymode_dir)
+    print(f"  easymode TCL mappings: {len(easymode_mappings)} entries")
+
+    return locale_data, stringtable_mapping, pname_data, easymode_mappings
 
 
 def load_sources_remote(
     ccu_url: str,
-) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str]]:
+) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]:
     """
     Load all translation sources from a remote CCU via HTTP.
 
-    Return (locale_data, stringtable_mapping).
+    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings).
+    Easymode TCL parsing is not supported for remote sources.
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
+    pname_data: dict[str, dict[str, str]] = {}
 
     for locale in _LOCALES:
         locale_data[locale] = {}
@@ -463,6 +585,18 @@ def load_sources_remote(
             except Exception:
                 pass  # MASTER_LANG files are optional
 
+        # Load PNAME files from remote
+        for pname_file in _PNAME_FILES:
+            relative_path = f"{_PNAME_DIR.format(locale=locale)}/{pname_file}"
+            try:
+                content = fetch_remote_file(ccu_url, relative_path)
+                parsed = parse_pname_file(content)
+                if parsed:
+                    pname_data.setdefault(locale, {}).update(parsed)
+                    print(f"  {locale}/PNAME/{pname_file}: {len(parsed)} entries")
+            except Exception:
+                pass  # PNAME files are optional
+
     # Load stringtable mapping
     try:
         mapping_content = fetch_remote_file(ccu_url, _STRINGTABLE_MAPPING_PATH)
@@ -472,7 +606,7 @@ def load_sources_remote(
         print(f"  WARNING: Failed to fetch stringtable mapping: {err}", file=sys.stderr)
         stringtable_mapping = {}
 
-    return locale_data, stringtable_mapping
+    return locale_data, stringtable_mapping, pname_data, {}
 
 
 # Known MASTER_LANG JS files (for remote fetching where glob is not available)
@@ -517,6 +651,43 @@ def merge_translation_dicts(
     return merged
 
 
+def _merge_sources(
+    base: tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]],
+    overlay: tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]],
+) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]:
+    """Merge two source tuples. Overlay entries take precedence over base."""
+    b_locale, b_stmap, b_pname, b_easy = base
+    o_locale, o_stmap, o_pname, o_easy = overlay
+
+    # Merge locale_data (deep merge per locale per js_file)
+    merged_locale: dict[str, dict[str, dict[str, str]]] = {}
+    for locale in set(b_locale) | set(o_locale):
+        merged_locale[locale] = {}
+        b_ld = b_locale.get(locale, {})
+        o_ld = o_locale.get(locale, {})
+        for js_file in set(b_ld) | set(o_ld):
+            merged = dict(b_ld.get(js_file, {}))
+            merged.update(o_ld.get(js_file, {}))
+            merged_locale[locale][js_file] = merged
+
+    # Merge stringtable mapping
+    merged_stmap = dict(b_stmap)
+    merged_stmap.update(o_stmap)
+
+    # Merge PNAME data
+    merged_pname: dict[str, dict[str, str]] = {}
+    for locale in set(b_pname) | set(o_pname):
+        merged = dict(b_pname.get(locale, {}))
+        merged.update(o_pname.get(locale, {}))
+        merged_pname[locale] = merged
+
+    # Merge easymode mappings
+    merged_easy = dict(b_easy)
+    merged_easy.update(o_easy)
+
+    return merged_locale, merged_stmap, merged_pname, merged_easy
+
+
 def main() -> int:
     """Run the extraction pipeline."""
     occu_path = os.environ.get("OCCU_PATH")
@@ -535,15 +706,26 @@ def main() -> int:
     output_dir = project_root / output_dir_str
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Phase 1: Load sources
+    # Phase 1: Load sources (both can be set; results are merged)
+    sources: list[
+        tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]
+    ] = []
+
     if occu_path:
         resolved_occu = Path(occu_path).resolve()
         print(f"Loading sources from {resolved_occu} ...")
-        locale_data, stringtable_mapping = load_sources_local(resolved_occu)
+        sources.append(load_sources_local(resolved_occu))
+
+    if ccu_url:
+        print(f"\nLoading sources from {ccu_url} ...")
+        sources.append(load_sources_remote(ccu_url))
+
+    if len(sources) == 1:
+        locale_data, stringtable_mapping, pname_data, easymode_mappings = sources[0]
     else:
-        assert ccu_url is not None
-        print(f"Loading sources from {ccu_url} ...")
-        locale_data, stringtable_mapping = load_sources_remote(ccu_url)
+        # Merge: OCCU local as base, remote CCU as overlay
+        locale_data, stringtable_mapping, pname_data, easymode_mappings = _merge_sources(sources[0], sources[1])
+        print("\nMerged local and remote sources.")
 
     print()
 
@@ -567,8 +749,32 @@ def main() -> int:
         # Parameter names and values (resolved via stringtable mapping)
         all_translations = merge_translation_dicts(ld)
         parameters, parameter_values, unresolved = resolve_parameter_translations(stringtable_mapping, all_translations)
+
+        # Resolve easymode TCL mappings (param -> template var -> translation)
+        easymode_count = 0
+        existing_lower = {k.lower() for k in parameters}
+        for param_name, template_var in easymode_mappings.items():
+            if param_name.lower() in existing_lower:
+                continue
+            resolved = all_translations.get(template_var)
+            if resolved:
+                cleaned = clean_value(resolved)
+                if cleaned:
+                    parameters[param_name] = cleaned
+                    existing_lower.add(param_name.lower())
+                    easymode_count += 1
+
+        # Merge PNAME direct parameter labels (lower priority than stringtable + easymode)
+        pname_count = 0
+        if locale in pname_data:
+            for key, value in pname_data[locale].items():
+                if key.lower() not in existing_lower:
+                    parameters[key] = value
+                    existing_lower.add(key.lower())
+                    pname_count += 1
+
         count = write_json(output_dir, f"parameters_{locale}.json", parameters)
-        print(f"  parameters_{locale}.json: {count} entries")
+        print(f"  parameters_{locale}.json: {count} entries (+{easymode_count} easymode, +{pname_count} PNAME)")
         count = write_json(output_dir, f"parameter_values_{locale}.json", parameter_values)
         print(f"  parameter_values_{locale}.json: {count} entries")
 

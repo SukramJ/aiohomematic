@@ -1,8 +1,19 @@
-# Version 2026.2.13 (2026-02-14)
+# Version 2026.2.13 (2026-02-15)
 
 ## What's Changed
 
 ### Improved
+
+- **Extraction script: PNAME and easymode TCL parsing**: Added two new extraction
+  sources to `extract_ccu_translations.py`:
+
+  - `PNAME.txt` files with direct parameter name → label mappings
+  - Easymode TCL files (`*_master.tcl`) for parameter → template variable
+    resolution via `set param` / `${stringTable...}` patterns
+  - Improved HTML entity decoding (`&quot;`, `&lt;`, `&gt;`)
+  - Source merging refactored into `_merge_sources()` helper
+  - Parameters: 841 → 1029 (+188), parameter values: 1256 → 1326 (+70),
+    device models: 365 → 367 (+2)
 
 - **Extraction script fixes**: Fixed multiple bugs in `extract_ccu_translations.py`
   that caused ~215 parameter translations to be missed:
@@ -14,8 +25,6 @@
   - Added parsing of `langJSON` alias assignments after jQuery.extend blocks
   - Added handling of invalid JS escape sequences (`\'`, `\.`) for JSON compatibility
   - Added `channelDescription.js` and `deviceDescription.js` to template resolution
-  - Parameters: 793 → 858 (+65), parameter values: ~1130 → 1315 (+185),
-    unresolved: 248 → 33
 
 - **Custom translation cleanup**: Removed 17 redundant entries from
   `ccu_custom/parameters_*.json` and `ccu_custom/parameter_values_*.json` that are

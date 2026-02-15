@@ -1,3 +1,18 @@
+# Version 2026.2.14 (2026-02-15)
+
+## What's Changed
+
+### Improved
+
+- **Empty parameter translation suppresses parameter name**: When a CCU parameter
+  translation resolves to an empty string (`""`), the parameter name is now omitted
+  from `translated_name` and `translated_full_name` in `DataPointNameData`. This
+  allows translations to explicitly suppress redundant parameter names when the
+  channel name already conveys the meaning. `None` (no translation found) still
+  falls back to the original untranslated name as before.
+
+---
+
 # Version 2026.2.13 (2026-02-15)
 
 ## What's Changed

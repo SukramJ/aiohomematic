@@ -243,6 +243,21 @@ class TestDataPointNameDataPatterns:
         assert dp_empty.translated_name == ""
         assert dp_empty.translated_full_name == ""
 
+    def test_translated_name_empty_translation_suppresses_parameter(self) -> None:
+        """Test that empty parameter_translation suppresses parameter in translated names."""
+        name_data = DataPointNameData(
+            device_name="Thermostat",
+            channel_name="Heizung",
+            parameter_name="Temperature Offset",
+            parameter_translation="",
+        )
+        # Original names still include the parameter
+        assert name_data.name == "Heizung Temperature Offset"
+        assert name_data.full_name == "Thermostat Heizung Temperature Offset"
+        # Translated names suppress the parameter
+        assert name_data.translated_name == "Heizung"
+        assert name_data.translated_full_name == "Thermostat Heizung"
+
     def test_translated_name_with_channel_postfix(self) -> None:
         """Test translated_name preserves channel postfix (e.g., ch3)."""
         name_data = DataPointNameData(

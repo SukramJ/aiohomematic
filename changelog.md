@@ -1,3 +1,17 @@
+# Version 2026.2.15 (2026-02-15)
+
+## What's Changed
+
+### Fixed
+
+- **i18n: Allow multiple CentralUnit instances**: `set_locale()` is now idempotent —
+  calling it again with the same locale is a no-op. When called with a different
+  locale, it logs a message and keeps the original. Previously, creating a second
+  `CentralUnit` raised `RuntimeError` because `set_locale()` was strictly
+  one-shot.
+
+---
+
 # Version 2026.2.14 (2026-02-15)
 
 ## What's Changed

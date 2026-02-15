@@ -38,7 +38,6 @@ from aiohomematic.client import AioJsonRpcAioHttpClient
 from aiohomematic.const import (
     CATEGORIES,
     DATA_POINT_EVENTS,
-    DEFAULT_LOCALE,
     IP_ANY_V4,
     LOCAL_HOST,
     PORT_ANY,
@@ -122,10 +121,7 @@ class CentralUnit(
         """
         # -- 1. Core configuration and runtime --
         self._config: Final[CentralConfigProtocol] = central_config
-        try:
-            i18n.set_locale(locale=self._config.locale)
-        except Exception:  # pragma: no cover - keep init robust
-            i18n.set_locale(locale=DEFAULT_LOCALE)
+        i18n.set_locale(locale=self._config.locale)
         self._url: Final = self._config.create_central_url()
         self._model: str | None = None
         self._looper = Looper()

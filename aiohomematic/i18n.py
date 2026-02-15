@@ -139,14 +139,20 @@ def set_locale(*, locale: str | None = None) -> None:
     Updates the active catalog reference immediately so subsequent `tr()` calls
     reflect the new locale without requiring background preload.
 
-    May only be called once per process lifetime (locale is immutable after first set).
-    Raises RuntimeError on subsequent calls.
+    Idempotent: re-setting the same locale is a no-op. Setting a different locale
+    after the first call logs a warning and keeps the original locale.
     """
     global _state, _locale_locked  # noqa: PLW0603  # pylint: disable=global-statement
 
     if _locale_locked:
-        # i18n-exc: ignore-next
-        raise RuntimeError("Locale is already set and cannot be changed. Locale is immutable after first set_locale().")
+        if (new_locale := (locale or DEFAULT_LOCALE).strip() or DEFAULT_LOCALE) == _state.current_locale:
+            return
+        _LOGGER.info(  # i18n-log: ignore
+            "Locale is already set to '%s' and cannot be changed to '%s'. Using existing locale. Restart Home-Assistant for locale changes to take effect",
+            _state.current_locale,
+            new_locale,
+        )
+        return
 
     new_locale = (locale or DEFAULT_LOCALE).strip() or DEFAULT_LOCALE
     merged = _get_catalog(locale=new_locale)

@@ -131,9 +131,12 @@ class DataPointNameData(ChannelNameData):
 
         # Translated variants: use parameter_translation instead of parameter_name.
         # Only the parameter part is translated, channel_name stays as-is.
-        if parameter_translation:
+        # Empty string suppresses the parameter name entirely.
+        if parameter_translation is not None:
             translated_dp_name = self._get_data_point_name(
-                device_name=device_name, channel_name=channel_name, parameter_name=parameter_translation
+                device_name=device_name,
+                channel_name=channel_name,
+                parameter_name=parameter_translation or None,
             )
             self.translated_name: str = translated_dp_name
             self.translated_full_name: str = (
@@ -352,7 +355,9 @@ def get_data_point_name_data(
                 device_name=channel.device.name,
                 channel_name=c_name,
                 parameter_name=f"{p_name}{c_postfix}",
-                parameter_translation=f"{parameter_translation}{c_postfix}" if parameter_translation else None,
+                parameter_translation=f"{parameter_translation}{c_postfix}"
+                if parameter_translation
+                else parameter_translation,
             )
         else:
             data_point_name = DataPointNameData(

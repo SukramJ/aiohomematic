@@ -14,6 +14,7 @@ from datetime import datetime
 import logging
 from typing import Any, Final, Unpack, override
 
+from aiohomematic import ccu_translations
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
@@ -257,12 +258,20 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             primary_channel=self._channel_group.primary_channel,
             device_has_multiple_channels=self.is_in_multiple_channels,
         )
+        postfix = self.data_point_name_postfix
         return get_custom_data_point_name(
             channel=self._channel,
             is_only_primary_channel=is_only_primary_channel,
             ignore_multiple_channels_for_name=self._ignore_multiple_channels_for_name,
             usage=self._get_data_point_usage(),
-            postfix=self.data_point_name_postfix.replace("_", " ").title(),
+            postfix=postfix.replace("_", " ").title(),
+            postfix_translation=ccu_translations.get_parameter_translation(
+                parameter=postfix,
+                channel_type=self._channel.type_name,
+                locale=self._channel.device.config_provider.config.locale,
+            )
+            if postfix
+            else None,
         )
 
     @override

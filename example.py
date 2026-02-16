@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+from pathlib import Path
 import sys
 
 from aiohomematic import const
@@ -15,9 +17,26 @@ from aiohomematic.client import InterfaceConfig
 logging.basicConfig(level=logging.DEBUG)
 _LOGGER = logging.getLogger(__name__)
 
-CCU_HOST = "XXX"
-CCU_USERNAME = "xxx"
-CCU_PASSWORD = "xxx"
+
+def _load_dotenv(*, path: Path) -> None:
+    """Load variables from a .env file into os.environ."""
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+_load_dotenv(path=Path(__file__).parent / ".env")
+
+CCU_HOST = os.environ["CCU_HOST"]
+CCU_USERNAME = os.environ["CCU_USERNAME"]
+CCU_PASSWORD = os.environ["CCU_PASSWORD"]
 
 
 class Example:

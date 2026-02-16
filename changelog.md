@@ -1,3 +1,17 @@
+# Version 2026.2.16 (2026-02-16)
+
+## What's Changed
+
+### Improved
+
+- **Translate custom data point postfix**: When a custom data point provides a
+  `data_point_name_postfix` (e.g. `BUTTON_LOCK`), it is now translated via
+  `get_parameter_translation` — the same mechanism used for generic data points
+  and events. The translated postfix populates `translated_name` and
+  `translated_full_name` in `DataPointNameData`.
+
+---
+
 # Version 2026.2.15 (2026-02-15)
 
 ## What's Changed

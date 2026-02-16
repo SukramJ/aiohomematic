@@ -1,3 +1,24 @@
+# Version 2026.2.17 (2026-02-16)
+
+## What's Changed
+
+### Fixed
+
+- **Preserve channel postfix when translation suppresses parameter name**: When a
+  parameter translation resolves to an empty string (`""`) for a multi-channel
+  data point, the channel disambiguation postfix (e.g. `ch13`) was lost because
+  the truthiness check treated `""` the same as `None`. Changed to an identity
+  check (`is not None`) so that an empty translation correctly yields
+  `translated_name="ch13"` instead of removing the name entirely.
+
+### Changed
+
+- **example.py uses environment variables**: Hardcoded CCU credentials replaced
+  with `os.environ` lookups. A lightweight `.env` loader reads variables from the
+  project-root `.env` file at startup.
+
+---
+
 # Version 2026.2.16 (2026-02-16)
 
 ## What's Changed

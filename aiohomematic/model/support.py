@@ -355,9 +355,9 @@ def get_data_point_name_data(
                 device_name=channel.device.name,
                 channel_name=c_name,
                 parameter_name=f"{p_name}{c_postfix}",
-                parameter_translation=f"{parameter_translation}{c_postfix}"
-                if parameter_translation
-                else parameter_translation,
+                parameter_translation=f"{parameter_translation}{c_postfix}".strip()
+                if parameter_translation is not None
+                else None,
             )
         else:
             data_point_name = DataPointNameData(

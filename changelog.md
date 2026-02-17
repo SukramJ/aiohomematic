@@ -1,3 +1,23 @@
+# Version 2026.2.18 (2026-02-17)
+
+## What's Changed
+
+### Fixed
+
+- **Fix delayed device creation failing on multi-interface devices**: When
+  a new HmIP device was paired, the CCU sends `newDevices` on multiple interfaces
+  (e.g. HmIP-RF and VirtualDevices) with the same device address.
+  `_delayed_device_descriptions` was keyed by device address only, causing the
+  first `add_new_devices_manually` call to consume descriptions from all
+  interfaces, while the second call found nothing and failed with
+  `No device description found`. Fixed by making `_delayed_device_descriptions`
+  interface-aware (keyed by `{interface_id: {address: [descriptions]}}`).
+  Also fixed: `DEVICES_DELAYED` event now only reports addresses for the current
+  interface, and missing addresses in a batch no longer abort the entire operation
+  (`continue` instead of `return`).
+
+---
+
 # Version 2026.2.17 (2026-02-16)
 
 ## What's Changed

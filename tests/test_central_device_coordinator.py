@@ -730,6 +730,60 @@ class TestDeviceCoordinatorDeviceCreation:
     """Test device creation operations."""
 
     @pytest.mark.asyncio
+    async def test_add_new_device_manually_multi_interface_isolation(self) -> None:
+        """Delayed descriptions from different interfaces must not interfere with each other."""
+        central = _FakeCentral()
+
+        client_rf = _FakeClient(interface_id="HmIP-RF")
+        client_vd = _FakeClient(interface_id="VirtualDevices")
+        central.client_coordinator.add_client(client=client_rf)
+        central.client_coordinator.add_client(client=client_vd)
+
+        with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
+            coordinator = DeviceCoordinator(
+                central_info=central,
+                client_provider=central,
+                config_provider=central,
+                coordinator_provider=central,
+                data_cache_provider=central.cache_coordinator.data_cache,
+                data_point_provider=central,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
+                event_bus_provider=central,
+                event_publisher=central,
+                event_subscription_manager=central,
+                file_operations=central,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
+                task_scheduler=central.looper,
+            )  # type: ignore[arg-type]
+
+            # Same device address on two interfaces (HmIP-RF + VirtualDevices)
+            coordinator._delayed_device_descriptions["HmIP-RF"]["VCU0000001"] = [
+                {"ADDRESS": "VCU0000001", "PARENT": "", "TYPE": "HmIP-FSM", "CHILDREN": ["VCU0000001:1"]}
+            ]
+            coordinator._delayed_device_descriptions["VirtualDevices"]["VCU0000001"] = [
+                {"ADDRESS": "VCU0000001:18", "PARENT": "VCU0000001", "TYPE": "HEATING_GROUP_CHANNEL"}
+            ]
+
+            # Confirm device on HmIP-RF
+            await coordinator.add_new_devices_manually(
+                interface_id="HmIP-RF",
+                address_names={"VCU0000001": None},
+            )
+            assert mock_add.call_count == 1
+
+            # VirtualDevices descriptions must still be intact
+            assert "VCU0000001" in coordinator._delayed_device_descriptions["VirtualDevices"]
+
+            # Confirm device on VirtualDevices
+            await coordinator.add_new_devices_manually(
+                interface_id="VirtualDevices",
+                address_names={"VCU0000001": None},
+            )
+            assert mock_add.call_count == 2
+
+    @pytest.mark.asyncio
     async def test_add_new_device_manually_no_client(self) -> None:
         """Add new device manually should fail gracefully when client doesn't exist."""
         central = _FakeCentral()
@@ -798,6 +852,46 @@ class TestDeviceCoordinatorDeviceCreation:
             mock_add.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_add_new_device_manually_partial_batch_continues(self) -> None:
+        """Missing description for one address should not abort the entire batch."""
+        central = _FakeCentral()
+
+        client = _FakeClient(interface_id="BidCos-RF")
+        central.client_coordinator.add_client(client=client)
+
+        with patch.object(DeviceCoordinator, "_add_new_devices", new=AsyncMock()) as mock_add:
+            coordinator = DeviceCoordinator(
+                central_info=central,
+                client_provider=central,
+                config_provider=central,
+                coordinator_provider=central,
+                data_cache_provider=central.cache_coordinator.data_cache,
+                data_point_provider=central,
+                device_description_provider=central.cache_coordinator.device_descriptions,
+                device_details_provider=central.cache_coordinator.device_details,
+                event_bus_provider=central,
+                event_publisher=central,
+                event_subscription_manager=central,
+                file_operations=central,
+                parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+                paramset_description_provider=central.cache_coordinator.paramset_descriptions,
+                task_scheduler=central.looper,
+            )  # type: ignore[arg-type]
+
+            # Only one of two addresses has descriptions
+            coordinator._delayed_device_descriptions["BidCos-RF"]["VCU0000001"] = [
+                {"ADDRESS": "VCU0000001", "PARENT": "", "TYPE": "HM-Test", "CHILDREN": ["VCU0000001:1"]}
+            ]
+
+            await coordinator.add_new_devices_manually(
+                interface_id="BidCos-RF",
+                address_names={"VCU9999999": None, "VCU0000001": None},
+            )
+
+            # Should still process VCU0000001 despite VCU9999999 missing
+            mock_add.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_add_new_device_manually_success(self) -> None:
         """Add new device manually should use delayed descriptions and create device."""
         central = _FakeCentral()
@@ -826,7 +920,7 @@ class TestDeviceCoordinatorDeviceCreation:
             )  # type: ignore[arg-type]
 
             # Pre-populate delayed device descriptions (simulates delayed device creation)
-            coordinator._delayed_device_descriptions["VCU0000001"] = [
+            coordinator._delayed_device_descriptions["BidCos-RF"]["VCU0000001"] = [
                 {"ADDRESS": "VCU0000001", "PARENT": "", "TYPE": "HM-Test", "CHILDREN": ["VCU0000001:1"]}
             ]
 

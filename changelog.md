@@ -2,6 +2,14 @@
 
 ## What's Changed
 
+### Improved
+
+- **Add translations for LINK paramset parameters**: LINK paramset parameters
+  use `SHORT_`/`LONG_` prefixes (e.g. `SHORT_ON_LEVEL`, `LONG_RAMPON_TIME`).
+  The translation lookup now strips these prefixes as fallback, matching the
+  CCU WebUI behavior. This resolves 321 previously untranslated parameters
+  for device-to-device link configurations (dimmers, blinds, sirens, etc.).
+
 ### Fixed
 
 - **Fix delayed device creation failing on multi-interface devices**: When

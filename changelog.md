@@ -7,8 +7,11 @@
 - **Add translations for LINK paramset parameters**: LINK paramset parameters
   use `SHORT_`/`LONG_` prefixes (e.g. `SHORT_ON_LEVEL`, `LONG_RAMPON_TIME`).
   The translation lookup now strips these prefixes as fallback, matching the
-  CCU WebUI behavior. This resolves 321 previously untranslated parameters
-  for device-to-device link configurations (dimmers, blinds, sirens, etc.).
+  CCU WebUI behavior, and prepends the press-type label (e.g. "Tastendruck kurz"
+  / "Button press short"). Added 138 custom parameter name translations and
+  1,150 custom enum value translations covering all LINK paramset parameters
+  (time bases, time modes, action types, profile actions, condition types,
+  jump targets, driving modes, control modes, and more).
 
 ### Fixed
 

@@ -171,21 +171,21 @@ class TestGetParameterTranslation:
 
 
 class TestGetParameterTranslationLinkPrefix:
-    """Test LINK paramset prefix stripping and label prepending."""
+    """Test LINK paramset prefix stripping and suffix appending."""
 
     @pytest.mark.parametrize(
         ("parameter", "locale", "expected"),
         [
-            ("SHORT_RAMPON_TIME", "de", "Tastendruck kurz Rampenzeit beim Einschalten"),
-            ("LONG_RAMPON_TIME", "de", "Tastendruck lang Rampenzeit beim Einschalten"),
-            ("SHORT_RAMPOFF_TIME", "de", "Tastendruck kurz Rampenzeit beim Ausschalten"),
-            ("LONG_RAMPOFF_TIME", "de", "Tastendruck lang Rampenzeit beim Ausschalten"),
-            ("SHORT_ON_TIME", "de", "Tastendruck kurz Einschaltdauer"),
-            ("SHORT_ON_MIN_LEVEL", "de", 'Tastendruck kurz Minimaler Pegel im Zustand "ein"'),
-            ("SHORT_DIM_MAX_LEVEL", "de", "Tastendruck kurz Pegelbegrenzung beim Hochdimmen"),
-            ("SHORT_DIM_MIN_LEVEL", "de", "Tastendruck kurz Pegelbegrenzung beim Herunterdimmen"),
-            ("SHORT_DIM_STEP", "de", "Tastendruck kurz Schrittweite"),
-            ("SHORT_OFFDELAY_TIME", "de", "Tastendruck kurz Ausschaltverzögerung"),
+            ("SHORT_RAMPON_TIME", "de", "Rampenzeit beim Einschalten (kurz)"),
+            ("LONG_RAMPON_TIME", "de", "Rampenzeit beim Einschalten (lang)"),
+            ("SHORT_RAMPOFF_TIME", "de", "Rampenzeit beim Ausschalten (kurz)"),
+            ("LONG_RAMPOFF_TIME", "de", "Rampenzeit beim Ausschalten (lang)"),
+            ("SHORT_ON_TIME", "de", "Einschaltdauer (kurz)"),
+            ("SHORT_ON_MIN_LEVEL", "de", 'Minimaler Pegel im Zustand "ein" (kurz)'),
+            ("SHORT_DIM_MAX_LEVEL", "de", "Pegelbegrenzung beim Hochdimmen (kurz)"),
+            ("SHORT_DIM_MIN_LEVEL", "de", "Pegelbegrenzung beim Herunterdimmen (kurz)"),
+            ("SHORT_DIM_STEP", "de", "Schrittweite (kurz)"),
+            ("SHORT_OFFDELAY_TIME", "de", "Ausschaltverzögerung (kurz)"),
         ],
     )
     def test_dimmer_link_params_de(self, *, parameter: str, locale: str, expected: str) -> None:
@@ -194,75 +194,75 @@ class TestGetParameterTranslationLinkPrefix:
         assert result == expected
 
     @pytest.mark.parametrize(
-        ("parameter", "locale", "expected_prefix"),
+        ("parameter", "locale", "expected_suffix"),
         [
-            ("SHORT_ON_LEVEL", "en", "Button press short"),
-            ("LONG_ON_LEVEL", "en", "Button press long"),
-            ("SHORT_DIM_STEP", "en", "Button press short"),
-            ("LONG_DIM_MAX_LEVEL", "en", "Button press long"),
+            ("SHORT_ON_LEVEL", "en", "(short)"),
+            ("LONG_ON_LEVEL", "en", "(long)"),
+            ("SHORT_DIM_STEP", "en", "(short)"),
+            ("LONG_DIM_MAX_LEVEL", "en", "(long)"),
         ],
     )
-    def test_link_params_en_prefix(
+    def test_link_params_en_suffix(
         self,
         *,
         parameter: str,
         locale: str,
-        expected_prefix: str,
+        expected_suffix: str,
     ) -> None:
-        """Test English translations have correct press-type prefix."""
+        """Test English translations have correct press-type suffix."""
         result = get_parameter_translation(parameter=parameter, locale=locale)
         assert result is not None
-        assert result.startswith(expected_prefix)
-
-    def test_long_prefix_fallback_de(self) -> None:
-        """Test LONG_ prefix is stripped and label prepended (German)."""
-        result = get_parameter_translation(parameter="LONG_ON_LEVEL", locale="de")
-        assert result is not None
-        assert result.startswith("Tastendruck lang ")
-        assert result == 'Tastendruck lang Pegel im Zustand "ein"'
-
-    def test_long_prefix_fallback_en(self) -> None:
-        """Test LONG_ prefix is stripped and label prepended (English)."""
-        result = get_parameter_translation(parameter="LONG_ON_LEVEL", locale="en")
-        assert result is not None
-        assert result.startswith("Button press long ")
+        assert result.endswith(expected_suffix)
 
     def test_long_prefix_unknown_base_returns_none(self) -> None:
         """Test that LONG_ with unknown base still returns None."""
         result = get_parameter_translation(parameter="LONG_NONEXISTENT_XYZ")
         assert result is None
 
-    def test_short_and_long_differ_only_by_prefix(self) -> None:
-        """Test that SHORT_ and LONG_ translations differ only in prefix label."""
+    def test_long_suffix_fallback_de(self) -> None:
+        """Test LONG_ prefix is stripped and suffix appended (German)."""
+        result = get_parameter_translation(parameter="LONG_ON_LEVEL", locale="de")
+        assert result is not None
+        assert result.endswith("(lang)")
+        assert result == 'Pegel im Zustand "ein" (lang)'
+
+    def test_long_suffix_fallback_en(self) -> None:
+        """Test LONG_ prefix is stripped and suffix appended (English)."""
+        result = get_parameter_translation(parameter="LONG_ON_LEVEL", locale="en")
+        assert result is not None
+        assert result.endswith("(long)")
+
+    def test_short_and_long_differ_only_by_suffix(self) -> None:
+        """Test that SHORT_ and LONG_ translations differ only in suffix label."""
         short = get_parameter_translation(parameter="SHORT_ON_LEVEL", locale="de")
         long = get_parameter_translation(parameter="LONG_ON_LEVEL", locale="de")
         assert short is not None
         assert long is not None
         assert short != long
-        # Only the prefix label differs
-        assert short.replace("Tastendruck kurz", "Tastendruck lang") == long
-
-    def test_short_prefix_fallback_de(self) -> None:
-        """Test SHORT_ prefix is stripped and label prepended (German)."""
-        result = get_parameter_translation(parameter="SHORT_ON_LEVEL", locale="de")
-        assert result is not None
-        assert result.startswith("Tastendruck kurz ")
-        assert result == 'Tastendruck kurz Pegel im Zustand "ein"'
-
-    def test_short_prefix_fallback_en(self) -> None:
-        """Test SHORT_ prefix is stripped and label prepended (English)."""
-        result = get_parameter_translation(parameter="SHORT_ON_LEVEL", locale="en")
-        assert result is not None
-        assert result.startswith("Button press short ")
-        # Base translation should be present
-        base = get_parameter_translation(parameter="ON_LEVEL", locale="en")
-        assert base is not None
-        assert result == f"Button press short {base}"
+        # Only the suffix label differs
+        assert short.replace("(kurz)", "(lang)") == long
 
     def test_short_prefix_unknown_base_returns_none(self) -> None:
         """Test that SHORT_ with unknown base still returns None."""
         result = get_parameter_translation(parameter="SHORT_NONEXISTENT_XYZ")
         assert result is None
+
+    def test_short_suffix_fallback_de(self) -> None:
+        """Test SHORT_ prefix is stripped and suffix appended (German)."""
+        result = get_parameter_translation(parameter="SHORT_ON_LEVEL", locale="de")
+        assert result is not None
+        assert result.endswith("(kurz)")
+        assert result == 'Pegel im Zustand "ein" (kurz)'
+
+    def test_short_suffix_fallback_en(self) -> None:
+        """Test SHORT_ prefix is stripped and suffix appended (English)."""
+        result = get_parameter_translation(parameter="SHORT_ON_LEVEL", locale="en")
+        assert result is not None
+        assert result.endswith("(short)")
+        # Base translation should be present
+        base = get_parameter_translation(parameter="ON_LEVEL", locale="en")
+        assert base is not None
+        assert result == f"{base} (short)"
 
 
 class TestGetParameterValueTranslation:
@@ -326,6 +326,87 @@ class TestGetParameterValueTranslation:
         # May or may not exist as a value-only fallback depending on data
         # Just verify it doesn't raise
         assert result is None or isinstance(result, str)
+
+
+class TestGetParameterValueTranslationLinkEnums:
+    """Test LINK paramset enum value translations."""
+
+    def test_enum_values_both_locales(self) -> None:
+        """Test that enum values exist in both DE and EN."""
+        en = get_parameter_value_translation(
+            parameter="ACTION_TYPE",
+            value="JUMP_TO_TARGET",
+            locale="en",
+        )
+        de = get_parameter_value_translation(
+            parameter="ACTION_TYPE",
+            value="JUMP_TO_TARGET",
+            locale="de",
+        )
+        assert en is not None
+        assert de is not None
+        assert en != de
+
+    @pytest.mark.parametrize(
+        ("parameter", "value", "locale", "expected"),
+        [
+            ("ON_TIME_BASE", "BASE_100_MS", "en", "100 ms"),
+            ("ON_TIME_BASE", "BASE_1_H", "de", "1 Stunde"),
+            ("OFF_TIME_MODE", "TIME_IS_ABSOLUTE", "en", "Absolute"),
+            ("OFF_TIME_MODE", "TIME_IS_MINIMAL", "de", "Minimal"),
+            ("ACTION_TYPE", "JUMP_TO_TARGET", "en", "Jump to target"),
+            ("ACTION_TYPE", "TOGGLEDIM", "de", "Umschaltdimmen"),
+            ("PROFILE_ACTION_TYPE", "PROFILE_ACTION_TYPE_JUMP", "en", "Jump"),
+            ("PROFILE_ACTION_TYPE", "PROFILE_ACTION_TYPE_TOGGLE", "de", "Umschalten"),
+            ("JT_OFF", "NO_JUMP_IGNORE_COMMAND", "en", "No jump (ignore command)"),
+            ("JT_ON", "RAMPOFF", "de", "Rampe aus"),
+            ("CT_ON", "VALUE_GE_LO", "en", "\u2265 Low threshold"),
+            ("CT_OFF", "VALUE_L_HI", "de", "< Oberer Schwellwert"),
+            ("DRIVING_MODE", "DRIVE_DIRECTLY", "en", "Drive directly"),
+            ("FLOOR_HEATING_MODE", "RADIATOR", "de", "Heizkörper"),
+        ],
+    )
+    def test_link_enum_values(
+        self,
+        *,
+        parameter: str,
+        value: str,
+        locale: str,
+        expected: str,
+    ) -> None:
+        """Test translations for LINK paramset enum values."""
+        result = get_parameter_value_translation(parameter=parameter, value=value, locale=locale)
+        assert result == expected
+
+    def test_long_prefix_strips_for_enum_value(self) -> None:
+        """Test that LONG_ prefix is stripped when looking up enum values."""
+        direct = get_parameter_value_translation(
+            parameter="JT_OFF",
+            value="NO_JUMP_IGNORE_COMMAND",
+            locale="de",
+        )
+        long = get_parameter_value_translation(
+            parameter="LONG_JT_OFF",
+            value="NO_JUMP_IGNORE_COMMAND",
+            locale="de",
+        )
+        assert direct is not None
+        assert long == direct
+
+    def test_short_prefix_strips_for_enum_value(self) -> None:
+        """Test that SHORT_ prefix is stripped when looking up enum values."""
+        direct = get_parameter_value_translation(
+            parameter="ON_TIME_BASE",
+            value="BASE_100_MS",
+            locale="en",
+        )
+        short = get_parameter_value_translation(
+            parameter="SHORT_ON_TIME_BASE",
+            value="BASE_100_MS",
+            locale="en",
+        )
+        assert direct is not None
+        assert short == direct
 
 
 class TestTranslationStoreLoading:

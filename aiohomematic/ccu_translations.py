@@ -44,10 +44,10 @@ _SUBDIRS: Final = ("ccu_extract", "ccu_custom")
 
 # Prefixes used in LINK paramset parameter names (e.g. SHORT_ON_LEVEL, LONG_RAMPON_TIME).
 # The CCU WebUI strips these when looking up translations; we do the same as fallback
-# and prepend the human-readable press type to the resolved base translation.
+# and append a parenthesized suffix to the resolved base translation.
 _LINK_PREFIX_LABELS: Final[dict[str, dict[str, str]]] = {
-    "short_": {"de": "Tastendruck kurz", "en": "Button press short"},
-    "long_": {"de": "Tastendruck lang", "en": "Button press long"},
+    "short_": {"de": "kurz", "en": "short"},
+    "long_": {"de": "lang", "en": "long"},
 }
 
 
@@ -188,7 +188,7 @@ def get_parameter_translation(
     Try channel-specific lookup first (CHANNEL_TYPE|PARAMETER),
     then fall back to global parameter lookup, then strip
     SHORT_/LONG_ prefixes (used by LINK paramsets) and retry
-    with the press-type label prepended.
+    with a parenthesized suffix appended.
     """
     lang = _get_locale(locale=locale)
     translations = _store.get(category="parameters", locale=lang)
@@ -211,7 +211,7 @@ def get_parameter_translation(
         else:
             base_label = translations.get(base)
         if base_label is not None:
-            return f"{_LINK_PREFIX_LABELS[prefix][lang]} {base_label}"
+            return f"{base_label} ({_LINK_PREFIX_LABELS[prefix][lang]})"
 
     return None
 

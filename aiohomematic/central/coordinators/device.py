@@ -168,7 +168,9 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         self._parameter_visibility_provider: Final = parameter_visibility_provider
         self._paramset_description_provider: Final = paramset_description_provider
         self._task_scheduler: Final = task_scheduler
-        self._delayed_device_descriptions: Final[dict[str, list[DeviceDescription]]] = defaultdict(list)
+        self._delayed_device_descriptions: Final[dict[str, dict[str, list[DeviceDescription]]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
         self._device_add_semaphore: Final = asyncio.Semaphore()
 
     device_registry: Final = DelegatedProperty["DeviceRegistry"](path="_coordinator_provider.device_registry")
@@ -215,15 +217,16 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             return
 
         client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+        interface_delayed = self._delayed_device_descriptions.get(interface_id, {})
         device_descriptions: list[DeviceDescription] = []
         for address, device_name in address_names.items():
-            if not (dds := self._delayed_device_descriptions.pop(address, None)):
-                _LOGGER.error(  # i18n-log: ignore
-                    "ADD_NEW_DEVICES_MANUALLY failed: No device description found for address %s on interface_id %s",
+            if not (dds := interface_delayed.pop(address, None)):
+                _LOGGER.warning(  # i18n-log: ignore
+                    "ADD_NEW_DEVICES_MANUALLY: No device description found for address %s on interface_id %s, skipping",
                     address,
                     interface_id,
                 )
-                return
+                continue
             device_descriptions.extend(dds)
 
             await client.accept_device_in_inbox(device_address=address)
@@ -234,6 +237,13 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                     device_descriptions=tuple(dds),
                     device_name=device_name,
                 )
+
+        # Clean up empty interface entry
+        if interface_id in self._delayed_device_descriptions and not self._delayed_device_descriptions[interface_id]:
+            del self._delayed_device_descriptions[interface_id]
+
+        if not device_descriptions:
+            return
 
         await self._add_new_devices(
             interface_id=interface_id,
@@ -1018,10 +1028,12 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
 
             # Here we block the automatic creation of new devices, if required
             if self._config_provider.config.delay_new_device_creation and source == SourceOfDeviceCreation.NEW:
-                self._store_delayed_device_descriptions(device_descriptions=new_device_descriptions)
+                self._store_delayed_device_descriptions(
+                    interface_id=interface_id, device_descriptions=new_device_descriptions
+                )
                 self._coordinator_provider.event_coordinator.publish_system_event(
                     system_event=SystemEventType.DEVICES_DELAYED,
-                    new_addresses=tuple(self._delayed_device_descriptions.keys()),
+                    new_addresses=tuple(self._delayed_device_descriptions.get(interface_id, {}).keys()),
                     interface_id=interface_id,
                     source=source,
                 )
@@ -1403,11 +1415,13 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             name=f"paramset_consistency_check_{interface_id}",
         )
 
-    def _store_delayed_device_descriptions(self, *, device_descriptions: tuple[DeviceDescription, ...]) -> None:
-        """Store device descriptions for delayed creation."""
+    def _store_delayed_device_descriptions(
+        self, *, interface_id: str, device_descriptions: tuple[DeviceDescription, ...]
+    ) -> None:
+        """Store device descriptions for delayed creation, scoped by interface."""
         for dev_desc in device_descriptions:
             device_address = dev_desc.get("PARENT") or dev_desc["ADDRESS"]
-            self._delayed_device_descriptions[device_address].append(dev_desc)
+            self._delayed_device_descriptions[interface_id][device_address].append(dev_desc)
 
 
 def _get_new_event_groups(*, new_devices: set[DeviceProtocol]) -> tuple[ChannelEventGroupProtocol, ...]:

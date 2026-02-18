@@ -42,6 +42,14 @@ _DEFAULT_LOCALE: Final = "en"
 _CATEGORIES: Final = ("channel_types", "device_models", "parameters", "parameter_values")
 _SUBDIRS: Final = ("ccu_extract", "ccu_custom")
 
+# Prefixes used in LINK paramset parameter names (e.g. SHORT_ON_LEVEL, LONG_RAMPON_TIME).
+# The CCU WebUI strips these when looking up translations; we do the same as fallback
+# and append a parenthesized suffix to the resolved base translation.
+_LINK_PREFIX_LABELS: Final[dict[str, dict[str, str]]] = {
+    "short_": {"de": "kurz", "en": "short"},
+    "long_": {"de": "lang", "en": "long"},
+}
+
 
 class _TranslationStore:
     """
@@ -159,6 +167,15 @@ def get_device_model_description(
     return None
 
 
+def _match_link_prefix(*, parameter: str) -> tuple[str, str] | None:
+    """Match a LINK paramset prefix and return (prefix, base_name) or None."""
+    lower = parameter.lower()
+    for prefix in _LINK_PREFIX_LABELS:
+        if lower.startswith(prefix):
+            return prefix, lower[len(prefix) :]
+    return None
+
+
 def get_parameter_translation(
     *,
     parameter: str,
@@ -169,17 +186,34 @@ def get_parameter_translation(
     Return human-readable translation for a parameter.
 
     Try channel-specific lookup first (CHANNEL_TYPE|PARAMETER),
-    then fall back to global parameter lookup.
+    then fall back to global parameter lookup, then strip
+    SHORT_/LONG_ prefixes (used by LINK paramsets) and retry
+    with a parenthesized suffix appended.
     """
     lang = _get_locale(locale=locale)
     translations = _store.get(category="parameters", locale=lang)
+    param_lower = parameter.lower()
 
     # Try channel-specific first
-    if channel_type and (label := translations.get(f"{channel_type}|{parameter}".lower())) is not None:
+    if channel_type and (label := translations.get(f"{channel_type}|{param_lower}")) is not None:
         return label
 
     # Fall back to global
-    return translations.get(parameter.lower())
+    if (label := translations.get(param_lower)) is not None:
+        return label
+
+    # Strip SHORT_/LONG_ prefix (LINK paramset parameters) and retry
+    if (match := _match_link_prefix(parameter=param_lower)) is not None:
+        prefix, base = match
+        base_label: str | None = None
+        if channel_type and (label := translations.get(f"{channel_type}|{base}")) is not None:
+            base_label = label
+        else:
+            base_label = translations.get(base)
+        if base_label is not None:
+            return f"{base_label} ({_LINK_PREFIX_LABELS[prefix][lang]})"
+
+    return None
 
 
 def get_parameter_value_translation(
@@ -193,19 +227,30 @@ def get_parameter_value_translation(
     Return human-readable translation for a parameter enum value.
 
     Try channel-specific lookup first (CHANNEL_TYPE|PARAMETER=VALUE),
-    then fall back to global lookup (PARAMETER=VALUE),
-    then fall back to value-only lookup (shortest match for VALUE).
+    then fall back to global lookup (PARAMETER=VALUE), then strip
+    SHORT_/LONG_ prefixes and retry, then fall back to value-only
+    lookup (shortest match for VALUE).
     """
     lang = _get_locale(locale=locale)
     translations = _store.get(category="parameter_values", locale=lang)
+    param_lower = parameter.lower()
+    value_lower = value.lower()
 
     # Try channel-specific first
-    if channel_type and (label := translations.get(f"{channel_type}|{parameter}={value}".lower())) is not None:
+    if channel_type and (label := translations.get(f"{channel_type}|{param_lower}={value_lower}")) is not None:
         return label
 
     # Fall back to parameter-specific
-    if (label := translations.get(f"{parameter}={value}".lower())) is not None:
+    if (label := translations.get(f"{param_lower}={value_lower}")) is not None:
         return label
+
+    # Strip SHORT_/LONG_ prefix (LINK paramset parameters) and retry
+    if (match := _match_link_prefix(parameter=param_lower)) is not None:
+        _prefix, base = match
+        if channel_type and (label := translations.get(f"{channel_type}|{base}={value_lower}")) is not None:
+            return label
+        if (label := translations.get(f"{base}={value_lower}")) is not None:
+            return label
 
     # Fall back to value-only (generic, shortest translation)
     return _store.get_value_fallback(value=value, locale=lang)

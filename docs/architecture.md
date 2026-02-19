@@ -17,9 +17,11 @@ graph TB
 
         subgraph Coordinators["Coordinators"]
             CC[ClientCoordinator]
+            CfgC[ConfigurationCoordinator]
             DC[DeviceCoordinator]
             EC[EventCoordinator]
             HC[HubCoordinator]
+            LC[LinkCoordinator]
         end
 
         subgraph Model["Model Layer"]
@@ -144,6 +146,8 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 - **SystemInfoProvider**: System information access
 - **HubDataFetcher**: Hub data fetching operations
 - **HubDataPointManager**: Hub data point management (programs and sysvars)
+- **ConfigurationFacadeProtocol**: Device configuration operations (get/put paramset, configurable devices, paramset copy)
+- **LinkFacadeProtocol**: Device link management operations (add_link, remove_link, get_device_links, get_linkable_channels)
 
 **Client Protocols** (`interfaces/client.py`):
 
@@ -167,7 +171,7 @@ Key protocol interfaces defined in `aiohomematic/interfaces/`:
 
   - `ChannelIdentityProtocol`: Basic identification (address, name, no, type_name, unique_id)
   - `ChannelDataPointAccessProtocol`: DataPoint and event access methods
-  - `ChannelGroupingProtocol`: Channel group management (group_master, link_peer_channels)
+  - `ChannelGroupingProtocol`: Channel group and link management (group_master, link_peer_channels, link_peer_source_categories, link_peer_target_categories)
   - `ChannelMetadataProtocol`: Additional metadata (device, function, room, paramset_descriptions)
   - `ChannelLinkManagementProtocol`: Central link operations
   - `ChannelLifecycleProtocol`: Lifecycle methods (finalize_init, on_config_changed, remove)
@@ -212,6 +216,7 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
   - All coordinators use full dependency injection with protocol interfaces.
   - Infrastructure coordinators (CacheCoordinator, DeviceCoordinator, DeviceRegistry, EventCoordinator) receive only protocol interfaces.
   - Factory coordinators (ClientCoordinator, HubCoordinator) use ClientFactoryProtocol and other protocol interfaces for all operations including object creation.
+  - Facade coordinators (ConfigurationCoordinator, LinkCoordinator) provide high-level operations for device configuration and link management, delegating to clients and the device registry via protocol interfaces.
 - Caches
   - Persistent caches are loaded/saved by Central during startup/shutdown and used by Clients to avoid redundant metadata fetches.
   - Dynamic caches are updated by Clients and Central when values change, and consulted to answer quick queries or de-duplicate work.

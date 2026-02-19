@@ -29,4 +29,4 @@ await central.stop()
 options:
 show_root_heading: true
 show_source: false
-members: - start - stop - restart_clients - devices - get_device_by_address - get_device_by_name - get_data_point - get_client - hub - event_bus - central_state - connection_state - is_connected - set_value - put_paramset - get_value - get_paramset
+members: - start - stop - restart_clients - devices - get_device_by_address - get_device_by_name - get_data_point - get_client - hub - configuration - link - event_bus - central_state - connection_state - is_connected - set_value - put_paramset - get_value - get_paramset

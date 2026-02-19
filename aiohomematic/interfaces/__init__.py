@@ -189,6 +189,7 @@ from aiohomematic.interfaces.central import (
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
     HubFetchOperationsProtocol,
+    LinkFacadeProtocol,
     MetricsProviderProtocol,
     SystemInfoProviderProtocol,
 )
@@ -283,6 +284,7 @@ __all__ = [
     "CentralInfoProtocol",
     "ConfigProviderProtocol",
     "ConfigurationFacadeProtocol",
+    "LinkFacadeProtocol",
     "SystemInfoProviderProtocol",
     # Client composite
     "ClientProtocol",

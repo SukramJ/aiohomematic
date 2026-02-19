@@ -1320,6 +1320,16 @@ class ChannelGroupingProtocol(Protocol):
     def link_peer_channels(self) -> tuple[ChannelProtocol, ...]:
         """Return the link peer channels."""
 
+    @property
+    @abstractmethod
+    def link_peer_source_categories(self) -> tuple[str, ...]:
+        """Return the link peer source categories."""
+
+    @property
+    @abstractmethod
+    def link_peer_target_categories(self) -> tuple[str, ...]:
+        """Return the link peer target categories."""
+
 
 @runtime_checkable
 class ChannelMetadataProtocol(Protocol):

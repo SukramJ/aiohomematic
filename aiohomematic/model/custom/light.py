@@ -280,6 +280,11 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         """Return True if light currently has hs color."""
         return self.hs_color is not None
 
+    @property
+    def last_level(self) -> float | None:
+        """Return the last non-default level value."""
+        return self._dp_level.last_non_default_value
+
     @state_property
     def brightness(self) -> int | None:
         """Return the brightness of this light between min/max brightness."""
@@ -334,6 +339,10 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         if (effect := kwargs.get(_StateChangeArg.EFFECT)) is not None and effect != self.effect:
             return True
         return super().is_state_change(**kwargs)
+
+    def set_last_level(self, *, value: float | None) -> None:
+        """Set the last non-default level value."""
+        self._dp_level.set_last_non_default_value(value=value)
 
     @bind_collector
     async def turn_off(

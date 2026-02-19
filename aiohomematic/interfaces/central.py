@@ -46,6 +46,7 @@ if TYPE_CHECKING:
         SystemEventArgs,
     )
     from aiohomematic.central.coordinators.configuration import ConfigurableChannel, PutParamsetResult
+    from aiohomematic.central.coordinators.link import DeviceLink, LinkableChannel
     from aiohomematic.central.events import EventBus
     from aiohomematic.client import InterfaceConfig
     from aiohomematic.interfaces import (
@@ -1120,6 +1121,58 @@ class ConfigurationFacadeProtocol(Protocol):
         validate: bool = True,
     ) -> PutParamsetResult:
         """Write paramset values to the backend with optional validation."""
+
+
+@runtime_checkable
+class LinkFacadeProtocol(Protocol):
+    """
+    Protocol for the device link management facade.
+
+    Provides high-level access to device link listing, linkable channel discovery,
+    and link creation/removal without exposing internal coordinator structure.
+
+    Implemented by LinkCoordinator.
+    """
+
+    @abstractmethod
+    async def add_link(
+        self,
+        *,
+        sender_channel_address: str,
+        receiver_channel_address: str,
+        name: str = "",
+        description: str = "created by HA",
+    ) -> bool:
+        """Create a direct link between two channels."""
+
+    @abstractmethod
+    async def get_device_links(
+        self,
+        *,
+        device_address: str,
+        locale: str = "en",
+    ) -> tuple[DeviceLink, ...]:
+        """Return all enriched direct links for a device."""
+
+    @abstractmethod
+    def get_linkable_channels(
+        self,
+        *,
+        interface_id: str,
+        source_channel_address: str,
+        role: str,
+        locale: str = "en",
+    ) -> tuple[LinkableChannel, ...]:
+        """Return channels compatible for linking with the given channel."""
+
+    @abstractmethod
+    async def remove_link(
+        self,
+        *,
+        sender_channel_address: str,
+        receiver_channel_address: str,
+    ) -> bool:
+        """Remove a direct link between two channels."""
 
 
 # =============================================================================

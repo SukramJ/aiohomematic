@@ -1,3 +1,27 @@
+# Version 2026.2.20 (2026-02-19)
+
+## What's Changed
+
+### Added
+
+- **LinkCoordinator for device direct link management**: Add `LinkCoordinator`
+  as a high-level facade for listing, creating, and removing direct links
+  between device channels. Includes `DeviceLink` and `LinkableChannel`
+  dataclasses for enriched link data with translated channel type labels,
+  device metadata, and link direction. The coordinator provides linkable channel
+  discovery with role-based filtering. Exposed via `LinkFacadeProtocol` and
+  wired into `CentralUnit` as `link` property.
+
+- **Dimmer last-level tracking**: Add `last_level` property and
+  `set_last_level` method to `CustomDpDimmer` for tracking the last non-default
+  brightness level, enabling restore-to-previous-brightness workflows.
+
+- **Channel link peer categories**: Add `link_peer_source_categories` and
+  `link_peer_target_categories` properties to `ChannelGroupingProtocol` for
+  exposing link role categories per channel.
+
+---
+
 # Version 2026.2.19 (2026-02-19)
 
 ## What's Changed

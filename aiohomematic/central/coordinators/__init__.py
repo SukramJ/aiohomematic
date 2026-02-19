@@ -13,6 +13,7 @@ of the central unit's functionality:
 - DeviceCoordinator: Device discovery and creation
 - EventCoordinator: Event handling and system event processing
 - HubCoordinator: Hub-level entities (programs, sysvars, install mode)
+- LinkCoordinator: Device link management facade (listing, discovery, creation, removal)
 
 Public API of this module is defined by __all__.
 """
@@ -26,6 +27,7 @@ from aiohomematic.central.coordinators.connection_recovery import ConnectionReco
 from aiohomematic.central.coordinators.device import DeviceCoordinator
 from aiohomematic.central.coordinators.event import EventCoordinator, SystemEventArgs
 from aiohomematic.central.coordinators.hub import HubCoordinator
+from aiohomematic.central.coordinators.link import DeviceLink, LinkableChannel, LinkCoordinator
 
 __all__ = [
     # Coordinators
@@ -36,6 +38,9 @@ __all__ = [
     "DeviceCoordinator",
     "EventCoordinator",
     "HubCoordinator",
+    "LinkCoordinator",
     # Types
+    "DeviceLink",
+    "LinkableChannel",
     "SystemEventArgs",
 ]

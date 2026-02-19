@@ -22,7 +22,13 @@ from __future__ import annotations
 
 from aiohomematic.central.coordinators.cache import CacheCoordinator
 from aiohomematic.central.coordinators.client import ClientCoordinator
-from aiohomematic.central.coordinators.configuration import ConfigurationCoordinator
+from aiohomematic.central.coordinators.configuration import (
+    ConfigurableDevice,
+    ConfigurableDeviceChannel,
+    ConfigurationCoordinator,
+    CopyParamsetResult,
+    MaintenanceData,
+)
 from aiohomematic.central.coordinators.connection_recovery import ConnectionRecoveryCoordinator
 from aiohomematic.central.coordinators.device import DeviceCoordinator
 from aiohomematic.central.coordinators.event import EventCoordinator, SystemEventArgs
@@ -33,12 +39,16 @@ __all__ = [
     # Coordinators
     "CacheCoordinator",
     "ClientCoordinator",
+    "ConfigurableDevice",
+    "ConfigurableDeviceChannel",
     "ConfigurationCoordinator",
     "ConnectionRecoveryCoordinator",
+    "CopyParamsetResult",
     "DeviceCoordinator",
     "EventCoordinator",
     "HubCoordinator",
     "LinkCoordinator",
+    "MaintenanceData",
     # Types
     "DeviceLink",
     "LinkableChannel",

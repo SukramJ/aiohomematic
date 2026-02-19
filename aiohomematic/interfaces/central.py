@@ -1070,6 +1070,15 @@ class ConfigurationFacadeProtocol(Protocol):
         """Return all channels of a device that have configurable paramsets."""
 
     @abstractmethod
+    async def get_link_paramset_description(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+    ) -> Mapping[str, ParameterData]:
+        """Fetch the LINK paramset description for a channel on demand."""
+
+    @abstractmethod
     def get_parameter_data(
         self,
         *,

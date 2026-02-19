@@ -305,6 +305,10 @@ class TestParamsetOperationsProtocolContract:
         """CONTRACT: ParamsetOperationsProtocol MUST have get_all_paramset_descriptions method."""
         assert "get_all_paramset_descriptions" in dir(ParamsetOperationsProtocol)
 
+    def test_has_get_paramset_description_on_demand_method(self) -> None:
+        """CONTRACT: ParamsetOperationsProtocol MUST have get_paramset_description_on_demand method."""
+        assert "get_paramset_description_on_demand" in dir(ParamsetOperationsProtocol)
+
     def test_has_get_paramset_descriptions_method(self) -> None:
         """CONTRACT: ParamsetOperationsProtocol MUST have get_paramset_descriptions method."""
         assert "get_paramset_descriptions" in dir(ParamsetOperationsProtocol)

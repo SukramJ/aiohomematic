@@ -1,3 +1,18 @@
+# Version 2026.2.19 (2026-02-19)
+
+## What's Changed
+
+### Added
+
+- **On-demand LINK paramset description fetching**: Add
+  `get_paramset_description_on_demand` to `InterfaceClient` and
+  `get_link_paramset_description` to `ConfigurationCoordinator` for fetching
+  LINK paramset descriptions directly from the backend when needed. LINK
+  paramsets are not cached during device discovery, so this API enables direct
+  link configuration without requiring a full device reload.
+
+---
+
 # Version 2026.2.18 (2026-02-17)
 
 ## What's Changed

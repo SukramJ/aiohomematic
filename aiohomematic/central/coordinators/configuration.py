@@ -19,19 +19,40 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 import inspect
 import logging
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
+from aiohomematic.ccu_translations import get_channel_type_translation
 from aiohomematic.const import CallSource, Flag, ParameterData, ParamsetKey
+from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.interfaces import (
     ClientProviderProtocol,
     DeviceDescriptionProviderProtocol,
     ParamsetDescriptionProviderProtocol,
 )
 from aiohomematic.interfaces.central import ConfigurationFacadeProtocol
-from aiohomematic.parameter_tools import validate_paramset
+from aiohomematic.parameter_tools import (
+    is_parameter_internal,
+    is_parameter_visible,
+    is_parameter_writable,
+    validate_paramset,
+)
 from aiohomematic.support.address import get_device_address
 
+if TYPE_CHECKING:
+    from aiohomematic.central.device_registry import DeviceRegistry
+
 _LOGGER: Final = logging.getLogger(__name__)
+
+_MAINTENANCE_PARAMS: Final[frozenset[str]] = frozenset(
+    {
+        "UNREACH",
+        "LOW_BAT",
+        "RSSI_DEVICE",
+        "RSSI_PEER",
+        "DUTYCYCLE",
+        "CONFIG_PENDING",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +83,98 @@ class PutParamsetResult:
     """Per-parameter validation error messages (empty on success)."""
 
 
+@dataclass(frozen=True, slots=True)
+class CopyParamsetResult:
+    """Result of a paramset copy operation."""
+
+    success: bool
+    """Whether the copy operation succeeded."""
+
+    validated: bool
+    """Whether validation was performed before writing."""
+
+    validation_errors: dict[str, str]
+    """Per-parameter validation error messages (empty on success)."""
+
+    parameters_copied: int
+    """Number of parameters successfully copied."""
+
+    parameters_skipped: int
+    """Number of parameters skipped (not writable or missing in target)."""
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigurableDeviceChannel:
+    """Channel available for configuration with resolved labels."""
+
+    address: str
+    """Channel address (e.g. ``VCU3373841:1``)."""
+
+    channel_type: str
+    """Channel TYPE from the device description."""
+
+    channel_type_label: str
+    """Human-readable label for the channel type."""
+
+    paramset_keys: tuple[str, ...]
+    """Effective paramset keys for this channel (as string values)."""
+
+
+@dataclass(frozen=True, slots=True)
+class MaintenanceData:
+    """Cached maintenance state from device channel 0."""
+
+    unreach: bool | None = None
+    """Whether the device is unreachable."""
+
+    low_bat: bool | None = None
+    """Whether the device battery is low."""
+
+    rssi_device: int | None = None
+    """RSSI value of the device."""
+
+    rssi_peer: int | None = None
+    """RSSI value of the peer."""
+
+    dutycycle: bool | None = None
+    """Whether duty cycle limit is reached."""
+
+    config_pending: bool | None = None
+    """Whether configuration changes are pending."""
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigurableDevice:
+    """Device with configurable channels for the configuration UI."""
+
+    address: str
+    """Device address."""
+
+    interface: str
+    """Interface name (e.g. HmIP-RF)."""
+
+    interface_id: str
+    """Interface identifier."""
+
+    model: str
+    """Device model."""
+
+    model_description: str
+    """Human-readable model description."""
+
+    name: str
+    """Device name."""
+
+    firmware: str
+    """Device firmware version."""
+
+    channels: tuple[ConfigurableDeviceChannel, ...]
+    """Configurable channels with resolved labels."""
+
+    maintenance: MaintenanceData
+    """Maintenance data from channel 0."""
+
+
 class ConfigurationCoordinator(ConfigurationFacadeProtocol):
     """
     High-level facade for device configuration operations.
@@ -74,6 +187,7 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
     __slots__ = (
         "_client_provider",
         "_device_description_provider",
+        "_device_registry",
         "_paramset_description_provider",
     )
 
@@ -82,12 +196,92 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
         *,
         client_provider: ClientProviderProtocol,
         device_description_provider: DeviceDescriptionProviderProtocol,
+        device_registry: DeviceRegistry,
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
     ) -> None:
         """Initialize the configuration coordinator."""
         self._client_provider: Final = client_provider
         self._device_description_provider: Final = device_description_provider
+        self._device_registry: Final = device_registry
         self._paramset_description_provider: Final = paramset_description_provider
+
+    async def copy_paramset(
+        self,
+        *,
+        source_interface_id: str,
+        source_channel_address: str,
+        target_interface_id: str,
+        target_channel_address: str,
+        paramset_key: ParamsetKey,
+    ) -> tuple[CopyParamsetResult, dict[str, Any], dict[str, Any]]:
+        """
+        Copy writable paramset values from source to target channel.
+
+        Return (result, old_target_values, copied_values) for change tracking.
+        """
+        source_values = await self.get_paramset(
+            interface_id=source_interface_id,
+            channel_address=source_channel_address,
+            paramset_key=paramset_key,
+        )
+
+        target_descriptions = self.get_paramset_description(
+            interface_id=target_interface_id,
+            channel_address=target_channel_address,
+            paramset_key=paramset_key,
+        )
+
+        # Filter: only parameters present in target description AND writable
+        filtered_values: dict[str, Any] = {}
+        skipped = 0
+        for param, value in source_values.items():
+            if param in target_descriptions and is_parameter_writable(parameter_data=target_descriptions[param]):
+                filtered_values[param] = value
+            else:
+                skipped += 1
+
+        if not filtered_values:
+            return (
+                CopyParamsetResult(
+                    success=True,
+                    validated=True,
+                    validation_errors={},
+                    parameters_copied=0,
+                    parameters_skipped=skipped,
+                ),
+                {},
+                {},
+            )
+
+        # Read old target values for change tracking
+        try:
+            old_values = await self.get_paramset(
+                interface_id=target_interface_id,
+                channel_address=target_channel_address,
+                paramset_key=paramset_key,
+            )
+        except BaseHomematicException:
+            old_values = {}
+
+        result = await self.put_paramset(
+            interface_id=target_interface_id,
+            channel_address=target_channel_address,
+            paramset_key=paramset_key,
+            values=filtered_values,
+            validate=True,
+        )
+
+        return (
+            CopyParamsetResult(
+                success=result.success,
+                validated=result.validated,
+                validation_errors=dict(result.validation_errors),
+                parameters_copied=len(filtered_values) if result.success else 0,
+                parameters_skipped=skipped,
+            ),
+            old_values,
+            filtered_values if result.success else {},
+        )
 
     def get_all_paramset_descriptions(
         self,
@@ -150,6 +344,78 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
                     )
                 )
         return tuple(channels)
+
+    def get_configurable_devices(self, *, locale: str = "en") -> tuple[ConfigurableDevice, ...]:
+        """Return all devices with configurable channels for the configuration UI."""
+        devices: list[ConfigurableDevice] = []
+
+        for device in self._device_registry.devices:
+            try:
+                channels = self.get_configurable_channels(
+                    interface_id=device.interface_id,
+                    device_address=device.address,
+                )
+            except BaseHomematicException:
+                continue
+            if not channels:
+                continue
+
+            channel_list: list[ConfigurableDeviceChannel] = []
+            for ch in channels:
+                # Only advertise MASTER if it has writable visible parameters
+                effective_keys: list[str] = []
+                for pk in ch.paramset_keys:
+                    if pk == ParamsetKey.MASTER:
+                        descriptions = self.get_paramset_description(
+                            interface_id=device.interface_id,
+                            channel_address=ch.address,
+                            paramset_key=pk,
+                        )
+                        has_writable = any(
+                            is_parameter_visible(parameter_data=pd)
+                            and not is_parameter_internal(parameter_data=pd)
+                            and is_parameter_writable(parameter_data=pd)
+                            for pd in descriptions.values()
+                        )
+                        if has_writable:
+                            effective_keys.append(pk.value)
+                    else:
+                        effective_keys.append(pk.value)
+
+                channel_list.append(
+                    ConfigurableDeviceChannel(
+                        address=ch.address,
+                        channel_type=ch.channel_type,
+                        channel_type_label=get_channel_type_translation(
+                            channel_type=ch.channel_type,
+                            locale=locale,
+                        )
+                        or ch.channel_type,
+                        paramset_keys=tuple(effective_keys),
+                    )
+                )
+
+            # Collect maintenance data from channel 0
+            maintenance_data: dict[str, Any] = {}
+            for dp in device.generic_data_points:
+                if dp.channel.address.endswith(":0") and dp.parameter in _MAINTENANCE_PARAMS:
+                    maintenance_data[dp.parameter.lower()] = dp.value
+
+            devices.append(
+                ConfigurableDevice(
+                    address=device.address,
+                    interface=str(device.interface),
+                    interface_id=device.interface_id,
+                    model=device.model,
+                    model_description=device.model_description or "",
+                    name=device.name or device.address,
+                    firmware=device.firmware,
+                    channels=tuple(channel_list),
+                    maintenance=MaintenanceData(**maintenance_data),
+                )
+            )
+
+        return tuple(devices)
 
     async def get_link_paramset_description(
         self,

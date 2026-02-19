@@ -9,9 +9,16 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from aiohomematic.central.coordinators import ConfigurationCoordinator
+from aiohomematic.central.coordinators import (
+    ConfigurableDevice,
+    ConfigurableDeviceChannel,
+    ConfigurationCoordinator,
+    CopyParamsetResult,
+    MaintenanceData,
+)
 from aiohomematic.central.coordinators.configuration import ConfigurableChannel, PutParamsetResult
-from aiohomematic.const import CallSource, ParameterData, ParameterType, ParamsetKey
+from aiohomematic.const import CallSource, Flag, Interface, Operations, ParameterData, ParameterType, ParamsetKey
+from aiohomematic.exceptions import BaseHomematicException
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -31,11 +38,13 @@ def _make_coordinator(
     device_with_channels: dict[str, dict[str, Any]] | None = None,
     parameter_data: ParameterData | None = None,
     get_paramset_return: dict[str, Any] | None = None,
+    devices: tuple[Any, ...] = (),
 ) -> tuple[ConfigurationCoordinator, MagicMock, MagicMock, MagicMock]:
     """Build a ConfigurationCoordinator with mocked providers."""
     client_provider = MagicMock()
     device_description_provider = MagicMock()
     paramset_description_provider = MagicMock()
+    device_registry = MagicMock()
 
     # Configure paramset description provider
     paramset_description_provider.get_channel_paramset_descriptions.return_value = channel_paramset_descriptions or {}
@@ -50,9 +59,13 @@ def _make_coordinator(
     mock_client.put_paramset.return_value = None
     client_provider.get_client.return_value = mock_client
 
+    # Configure device registry
+    device_registry.devices = devices
+
     coordinator = ConfigurationCoordinator(
         client_provider=client_provider,
         device_description_provider=device_description_provider,
+        device_registry=device_registry,
         paramset_description_provider=paramset_description_provider,
     )
     return coordinator, client_provider, device_description_provider, paramset_description_provider
@@ -700,3 +713,382 @@ class TestProtocolCompliance:
 
         coordinator, _, _, _ = _make_coordinator()
         assert isinstance(coordinator, ConfigurationFacadeProtocol)
+
+
+# ---------------------------------------------------------------------------
+# New dataclass tests
+# ---------------------------------------------------------------------------
+
+
+class TestCopyParamsetResult:
+    """Test CopyParamsetResult dataclass."""
+
+    def test_creation(self) -> None:
+        """Test CopyParamsetResult can be created."""
+        result = CopyParamsetResult(
+            success=True,
+            validated=True,
+            validation_errors={},
+            parameters_copied=3,
+            parameters_skipped=1,
+        )
+        assert result.success is True
+        assert result.parameters_copied == 3
+        assert result.parameters_skipped == 1
+
+    def test_frozen(self) -> None:
+        """Test CopyParamsetResult is frozen."""
+        result = CopyParamsetResult(
+            success=True,
+            validated=True,
+            validation_errors={},
+            parameters_copied=0,
+            parameters_skipped=0,
+        )
+        with pytest.raises(AttributeError):
+            result.success = False  # type: ignore[misc]
+
+
+class TestConfigurableDeviceChannel:
+    """Test ConfigurableDeviceChannel dataclass."""
+
+    def test_creation(self) -> None:
+        """Test ConfigurableDeviceChannel can be created."""
+        ch = ConfigurableDeviceChannel(
+            address="VCU:1",
+            channel_type="SWITCH",
+            channel_type_label="Switch",
+            paramset_keys=("MASTER", "VALUES"),
+        )
+        assert ch.address == "VCU:1"
+        assert ch.channel_type_label == "Switch"
+        assert ch.paramset_keys == ("MASTER", "VALUES")
+
+    def test_frozen(self) -> None:
+        """Test ConfigurableDeviceChannel is frozen."""
+        ch = ConfigurableDeviceChannel(
+            address="VCU:1",
+            channel_type="SWITCH",
+            channel_type_label="Switch",
+            paramset_keys=("MASTER",),
+        )
+        with pytest.raises(AttributeError):
+            ch.address = "other"  # type: ignore[misc]
+
+
+class TestMaintenanceData:
+    """Test MaintenanceData dataclass."""
+
+    def test_creation_with_values(self) -> None:
+        """Test MaintenanceData can be created with values."""
+        md = MaintenanceData(unreach=False, low_bat=True, rssi_device=-65)
+        assert md.unreach is False
+        assert md.low_bat is True
+        assert md.rssi_device == -65
+
+    def test_defaults_are_none(self) -> None:
+        """Test MaintenanceData fields default to None."""
+        md = MaintenanceData()
+        assert md.unreach is None
+        assert md.low_bat is None
+        assert md.rssi_device is None
+        assert md.rssi_peer is None
+        assert md.dutycycle is None
+        assert md.config_pending is None
+
+    def test_frozen(self) -> None:
+        """Test MaintenanceData is frozen."""
+        md = MaintenanceData()
+        with pytest.raises(AttributeError):
+            md.unreach = True  # type: ignore[misc]
+
+
+class TestConfigurableDevice:
+    """Test ConfigurableDevice dataclass."""
+
+    def test_creation(self) -> None:
+        """Test ConfigurableDevice can be created."""
+        device = ConfigurableDevice(
+            address="VCU0000001",
+            interface="HmIP-RF",
+            interface_id="iface-VCU",
+            model="HmIP-BSM",
+            model_description="Switch Actuator",
+            name="Test Switch",
+            firmware="1.0.0",
+            channels=(),
+            maintenance=MaintenanceData(),
+        )
+        assert device.address == "VCU0000001"
+        assert device.model == "HmIP-BSM"
+
+    def test_frozen(self) -> None:
+        """Test ConfigurableDevice is frozen."""
+        device = ConfigurableDevice(
+            address="VCU0000001",
+            interface="HmIP-RF",
+            interface_id="iface-VCU",
+            model="HmIP-BSM",
+            model_description="",
+            name="Test",
+            firmware="1.0.0",
+            channels=(),
+            maintenance=MaintenanceData(),
+        )
+        with pytest.raises(AttributeError):
+            device.address = "other"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# get_configurable_devices tests
+# ---------------------------------------------------------------------------
+
+
+def _make_mock_device(
+    *,
+    address: str = "VCU0000001",
+    interface_id: str = "iface-VCU",
+    interface: Interface = Interface.HMIP_RF,
+    model: str = "HmIP-BSM",
+    model_description: str = "",
+    name: str = "Test Switch",
+    firmware: str = "1.0.0",
+    generic_data_points: tuple[Any, ...] = (),
+) -> MagicMock:
+    """Build a mock device for testing."""
+    device = MagicMock()
+    device.address = address
+    device.interface_id = interface_id
+    device.interface = interface
+    device.model = model
+    device.model_description = model_description
+    device.name = name
+    device.firmware = firmware
+    device.generic_data_points = generic_data_points
+    return device
+
+
+def _make_mock_data_point(*, channel_address: str, parameter: str, value: Any) -> MagicMock:
+    """Build a mock data point for testing."""
+    dp = MagicMock()
+    dp.parameter = parameter
+    dp.value = value
+    dp.channel = MagicMock()
+    dp.channel.address = channel_address
+    return dp
+
+
+class TestGetConfigurableDevices:
+    """Test get_configurable_devices method."""
+
+    def test_device_with_channels(self) -> None:
+        """Test device with configurable channels is returned."""
+        device = _make_mock_device()
+        coordinator, _, device_desc_prov, paramset_desc_prov = _make_coordinator(
+            devices=(device,),
+            device_with_channels={
+                "VCU0000001": {"TYPE": "DEVICE"},
+                "VCU0000001:1": {
+                    "TYPE": "SWITCH",
+                    "FLAGS": Flag.VISIBLE,
+                    "PARAMSETS": ["VALUES"],
+                },
+            },
+        )
+
+        result = coordinator.get_configurable_devices()
+        assert len(result) == 1
+        assert result[0].address == "VCU0000001"
+        assert result[0].model == "HmIP-BSM"
+        assert result[0].name == "Test Switch"
+        assert len(result[0].channels) == 1
+        assert result[0].channels[0].address == "VCU0000001:1"
+
+    def test_device_without_configurable_channels_skipped(self) -> None:
+        """Test device with no configurable channels is skipped."""
+        device = _make_mock_device()
+        coordinator, _, device_desc_prov, _ = _make_coordinator(devices=(device,))
+        # Return no channels
+        device_desc_prov.get_device_with_channels.return_value = {}
+
+        result = coordinator.get_configurable_devices()
+        assert result == ()
+
+    def test_empty_device_list(self) -> None:
+        """Test with no devices."""
+        coordinator, _, _, _ = _make_coordinator(devices=())
+        result = coordinator.get_configurable_devices()
+        assert result == ()
+
+    def test_exception_in_get_configurable_channels_skips_device(self) -> None:
+        """Test device skipped when get_configurable_channels raises."""
+        device = _make_mock_device()
+        coordinator, _, device_desc_prov, _ = _make_coordinator(devices=(device,))
+        device_desc_prov.get_device_with_channels.side_effect = BaseHomematicException("fail")
+
+        result = coordinator.get_configurable_devices()
+        assert result == ()
+
+    def test_maintenance_data_collected(self) -> None:
+        """Test maintenance data from channel 0 data points."""
+        dp_unreach = _make_mock_data_point(channel_address="VCU:0", parameter="UNREACH", value=False)
+        dp_low_bat = _make_mock_data_point(channel_address="VCU:0", parameter="LOW_BAT", value=True)
+        dp_state = _make_mock_data_point(channel_address="VCU:1", parameter="STATE", value=True)
+        device = _make_mock_device(
+            address="VCU",
+            generic_data_points=(dp_unreach, dp_low_bat, dp_state),
+        )
+        coordinator, _, device_desc_prov, _ = _make_coordinator(
+            devices=(device,),
+            device_with_channels={
+                "VCU": {"TYPE": "DEVICE"},
+                "VCU:1": {
+                    "TYPE": "SWITCH",
+                    "FLAGS": Flag.VISIBLE,
+                    "PARAMSETS": ["VALUES"],
+                },
+            },
+        )
+
+        result = coordinator.get_configurable_devices()
+        assert len(result) == 1
+        maint = result[0].maintenance
+        assert maint.unreach is False
+        assert maint.low_bat is True
+        # STATE from channel :1 should NOT be in maintenance
+        assert maint.rssi_device is None
+
+    def test_master_without_writable_params_excluded(self) -> None:
+        """Test MASTER paramset excluded when no writable visible params."""
+        device = _make_mock_device()
+        coordinator, _, _, paramset_desc_prov = _make_coordinator(
+            devices=(device,),
+            device_with_channels={
+                "VCU0000001": {"TYPE": "DEVICE"},
+                "VCU0000001:1": {
+                    "TYPE": "SWITCH",
+                    "FLAGS": Flag.VISIBLE,
+                    "PARAMSETS": ["MASTER", "VALUES"],
+                },
+            },
+        )
+        # MASTER descriptions: only a read-only parameter
+        paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
+            ParamsetKey.MASTER: {
+                "READONLY": _make_pd(FLAGS=Flag.VISIBLE, OPERATIONS=Operations.READ),
+            },
+            ParamsetKey.VALUES: {},
+        }
+
+        result = coordinator.get_configurable_devices()
+        assert len(result) == 1
+        ch = result[0].channels[0]
+        # MASTER should be excluded, only VALUES remains
+        assert "MASTER" not in ch.paramset_keys
+        assert "VALUES" in ch.paramset_keys
+
+
+# ---------------------------------------------------------------------------
+# copy_paramset tests
+# ---------------------------------------------------------------------------
+
+
+class TestCopyParamset:
+    """Test copy_paramset method."""
+
+    @pytest.mark.asyncio
+    async def test_empty_source(self) -> None:
+        """Test copy with empty source values."""
+        coordinator, client_prov, _, paramset_desc_prov = _make_coordinator()
+        mock_client = client_prov.get_client.return_value
+        mock_client.get_paramset.return_value = {}
+        paramset_desc_prov.get_channel_paramset_descriptions.return_value = {ParamsetKey.MASTER: {}}
+
+        result, old_vals, copied_vals = await coordinator.copy_paramset(
+            source_interface_id="iface",
+            source_channel_address="VCU:1",
+            target_interface_id="iface",
+            target_channel_address="VCU:2",
+            paramset_key=ParamsetKey.MASTER,
+        )
+        assert result.success is True
+        assert result.parameters_copied == 0
+        assert result.parameters_skipped == 0
+        assert old_vals == {}
+        assert copied_vals == {}
+
+    @pytest.mark.asyncio
+    async def test_filters_missing_params(self) -> None:
+        """Test that parameters not in target description are filtered out."""
+        coordinator, client_prov, _, paramset_desc_prov = _make_coordinator()
+        mock_client = client_prov.get_client.return_value
+        mock_client.get_paramset.return_value = {"PARAM_A": 1, "PARAM_B": 2}
+        paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
+            ParamsetKey.MASTER: {
+                "PARAM_A": _make_pd(OPERATIONS=Operations.READ | Operations.WRITE),
+                # PARAM_B not in target
+            },
+        }
+
+        result, _, _ = await coordinator.copy_paramset(
+            source_interface_id="iface",
+            source_channel_address="VCU:1",
+            target_interface_id="iface",
+            target_channel_address="VCU:2",
+            paramset_key=ParamsetKey.MASTER,
+        )
+        assert result.parameters_copied == 1
+        assert result.parameters_skipped == 1
+
+    @pytest.mark.asyncio
+    async def test_filters_non_writable(self) -> None:
+        """Test that non-writable parameters are filtered out."""
+        coordinator, client_prov, _, paramset_desc_prov = _make_coordinator()
+        mock_client = client_prov.get_client.return_value
+        mock_client.get_paramset.return_value = {"WRITABLE": 10, "READONLY": 20}
+        paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
+            ParamsetKey.MASTER: {
+                "WRITABLE": _make_pd(OPERATIONS=Operations.READ | Operations.WRITE),
+                "READONLY": _make_pd(OPERATIONS=Operations.READ),
+            },
+        }
+
+        result, _, copied_vals = await coordinator.copy_paramset(
+            source_interface_id="iface",
+            source_channel_address="VCU:1",
+            target_interface_id="iface",
+            target_channel_address="VCU:2",
+            paramset_key=ParamsetKey.MASTER,
+        )
+        assert result.success is True
+        assert result.parameters_copied == 1
+        assert result.parameters_skipped == 1
+        assert "WRITABLE" in copied_vals
+        assert "READONLY" not in copied_vals
+
+    @pytest.mark.asyncio
+    async def test_successful_copy_returns_old_and_new(self) -> None:
+        """Test successful copy returns old values and copied values."""
+        coordinator, client_prov, _, paramset_desc_prov = _make_coordinator()
+        mock_client = client_prov.get_client.return_value
+        # First call: source values; second call: old target values
+        mock_client.get_paramset.side_effect = [
+            {"PARAM": 99},
+            {"PARAM": 0},
+        ]
+        paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
+            ParamsetKey.MASTER: {
+                "PARAM": _make_pd(OPERATIONS=Operations.READ | Operations.WRITE),
+            },
+        }
+
+        result, old_vals, copied_vals = await coordinator.copy_paramset(
+            source_interface_id="iface",
+            source_channel_address="VCU:1",
+            target_interface_id="iface",
+            target_channel_address="VCU:2",
+            paramset_key=ParamsetKey.MASTER,
+        )
+        assert result.success is True
+        assert old_vals == {"PARAM": 0}
+        assert copied_vals == {"PARAM": 99}

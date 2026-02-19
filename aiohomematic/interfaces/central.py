@@ -45,7 +45,12 @@ if TYPE_CHECKING:
         EventCoordinator,
         SystemEventArgs,
     )
-    from aiohomematic.central.coordinators.configuration import ConfigurableChannel, PutParamsetResult
+    from aiohomematic.central.coordinators.configuration import (
+        ConfigurableChannel,
+        ConfigurableDevice,
+        CopyParamsetResult,
+        PutParamsetResult,
+    )
     from aiohomematic.central.coordinators.link import DeviceLink, LinkableChannel
     from aiohomematic.central.events import EventBus
     from aiohomematic.client import InterfaceConfig
@@ -1053,6 +1058,18 @@ class ConfigurationFacadeProtocol(Protocol):
     """
 
     @abstractmethod
+    async def copy_paramset(
+        self,
+        *,
+        source_interface_id: str,
+        source_channel_address: str,
+        target_interface_id: str,
+        target_channel_address: str,
+        paramset_key: ParamsetKey,
+    ) -> tuple[CopyParamsetResult, dict[str, Any], dict[str, Any]]:
+        """Copy writable paramset values from source to target channel."""
+
+    @abstractmethod
     def get_all_paramset_descriptions(
         self,
         *,
@@ -1069,6 +1086,10 @@ class ConfigurationFacadeProtocol(Protocol):
         device_address: str,
     ) -> tuple[ConfigurableChannel, ...]:
         """Return all channels of a device that have configurable paramsets."""
+
+    @abstractmethod
+    def get_configurable_devices(self, *, locale: str = "en") -> tuple[ConfigurableDevice, ...]:
+        """Return all devices with configurable channels."""
 
     @abstractmethod
     async def get_link_paramset_description(

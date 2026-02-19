@@ -20,6 +20,18 @@
   `link_peer_target_categories` properties to `ChannelGroupingProtocol` for
   exposing link role categories per channel.
 
+- **Configurable device listing**: Add `get_configurable_devices` to
+  `ConfigurationCoordinator` returning `ConfigurableDevice` dataclasses with
+  resolved channel type labels, effective paramset keys (MASTER excluded when
+  no writable visible parameters exist), and `MaintenanceData` from channel 0.
+  Exposed via `ConfigurationFacadeProtocol`.
+
+- **Paramset copy operation**: Add `copy_paramset` to
+  `ConfigurationCoordinator` for copying writable paramset values from a source
+  channel to a target channel. Filters non-writable and missing parameters,
+  returns `CopyParamsetResult` with copy/skip counts and old target values for
+  change tracking.
+
 ---
 
 # Version 2026.2.19 (2026-02-19)

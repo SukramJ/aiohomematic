@@ -243,6 +243,7 @@ class CentralUnit(
         self._configuration_coordinator: Final = ConfigurationCoordinator(
             client_provider=self._client_coordinator,
             device_description_provider=self._cache_coordinator.device_descriptions,
+            device_registry=self._device_registry,
             paramset_description_provider=self._cache_coordinator.paramset_descriptions,
         )
         self._link_coordinator: Final = LinkCoordinator(

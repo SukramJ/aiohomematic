@@ -32,6 +32,21 @@
   returns `CopyParamsetResult` with copy/skip counts and old target values for
   change tracking.
 
+### Documentation
+
+- **Architecture docs updated**: Add `ConfigurationCoordinator` and
+  `LinkCoordinator` to Mermaid component diagram, Central Protocols listing,
+  and coordinator categorization (new "Facade coordinators" category).
+  Update `ChannelGroupingProtocol` description with new link peer category
+  properties.
+
+- **CLAUDE.md updated**: Update coordinator directory tree (7 → 9 files,
+  add `configuration.py` and `link.py`). Add `ConfigurationFacadeProtocol`
+  and `LinkFacadeProtocol` to Key Protocol Interfaces listing.
+
+- **API reference updated**: Add `configuration` and `link` properties to
+  `CentralUnit` members list in `docs/reference/api/central.md`.
+
 ---
 
 # Version 2026.2.19 (2026-02-19)

@@ -180,13 +180,15 @@ python-slugify>=8.0.0   # URL-safe string conversion
 │   │   ├── state_machine.py        # CentralStateMachine
 │   │   ├── decorators.py           # RPC function decorators
 │   │   ├── rpc_server.py           # XML-RPC callback server (aiohttp-based)
-│   │   ├── coordinators/           # Coordinator classes (7 files)
+│   │   ├── coordinators/           # Coordinator classes (9 files)
 │   │   │   ├── cache.py            # CacheCoordinator
 │   │   │   ├── client.py           # ClientCoordinator
+│   │   │   ├── configuration.py    # ConfigurationCoordinator
 │   │   │   ├── connection_recovery.py  # ConnectionRecoveryCoordinator
 │   │   │   ├── device.py           # DeviceCoordinator
 │   │   │   ├── event.py            # EventCoordinator
-│   │   │   └── hub.py              # HubCoordinator
+│   │   │   ├── hub.py              # HubCoordinator
+│   │   │   └── link.py             # LinkCoordinator
 │   │   └── events/                 # Event system (3 files)
 │   │       ├── __init__.py         # Event re-exports
 │   │       ├── bus.py              # EventBus and event types
@@ -1428,6 +1430,8 @@ class CentralInfoProtocol(Protocol):
 - **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
 - **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
 - **IncidentRecorderProtocol**: Incident recording for diagnostics (record_incident method)
+- **ConfigurationFacadeProtocol**: Device configuration operations (get/put paramset, configurable devices, paramset copy)
+- **LinkFacadeProtocol**: Device link management operations (add_link, remove_link, get_device_links, get_linkable_channels)
 
 CentralUnit implements all protocols with explicit inheritance through structural subtyping. Each protocol interface defines a minimal API surface, allowing components to depend only on the specific functionality they need rather than the entire CentralUnit.
 

@@ -151,6 +151,25 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
                 )
         return tuple(channels)
 
+    async def get_link_paramset_description(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+    ) -> Mapping[str, ParameterData]:
+        """
+        Fetch the LINK paramset description for a channel on demand.
+
+        LINK paramset descriptions are not cached during device discovery.
+        This method fetches them directly from the backend when needed
+        for direct link configuration.
+        """
+        client = self._client_provider.get_client(interface_id=interface_id)
+        return await client.get_paramset_description_on_demand(
+            channel_address=channel_address,
+            paramset_key=ParamsetKey.LINK,
+        )
+
     def get_parameter_data(
         self,
         *,

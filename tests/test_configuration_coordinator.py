@@ -172,6 +172,48 @@ class TestGetParamsetDescription:
 
 
 # ---------------------------------------------------------------------------
+# get_link_paramset_description
+# ---------------------------------------------------------------------------
+
+
+class TestGetLinkParamsetDescription:
+    """Test ConfigurationCoordinator.get_link_paramset_description."""
+
+    @pytest.mark.asyncio
+    async def test_delegates_to_client(self) -> None:
+        """Test delegation to client with LINK paramset key."""
+        pd = _make_pd()
+        coordinator, _, _, _ = _make_coordinator()
+        mock_client = coordinator._client_provider.get_client()
+        mock_client.get_paramset_description_on_demand.return_value = {"PARAM": pd}
+
+        result = await coordinator.get_link_paramset_description(
+            interface_id="IF_ID",
+            channel_address="VCU0000001:1",
+        )
+
+        assert result == {"PARAM": pd}
+        mock_client.get_paramset_description_on_demand.assert_called_once_with(
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.LINK,
+        )
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_when_unavailable(self) -> None:
+        """Test empty dict returned when no LINK description available."""
+        coordinator, _, _, _ = _make_coordinator()
+        mock_client = coordinator._client_provider.get_client()
+        mock_client.get_paramset_description_on_demand.return_value = {}
+
+        result = await coordinator.get_link_paramset_description(
+            interface_id="IF_ID",
+            channel_address="VCU0000001:1",
+        )
+
+        assert result == {}
+
+
+# ---------------------------------------------------------------------------
 # get_all_paramset_descriptions
 # ---------------------------------------------------------------------------
 

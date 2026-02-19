@@ -520,6 +520,27 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             )
         return result
 
+    async def get_paramset_description_on_demand(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+    ) -> dict[str, ParameterData]:
+        """
+        Fetch a single paramset description from the backend on demand.
+
+        Unlike ``fetch_paramset_description`` this method does not cache the result
+        and unlike ``get_paramset_descriptions`` it does not skip any paramset keys.
+        Useful for LINK paramsets which are not loaded during device discovery.
+        """
+        return (
+            await self._get_paramset_description(
+                address=channel_address,
+                paramset_key=paramset_key,
+            )
+            or {}
+        )
+
     async def get_paramset_descriptions(
         self, *, device_description: DeviceDescription
     ) -> dict[str, dict[ParamsetKey, dict[str, ParameterData]]]:

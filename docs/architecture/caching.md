@@ -90,9 +90,9 @@ Tracks recently sent commands per data point.
 
 | Setting           | Value                       |
 | ----------------- | --------------------------- |
-| TTL               | 180 seconds                 |
-| Max Size          | 1,000 entries per interface |
-| Warning Threshold | 800 entries                 |
+| TTL               | 60 seconds                  |
+| Max Size          | 500 entries per interface   |
+| Warning Threshold | 400 entries                 |
 | Eviction          | Remove oldest 20% when full |
 
 ### Ping/Pong Tracker
@@ -141,7 +141,7 @@ Dynamic caches expire based on time-to-live:
 | Cache           | TTL  | Behavior                      |
 | --------------- | ---- | ----------------------------- |
 | Data Cache      | 10s  | Returns `None` after expiry   |
-| Command Tracker | 180s | Lazy cleanup on access        |
+| Command Tracker | 60s  | Lazy cleanup on access        |
 | Ping/Pong       | 300s | Removed during next operation |
 
 ### Size-Based Eviction
@@ -240,7 +240,7 @@ The `CacheCoordinator` manages all caches centrally.
 
 | Component         | Max Size | Notes             |
 | ----------------- | -------- | ----------------- |
-| Command Tracker   | 1,000    | Per interface     |
+| Command Tracker   | 500      | Per interface     |
 | Ping/Pong Tracker | 100      | Per interface     |
 | Incident Store    | 20       | Per incident type |
 
@@ -249,12 +249,12 @@ The `CacheCoordinator` manages all caches centrally.
 ```python
 # Expiration
 MAX_CACHE_AGE = 10                          # Data cache (seconds)
-LAST_COMMAND_SEND_STORE_TIMEOUT = 180       # Command tracker (seconds)
+LAST_COMMAND_SEND_STORE_TIMEOUT = 60        # Command tracker (seconds)
 PING_PONG_MISMATCH_COUNT_TTL = 300          # Ping/pong (seconds)
 
 # Memory limits
-COMMAND_TRACKER_MAX_SIZE = 1000
-COMMAND_TRACKER_WARNING_THRESHOLD = 800
+COMMAND_TRACKER_MAX_SIZE = 500
+COMMAND_TRACKER_WARNING_THRESHOLD = 400
 PING_PONG_CACHE_MAX_SIZE = 100
 INCIDENT_STORE_MAX_PER_TYPE = 20
 

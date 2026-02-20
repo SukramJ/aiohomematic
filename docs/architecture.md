@@ -81,7 +81,7 @@ graph TB
 - Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device-specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
 - Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values. Organized into subpackages:
   - persistent/: DeviceDescriptionRegistry and ParamsetDescriptionRegistry store descriptions on disk between runs. IncidentStore persists diagnostic incidents for post-mortem analysis. SessionRecorder captures RPC sessions for testing.
-  - dynamic/: CentralDataCache, DeviceDetailsCache, CommandCache, PingPongTracker hold in-memory runtime state and connection health. PingPongTracker includes a PingPongJournal for diagnostic events.
+  - dynamic/: CentralDataCache, DeviceDetailsCache, CommandTracker, PingPongTracker hold in-memory runtime state and connection health. PingPongTracker includes a PingPongJournal for diagnostic events.
   - visibility/: ParameterVisibilityRegistry applies rules to decide which paramsets/parameters are relevant and which are hidden/internal.
   - types.py: Shared typed dataclasses (CachedCommand, PongTracker, PingPongJournal, IncidentSnapshot) for cache entries.
   - serialization.py: Session recording utilities for freeze/unfreeze of parameters.
@@ -233,12 +233,12 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
 3. CentralUnit.start():
    - Validates configuration and, if enabled, starts the local XML-RPC callback server (xml_rpc_server) so the backend can push events.
    - Loads persistent caches (device/paramset descriptions) and initializes clients.
-   - Initializes the Hub (programs, system variables) and starts a scheduler thread for periodic refresh and health checks.
+   - Initializes the Hub (programs, system variables) and starts the BackgroundScheduler for periodic refresh and health checks.
 
 ### Device discovery and model creation
 
 1. Client.list_devices() fetches device descriptions from the backend (or uses cached copies if valid).
-2. For new or changed devices, CentralUnit.\_add_new_devices() instantiates Device and Channel objects and attaches paramset descriptions.
+2. For new or changed devices, DeviceCoordinator.\_add_new_devices() instantiates Device and Channel objects and attaches paramset descriptions.
 3. For each channel, create_data_points_and_events() (model package) iterates over paramset descriptions, applies ParameterVisibilityRegistry rules, creates Events where appropriate, and instantiates DataPoints via the generic/custom/calculated factories.
 4. Central indexes DataPoints and Events for quick lookup and subscription management.
 
@@ -247,12 +247,12 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
 - Reads
   - Central or a consumer requests a value: Client.get_value(channel_address, paramset_key, parameter) performs the appropriate RPC call (XML-RPC or JSON-RPC) and returns a converted value (model.support.convert_value is used where necessary). Results may be stored in dynamic caches.
 - Writes
-  - A consumer calls DataPoint.set_value(...), which delegates to the owning Device/Channel/Client. Client.\_set_value/\_exec_set_value sends the RPC write. Optionally the system waits for an event confirming the new value; otherwise the value may be written into a temporary cache and later reconciled.
+  - A consumer calls DataPoint.set_value(...), which delegates to the owning Device/Channel/Client. InterfaceClient.set_value() validates the value and sends the RPC write via the backend. Optionally the system waits for an event confirming the new value; otherwise the value may be written into a temporary cache and later reconciled.
 
 ## Event handling and data point updates
 
 1. The backend pushes events to the local XML-RPC callback server (Central's xml_rpc_server). Each event carries interface_id, channel_address, parameter, and value.
-2. CentralUnit.data_point_event(interface_id, channel_address, parameter, value) is invoked via decorators wiring. Central looks up the target DataPoint by channel+parameter.
+2. EventCoordinator.data_point_event(interface_id, channel_address, parameter, value) is invoked via decorators wiring. It looks up the target DataPoint by channel+parameter.
 3. The DataPoint's internal state is updated; events are published to subscribers via EventBus. Central updates last event timestamps and connection health.
 4. If events indicate new devices or configuration changes, Central may trigger scans to fetch updated descriptions and update the model accordingly.
 
@@ -270,7 +270,7 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
   - IncidentStore persists diagnostic incidents (e.g., PING_PONG_MISMATCH_HIGH, PING_PONG_UNKNOWN_HIGH) for post-mortem analysis. Uses save-on-incident, load-on-demand strategy with automatic cleanup of old incidents.
 - Dynamic caches (in memory)
   - CentralDataCache holds recent values and metadata to accelerate lookups and avoid redundant conversions.
-  - CommandCache and PingPongTracker support write-ack workflows and connection health checks.
+  - CommandTracker and PingPongTracker support write-ack workflows and connection health checks.
   - PingPongTracker includes a PingPongJournal ring buffer for tracking PING/PONG events and RTT statistics.
   - DeviceDetailsCache stores supplementary per-device data fetched on demand.
 - Visibility cache
@@ -278,15 +278,15 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
 
 ## Concurrency model
 
-- Central runs a background scheduler thread (\_Scheduler) that periodically:
+- Central runs an asyncio-based BackgroundScheduler that periodically:
   - Checks connection health and reconnection needs.
   - Refreshes hub data (programs/system variables) and firmware update information.
   - Optionally polls devices for values where push is unavailable.
-- I/O operations in Clients are async-aware or threaded via proxies where needed; long-running operations are awaited and protected by timeouts (see const.TIMEOUT) and command queues.
+- I/O operations in Clients are fully async; long-running operations are awaited and protected by timeouts (see const.TIMEOUT) and command queues.
 
 ## Extension points
 
-- **New device profiles**: Add custom DataPoints under `model/custom/` and register them via `DeviceProfileRegistry.register()`. See `docs/extension_points.md` for detailed instructions.
+- **New device profiles**: Add custom DataPoints under `model/custom/` and register them via `DeviceProfileRegistry.register()`. See `docs/developer/extension_points.md` for detailed instructions.
 - **Calculated sensors**: Implement in `model/calculated/` and add to `_CALCULATED_DATA_POINTS` in `model/calculated/__init__.py`.
 - **Backends/interfaces**: Implement a new Client subclass and corresponding protocol proxy to add support for another backend or transport.
 
@@ -310,28 +310,33 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
 
 All architectural decisions are documented as formal ADRs in the `adr/` directory:
 
-| ADR                                                            | Title                                                 | Status   |
-| -------------------------------------------------------------- | ----------------------------------------------------- | -------- |
-| [0001](adr/0001-circuit-breaker-and-connection-state.md)       | CircuitBreaker and CentralConnectionState Coexistence | Accepted |
-| [0002](adr/0002-protocol-based-dependency-injection.md)        | Protocol-Based Dependency Injection                   | Accepted |
-| [0003](adr/0003-explicit-over-composite-protocol-injection.md) | Explicit over Composite Protocol Injection            | Accepted |
-| [0004](adr/0004-thread-based-xml-rpc-server.md)                | Thread-Based XML-RPC Server                           | Accepted |
-| [0005](adr/0005-unbounded-parameter-visibility-cache.md)       | Unbounded Parameter Visibility Cache                  | Accepted |
-| [0006](adr/0006-event-system-priorities-and-batching.md)       | Event System Priorities and Batching                  | Accepted |
-| [0007](adr/0007-device-slots-reduction-rejected.md)            | Device Slots Reduction via Composition                | Rejected |
-| [0008](adr/0008-taskgroup-migration-deferred.md)               | TaskGroup Migration                                   | Deferred |
-| [0009](adr/0009-interface-event-consolidation.md)              | Interface Event Consolidation                         | Accepted |
-| [0010](adr/0010-protocol-combination-analysis.md)              | Protocol Combination Analysis                         | Accepted |
-| [0011](adr/0011-storage-abstraction.md)                        | Storage Abstraction                                   | Accepted |
-| [0012](adr/0012-async-xml-rpc-server-poc.md)                   | Async XML-RPC Server POC                              | Accepted |
-| [0013a](adr/0013-implementation-status.md)                     | Implementation Status                                 | Accepted |
-| [0013b](adr/0013-interface-client-backend-strategy.md)         | Interface Client Backend Strategy                     | Accepted |
-| [0014](adr/0014-retry-logic-removal.md)                        | Retry Logic Removal                                   | Accepted |
-| [0015](adr/0015-description-normalization-concept.md)          | Description Normalization Concept                     | Accepted |
-| [0016](adr/0016-paramset-description-patching.md)              | Paramset Description Patching                         | Accepted |
-| [0017](adr/0017-startup-auth-error-handling.md)                | Startup Auth Error Handling                           | Accepted |
-| [0018](adr/0018_contract_tests.md)                             | Contract Tests                                        | Accepted |
-| [0019](adr/0019-derived-binary-sensors.md)                     | Derived Binary Sensors                                | Accepted |
+| ADR                                                                    | Title                                                         | Status      |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------- | ----------- |
+| [0001](adr/0001-circuit-breaker-and-connection-state.md)               | CircuitBreaker and CentralConnectionState Coexistence         | Accepted    |
+| [0002](adr/0002-protocol-based-dependency-injection.md)                | Protocol-Based Dependency Injection                           | Accepted    |
+| [0003](adr/0003-explicit-over-composite-protocol-injection.md)         | Explicit over Composite Protocol Injection                    | Accepted    |
+| [0004](adr/0004-thread-based-xml-rpc-server.md)                        | Thread-Based XML-RPC Server                                   | Accepted    |
+| [0005](adr/0005-unbounded-parameter-visibility-cache.md)               | Unbounded Parameter Visibility Cache                          | Accepted    |
+| [0006](adr/0006-event-system-priorities-and-batching.md)               | Event System Priorities and Batching                          | Accepted    |
+| [0007](adr/0007-device-slots-reduction-rejected.md)                    | Device Slots Reduction via Composition                        | Rejected    |
+| [0008](adr/0008-taskgroup-migration-deferred.md)                       | TaskGroup Migration                                           | Deferred    |
+| [0009](adr/0009-interface-event-consolidation.md)                      | Interface Event Consolidation                                 | Accepted    |
+| [0010](adr/0010-protocol-combination-analysis.md)                      | Protocol Combination Analysis                                 | Accepted    |
+| [0011](adr/0011-storage-abstraction.md)                                | Storage Abstraction                                           | Accepted    |
+| [0012](adr/0012-async-xml-rpc-server-poc.md)                           | Async XML-RPC Server POC                                      | Accepted    |
+| [0013a](adr/0013-implementation-status.md)                             | Implementation Status                                         | Accepted    |
+| [0013b](adr/0013-interface-client-backend-strategy.md)                 | Interface Client Backend Strategy                             | Accepted    |
+| [0014](adr/0014-retry-logic-removal.md)                                | Retry Logic Removal                                           | Accepted    |
+| [0015](adr/0015-description-normalization-concept.md)                  | Description Normalization Concept                             | Accepted    |
+| [0016](adr/0016-paramset-description-patching.md)                      | Paramset Description Patching                                 | Accepted    |
+| [0017](adr/0017-startup-auth-error-handling.md)                        | Startup Auth Error Handling                                   | Accepted    |
+| [0018](adr/0018_contract_tests.md)                                     | Contract Tests                                                | Accepted    |
+| [0019](adr/0019-derived-binary-sensors.md)                             | Derived Binary Sensors                                        | Accepted    |
+| [0020](adr/0020-command-throttling-priority-and-optimistic-updates.md) | Command Throttling with Priority Queue and Optimistic Updates | Accepted    |
+| [0021](adr/0021-blind-command-processing-lock.md)                      | Blind Command Processing Lock and Target Preservation         | Accepted    |
+| [0022](adr/0022-week-profile-data-point.md)                            | Unified Schedule Access via WeekProfileDataPoint              | Accepted    |
+| [0023](adr/0023-paramset-consistency-checker.md)                       | Paramset Consistency Checker                                  | Implemented |
+| [0024](adr/0024-ccu-translation-extraction.md)                         | CCU Translation Extraction                                    | Implemented |
 
 ## Notes
 

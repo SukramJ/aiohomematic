@@ -237,13 +237,14 @@ async with HomematicAPI.connect(
 ### How do I subscribe to events?
 
 ```python
-from aiohomematic.central.events import DataPointUpdatedEvent
+from aiohomematic.central.events import DataPointValueReceivedEvent
 
-async def on_update(*, event: DataPointUpdatedEvent) -> None:
+async def on_update(*, event: DataPointValueReceivedEvent) -> None:
     print(f"{event.dpk}: {event.value}")
 
 unsubscribe = central.event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
+    event_key=None,
     handler=on_update,
 )
 

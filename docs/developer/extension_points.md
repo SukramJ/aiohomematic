@@ -146,7 +146,7 @@ Calculated data points compute values from one or more underlying GenericDataPoi
   - `_resolve_data_point(...)` / `_add_device_data_point(...)` for manual data point resolution
   - `publish_data_point_updated_event` is triggered when any source updates
   - Decorators: @state_property, @config_property
-- **aiohomematic.model.calculated.\_\_init\_\_**
+- **aiohomematic.model.calculated.**init\*\*\*\*
   - `create_calculated_data_points(channel)`: factory that evaluates relevance and attaches instances to channels
   - `_CALCULATED_DATA_POINTS`: tuple of registered calculated DP classes
 - Existing implementations for reference:

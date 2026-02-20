@@ -17,7 +17,7 @@ central = config.create_central()
 await central.start()
 
 # Access devices
-for device in central.devices.values():
+for device in central.devices:
     print(device.name)
 
 await central.stop()
@@ -29,4 +29,4 @@ await central.stop()
 options:
 show_root_heading: true
 show_source: false
-members: - start - stop - restart_clients - devices - get_device_by_address - get_device_by_name - get_data_point - get_client - hub - configuration - link - event_bus - central_state - connection_state - is_connected - set_value - put_paramset - get_value - get_paramset
+members: - start - stop - devices - configuration - link - event_bus - state - connection_state - device_coordinator - client_coordinator - hub_coordinator - event_coordinator - cache_coordinator - query_facade - health

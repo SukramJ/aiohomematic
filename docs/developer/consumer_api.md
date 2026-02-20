@@ -138,7 +138,7 @@ config = CentralConfig.for_homegear(
 
 ```python
 # Get device by address
-device = central.get_device_by_address("VCU0000001")
+device = api.get_device(address="VCU0000001")
 
 # Get channel
 channel = device.get_channel(channel_address="VCU0000001:1")
@@ -230,7 +230,7 @@ aiohomematic provides bundled availability information through `AvailabilityInfo
 from aiohomematic.model import AvailabilityInfo
 
 # Get availability for a device
-device = central.get_device_by_address("VCU0000001")
+device = api.get_device(address="VCU0000001")
 availability = device.availability
 
 # Check reachability
@@ -397,7 +397,7 @@ central.event_bus.subscribe(
 from aiohomematic.model.custom import (
     CustomDpSwitch,
     CustomDpDimmer,
-    CustomDpClimate,
+    CustomDpIpThermostat,
     CustomDpCover,
     CustomDpLock,
 )
@@ -408,7 +408,7 @@ for cdp in device.custom_data_points:
         # Dimmer-specific operations
         await cdp.set_level(level=0.5)  # 50%
 
-    elif isinstance(cdp, CustomDpClimate):
+    elif isinstance(cdp, CustomDpIpThermostat):
         # Climate-specific operations
         await cdp.set_temperature(temperature=21.5)
 

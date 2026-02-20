@@ -12,7 +12,7 @@ sequenceDiagram
   participant CC as ClientCoordinator
   participant CaC as CacheCoordinator
   participant HC as HubCoordinator
-  participant XRS as XmlRpcServer (local)
+  participant XRS as AsyncXmlRpcServer (local)
   participant CCU as Backend (CCU/Homegear)
   participant CX as InterfaceClient
   participant SM as ClientStateMachine
@@ -59,7 +59,7 @@ sequenceDiagram
 
   CC->>CC: _init_clients()
   loop For each client
-    CC->>CX: initialize_proxy()
+    CC->>CX: init_proxy()
     CX->>SM: transition_to(CONNECTING)
     CX->>CCU: init(interface_id, callback_url)
     CCU-->>CX: ok
@@ -260,7 +260,7 @@ sequenceDiagram
     D-->>DC: initialized
   end
 
-  DC->>DC: publish_backend_system_event(DEVICES_CREATED)
+  DC->>DC: publish_system_event(DEVICES_CREATED)
   DC-->>C: devices created
   C-->>App: discovery complete
 ```
@@ -279,8 +279,8 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant CCU as Backend (CCU/Homegear)
-  participant XRS as XmlRpcServer (local)
-  participant RPC as RPCFunctions
+  participant XRS as AsyncXmlRpcServer (local)
+  participant RPC as AsyncRPCFunctions
   participant EC as EventCoordinator
   participant EB as EventBus
   participant DP as DataPoint
@@ -328,7 +328,7 @@ sequenceDiagram
 
 ### Notes
 
-- RPCFunctions schedules async tasks via looper to avoid blocking the XML-RPC callback thread.
+- AsyncRPCFunctions schedules async tasks via looper to avoid blocking the XML-RPC callback thread.
 - EventCoordinator creates typed events (DataPointValueReceivedEvent) with DataPointKey for filtering.
 - EventBus uses dual-key lookup: specific key (dpk) first, then wildcard (None) fallback.
 - Handlers run concurrently via asyncio.gather with error isolation (one failure doesn't affect others).
@@ -347,7 +347,7 @@ stateDiagram-v2
   INITIALIZING --> INITIALIZED: success
   INITIALIZING --> FAILED: error
 
-  INITIALIZED --> CONNECTING: initialize_proxy()
+  INITIALIZED --> CONNECTING: init_proxy()
 
   CONNECTING --> CONNECTED: success
   CONNECTING --> FAILED: error
@@ -392,17 +392,22 @@ stateDiagram-v2
 
 ### State change callback
 
-The ClientStateMachine supports a typed callback for state changes:
+State changes are published via the EventBus using `ClientStateChangedEvent`:
 
 ```python
-from aiohomematic.client.state_machine import ClientStateMachine, StateChangeCallbackProtocol
+from aiohomematic.client.state_machine import ClientStateMachine
 from aiohomematic.const import ClientState
+from aiohomematic.central.events import ClientStateChangedEvent
 
-def on_state_change(*, old_state: ClientState, new_state: ClientState) -> None:
-    print(f"Client state changed: {old_state} -> {new_state}")
+async def on_state_change(*, event: ClientStateChangedEvent) -> None:
+    print(f"Client state changed: {event.old_state} -> {event.new_state}")
 
-sm = ClientStateMachine(interface_id="ccu-main-HmIP-RF")
-sm.on_state_change = on_state_change  # Must match StateChangeCallbackProtocol protocol
+# Subscribe via EventBus
+unsubscribe = central.event_bus.subscribe(
+    event_type=ClientStateChangedEvent,
+    event_key=None,
+    handler=on_state_change,
+)
 ```
 
 ### Notes
@@ -484,10 +489,10 @@ VALID_CENTRAL_TRANSITIONS = {
 State changes are published to external integrations via the `SystemStatusChangedEvent`:
 
 ```python
-from aiohomematic.central.events import SystemStatusChangedEvent, SystemStatusChangedEventType
+from aiohomematic.central.events import SystemStatusChangedEvent
 
 # SystemStatusChangedEvent is emitted for integration consumers (e.g., Home Assistant)
-# with status_type indicating the nature of the change
+# when the central system status changes
 ```
 
 ### Notes
@@ -587,7 +592,7 @@ classDiagram
     -_state_machine: ClientStateMachine
     -_circuit_breaker: CircuitBreaker
     +init_client()
-    +initialize_proxy()
+    +init_proxy()
     +get_value()
     +set_value()
     +get_paramset()
@@ -720,7 +725,7 @@ sequenceDiagram
         Sched->>CX: reconnect()
         CX->>SM: transition_to(RECONNECTING)
 
-        CX->>CX: deinitialize_proxy()
+        CX->>CX: deinit_proxy()
         CX->>Proxy: stop()
         Proxy->>CCU: de-register callback
         CCU-->>Proxy: ok
@@ -728,7 +733,7 @@ sequenceDiagram
 
         CX->>SM: transition_to(CONNECTING)
 
-        CX->>CX: reinitialize_proxy()
+        CX->>CX: reinit_proxy()
         CX->>Proxy: init(callback_url)
         Proxy->>CCU: register callback
         CCU-->>Proxy: ok
@@ -907,7 +912,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant App as Application/Consumer
-  participant DP as CustomDpClimate
+  participant DP as BaseCustomDpClimate
   participant WP as WeekProfile
   participant D as Device
   participant CX as InterfaceClient
@@ -993,7 +998,7 @@ raw_schedule = {
 # Structured Python format
 schedule_data = {
     1: {
-        ScheduleField.WEEKDAY: [Weekday.MONDAY, Weekday.TUESDAY, ...],
+        ScheduleField.WEEKDAY: [WeekdayStr.MONDAY, WeekdayStr.TUESDAY, ...],
         ScheduleField.LEVEL: 0.5,
         ScheduleField.FIXED_HOUR: 6,
         ScheduleField.FIXED_MINUTE: 0,
@@ -1157,7 +1162,7 @@ sequenceDiagram
 
 ## 11. Recovery coordinator (client reconnection orchestration)
 
-The RecoveryCoordinator manages the recovery process for failed or degraded client connections with max retry tracking and multi-stage verification.
+The ConnectionRecoveryCoordinator manages the recovery process for failed or degraded client connections with max retry tracking and multi-stage verification.
 
 ```mermaid
 stateDiagram-v2
@@ -1209,17 +1214,22 @@ stateDiagram-v2
 | MAX_RETRIES | Maximum retry attempts (8) reached          | → FAILED                 |
 | CANCELLED   | Recovery cancelled (shutdown)               | (no change)              |
 
-### Data load verification stages
+### Recovery stages (RecoveryStage)
 
 ```mermaid
 flowchart LR
-    BASIC --> DEVICES --> PARAMSETS --> VALUES --> FULL
+    IDLE --> DETECTING --> COOLDOWN --> TCP --> RPC --> WARM --> STAB --> RECON --> DATA --> RECOVERED
 
-    BASIC[BASIC<br/>ping/pong]
-    DEVICES[DEVICES<br/>list_devices]
-    PARAMSETS[PARAMSETS<br/>paramset descriptions]
-    VALUES[VALUES<br/>current values]
-    FULL[FULL<br/>all OK]
+    IDLE[IDLE]
+    DETECTING[DETECTING<br/>loss detected]
+    COOLDOWN[COOLDOWN<br/>initial delay]
+    TCP[TCP_CHECKING<br/>port available?]
+    RPC[RPC_CHECKING<br/>listMethods]
+    WARM[WARMING_UP<br/>stabilize]
+    STAB[STABILITY_CHECK<br/>confirm RPC]
+    RECON[RECONNECTING<br/>init call]
+    DATA[DATA_LOADING<br/>device data]
+    RECOVERED[RECOVERED<br/>all OK]
 ```
 
 ### Recovery timing
@@ -1243,7 +1253,7 @@ delay = min(BASE_RETRY_DELAY * (2 ** (consecutive_failures - 1)), MAX_RETRY_DELA
 ```mermaid
 sequenceDiagram
     participant Sched as Scheduler
-    participant RC as RecoveryCoordinator
+    participant RC as ConnectionRecoveryCoordinator
     participant RS as RecoveryState
     participant HT as HealthTracker
     participant CSM as CentralStateMachine
@@ -1266,16 +1276,16 @@ sequenceDiagram
 
                 alt reconnect OK
                     RC->>Client: verify_func()
-                    Client-->>RC: DataLoadStage
+                    Client-->>RC: RecoveryStage
 
-                    alt stage == FULL
-                        RC->>RS: record_attempt(SUCCESS, FULL)
+                    alt stage == RECOVERED
+                        RC->>RS: record_attempt(SUCCESS, RECOVERED)
                         RC->>RS: reset()
                     else partial
                         RC->>RS: record_attempt(PARTIAL, stage)
                     end
                 else reconnect failed
-                    RC->>RS: record_attempt(FAILED, BASIC)
+                    RC->>RS: record_attempt(FAILED, FAILED)
                 end
             else max_retries
                 Note over RC: Skip, already at max
@@ -1299,7 +1309,7 @@ sequenceDiagram
 
 ### Notes
 
-- RecoveryCoordinator tracks per-interface recovery state (attempt count, history).
+- ConnectionRecoveryCoordinator tracks per-interface recovery state (attempt count, history).
 - History is limited to last 20 attempts per interface for memory management.
 - In FAILED state, heartbeat retry resets attempt counter to allow one more try.
 - Shutdown signal cancels any in-progress recovery.
@@ -1316,7 +1326,7 @@ flowchart TB
     subgraph Central["CentralUnit"]
         CSM[CentralStateMachine]
         HT[HealthTracker]
-        RC[RecoveryCoordinator]
+        RC[ConnectionRecoveryCoordinator]
         EB[EventBus]
     end
 

@@ -15,7 +15,7 @@ Audience: Contributors and integrators who need a precise understanding of messa
 ## Key participants
 
 - CentralUnit (aiohomematic/central): orchestrates clients, runs XML-RPC callback server, stores caches, and hosts the runtime model.
-- Clients (aiohomematic/client): protocol adapters for XML-RPC (XmlRpcProxy) and JSON-RPC (JsonRpcAioHttpClient).
+- Clients (aiohomematic/client): protocol adapters for XML-RPC (XmlRpcProxy) and JSON-RPC (AioJsonRpcAioHttpClient).
 - Model (aiohomematic/model): Device, Channel, DataPoints, Events; strictly no network I/O.
 - Store (aiohomematic/store): persistent descriptions, dynamic value/state caches, and diagnostic incident storage.
 
@@ -30,15 +30,15 @@ Purpose: Event callbacks from backend; many CCU operations can also be done via 
 1. A consumer reads a value: Central/Device/Channel delegates to Client.get_value(interface, address, paramset_key, parameter).
 2. Client (XML-RPC) calls XmlRpcProxy.<method> towards the CCU/Homegear. Arguments are sanitized by \_cleanup_args.
 3. The result is decoded and (if needed) converted in the model/support layer and returned to the caller. Central may store the value in the dynamic cache for the DataPointKey.
-4. A consumer writes a value: DataPoint.set_value(...) delegates to Device/Channel/Client. Client uses XmlRpcProxy to invoke setValue (or paramset writes), and may record a pending command in CommandCache.
+4. A consumer writes a value: DataPoint.set_value(...) delegates to Device/Channel/Client. Client uses XmlRpcProxy to invoke setValue (or paramset writes), and may record a pending command in CommandTracker.
 
 ### Inbound events (push from backend)
 
-1. Backend calls the local callback server started by Central (xml_rpc_server.XmlRpcServer), method RPCFunctions.event(interface_id, channel_address, parameter, value).
-2. RPCFunctions looks up the Central for interface_id and forwards the event via decorators to Central's event_coordinator.data_point_event(...).
+1. Backend calls the local callback server started by Central (xml_rpc_server.AsyncXmlRpcServer), method AsyncRPCFunctions.event(interface_id, channel_address, parameter, value).
+2. AsyncRPCFunctions looks up the Central for interface_id and forwards the event via decorators to Central's event_coordinator.data_point_event(...).
 3. Central resolves the target DataPoint from (channel_address, parameter), converts value if needed, updates dynamic caches and the DataPoint's internal state.
-4. Central publishes events via the EventBus system (DataPointValueReceivedEvent, DeviceStateChangedEvent, etc.). Subscribers receive notifications through the modern `subscribe_to_*` API. Connection health metadata (PingPongTracker, last-seen timestamps) is updated. PingPongTracker records incidents to IncidentStore when mismatch thresholds are exceeded. Pending CommandCache entries may be reconciled if the event confirms a write.
-5. If the event indicates structural changes (newDevices, deleteDevices, updateDevice, replaceDevice, readdedDevice), the respective RPCFunctions handlers forward to Central which triggers model updates (reload descriptions, add/remove devices/channels).
+4. Central publishes events via the EventBus system (DataPointValueReceivedEvent, DeviceStateChangedEvent, etc.). Subscribers receive notifications through the modern `subscribe_to_*` API. Connection health metadata (PingPongTracker, last-seen timestamps) is updated. PingPongTracker records incidents to IncidentStore when mismatch thresholds are exceeded. Pending CommandTracker entries may be reconciled if the event confirms a write.
+5. If the event indicates structural changes (newDevices, deleteDevices, updateDevice, replaceDevice, readdedDevice), the respective AsyncRPCFunctions handlers forward to Central which triggers model updates (reload descriptions, add/remove devices/channels).
 
 ---
 
@@ -48,15 +48,15 @@ Purpose: Alternative/optional transport for CCU JSON API and ReGa interactions (
 
 ### Outbound calls (read/write)
 
-1. Consumer requests go through InterfaceClient (with CcuBackend or JsonCcuBackend), which uses JsonRpcAioHttpClient.
-2. JsonRpcAioHttpClient ensures an authenticated session (login or renew). Requests are posted via \_post/\_do_post with method names defined in \_JsonRpcMethod.
+1. Consumer requests go through InterfaceClient (with CcuBackend or JsonCcuBackend), which uses AioJsonRpcAioHttpClient.
+2. AioJsonRpcAioHttpClient ensures an authenticated session (login or renew). Requests are posted via \_post/\_do_post with method names defined in \_JsonRpcMethod.
 3. Responses are parsed safely (\_get_json_reponse) and converted to domain structures:
    - Device details → Names, Rooms, Functions
    - Device descriptions → DeviceDescription (via JsonCcuBackend)
    - Paramset descriptions → ParameterData (via JsonCcuBackend)
    - Program/system variable data → ProgramData/SystemVariableData
    - Values (get/set) are converted via model.support.convert_value where needed.
-4. Dynamic caches in Central are updated. For writes, CommandCache may record the pending state until a confirming callback (if provided via XML-RPC) or a subsequent read reconciles the value.
+4. Dynamic caches in Central are updated. For writes, CommandTracker may record the pending state until a confirming callback (if provided via XML-RPC) or a subsequent read reconciles the value.
 
 ### Inbound events
 
@@ -68,9 +68,9 @@ Purpose: Alternative/optional transport for CCU JSON API and ReGa interactions (
 
 Trigger points
 
-- RPCFunctions.event: raw value event.
-- RPCFunctions.newDevices/deleteDevices/updateDevice/replaceDevice/readdedDevice: topology/config events.
-- Error callback RPCFunctions.error: error conditions from the backend, forwarded as BackendSystemEvent for diagnostics.
+- AsyncRPCFunctions.event: raw value event.
+- AsyncRPCFunctions.newDevices/deleteDevices/updateDevice/replaceDevice/readdedDevice: topology/config events.
+- Error callback AsyncRPCFunctions.error: error conditions from the backend, forwarded as BackendSystemEvent for diagnostics.
 
 ### Processing steps for a value event
 
@@ -140,7 +140,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant B as Backend (CCU/Homegear)
-  participant X as XmlRpcServer
+  participant X as AsyncXmlRpcServer
   participant C as CentralUnit
   participant M as Model (DataPoint)
   B-->>X: event(interface_id, channel_address, parameter, value)
@@ -168,7 +168,7 @@ sequenceDiagram
   CX->>X: setValue(...)
   X-->>CX: ok
   CX-->>C: ok
-  C->>C: update CommandCache (pending)
+  C->>C: update CommandTracker (pending)
   note over C: Event expected to confirm
 ```
 
@@ -177,11 +177,11 @@ sequenceDiagram
 ## 6. Where to look in code
 
 - XML-RPC server: aiohomematic/central/rpc_server.py
-  - RPCFunctions.event/newDevices/... and XmlRpcServer lifecycle
+  - AsyncRPCFunctions.event/newDevices/... and AsyncXmlRpcServer lifecycle
 - XML-RPC client: aiohomematic/client/rpc_proxy.py
   - AioXmlRpcProxy, supported methods, async request handling
 - JSON-RPC client: aiohomematic/client/json_rpc.py
-  - JsonRpcAioHttpClient, login/session, methods, conversions
+  - AioJsonRpcAioHttpClient, login/session, methods, conversions
 - Client: aiohomematic/client/interface_client.py and aiohomematic/client/backends/
   - InterfaceClient (unified client), CcuBackend, JsonCcuBackend, HomegearBackend
 - Model and updates: aiohomematic/model/device.py and subpackages

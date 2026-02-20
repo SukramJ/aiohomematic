@@ -107,7 +107,7 @@ ADR 0004 rejected an asyncio implementation of the XML-RPC server. This document
 ### 1. XML-RPC Protocol Handler
 
 ```python
-# aiohomematic/central/async_rpc_server.py
+# aiohomematic/central/rpc_server.py
 """
 Async XML-RPC server module.
 
@@ -635,7 +635,7 @@ class OptionalSettings(StrEnum):
 async def _start_rpc_server(self) -> None:
     """Start the appropriate RPC server based on configuration."""
     if OptionalSettings.ASYNC_RPC_SERVER in self._config.optional_settings:
-        from aiohomematic.central.async_rpc_server import (
+        from aiohomematic.central.rpc_server import (
             create_async_xml_rpc_server,
         )
         self._rpc_server = await create_async_xml_rpc_server(
@@ -696,7 +696,7 @@ After successful validation:
 ### 1. Unit Tests
 
 ```python
-# tests/test_async_rpc_server.py
+# tests/test_rpc_server.py
 """Tests for async XML-RPC server."""
 
 from __future__ import annotations
@@ -706,7 +706,7 @@ import xmlrpc.client
 
 from aiohttp import ClientSession
 
-from aiohomematic.central.async_rpc_server import (
+from aiohomematic.central.rpc_server import (
     AsyncXmlRpcDispatcher,
     AsyncXmlRpcServer,
     create_async_xml_rpc_server,
@@ -807,7 +807,7 @@ import pytest
 from aiohttp import ClientSession
 
 from aiohomematic.central.rpc_server import create_xml_rpc_server
-from aiohomematic.central.async_rpc_server import create_async_xml_rpc_server
+from aiohomematic.central.rpc_server import create_async_xml_rpc_server
 
 
 class TestRpcServerComparison:
@@ -892,7 +892,7 @@ import asyncio
 import pytest
 from aiohttp import ClientSession
 
-from aiohomematic.central.async_rpc_server import create_async_xml_rpc_server
+from aiohomematic.central.rpc_server import create_async_xml_rpc_server
 
 
 class TestAsyncRpcStress:
@@ -986,7 +986,7 @@ class TestAsyncRpcStress:
 
 ### Measured Results (2026-01-01)
 
-Stress tests run on development machine (results from `test_async_rpc_server.py`):
+Stress tests run on development machine (results from `test_rpc_server.py`):
 
 | Test               | Requests | Events | Time        | Throughput    |
 | ------------------ | -------- | ------ | ----------- | ------------- |

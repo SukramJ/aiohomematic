@@ -142,7 +142,7 @@ See [Getting Started](https://sukramj.github.io/aiohomematic/getting_started/) f
 - **CCU Firmware**: CCU2 ≥2.61.x, CCU3 ≥3.61.x
 - There is not active testing to identify the minimum required firmware versions.
 
-### Important Notes on Backend Supportf
+### Important Notes on Backend Support
 
 **Actively tested backends:**
 

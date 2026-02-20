@@ -1,3 +1,24 @@
+# Version 2026.2.21 (2026-02-20)
+
+## What's Changed
+
+### Fixed
+
+- **Documentation audit and corrections**: Comprehensive review and update of ~20
+  documentation files to match the current implementation. Key fixes include:
+  corrected class names (`AsyncXmlRpcServer`, `AsyncRPCFunctions`,
+  `AioJsonRpcAioHttpClient`, `CommandTracker`), updated API signatures for
+  metrics emission functions (`emit_*` now use `key` parameter instead of
+  `source`/`source_id`/`operation`), fixed coordinator access patterns
+  (`central.state`, `central.hub_coordinator`, `central.client_coordinator`,
+  `central.link`), corrected event types (`DataPointValueReceivedEvent`),
+  updated constant values (`COMMAND_TRACKER_MAX_SIZE`: 500,
+  `LAST_COMMAND_SEND_STORE_TIMEOUT`: 60), fixed exception hierarchy
+  (`BaseHomematicException` as base), and updated sequence diagrams with
+  correct `RecoveryStage` enum values and `EventBus` subscription patterns.
+
+---
+
 # Version 2026.2.20 (2026-02-19)
 
 ## What's Changed

@@ -75,8 +75,11 @@ class EventBus:
 
     def subscribe(
         self,
+        *,
         event_type: type[T_Event],
-        handler: Callable[[T_Event], None] | Callable[[T_Event], Coroutine],
+        event_key: Any,
+        handler: EventHandler,
+        priority: EventPriority = EventPriority.NORMAL,
     ) -> UnsubscribeCallback:
         """Subscribe to events of a specific type."""
 
@@ -95,10 +98,10 @@ from aiohomematic.const import DataPointKey, ParamsetKey
 bus = EventBus()
 
 # Sync handler
-def on_update(event: DataPointValueReceivedEvent) -> None:
+def on_update(*, event: DataPointValueReceivedEvent) -> None:
     print(f"Value changed: {event.value}")
 
-unsubscribe = bus.subscribe(event_type=DataPointValueReceivedEvent, handler=on_update)
+unsubscribe = bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=on_update)
 
 # Publish event
 await bus.publish(event=DataPointValueReceivedEvent(
@@ -120,24 +123,24 @@ unsubscribe()
 ### Async Handler
 
 ```python
-async def on_update_async(event: DataPointValueReceivedEvent) -> None:
+async def on_update_async(*, event: DataPointValueReceivedEvent) -> None:
     await some_async_operation()
     print(f"Processed: {event.value}")
 
-bus.subscribe(event_type=DataPointValueReceivedEvent, handler=on_update_async)
+bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=on_update_async)
 ```
 
 ### Multiple Event Types
 
 ```python
-def on_datapoint(event: DataPointValueReceivedEvent) -> None:
+def on_datapoint(*, event: DataPointValueReceivedEvent) -> None:
     print(f"DataPoint: {event.dpk} = {event.value}")
 
-def on_device(event: DeviceStateChangedEvent) -> None:
+def on_device(*, event: DeviceStateChangedEvent) -> None:
     print(f"Device: {event.device_address}")
 
-bus.subscribe(event_type=DataPointValueReceivedEvent, handler=on_datapoint)
-bus.subscribe(event_type=DeviceStateChangedEvent, handler=on_device)
+bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=on_datapoint)
+bus.subscribe(event_type=DeviceStateChangedEvent, event_key=None, handler=on_device)
 ```
 
 ## Integration with CentralUnit
@@ -257,10 +260,10 @@ async def test_event_handling():
     bus = EventBus()
     received = []
 
-    def handler(event: DataPointValueReceivedEvent) -> None:
+    def handler(*, event: DataPointValueReceivedEvent) -> None:
         received.append(event)
 
-    bus.subscribe(event_type=DataPointValueReceivedEvent, handler=handler)
+    bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=handler)
 
     event = DataPointValueReceivedEvent(...)
     await bus.publish(event=event)
@@ -276,10 +279,10 @@ async def test_with_central():
     central = CentralUnit(...)
     received_events = []
 
-    async def handler(event: DeviceStateChangedEvent) -> None:
+    async def handler(*, event: DeviceStateChangedEvent) -> None:
         received_events.append(event)
 
-    central.event_bus.subscribe(event_type=DeviceStateChangedEvent, handler=handler)
+    central.event_bus.subscribe(event_type=DeviceStateChangedEvent, event_key=None, handler=handler)
 
     # Trigger device update
     await central.refresh_device(...)
@@ -295,11 +298,11 @@ async def test_with_central():
 
 ```python
 # ✅ Good - type-safe, IDE autocomplete works
-def handler(event: DataPointValueReceivedEvent) -> None:
+def handler(*, event: DataPointValueReceivedEvent) -> None:
     print(event.dpk, event.value)
 
 # ❌ Bad - loses type information
-def handler(event: Event) -> None:
+def handler(*, event: Event) -> None:
     print(event.timestamp)  # Only has base fields
 ```
 
@@ -307,11 +310,11 @@ def handler(event: Event) -> None:
 
 ```python
 # ✅ Good - quick handler, offloads work
-async def handler(event: DataPointValueReceivedEvent) -> None:
+async def handler(*, event: DataPointValueReceivedEvent) -> None:
     asyncio.create_task(process_update(event))
 
 # ⚠️ Avoid - blocks other handlers
-async def handler(event: DataPointValueReceivedEvent) -> None:
+async def handler(*, event: DataPointValueReceivedEvent) -> None:
     await slow_database_operation(event)  # Blocks for seconds
 ```
 
@@ -320,12 +323,12 @@ async def handler(event: DataPointValueReceivedEvent) -> None:
 ```python
 class MyIntegration:
     def __init__(self, bus: EventBus):
-        self._unsubscribe = bus.subscribe(event_type=DataPointValueReceivedEvent, handler=self._handler)
+        self._unsubscribe = bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=self._handler)
 
     def cleanup(self) -> None:
         self._unsubscribe()
 
-    async def _handler(self, event: DataPointValueReceivedEvent) -> None:
+    async def _handler(self, *, event: DataPointValueReceivedEvent) -> None:
         ...
 ```
 
@@ -382,11 +385,11 @@ class CentralUnit:
 
 ```python
 # Subscribe only to specific device events (filter manually in handler)
-def filtered_handler(event: DataPointValueReceivedEvent) -> None:
+def filtered_handler(*, event: DataPointValueReceivedEvent) -> None:
     if event.dpk.channel_address.startswith("VCU0000001"):
-        handler(event)
+        process(event)
 
-bus.subscribe(event_type=DataPointValueReceivedEvent, handler=filtered_handler)
+bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=filtered_handler)
 ```
 
 ### 2. Event History/Replay

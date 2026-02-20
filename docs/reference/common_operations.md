@@ -55,14 +55,14 @@ from aiohomematic.const import CentralState
 central: CentralUnit = api.central
 
 # Check overall system state
-print(f"Central state: {central.central_state}")
+print(f"Central state: {central.state}")
 
 # Different states indicate different system health:
-if central.central_state == CentralState.RUNNING:
+if central.state == CentralState.RUNNING:
     print("✅ All interfaces connected")
-elif central.central_state == CentralState.DEGRADED:
+elif central.state == CentralState.DEGRADED:
     print("⚠️ Some interfaces disconnected")
-elif central.central_state == CentralState.FAILED:
+elif central.state == CentralState.FAILED:
     print("❌ System failed - max retries reached")
 
 # Check connection health per interface
@@ -94,7 +94,7 @@ The library automatically handles reconnection. To manually trigger:
 
 ```python
 # Restart all clients
-await central.restart_clients()
+await central.client_coordinator.restart_clients()
 
 # Or refresh data after reconnection
 await api.refresh_data()
@@ -128,8 +128,11 @@ for device in api.list_devices():
 # By address
 device = api.get_device(address="VCU0000001")
 
-# By name (using CentralUnit)
-device = central.get_device_by_name(device_name="Living Room Switch")
+# By name (filter through list)
+device = next(
+    (d for d in api.list_devices() if d.name == "Living Room Switch"),
+    None,
+)
 
 # Filter by model
 hmip_switches = [
@@ -221,18 +224,10 @@ await api.write_value(
     value=True,
 )
 
-# Using CentralUnit for more control
-await central.set_value(
+# Using ConfigurationCoordinator for more control
+await central.configuration.put_paramset(
     channel_address="VCU0000001:1",
-    paramset_key=ParamsetKey.VALUES,
-    parameter="STATE",
-    value=True,
-)
-
-# Writing multiple values at once
-await central.put_paramset(
-    channel_address="VCU0000001:1",
-    paramset_key=ParamsetKey.VALUES,
+    paramset_key_or_link_address=ParamsetKey.VALUES,
     values={
         "STATE": True,
         "ON_TIME": 300,  # 5 minutes
@@ -289,18 +284,18 @@ unsubscribe()
 
 ```python
 from aiohomematic.central.events import (
-    DataPointUpdatedEvent,
+    DataPointValueReceivedEvent,
     DeviceStateChangedEvent,
     FirmwareStateChangedEvent,
 )
 
 # Data point updates
-async def on_datapoint_update(*, event: DataPointUpdatedEvent) -> None:
+async def on_datapoint_update(*, event: DataPointValueReceivedEvent) -> None:
     print(f"DataPointKey: {event.dpk}")
     print(f"Value: {event.value}")
 
 central.event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=None,
     handler=on_datapoint_update,
 )
@@ -322,12 +317,12 @@ central.event_bus.subscribe(
 from aiohomematic.const import DataPointKey, ParamsetKey
 
 # Subscribe to specific device by filtering in handler
-async def on_specific_device(*, event: DataPointUpdatedEvent) -> None:
+async def on_specific_device(*, event: DataPointValueReceivedEvent) -> None:
     if event.dpk.channel_address.startswith("VCU0000001"):
         print(f"My device: {event.dpk.parameter} = {event.value}")
 
 central.event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=None,
     handler=on_specific_device,
 )
@@ -340,7 +335,7 @@ specific_dpk = DataPointKey(
     parameter="STATE",
 )
 central.event_bus.subscribe(
-    event_type=DataPointUpdatedEvent,
+    event_type=DataPointValueReceivedEvent,
     event_key=specific_dpk,
     handler=on_datapoint_update,
 )
@@ -353,8 +348,8 @@ central.event_bus.subscribe(
 ### Listing Programs
 
 ```python
-# Through Hub
-for program in central.hub.programs:
+# Through HubCoordinator
+for program in central.hub_coordinator.program_data_points:
     print(f"Program: {program.name}")
     print(f"  ID: {program.unique_id}")
     print(f"  Active: {program.is_active}")
@@ -364,48 +359,62 @@ for program in central.hub.programs:
 ### Executing Programs
 
 ```python
-# Find by name
-program = central.get_program_by_name(program_name="Wake Up Lights")
+# Find by name (filter through list)
+program = next(
+    (p for p in central.hub_coordinator.program_data_points if p.name == "Wake Up Lights"),
+    None,
+)
 if program:
-    await program.execute()
+    await program.press()
 
-# Or by ID
-program = central.hub.get_program_by_id("12345")
+# Or by PID
+program = central.hub_coordinator.get_program_data_point(pid="12345")
 if program:
-    await program.execute()
+    await program.press()
 ```
 
 ### Reading System Variables
 
 ```python
 # List all
-for sysvar in central.hub.sysvars:
+for sysvar in central.hub_coordinator.sysvar_data_points:
     print(f"{sysvar.name}: {sysvar.value}")
 
-# Get specific variable
-sysvar = central.get_sysvar_by_name(sysvar_name="Presence")
+# Get specific variable (filter through list)
+sysvar = next(
+    (sv for sv in central.hub_coordinator.sysvar_data_points if sv.name == "Presence"),
+    None,
+)
 if sysvar:
     print(f"Value: {sysvar.value}")
-    print(f"Type: {sysvar.data_type}")
 ```
 
 ### Writing System Variables
 
 ```python
-sysvar = central.get_sysvar_by_name(sysvar_name="AlarmActive")
+sysvar = next(
+    (sv for sv in central.hub_coordinator.sysvar_data_points if sv.name == "AlarmActive"),
+    None,
+)
 if sysvar:
     # Boolean variable
-    await sysvar.set_value(True)
+    await sysvar.send_variable(value=True)
 
 # Number variable
-sysvar = central.get_sysvar_by_name(sysvar_name="TargetTemperature")
+sysvar = next(
+    (sv for sv in central.hub_coordinator.sysvar_data_points if sv.name == "TargetTemperature"),
+    None,
+)
 if sysvar:
-    await sysvar.set_value(21.5)
+    await sysvar.send_variable(value=21.5)
 
 # String variable
-sysvar = central.get_sysvar_by_name(sysvar_name="StatusMessage")
+sysvar = next(
+    (sv for sv in central.hub_coordinator.sysvar_data_points if sv.name == "StatusMessage"),
+    None,
+)
 if sysvar:
-    await sysvar.set_value("All systems normal")
+    await sysvar.send_variable(value="All systems normal")
 ```
 
 ---
@@ -432,7 +441,8 @@ if device:
     await device.refresh_data()
 
 # Refresh Hub data (programs, sysvars)
-await central.hub.refresh_data()
+await central.hub_coordinator.fetch_program_data()
+await central.hub_coordinator.fetch_sysvar_data()
 ```
 
 ### Cache Location
@@ -450,13 +460,9 @@ config = CentralConfig.for_ccu(
 
 ### Clearing Caches
 
-```python
-# Clear and reload all caches
-await central.clear_caches()
-
-# Note: This forces re-fetching all device descriptions
-# on next start
-```
+Cache management is handled internally by aiohomematic. Caches are automatically
+refreshed during startup and reconnection. To force a re-fetch of device data,
+stop and restart the central unit.
 
 ---
 
@@ -470,7 +476,7 @@ For advanced use cases, you can access the clients directly:
 # Get client for specific interface
 from aiohomematic.const import Interface
 
-client = central.get_client(interface=Interface.HMIP_RF)
+client = central.client_coordinator.get_client(interface=Interface.HMIP_RF)
 if client:
     # Low-level RPC call
     result = await client.get_value(
@@ -488,30 +494,32 @@ for device in api.list_devices():
     if device.firmware_update_state:
         print(f"{device.name}: {device.firmware_update_state}")
 
-# Trigger firmware update
-await central.update_device_firmware(device_address="VCU0000001")
+# Trigger firmware update (via client)
+client = central.client_coordinator.get_client(interface=Interface.HMIP_RF)
+await client.update_device_firmware(device_address="VCU0000001")
 ```
 
 ### Link Peers (Direct Device Communication)
 
 ```python
-# Get link peers for a device
-peers = await central.get_link_peers(channel_address="VCU0000001:1")
+# Get link peers for a device (via client)
+client = central.client_coordinator.get_client(interface=Interface.HMIP_RF)
+peers = await client.get_link_peers(channel_address="VCU0000001:1")
 for peer in peers:
     print(f"Linked to: {peer}")
 
-# Create link
-await central.add_link(
-    sender_address="VCU0000001:1",
-    receiver_address="VCU0000002:1",
+# Create link (via LinkCoordinator)
+await central.link.add_link(
+    sender_channel_address="VCU0000001:1",
+    receiver_channel_address="VCU0000002:1",
     name="My Link",
     description="Button controls light",
 )
 
 # Remove link
-await central.remove_link(
-    sender_address="VCU0000001:1",
-    receiver_address="VCU0000002:1",
+await central.link.remove_link(
+    sender_channel_address="VCU0000001:1",
+    receiver_channel_address="VCU0000002:1",
 )
 ```
 

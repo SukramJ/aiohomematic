@@ -308,9 +308,11 @@ from aiohomematic.const import CacheType, CacheInvalidationReason
 
 **CacheType values:**
 
-- `DEVICE_DESCRIPTIONS` - Device description cache
-- `PARAMSET_DESCRIPTIONS` - Paramset description cache
-- `DATA_CACHE` - Runtime data cache
+- `DEVICE_DESCRIPTION` - Device description cache
+- `PARAMSET_DESCRIPTION` - Paramset description cache
+- `DATA` - Data cache
+- `DETAILS` - Device details cache
+- `VISIBILITY` - Parameter visibility cache
 
 ---
 
@@ -490,12 +492,12 @@ Data refresh operation triggered.
 from aiohomematic.central.events import DataRefreshTriggeredEvent
 ```
 
-| Field          | Type          | Description                                                   |
-| -------------- | ------------- | ------------------------------------------------------------- |
-| `timestamp`    | `datetime`    | When the event was created                                    |
-| `refresh_type` | `str`         | Type: "client_data", "program", "sysvar", "inbox", "firmware" |
-| `interface_id` | `str \| None` | Interface (None for hub-level)                                |
-| `scheduled`    | `bool`        | Whether this was a scheduled refresh                          |
+| Field          | Type          | Description                                                                                   |
+| -------------- | ------------- | --------------------------------------------------------------------------------------------- |
+| `timestamp`    | `datetime`    | When the event was created                                                                    |
+| `refresh_type` | `str`         | Type: "client_data", "connectivity", "inbox", "metrics", "program", "system_update", "sysvar" |
+| `interface_id` | `str \| None` | Interface (None for hub-level)                                                                |
+| `scheduled`    | `bool`        | Whether this was a scheduled refresh                                                          |
 
 **Key:** `interface_id`
 

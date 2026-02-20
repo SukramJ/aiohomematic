@@ -38,9 +38,14 @@ The event-driven metrics architecture replaces polling-based metric collection w
 ```
 aiohomematic/metrics/
 ├── __init__.py      # Public API exports
+├── _protocols.py    # Internal metric protocols
+├── aggregator.py    # MetricsAggregator
+├── dataclasses.py   # Metric data structures
 ├── events.py        # MetricEvent hierarchy
+├── emitter.py       # Emission utilities (emit_*, LatencyContext)
+├── keys.py          # MetricKey and MetricKeys factory
 ├── observer.py      # MetricsObserver aggregator
-└── emitter.py       # Emission utilities (emit_*, MetricEmitterMixin)
+└── stats.py         # Statistical utilities
 ```
 
 ## Core Components
@@ -59,19 +64,16 @@ from aiohomematic.metrics import (
 )
 ```
 
-| Event Type           | Purpose                | Key Fields                 |
-| -------------------- | ---------------------- | -------------------------- |
-| `LatencyMetricEvent` | Timing measurements    | `duration_ms`, `operation` |
-| `CounterMetricEvent` | Incrementing counts    | `metric_name`, `increment` |
-| `GaugeMetricEvent`   | Point-in-time values   | `metric_name`, `value`     |
-| `HealthMetricEvent`  | Component health state | `healthy`, `reason`        |
+| Event Type           | Purpose                | Key Fields                        |
+| -------------------- | ---------------------- | --------------------------------- |
+| `LatencyMetricEvent` | Timing measurements    | `metric_key`, `duration_ms`       |
+| `CounterMetricEvent` | Incrementing counts    | `metric_key`, `delta`             |
+| `GaugeMetricEvent`   | Point-in-time values   | `metric_key`, `value`             |
+| `HealthMetricEvent`  | Component health state | `metric_key`, `healthy`, `reason` |
 
-All events share common fields:
+All events share a common field:
 
-- `timestamp`: When the event occurred
-- `source`: Component name (e.g., "ping_pong", "client")
-- `source_id`: Optional identifier (e.g., interface_id)
-- `full_key`: Computed key combining source, source_id, and operation/metric_name
+- `metric_key`: A `MetricKey` or `str` identifying the metric (e.g., `MetricKeys.ping_pong_rtt(interface_id="HmIP-RF")`)
 
 ### MetricsObserver
 
@@ -107,37 +109,33 @@ The `emitter` module provides convenient functions for emitting metrics:
 
 ```python
 from aiohomematic.metrics import emit_latency, emit_counter, emit_gauge, emit_health
+from aiohomematic.metrics.keys import MetricKeys
 
 # Emit latency metric
 emit_latency(
     event_bus=event_bus,
-    source="ping_pong",
-    source_id=interface_id,
-    operation="round_trip",
+    key=MetricKeys.ping_pong_rtt(interface_id=interface_id),
     duration_ms=42.5,
 )
 
 # Emit counter metric
 emit_counter(
     event_bus=event_bus,
-    source="cache",
-    metric_name="hit",
-    increment=1,
+    key=MetricKeys.cache_hit(),
+    delta=1,
 )
 
 # Emit gauge metric
 emit_gauge(
     event_bus=event_bus,
-    source="connections",
-    metric_name="active",
+    key="connections:active",
     value=5.0,
 )
 
 # Emit health metric
 emit_health(
     event_bus=event_bus,
-    source="client",
-    source_id=interface_id,
+    key=MetricKeys.client_health(interface_id=interface_id),
     healthy=True,
     reason=None,
 )
@@ -149,12 +147,11 @@ For automatic latency tracking, use the context manager:
 
 ```python
 from aiohomematic.metrics import LatencyContext
+from aiohomematic.metrics.keys import MetricKeys
 
 with LatencyContext(
     event_bus=event_bus,
-    source="rpc",
-    operation="get_value",
-    source_id=interface_id,
+    key=MetricKeys.rpc_call("get_value"),
 ):
     result = await client.get_value(...)
 # Latency event emitted automatically on exit
@@ -185,17 +182,17 @@ class MyComponent(MetricEmitterMixin):
 
 ## Metric Key Format
 
-Metric keys follow a hierarchical format for easy aggregation:
+Metric keys are constructed via the `MetricKey` dataclass or `MetricKeys` factory. They follow a hierarchical format for easy aggregation:
 
 ```
-{source}:{source_id}:{operation|metric_name}
+{component}:{metric}:{identifier}
 ```
 
 Examples:
 
-- `ping_pong:HmIP-RF:round_trip` - Latency for HmIP-RF interface
-- `client:BidCos-RF:rpc_call` - Latency for BidCos-RF RPC calls
-- `cache::hit` - Counter for cache hits (no source_id)
+- `ping_pong:rtt:HmIP-RF` - Latency for HmIP-RF interface
+- `rpc:call:BidCos-RF` - Latency for BidCos-RF RPC calls
+- `cache:hit` - Counter for cache hits (no identifier)
 
 Aggregation by pattern:
 
@@ -216,7 +213,7 @@ total_hits = observer.get_aggregated_counter(pattern="cache")
    │
    ├─► Calculates round-trip time
    │
-   ├─► emit_latency(event_bus, source="ping_pong", ...)
+   ├─► emit_latency(event_bus, key=MetricKeys.ping_pong_rtt(...), ...)
    │       │
    │       └─► Creates LatencyMetricEvent
    │           │
@@ -234,7 +231,7 @@ total_hits = observer.get_aggregated_counter(pattern="cache")
    │
    ├─► Detects client state change
    │
-   ├─► emit_health(event_bus, source="client", healthy=False, ...)
+   ├─► emit_health(event_bus, key=MetricKeys.client_health(...), healthy=False, ...)
    │       │
    │       └─► Creates HealthMetricEvent
    │           │
@@ -356,41 +353,32 @@ avg_latency = snapshot.get_latency(key="ping_pong:HmIP-RF:round_trip")
 
 ## Best Practices
 
-### 1. Use emit\_\* Functions
+### 1. Use emit\_\* Functions with MetricKeys
 
-Prefer the standalone functions for consistency:
+Prefer the standalone functions with the `MetricKeys` factory for consistency:
 
 ```python
-# Good
-emit_latency(event_bus=bus, source="my_component", ...)
+# Good - use MetricKeys factory
+emit_latency(event_bus=bus, key=MetricKeys.ping_pong_rtt(interface_id="HmIP-RF"), duration_ms=42.5)
+
+# Also acceptable - use string key
+emit_counter(event_bus=bus, key="my_component:operations", delta=1)
 
 # Avoid direct event construction
 event_bus.publish_sync(LatencyMetricEvent(...))  # Works but less clean
 ```
 
-### 2. Consistent Source Naming
+### 2. Use MetricKeys Factory
 
-Use consistent, descriptive source names:
-
-| Source      | Description                       |
-| ----------- | --------------------------------- |
-| `ping_pong` | Ping/pong round-trip measurements |
-| `client`    | Client health state               |
-| `rpc`       | RPC call latencies                |
-| `cache`     | Cache hit/miss counters           |
-
-### 3. Use source_id for Disambiguation
-
-When the same component exists multiple times:
+Use the `MetricKeys` factory class for well-known metric keys:
 
 ```python
-emit_latency(
-    event_bus=bus,
-    source="ping_pong",
-    source_id=interface_id,  # e.g., "HmIP-RF", "BidCos-RF"
-    operation="round_trip",
-    duration_ms=rtt,
-)
+from aiohomematic.metrics.keys import MetricKeys
+
+MetricKeys.ping_pong_rtt(interface_id="HmIP-RF")
+MetricKeys.client_health(interface_id="BidCos-RF")
+MetricKeys.rpc_call(operation="get_value")
+MetricKeys.cache_hit()
 ```
 
 ### 4. Clean Up on Stop
@@ -425,6 +413,7 @@ from aiohomematic.metrics import (
     emit_gauge,
     emit_health,
     LatencyContext,
-    MetricEmitterMixin,
 )
+
+from aiohomematic.metrics.keys import MetricKey, MetricKeys
 ```

@@ -5,12 +5,13 @@ aiohomematic defines a hierarchy of exceptions for error handling.
 ## Exception Hierarchy
 
 ```
-AioHomematicException (Base)
-├── ClientException (Communication errors)
-│   ├── NoConnectionException (Connection lost)
-│   └── AuthFailure (Authentication failed)
-├── ValidationException (Value validation failed)
-└── UnsupportedException (Operation not supported)
+BaseHomematicException (Base)
+├── AioHomematicException (Library errors)
+│   ├── ClientException (Communication errors)
+│   │   ├── NoConnectionException (Connection lost)
+│   │   └── AuthFailure (Authentication failed)
+│   ├── ValidationException (Value validation failed)
+│   └── UnsupportedException (Operation not supported)
 ```
 
 ## Usage Example

@@ -619,11 +619,12 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
             schedule_data: SimpleSchedule with human-readable entries
 
         Returns:
-            Raw schedule for CCU
+            Raw schedule for CCU (includes zeroed entries for unused groups 1-24
+            to ensure deleted entries are cleared on the CCU)
 
         Example:
             Input: SimpleSchedule(entries={1: SimpleScheduleEntry(weekdays=["MONDAY"], ...)})
-            Output: {"01_WP_WEEKDAY": 2, "01_WP_FIXED_HOUR": 7, ...}
+            Output: {"01_WP_WEEKDAY": 2, "01_WP_FIXED_HOUR": 7, ..., "02_WP_WEEKDAY": 0, ...}
 
         """
         raw_schedule: RAW_SCHEDULE_DICT = {}
@@ -667,6 +668,14 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
                     raw_schedule[key] = int(value)
                 else:
                     raw_schedule[key] = 0
+
+        # Clear unused groups (1-24) so that deleted entries are deactivated on the CCU.
+        # put_paramset only updates keys that are sent, so we must explicitly zero out
+        # WEEKDAY and TARGET_CHANNELS for groups not in the schedule.
+        for group_no in range(1, 25):
+            if group_no not in schedule_data.entries:
+                raw_schedule[f"{group_no:02d}_WP_{ScheduleField.WEEKDAY.value}"] = 0
+                raw_schedule[f"{group_no:02d}_WP_{ScheduleField.TARGET_CHANNELS.value}"] = 0
 
         return raw_schedule
 

@@ -41,7 +41,7 @@ from aiohomematic.interfaces.model import (
     GenericDataPointProtocolAny,
 )
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.schedule_models import ClimateSchedule, SimpleSchedule, TargetChannelInfo
+from aiohomematic.model.schedule_models import SCHEDULE_DOMAINS, ClimateSchedule, SimpleSchedule, TargetChannelInfo
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, generate_unique_id
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
 from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property
@@ -125,6 +125,16 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
     def schedule(self) -> ScheduleDict:
         """Return the cached schedule data as JSON-serializable dict."""
         return cast(ScheduleDict, self._week_profile.schedule.model_dump(mode="json"))
+
+    @property
+    def schedule_domain(self) -> DataPointCategory | None:
+        """Return the schedule domain (switch, light, cover, valve) for non-climate devices."""
+        if (
+            isinstance(self._week_profile, DefaultWeekProfile)
+            and (category := self._week_profile.category) in SCHEDULE_DOMAINS
+        ):
+            return category
+        return None
 
     @property
     def schedule_type(self) -> ScheduleType:

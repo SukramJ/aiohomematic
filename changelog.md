@@ -1,3 +1,17 @@
+# Version 2026.2.22 (2026-02-22)
+
+## What's Changed
+
+### Added
+
+- **Schedule domain property for week profiles**: Add `schedule_domain` property
+  to `WeekProfileDataPoint` and `WeekProfileDataPointProtocol` that returns the
+  `DataPointCategory` (switch, light, cover, valve) for non-climate schedule
+  devices. This enables consumers like the Home Assistant Climate Schedule Card
+  to distinguish schedule types and adapt their UI accordingly.
+
+---
+
 # Version 2026.2.21 (2026-02-20)
 
 ## What's Changed

@@ -1,3 +1,17 @@
+# Version 2026.2.23 (2026-02-22)
+
+## What's Changed
+
+### Fixed
+
+- **Clear deleted schedule entries on CCU**: `DefaultWeekProfile.convert_dict_to_raw_schedule`
+  now explicitly zeroes out `WEEKDAY` and `TARGET_CHANNELS` for unused groups
+  (1-24) that are not in the schedule. This ensures that deleted schedule entries
+  are properly deactivated on the CCU, since `put_paramset` only updates keys
+  that are sent.
+
+---
+
 # Version 2026.2.22 (2026-02-22)
 
 ## What's Changed

@@ -492,6 +492,11 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
         """Convert raw schedule to dictionary format."""
 
     @property
+    def category(self) -> DataPointCategory:
+        """Return the data point category."""
+        return self._data_point.category
+
+    @property
     def has_schedule(self) -> bool:
         """Flag if climate supports schedule."""
         return self.schedule_channel_address is not None

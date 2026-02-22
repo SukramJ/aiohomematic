@@ -2201,6 +2201,11 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def schedule_domain(self) -> DataPointCategory | None:
+        """Return the schedule domain (switch, light, cover, valve) for non-climate devices."""
+
+    @property
+    @abstractmethod
     def schedule_type(self) -> ScheduleType:
         """Return the schedule type identifier."""
 

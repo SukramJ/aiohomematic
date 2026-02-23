@@ -18,6 +18,12 @@
   CCU (e.g. caused by server-side exceptions) are now caught as `ExpatError`
   with a specific warning log and raised as `ClientException`, instead of
   falling through to the generic exception handler.
+- **Fix HmIP-HDM2 cover showing "unknown" state**: Devices without tilt support
+  (e.g. HmIP-HDM2 in plissee mode) sent `LEVEL_2_STATUS = INVALID` from the
+  CCU, which poisoned the cover entity's `is_status_valid` check and caused
+  Home Assistant to show "unknown" state despite position control working.
+  `CustomDpBlind` now excludes `LEVEL_2` from relevant data points when its
+  value is `None`.
 
 ---
 

@@ -1,3 +1,18 @@
+# Version 2026.2.24 (2026-02-23)
+
+## What's Changed
+
+### Fixed
+
+- **Handle empty XML-RPC responses for void CCU methods**: The CCU's
+  `setInstallMode` method returns an empty HTTP response body instead of a
+  proper XML-RPC response. The XML parser failed with
+  `ExpatError: no element found`. The proxy now detects empty responses
+  (expat error code 3 at line 1, column 0) and treats them as successful
+  void returns, preventing `ClientException` when activating install mode.
+
+---
+
 # Version 2026.2.23 (2026-02-22)
 
 ## What's Changed

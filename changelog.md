@@ -1,3 +1,22 @@
+# Version 2026.2.25 (2026-02-23)
+
+## What's Changed
+
+### Fixed
+
+- **Use JSON-RPC for HmIP-RF install mode**: The Java-based HMIPServer does
+  not support the XML-RPC `setInstallMode` method — it throws
+  `IllegalArgumentException: argument type mismatch` and returns an empty
+  response. Install mode for HmIP-RF now uses the dedicated JSON-RPC methods
+  `Interface.setInstallModeHMIP` and `Interface.getInstallMode` instead.
+  BidCos-RF continues to use XML-RPC `setInstallMode` as before.
+- **Fix BidCos-RF install mode with device address filter**: The XML-RPC call
+  for signature (3) `setInstallMode(Boolean, Integer, String)` incorrectly
+  sent 4 arguments `(on, time, mode, address)` instead of the documented 3
+  arguments `(on, time, address)`.
+
+---
+
 # Version 2026.2.24 (2026-02-23)
 
 ## What's Changed

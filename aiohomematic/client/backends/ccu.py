@@ -260,6 +260,8 @@ class CcuBackend(BaseBackend):
 
     async def get_install_mode(self) -> int:
         """Return remaining install mode time."""
+        if self._interface == Interface.HMIP_RF:
+            return await self._json_rpc.get_install_mode(interface=self._interface)
         return cast(int, await self._proxy.getInstallMode())
 
     async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
@@ -397,8 +399,18 @@ class CcuBackend(BaseBackend):
         device_address: str | None = None,
     ) -> bool:
         """Set install mode."""
+        if self._interface == Interface.HMIP_RF:
+            # HmIP-RF requires JSON-RPC Interface.setInstallModeHMIP.
+            # The XML-RPC setInstallMode causes IllegalArgumentException
+            # on the Java-based HMIPServer.
+            return await self._json_rpc.set_install_mode_hmip(
+                interface=self._interface,
+                on=on,
+                time=time,
+                device_address=device_address,
+            )
         if device_address:
-            await self._proxy.setInstallMode(on, time, mode, device_address)
+            await self._proxy.setInstallMode(on, time, device_address)
         else:
             await self._proxy.setInstallMode(on, time, mode)
         return True

@@ -16,6 +16,7 @@ from typing import Final, Unpack, override
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
+from aiohomematic.interfaces import GenericDataPointProtocolAny
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
@@ -288,6 +289,13 @@ class CustomDpBlind(CustomDpCover):
         ):
             return float(self._dp_group_level_2.value)
         return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level
+
+    @property
+    def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
+        """Return the list of relevant data points for state validity checks."""
+        if self._dp_level_2.value is not None:
+            return self._readable_data_points
+        return tuple(dp for dp in self._readable_data_points if dp is not self._dp_level_2)
 
     @property
     def _target_level(self) -> float | None:

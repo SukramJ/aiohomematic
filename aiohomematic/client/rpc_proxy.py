@@ -32,6 +32,7 @@ import http.client
 import logging
 from ssl import SSLContext, SSLError
 from typing import TYPE_CHECKING, Any, Final
+from xml.parsers.expat import ExpatError
 import xmlrpc.client
 
 from aiohomematic import central as hmcu, i18n
@@ -592,6 +593,25 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                     reason=extract_exc_args(exc=icserr),
                 )
             ) from icserr
+        except ExpatError as ee:
+            # Empty response body (line 1, column 0) indicates a void XML-RPC method
+            # that executed successfully but returned no XML response.
+            # Known CCU methods with this behavior: setInstallMode.
+            if ee.code == 3 and ee.lineno == 1 and ee.offset == 0:
+                _LOGGER.debug(
+                    "XmlRPC.__ASYNC_REQUEST: Empty response for %s (void method)",
+                    args[0],
+                )
+                self._record_session(method=args[0], params=args[1], response=True)
+                self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
+                self._circuit_breaker.record_success()
+                return True
+            self._record_rpc_error_incident(
+                method=str(args[0]),
+                error_type="ExpatError",
+                error_message=str(ee),
+            )
+            raise ClientException(ee) from ee
         except Exception as exc:
             self._record_rpc_error_incident(
                 method=str(args[0]),

@@ -14,6 +14,10 @@
   for signature (3) `setInstallMode(Boolean, Integer, String)` incorrectly
   sent 4 arguments `(on, time, mode, address)` instead of the documented 3
   arguments `(on, time, address)`.
+- **Improve empty XML-RPC response handling**: Empty HTTP responses from the
+  CCU (e.g. caused by server-side exceptions) are now caught as `ExpatError`
+  with a specific warning log and raised as `ClientException`, instead of
+  falling through to the generic exception handler.
 
 ---
 

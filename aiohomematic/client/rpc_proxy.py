@@ -594,24 +594,29 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
                 )
             ) from icserr
         except ExpatError as ee:
-            # Empty response body (line 1, column 0) indicates a void XML-RPC method
-            # that executed successfully but returned no XML response.
-            # Known CCU methods with this behavior: setInstallMode.
-            if ee.code == 3 and ee.lineno == 1 and ee.offset == 0:
-                _LOGGER.debug(
-                    "XmlRPC.__ASYNC_REQUEST: Empty response for %s (void method)",
-                    args[0],
-                )
-                self._record_session(method=args[0], params=args[1], response=True)
-                self._connection_state.remove_issue(issuer=self, iid=self._interface_id)
-                self._circuit_breaker.record_success()
-                return True
+            # Empty response (code 3 at line 1, column 0) means the backend
+            # returned an HTTP 200 with no body — typically a server-side
+            # exception that prevented XML-RPC response generation.
+            message = (
+                f"Empty XML-RPC response for {args[0]} on {self._interface_id}"
+                if ee.code == 3 and ee.lineno == 1 and ee.offset == 0
+                else f"Malformed XML-RPC response for {args[0]} on {self._interface_id}: {ee}"
+            )
+            log_boundary_error(
+                logger=_LOGGER,
+                boundary="xml-rpc",
+                action=str(args[0]),
+                err=ee,
+                level=logging.WARNING,
+                message=message,
+                log_context=self.log_context,
+            )
             self._record_rpc_error_incident(
                 method=str(args[0]),
                 error_type="ExpatError",
-                error_message=str(ee),
+                error_message=message,
             )
-            raise ClientException(ee) from ee
+            raise ClientException(message) from ee
         except Exception as exc:
             self._record_rpc_error_incident(
                 method=str(args[0]),

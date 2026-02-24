@@ -253,17 +253,6 @@ data:
 - 19:00-22:00: 22°C (period 3)
 - 22:00-24:00: 16°C (base_temperature)
 
-### homematicip_local.set_current_schedule_profile
-
-Switches the current schedule profile on a climate device.
-
-```yaml
-action: homematicip_local.set_current_schedule_profile
-data:
-  device_id: abcdefg...
-  profile: P2
-```
-
 ### homematicip_local.copy_schedule
 
 Copies the complete schedule (all profiles P1-P6, all weekdays) from one climate device to another.

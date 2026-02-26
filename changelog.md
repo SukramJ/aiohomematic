@@ -1,3 +1,24 @@
+# Version 2026.2.27 (2026-02-26)
+
+## What's Changed
+
+### Fixed
+
+- **Fix channel-specific translation lookup**: The `channel_type` parameter in
+  `get_parameter_translation()` and `get_parameter_value_translation()` was not
+  lowercased before lookup, while all stored keys are lowercase. This caused
+  channel-specific translations (e.g. `maintenance|low_bat` → "Batterie") to
+  never match when the channel type came from device descriptions in uppercase
+  (e.g. `MAINTENANCE`). Both functions now normalize `channel_type` to lowercase.
+
+### Docs
+
+- **Document Week Profile sensor value**: Added explanation of the Week Profile
+  sensor's numeric value to the user documentation, describing how the count of
+  active schedule entries is computed for climate and non-climate devices.
+
+---
+
 # Version 2026.2.26 (2026-02-26)
 
 ## What's Changed

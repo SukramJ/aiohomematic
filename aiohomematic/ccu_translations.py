@@ -193,9 +193,10 @@ def get_parameter_translation(
     lang = _get_locale(locale=locale)
     translations = _store.get(category="parameters", locale=lang)
     param_lower = parameter.lower()
+    ct_lower = channel_type.lower() if channel_type else None
 
     # Try channel-specific first
-    if channel_type and (label := translations.get(f"{channel_type}|{param_lower}")) is not None:
+    if ct_lower and (label := translations.get(f"{ct_lower}|{param_lower}")) is not None:
         return label
 
     # Fall back to global
@@ -206,7 +207,7 @@ def get_parameter_translation(
     if (match := _match_link_prefix(parameter=param_lower)) is not None:
         prefix, base = match
         base_label: str | None = None
-        if channel_type and (label := translations.get(f"{channel_type}|{base}")) is not None:
+        if ct_lower and (label := translations.get(f"{ct_lower}|{base}")) is not None:
             base_label = label
         else:
             base_label = translations.get(base)
@@ -235,9 +236,10 @@ def get_parameter_value_translation(
     translations = _store.get(category="parameter_values", locale=lang)
     param_lower = parameter.lower()
     value_lower = value.lower()
+    ct_lower = channel_type.lower() if channel_type else None
 
     # Try channel-specific first
-    if channel_type and (label := translations.get(f"{channel_type}|{param_lower}={value_lower}")) is not None:
+    if ct_lower and (label := translations.get(f"{ct_lower}|{param_lower}={value_lower}")) is not None:
         return label
 
     # Fall back to parameter-specific
@@ -247,7 +249,7 @@ def get_parameter_value_translation(
     # Strip SHORT_/LONG_ prefix (LINK paramset parameters) and retry
     if (match := _match_link_prefix(parameter=param_lower)) is not None:
         _prefix, base = match
-        if channel_type and (label := translations.get(f"{channel_type}|{base}={value_lower}")) is not None:
+        if ct_lower and (label := translations.get(f"{ct_lower}|{base}={value_lower}")) is not None:
             return label
         if (label := translations.get(f"{base}={value_lower}")) is not None:
             return label

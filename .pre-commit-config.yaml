@@ -56,7 +56,7 @@ repos:
         exclude_types: [csv, json]
         exclude: ^tests/fixtures/|aiohomematic/rega_scripts|.github/ISSUE_TEMPLATE/bug_report_de.yml|.github/scripts/analyze_issue.py|.github/workflows/close-insufficient-info.yml|docs/reference/glossary.md|docs/user/troubleshooting/homeassistant_troubleshooting.md
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.9.2
+    rev: 1.9.4
     hooks:
       - id: bandit
         args:

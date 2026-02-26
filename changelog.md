@@ -1,3 +1,19 @@
+# Version 2026.2.26 (2026-02-26)
+
+## What's Changed
+
+### Improved
+
+- **Add option value translations from options.tcl**: The extraction script now
+  parses `options.tcl` to resolve translated labels for MASTER paramset dropdown
+  parameters. This adds ~65 new entries per locale to `parameter_values_*.json`,
+  covering `POWERUP_JUMPTARGET`, `LOGIC_COMBINATION`, `FLOOR_HEATING_MODE`,
+  `HEATING_MODE_SELECTION`, `MIOB_DIN_CONFIG`, `DALI_EFFECTS`, and more.
+  Parameters that previously showed raw VALUE_LIST values (e.g. `ON_DELAY`,
+  `LOGIC_OR`) now display human-readable labels in the UI.
+
+---
+
 # Version 2026.2.25 (2026-02-23)
 
 ## What's Changed

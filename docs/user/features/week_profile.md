@@ -27,6 +27,28 @@ Devices with week profile capability support a single schedule with up to 24 ent
 | **Entries** | Up to 24 schedule entries                         |
 | **Format**  | Generic schedule_data dict with time/level/target |
 
+### Week Profile Sensor Value
+
+The **Week Profile sensor** entity exposes a numeric `value` (integer) that represents the **total number of active schedule entries** configured on the device. This gives a quick indication of whether a schedule is configured and how comprehensive it is.
+
+How the value is computed depends on the device type:
+
+| Device Type  | Counting Logic                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Climate**  | Sum of all temperature periods across all profiles and weekdays (e.g. 2 periods × 7 days × 1 profile = 14)  |
+| **Non-Climate** | Number of schedule entries that have at least one target channel assigned                                  |
+
+**Examples:**
+
+- A thermostat with **1 active profile** and **2 heating periods per day** → value = **14** (2 × 7 days)
+- A thermostat with **no schedule configured** → value = **0**
+- A switch with **3 schedule entries** (each targeting a channel) → value = **3**
+
+This value is useful for:
+
+- **Quick status check**: Value `0` means no schedule is configured.
+- **Automations**: Trigger actions based on whether a schedule exists (value > 0) or has changed.
+
 ---
 
 ## Device Identification

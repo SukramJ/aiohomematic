@@ -33,9 +33,9 @@ The **Week Profile sensor** entity exposes a numeric `value` (integer) that repr
 
 How the value is computed depends on the device type:
 
-| Device Type  | Counting Logic                                                                                               |
-| ------------ | ------------------------------------------------------------------------------------------------------------ |
-| **Climate**  | Sum of all temperature periods across all profiles and weekdays (e.g. 2 periods × 7 days × 1 profile = 14)  |
+| Device Type     | Counting Logic                                                                                             |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Climate**     | Sum of all temperature periods across all profiles and weekdays (e.g. 2 periods × 7 days × 1 profile = 14) |
 | **Non-Climate** | Number of schedule entries that have at least one target channel assigned                                  |
 
 **Examples:**

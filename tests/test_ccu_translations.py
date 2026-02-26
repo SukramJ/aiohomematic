@@ -153,6 +153,14 @@ class TestGetParameterTranslation:
         assert global_result is not None
         assert channel_result is not None
 
+    def test_channel_type_case_insensitive(self) -> None:
+        """Test that channel_type lookup is case-insensitive (device descriptions use UPPERCASE)."""
+        # maintenance|low_bat exists as channel-specific entry only (no global low_bat)
+        upper = get_parameter_translation(parameter="LOW_BAT", channel_type="MAINTENANCE", locale="en")
+        lower = get_parameter_translation(parameter="LOW_BAT", channel_type="maintenance", locale="en")
+        assert upper is not None
+        assert upper == lower
+
     def test_direct_parameter(self) -> None:
         """Test direct parameter lookup."""
         result = get_parameter_translation(parameter="ON_LEVEL", locale="en")
@@ -163,6 +171,13 @@ class TestGetParameterTranslation:
         """Test direct parameter lookup in German."""
         result = get_parameter_translation(parameter="ON_LEVEL", locale="de")
         assert result == 'Pegel im Zustand "ein"'
+
+    def test_maintenance_low_bat_custom_override(self) -> None:
+        """Test that MAINTENANCE|LOW_BAT resolves via channel-specific custom translation."""
+        result_de = get_parameter_translation(parameter="LOW_BAT", channel_type="MAINTENANCE", locale="de")
+        result_en = get_parameter_translation(parameter="LOW_BAT", channel_type="MAINTENANCE", locale="en")
+        assert result_de == "Batterie"
+        assert result_en == "Battery"
 
     def test_unknown_parameter(self) -> None:
         """Test that unknown parameter returns None."""
@@ -326,6 +341,37 @@ class TestGetParameterValueTranslation:
         # May or may not exist as a value-only fallback depending on data
         # Just verify it doesn't raise
         assert result is None or isinstance(result, str)
+
+
+class TestGetParameterValueTranslationChannelSpecific:
+    """Test channel-specific parameter value translations with uppercase channel_type."""
+
+    def test_channel_type_case_insensitive(self) -> None:
+        """Test that channel_type is case-insensitive for value lookups."""
+        upper = get_parameter_value_translation(
+            parameter="LOCK_STATE",
+            value="LOCKED",
+            channel_type="DOOR_LOCK_STATE_TRANSCEIVER",
+            locale="en",
+        )
+        lower = get_parameter_value_translation(
+            parameter="LOCK_STATE",
+            value="LOCKED",
+            channel_type="door_lock_state_transceiver",
+            locale="en",
+        )
+        assert upper is not None
+        assert upper == lower
+
+    def test_door_lock_channel_specific_value(self) -> None:
+        """Test channel-specific value translation with uppercase channel_type."""
+        result = get_parameter_value_translation(
+            parameter="LOCK_STATE",
+            value="LOCKED",
+            channel_type="DOOR_LOCK_STATE_TRANSCEIVER",
+            locale="en",
+        )
+        assert result == "Locked"
 
 
 class TestGetParameterValueTranslationLinkEnums:

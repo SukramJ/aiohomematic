@@ -26,6 +26,7 @@ Environment Variables:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -69,6 +70,98 @@ _SENTINEL_KEYS = frozenset({"theEnd", "The END", "dummy", "comment", "noMoreKeys
 
 # Default output directory (relative to project root)
 _DEFAULT_OUTPUT_DIR = "aiohomematic/translations/ccu_extract"
+
+# Mapping from options.tcl type name to VALUE_LIST strings.
+# These are the enum values as returned by the CCU API for each parameter.
+# Sources: full_session_randomized_ccu.json, full_session_randomized_pydevccu.json,
+# and rftypes XML <option id="..."/> definitions.
+# None entries represent indices without a VALUE_LIST mapping (e.g. sparse DALI_EFFECTS
+# indices or LOGIC_COMBINATION_SWITCH which starts at index 1).
+_OPTION_VALUE_LISTS: dict[str, list[str | None]] = {
+    "LOGIC_COMBINATION": [
+        "LOGIC_INACTIVE",
+        "LOGIC_OR",
+        "LOGIC_AND",
+        "LOGIC_XOR",
+        "LOGIC_NOR",
+        "LOGIC_NAND",
+        "LOGIC_ORINVERS",
+        "LOGIC_ANDINVERS",
+        "LOGIC_PLUS",
+        "LOGIC_MINUS",
+        "LOGIC_MUL",
+        "LOGIC_PLUSINVERS",
+        "LOGIC_MINUSINVERS",
+        "LOGIC_MULINVERS",
+        "LOGIC_INVERSPLUS",
+        "LOGIC_INVERSMINUS",
+        "LOGIC_INVERSMUL",
+    ],
+    "LOGIC_COMBINATION_SWITCH": [
+        None,
+        "LOGIC_OR",
+        "LOGIC_AND",
+        "LOGIC_XOR",
+        "LOGIC_NOR",
+        "LOGIC_NAND",
+        "LOGIC_ORINVERS",
+        "LOGIC_ANDINVERS",
+    ],
+    "LOGIC_COMBINATION_NO_AND_OR": ["LOGIC_INACTIVE", "LOGIC_OR", "LOGIC_AND"],
+    "POWERUP_JUMPTARGET": ["OFF", "ON_DELAY", "ON", "OFF_DELAY"],
+    "POWERUP_JUMPTARGET_HMIP": ["OFF", "ON_DELAY", "ON", "OFF_DELAY"],
+    "POWERUP_JUMPTARGET_OnOff": ["OFF", "ON_DELAY", "ON", "OFF_DELAY"],
+    "POWERUP_JUMPTARGET_BLIND_OnOff": ["OFF", "ON_DELAY", "ON", "OFF_DELAY"],
+    "POWERUP_JUMPTARGET_WINDOW_DRIVE_RECEIVER_OnOff": ["OFF", "ON_DELAY", "ON", "OFF_DELAY"],
+    "POWERUP_JUMPTARGET_wo_ONDELAY": ["OFF", "ON_DELAY", "ON", "OFF_DELAY"],
+    "CURRENTDETECTION_BEHAVIOR": [
+        "CURRENTDETECTION_ACTIVE",
+        "CURRENTDETECTION_INACTIVE_VALUE_OUTPUT_1",
+        "CURRENTDETECTION_INACTIVE_VALUE_OUTPUT_2",
+    ],
+    "HEATING_LOAD_TYPE": ["LOAD_BALANCING", "LOAD_COLLECTION"],
+    "HEATING_PUMP_CONTROL": ["LOCAL_PUMP_CONTROL", "GLOBAL_PUMP_CONTROL"],
+    "NORMALLY_CLOSE_OPEN": ["NORMALLY_CLOSE", "NORMALLY_OPEN"],
+    "NORMALLY_OPEN_CLOSE": ["NORMALLY_OPEN", "NORMALLY_CLOSE"],
+    "MIOB_DIN_CONFIG": [
+        "CHANGE_OVER",
+        "TEMPERATURE_LIMITER",
+        "EXTERNAL_CLOCK",
+        "HUMIDITY_LIMITER",
+        "TACTILE_SWITCH",
+    ],
+    "HEATING_MODE_SELECTION": ["STANDARD_ROOM", "ROOM_WITH_FIREPLACE", "ROOM_WITH_TOWEL_RAIL"],
+    "FLOOR_HEATING_MODE": [
+        "FLOOR_HEATING_STANDARD",
+        "FLOOR_HEATING_LOW_ENERGY",
+        "RADIATOR",
+        "CONVECTOR_PASSIV",
+        "CONVECTOR_ACTIVE",
+    ],
+    "OPTION_DISABLE_ENABLE": ["DISABLE", "ENABLE"],
+    "DALI_EFFECTS": [
+        None,
+        "NO_EFFECT",
+        None,
+        "RAINBOW",
+        None,
+        "SUNRISE",
+        None,
+        "SUNSET",
+        None,
+        None,
+        None,
+        "FORREST",
+        None,
+        None,
+        None,
+        None,
+        None,
+        "SIGNALING_RED",
+        None,
+        "GREEN_BILLOW",
+    ],
+}
 
 # Regex to extract the outer JSON object from jQuery.extend(true, langJSON, { ... })
 # Specifically targets langJSON (not HMIdentifier or other targets)
@@ -272,6 +365,110 @@ def parse_easymode_tcl_mappings(easymode_dir: Path) -> dict[str, str]:
     return mappings
 
 
+# Regex patterns for options.tcl parsing
+_OPTION_TYPE_BLOCK_RE = re.compile(r'"([A-Z][A-Z0-9_]*)"[^{]*\{')
+_OPTION_SET_RE = re.compile(r'set\s+options\(([^)]+)\)\s+"([^"]*)"')
+_TEMPLATE_VAR_IN_OPTION_RE = re.compile(r"\\?\$\{(\w+)\}")
+
+# Unit/meta vars to ignore - these are display formatting, not translatable labels
+_OPTION_SKIP_VARS = frozenset(
+    {
+        "none",
+        "enterValue",
+        "lblIgnore",
+        "lastValue",
+        "unlimited",
+        "inactive",
+        "after",
+        "short",
+        "long",
+        "minimal",
+        "p",
+        "s",
+        "m",
+        "h",
+        "d",
+    }
+)
+
+
+def parse_options_tcl(content: str) -> dict[str, dict[int, str]]:
+    """
+    Parse options.tcl to extract option_type -> {index: template_var} mappings.
+
+    Only include entries that reference translatable template variables
+    (e.g. stringTableXxx, optionXxx, channelModeXxx), not unit variables.
+    """
+    result: dict[str, dict[int, str]] = {}
+    pos = 0
+    while (m := _OPTION_TYPE_BLOCK_RE.search(content, pos)) is not None:
+        type_name = m.group(1)
+        block_start = m.end()
+        # Find matching closing brace
+        depth = 1
+        i = block_start
+        while i < len(content) and depth > 0:
+            if content[i] == "{":
+                depth += 1
+            elif content[i] == "}":
+                depth -= 1
+            i += 1
+        block = content[block_start : i - 1]
+
+        entries: dict[int, str] = {}
+        for idx_str, val in _OPTION_SET_RE.findall(block):
+            tvars = _TEMPLATE_VAR_IN_OPTION_RE.findall(val)
+            if interesting := [v for v in tvars if v not in _OPTION_SKIP_VARS]:
+                with contextlib.suppress(ValueError):
+                    entries[int(idx_str)] = interesting[0]
+
+        if entries:
+            result[type_name] = entries
+
+        pos = i
+    return result
+
+
+def resolve_options_tcl_translations(
+    options_data: dict[str, dict[int, str]],
+    all_translations: dict[str, str],
+) -> tuple[dict[str, str], int]:
+    """
+    Resolve options.tcl entries to parameter_value translations.
+
+    Map option_type + index -> VALUE_LIST value, then resolve
+    template_var -> translated text.
+
+    Return (parameter_values dict, resolved count).
+    """
+    parameter_values: dict[str, str] = {}
+    resolved_count = 0
+
+    for option_type, entries in options_data.items():
+        if (value_list := _OPTION_VALUE_LISTS.get(option_type)) is None:
+            continue
+
+        for index, template_var in entries.items():
+            # Map index to VALUE_LIST string
+            if index < 0 or index >= len(value_list):
+                continue
+            if (raw_value := value_list[index]) is None:
+                continue
+
+            # Resolve template variable to translated text
+            if (translated := all_translations.get(template_var)) is None:
+                continue
+            if not (cleaned := clean_value(translated)):
+                continue
+
+            # Emit: option_type=raw_value -> translated_text
+            key = f"{option_type}={raw_value}"
+            parameter_values[key] = cleaned
+            resolved_count += 1
+
+    return parameter_values, resolved_count
+
+
 def parse_stringtable_mapping(content: str) -> dict[str, str]:
     """
     Parse stringtable_de.txt to build KEY -> template_string mapping.
@@ -469,13 +666,23 @@ def load_pname_files(
     return merged
 
 
+# Type alias for the 5-tuple returned by load_sources_*
+_SourceTuple = tuple[
+    dict[str, dict[str, dict[str, str]]],  # locale_data
+    dict[str, str],  # stringtable_mapping
+    dict[str, dict[str, str]],  # pname_data
+    dict[str, str],  # easymode_mappings
+    dict[str, dict[int, str]],  # options_tcl_data
+]
+
+
 def load_sources_local(
     occu_path: Path,
-) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]:
+) -> _SourceTuple:
     """
     Load all translation sources from a local OCCU checkout.
 
-    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings).
+    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data).
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
     pname_data: dict[str, dict[str, str]] = {}
@@ -531,17 +738,28 @@ def load_sources_local(
     easymode_mappings = parse_easymode_tcl_mappings(easymode_dir)
     print(f"  easymode TCL mappings: {len(easymode_mappings)} entries")
 
-    return locale_data, stringtable_mapping, pname_data, easymode_mappings
+    # Parse options.tcl for option type -> {index: template_var} mappings
+    options_tcl_path = occu_path / "WebUI" / "www" / "config" / "easymodes" / "etc" / "options.tcl"
+    options_tcl_data: dict[str, dict[int, str]] = {}
+    if options_tcl_path.is_file():
+        try:
+            options_content = options_tcl_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            options_content = options_tcl_path.read_text(encoding="iso-8859-1")
+        options_tcl_data = parse_options_tcl(options_content)
+        print(f"  options.tcl: {len(options_tcl_data)} option types")
+
+    return locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data
 
 
 def load_sources_remote(
     ccu_url: str,
-) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]:
+) -> _SourceTuple:
     """
     Load all translation sources from a remote CCU via HTTP.
 
-    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings).
-    Easymode TCL parsing is not supported for remote sources.
+    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data).
+    Easymode/options TCL parsing is not supported for remote sources.
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
     pname_data: dict[str, dict[str, str]] = {}
@@ -606,7 +824,7 @@ def load_sources_remote(
         print(f"  WARNING: Failed to fetch stringtable mapping: {err}", file=sys.stderr)
         stringtable_mapping = {}
 
-    return locale_data, stringtable_mapping, pname_data, {}
+    return locale_data, stringtable_mapping, pname_data, {}, {}
 
 
 # Known MASTER_LANG JS files (for remote fetching where glob is not available)
@@ -652,12 +870,12 @@ def merge_translation_dicts(
 
 
 def _merge_sources(
-    base: tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]],
-    overlay: tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]],
-) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]:
+    base: _SourceTuple,
+    overlay: _SourceTuple,
+) -> _SourceTuple:
     """Merge two source tuples. Overlay entries take precedence over base."""
-    b_locale, b_stmap, b_pname, b_easy = base
-    o_locale, o_stmap, o_pname, o_easy = overlay
+    b_locale, b_stmap, b_pname, b_easy, b_opts = base
+    o_locale, o_stmap, o_pname, o_easy, o_opts = overlay
 
     # Merge locale_data (deep merge per locale per js_file)
     merged_locale: dict[str, dict[str, dict[str, str]]] = {}
@@ -685,11 +903,39 @@ def _merge_sources(
     merged_easy = dict(b_easy)
     merged_easy.update(o_easy)
 
-    return merged_locale, merged_stmap, merged_pname, merged_easy
+    # Merge options.tcl data (deep merge per option type)
+    merged_opts: dict[str, dict[int, str]] = {}
+    for opt_type in set(b_opts) | set(o_opts):
+        merged = dict(b_opts.get(opt_type, {}))
+        merged.update(o_opts.get(opt_type, {}))
+        merged_opts[opt_type] = merged
+
+    return merged_locale, merged_stmap, merged_pname, merged_easy, merged_opts
+
+
+def _load_dotenv(env_file: Path) -> None:
+    """Load environment variables from a .env file (stdlib-only, no python-dotenv needed)."""
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("\"'")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def main() -> int:
     """Run the extraction pipeline."""
+    # Auto-load .env from project root (does not override existing env vars)
+    project_root = Path(__file__).resolve().parent.parent
+    _load_dotenv(project_root / ".env")
+
     occu_path = os.environ.get("OCCU_PATH")
     ccu_url = os.environ.get("CCU_URL")
     output_dir_str = os.environ.get("OUTPUT_DIR", _DEFAULT_OUTPUT_DIR)
@@ -707,9 +953,7 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Phase 1: Load sources (both can be set; results are merged)
-    sources: list[
-        tuple[dict[str, dict[str, dict[str, str]]], dict[str, str], dict[str, dict[str, str]], dict[str, str]]
-    ] = []
+    sources: list[_SourceTuple] = []
 
     if occu_path:
         resolved_occu = Path(occu_path).resolve()
@@ -721,10 +965,12 @@ def main() -> int:
         sources.append(load_sources_remote(ccu_url))
 
     if len(sources) == 1:
-        locale_data, stringtable_mapping, pname_data, easymode_mappings = sources[0]
+        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data = sources[0]
     else:
         # Merge: OCCU local as base, remote CCU as overlay
-        locale_data, stringtable_mapping, pname_data, easymode_mappings = _merge_sources(sources[0], sources[1])
+        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data = _merge_sources(
+            sources[0], sources[1]
+        )
         print("\nMerged local and remote sources.")
 
     print()
@@ -749,6 +995,15 @@ def main() -> int:
         # Parameter names and values (resolved via stringtable mapping)
         all_translations = merge_translation_dicts(ld)
         parameters, parameter_values, unresolved = resolve_parameter_translations(stringtable_mapping, all_translations)
+
+        # Resolve options.tcl translations (option_type=value -> translated label)
+        options_values, options_count = resolve_options_tcl_translations(options_tcl_data, all_translations)
+        # Merge: don't override existing entries from stringtable
+        existing_pv_lower = {k.lower() for k in parameter_values}
+        for key, value in options_values.items():
+            if key.lower() not in existing_pv_lower:
+                parameter_values[key] = value
+                existing_pv_lower.add(key.lower())
 
         # Resolve easymode TCL mappings (param -> template var -> translation)
         easymode_count = 0
@@ -776,7 +1031,7 @@ def main() -> int:
         count = write_json(output_dir, f"parameters_{locale}.json", parameters)
         print(f"  parameters_{locale}.json: {count} entries (+{easymode_count} easymode, +{pname_count} PNAME)")
         count = write_json(output_dir, f"parameter_values_{locale}.json", parameter_values)
-        print(f"  parameter_values_{locale}.json: {count} entries")
+        print(f"  parameter_values_{locale}.json: {count} entries (+{options_count} options.tcl)")
 
         if unresolved:
             print(f"  ({unresolved} unresolved template references)")

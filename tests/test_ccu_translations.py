@@ -409,6 +409,70 @@ class TestGetParameterValueTranslationLinkEnums:
         assert short == direct
 
 
+class TestOptionsTclTranslations:
+    """Test translations resolved from options.tcl."""
+
+    def test_options_tcl_all_logic_combination_values_translated(self) -> None:
+        """Test that all LOGIC_COMBINATION values have translations in both locales."""
+        values = [
+            "LOGIC_INACTIVE",
+            "LOGIC_OR",
+            "LOGIC_AND",
+            "LOGIC_XOR",
+            "LOGIC_NOR",
+            "LOGIC_NAND",
+            "LOGIC_ORINVERS",
+            "LOGIC_ANDINVERS",
+            "LOGIC_PLUS",
+            "LOGIC_MINUS",
+            "LOGIC_MUL",
+            "LOGIC_PLUSINVERS",
+            "LOGIC_MINUSINVERS",
+            "LOGIC_MULINVERS",
+            "LOGIC_INVERSPLUS",
+            "LOGIC_INVERSMINUS",
+            "LOGIC_INVERSMUL",
+        ]
+        for value in values:
+            for locale in ("de", "en"):
+                result = get_parameter_value_translation(parameter="LOGIC_COMBINATION", value=value, locale=locale)
+                assert result is not None, f"No translation for LOGIC_COMBINATION={value} ({locale})"
+
+    def test_options_tcl_powerup_jumptarget_hmip(self) -> None:
+        """Test POWERUP_JUMPTARGET_HMIP variant is also translated."""
+        result = get_parameter_value_translation(parameter="POWERUP_JUMPTARGET_HMIP", value="OFF", locale="de")
+        assert result is not None
+
+    @pytest.mark.parametrize(
+        ("parameter", "value", "locale", "expected"),
+        [
+            ("POWERUP_JUMPTARGET", "ON_DELAY", "de", "Einschaltverzögerung"),
+            ("POWERUP_JUMPTARGET", "ON_DELAY", "en", "Switch on delay"),
+            ("POWERUP_JUMPTARGET", "ON", "de", "Schaltzustand: Ein"),
+            ("LOGIC_COMBINATION", "LOGIC_OR", "de", "OR (höherer Pegel hat Priorität)"),
+            ("LOGIC_COMBINATION", "LOGIC_OR", "en", "OR (higher level has priority)"),
+            ("LOGIC_COMBINATION", "LOGIC_AND", "en", "AND (lower level has priority)"),
+            ("OPTION_DISABLE_ENABLE", "DISABLE", "en", "Inactive"),
+            ("OPTION_DISABLE_ENABLE", "ENABLE", "en", "Active"),
+            ("HEATING_MODE_SELECTION", "STANDARD_ROOM", "en", "Standard room"),
+            ("NORMALLY_CLOSE_OPEN", "NORMALLY_OPEN", "en", "NO (normally open)"),
+            ("DALI_EFFECTS", "RAINBOW", "en", "Rainbow"),
+            ("DALI_EFFECTS", "SUNRISE", "de", "Sonnenaufgang"),
+        ],
+    )
+    def test_options_tcl_values_are_translated(
+        self,
+        *,
+        parameter: str,
+        value: str,
+        locale: str,
+        expected: str,
+    ) -> None:
+        """Test translations resolved via options.tcl are accessible."""
+        result = get_parameter_value_translation(parameter=parameter, value=value, locale=locale)
+        assert result == expected
+
+
 class TestTranslationStoreLoading:
     """Test translation store behavior."""
 

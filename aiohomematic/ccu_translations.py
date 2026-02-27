@@ -29,6 +29,7 @@ from typing import Final
 
 __all__ = [
     "get_channel_type_translation",
+    "get_device_icon",
     "get_device_model_description",
     "get_parameter_help",
     "get_parameter_translation",
@@ -41,6 +42,7 @@ _PACKAGE: Final = "aiohomematic"
 _SUPPORTED_LOCALES: Final = frozenset({"de", "en"})
 _DEFAULT_LOCALE: Final = "en"
 _CATEGORIES: Final = ("channel_types", "device_models", "parameter_help", "parameters", "parameter_values")
+_LOCALE_INDEPENDENT_CATEGORIES: Final = ("device_icons",)
 _SUBDIRS: Final = ("ccu_extract", "ccu_custom")
 
 # Prefixes used in LINK paramset parameter names (e.g. SHORT_ON_LEVEL, LONG_RAMPON_TIME).
@@ -75,6 +77,12 @@ class _TranslationStore:
             self.load()
         return self._data.get(f"{category}_{locale}", {})
 
+    def get_locale_independent(self, *, category: str) -> dict[str, str]:
+        """Return translation dict for a locale-independent category."""
+        if not self._loaded:
+            self.load()
+        return self._data.get(category, {})
+
     def get_value_fallback(self, *, value: str, locale: str) -> str | None:
         """Return a generic translation for a standalone value."""
         return self._value_indices.get(f"parameter_values_{locale}", {}).get(value.lower())
@@ -108,6 +116,20 @@ class _TranslationStore:
                         except (FileNotFoundError, json.JSONDecodeError) as err:
                             _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
                     self._data[key] = merged
+            # Load locale-independent categories (single file, no locale suffix)
+            for category in _LOCALE_INDEPENDENT_CATEGORIES:
+                filename = f"{category}.json"
+                li_merged: dict[str, str] = {}
+                for subdir in _SUBDIRS:
+                    resource = f"translations/{subdir}/{filename}"
+                    try:
+                        if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=resource)):
+                            continue
+                        li_raw: dict[str, str] = json.loads(data_bytes)
+                        li_merged.update({k.lower(): v for k, v in li_raw.items()})
+                    except (FileNotFoundError, json.JSONDecodeError) as err:
+                        _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
+                self._data[category] = li_merged
             # Build value-only indices for parameter_values:
             # Maps each enum value to its shortest (most generic) translation.
             for locale in _SUPPORTED_LOCALES:
@@ -166,6 +188,11 @@ def get_device_model_description(
         return translations.get(sub_model.lower())
 
     return None
+
+
+def get_device_icon(*, model: str) -> str | None:
+    """Return icon filename for a device model."""
+    return _store.get_locale_independent(category="device_icons").get(model.lower())
 
 
 def _match_link_prefix(*, parameter: str) -> tuple[str, str] | None:

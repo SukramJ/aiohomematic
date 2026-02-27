@@ -1,3 +1,20 @@
+# Version 2026.2.30 (2026-02-27)
+
+## What's Changed
+
+### Added
+
+- **Device icons**: Extract device model → icon filename mapping from CCU's
+  `DEVDB.tcl` (525 entries). New `get_device_icon()` in `ccu_translations` and
+  `icon` property on `Device` / `DeviceIdentityProtocol` expose the filename
+  relative to `img/devices/250/` for downstream consumers (e.g. Home Assistant).
+- **Profile-specific parameter translations**: Extract ~550 additional parameter
+  translations from CCU easymode profile localization files (e.g. `COLOR_TEMP`,
+  `MAX_COLOR_TEMP`, `SWITCH_DIRECTION`), merged with lowest priority into the
+  existing `parameters_{locale}.json` output.
+
+---
+
 # Version 2026.2.29 (2026-02-27)
 
 ## What's Changed

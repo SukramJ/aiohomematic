@@ -230,6 +230,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_firmware",
         "_group_channels",
         "_has_custom_data_point_definition",
+        "_icon",
         "_rega_id",
         "_ignore_for_custom_data_point",
         "_ignore_on_initial_load",
@@ -330,6 +331,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             )
             or self._name
         )
+        self._icon: Final[str | None] = ccu_translations.get_device_icon(model=self._model)
         channel_addresses = tuple(
             [self._address] + [address for address in self._device_description.get("CHILDREN", []) if address != ""]
         )
@@ -388,6 +390,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         path="_event_subscription_manager"
     )
     has_custom_data_point_definition: Final = DelegatedProperty[bool](path="_has_custom_data_point_definition")
+    icon: Final = DelegatedProperty[str | None](path="_icon", kind=Kind.CONFIG)
     ignore_for_custom_data_point: Final = DelegatedProperty[bool](path="_ignore_for_custom_data_point")
     ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
     interface: Final = DelegatedProperty[Interface](path="_interface")

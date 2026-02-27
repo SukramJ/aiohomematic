@@ -9,6 +9,7 @@ import pytest
 from aiohomematic.ccu_translations import (
     _match_link_prefix,
     get_channel_type_translation,
+    get_device_icon,
     get_device_model_description,
     get_parameter_help,
     get_parameter_translation,
@@ -599,3 +600,48 @@ class TestGetParameterHelp:
         result_en = get_parameter_help(parameter="BUTTON_LOCK", locale="en")
         result_fr = get_parameter_help(parameter="BUTTON_LOCK", locale="fr")
         assert result_fr == result_en
+
+
+class TestGetDeviceIcon:
+    """Test device icon lookup."""
+
+    def test_case_insensitive(self) -> None:
+        """Test that icon lookup is case-insensitive."""
+        upper = get_device_icon(model="HMIP-ETRV")
+        lower = get_device_icon(model="hmip-etrv")
+        mixed = get_device_icon(model="HmIP-eTRV")
+        assert upper == lower == mixed
+
+    def test_coupling_device(self) -> None:
+        """Test that VIR-LG coupling devices return subdirectory path."""
+        result = get_device_icon(model="VIR-LG-RGB-DIM")
+        assert result is not None
+        assert result.startswith("coupling/")
+
+    def test_icon_has_no_path_prefix(self) -> None:
+        """Test that icon result does not start with /config/."""
+        result = get_device_icon(model="HmIP-eTRV")
+        assert result is not None
+        assert not result.startswith("/config/")
+
+    def test_known_model(self) -> None:
+        """Test that a known device model returns an icon filename."""
+        result = get_device_icon(model="HmIP-eTRV")
+        assert result is not None
+        assert result.endswith(".png")
+
+    def test_unknown_model(self) -> None:
+        """Test that unknown model returns None."""
+        result = get_device_icon(model="NONEXISTENT_MODEL_XYZ")
+        assert result is None
+
+
+class TestProfileLocalizationTranslations:
+    """Test translations from profile localization files."""
+
+    def test_profile_localization_color_temp(self) -> None:
+        """Test that COLOR_TEMP parameter is translated via profile localization."""
+        result_de = get_parameter_translation(parameter="COLOR_TEMP", locale="de")
+        result_en = get_parameter_translation(parameter="COLOR_TEMP", locale="en")
+        assert result_de is not None
+        assert result_en is not None

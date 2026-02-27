@@ -62,6 +62,9 @@ _PNAME_FILES = ("PNAME.txt",)
 # Easymode TCL directory for extracting parameter -> template var mappings
 _EASYMODE_DIR = "config/easymodes"
 
+# Device icon database (locale-independent)
+_DEVDB_PATH = "config/devdescr/DEVDB.tcl"
+
 # Supported locales
 _LOCALES = ("de", "en")
 
@@ -196,6 +199,40 @@ _TEMPLATE_VAR_RE = re.compile(r"\$\{(\w+)\}")
 _ALIAS_ASSIGNMENT_RE = re.compile(
     r"langJSON\.(?:de|en)\.(\w+)\s*=\s*langJSON\.(?:de|en)\.(\w+)\s*;",
 )
+
+
+# Regex to parse DEVDB.tcl icon entries — two patterns:
+# Unbraced: MODEL_NAME {{50 /path/thumb.png} {250 /path/full.png}}
+# Braced:   {MODEL NAME} {{50 /path/thumb.png} {250 /path/full.png}}
+_DEVDB_ENTRY_RE = re.compile(r"(?:\{([^}]+)\}|(\S+))\s+\{\{50\s+([^}]+)\}\s+\{250\s+([^}]+)\}\}")
+
+# Path prefix to strip from DEVDB icon paths
+_DEVDB_ICON_PREFIX = "/config/img/devices/250/"
+
+
+def parse_devdb_icon_mapping(content: str) -> dict[str, str]:
+    """
+    Parse DEVDB.tcl to extract device model -> icon filename mapping.
+
+    Return {model_lowercase: icon_filename} where icon_filename is relative
+    to img/devices/250/.
+    """
+    result: dict[str, str] = {}
+    for match in _DEVDB_ENTRY_RE.finditer(content):
+        # Group 1 = braced model name, group 2 = unbraced model name
+        model = match.group(1) or match.group(2)
+        # Strip stray TCL array braces from unbraced matches (e.g. first entry
+        # after 'array set DEV_PATHS {' may start with '{')
+        model = model.strip("{}")
+        icon_path = match.group(4).strip()
+        # Strip the prefix to get just the filename (or subdir/filename for coupling)
+        if icon_path.startswith(_DEVDB_ICON_PREFIX):
+            icon_filename = icon_path[len(_DEVDB_ICON_PREFIX) :]
+        else:
+            # Fallback: use full path after last /config/img/devices/250/
+            icon_filename = icon_path.lstrip("/")
+        result[model.lower()] = icon_filename
+    return result
 
 
 _VALID_JSON_ESCAPES = frozenset(
@@ -798,7 +835,48 @@ def load_help_files(
     return merged
 
 
-# Type alias for the 6-tuple returned by load_sources_*
+# Prefixes to filter out from profile localization files (easymode UI descriptions)
+_PROFILE_LOC_SKIP_PREFIXES = ("description_", "subset_")
+
+
+def load_profile_localization_files(
+    occu_path: Path,
+    locale: str,
+) -> dict[str, str]:
+    """
+    Load parameter translations from profile localization directories.
+
+    Scan config/easymodes/*/localization/{locale}/*.txt and
+    config/easymodes/etc/localization/{locale}/*.txt for PNAME-format files.
+    Filter out keys starting with description_ or subset_ (easymode UI descriptions).
+    """
+    merged: dict[str, str] = {}
+    base_dir = occu_path / "WebUI" / "www" / "config" / "easymodes"
+
+    if not base_dir.is_dir():
+        return merged
+
+    # Scan all subdirectories under easymodes (including etc/)
+    for loc_dir in sorted(base_dir.rglob(f"localization/{locale}")):
+        if not loc_dir.is_dir():
+            continue
+        for txt_file in sorted(loc_dir.glob("*.txt")):
+            try:
+                content = txt_file.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                content = txt_file.read_text(encoding="iso-8859-1")
+
+            parsed = parse_pname_file(content)
+            for key, value in parsed.items():
+                key_lower = key.lower()
+                if any(key_lower.startswith(prefix) for prefix in _PROFILE_LOC_SKIP_PREFIXES):
+                    continue
+                merged[key] = value
+
+    return merged
+
+
+# Type alias for the 8-tuple returned by load_sources_*
 _SourceTuple = tuple[
     dict[str, dict[str, dict[str, str]]],  # locale_data
     dict[str, str],  # stringtable_mapping
@@ -806,6 +884,8 @@ _SourceTuple = tuple[
     dict[str, str],  # easymode_mappings
     dict[str, dict[int, str]],  # options_tcl_data
     dict[str, dict[str, str]],  # help_data (locale -> {param -> raw_html})
+    dict[str, str],  # icon_data (model -> filename, locale-independent)
+    dict[str, dict[str, str]],  # profile_localization_data (locale -> {param -> label})
 ]
 
 
@@ -815,11 +895,13 @@ def load_sources_local(
     """
     Load all translation sources from a local OCCU checkout.
 
-    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data).
+    Return 8-tuple of (locale_data, stringtable_mapping, pname_data, easymode_mappings,
+    options_tcl_data, help_data, icon_data, profile_localization_data).
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
     pname_data: dict[str, dict[str, str]] = {}
     help_data: dict[str, dict[str, str]] = {}
+    profile_localization_data: dict[str, dict[str, str]] = {}
 
     for locale in _LOCALES:
         locale_data[locale] = {}
@@ -868,6 +950,12 @@ def load_sources_local(
             help_data[locale] = help_translations
             print(f"  {locale}/HELP: {len(help_translations)} entries")
 
+        # Load profile localization files
+        profile_loc = load_profile_localization_files(occu_path, locale)
+        if profile_loc:
+            profile_localization_data[locale] = profile_loc
+            print(f"  {locale}/profile localization: {len(profile_loc)} entries")
+
     # Load stringtable mapping
     mapping_content = load_local_file(occu_path, _STRINGTABLE_MAPPING_PATH)
     stringtable_mapping = parse_stringtable_mapping(mapping_content)
@@ -889,7 +977,27 @@ def load_sources_local(
         options_tcl_data = parse_options_tcl(options_content)
         print(f"  options.tcl: {len(options_tcl_data)} option types")
 
-    return locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data
+    # Load device icon database (locale-independent)
+    devdb_path = occu_path / "WebUI" / "www" / _DEVDB_PATH
+    icon_data: dict[str, str] = {}
+    if devdb_path.is_file():
+        try:
+            devdb_content = devdb_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            devdb_content = devdb_path.read_text(encoding="iso-8859-1")
+        icon_data = parse_devdb_icon_mapping(devdb_content)
+        print(f"  DEVDB.tcl: {len(icon_data)} device icons")
+
+    return (
+        locale_data,
+        stringtable_mapping,
+        pname_data,
+        easymode_mappings,
+        options_tcl_data,
+        help_data,
+        icon_data,
+        profile_localization_data,
+    )
 
 
 def load_sources_remote(
@@ -898,8 +1006,9 @@ def load_sources_remote(
     """
     Load all translation sources from a remote CCU via HTTP.
 
-    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data).
-    Easymode/options TCL parsing is not supported for remote sources.
+    Return 8-tuple of (locale_data, stringtable_mapping, pname_data, easymode_mappings,
+    options_tcl_data, help_data, icon_data, profile_localization_data).
+    Easymode/options TCL, profile localization, and DEVDB parsing not supported for remote.
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
     pname_data: dict[str, dict[str, str]] = {}
@@ -980,7 +1089,16 @@ def load_sources_remote(
         print(f"  WARNING: Failed to fetch stringtable mapping: {err}", file=sys.stderr)
         stringtable_mapping = {}
 
-    return locale_data, stringtable_mapping, pname_data, {}, {}, help_data
+    # Try to load DEVDB.tcl from remote
+    icon_data: dict[str, str] = {}
+    try:
+        devdb_content = fetch_remote_file(ccu_url, _DEVDB_PATH)
+        icon_data = parse_devdb_icon_mapping(devdb_content)
+        print(f"  DEVDB.tcl: {len(icon_data)} device icons")
+    except Exception:
+        pass  # DEVDB.tcl is optional for remote
+
+    return locale_data, stringtable_mapping, pname_data, {}, {}, help_data, icon_data, {}
 
 
 # Known MASTER_LANG JS files (for remote fetching where glob is not available)
@@ -1030,8 +1148,8 @@ def _merge_sources(
     overlay: _SourceTuple,
 ) -> _SourceTuple:
     """Merge two source tuples. Overlay entries take precedence over base."""
-    b_locale, b_stmap, b_pname, b_easy, b_opts, b_help = base
-    o_locale, o_stmap, o_pname, o_easy, o_opts, o_help = overlay
+    b_locale, b_stmap, b_pname, b_easy, b_opts, b_help, b_icons, b_ploc = base
+    o_locale, o_stmap, o_pname, o_easy, o_opts, o_help, o_icons, o_ploc = overlay
 
     # Merge locale_data (deep merge per locale per js_file)
     merged_locale: dict[str, dict[str, dict[str, str]]] = {}
@@ -1073,7 +1191,27 @@ def _merge_sources(
         merged.update(o_help.get(locale, {}))
         merged_help[locale] = merged
 
-    return merged_locale, merged_stmap, merged_pname, merged_easy, merged_opts, merged_help
+    # Merge icon data
+    merged_icons = dict(b_icons)
+    merged_icons.update(o_icons)
+
+    # Merge profile localization data (per locale)
+    merged_ploc: dict[str, dict[str, str]] = {}
+    for locale in set(b_ploc) | set(o_ploc):
+        merged = dict(b_ploc.get(locale, {}))
+        merged.update(o_ploc.get(locale, {}))
+        merged_ploc[locale] = merged
+
+    return (
+        merged_locale,
+        merged_stmap,
+        merged_pname,
+        merged_easy,
+        merged_opts,
+        merged_help,
+        merged_icons,
+        merged_ploc,
+    )
 
 
 def _load_dotenv(env_file: Path) -> None:
@@ -1128,15 +1266,36 @@ def main() -> int:
         sources.append(load_sources_remote(ccu_url))
 
     if len(sources) == 1:
-        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data = sources[0]
+        (
+            locale_data,
+            stringtable_mapping,
+            pname_data,
+            easymode_mappings,
+            options_tcl_data,
+            help_data,
+            icon_data,
+            profile_localization_data,
+        ) = sources[0]
     else:
         # Merge: OCCU local as base, remote CCU as overlay
-        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data = _merge_sources(
-            sources[0], sources[1]
-        )
+        (
+            locale_data,
+            stringtable_mapping,
+            pname_data,
+            easymode_mappings,
+            options_tcl_data,
+            help_data,
+            icon_data,
+            profile_localization_data,
+        ) = _merge_sources(sources[0], sources[1])
         print("\nMerged local and remote sources.")
 
     print()
+
+    # Device icons (locale-independent, outside locale loop)
+    if icon_data:
+        count = write_json(output_dir, "device_icons.json", icon_data)
+        print(f"device_icons.json: {count} entries")
 
     # Phase 2 & 3: Process and output per locale
     for locale in _LOCALES:
@@ -1191,8 +1350,20 @@ def main() -> int:
                     existing_lower.add(key.lower())
                     pname_count += 1
 
+        # Merge profile localization (lowest priority — after PNAME)
+        profile_count = 0
+        if locale in profile_localization_data:
+            for key, value in profile_localization_data[locale].items():
+                if key.lower() not in existing_lower:
+                    parameters[key] = value
+                    existing_lower.add(key.lower())
+                    profile_count += 1
+
         count = write_json(output_dir, f"parameters_{locale}.json", parameters)
-        print(f"  parameters_{locale}.json: {count} entries (+{easymode_count} easymode, +{pname_count} PNAME)")
+        print(
+            f"  parameters_{locale}.json: {count} entries "
+            f"(+{easymode_count} easymode, +{pname_count} PNAME, +{profile_count} profile)"
+        )
         count = write_json(output_dir, f"parameter_values_{locale}.json", parameter_values)
         print(f"  parameter_values_{locale}.json: {count} entries (+{options_count} options.tcl)")
 

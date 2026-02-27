@@ -1539,6 +1539,11 @@ class DeviceIdentityProtocol(Protocol):
 
     @property
     @abstractmethod
+    def icon(self) -> str | None:
+        """Return the icon filename for the device model."""
+
+    @property
+    @abstractmethod
     def identifier(self) -> str:
         """Return the identifier of the device."""
 

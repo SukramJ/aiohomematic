@@ -68,6 +68,24 @@ _LOCALES = ("de", "en")
 # Sentinel keys to exclude
 _SENTINEL_KEYS = frozenset({"theEnd", "The END", "dummy", "comment", "noMoreKeys"})
 
+# Sentinel keys to exclude from help text files
+_HELP_SENTINEL_KEYS: frozenset[str] = frozenset({"HelpTitle", "noHelpAvailable", "noMoreHelp"})
+
+# Known help text files in MASTER_LANG directory
+_HELP_FILE_NAMES: frozenset[str] = frozenset(
+    {
+        "HmIP-ParamHelp.js",
+        "HEATINGTHERMOSTATE_2ND_GEN_HELP.js",
+        "HM_ES_TX_WM_HELP.js",
+    }
+)
+
+
+def _is_help_file(filename: str) -> bool:
+    """Return True if the filename is a known help text file."""
+    return filename in _HELP_FILE_NAMES
+
+
 # Default output directory (relative to project root)
 _DEFAULT_OUTPUT_DIR = "aiohomematic/translations/ccu_extract"
 
@@ -293,6 +311,82 @@ def clean_value(value: str) -> str:
     # Normalize whitespace
     decoded = " ".join(decoded.split())
     return decoded.strip()
+
+
+# Regex patterns for HTML-to-Markdown conversion in help texts
+_HTML_TAG_BOLD_RE = re.compile(r"<b>(.*?)</b>", re.DOTALL)
+_HTML_TAG_ITALIC_RE = re.compile(r"<(?:i|u)>(.*?)</(?:i|u)>", re.DOTALL)
+_HTML_TAG_BR_RE = re.compile(r"<br\s*/?>")
+_HTML_TAG_LI_RE = re.compile(r"<li[^>]*>(.*?)</li>", re.DOTALL)
+_HTML_TAG_HEADING_RE = re.compile(r"<h[1-6][^>]*>(.*?)</h[1-6]>", re.DOTALL)
+_HTML_TAG_PRE_RE = re.compile(r"<pre[^>]*>(.*?)</pre>", re.DOTALL)
+_HTML_TAG_TD_TH_RE = re.compile(r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>", re.DOTALL)
+_HTML_TAG_BLOCK_RE = re.compile(r"</?(?:ul|ol|div|table|tr|thead|tbody)[^>]*>")
+_HTML_TAG_ANY_RE = re.compile(r"</?[a-zA-Z][^>]*>")
+_HTML_ENTITY_MAP: dict[str, str] = {
+    "&nbsp;": " ",
+    "&amp;": "&",
+    "&auml;": "ä",
+    "&ouml;": "ö",
+    "&uuml;": "ü",
+    "&Auml;": "Ä",
+    "&Ouml;": "Ö",
+    "&Uuml;": "Ü",
+    "&szlig;": "ß",
+    "&quot;": '"',
+    "&lt;": "<",
+    "&gt;": ">",
+    "&plusmn;": "±",
+    "&deg;": "°",
+}
+_HTML_ENTITY_RE = re.compile(r"&(?:#(\d+)|#x([0-9a-fA-F]+)|(\w+));")
+
+
+def _decode_html_entity(match: re.Match[str]) -> str:
+    """Decode a single HTML entity match."""
+    if match.group(1):
+        return chr(int(match.group(1)))
+    if match.group(2):
+        return chr(int(match.group(2), 16))
+    named = f"&{match.group(3)};"
+    return _HTML_ENTITY_MAP.get(named, named)
+
+
+def clean_value_markdown(value: str) -> str:
+    """Convert HTML help text to Markdown, URL-decode, and normalize whitespace."""
+    # URL-decode (%FC -> ü, etc.) using Latin-1 encoding
+    decoded = unquote(value, encoding="latin-1")
+
+    # Decode HTML entities
+    decoded = _HTML_ENTITY_RE.sub(_decode_html_entity, decoded)
+    for entity, char in _HTML_ENTITY_MAP.items():
+        decoded = decoded.replace(entity, char)
+
+    # Convert HTML tags to Markdown (order matters)
+    # Bold
+    decoded = _HTML_TAG_BOLD_RE.sub(r"**\1**", decoded)
+    # Italic/underline
+    decoded = _HTML_TAG_ITALIC_RE.sub(r"*\1*", decoded)
+    # Line breaks -> newline
+    decoded = _HTML_TAG_BR_RE.sub("\n", decoded)
+    # Headings
+    decoded = _HTML_TAG_HEADING_RE.sub(r"# \1\n", decoded)
+    # Pre/code
+    decoded = _HTML_TAG_PRE_RE.sub(r"`\1`", decoded)
+    # Table cells -> inline text with space
+    decoded = _HTML_TAG_TD_TH_RE.sub(r"\1 ", decoded)
+    # List items -> Markdown list
+    decoded = _HTML_TAG_LI_RE.sub(r"- \1\n", decoded)
+    # Block-level tags -> newline
+    decoded = _HTML_TAG_BLOCK_RE.sub("\n", decoded)
+    # Strip all remaining HTML tags
+    decoded = _HTML_TAG_ANY_RE.sub("", decoded)
+
+    # Normalize whitespace per line, max 2 consecutive newlines
+    lines = [" ".join(line.split()) for line in decoded.splitlines()]
+    text = "\n".join(lines)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 # Regex to extract "KEY" : "VALUE" pairs from PNAME-style files
@@ -625,6 +719,8 @@ def load_master_lang_files(
         return merged
 
     for js_file in sorted(master_lang_dir.glob("*.js")):
+        if _is_help_file(js_file.name):
+            continue
         try:
             content = js_file.read_text(encoding="utf-8")
         except UnicodeDecodeError:
@@ -666,13 +762,50 @@ def load_pname_files(
     return merged
 
 
-# Type alias for the 5-tuple returned by load_sources_*
+def load_help_files(
+    occu_path: Path,
+    locale: str,
+) -> dict[str, str]:
+    """
+    Load parameter help texts from MASTER_LANG help JS files.
+
+    Parse known help JS files in config/easymodes/MASTER_LANG/ that contain
+    jQuery.extend(true, langJSON, ...) blocks for the given locale.
+    Only loads files listed in _HELP_FILE_NAMES.
+    """
+    master_lang_dir = occu_path / "WebUI" / "www" / _MASTER_LANG_DIR
+    merged: dict[str, str] = {}
+
+    if not master_lang_dir.is_dir():
+        return merged
+
+    for help_filename in sorted(_HELP_FILE_NAMES):
+        js_file = master_lang_dir / help_filename
+        if not js_file.is_file():
+            continue
+        try:
+            content = js_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            content = js_file.read_text(encoding="iso-8859-1")
+
+        parsed = parse_jquery_extend(content, locale=locale)
+        # Filter sentinel keys
+        for key in _HELP_SENTINEL_KEYS:
+            parsed.pop(key, None)
+        if parsed:
+            merged.update(parsed)
+
+    return merged
+
+
+# Type alias for the 6-tuple returned by load_sources_*
 _SourceTuple = tuple[
     dict[str, dict[str, dict[str, str]]],  # locale_data
     dict[str, str],  # stringtable_mapping
     dict[str, dict[str, str]],  # pname_data
     dict[str, str],  # easymode_mappings
     dict[str, dict[int, str]],  # options_tcl_data
+    dict[str, dict[str, str]],  # help_data (locale -> {param -> raw_html})
 ]
 
 
@@ -682,10 +815,11 @@ def load_sources_local(
     """
     Load all translation sources from a local OCCU checkout.
 
-    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data).
+    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data).
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
     pname_data: dict[str, dict[str, str]] = {}
+    help_data: dict[str, dict[str, str]] = {}
 
     for locale in _LOCALES:
         locale_data[locale] = {}
@@ -728,6 +862,12 @@ def load_sources_local(
         if pname_translations:
             pname_data[locale] = pname_translations
 
+        # Load help text files
+        help_translations = load_help_files(occu_path, locale)
+        if help_translations:
+            help_data[locale] = help_translations
+            print(f"  {locale}/HELP: {len(help_translations)} entries")
+
     # Load stringtable mapping
     mapping_content = load_local_file(occu_path, _STRINGTABLE_MAPPING_PATH)
     stringtable_mapping = parse_stringtable_mapping(mapping_content)
@@ -749,7 +889,7 @@ def load_sources_local(
         options_tcl_data = parse_options_tcl(options_content)
         print(f"  options.tcl: {len(options_tcl_data)} option types")
 
-    return locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data
+    return locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data
 
 
 def load_sources_remote(
@@ -758,11 +898,12 @@ def load_sources_remote(
     """
     Load all translation sources from a remote CCU via HTTP.
 
-    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data).
+    Return (locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data).
     Easymode/options TCL parsing is not supported for remote sources.
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
     pname_data: dict[str, dict[str, str]] = {}
+    help_data: dict[str, dict[str, str]] = {}
 
     for locale in _LOCALES:
         locale_data[locale] = {}
@@ -792,8 +933,10 @@ def load_sources_remote(
                 locale_data[locale]["translate.lang.stringtable.js"].update(aliases)
                 print(f"  {locale}/stringtable aliases: {len(aliases)} entries")
 
-        # Load MASTER_LANG files from remote
+        # Load MASTER_LANG files from remote (skip help files)
         for js_filename in _MASTER_LANG_JS_FILES:
+            if _is_help_file(js_filename):
+                continue
             relative_path = f"{_MASTER_LANG_DIR}/{js_filename}"
             try:
                 content = fetch_remote_file(ccu_url, relative_path)
@@ -802,6 +945,19 @@ def load_sources_remote(
                     locale_data[locale].setdefault("_master_lang", {}).update(parsed)
             except Exception:
                 pass  # MASTER_LANG files are optional
+
+        # Load help files from remote
+        for help_filename in sorted(_HELP_FILE_NAMES):
+            relative_path = f"{_MASTER_LANG_DIR}/{help_filename}"
+            try:
+                content = fetch_remote_file(ccu_url, relative_path)
+                parsed = parse_jquery_extend(content, locale=locale)
+                for key in _HELP_SENTINEL_KEYS:
+                    parsed.pop(key, None)
+                if parsed:
+                    help_data.setdefault(locale, {}).update(parsed)
+            except Exception:
+                pass  # Help files are optional
 
         # Load PNAME files from remote
         for pname_file in _PNAME_FILES:
@@ -824,7 +980,7 @@ def load_sources_remote(
         print(f"  WARNING: Failed to fetch stringtable mapping: {err}", file=sys.stderr)
         stringtable_mapping = {}
 
-    return locale_data, stringtable_mapping, pname_data, {}, {}
+    return locale_data, stringtable_mapping, pname_data, {}, {}, help_data
 
 
 # Known MASTER_LANG JS files (for remote fetching where glob is not available)
@@ -874,8 +1030,8 @@ def _merge_sources(
     overlay: _SourceTuple,
 ) -> _SourceTuple:
     """Merge two source tuples. Overlay entries take precedence over base."""
-    b_locale, b_stmap, b_pname, b_easy, b_opts = base
-    o_locale, o_stmap, o_pname, o_easy, o_opts = overlay
+    b_locale, b_stmap, b_pname, b_easy, b_opts, b_help = base
+    o_locale, o_stmap, o_pname, o_easy, o_opts, o_help = overlay
 
     # Merge locale_data (deep merge per locale per js_file)
     merged_locale: dict[str, dict[str, dict[str, str]]] = {}
@@ -910,7 +1066,14 @@ def _merge_sources(
         merged.update(o_opts.get(opt_type, {}))
         merged_opts[opt_type] = merged
 
-    return merged_locale, merged_stmap, merged_pname, merged_easy, merged_opts
+    # Merge help data (per locale)
+    merged_help: dict[str, dict[str, str]] = {}
+    for locale in set(b_help) | set(o_help):
+        merged = dict(b_help.get(locale, {}))
+        merged.update(o_help.get(locale, {}))
+        merged_help[locale] = merged
+
+    return merged_locale, merged_stmap, merged_pname, merged_easy, merged_opts, merged_help
 
 
 def _load_dotenv(env_file: Path) -> None:
@@ -965,10 +1128,10 @@ def main() -> int:
         sources.append(load_sources_remote(ccu_url))
 
     if len(sources) == 1:
-        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data = sources[0]
+        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data = sources[0]
     else:
         # Merge: OCCU local as base, remote CCU as overlay
-        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data = _merge_sources(
+        locale_data, stringtable_mapping, pname_data, easymode_mappings, options_tcl_data, help_data = _merge_sources(
             sources[0], sources[1]
         )
         print("\nMerged local and remote sources.")
@@ -1035,6 +1198,21 @@ def main() -> int:
 
         if unresolved:
             print(f"  ({unresolved} unresolved template references)")
+
+        # Parameter help texts (HTML -> Markdown)
+        if locale in help_data:
+            parameter_help: dict[str, str] = {}
+            for key, raw_html in help_data[locale].items():
+                # Resolve ${templateVar} references using all translations
+                resolved = resolve_template(raw_html, all_translations)
+                if resolved is None:
+                    # Strip unresolved ${vars} and use remaining text
+                    resolved = _TEMPLATE_VAR_RE.sub("", raw_html)
+                markdown = clean_value_markdown(resolved)
+                if markdown:
+                    parameter_help[key] = markdown
+            count = write_json(output_dir, f"parameter_help_{locale}.json", parameter_help)
+            print(f"  parameter_help_{locale}.json: {count} entries")
 
     print(f"\nDone. Translations written to {output_dir}/")
     return 0

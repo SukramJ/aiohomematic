@@ -762,6 +762,7 @@ class BaseParameterDataPoint[
         "_cached__enabled_by_channel_operation_mode",
         "_current_value",
         "_default",
+        "_description",
         "_enum_value_is_index",
         "_ignore_on_initial_load",
         "_is_forced_sensor",
@@ -832,6 +833,10 @@ class BaseParameterDataPoint[
             channel_type=channel.type_name,
             locale=channel.device.config_provider.config.locale,
         )
+        self._description: Final[str | None] = ccu_translations.get_parameter_help(
+            parameter=self._parameter,
+            locale=channel.device.config_provider.config.locale,
+        )
         self._current_value: ParameterT | None = None
         self._last_non_default_value: ParameterT | None = None
         self._unconfirmed_value: ParameterT | None = None
@@ -882,6 +887,7 @@ class BaseParameterDataPoint[
             self._status_unsubscriber: CallableAny | None = None
 
     default: Final = DelegatedProperty[ParameterT](path="_default")
+    description: Final = DelegatedProperty[str | None](path="_description", kind=Kind.INFO)
     hmtype: Final = DelegatedProperty[ParameterType](path="_type")
     ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
     is_forced_sensor: Final = DelegatedProperty[bool](path="_is_forced_sensor")

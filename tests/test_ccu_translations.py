@@ -10,6 +10,7 @@ from aiohomematic.ccu_translations import (
     _match_link_prefix,
     get_channel_type_translation,
     get_device_model_description,
+    get_parameter_help,
     get_parameter_translation,
     get_parameter_value_translation,
 )
@@ -537,3 +538,64 @@ class TestTranslationStoreLoading:
         # the store was loaded successfully
         result = get_parameter_translation(parameter="ON_LEVEL", locale="en")
         assert result is not None
+
+
+class TestGetParameterHelp:
+    """Test parameter help text lookup."""
+
+    def test_both_locales_differ(self) -> None:
+        """Test that DE and EN help texts are different."""
+        result_de = get_parameter_help(parameter="BUTTON_LOCK", locale="de")
+        result_en = get_parameter_help(parameter="BUTTON_LOCK", locale="en")
+        assert result_de is not None
+        assert result_en is not None
+        assert result_de != result_en
+
+    def test_case_insensitive(self) -> None:
+        """Test that parameter lookup is case-insensitive."""
+        upper = get_parameter_help(parameter="BUTTON_LOCK", locale="en")
+        lower = get_parameter_help(parameter="button_lock", locale="en")
+        assert upper == lower
+
+    def test_contains_markdown_formatting(self) -> None:
+        """Test that help text with bold content contains Markdown formatting."""
+        # ROUTER_MODULE_ENABLED is known to have <b>bold</b> content
+        result = get_parameter_help(parameter="ROUTER_MODULE_ENABLED", locale="en")
+        assert result is not None
+        assert "**" in result
+
+    def test_known_parameter_returns_markdown(self) -> None:
+        """Test that a known parameter returns Markdown help text."""
+        result_de = get_parameter_help(parameter="BUTTON_LOCK", locale="de")
+        result_en = get_parameter_help(parameter="BUTTON_LOCK", locale="en")
+        assert result_de is not None
+        assert result_en is not None
+        assert len(result_de) > 10
+        assert len(result_en) > 10
+
+    def test_link_prefix_stripping(self) -> None:
+        """Test that SHORT_/LONG_ prefix is stripped for help text lookup."""
+        direct = get_parameter_help(parameter="BUTTON_LOCK", locale="en")
+        short = get_parameter_help(parameter="SHORT_BUTTON_LOCK", locale="en")
+        assert direct is not None
+        assert short == direct
+
+    def test_no_html_tags_in_output(self) -> None:
+        """Test that help text contains no HTML tags."""
+
+        result = get_parameter_help(parameter="BUTTON_LOCK", locale="de")
+        assert result is not None
+        assert "<br" not in result
+        assert "<b>" not in result
+        assert "</b>" not in result
+
+    def test_unknown_parameter(self) -> None:
+        """Test that unknown parameter returns None."""
+        result = get_parameter_help(parameter="TOTALLY_UNKNOWN_PARAM_XYZ")
+        assert result is None
+
+    def test_unsupported_locale_falls_back_to_english(self) -> None:
+        """Test that unsupported locale falls back to English."""
+        result_en = get_parameter_help(parameter="BUTTON_LOCK", locale="en")
+        result_fr = get_parameter_help(parameter="BUTTON_LOCK", locale="fr")
+        assert result_fr == result_en

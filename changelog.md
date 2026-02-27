@@ -1,3 +1,18 @@
+# Version 2026.2.29 (2026-02-27)
+
+## What's Changed
+
+### Added
+
+- **Parameter help texts**: Extract and expose Markdown-formatted help texts for
+  ~165 MASTER paramset parameters (e.g. `BUTTON_LOCK`, `TEMPERATURE_OFFSET`,
+  `VALVE_OFFSET`) from the CCU WebUI. The HTML content is converted to Markdown,
+  template variables are resolved, and the result is available via
+  `get_parameter_help()` in `ccu_translations` and as a `description` property
+  on `BaseParameterDataPoint`.
+
+---
+
 # Version 2026.2.28 (2026-02-27)
 
 ## What's Changed

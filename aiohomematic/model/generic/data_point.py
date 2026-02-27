@@ -168,11 +168,13 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             collector.add_data_point(data_point=self, value=converted_value, collector_order=collector_order)
             return set()
 
-        # DIRECT SEND PATH: Apply optimistic update immediately
-        self.apply_optimistic_value(value=converted_value)
-
+        # DIRECT SEND PATH: Check state change BEFORE applying optimistic update.
+        # Applying optimistic first would start a 30s rollback timer even when
+        # no RPC is sent (value unchanged), causing spurious timeout rollbacks.
         if self._validate_state_change and not self.is_state_change(value=converted_value):
             return set()
+
+        self.apply_optimistic_value(value=converted_value)
 
         # Detect command priority for throttling (CRITICAL/HIGH/LOW)
         ctx = get_request_context()

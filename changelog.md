@@ -1,3 +1,20 @@
+# Version 2026.2.28 (2026-02-27)
+
+## What's Changed
+
+### Fixed
+
+- **Fix spurious optimistic update rollbacks**: `apply_optimistic_value()` was
+  called before the `is_state_change()` check in the direct send path. When
+  sending a value identical to the current state (e.g. turning off an already-off
+  switch), the optimistic timer started but no RPC was sent to the CCU, making
+  confirmation impossible. After 30 seconds the timer fired a spurious rollback
+  with warning logs and `OptimisticRollbackEvent`. The state change check now
+  runs first so optimistic tracking is only activated when an RPC call actually
+  occurs.
+
+---
+
 # Version 2026.2.27 (2026-02-26)
 
 ## What's Changed

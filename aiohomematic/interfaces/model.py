@@ -574,6 +574,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
+    def description(self) -> str | None:
+        """Return the Markdown-formatted help text for the parameter."""
+
+    @property
+    @abstractmethod
     def dpk(self) -> DataPointKey:
         """Return data point key value."""
 

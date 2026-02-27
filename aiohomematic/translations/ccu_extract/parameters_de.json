@@ -500,7 +500,7 @@
   "local_reset_disabled": "Reset per Gerätetaste sperren",
   "lock_state": "Schlosszustand",
   "lock_state_reason": "Auslöser",
-  "lock_teach_in_state": "Status der Türschloss-Anlern-Prozedur",
+  "lock_teach_in_state": "Status Anlernprozess Türschloss",
   "logging": "Logging",
   "logging_time": "Zeit nach der Logging-Meldung verschickt wird",
   "logic_and": "AND (niedriger Pegel hat Priorität)",

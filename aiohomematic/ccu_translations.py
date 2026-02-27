@@ -30,6 +30,7 @@ from typing import Final
 __all__ = [
     "get_channel_type_translation",
     "get_device_model_description",
+    "get_parameter_help",
     "get_parameter_translation",
     "get_parameter_value_translation",
 ]
@@ -39,7 +40,7 @@ _PACKAGE: Final = "aiohomematic"
 
 _SUPPORTED_LOCALES: Final = frozenset({"de", "en"})
 _DEFAULT_LOCALE: Final = "en"
-_CATEGORIES: Final = ("channel_types", "device_models", "parameters", "parameter_values")
+_CATEGORIES: Final = ("channel_types", "device_models", "parameter_help", "parameters", "parameter_values")
 _SUBDIRS: Final = ("ccu_extract", "ccu_custom")
 
 # Prefixes used in LINK paramset parameter names (e.g. SHORT_ON_LEVEL, LONG_RAMPON_TIME).
@@ -213,6 +214,27 @@ def get_parameter_translation(
             base_label = translations.get(base)
         if base_label is not None:
             return f"{base_label} ({_LINK_PREFIX_LABELS[prefix][lang]})"
+
+    return None
+
+
+def get_parameter_help(
+    *,
+    parameter: str,
+    locale: str = "en",
+) -> str | None:
+    """Return Markdown-formatted help text for a parameter."""
+    lang = _get_locale(locale=locale)
+    translations = _store.get(category="parameter_help", locale=lang)
+    param_lower = parameter.lower()
+
+    if (label := translations.get(param_lower)) is not None:
+        return label
+
+    # Strip SHORT_/LONG_ prefix (LINK paramset parameters) and retry
+    if (match := _match_link_prefix(parameter=param_lower)) is not None:
+        _prefix, base = match
+        return translations.get(base)
 
     return None
 

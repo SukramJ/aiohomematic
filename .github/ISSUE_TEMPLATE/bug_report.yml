@@ -8,6 +8,9 @@ body:
         For installation support, use the relevant forums if the documentation is insufficient.
         Use the discussions for feature requests and other stuff.
 
+        🖥️ **Frontend issues** (UI, dashboard cards, visual bugs) belong in the
+        **[homematicip_local_frontend](https://github.com/sukramj/homematicip_local_frontend/issues)** repository!
+
         ⚠️ **IMPORTANT: Meaningful support is only possible if all required information is provided!**
         This includes in particular: **Integration diagnostics (.json file)** and **log file**.
         Issues without this information may be closed without comment.
@@ -32,6 +35,8 @@ body:
         - label: The Backend (CCU/Homegear/...) is working as expected, devices are taught in and are controllable by its own UI.
           required: true
         - label: I am running the latest version of the custom_component (and Home Assistant)
+          required: true
+        - label: This is NOT a frontend/UI issue (those belong in the [homematicip_local_frontend](https://github.com/sukramj/homematicip_local_frontend/issues) repo)
           required: true
   - type: textarea
     validations:

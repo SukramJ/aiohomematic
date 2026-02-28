@@ -8,6 +8,9 @@ body:
         Bei Fragen zur Installation nutze bitte die entsprechenden Foren, falls die Dokumentation nicht ausreicht.
         Nutze die Diskussionen für Funktions- und sonstige Anfragen.
 
+        🖥️ **Frontend-Probleme** (Benutzeroberfläche, Dashboard-Karten, visuelle Fehler) gehören in das
+        **[homematicip_local_frontend](https://github.com/sukramj/homematicip_local_frontend/issues)** Repository!
+
         ⚠️ **WICHTIG: Sinnvoller Support ist nur möglich, wenn alle erforderlichen Informationen bereitgestellt werden!**
         Dazu gehören insbesondere: **Integrationsdiagnose (.json-Datei)** und **Protokolldatei**.
         Issues ohne diese Informationen können kommentarlos geschlossen werden.
@@ -32,6 +35,8 @@ body:
         - label: Das Backend (CCU/Homegear/...) funktioniert wie erwartet, Geräte können angelernt werden und sind über deren eigene Benutzeroberfläche steuerbar
           required: true
         - label: Ich verwende die neueste Version der Integration (und von Home Assistant).
+          required: true
+        - label: Dies ist KEIN Frontend-/UI-Problem (diese gehören in das [homematicip_local_frontend](https://github.com/sukramj/homematicip_local_frontend/issues) Repo)
           required: true
   - type: textarea
     validations:

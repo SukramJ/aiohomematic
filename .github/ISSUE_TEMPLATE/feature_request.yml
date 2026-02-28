@@ -1,0 +1,63 @@
+name: Feature Request
+description: Suggest an idea for Homematic(IP) Local for OpenCCU
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to suggest an improvement!
+
+        **Frontend issues** (UI, dashboard cards, visual bugs) should be reported in the
+        [homematicip_local_frontend](https://github.com/sukramj/homematicip_local_frontend/issues) repository.
+
+        For general questions and discussions, please use the
+        [Discussion Forum](https://github.com/sukramj/aiohomematic/discussions).
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked the [existing issues](https://github.com/sukramj/aiohomematic/issues) and this feature has not been requested before
+          required: true
+        - label: I have checked the [discussions](https://github.com/sukramj/aiohomematic/discussions) and this has not been discussed before
+          required: true
+        - label: This is NOT a frontend/UI issue (those belong in the [frontend repo](https://github.com/sukramj/homematicip_local_frontend/issues))
+          required: true
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: Category
+      description: >
+        What area does your feature request relate to?
+      options:
+        - Device support (new or improved)
+        - Integration with Home Assistant
+        - Backend communication (CCU/Homegear)
+        - Configuration / Setup
+        - Performance / Stability
+        - Documentation
+        - Other
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Description
+      description: >-
+        Please describe the feature or improvement you would like to see.
+
+        1. **What would you like?** (Describe the desired functionality)
+
+        2. **Why do you need it?** (What problem does it solve or what use case does it support?)
+
+        3. **How do you currently work around it?** (If applicable)
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: >-
+        If you have an idea for how this could be implemented, please describe it here.
+        This is optional, but can help us understand your vision.
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: >
+        Add any other context, screenshots, or references that might help.

@@ -421,12 +421,12 @@ class TestHelperFunctions:
         assert is_schedule_active(group_data=group_data) is False
 
     def test_is_schedule_active_missing_channels(self):
-        """Test is_schedule_active with missing channels."""
+        """Test is_schedule_active with missing channels still active (channels are optional)."""
         group_data = {
             ScheduleField.WEEKDAY: [WeekdayInt.MONDAY],
             ScheduleField.TARGET_CHANNELS: [],
         }
-        assert is_schedule_active(group_data=group_data) is False
+        assert is_schedule_active(group_data=group_data) is True
 
     def test_is_schedule_active_missing_weekday(self):
         """Test is_schedule_active with missing weekday."""

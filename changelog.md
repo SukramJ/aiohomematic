@@ -1,3 +1,21 @@
+# Version 2026.2.32 (2026-02-28)
+
+## What's Changed
+
+### Fixed
+
+- **Non-climate schedule: allow empty target channels**: Schedules without
+  explicit target channels were incorrectly filtered as inactive because
+  `is_schedule_active()` required both weekdays and target channels. The CCU
+  handles default channel assignment when no explicit channels are configured, so
+  the activity check now only requires at least one weekday. The
+  `SimpleScheduleEntry.target_channels` field default was changed from
+  `min_length=1` to `default_factory=list` and the fallback in
+  `convert_raw_group_to_simple_entry()` now returns an empty list instead of
+  `["1_1"]`.
+
+---
+
 # Version 2026.2.31 (2026-02-27)
 
 ## What's Changed

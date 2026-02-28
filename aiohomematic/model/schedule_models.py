@@ -284,7 +284,7 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
     # What to control
     target_channels: Annotated[
         list[str],
-        Field(min_length=1, description="Target channels like '1_1', '2_1'"),
+        Field(default_factory=list, description="Target channels like '1_1', '2_1'"),
     ]
     level: Annotated[
         float,
@@ -660,7 +660,7 @@ def convert_raw_group_to_simple_entry(
     # Extract target channels - cast to ScheduleActorChannel list for type safety
     channel_enums_raw = group_data.get(ScheduleField.TARGET_CHANNELS, [])
     channel_enums: list[ScheduleActorChannel] = list(channel_enums_raw) if isinstance(channel_enums_raw, list) else []
-    target_channels = convert_channels_to_list(channel_enums=channel_enums) if channel_enums else ["1_1"]
+    target_channels = convert_channels_to_list(channel_enums=channel_enums) if channel_enums else []
 
     # Extract level
     level_raw = group_data.get(ScheduleField.LEVEL, 0)

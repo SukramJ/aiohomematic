@@ -1619,22 +1619,17 @@ def is_schedule_active(*, group_data: DEFAULT_SCHEDULE_GROUP) -> bool:
         group_data: Schedule group data
 
     Returns:
-        True if schedule has both weekdays and target channels configured,
+        True if schedule has at least one weekday configured,
         False if deactivated or incomplete
 
     Note:
-        A schedule is considered active only if it has both:
-        - At least one weekday selected (when to run)
-        - At least one target channel selected (what to control)
-        Without both, the schedule won't execute, so it's filtered as inactive.
+        A schedule is considered active if it has at least one weekday selected.
+        Target channels are optional — the CCU handles default channel assignment
+        when no explicit channels are configured.
 
     """
-    # Check critical fields needed for execution
     weekday = group_data.get(ScheduleField.WEEKDAY, [])
-    target_channels = group_data.get(ScheduleField.TARGET_CHANNELS, [])
-
-    # Schedule is active only if both fields are non-empty
-    return bool(weekday and target_channels)
+    return bool(weekday)
 
 
 def create_empty_schedule_group(*, category: DataPointCategory | None = None) -> DEFAULT_SCHEDULE_GROUP:

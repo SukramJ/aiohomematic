@@ -17,6 +17,7 @@ from aiohomematic.interfaces import (
     CentralInfoProtocol,
     ChannelLookupProtocol,
     ChannelProtocol,
+    ClientProviderProtocol,
     ConfigProviderProtocol,
     EventBusProviderProtocol,
     EventPublisherProtocol,
@@ -24,7 +25,6 @@ from aiohomematic.interfaces import (
     GenericInstallModeDataPointProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
-    PrimaryClientProviderProtocol,
     TaskSchedulerProtocol,
 )
 from aiohomematic.model.data_point import CallbackDataPoint
@@ -50,8 +50,9 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
 
     __slots__ = (
         "_channel",
+        "_client_provider",
+        "_interface",
         "_name_data",
-        "_primary_client_provider",
     )
 
     def __init__(
@@ -66,7 +67,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         channel_lookup: ChannelLookupProtocol,
-        primary_client_provider: PrimaryClientProviderProtocol,
+        client_provider: ClientProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
         PayloadMixin.__init__(self)
@@ -76,6 +77,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
             parameter=slugify(data.name),
         )
         self._channel = channel_lookup.identify_channel(text=data.name)
+        self._interface: Final = data.interface
         self._name_data: Final = get_hub_data_point_name_data(
             channel=self._channel, legacy_name=f"{INSTALL_MODE_ADDRESS}_{data.name}", central_name=central_info.name
         )
@@ -88,7 +90,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
             paramset_description_provider=paramset_description_provider,
             parameter_visibility_provider=parameter_visibility_provider,
         )
-        self._primary_client_provider: Final = primary_client_provider
+        self._client_provider: Final = client_provider
 
     channel: Final = DelegatedProperty[ChannelProtocol | None](path="_channel")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
@@ -122,9 +124,12 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
     @state_property
     def available(self) -> bool:
         """Return the availability of the device."""
-        if client := self._primary_client_provider.primary_client:
+        try:
+            client = self._client_provider.get_client(interface=self._interface)
+        except Exception:
+            return False
+        else:
             return client.capabilities.install_mode and self._central_info.available
-        return False
 
     @override
     def _get_path_data(self) -> HubPathData:
@@ -161,7 +166,7 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         channel_lookup: ChannelLookupProtocol,
-        primary_client_provider: PrimaryClientProviderProtocol,
+        client_provider: ClientProviderProtocol,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(
@@ -173,7 +178,7 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
             paramset_description_provider=paramset_description_provider,
             parameter_visibility_provider=parameter_visibility_provider,
             channel_lookup=channel_lookup,
-            primary_client_provider=primary_client_provider,
+            client_provider=client_provider,
             data=data,
         )
         self._countdown_end: datetime = INIT_DATETIME
@@ -240,14 +245,14 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
         try:
             while self.is_active:
                 await asyncio.sleep(_SYNC_INTERVAL)
-                if client := self._primary_client_provider.primary_client:
-                    if (backend_remaining := await client.get_install_mode()) == 0:
-                        self.stop_countdown()
-                        break
-                    # Resync if significant drift
-                    if abs(self.value - backend_remaining) > 3:
-                        self._countdown_end = datetime.now() + timedelta(seconds=backend_remaining)
-                        self.publish_data_point_updated_event()
+                client = self._client_provider.get_client(interface=self._interface)
+                if (backend_remaining := await client.get_install_mode()) == 0:
+                    self.stop_countdown()
+                    break
+                # Resync if significant drift
+                if abs(self.value - backend_remaining) > 3:
+                    self._countdown_end = datetime.now() + timedelta(seconds=backend_remaining)
+                    self.publish_data_point_updated_event()
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -336,7 +341,7 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
         paramset_description_provider: ParamsetDescriptionProviderProtocol,
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
         channel_lookup: ChannelLookupProtocol,
-        primary_client_provider: PrimaryClientProviderProtocol,
+        client_provider: ClientProviderProtocol,
     ) -> None:
         """Initialize the button."""
         super().__init__(
@@ -349,7 +354,7 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
             paramset_description_provider=paramset_description_provider,
             parameter_visibility_provider=parameter_visibility_provider,
             channel_lookup=channel_lookup,
-            primary_client_provider=primary_client_provider,
+            client_provider=client_provider,
         )
         self._sensor: Final = sensor
 
@@ -373,9 +378,8 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
             True if successful.
 
         """
-        if (client := self._primary_client_provider.primary_client) and await client.set_install_mode(
-            on=True, time=time, device_address=device_address
-        ):
+        client = self._client_provider.get_client(interface=self._interface)
+        if await client.set_install_mode(on=True, time=time, device_address=device_address):
             self._sensor.start_countdown(seconds=time)
             return True
         return False
@@ -389,7 +393,8 @@ class InstallModeDpButton(_BaseInstallModeDataPoint):
             True if successful.
 
         """
-        if (client := self._primary_client_provider.primary_client) and await client.set_install_mode(on=False):
+        client = self._client_provider.get_client(interface=self._interface)
+        if await client.set_install_mode(on=False):
             self._sensor.stop_countdown()
             return True
         return False

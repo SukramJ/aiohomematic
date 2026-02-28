@@ -550,12 +550,12 @@ class Hub(HubProtocol):
             data=InstallModeData(name=sensor_parameter, interface=interface),
             central_info=self._central_info,
             channel_lookup=self._channel_lookup,
+            client_provider=self._client_provider,
             config_provider=self._config_provider,
             event_bus_provider=self._event_bus_provider,
             event_publisher=self._event_publisher,
             parameter_visibility_provider=self._parameter_visibility_provider,
             paramset_description_provider=self._paramset_description_provider,
-            primary_client_provider=self._primary_client_provider,
             task_scheduler=self._task_scheduler,
         )
         button = InstallModeDpButton(
@@ -563,12 +563,12 @@ class Hub(HubProtocol):
             data=InstallModeData(name=button_parameter, interface=interface),
             central_info=self._central_info,
             channel_lookup=self._channel_lookup,
+            client_provider=self._client_provider,
             config_provider=self._config_provider,
             event_bus_provider=self._event_bus_provider,
             event_publisher=self._event_publisher,
             parameter_visibility_provider=self._parameter_visibility_provider,
             paramset_description_provider=self._paramset_description_provider,
-            primary_client_provider=self._primary_client_provider,
             task_scheduler=self._task_scheduler,
         )
 

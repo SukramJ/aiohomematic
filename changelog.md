@@ -1,3 +1,16 @@
+# Version 2026.2.31 (2026-02-27)
+
+## What's Changed
+
+### Fixed
+
+- **Install mode**: Use interface-specific client instead of primary client for
+  install mode buttons. Previously, activating install mode for one interface
+  (e.g. HmIP-RF) could incorrectly target another interface (e.g. BidCos-RF).
+  (#2990)
+
+---
+
 # Version 2026.2.30 (2026-02-27)
 
 ## What's Changed

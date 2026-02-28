@@ -60,6 +60,7 @@ nav:
           - Device Configuration Panel: user/features/config_panel.md
           - Climate Schedule Card: user/features/climate_schedule_card.md
           - Schedule Card: user/features/schedule_card.md
+          - CCU Backup: user/features/backup.md
           - Calculated Climate Sensors: user/features/calculated_climate_sensors.md
       - Advanced:
           - Naming Conventions: user/advanced/homeassistant_naming.md

@@ -1,3 +1,17 @@
+# Version 2026.3.0 (2026-03-01)
+
+## What's Changed
+
+### Fixed
+
+- **Device link encoding**: Fix garbled UTF-8 characters in device link names
+  and descriptions retrieved via XML-RPC. The CCU stores user-defined strings as
+  UTF-8 but the XML-RPC transport decodes them as ISO-8859-1, causing multi-byte
+  characters to be misinterpreted (e.g. `ü` → `Ã¼`). New `fix_xml_rpc_encoding`
+  utility in `support.text_utils` reverses the double-encoding.
+
+---
+
 # Version 2026.2.32 (2026-02-28)
 
 ## What's Changed

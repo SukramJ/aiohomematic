@@ -25,6 +25,7 @@ from aiohomematic.const import LINKABLE_INTERFACES, ParamsetKey
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.interfaces.central import LinkFacadeProtocol
 from aiohomematic.support.address import get_device_address
+from aiohomematic.support.text_utils import fix_xml_rpc_encoding
 
 if TYPE_CHECKING:
     from aiohomematic.central.device_registry import DeviceRegistry
@@ -214,8 +215,8 @@ class LinkCoordinator(LinkFacadeProtocol):
                     DeviceLink(
                         sender_address=sender_addr,
                         receiver_address=receiver_addr,
-                        name=link_info.get("NAME", ""),
-                        description=link_info.get("DESCRIPTION", ""),
+                        name=fix_xml_rpc_encoding(text=link_info.get("NAME", "")),
+                        description=fix_xml_rpc_encoding(text=link_info.get("DESCRIPTION", "")),
                         flags=link_info.get("FLAGS", 0),
                         sender_device_name=(
                             device.name if is_sender else (peer_device.name if peer_device else peer_device_addr)

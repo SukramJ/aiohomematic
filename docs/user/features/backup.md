@@ -30,11 +30,11 @@ This means every HA backup stored on the CCU is accompanied by a matching CCU sy
 
 All backup management is done through the standard Home Assistant backup UI:
 
-| Action | Behavior |
-| ------ | -------- |
-| **List** | Shows all HA backups stored in the CCU backup directory |
-| **Download** | Downloads the HA backup `.tar` file |
-| **Delete** | Removes the HA backup, its metadata, and the associated CCU `.sbk` backup |
+| Action       | Behavior                                                                  |
+| ------------ | ------------------------------------------------------------------------- |
+| **List**     | Shows all HA backups stored in the CCU backup directory                   |
+| **Download** | Downloads the HA backup `.tar` file                                       |
+| **Delete**   | Removes the HA backup, its metadata, and the associated CCU `.sbk` backup |
 
 ---
 
@@ -56,11 +56,11 @@ Both the Backup Agent and the Backup Button store files in:
 
 This directory is created automatically when the first backup is made. It contains:
 
-| File type | Description |
-| --------- | ----------- |
-| `*.tar` | Home Assistant backup archives (created by HA core) |
-| `*_meta.json` | Metadata linking HA backups to CCU backups |
-| `*.sbk` | CCU system backups |
+| File type     | Description                                         |
+| ------------- | --------------------------------------------------- |
+| `*.tar`       | Home Assistant backup archives (created by HA core) |
+| `*_meta.json` | Metadata linking HA backups to CCU backups          |
+| `*.sbk`       | CCU system backups                                  |
 
 ---
 

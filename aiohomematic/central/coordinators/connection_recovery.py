@@ -384,7 +384,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
             )
             writer.close()
             await writer.wait_closed()
-        except (TimeoutError, OSError):
+        except TimeoutError, OSError:
             return False
         return True
 

@@ -25,7 +25,6 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Free Threading :: 2 - Beta",
     "Programming Language :: Python :: Implementation :: CPython",
@@ -34,7 +33,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "aiohttp>=3.12.0",
     "pydantic>=2.10.0",
@@ -71,7 +70,7 @@ exclude = ["aiohomematic_test_support", "aiohomematic_test_support.*", "tests", 
 aiohomematic = ["py.typed", "rega_scripts/*.fn", "translations/*.json"]
 
 [tool.pylint.MAIN]
-py-version = "3.13"
+py-version = "3.14"
 ignore = [
     "tests",
 ]
@@ -433,7 +432,7 @@ filterwarnings = [
 ]
 
 [tool.ruff]
-target-version = "py313" # Target Python version for Ruff
+target-version = "py314" # Target Python version for Ruff
 line-length = 120 # Maximum line length for linting and formatting guidance
 
 # Lint rule families and specific checks to enable
@@ -670,7 +669,7 @@ output = "coverage.xml"
 
 
 [tool.mypy]
-python_version = "3.13" # Target Python version used for type checking
+python_version = "3.14" # Target Python version used for type checking
 plugins = ["pydantic.mypy"]  # Enable Pydantic mypy plugin for better type inference
 strict = true  # Enable mypy strict mode (enables a suite of rigorous checks)
 show_error_codes = true  # Include error codes in messages

@@ -108,7 +108,7 @@ def find_imports_in_file(file_path: Path) -> dict[str, set[str]]:
     try:
         content = file_path.read_text(encoding="utf-8")
         tree = ast.parse(content)
-    except (SyntaxError, OSError, UnicodeDecodeError):
+    except SyntaxError, OSError, UnicodeDecodeError:
         return result
 
     for node in ast.walk(tree):

@@ -1,6 +1,12 @@
-# Version 2026.3.1 (2026-03-03)
+# Version 2026.3.1 (2026-03-05)
 
 ## What's Changed
+
+### Changed
+
+- **Python 3.14 minimum**: Dropped Python 3.13 support. Python 3.14 is now the
+  minimum required version. All tool configurations (ruff, mypy, pylint) updated
+  to target Python 3.14.
 
 ### Added
 

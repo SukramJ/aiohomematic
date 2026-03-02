@@ -6,7 +6,7 @@ Thank you for your interest in contributing to aiohomematic! This document provi
 
 ### Prerequisites
 
-- Python 3.13 or higher
+- Python 3.14 or higher
 - Git
 
 ### Development Setup
@@ -17,7 +17,7 @@ git clone https://github.com/YOUR_USERNAME/aiohomematic.git
 cd aiohomematic
 
 # Create virtual environment
-python3.13 -m venv venv
+python3.14 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies

@@ -115,7 +115,7 @@ class DeviceDescriptionModel(BaseModel):
             return None
         try:
             return int(v)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None
 
     @field_validator("children", "paramsets", mode="before")
@@ -164,7 +164,7 @@ class DeviceDescriptionModel(BaseModel):
         if ":" in self.address:
             try:
                 return int(self.address.split(":")[1])
-            except (IndexError, ValueError):
+            except IndexError, ValueError:
                 return None
         return None
 

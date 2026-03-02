@@ -28,7 +28,7 @@ aiohomematic is a modern, async Python library for controlling Homematic and Hom
 
 ### What are the minimum requirements?
 
-- **Python**: 3.13+ (for standalone library use)
+- **Python**: 3.14+ (for standalone library use)
 - **Home Assistant**: 2025.10.0+ (for integration)
 - **CCU Firmware**: CCU2 ≥2.53.27, CCU3 ≥3.53.26 (for HomematicIP devices)
 

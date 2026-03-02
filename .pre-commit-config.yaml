@@ -95,7 +95,7 @@ repos:
       - id: python-typing-update
         stages: [manual]
         args:
-          - --py313-plus
+          - --py314-plus
           - --force
           - --keep-updates
         files: ^(aiohomematic|aiohomematic_test_support|tests|script)/.+\.py$

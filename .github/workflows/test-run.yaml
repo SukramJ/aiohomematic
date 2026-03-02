@@ -15,7 +15,7 @@ jobs:
         # Python 3.14t (free-threaded) uses stdlib json via compat module
         # since orjson does not yet support free-threading (PyO3 limitation).
         # See: aiohomematic/compat.py and https://github.com/ijl/orjson/issues/595
-        python-version: ["3.13", "3.14", "3.14t"]
+        python-version: ["3.14", "3.14t"]
     name: Python ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6
@@ -39,7 +39,7 @@ jobs:
         run: |
           pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy --cov=aiohomematic --cov-report=xml --cov-report=term-missing
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.13'
+        if: matrix.python-version == '3.14'
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml

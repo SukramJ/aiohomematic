@@ -574,7 +574,7 @@ The project uses `ruff` for both linting and formatting with the following docst
 
 - `D` (pydocstyle): All docstring conventions
 - Line length: 120 characters
-- Target version: Python 3.13
+- Target version: Python 3.14
 
 **Key Settings**:
 

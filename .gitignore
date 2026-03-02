@@ -6,7 +6,7 @@
 *.tar.gz
 *.xml
 *.zip
-.claude/
+.claude/settings.local.json
 .coverage
 .env
 .output.txt

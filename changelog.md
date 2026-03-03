@@ -22,6 +22,12 @@
   `turn_on()` uses this value as fallback when no explicit duration is provided,
   fixing the issue where `siren.turn_on` without parameters activated the siren for
   0 seconds.
+- **Scheduler busy-loop at 100% CPU during connection issues**: When
+  `has_connection_issue` was True, the scheduler entered a busy-loop because skipped
+  jobs (all except `_check_connection`) never advanced their `next_run`, causing the
+  sleep calculation to compute `delay = 0.0`. The sleep calculation now only considers
+  jobs eligible to run in the current state, and skipped jobs advance their schedule
+  to prevent a burst of simultaneous execution on recovery.
 
 ---
 

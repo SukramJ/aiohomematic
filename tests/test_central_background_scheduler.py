@@ -1338,3 +1338,113 @@ class TestSchedulerErrorRecovery:
         # But the job should still be schedulable
         job.schedule_next_execution()
         assert job._next_run > datetime.now()
+
+
+class TestSchedulerConnectionIssueSleep:
+    """Test scheduler sleep behavior during connection issues."""
+
+    @pytest.mark.asyncio
+    async def test_scheduler_does_not_busy_loop_during_connection_issue(self) -> None:
+        """Scheduler should sleep with non-zero delay when has_connection_issue is True."""
+        central = MagicMock()
+        central.name = "test-ccu"
+        central.event_bus = MagicMock()
+        central.event_bus.subscribe = MagicMock(return_value=lambda: None)
+        central.config = MagicMock()
+        central.config.schedule_timer_config = _create_schedule_timer_config()
+        central.config.enable_device_firmware_check = False
+        central.state = CentralState.RUNNING
+        central.available = False
+
+        central.connection_state = MagicMock()
+        central.connection_state.is_any_issue = True  # Connection issue active
+
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordinator=central,
+            connection_state_provider=central,
+            device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+        )
+        # Activate the scheduler (normally done by start())
+        scheduler._active_event.set()
+
+        # Set _check_connection job's next_run to the future so it's not ready
+        for job in scheduler._scheduler_jobs:
+            if job.name == "_check_connection":
+                job._next_run = datetime.now() + timedelta(seconds=1)
+            else:
+                # Set other jobs' next_run to the past to simulate stale state
+                job._next_run = datetime.now() - timedelta(seconds=60)
+
+        sleep_delays: list[float] = []
+
+        async def capture_sleep(delay: float) -> None:
+            sleep_delays.append(delay)
+            # Stop the loop after capturing one sleep
+            scheduler._active_event.clear()
+
+        with patch("asyncio.sleep", side_effect=capture_sleep):
+            await scheduler._run_scheduler_loop()
+
+        # The scheduler should have slept with a non-zero delay
+        # (based on _check_connection's future next_run, not stale jobs)
+        assert len(sleep_delays) > 0
+        assert sleep_delays[-1] > 0.0, (
+            f"Expected non-zero sleep delay but got {sleep_delays[-1]}; scheduler would busy-loop at 100% CPU"
+        )
+
+    @pytest.mark.asyncio
+    async def test_skipped_jobs_advance_schedule_during_connection_issue(self) -> None:
+        """Skipped jobs should advance their next_run during connection issues."""
+        central = MagicMock()
+        central.name = "test-ccu"
+        central.event_bus = MagicMock()
+        central.event_bus.subscribe = MagicMock(return_value=lambda: None)
+        central.config = MagicMock()
+        central.config.schedule_timer_config = _create_schedule_timer_config()
+        central.config.enable_device_firmware_check = False
+        central.state = CentralState.RUNNING
+        central.available = False
+
+        central.connection_state = MagicMock()
+        central.connection_state.is_any_issue = True
+
+        scheduler = BackgroundScheduler(
+            central_info=central,
+            config_provider=central,
+            client_coordinator=central,
+            connection_state_provider=central,
+            device_data_refresher=central,
+            firmware_data_refresher=central,
+            event_coordinator=central,
+            hub_data_fetcher=central,
+            event_bus_provider=central,
+        )
+        # Activate the scheduler (normally done by start())
+        scheduler._active_event.set()
+
+        # Set all jobs to be ready (next_run in the past)
+        past_time = datetime.now() - timedelta(seconds=60)
+        non_connection_jobs = [job for job in scheduler._scheduler_jobs if job.name != "_check_connection"]
+        for job in non_connection_jobs:
+            job._next_run = past_time
+
+        # Also set _check_connection to the future so the loop hits the sleep path
+        for job in scheduler._scheduler_jobs:
+            if job.name == "_check_connection":
+                job._next_run = datetime.now() + timedelta(seconds=1)
+
+        async def stop_after_one_iteration(delay: float) -> None:
+            scheduler._active_event.clear()
+
+        with patch("asyncio.sleep", side_effect=stop_after_one_iteration):
+            await scheduler._run_scheduler_loop()
+
+        # Skipped jobs should have advanced their next_run past the original time
+        for job in non_connection_jobs:
+            assert job._next_run > past_time, f"Job {job.name} did not advance its next_run after being skipped"

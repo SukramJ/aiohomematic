@@ -758,6 +758,8 @@ class BackgroundScheduler:
                 # Skip non-connection-check jobs when there's a connection issue
                 # This prevents unnecessary RPC calls and log spam during CCU restart
                 if has_issue and job.name != "_check_connection":
+                    if job.ready:
+                        job.schedule_next_execution()
                     continue
 
                 try:
@@ -778,7 +780,11 @@ class BackgroundScheduler:
             if not any_executed:
                 now = datetime.now()
                 try:
-                    next_due = min(job.next_run for job in self._scheduler_jobs)
+                    # Only consider jobs eligible to run in current state
+                    eligible_jobs = (
+                        job for job in self._scheduler_jobs if not has_issue or job.name == "_check_connection"
+                    )
+                    next_due = min(job.next_run for job in eligible_jobs)
                     # Sleep until the next task, capped at 1s for responsiveness
                     delay = max(0.0, (next_due - now).total_seconds())
                     await asyncio.sleep(min(1.0, delay))

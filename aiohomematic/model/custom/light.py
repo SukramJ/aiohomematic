@@ -17,7 +17,13 @@ from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile,
 from aiohomematic.model.custom.capabilities.light import LightCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
-from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin, TimerUnitMixin
+from aiohomematic.model.custom.mixins import (
+    BrightnessMixin,
+    StateChangeArgs,
+    StateChangeTimerMixin,
+    TimerUnitMixin,
+    recalc_unit_timer,
+)
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import (
@@ -642,7 +648,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value with automatic unit conversion."""
-        on_time, on_time_unit = self._recalc_unit_timer(time=on_time)
+        on_time, on_time_unit = recalc_unit_timer(time=on_time)
         await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
         await self._dp_on_time_value.send_value(value=float(on_time), collector=collector, do_validate=False)
 
@@ -650,7 +656,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
         self, *, ramp_time: float, collector: CallParameterCollector | None = None
     ) -> None:
         """Set the ramp time off value with automatic unit conversion."""
-        ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
+        ramp_time, ramp_time_unit = recalc_unit_timer(time=ramp_time)
         await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
         await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector, do_validate=False)
 
@@ -658,7 +664,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
         self, *, ramp_time: float, collector: CallParameterCollector | None = None
     ) -> None:
         """Set the ramp time on value with automatic unit conversion."""
-        ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
+        ramp_time, ramp_time_unit = recalc_unit_timer(time=ramp_time)
         await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
         await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector, do_validate=False)
 

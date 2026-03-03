@@ -23,7 +23,14 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import TimerUnitMixin
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor, DpSelect, DpSensor
+from aiohomematic.model.generic import (
+    DpActionFloat,
+    DpActionInteger,
+    DpActionSelect,
+    DpBinarySensor,
+    DpSelect,
+    DpSensor,
+)
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
@@ -148,7 +155,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     # Declarative data point field definitions
     _dp_acoustic_alarm_active: Final = DataPointField(field=Field.ACOUSTIC_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_acoustic_alarm_selection: Final = DataPointField(field=Field.ACOUSTIC_ALARM_SELECTION, dpt=DpActionSelect)
-    _dp_duration: Final = DataPointField(field=Field.DURATION, dpt=DpAction)
+    _dp_duration: Final = DataPointField(field=Field.DURATION, dpt=DpActionInteger)
     _dp_duration_unit: Final = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
     _dp_optical_alarm_active: Final = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_optical_alarm_selection: Final = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
@@ -174,7 +181,8 @@ class CustomDpIpSiren(BaseCustomDpSiren):
             await self._dp_optical_alarm_selection.send_value(value=optical_default, collector=collector)
         if (duration_unit_default := self._dp_duration_unit.default) is not None:
             await self._dp_duration_unit.send_value(value=duration_unit_default, collector=collector)
-        await self._dp_duration.send_value(value=self._dp_duration.default, collector=collector)
+        if (duration_default := self._dp_duration.default) is not None:
+            await self._dp_duration.send_value(value=duration_default, collector=collector)
 
     @bind_collector(priority=CommandPriority.CRITICAL)
     async def turn_on(
@@ -218,8 +226,8 @@ class CustomDpIpSiren(BaseCustomDpSiren):
             await self._dp_optical_alarm_selection.send_value(value=optical_alarm, collector=collector)
         if (duration_unit_default := self._dp_duration_unit.default) is not None:
             await self._dp_duration_unit.send_value(value=duration_unit_default, collector=collector)
-        duration = kwargs.get("duration") or self._dp_duration.default
-        await self._dp_duration.send_value(value=duration, collector=collector)
+        if (duration := kwargs.get("duration") or self._dp_duration.value or self._dp_duration.default) is not None:
+            await self._dp_duration.send_value(value=duration, collector=collector)
 
     def _compute_capabilities(self) -> SirenCapabilities:
         """Compute static capabilities based on available DataPoints."""
@@ -285,10 +293,10 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
 
     # Declarative data point field definitions for sound channel
     # Map on_time to DURATION_VALUE/UNIT for TimerUnitMixin compatibility (no Final for overrides)
-    _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpAction)
-    _dp_on_time_value = DataPointField(field=Field.DURATION_VALUE, dpt=DpAction)
+    _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpActionFloat)
+    _dp_on_time_value = DataPointField(field=Field.DURATION_VALUE, dpt=DpActionInteger)
     _dp_on_time_unit = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpAction)
+    _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpActionInteger)
     _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
     _dp_soundfile: Final = DataPointField(field=Field.SOUNDFILE, dpt=DpSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)

@@ -42,10 +42,10 @@ python script/check_i18n_catalogs.py       # Check catalog sync
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `aiohomematic/strings.json` | Primary source for all translation keys |
-| `aiohomematic/translations/en.json` | Auto-synced from strings.json |
-| `aiohomematic/translations/de.json` | German translations (manual) |
-| `script/check_i18n.py` | Validate translation usage in code |
-| `script/check_i18n_catalogs.py` | Check catalog sync between files |
+| File                                | Purpose                                 |
+| ----------------------------------- | --------------------------------------- |
+| `aiohomematic/strings.json`         | Primary source for all translation keys |
+| `aiohomematic/translations/en.json` | Auto-synced from strings.json           |
+| `aiohomematic/translations/de.json` | German translations (manual)            |
+| `script/check_i18n.py`              | Validate translation usage in code      |
+| `script/check_i18n_catalogs.py`     | Check catalog sync between files        |

@@ -17,7 +17,7 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeArgs, StateChangeTimerMixin
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpBinarySensor, DpSwitch
+from aiohomematic.model.generic import DpActionFloat, DpBinarySensor, DpSwitch
 from aiohomematic.property_decorators import DelegatedProperty, Kind
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
 
     # Declarative data point field definitions
     _dp_group_state = DataPointField(field=Field.GROUP_STATE, dpt=DpBinarySensor)
-    _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
+    _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpActionFloat)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
 
     value: Final = DelegatedProperty[bool | None](path="_dp_state.value", kind=Kind.STATE)

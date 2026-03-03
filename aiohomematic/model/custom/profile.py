@@ -627,12 +627,12 @@ IP_SIREN_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         fields={
             Field.ACOUSTIC_ALARM_ACTIVE: Parameter.ACOUSTIC_ALARM_ACTIVE,
-            Field.OPTICAL_ALARM_ACTIVE: Parameter.OPTICAL_ALARM_ACTIVE,
-            Field.DURATION: Parameter.DURATION_VALUE,
             Field.DURATION_UNIT: Parameter.DURATION_UNIT,
+            Field.OPTICAL_ALARM_ACTIVE: Parameter.OPTICAL_ALARM_ACTIVE,
         },
         visible_fields={
             Field.ACOUSTIC_ALARM_SELECTION: Parameter.ACOUSTIC_ALARM_SELECTION,
+            Field.DURATION: Parameter.DURATION_VALUE,
             Field.OPTICAL_ALARM_SELECTION: Parameter.OPTICAL_ALARM_SELECTION,
         },
     ),

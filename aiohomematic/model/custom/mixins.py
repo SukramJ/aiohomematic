@@ -432,7 +432,7 @@ class TimerUnitMixin:
         on_time, on_time_unit = self._recalc_unit_timer(time=on_time)
         if on_time_unit:
             await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
+        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector, do_validate=False)
 
     async def _set_ramp_time_off_value(self, *, ramp_time: float, collector: Any | None = None) -> None:
         """Set the ramp time off value with automatic unit conversion."""
@@ -443,4 +443,4 @@ class TimerUnitMixin:
         ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
         if ramp_time_unit:
             await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector, do_validate=False)

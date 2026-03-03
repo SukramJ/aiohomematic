@@ -375,6 +375,36 @@ _TIMER_NOT_USED: float = 111600.0
 _TIME_UNIT_THRESHOLD: int = 16343
 
 
+def recalc_unit_timer(*, time: float) -> tuple[float, str]:
+    """
+    Recalculate unit and value of timer.
+
+    Converts large time values to appropriate units:
+    - > 16343 seconds -> minutes
+    - > 16343 minutes -> hours
+
+    For the NOT_USED marker (111600), returns HOURS as unit to ensure
+    the device interprets the value correctly (111600 hours ≈ 554 days).
+
+    Args:
+        time: Time value in seconds.
+
+    Returns:
+        Tuple of (converted_time, unit) where unit is "S"/"M"/"H".
+
+    """
+    time_unit = _TimeUnit.SECONDS
+    if time == _TIMER_NOT_USED:
+        return time, _TimeUnit.HOURS
+    if time > _TIME_UNIT_THRESHOLD:
+        time /= 60
+        time_unit = _TimeUnit.MINUTES
+    if time > _TIME_UNIT_THRESHOLD:
+        time /= 60
+        time_unit = _TimeUnit.HOURS
+    return time, time_unit
+
+
 class TimerUnitMixin:
     """
     Mixin for lights with time unit conversion for on_time and ramp_time.
@@ -397,42 +427,12 @@ class TimerUnitMixin:
     _dp_ramp_time_value: Any
     _dp_ramp_time_unit: Any
 
-    @staticmethod
-    def _recalc_unit_timer(*, time: float) -> tuple[float, str]:
-        """
-        Recalculate unit and value of timer.
-
-        Converts large time values to appropriate units:
-        - > 16343 seconds -> minutes
-        - > 16343 minutes -> hours
-
-        For the NOT_USED marker (111600), returns HOURS as unit to ensure
-        the device interprets the value correctly (111600 hours ≈ 554 days).
-
-        Args:
-            time: Time value in seconds.
-
-        Returns:
-            Tuple of (converted_time, unit) where unit is "S"/"M"/"H".
-
-        """
-        time_unit = _TimeUnit.SECONDS
-        if time == _TIMER_NOT_USED:
-            return time, _TimeUnit.HOURS
-        if time > _TIME_UNIT_THRESHOLD:
-            time /= 60
-            time_unit = _TimeUnit.MINUTES
-        if time > _TIME_UNIT_THRESHOLD:
-            time /= 60
-            time_unit = _TimeUnit.HOURS
-        return time, time_unit
-
     async def _set_on_time_value(self, *, on_time: float, collector: Any | None = None) -> None:
         """Set the on time value with automatic unit conversion."""
-        on_time, on_time_unit = self._recalc_unit_timer(time=on_time)
+        on_time, on_time_unit = recalc_unit_timer(time=on_time)
         if on_time_unit:
             await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
+        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector, do_validate=False)
 
     async def _set_ramp_time_off_value(self, *, ramp_time: float, collector: Any | None = None) -> None:
         """Set the ramp time off value with automatic unit conversion."""
@@ -440,7 +440,7 @@ class TimerUnitMixin:
 
     async def _set_ramp_time_on_value(self, *, ramp_time: float, collector: Any | None = None) -> None:
         """Set the ramp time on value with automatic unit conversion."""
-        ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
+        ramp_time, ramp_time_unit = recalc_unit_timer(time=ramp_time)
         if ramp_time_unit:
             await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector, do_validate=False)

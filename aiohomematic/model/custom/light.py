@@ -17,11 +17,19 @@ from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile,
 from aiohomematic.model.custom.capabilities.light import LightCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
-from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin, TimerUnitMixin
+from aiohomematic.model.custom.mixins import (
+    BrightnessMixin,
+    StateChangeArgs,
+    StateChangeTimerMixin,
+    TimerUnitMixin,
+    recalc_unit_timer,
+)
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import (
     DpAction,
+    DpActionFloat,
+    DpActionInteger,
     DpActionSelect,
     DpFloat,
     DpInteger,
@@ -235,8 +243,8 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     # Declarative data point field definitions
     _dp_group_level: Final = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
-    _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
-    _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpAction)
+    _dp_on_time_value = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpActionFloat)
+    _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpActionFloat)
 
     @property
     def brightness_pct(self) -> int | None:
@@ -377,7 +385,9 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         """Compute static capabilities based on DataPoint types."""
         return LightCapabilities(
             brightness=isinstance(self._dp_level, DpFloat),
-            transition=isinstance(getattr(self, "_dp_ramp_time_value", None), DpAction),
+            transition=isinstance(
+                getattr(self, "_dp_ramp_time_value", None), (DpAction, DpActionFloat, DpActionInteger)
+            ),
         )
 
     @bind_collector
@@ -521,7 +531,7 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
     _dp_ramp_time_to_off_unit: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_to_off_value: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
+    _dp_ramp_time_to_off_value: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpActionFloat)
     _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
     _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
@@ -638,25 +648,25 @@ class CustomDpIpRGBWLight(TimerUnitMixin, CustomDpDimmer):
     @bind_collector
     async def _set_on_time_value(self, *, on_time: float, collector: CallParameterCollector | None = None) -> None:
         """Set the on time value with automatic unit conversion."""
-        on_time, on_time_unit = self._recalc_unit_timer(time=on_time)
+        on_time, on_time_unit = recalc_unit_timer(time=on_time)
         await self._dp_on_time_unit.send_value(value=on_time_unit, collector=collector)
-        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector)
+        await self._dp_on_time_value.send_value(value=float(on_time), collector=collector, do_validate=False)
 
     async def _set_ramp_time_off_value(
         self, *, ramp_time: float, collector: CallParameterCollector | None = None
     ) -> None:
         """Set the ramp time off value with automatic unit conversion."""
-        ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
+        ramp_time, ramp_time_unit = recalc_unit_timer(time=ramp_time)
         await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector, do_validate=False)
 
     async def _set_ramp_time_on_value(
         self, *, ramp_time: float, collector: CallParameterCollector | None = None
     ) -> None:
         """Set the ramp time on value with automatic unit conversion."""
-        ramp_time, ramp_time_unit = self._recalc_unit_timer(time=ramp_time)
+        ramp_time, ramp_time_unit = recalc_unit_timer(time=ramp_time)
         await self._dp_ramp_time_unit.send_value(value=ramp_time_unit, collector=collector)
-        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector)
+        await self._dp_ramp_time_value.send_value(value=float(ramp_time), collector=collector, do_validate=False)
 
 
 class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
@@ -670,7 +680,7 @@ class CustomDpIpDrgDaliLight(TimerUnitMixin, CustomDpDimmer):
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time_unit = DataPointField(field=Field.ON_TIME_UNIT, dpt=DpActionSelect)
     _dp_ramp_time_to_off_unit: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_to_off_value: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpAction)
+    _dp_ramp_time_to_off_value: Final = DataPointField(field=Field.RAMP_TIME_TO_OFF_VALUE, dpt=DpActionFloat)
     _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
     _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
@@ -828,7 +838,7 @@ class CustomDpSoundPlayerLed(TimerUnitMixin, CustomDpDimmer):
     # Additional declarative data point field definitions for LED channel
     # Note: _dp_level and _dp_ramp_time_value are inherited from CustomDpDimmer
     # Map on_time to DURATION_VALUE/UNIT for TimerUnitMixin compatibility (override parent)
-    _dp_on_time_value = DataPointField(field=Field.DURATION_VALUE, dpt=DpAction)
+    _dp_on_time_value = DataPointField(field=Field.DURATION_VALUE, dpt=DpActionInteger)
     _dp_on_time_unit = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
     _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
     _dp_color: Final = DataPointField(field=Field.COLOR, dpt=DpSelect)

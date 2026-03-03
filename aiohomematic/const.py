@@ -21,7 +21,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.3.0"
+VERSION: Final = "2026.3.1"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -786,6 +786,7 @@ class DataPointCategory(StrEnum):
     """Enum with data point types."""
 
     ACTION = "action"
+    ACTION_NUMBER = "action_number"
     ACTION_SELECT = "action_select"
     BINARY_SENSOR = "binary_sensor"
     BUTTON = "button"
@@ -1614,6 +1615,7 @@ KEY_CHANNEL_OPERATION_MODE_VISIBILITY: Final[Mapping[str, frozenset[str]]] = Map
 
 BLOCKED_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.ACTION,
+    DataPointCategory.ACTION_NUMBER,
     DataPointCategory.ACTION_SELECT,
 )
 
@@ -1629,6 +1631,7 @@ HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
 )
 
 CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
+    DataPointCategory.ACTION_NUMBER,
     DataPointCategory.ACTION_SELECT,
     DataPointCategory.BINARY_SENSOR,
     DataPointCategory.BUTTON,

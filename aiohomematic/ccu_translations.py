@@ -154,7 +154,7 @@ with contextlib.suppress(Exception):
 
 def _get_locale(*, locale: str) -> str:
     """Normalize locale to supported value."""
-    lang = locale.split("-", maxsplit=1)[0].split("_")[0].lower()
+    lang = locale.split("-", maxsplit=1)[0].split("_", maxsplit=1)[0].lower()
     return lang if lang in _SUPPORTED_LOCALES else _DEFAULT_LOCALE
 
 

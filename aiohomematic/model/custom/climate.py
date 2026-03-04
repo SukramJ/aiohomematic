@@ -39,7 +39,17 @@ from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpBinarySensor, DpFloat, DpInteger, DpSelect, DpSensor, DpSwitch
+from aiohomematic.model.generic import (
+    DpAction,
+    DpActionFloat,
+    DpActionInteger,
+    DpBinarySensor,
+    DpFloat,
+    DpInteger,
+    DpSelect,
+    DpSensor,
+    DpSwitch,
+)
 from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -450,7 +460,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     _dp_comfort_mode: Final = DataPointField(field=Field.COMFORT_MODE, dpt=DpAction)
     _dp_control_mode: Final = DataPointField(field=Field.CONTROL_MODE, dpt=DpSensor[str | None])
     _dp_lowering_mode: Final = DataPointField(field=Field.LOWERING_MODE, dpt=DpAction)
-    _dp_manu_mode: Final = DataPointField(field=Field.MANU_MODE, dpt=DpAction)
+    _dp_manu_mode: Final = DataPointField(field=Field.MANU_MODE, dpt=DpActionFloat)
     _dp_temperature_offset: Final = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpSelect)
     _dp_valve_state: Final = DataPointField(field=Field.VALVE_STATE, dpt=DpSensor[int | None])
     _dp_week_program_pointer: Final = DataPointField(field=Field.WEEK_PROGRAM_POINTER, dpt=DpSelect)
@@ -575,7 +585,9 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         elif mode == ClimateMode.HEAT:
             await self._dp_manu_mode.send_value(value=self._temperature_for_heat_mode, collector=collector)
         elif mode == ClimateMode.OFF:
-            await self._dp_manu_mode.send_value(value=self.target_temperature, collector=collector)
+            await self._dp_manu_mode.send_value(
+                value=self.target_temperature or self._temperature_for_heat_mode, collector=collector
+            )
             # Disable validation here to allow setting a value,
             # that is out of the validation range.
             await self.set_temperature(temperature=_OFF_TEMPERATURE, collector=collector, do_validate=False)
@@ -653,7 +665,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     # Declarative data point field definitions
     _dp_active_profile: Final = DataPointField(field=Field.ACTIVE_PROFILE, dpt=DpInteger)
     _dp_boost_mode: Final = DataPointField(field=Field.BOOST_MODE, dpt=DpSwitch)
-    _dp_control_mode: Final = DataPointField(field=Field.CONTROL_MODE, dpt=DpAction)
+    _dp_control_mode: Final = DataPointField(field=Field.CONTROL_MODE, dpt=DpActionInteger)
     _dp_heating_mode: Final = DataPointField(field=Field.HEATING_COOLING, dpt=DpSelect)
     _dp_heating_valve_type: Final = DataPointField(field=Field.HEATING_VALVE_TYPE, dpt=DpSelect)
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)

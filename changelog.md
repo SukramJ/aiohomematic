@@ -24,17 +24,21 @@
   → `DpActionString`. `DpAction` remains only for genuine TYPE=ACTION parameters
   (`AUTO_MODE`, `BOOST_MODE`, `COMFORT_MODE`, `LOWERING_MODE`, `STOP`, `OPEN`).
 
+### Refactored
+
+- **TimerField descriptor for value+unit timer pairs**: Replaced `TimerUnitMixin`
+  and manual `_set_xxx_value()` methods with a declarative `TimerField` descriptor
+  that combines a value data point and an optional unit data point into a single
+  `TimerAccessor`. The accessor handles automatic unit conversion (seconds →
+  minutes → hours via `recalc_unit_timer`) transparently. Applied across all custom
+  data points with timer parameters: lights (`CustomDpDimmer`, `CustomDpIpRGBWLight`,
+  `CustomDpIpDrgDaliLight`, `CustomDpIpFixedColorLight`, `CustomDpSoundPlayerLed`),
+  sirens (`CustomDpIpSiren`, `CustomDpSoundPlayer`), switches (`CustomDpSwitch`),
+  and valves (`CustomDpIpIrrigationValve`). Also removed the unused
+  `OnOffActionMixin`. No behavioral changes.
+
 ### Fixed
 
-- **Siren duration unit conversion**: `CustomDpIpSiren.turn_on()` now properly
-  converts the duration value using automatic unit conversion (seconds → minutes →
-  hours) before sending to the device. Previously, the raw duration was sent with
-  the default unit, causing incorrect behavior for large duration values (>16343s).
-- **Siren duration**: The siren's `DURATION_VALUE` parameter is now exposed as a
-  visible number entity in Home Assistant, allowing users to set a default duration.
-  `turn_on()` uses this value as fallback when no explicit duration is provided,
-  fixing the issue where `siren.turn_on` without parameters activated the siren for
-  0 seconds.
 - **Scheduler busy-loop at 100% CPU during connection issues**: When
   `has_connection_issue` was True, the scheduler entered a busy-loop because skipped
   jobs (all except `_check_connection`) never advanced their `next_run`, causing the

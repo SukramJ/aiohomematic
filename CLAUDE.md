@@ -262,11 +262,12 @@ python-slugify>=8.0.0   # URL-safe string conversion
 │   │   │   ├── climate.py          # Climate calculations
 │   │   │   └── operating_voltage_level.py  # Battery/voltage
 │   │   │
-│   │   ├── combined/               # Multi-parameter writable DPs (4 files)
+│   │   ├── combined/               # Multi-parameter writable DPs (5 files)
 │   │   │   ├── __init__.py         # Package exports
 │   │   │   ├── data_point.py       # CombinedDataPoint base class
+│   │   │   ├── hs_color.py         # CombinedDpHsColor (hue+saturation)
 │   │   │   ├── timer.py            # CombinedDpTimerAction (value+unit)
-│   │   │   └── field.py            # CombinedTimerField descriptor
+│   │   │   └── field.py            # CombinedTimerField, CombinedHsColorField descriptors
 │   │   │
 │   │   ├── device.py               # Device & Channel classes
 │   │   ├── data_point.py           # Base DataPoint class
@@ -1785,7 +1786,7 @@ class CommandThrottle:  # Implements all methods but doesn't inherit
 
 - `LogContextMixin` cannot inherit from `LogContextProtocol` because Protocol base classes introduce `__weakref__` slots that conflict with `ABC` in multiple inheritance chains (e.g., `CallbackDataPoint(ABC, LogContextMixin)`).
 - `CalculatedDataPoint` cannot inherit from `CalculatedDataPointProtocol` because it is an abstract base class that does not implement `value`. Instead, the **concrete leaf subclasses** (`ApparentTemperature`, `DewPoint`, `DewPointSpread`, `Enthalpy`, `FrostPoint`, `VaporConcentration`, `OperatingVoltageLevel`, `DerivedBinarySensor`) inherit from `CalculatedDataPointProtocol` directly.
-- `CombinedDataPoint` cannot inherit from `CombinedDataPointProtocol` for the same reason — the concrete leaf subclass `CombinedDpTimerAction` inherits from `CombinedDataPointProtocol` directly.
+- `CombinedDataPoint` cannot inherit from `CombinedDataPointProtocol` for the same reason — the concrete leaf subclasses `CombinedDpTimerAction` and `CombinedDpHsColor` inherit from `CombinedDataPointProtocol` directly.
 
 #### Variables
 

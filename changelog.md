@@ -39,6 +39,16 @@
   had no unit context. Applied across all custom data points with timer parameters:
   lights, sirens, switches, and valves. Also removed `TimerUnitMixin`,
   `OnOffActionMixin`, `TimerAccessor`, and `TimerField`.
+- **CombinedDpHsColor for hue+saturation pairs**: New `CombinedDpHsColor` combined
+  data point that encapsulates HUE + SATURATION into a single `tuple[float, float]`
+  value with automatic saturation scaling (CCU 0.0–1.0 ↔ HA 0.0–100.0). Added
+  `CombinedHsColorField` descriptor and generalized the combined field detection
+  from timer-specific (`COMBINED_TIMER_FIELD_MARKER`) to generic
+  (`COMBINED_FIELD_MARKER` + `CombinedFieldProtocol`). Simplified
+  `CustomDpIpRGBWLight` and `CustomDpIpDrgDaliLight` by replacing identical
+  boilerplate `hs_color` property and `turn_on()` conversion logic with delegation
+  to the combined data point. Removed `ParamType` bound from `CombinedDataPoint`
+  generic parameter to support non-`ParamType` value types.
 
 ### Fixed
 

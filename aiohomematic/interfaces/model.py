@@ -1292,7 +1292,7 @@ class CombinedDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Send default values for underlying data points."""
 
     @abstractmethod
-    async def send_value(self, *, value: float, collector: CallParameterCollector | None = None) -> None:
+    async def send_value(self, *, value: Any, collector: CallParameterCollector | None = None) -> None:
         """Send combined value with automatic conversion to underlying data points."""
 
     @abstractmethod

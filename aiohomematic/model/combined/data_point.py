@@ -38,14 +38,14 @@ from aiohomematic.model.support import (
     get_data_point_name_data,
 )
 from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, state_property
-from aiohomematic.type_aliases import ParamType, UnsubscribeCallback
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 __all__ = ["CombinedDataPoint"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class CombinedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPointProtocol):
+class CombinedDataPoint[ParameterT](BaseDataPoint, CallbackDataPointProtocol):
     """Base class for combined data points that write to multiple underlying data points."""
 
     __slots__ = (

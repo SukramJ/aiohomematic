@@ -19,7 +19,7 @@ from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPoin
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.combined.data_point import CombinedDataPoint
-from aiohomematic.model.combined.field import COMBINED_TIMER_FIELD_MARKER, CombinedTimerField
+from aiohomematic.model.combined.field import COMBINED_FIELD_MARKER, CombinedFieldProtocol
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
@@ -256,12 +256,12 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
                     self._add_data_point(field=field_name, data_point=dp, is_visible=is_visible)
 
     def _create_combined_data_points(self) -> None:
-        """Create CombinedDataPoints from CombinedTimerField descriptors on the class."""
+        """Create CombinedDataPoints from combined field descriptors on the class."""
         for cls in type(self).__mro__:
             for attr_value in vars(cls).values():
-                if not getattr(attr_value, COMBINED_TIMER_FIELD_MARKER, False):
+                if not getattr(attr_value, COMBINED_FIELD_MARKER, False):
                     continue
-                field: CombinedTimerField = attr_value
+                field: CombinedFieldProtocol = attr_value
                 if field.value_field not in self._combined_data_points:
                     combined_dp = field.create_combined_dp(
                         channel=self._channel,

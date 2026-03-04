@@ -14,7 +14,7 @@ import math
 from typing import Final, TypedDict, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
-from aiohomematic.model.combined.field import CombinedTimerField
+from aiohomematic.model.combined.field import CombinedHsColorField, CombinedTimerField
 from aiohomematic.model.custom.capabilities.light import LightCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
@@ -494,6 +494,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     _dp_device_operation_mode: Final = DataPointField(field=Field.DEVICE_OPERATION_MODE, dpt=DpSelect)
     _dp_effect: Final = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
 
+    _dp_hs_color: Final = CombinedHsColorField(hue_field=Field.HUE, saturation_field=Field.SATURATION)
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
@@ -578,9 +579,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
-        if self._dp_hue.value is not None and self._dp_saturation.value is not None:
-            return self._dp_hue.value, self._dp_saturation.value * _SATURATION_MULTIPLIER
-        return None
+        return self._dp_hs_color.value
 
     @bind_collector
     async def turn_off(
@@ -599,10 +598,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         if not self.is_state_change(on=True, **kwargs):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
-            hue, ksaturation = hs_color
-            saturation = ksaturation / _SATURATION_MULTIPLIER
-            await self._dp_hue.send_value(value=int(hue), collector=collector)
-            await self._dp_saturation.send_value(value=saturation, collector=collector)
+            await self._dp_hs_color.send_value(value=hs_color, collector=collector)
         if color_temp_kelvin := kwargs.get("color_temp_kelvin"):
             await self._dp_color_temperature_kelvin.send_value(value=color_temp_kelvin, collector=collector)
         if on_time is None and kwargs.get("ramp_time"):
@@ -621,6 +617,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     # Declarative data point field definitions
     _dp_color_temperature_kelvin: Final = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
     _dp_effect: Final = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
+    _dp_hs_color: Final = CombinedHsColorField(hue_field=Field.HUE, saturation_field=Field.SATURATION)
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
@@ -649,9 +646,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
-        if self._dp_hue.value is not None and self._dp_saturation.value is not None:
-            return self._dp_hue.value, self._dp_saturation.value * _SATURATION_MULTIPLIER
-        return None
+        return self._dp_hs_color.value
 
     @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
@@ -659,10 +654,7 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         if not self.is_state_change(on=True, **kwargs):
             return
         if (hs_color := kwargs.get("hs_color")) is not None:
-            hue, ksaturation = hs_color
-            saturation = ksaturation / _SATURATION_MULTIPLIER
-            await self._dp_hue.send_value(value=int(hue), collector=collector)
-            await self._dp_saturation.send_value(value=saturation, collector=collector)
+            await self._dp_hs_color.send_value(value=hs_color, collector=collector)
         if color_temp_kelvin := kwargs.get("color_temp_kelvin"):
             await self._dp_color_temperature_kelvin.send_value(value=color_temp_kelvin, collector=collector)
         if kwargs.get("on_time") is None and kwargs.get("ramp_time"):

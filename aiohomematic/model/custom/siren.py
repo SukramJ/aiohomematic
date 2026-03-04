@@ -18,18 +18,10 @@ from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom.capabilities.siren import SMOKE_SENSOR_SIREN_CAPABILITIES, SirenCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.field import DataPointField
-from aiohomematic.model.custom.mixins import TimerUnitMixin, recalc_unit_timer
+from aiohomematic.model.custom.field import DataPointField, TimerField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import (
-    DpActionFloat,
-    DpActionInteger,
-    DpActionSelect,
-    DpBinarySensor,
-    DpSelect,
-    DpSensor,
-)
+from aiohomematic.model.generic import DpActionFloat, DpActionSelect, DpBinarySensor, DpSelect, DpSensor
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
@@ -91,8 +83,8 @@ class PlaySoundArgs(TypedDict, total=False):
 
     soundfile: str | int  # Soundfile from available_soundfiles or index (1-189)
     volume: float  # Volume level 0.0-1.0 (default: 0.5)
-    on_time: float  # Duration in seconds (auto unit conversion via TimerUnitMixin)
-    ramp_time: float  # Ramp time in seconds (auto unit conversion via TimerUnitMixin)
+    on_time: float  # Duration in seconds (auto unit conversion via TimerField)
+    ramp_time: float  # Ramp time in seconds (auto unit conversion via TimerField)
     repetitions: int  # 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST entry)
 
 
@@ -154,8 +146,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     # Declarative data point field definitions
     _dp_acoustic_alarm_active: Final = DataPointField(field=Field.ACOUSTIC_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_acoustic_alarm_selection: Final = DataPointField(field=Field.ACOUSTIC_ALARM_SELECTION, dpt=DpActionSelect)
-    _dp_duration: Final = DataPointField(field=Field.DURATION, dpt=DpActionInteger)
-    _dp_duration_unit: Final = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
+    _dp_duration: Final = TimerField(value_field=Field.DURATION, unit_field=Field.DURATION_UNIT)
     _dp_optical_alarm_active: Final = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_optical_alarm_selection: Final = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
 
@@ -178,10 +169,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
             await self._dp_acoustic_alarm_selection.send_value(value=acoustic_default, collector=collector)
         if (optical_default := self._dp_optical_alarm_selection.default) is not None:
             await self._dp_optical_alarm_selection.send_value(value=optical_default, collector=collector)
-        if (duration_unit_default := self._dp_duration_unit.default) is not None:
-            await self._dp_duration_unit.send_value(value=duration_unit_default, collector=collector)
-        if (duration_default := self._dp_duration.default) is not None:
-            await self._dp_duration.send_value(value=duration_default, collector=collector)
+        await self._dp_duration.send_default(collector=collector)
 
     @bind_collector(priority=CommandPriority.CRITICAL)
     async def turn_on(
@@ -224,7 +212,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
         if optical_alarm is not None:
             await self._dp_optical_alarm_selection.send_value(value=optical_alarm, collector=collector)
         if (duration := kwargs.get("duration") or self._dp_duration.value or self._dp_duration.default) is not None:
-            await self._set_duration_value(duration=float(duration), collector=collector)
+            await self._dp_duration.send_value(value=float(duration), collector=collector)
 
     def _compute_capabilities(self) -> SirenCapabilities:
         """Compute static capabilities based on available DataPoints."""
@@ -233,13 +221,6 @@ class CustomDpIpSiren(BaseCustomDpSiren):
             lights=self.available_lights is not None,
             tones=self.available_tones is not None,
         )
-
-    @bind_collector
-    async def _set_duration_value(self, *, duration: float, collector: CallParameterCollector | None = None) -> None:
-        """Set the duration value with automatic unit conversion."""
-        duration, duration_unit = recalc_unit_timer(time=duration)
-        await self._dp_duration_unit.send_value(value=duration_unit, collector=collector)
-        await self._dp_duration.send_value(value=int(duration), collector=collector, do_validate=False)
 
 
 class CustomDpIpSirenSmoke(BaseCustomDpSiren):
@@ -290,18 +271,15 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         return SMOKE_SENSOR_SIREN_CAPABILITIES
 
 
-class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
+class CustomDpSoundPlayer(BaseCustomDpSiren):
     """Class for HomematicIP sound player data point (HmIP-MP3P channel 2)."""
 
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions for sound channel
-    # Map on_time to DURATION_VALUE/UNIT for TimerUnitMixin compatibility (no Final for overrides)
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpActionFloat)
-    _dp_on_time_value = DataPointField(field=Field.DURATION_VALUE, dpt=DpActionInteger)
-    _dp_on_time_unit = DataPointField(field=Field.DURATION_UNIT, dpt=DpActionSelect)
-    _dp_ramp_time_value = DataPointField(field=Field.RAMP_TIME_VALUE, dpt=DpActionInteger)
-    _dp_ramp_time_unit = DataPointField(field=Field.RAMP_TIME_UNIT, dpt=DpActionSelect)
+    _dp_on_time: Final = TimerField(value_field=Field.DURATION_VALUE, unit_field=Field.DURATION_UNIT)
+    _dp_ramp_time: Final = TimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
     _dp_soundfile: Final = DataPointField(field=Field.SOUNDFILE, dpt=DpSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
@@ -398,9 +376,8 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
         await self._dp_level.send_value(value=volume, collector=collector)
         await self._dp_soundfile.send_value(value=soundfile, collector=collector)
         await self._dp_repetitions.send_value(value=repetitions_value, collector=collector)
-        # Use mixin methods for automatic unit conversion
-        await self._set_ramp_time_on_value(ramp_time=ramp_time, collector=collector)
-        await self._set_on_time_value(on_time=on_time, collector=collector)
+        await self._dp_ramp_time.send_value(value=ramp_time, collector=collector)
+        await self._dp_on_time.send_value(value=on_time, collector=collector)
 
     @bind_collector(priority=CommandPriority.CRITICAL)
     async def stop_sound(
@@ -410,7 +387,7 @@ class CustomDpSoundPlayer(TimerUnitMixin, BaseCustomDpSiren):
     ) -> None:
         """Stop current sound playback."""
         await self._dp_level.send_value(value=0.0, collector=collector)
-        await self._dp_on_time_value.send_value(value=0, collector=collector)
+        await self._dp_on_time.send_value(value=0.0, collector=collector)
 
     @bind_collector(priority=CommandPriority.CRITICAL)
     async def turn_off(self, *, collector: CallParameterCollector | None = None) -> None:

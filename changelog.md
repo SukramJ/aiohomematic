@@ -24,6 +24,19 @@
   → `DpActionString`. `DpAction` remains only for genuine TYPE=ACTION parameters
   (`AUTO_MODE`, `BOOST_MODE`, `COMFORT_MODE`, `LOWERING_MODE`, `STOP`, `OPEN`).
 
+### Refactored
+
+- **TimerField descriptor for value+unit timer pairs**: Replaced `TimerUnitMixin`
+  and manual `_set_xxx_value()` methods with a declarative `TimerField` descriptor
+  that combines a value data point and an optional unit data point into a single
+  `TimerAccessor`. The accessor handles automatic unit conversion (seconds →
+  minutes → hours via `recalc_unit_timer`) transparently. Applied across all custom
+  data points with timer parameters: lights (`CustomDpDimmer`, `CustomDpIpRGBWLight`,
+  `CustomDpIpDrgDaliLight`, `CustomDpIpFixedColorLight`, `CustomDpSoundPlayerLed`),
+  sirens (`CustomDpIpSiren`, `CustomDpSoundPlayer`), switches (`CustomDpSwitch`),
+  and valves (`CustomDpIpIrrigationValve`). Also removed the unused
+  `OnOffActionMixin`. No behavioral changes.
+
 ### Fixed
 
 - **Siren duration unit conversion**: `CustomDpIpSiren.turn_on()` now properly

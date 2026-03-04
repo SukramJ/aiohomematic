@@ -54,7 +54,7 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
 
         Args:
             field: The Field enum value identifying this data point
-            dpt: The expected data point type (e.g., DpSwitch, DpAction)
+            dpt: The expected data point type (e.g., DpSwitch, DpActionFloat)
 
         """
         self._field: Final = field

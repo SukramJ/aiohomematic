@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any, Protocol, TypedDict, Unpack, runtime_chec
 
 if TYPE_CHECKING:
     from aiohomematic.model.data_point import CallParameterCollector
-    from aiohomematic.model.generic import DpAction, DpSwitch
+    from aiohomematic.model.generic import DpActionFloat, DpSwitch
 
 
 @unique
@@ -177,7 +177,7 @@ class OnOffActionMixin:
 
     Subclasses must provide:
     - _dp_state: DpSwitch data point
-    - _dp_on_time_value: DpAction data point for on_time
+    - _dp_on_time_value: DpActionFloat data point for on_time
     - Timer capability methods (from BaseDataPoint)
     """
 
@@ -185,7 +185,7 @@ class OnOffActionMixin:
 
     # These are expected to be set by the implementing class
     _dp_state: DpSwitch
-    _dp_on_time_value: DpAction
+    _dp_on_time_value: DpActionFloat
 
     @abstractmethod
     def get_and_start_timer(self) -> float | None:
@@ -413,10 +413,10 @@ class TimerUnitMixin:
     unit conversion (seconds -> minutes -> hours) for large time values.
 
     Requires the class to have:
-    - _dp_on_time_value: DpAction for on_time value
-    - _dp_on_time_unit: DpAction for on_time unit
-    - _dp_ramp_time_value: DpAction for ramp_time value
-    - _dp_ramp_time_unit: DpAction for ramp_time unit
+    - _dp_on_time_value: DpActionFloat/DpActionInteger for on_time value
+    - _dp_on_time_unit: DpActionSelect for on_time unit
+    - _dp_ramp_time_value: DpActionFloat for ramp_time value
+    - _dp_ramp_time_unit: DpActionSelect for ramp_time unit
     """
 
     __slots__ = ()

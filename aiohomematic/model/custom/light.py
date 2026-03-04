@@ -27,7 +27,6 @@ from aiohomematic.model.custom.mixins import (
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import (
-    DpAction,
     DpActionFloat,
     DpActionInteger,
     DpActionSelect,
@@ -385,9 +384,7 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         """Compute static capabilities based on DataPoint types."""
         return LightCapabilities(
             brightness=isinstance(self._dp_level, DpFloat),
-            transition=isinstance(
-                getattr(self, "_dp_ramp_time_value", None), (DpAction, DpActionFloat, DpActionInteger)
-            ),
+            transition=isinstance(getattr(self, "_dp_ramp_time_value", None), (DpActionFloat, DpActionInteger)),
         )
 
     @bind_collector

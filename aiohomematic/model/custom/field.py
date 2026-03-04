@@ -36,7 +36,7 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
     Usage:
         class CustomDpSwitch(CustomDataPoint):
             _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
-            _dp_on_time: Final = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpAction)
+            _dp_on_time: Final = DataPointField(field=Field.ON_TIME_VALUE, dpt=DpActionFloat)
 
             # No _init_data_point_fields() override needed for these fields!
 
@@ -54,7 +54,7 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
 
         Args:
             field: The Field enum value identifying this data point
-            dpt: The expected data point type (e.g., DpSwitch, DpAction)
+            dpt: The expected data point type (e.g., DpSwitch, DpActionFloat)
 
         """
         self._field: Final = field

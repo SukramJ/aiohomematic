@@ -10,6 +10,19 @@
   at the protocol level. Previously, all write-only numeric parameters were mapped
   to `DpAction` (no HA entity). The resolver now maps write-only FLOAT to
   `DpActionFloat` and write-only INTEGER to `DpActionInteger`.
+- **DpActionBoolean and DpActionString data points**: New `DpActionBoolean` and
+  `DpActionString` generic data point types for write-only BOOL/STRING parameters.
+  These complete the DpAction hierarchy so that every CCU write-only parameter type
+  has a type-safe handler. Previously, write-only BOOL and STRING parameters fell
+  through to the generic `DpAction` fallback with `Any` value type. `DpAction` now
+  only handles `TYPE=ACTION` parameters (triggers without type information).
+- **Type-correct custom data point fields**: Replaced `DpAction` with specific types
+  in custom data points where pydevccu paramset data shows a concrete TYPE:
+  `MANU_MODE` (TYPE=FLOAT) → `DpActionFloat`, `CONTROL_MODE` on HmIP (TYPE=INTEGER)
+  → `DpActionInteger`, `DISPLAY_DATA_COMMIT` (TYPE=BOOL) → `DpActionBoolean`,
+  `DISPLAY_DATA_STRING`/`COMBINED_PARAMETER`/`LEVEL_COMBINED` (TYPE=STRING)
+  → `DpActionString`. `DpAction` remains only for genuine TYPE=ACTION parameters
+  (`AUTO_MODE`, `BOOST_MODE`, `COMFORT_MODE`, `LOWERING_MODE`, `STOP`, `OPEN`).
 
 ### Fixed
 

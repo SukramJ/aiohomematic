@@ -18,6 +18,8 @@ from aiohomematic import ccu_translations
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
+from aiohomematic.model.combined.data_point import CombinedDataPoint
+from aiohomematic.model.combined.field import COMBINED_TIMER_FIELD_MARKER, CombinedTimerField
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
@@ -43,6 +45,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     __slots__ = (
         "_allow_undefined_generic_data_points",
         "_channel_group",
+        "_combined_data_points",
         "_custom_data_point_def",
         "_data_points",
         "_device_config",
@@ -79,7 +82,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         )
         self._allow_undefined_generic_data_points: Final[bool] = channel_group.allow_undefined_generic_data_points
         self._data_points: Final[dict[Field, GenericDataPointProtocolAny]] = {}
+        self._combined_data_points: Final[dict[Field, CombinedDataPoint[Any]]] = {}
         self._init_data_points()
+        self._create_combined_data_points()
         self._post_init()
         if self.usage == DataPointUsage.CDP_PRIMARY:
             self._device.init_week_profile(data_point=self)
@@ -249,6 +254,22 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             for field_name, parameter in ch_fields.items():
                 if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                     self._add_data_point(field=field_name, data_point=dp, is_visible=is_visible)
+
+    def _create_combined_data_points(self) -> None:
+        """Create CombinedDataPoints from CombinedTimerField descriptors on the class."""
+        for cls in type(self).__mro__:
+            for attr_value in vars(cls).values():
+                if not getattr(attr_value, COMBINED_TIMER_FIELD_MARKER, False):
+                    continue
+                field: CombinedTimerField = attr_value
+                if field.value_field not in self._combined_data_points:
+                    combined_dp = field.create_combined_dp(
+                        channel=self._channel,
+                        data_points=self._data_points,
+                    )
+                    self._combined_data_points[field.value_field] = combined_dp
+                    if combined_dp.visible:
+                        self._channel.add_data_point(data_point=combined_dp)
 
     @override
     def _get_data_point_name(self) -> DataPointNameData:

@@ -26,16 +26,19 @@
 
 ### Refactored
 
-- **TimerField descriptor for value+unit timer pairs**: Replaced `TimerUnitMixin`
-  and manual `_set_xxx_value()` methods with a declarative `TimerField` descriptor
-  that combines a value data point and an optional unit data point into a single
-  `TimerAccessor`. The accessor handles automatic unit conversion (seconds →
-  minutes → hours via `recalc_unit_timer`) transparently. Applied across all custom
-  data points with timer parameters: lights (`CustomDpDimmer`, `CustomDpIpRGBWLight`,
-  `CustomDpIpDrgDaliLight`, `CustomDpIpFixedColorLight`, `CustomDpSoundPlayerLed`),
-  sirens (`CustomDpIpSiren`, `CustomDpSoundPlayer`), switches (`CustomDpSwitch`),
-  and valves (`CustomDpIpIrrigationValve`). Also removed the unused
-  `OnOffActionMixin`. No behavioral changes.
+- **CombinedDataPoint for timer value+unit pairs**: Introduced `CombinedDataPoint`
+  base class and `CombinedDpTimerAction` concrete implementation in
+  `aiohomematic/model/combined/`. This new data point type combines multiple
+  underlying data points (e.g., timer value + unit) into a single writable entity
+  with automatic unit conversion (seconds to S/M/H). Replaced the ephemeral
+  `TimerField`/`TimerAccessor` pattern with the `CombinedTimerField` descriptor,
+  which creates persistent `CombinedDpTimerAction` instances during custom data
+  point initialization. For the IP Siren (HmIP-ASIR), the duration combined data
+  point is exposed as a visible HA number entity (max=58,834,800 seconds) with
+  automatic unit conversion, replacing the raw `DURATION_VALUE` number entity that
+  had no unit context. Applied across all custom data points with timer parameters:
+  lights, sirens, switches, and valves. Also removed `TimerUnitMixin`,
+  `OnOffActionMixin`, `TimerAccessor`, and `TimerField`.
 
 ### Fixed
 

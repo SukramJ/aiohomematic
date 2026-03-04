@@ -78,7 +78,7 @@ graph TB
 
 - Central (aiohomematic/central): Orchestrates the whole system. Manages client lifecycles, creates devices and data points, runs a lightweight scheduler, exposes the local XML-RPC callback server for events, and provides a query facade over the runtime model and caches. The central is created via CentralConfig and realized by CentralUnit.
 - Client (aiohomematic/client): Implements the protocol adapters to a Homematic backend (CCU, Homegear) using the **Backend Strategy Pattern**. The unified `InterfaceClient` abstracts XML-RPC and JSON-RPC calls, maintains connection health, and translates high-level operations (get/set value, put/get paramset, list devices, system variables, programs) into backend requests. Backends: `CcuBackend` (CCU3/CCU2 via XML-RPC + JSON-RPC), `JsonCcuBackend` (CUxD/CCU-Jack via JSON-RPC only), `HomegearBackend` (Homegear/pydevccu via XML-RPC). A client belongs to one Interface (BidCos-RF, HmIP, etc.).
-- Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device-specific behavior, and calculated data points for derived metrics. The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
+- Model (aiohomematic/model): Turns device and channel descriptions into runtime objects: Device, Channel, DataPoints and Events. The model layer defines generic data point types (switch, number, sensor, select, …), hub objects for programs and system variables, custom composites for device-specific behavior, calculated data points for derived metrics, and combined data points for multi-parameter writable entities (e.g., timer value+unit pairs). The entry point create_data_points_and_events wires everything based on paramset descriptions and visibility rules.
 - Store (aiohomematic/store): Provide persistence and fast lookup for device metadata and runtime values. Organized into subpackages:
   - persistent/: DeviceDescriptionRegistry and ParamsetDescriptionRegistry store descriptions on disk between runs. IncidentStore persists diagnostic incidents for post-mortem analysis. SessionRecorder captures RPC sessions for testing.
   - dynamic/: CentralDataCache, DeviceDetailsCache, CommandTracker, PingPongTracker hold in-memory runtime state and connection health. PingPongTracker includes a PingPongJournal for diagnostic events.
@@ -288,6 +288,7 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
 
 - **New device profiles**: Add custom DataPoints under `model/custom/` and register them via `DeviceProfileRegistry.register()`. See `docs/developer/extension_points.md` for detailed instructions.
 - **Calculated sensors**: Implement in `model/calculated/` and add to `_CALCULATED_DATA_POINTS` in `model/calculated/__init__.py`.
+- **Combined data points**: Implement in `model/combined/` using `CombinedTimerField` descriptors on `CustomDataPoint` subclasses. See `docs/developer/extension_points.md` for details.
 - **Backends/interfaces**: Implement a new Client subclass and corresponding protocol proxy to add support for another backend or transport.
 
 ## Glossary (selected types)

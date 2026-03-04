@@ -16,9 +16,10 @@ from aiohomematic import i18n
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
+from aiohomematic.model.combined.field import CombinedTimerField
 from aiohomematic.model.custom.capabilities.siren import SMOKE_SENSOR_SIREN_CAPABILITIES, SirenCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.field import DataPointField, TimerField
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpActionFloat, DpActionSelect, DpBinarySensor, DpSelect, DpSensor
@@ -83,8 +84,8 @@ class PlaySoundArgs(TypedDict, total=False):
 
     soundfile: str | int  # Soundfile from available_soundfiles or index (1-189)
     volume: float  # Volume level 0.0-1.0 (default: 0.5)
-    on_time: float  # Duration in seconds (auto unit conversion via TimerField)
-    ramp_time: float  # Ramp time in seconds (auto unit conversion via TimerField)
+    on_time: float  # Duration in seconds (auto unit conversion via CombinedTimerField)
+    ramp_time: float  # Ramp time in seconds (auto unit conversion via CombinedTimerField)
     repetitions: int  # 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST entry)
 
 
@@ -146,7 +147,7 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     # Declarative data point field definitions
     _dp_acoustic_alarm_active: Final = DataPointField(field=Field.ACOUSTIC_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_acoustic_alarm_selection: Final = DataPointField(field=Field.ACOUSTIC_ALARM_SELECTION, dpt=DpActionSelect)
-    _dp_duration: Final = TimerField(value_field=Field.DURATION, unit_field=Field.DURATION_UNIT)
+    _dp_duration: Final = CombinedTimerField(value_field=Field.DURATION, unit_field=Field.DURATION_UNIT, visible=True)
     _dp_optical_alarm_active: Final = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_optical_alarm_selection: Final = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
 
@@ -278,8 +279,8 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
 
     # Declarative data point field definitions for sound channel
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpActionFloat)
-    _dp_on_time: Final = TimerField(value_field=Field.DURATION_VALUE, unit_field=Field.DURATION_UNIT)
-    _dp_ramp_time: Final = TimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
+    _dp_on_time: Final = CombinedTimerField(value_field=Field.DURATION_VALUE, unit_field=Field.DURATION_UNIT)
+    _dp_ramp_time: Final = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
     _dp_soundfile: Final = DataPointField(field=Field.SOUNDFILE, dpt=DpSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])

@@ -12,8 +12,9 @@ import logging
 from typing import Final, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
+from aiohomematic.model.combined.field import CombinedTimerField
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.field import DataPointField, TimerField
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeArgs, StateChangeTimerMixin
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -32,7 +33,7 @@ class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
 
     # Declarative data point field definitions
     _dp_group_state = DataPointField(field=Field.GROUP_STATE, dpt=DpBinarySensor)
-    _dp_on_time = TimerField(value_field=Field.ON_TIME_VALUE)
+    _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
 
     value: Final = DelegatedProperty[bool | None](path="_dp_state.value", kind=Kind.STATE)

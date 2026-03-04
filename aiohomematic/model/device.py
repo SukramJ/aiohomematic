@@ -112,6 +112,7 @@ from aiohomematic.interfaces import (
     ChannelLookupProtocol,
     ChannelProtocol,
     ClientProtocol,
+    CombinedDataPointProtocol,
     ConfigProviderProtocol,
     CustomDataPointProtocol,
     DataCacheProviderProtocol,
@@ -429,7 +430,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
-        """Return the generic data points."""
+        """Return the calculated data points."""
         data_points: list[CalculatedDataPointProtocol] = []
         for channel in self._channels.values():
             data_points.extend(channel.calculated_data_points)
@@ -447,6 +448,14 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             ):
                 result[cdp.group_no] = cdp.channel_group
         return result
+
+    @property
+    def combined_data_points(self) -> tuple[CombinedDataPointProtocol, ...]:
+        """Return the combined data points."""
+        data_points: list[CombinedDataPointProtocol] = []
+        for channel in self._channels.values():
+            data_points.extend(channel.combined_data_points)
+        return tuple(data_points)
 
     @property
     def config_pending(self) -> bool:
@@ -953,6 +962,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_cached_group_no",
         "_cached_is_in_multi_group",
         "_calculated_data_points",
+        "_combined_data_points",
         "_custom_data_point",
         "_channel_description",
         "_device",
@@ -1007,6 +1017,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             config_provider=self._device.config_provider, address=channel_address
         )
         self._calculated_data_points: Final[dict[DataPointKey, CalculatedDataPointProtocol]] = {}
+        self._combined_data_points: Final[dict[DataPointKey, CombinedDataPointProtocol]] = {}
         self._custom_data_point: hmce.CustomDataPoint | None = None
         self._event_groups: Final[dict[DeviceTriggerEventType, hmev.ChannelEventGroup]] = {}
         self._generic_data_points: Final[dict[DataPointKey, GenericDataPointProtocolAny]] = {}
@@ -1073,8 +1084,13 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     @property
     def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
-        """Return the generic data points."""
+        """Return the calculated data points."""
         return tuple(self._calculated_data_points.values())
+
+    @property
+    def combined_data_points(self) -> tuple[CombinedDataPointProtocol, ...]:
+        """Return the combined data points."""
+        return tuple(self._combined_data_points.values())
 
     @property
     def data_point_paths(self) -> tuple[str, ...]:
@@ -1161,6 +1177,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             self._state_path_to_dpk[data_point.state_path] = data_point.dpk
         if isinstance(data_point, CalculatedDataPointProtocol):
             self._calculated_data_points[data_point.dpk] = data_point
+        if isinstance(data_point, CombinedDataPointProtocol):
+            self._combined_data_points[data_point.dpk] = data_point
         if isinstance(data_point, GenericDataPointProtocol):
             self._generic_data_points[data_point.dpk] = data_point
         if isinstance(data_point, hmce.CustomDataPoint):
@@ -1194,6 +1212,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             await gev.finalize_init()
         for cdp in self._calculated_data_points.values():
             await cdp.finalize_init()
+        for cbdp in self._combined_data_points.values():
+            await cbdp.finalize_init()
         if self._custom_data_point:
             await self._custom_data_point.finalize_init()
         # Create event groups by DeviceTriggerEventType
@@ -1232,8 +1252,10 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         registered: bool | None = None,
     ) -> tuple[CallbackDataPointProtocol, ...]:
         """Get all data points of the device."""
-        all_data_points: list[CallbackDataPointProtocol] = list(self._generic_data_points.values()) + list(
-            self._calculated_data_points.values()
+        all_data_points: list[CallbackDataPointProtocol] = (
+            list(self._generic_data_points.values())
+            + list(self._calculated_data_points.values())
+            + list(self._combined_data_points.values())
         )
         if self._custom_data_point:
             all_data_points.append(self._custom_data_point)
@@ -1350,6 +1372,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             await gev.load_data_point_value(call_source=call_source, direct_call=direct_call)
         for cdp in self._calculated_data_points.values():
             await cdp.load_data_point_value(call_source=call_source, direct_call=direct_call)
+        for cbdp in self._combined_data_points.values():
+            await cbdp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         if self._custom_data_point:
             await self._custom_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
@@ -1367,6 +1391,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             await gev.on_config_changed()
         for cdp in self._calculated_data_points.values():
             await cdp.on_config_changed()
+        for cbdp in self._combined_data_points.values():
+            await cbdp.on_config_changed()
         if self._custom_data_point:
             await self._custom_data_point.on_config_changed()
 
@@ -1421,6 +1447,10 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         for ccdp in self.calculated_data_points:
             self._remove_data_point(data_point=ccdp)
         self._calculated_data_points.clear()
+
+        for cbdp in tuple(self._combined_data_points.values()):
+            self._remove_data_point(data_point=cbdp)
+        self._combined_data_points.clear()
 
         for gdp in self.generic_data_points:
             self._remove_data_point(data_point=gdp)
@@ -1503,7 +1533,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     def _remove_data_point(self, *, data_point: CallbackDataPointProtocol) -> None:
         """Remove a data_point from a channel."""
         # Clean up internal subscriptions for custom/calculated data points
-        if isinstance(data_point, (hmce.CustomDataPoint, CalculatedDataPointProtocol)):
+        if isinstance(data_point, (hmce.CustomDataPoint, CalculatedDataPointProtocol, CombinedDataPointProtocol)):
             data_point.unsubscribe_from_data_point_updated()
 
         # Remove from collections
@@ -1511,6 +1541,8 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             self._state_path_to_dpk.pop(data_point.state_path, None)
         if isinstance(data_point, CalculatedDataPointProtocol):
             self._calculated_data_points.pop(data_point.dpk, None)
+        if isinstance(data_point, CombinedDataPointProtocol):
+            self._combined_data_points.pop(data_point.dpk, None)
         if isinstance(data_point, GenericDataPointProtocol):
             self._generic_data_points.pop(data_point.dpk, None)
         if isinstance(data_point, hmce.CustomDataPoint):

@@ -11,11 +11,10 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Final, cast, overload
+from typing import TYPE_CHECKING, Final, cast, overload
 
 from aiohomematic.const import Field
 from aiohomematic.interfaces import GenericDataPointProtocolAny
-from aiohomematic.model.custom.mixins import recalc_unit_timer
 from aiohomematic.model.generic import DpDummy
 from aiohomematic.property_decorators import DelegatedProperty
 
@@ -23,9 +22,8 @@ if TYPE_CHECKING:
     from typing import Self
 
     from aiohomematic.model.custom.data_point import CustomDataPoint
-    from aiohomematic.model.data_point import CallParameterCollector
 
-__all__ = ["DataPointField", "TimerAccessor", "TimerField"]
+__all__ = ["DataPointField"]
 
 
 class DataPointField[DataPointT: GenericDataPointProtocolAny]:
@@ -89,97 +87,3 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
 
     data_point_type: Final = DelegatedProperty[type[DataPointT]](path="_data_point_type")
     field: Final = DelegatedProperty[Field](path="_field")
-
-
-class TimerAccessor:
-    """Accessor that combines a value data point and optional unit data point for timer operations."""
-
-    __slots__ = ("_unit_dp", "_value_dp")
-
-    def __init__(self, *, value_dp: GenericDataPointProtocolAny, unit_dp: GenericDataPointProtocolAny) -> None:
-        """Initialize the timer accessor."""
-        self._value_dp = value_dp
-        self._unit_dp = unit_dp
-
-    @property
-    def default(self) -> int | float | None:
-        """Return the default value of the underlying value data point."""
-        default: Any = self._value_dp.default
-        return cast(int | float | None, default)
-
-    @property
-    def is_valid(self) -> bool:
-        """Return True if the value data point is not a dummy."""
-        return not isinstance(self._value_dp, DpDummy)
-
-    @property
-    def value(self) -> int | float | None:
-        """Return the current value of the underlying value data point."""
-        val: Any = self._value_dp.value
-        return cast(int | float | None, val)
-
-    async def send_default(self, *, collector: CallParameterCollector | None = None) -> None:
-        """Send default values for both unit and value data points."""
-        if not isinstance(self._unit_dp, DpDummy) and (unit_default := self._unit_dp.default) is not None:
-            await self._unit_dp.send_value(value=unit_default, collector=collector)
-        if (value_default := self._value_dp.default) is not None:
-            await self._value_dp.send_value(value=value_default, collector=collector)
-
-    async def send_value(
-        self,
-        *,
-        value: float,
-        collector: CallParameterCollector | None = None,
-    ) -> None:
-        """Send timer value in seconds with automatic unit conversion."""
-        if isinstance(self._unit_dp, DpDummy):
-            # No unit data point — send seconds directly
-            await self._value_dp.send_value(value=value, collector=collector, do_validate=False)
-        else:
-            # Has unit — convert seconds to value+unit
-            converted_value, unit = recalc_unit_timer(time=value)
-            await self._unit_dp.send_value(value=unit, collector=collector)
-            await self._value_dp.send_value(value=converted_value, collector=collector, do_validate=False)
-
-
-class TimerField:
-    """Descriptor for declarative timer field definitions (value + optional unit pair)."""
-
-    __slots__ = ("_unit_field", "_value_field")
-
-    def __init__(self, *, value_field: Field, unit_field: Field | None = None) -> None:
-        """Initialize the timer field descriptor."""
-        self._value_field: Final = value_field
-        self._unit_field: Final = unit_field
-
-    @overload
-    def __get__(self, instance: None, owner: type) -> Self: ...  # kwonly: disable
-
-    @overload
-    def __get__(self, instance: CustomDataPoint, owner: type) -> TimerAccessor: ...  # kwonly: disable
-
-    def __get__(self, instance: CustomDataPoint | None, owner: type) -> Self | TimerAccessor:  # kwonly: disable
-        """
-        Get the timer accessor for this field.
-
-        On class-level access (instance=None), returns the descriptor itself.
-        On instance access, returns a TimerAccessor wrapping value and unit data points.
-        """
-        if instance is None:
-            return self  # Class-level access returns descriptor
-
-        # Resolve value data point (DpDummy fallback if not mapped)
-        if (value_dp := instance._data_points.get(self._value_field)) is None:
-            value_dp = DpDummy(channel=instance._channel, param_field=self._value_field)
-            instance._data_points[self._value_field] = value_dp
-
-        # Resolve unit data point (DpDummy if no unit_field or not mapped)
-        if self._unit_field is not None and (unit_dp := instance._data_points.get(self._unit_field)) is not None:
-            pass  # unit_dp is set
-        else:
-            unit_dp = DpDummy(channel=instance._channel, param_field=self._unit_field or self._value_field)
-
-        return TimerAccessor(value_dp=value_dp, unit_dp=unit_dp)
-
-    unit_field: Final = DelegatedProperty[Field | None](path="_unit_field")
-    value_field: Final = DelegatedProperty[Field](path="_value_field")

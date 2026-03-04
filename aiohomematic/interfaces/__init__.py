@@ -235,6 +235,7 @@ from aiohomematic.interfaces.model import (
     ChannelIdentityProtocol,
     ChannelProtocol,
     ClimateWeekProfileDataPointProtocol,
+    CombinedDataPointProtocol,
     CustomDataPointProtocol,
     # Device sub-protocols
     DeviceChannelAccessProtocol,
@@ -337,6 +338,7 @@ __all__ = [
     "BaseParameterDataPointProtocol",
     "CalculatedDataPointProtocol",
     "CallbackDataPointProtocol",
+    "CombinedDataPointProtocol",
     "CustomDataPointProtocol",
     "GenericDataPointProtocol",
     "GenericDataPointProtocolAny",

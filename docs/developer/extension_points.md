@@ -1,11 +1,12 @@
-# Extension points: New device profiles and calculated data points
+# Extension points: New device profiles, calculated and combined data points
 
 This guide explains how to extend AioHomematic with:
 
 - Custom device profiles (model/custom)
 - Calculated (derived) data points (model/calculated)
+- Combined (multi-parameter writable) data points (model/combined)
 
-It targets contributors who want to add support for new device variants or expose derived metrics that are not provided by the device firmware.
+It targets contributors who want to add support for new device variants, expose derived metrics, or create writable data points that combine multiple underlying parameters.
 
 ## Prerequisites and conventions
 
@@ -275,6 +276,78 @@ class MyMetric(CalculatedDataPoint[float | None]):
 - The base class exposes helper attributes like `self._unit`, `_min`/`_max`, etc., which you can set in `__init__()`.
 - Override `_post_init()` for additional initialization that depends on resolved data points.
 - Keep calculations side-effect free. The base class handles event subscriptions automatically.
+
+---
+
+## Combined (multi-parameter writable) data points (model/combined)
+
+Combined data points write to multiple underlying data points and present a single writable value. They are the writable counterpart to calculated data points.
+
+### Key modules and types:
+
+- **aiohomematic.model.combined.data_point.CombinedDataPoint**: Base class for combined data points
+  - Parameterized by `ParameterT` (the value type, e.g., `float | None`)
+  - Manages `_data_points` dict mapping `Field` to underlying generic data points
+  - Subscribes to underlying data point updates and publishes combined events
+  - Uses `ParamsetKey.COMBINED` to distinguish from generic and calculated data points
+- **aiohomematic.model.combined.timer.CombinedDpTimerAction**: Concrete implementation for timer value+unit pairs
+  - Accepts values in seconds, converts to optimal unit (S/M/H) via `recalc_unit_timer`
+  - Computes `max` as `raw_max * 3600` when a unit data point exists (hours to seconds)
+  - Persists the seconds value in `_current_value` (ACTION params have no CCU events)
+- **aiohomematic.model.combined.field.CombinedTimerField**: Descriptor for use in CustomDataPoint subclasses
+  - Declares a timer value+unit pair with optional visibility
+  - Creates `CombinedDpTimerAction` instances during `CustomDataPoint._create_combined_data_points()`
+  - When `visible=True`, the combined data point is registered as a visible HA entity
+- **aiohomematic.interfaces.model.CombinedDataPointProtocol**: Protocol interface for combined data points
+
+### Lifecycle:
+
+- During `CustomDataPoint.__init__()`, after `_init_data_points()` resolves generic data points, `_create_combined_data_points()` iterates class descriptors marked with `_is_combined_timer_field` and creates `CombinedDpTimerAction` instances.
+- Combined data points are stored in `CustomDataPoint._combined_data_points` (keyed by `Field`).
+- When `visible=True`, the combined data point is added to the channel via `Channel.add_data_point()` and stored in `Channel._combined_data_points`.
+- The combined data point subscribes to its underlying generic data points and publishes update events when they change.
+
+### Usage in CustomDataPoint subclasses:
+
+```python
+from aiohomematic.model.combined.field import CombinedTimerField
+
+class CustomDpSwitch(StateChangeTimerMixin, GroupStateMixin, CustomDataPoint):
+    """Class for Homematic switch data point."""
+
+    __slots__ = ()
+
+    # Timer with value only (no unit DP) — internal, not visible in HA
+    _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE)
+
+    @bind_collector
+    async def turn_on(self, *, on_time: float | None = None, collector: CallParameterCollector | None = None) -> None:
+        """Turn the switch on."""
+        if (timer := self.get_and_start_timer()) is not None:
+            await self._dp_on_time.send_value(value=timer, collector=collector)
+        await self._dp_state.turn_on(collector=collector)
+
+
+class CustomDpIpSiren(CustomDataPoint):
+    """Class for Homematic IP siren data point."""
+
+    __slots__ = ()
+
+    # Timer with value + unit — visible as HA number entity
+    _dp_duration: Final = CombinedTimerField(
+        value_field=Field.DURATION, unit_field=Field.DURATION_UNIT, visible=True
+    )
+```
+
+### Key differences from CalculatedDataPoint:
+
+| Aspect       | CalculatedDataPoint                 | CombinedDataPoint                                       |
+| ------------ | ----------------------------------- | ------------------------------------------------------- |
+| Direction    | Read-only (computed)                | Writable (sends to CCU)                                 |
+| Registration | Via `_CALCULATED_DATA_POINTS` tuple | Via `CombinedTimerField` descriptors on CustomDataPoint |
+| ParamsetKey  | `CALCULATED`                        | `COMBINED`                                              |
+| Visibility   | Always visible                      | Configurable via `visible` parameter                    |
+| Protocol     | `CalculatedDataPointProtocol`       | `CombinedDataPointProtocol`                             |
 
 ---
 

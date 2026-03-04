@@ -1299,6 +1299,7 @@ class ParamsetKey(StrEnum):
     """Enum with paramset keys."""
 
     CALCULATED = "CALCULATED"
+    COMBINED = "COMBINED"
     DUMMY = "DUMMY"
     LINK = "LINK"
     MASTER = "MASTER"

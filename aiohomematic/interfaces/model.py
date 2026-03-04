@@ -92,6 +92,7 @@ if TYPE_CHECKING:
     from aiohomematic.model.custom import DeviceConfig
     from aiohomematic.model.custom.mixins import StateChangeArgs
     from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
+    from aiohomematic.model.data_point import CallParameterCollector
     from aiohomematic.model.schedule_models import TargetChannelInfo
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
@@ -1153,6 +1154,152 @@ class CalculatedDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Unsubscribe from all internal update subscriptions."""
 
 
+@runtime_checkable
+class CombinedDataPointProtocol(BaseDataPointProtocol, Protocol):
+    """
+    Protocol for combined data points that write to multiple underlying data points.
+
+    Defines the interface for data points that combine multiple underlying
+    parameters (e.g., timer value + unit) into a single writable entity.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def data_point_name_postfix(self) -> str:
+        """Return the data point name postfix."""
+
+    @property
+    @abstractmethod
+    def default(self) -> Any:
+        """Return default value."""
+
+    @property
+    @abstractmethod
+    def dpk(self) -> DataPointKey:
+        """Return data point key value."""
+
+    @property
+    @abstractmethod
+    def has_data_points(self) -> bool:
+        """Return if there are data points."""
+
+    @property
+    @abstractmethod
+    def has_events(self) -> bool:
+        """Return if data point supports events."""
+
+    @property
+    @abstractmethod
+    def hmtype(self) -> ParameterType:
+        """Return the Homematic type."""
+
+    @property
+    @abstractmethod
+    def is_readable(self) -> bool:
+        """Return if data point is readable."""
+
+    @property
+    @abstractmethod
+    def is_valid(self) -> bool:
+        """Return True if the combined data point has valid source data points."""
+
+    @property
+    @abstractmethod
+    def is_writable(self) -> bool:
+        """Return if data point is writable."""
+
+    @property
+    @abstractmethod
+    def max(self) -> Any:
+        """Return max value."""
+
+    @property
+    @abstractmethod
+    def min(self) -> Any:
+        """Return min value."""
+
+    @property
+    @abstractmethod
+    def multiplier(self) -> float:
+        """Return multiplier value."""
+
+    @property
+    @abstractmethod
+    def parameter(self) -> str:
+        """Return parameter name."""
+
+    @property
+    @abstractmethod
+    def paramset_key(self) -> ParamsetKey:
+        """Return paramset_key name."""
+
+    @property
+    @abstractmethod
+    def service(self) -> bool:
+        """Return if data point is relevant for service messages."""
+
+    @property
+    @abstractmethod
+    def state_uncertain(self) -> bool:
+        """Return if the state is uncertain."""
+
+    @property
+    @abstractmethod
+    def translation(self) -> str | None:
+        """Return the human-readable translation for the parameter."""
+
+    @property
+    @abstractmethod
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+
+    @property
+    @abstractmethod
+    def unit(self) -> str | None:
+        """Return unit value."""
+
+    @property
+    @abstractmethod
+    def value(self) -> Any:
+        """Return the combined value."""
+
+    @property
+    @abstractmethod
+    def values(self) -> tuple[str, ...] | None:
+        """Return the values."""
+
+    @property
+    @abstractmethod
+    def visible(self) -> bool:
+        """Return if data point is visible in backend."""
+
+    @abstractmethod
+    async def finalize_init(self) -> None:
+        """Finalize the data point init action."""
+
+    @abstractmethod
+    def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
+        """Check if the state changes due to kwargs."""
+
+    @abstractmethod
+    async def on_config_changed(self) -> None:
+        """Handle config changed event."""
+
+    @abstractmethod
+    async def send_default(self, *, collector: CallParameterCollector | None = None) -> None:
+        """Send default values for underlying data points."""
+
+    @abstractmethod
+    async def send_value(self, *, value: float, collector: CallParameterCollector | None = None) -> None:
+        """Send combined value with automatic conversion to underlying data points."""
+
+    @abstractmethod
+    def unsubscribe_from_data_point_updated(self) -> None:
+        """Unsubscribe from all internal update subscriptions."""
+
+
 # =============================================================================
 # Channel Sub-Protocol Interfaces
 # =============================================================================
@@ -1223,6 +1370,11 @@ class ChannelDataPointAccessProtocol(Protocol):
     @abstractmethod
     def calculated_data_points(self) -> tuple[CalculatedDataPointProtocol, ...]:
         """Return the calculated data points."""
+
+    @property
+    @abstractmethod
+    def combined_data_points(self) -> tuple[CombinedDataPointProtocol, ...]:
+        """Return the combined data points."""
 
     @property
     @abstractmethod

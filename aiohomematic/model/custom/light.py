@@ -14,9 +14,10 @@ import math
 from typing import Final, TypedDict, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
+from aiohomematic.model.combined.field import CombinedTimerField
 from aiohomematic.model.custom.capabilities.light import LightCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
-from aiohomematic.model.custom.field import DataPointField, TimerField
+from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -227,8 +228,8 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     # Declarative data point field definitions
     _dp_group_level: Final = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
-    _dp_on_time = TimerField(value_field=Field.ON_TIME_VALUE)
-    _dp_ramp_time = TimerField(value_field=Field.RAMP_TIME_VALUE)
+    _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE)
+    _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE)
 
     @property
     def brightness_pct(self) -> int | None:
@@ -494,9 +495,9 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     _dp_effect: Final = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
 
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
-    _dp_on_time = TimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
-    _dp_ramp_time = TimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
-    _dp_ramp_time_to_off: Final = TimerField(
+    _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
+    _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
+    _dp_ramp_time_to_off: Final = CombinedTimerField(
         value_field=Field.RAMP_TIME_TO_OFF_VALUE, unit_field=Field.RAMP_TIME_TO_OFF_UNIT
     )
     _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
@@ -621,9 +622,9 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     _dp_color_temperature_kelvin: Final = DataPointField(field=Field.COLOR_TEMPERATURE, dpt=DpInteger)
     _dp_effect: Final = DataPointField(field=Field.EFFECT, dpt=DpActionSelect)
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
-    _dp_on_time = TimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
-    _dp_ramp_time = TimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
-    _dp_ramp_time_to_off: Final = TimerField(
+    _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
+    _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
+    _dp_ramp_time_to_off: Final = CombinedTimerField(
         value_field=Field.RAMP_TIME_TO_OFF_VALUE, unit_field=Field.RAMP_TIME_TO_OFF_UNIT
     )
     _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
@@ -681,8 +682,8 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
     _dp_channel_color: Final = DataPointField(field=Field.CHANNEL_COLOR, dpt=DpSensor[str | None])
     _dp_color: Final = DataPointField(field=Field.COLOR, dpt=DpSelect)
     _dp_effect: Final = DataPointField(field=Field.COLOR_BEHAVIOUR, dpt=DpSelect)
-    _dp_on_time = TimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
-    _dp_ramp_time = TimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
+    _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
+    _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
 
     _effect_list: tuple[str, ...]
 
@@ -781,8 +782,8 @@ class CustomDpSoundPlayerLed(CustomDpDimmer):
 
     # Additional declarative data point field definitions for LED channel
     # Note: _dp_level is inherited from CustomDpDimmer
-    _dp_on_time = TimerField(value_field=Field.DURATION_VALUE, unit_field=Field.DURATION_UNIT)
-    _dp_ramp_time = TimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
+    _dp_on_time = CombinedTimerField(value_field=Field.DURATION_VALUE, unit_field=Field.DURATION_UNIT)
+    _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
     _dp_color: Final = DataPointField(field=Field.COLOR, dpt=DpSelect)
     _dp_on_time_list: Final = DataPointField(field=Field.ON_TIME_LIST, dpt=DpActionSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
@@ -838,8 +839,8 @@ class CustomDpSoundPlayerLed(CustomDpDimmer):
             **kwargs: LED parameters from SoundPlayerLedOnArgs (extends LightOnArgs):
                 brightness: Brightness 0-255 (converted to 0.0-1.0 for device).
                 hs_color: Hue/saturation tuple for color selection.
-                on_time: Duration in seconds (auto-converted to value+unit via TimerField).
-                ramp_time: Ramp time in seconds (auto-converted to value+unit via TimerField).
+                on_time: Duration in seconds (auto-converted to value+unit via CombinedTimerField).
+                ramp_time: Ramp time in seconds (auto-converted to value+unit via CombinedTimerField).
                 repetitions: 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST).
                 flash_time: Flash duration in ms (converted to nearest ON_TIME_LIST value).
 

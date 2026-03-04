@@ -22,7 +22,7 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpActionSelect, DpFloat, DpSelect, DpSensor
+from aiohomematic.model.generic import DpAction, DpActionSelect, DpActionString, DpFloat, DpSelect, DpSensor
 from aiohomematic.property_decorators import state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -275,7 +275,7 @@ class CustomDpBlind(CustomDpCover):
     _open_tilt_level: float = _OPEN_TILT_LEVEL
 
     # Declarative data point field definitions
-    _dp_combined = DataPointField(field=Field.LEVEL_COMBINED, dpt=DpAction)
+    _dp_combined = DataPointField(field=Field.LEVEL_COMBINED, dpt=DpActionString)
     _dp_group_level_2: Final = DataPointField(field=Field.GROUP_LEVEL_2, dpt=DpSensor[float | None])
     _dp_level_2: Final = DataPointField(field=Field.LEVEL_2, dpt=DpFloat)
 
@@ -538,7 +538,7 @@ class CustomDpIpBlind(CustomDpBlind):
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
     # Declarative data point field definitions (override parent)
-    _dp_combined = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpAction)
+    _dp_combined = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpActionString)
     _dp_operation_mode: Final = DataPointField(field=Field.OPERATION_MODE, dpt=DpSelect)
 
     @property

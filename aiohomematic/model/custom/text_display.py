@@ -21,7 +21,7 @@ from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor
+from aiohomematic.model.generic import DpActionBoolean, DpActionSelect, DpActionString, DpBinarySensor
 from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
 
 __all__ = ["CustomDpTextDisplay", "TextDisplayArgs"]
@@ -72,10 +72,10 @@ class CustomDpTextDisplay(CustomDataPoint):
     _dp_display_data_background_color: Final = DataPointField(
         field=Field.DISPLAY_DATA_BACKGROUND_COLOR, dpt=DpActionSelect
     )
-    _dp_display_data_commit: Final = DataPointField(field=Field.DISPLAY_DATA_COMMIT, dpt=DpAction)
+    _dp_display_data_commit: Final = DataPointField(field=Field.DISPLAY_DATA_COMMIT, dpt=DpActionBoolean)
     _dp_display_data_icon: Final = DataPointField(field=Field.DISPLAY_DATA_ICON, dpt=DpActionSelect)
     _dp_display_data_id: Final = DataPointField(field=Field.DISPLAY_DATA_ID, dpt=DpActionSelect)
-    _dp_display_data_string: Final = DataPointField(field=Field.DISPLAY_DATA_STRING, dpt=DpAction)
+    _dp_display_data_string: Final = DataPointField(field=Field.DISPLAY_DATA_STRING, dpt=DpActionString)
     _dp_display_data_text_color: Final = DataPointField(field=Field.DISPLAY_DATA_TEXT_COLOR, dpt=DpActionSelect)
     _dp_interval: Final = DataPointField(field=Field.INTERVAL, dpt=DpActionSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)

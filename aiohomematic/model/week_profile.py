@@ -492,6 +492,11 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
         """Convert raw schedule to dictionary format."""
 
     @property
+    def active_profile_index(self) -> int | None:
+        """Return the active week program profile index (1-6) or None."""
+        return None
+
+    @property
     def category(self) -> DataPointCategory:
         """Return the data point category."""
         return self._data_point.category
@@ -1002,6 +1007,14 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
 
     max_temp: Final = DelegatedProperty[float](path="_max_temp")
     min_temp: Final = DelegatedProperty[float](path="_min_temp")
+
+    @property
+    def active_profile_index(self) -> int | None:
+        """Return the active week program profile index (1-6) or None."""
+        profile = str(self._data_point.profile)
+        if profile.startswith("week_program_"):
+            return int(profile.removeprefix("week_program_"))
+        return None
 
     @property
     def available_profiles(self) -> tuple[ScheduleProfile, ...]:

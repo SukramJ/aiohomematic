@@ -2484,6 +2484,11 @@ class WeekProfileProtocol[SCHEDULE_DICT_T](Protocol):
 
     @property
     @abstractmethod
+    def active_profile_index(self) -> int | None:
+        """Return the active week program profile index (1-6) or None."""
+
+    @property
+    @abstractmethod
     def has_schedule(self) -> bool:
         """Return if climate supports schedule."""
 

@@ -1,3 +1,16 @@
+# Version 2026.3.2 (2026-03-05)
+
+## What's Changed
+
+### Added
+
+- **Active profile index on ClimateWeekProfile**: Added `active_profile_index`
+  property to `WeekProfileProtocol` and `WeekProfile` base class. Returns the
+  currently active week program number (1-6) for climate devices, or `None` for
+  non-climate devices or when no week program is active.
+
+---
+
 # Version 2026.3.1 (2026-03-03)
 
 ## What's Changed

@@ -95,11 +95,15 @@ from aiohomematic.model.custom.profile import (
     DEFAULT_DATA_POINTS,
     PROFILE_CONFIGS,
     ChannelGroupConfig,
+    FieldMapping,
+    FieldValue,
     ProfileConfig,
     ProfileRegistry,
     RebasedChannelGroupConfig,
     get_profile_config,
     rebase_channel_group,
+    resolve_field_value,
+    visible,
 )
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.custom.siren import (
@@ -157,12 +161,16 @@ __all__ = [
     # Profile
     "ChannelGroupConfig",
     "DEFAULT_DATA_POINTS",
+    "FieldMapping",
+    "FieldValue",
     "PROFILE_CONFIGS",
     "ProfileConfig",
     "ProfileRegistry",
     "RebasedChannelGroupConfig",
     "get_profile_config",
     "rebase_channel_group",
+    "resolve_field_value",
+    "visible",
     # Registry
     "DeviceConfig",
     "DeviceProfileRegistry",

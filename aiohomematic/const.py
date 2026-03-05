@@ -423,11 +423,8 @@ class ProfileKey(StrEnum):
     FIELDS = "fields"
     INCLUDE_DEFAULT_DPS = "include_default_dps"
     PRIMARY_CHANNEL = "primary_channel"
-    REPEATABLE_FIELDS = "repeatable_fields"
     SECONDARY_CHANNELS = "secondary_channels"
     STATE_CHANNEL = "state_channel"
-    VISIBLE_FIELDS = "visible_fields"
-    VISIBLE_REPEATABLE_FIELDS = "visible_repeatable_fields"
 
 
 @unique

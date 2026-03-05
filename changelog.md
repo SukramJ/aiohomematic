@@ -49,6 +49,17 @@
   boilerplate `hs_color` property and `turn_on()` conversion logic with delegation
   to the combined data point. Removed `ParamType` bound from `CombinedDataPoint`
   generic parameter to support non-`ParamType` value types.
+- **Unified field visibility in profile configs**: Merged 6 field dictionaries
+  (3 pairs of hidden/visible) in `ChannelGroupConfig` into 3 dictionaries where
+  each entry carries its own visibility via `hidden()`/`visible()` helper functions.
+  `fields`, `channel_fields`, and `fixed_channel_fields` now accept `FieldValue`
+  (either bare `Parameter` for default behavior, `hidden(Parameter.X)` for NO_CREATE,
+  or `visible(Parameter.X)` for CDP_VISIBLE). Removed `visible_fields`,
+  `visible_channel_fields`, and `visible_fixed_channel_fields` from both
+  `ChannelGroupConfig` and `RebasedChannelGroupConfig`. Updated `_init_data_points()`
+  and helper methods to use `resolve_field_value()` for per-entry visibility extraction.
+  Removed dead `ProfileKey.VISIBLE_FIELDS`, `ProfileKey.VISIBLE_REPEATABLE_FIELDS`,
+  and `ProfileKey.REPEATABLE_FIELDS` enum members.
 
 ### Fixed
 

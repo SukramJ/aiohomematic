@@ -12,7 +12,7 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 import logging
 from typing import Final, cast
 
@@ -23,16 +23,23 @@ from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol
 from aiohomematic.model.custom.profile import (
     DEFAULT_DATA_POINTS,
     PROFILE_CONFIGS,
+    FieldValue,
     ProfileConfig,
     RebasedChannelGroupConfig,
     get_profile_config,
     rebase_channel_group,
+    resolve_field_value,
 )
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry
 from aiohomematic.model.support import generate_unique_id
 from aiohomematic.support import extract_exc_args
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+
+def _extract_parameters(*, field_values: Iterable[FieldValue]) -> list[Parameter]:
+    """Extract Parameter values from an iterable of FieldValue entries."""
+    return [resolve_field_value(field_value=fv)[0] for fv in field_values]
 
 
 def create_custom_data_point(
@@ -271,16 +278,11 @@ def get_required_parameters() -> tuple[Parameter, ...]:
     # Add parameters from profile configurations
     for profile_config in PROFILE_CONFIGS.values():
         group = profile_config.channel_group
-        required_parameters.extend(group.fields.values())
-        required_parameters.extend(group.visible_fields.values())
+        required_parameters.extend(_extract_parameters(field_values=group.fields.values()))
         for field_map in group.channel_fields.values():
-            required_parameters.extend(field_map.values())
-        for field_map in group.visible_channel_fields.values():
-            required_parameters.extend(field_map.values())
+            required_parameters.extend(_extract_parameters(field_values=field_map.values()))
         for field_map in group.fixed_channel_fields.values():
-            required_parameters.extend(field_map.values())
-        for field_map in group.visible_fixed_channel_fields.values():
-            required_parameters.extend(field_map.values())
+            required_parameters.extend(_extract_parameters(field_values=field_map.values()))
         for params in profile_config.additional_data_points.values():
             required_parameters.extend(params)
 

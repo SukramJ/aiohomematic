@@ -37,13 +37,53 @@ from aiohomematic.const import ChannelOffset, DeviceProfile, Field, Parameter
 __all__ = [
     "ChannelGroupConfig",
     "DEFAULT_DATA_POINTS",
+    "FieldMapping",
+    "FieldValue",
     "ProfileConfig",
     "ProfileRegistry",
     "PROFILE_CONFIGS",
     "RebasedChannelGroupConfig",
     "get_profile_config",
     "rebase_channel_group",
+    "resolve_field_value",
+    "visible",
 ]
+
+
+class FieldMapping(BaseModel):
+    """
+    Field configuration with explicit visibility control.
+
+    Used in profile configurations to specify both the parameter mapping
+    and the visibility of a field. Use the ``visible()`` helper function
+    for concise construction.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    parameter: Parameter
+    is_visible: bool | None = None
+
+
+# Type alias for field values: bare Parameter (is_visible=None) or FieldMapping
+FieldValue: TypeAlias = Parameter | FieldMapping
+
+
+def visible(*, parameter: Parameter) -> FieldMapping:
+    """Create a field mapping that forces the data point to be visible (CDP_VISIBLE)."""
+    return FieldMapping(parameter=parameter, is_visible=True)
+
+
+def _hidden(*, parameter: Parameter) -> FieldMapping:
+    """Create a field mapping that forces the data point to be hidden (NO_CREATE)."""
+    return FieldMapping(parameter=parameter, is_visible=False)
+
+
+def resolve_field_value(*, field_value: FieldValue) -> tuple[Parameter, bool | None]:
+    """Extract parameter and visibility from a field value."""
+    if isinstance(field_value, Parameter):
+        return (field_value, None)
+    return (field_value.parameter, field_value.is_visible)
 
 
 class ChannelGroupConfig(BaseModel):
@@ -53,13 +93,20 @@ class ChannelGroupConfig(BaseModel):
     A channel group defines the structure of channels for a device type,
     including which fields are available on each channel.
 
+    Visibility Control
+    ------------------
+    Each field value can be either a bare ``Parameter`` or a ``FieldMapping``.
+
+    - ``visible(parameter=Parameter.X)``: Force data point visible (CDP_VISIBLE).
+    - ``Parameter.X`` (bare): No visibility forcing (keep default behavior).
+
     Channel Number Convention
     -------------------------
     This configuration uses two types of channel numbers:
 
     **Relative channel numbers** (used in most fields):
-    - `primary_channel`, `secondary_channels`, `state_channel_offset`
-    - `channel_fields`, `visible_channel_fields`
+    - ``primary_channel``, ``secondary_channels``, ``state_channel_offset``
+    - ``channel_fields``
 
     These are **offsets from a base channel** (group_no). The base channel is
     determined at device registration time via DeviceProfileRegistry.register(channels=(...)).
@@ -76,7 +123,7 @@ class ChannelGroupConfig(BaseModel):
     rebase_channel_group(), which produces a RebasedChannelGroupConfig.
 
     **Absolute channel numbers** (fixed, not rebased):
-    - `fixed_channel_fields`, `visible_fixed_channel_fields`
+    - ``fixed_channel_fields``
 
     These are used for fields that must always reference specific device channels,
     regardless of which channel group is being created. Common use case: channel 0
@@ -98,20 +145,18 @@ class ChannelGroupConfig(BaseModel):
     allow_undefined_generic_data_points: bool = False
 
     # Field mappings applied to the primary channel (not channel-specific)
-    fields: Mapping[Field, Parameter] = PydanticField(default_factory=dict)
-    visible_fields: Mapping[Field, Parameter] = PydanticField(default_factory=dict)
+    # Use visible() to force data point visibility.
+    fields: Mapping[Field, FieldValue] = PydanticField(default_factory=dict)
 
     # Channel-specific field mappings with RELATIVE channel offsets
-    # {channel_offset: {field: parameter}} - channel numbers are offsets from group_no
+    # {channel_offset: {field: parameter_or_mapping}} - channel numbers are offsets from group_no
     # Use ChannelOffset enum values (e.g., ChannelOffset.STATE) for semantic offsets.
-    channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
-    visible_channel_fields: Mapping[int | None, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
+    channel_fields: Mapping[int | None, Mapping[Field, FieldValue]] = PydanticField(default_factory=dict)
 
     # Channel-specific field mappings with ABSOLUTE (fixed) channel numbers
-    # {channel_no: {field: parameter}} - channel numbers are NOT rebased
+    # {channel_no: {field: parameter_or_mapping}} - channel numbers are NOT rebased
     # Use for fields that must always reference specific device channels (e.g., channel 0).
-    fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
-    visible_fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]] = PydanticField(default_factory=dict)
+    fixed_channel_fields: Mapping[int, Mapping[Field, FieldValue]] = PydanticField(default_factory=dict)
 
 
 class ProfileConfig(BaseModel):
@@ -134,9 +179,9 @@ class RebasedChannelGroupConfig(BaseModel):
     mappings without dictionary-based lookups.
 
     All channel numbers in this config are **absolute** (actual device channels):
-    - `primary_channel`, `secondary_channels`, `state_channel` - rebased from offsets
-    - `channel_fields`, `visible_channel_fields` - rebased from offsets
-    - `fixed_channel_fields`, `visible_fixed_channel_fields` - already absolute (unchanged)
+    - ``primary_channel``, ``secondary_channels``, ``state_channel`` - rebased from offsets
+    - ``channel_fields`` - rebased from offsets
+    - ``fixed_channel_fields`` - already absolute (unchanged)
     """
 
     model_config = ConfigDict(frozen=True)
@@ -148,16 +193,13 @@ class RebasedChannelGroupConfig(BaseModel):
     allow_undefined_generic_data_points: bool
 
     # Field mappings applied to the primary channel
-    fields: Mapping[Field, Parameter]
-    visible_fields: Mapping[Field, Parameter]
+    fields: Mapping[Field, FieldValue]
 
     # Channel-specific field mappings (rebased to actual channel numbers)
-    channel_fields: Mapping[int | None, Mapping[Field, Parameter]]
-    visible_channel_fields: Mapping[int | None, Mapping[Field, Parameter]]
+    channel_fields: Mapping[int | None, Mapping[Field, FieldValue]]
 
     # Fixed channel field mappings (absolute channel numbers, not rebased)
-    fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]]
-    visible_fixed_channel_fields: Mapping[int, Mapping[Field, Parameter]]
+    fixed_channel_fields: Mapping[int, Mapping[Field, FieldValue]]
 
 
 def rebase_channel_group(
@@ -198,20 +240,12 @@ def rebase_channel_group(
         state = cg.state_channel_offset + offset if offset else cg.state_channel_offset
 
     # Rebase channel_fields (relative -> absolute)
-    channel_fields: dict[int | None, Mapping[Field, Parameter]] = {}
+    channel_fields: dict[int | None, Mapping[Field, FieldValue]] = {}
     for ch_no, ch_fields in cg.channel_fields.items():
         if ch_no is None:
             channel_fields[None] = ch_fields
         else:
             channel_fields[ch_no + offset] = ch_fields
-
-    # Rebase visible_channel_fields (relative -> absolute)
-    visible_channel_fields: dict[int | None, Mapping[Field, Parameter]] = {}
-    for ch_no, ch_fields in cg.visible_channel_fields.items():
-        if ch_no is None:
-            visible_channel_fields[None] = ch_fields
-        else:
-            visible_channel_fields[ch_no + offset] = ch_fields
 
     # Fixed channel fields are NOT rebased (already absolute)
     return RebasedChannelGroupConfig(
@@ -220,11 +254,8 @@ def rebase_channel_group(
         state_channel=state,
         allow_undefined_generic_data_points=cg.allow_undefined_generic_data_points,
         fields=cg.fields,
-        visible_fields=cg.visible_fields,
         channel_fields=channel_fields,
-        visible_channel_fields=visible_channel_fields,
         fixed_channel_fields=cg.fixed_channel_fields,
-        visible_fixed_channel_fields=cg.visible_fixed_channel_fields,
     )
 
 
@@ -246,7 +277,7 @@ IP_BUTTON_LOCK_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         allow_undefined_generic_data_points=True,
         fields={
-            Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
+            Field.BUTTON_LOCK: _hidden(parameter=Parameter.GLOBAL_BUTTON_LOCK),
         },
     ),
 )
@@ -257,7 +288,7 @@ RF_BUTTON_LOCK_CONFIG: Final = ProfileConfig(
         primary_channel=None,
         allow_undefined_generic_data_points=True,
         fields={
-            Field.BUTTON_LOCK: Parameter.GLOBAL_BUTTON_LOCK,
+            Field.BUTTON_LOCK: _hidden(parameter=Parameter.GLOBAL_BUTTON_LOCK),
         },
     ),
 )
@@ -280,12 +311,8 @@ IP_COVER_CONFIG: Final = ProfileConfig(
             ChannelOffset.STATE: {
                 Field.DIRECTION: Parameter.ACTIVITY_STATE,
                 Field.OPERATION_MODE: Parameter.CHANNEL_OPERATION_MODE,
-            },
-        },
-        visible_channel_fields={
-            ChannelOffset.STATE: {
-                Field.GROUP_LEVEL: Parameter.LEVEL,
-                Field.GROUP_LEVEL_2: Parameter.LEVEL_2,
+                Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL),
+                Field.GROUP_LEVEL_2: visible(parameter=Parameter.LEVEL_2),
             },
         },
     ),
@@ -324,9 +351,7 @@ IP_GARAGE_CONFIG: Final = ProfileConfig(
         fields={
             Field.DOOR_COMMAND: Parameter.DOOR_COMMAND,
             Field.SECTION: Parameter.SECTION,
-        },
-        visible_fields={
-            Field.DOOR_STATE: Parameter.DOOR_STATE,
+            Field.DOOR_STATE: visible(parameter=Parameter.DOOR_STATE),
         },
     ),
     additional_data_points={
@@ -347,9 +372,9 @@ IP_DIMMER_CONFIG: Final = ProfileConfig(
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
         },
-        visible_channel_fields={
+        channel_fields={
             ChannelOffset.STATE: {
-                Field.GROUP_LEVEL: Parameter.LEVEL,
+                Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL),
             },
         },
     ),
@@ -432,10 +457,10 @@ IP_FIXED_COLOR_LIGHT_CONFIG: Final = ProfileConfig(
             Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
         },
-        visible_channel_fields={
+        channel_fields={
             ChannelOffset.STATE: {
-                Field.CHANNEL_COLOR: Parameter.COLOR,
-                Field.GROUP_LEVEL: Parameter.LEVEL,
+                Field.CHANNEL_COLOR: visible(parameter=Parameter.COLOR),
+                Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL),
             },
         },
     ),
@@ -527,9 +552,9 @@ IP_SWITCH_CONFIG: Final = ProfileConfig(
             Field.STATE: Parameter.STATE,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
         },
-        visible_channel_fields={
+        channel_fields={
             ChannelOffset.STATE: {
-                Field.GROUP_STATE: Parameter.STATE,
+                Field.GROUP_STATE: visible(parameter=Parameter.STATE),
             },
         },
     ),
@@ -573,9 +598,9 @@ IP_IRRIGATION_VALVE_CONFIG: Final = ProfileConfig(
             Field.STATE: Parameter.STATE,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
         },
-        visible_channel_fields={
+        channel_fields={
             ChannelOffset.STATE: {
-                Field.GROUP_STATE: Parameter.STATE,
+                Field.GROUP_STATE: visible(parameter=Parameter.STATE),
             },
         },
     ),
@@ -630,10 +655,8 @@ IP_SIREN_CONFIG: Final = ProfileConfig(
             Field.DURATION: Parameter.DURATION_VALUE,
             Field.DURATION_UNIT: Parameter.DURATION_UNIT,
             Field.OPTICAL_ALARM_ACTIVE: Parameter.OPTICAL_ALARM_ACTIVE,
-        },
-        visible_fields={
-            Field.ACOUSTIC_ALARM_SELECTION: Parameter.ACOUSTIC_ALARM_SELECTION,
-            Field.OPTICAL_ALARM_SELECTION: Parameter.OPTICAL_ALARM_SELECTION,
+            Field.ACOUSTIC_ALARM_SELECTION: visible(parameter=Parameter.ACOUSTIC_ALARM_SELECTION),
+            Field.OPTICAL_ALARM_SELECTION: visible(parameter=Parameter.OPTICAL_ALARM_SELECTION),
         },
     ),
 )
@@ -643,9 +666,7 @@ IP_SIREN_SMOKE_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         fields={
             Field.SMOKE_DETECTOR_COMMAND: Parameter.SMOKE_DETECTOR_COMMAND,
-        },
-        visible_fields={
-            Field.SMOKE_DETECTOR_ALARM_STATUS: Parameter.SMOKE_DETECTOR_ALARM_STATUS,
+            Field.SMOKE_DETECTOR_ALARM_STATUS: visible(parameter=Parameter.SMOKE_DETECTOR_ALARM_STATUS),
         },
     ),
 )
@@ -664,9 +685,7 @@ IP_SOUND_PLAYER_CONFIG: Final = ProfileConfig(
             Field.RAMP_TIME_UNIT: Parameter.RAMP_TIME_UNIT,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME_VALUE,
             Field.REPETITIONS: Parameter.REPETITIONS,
-        },
-        visible_fields={
-            Field.SOUNDFILE: Parameter.SOUNDFILE,
+            Field.SOUNDFILE: visible(parameter=Parameter.SOUNDFILE),
         },
     ),
 )
@@ -706,8 +725,8 @@ IP_TEXT_DISPLAY_CONFIG: Final = ProfileConfig(
             Field.INTERVAL: Parameter.INTERVAL,
             Field.REPETITIONS: Parameter.REPETITIONS,
         },
-        visible_fixed_channel_fields={
-            0: {Field.BURST_LIMIT_WARNING: Parameter.BURST_LIMIT_WARNING},
+        fixed_channel_fields={
+            0: {Field.BURST_LIMIT_WARNING: visible(parameter=Parameter.BURST_LIMIT_WARNING)},
         },
     ),
 )
@@ -730,24 +749,20 @@ IP_THERMOSTAT_CONFIG: Final = ProfileConfig(
             Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
             Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
             Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
-        },
-        visible_fields={
-            Field.HEATING_COOLING: Parameter.HEATING_COOLING,
-            Field.HUMIDITY: Parameter.HUMIDITY,
-            Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
-        },
-        visible_channel_fields={
-            0: {
-                Field.LEVEL: Parameter.LEVEL,
-                Field.CONCENTRATION: Parameter.CONCENTRATION,
-            },
-            8: {  # BWTH
-                Field.STATE: Parameter.STATE,
-            },
+            Field.HEATING_COOLING: visible(parameter=Parameter.HEATING_COOLING),
+            Field.HUMIDITY: visible(parameter=Parameter.HUMIDITY),
+            Field.TEMPERATURE: visible(parameter=Parameter.ACTUAL_TEMPERATURE),
         },
         channel_fields={
+            0: {
+                Field.LEVEL: visible(parameter=Parameter.LEVEL),
+                Field.CONCENTRATION: visible(parameter=Parameter.CONCENTRATION),
+            },
             7: {
                 Field.HEATING_VALVE_TYPE: Parameter.HEATING_VALVE_TYPE,
+            },
+            8: {  # BWTH
+                Field.STATE: visible(parameter=Parameter.STATE),
             },
             ChannelOffset.CONFIG: {  # WGTC
                 Field.STATE: Parameter.STATE,
@@ -772,11 +787,9 @@ IP_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
             Field.TEMPERATURE_MAXIMUM: Parameter.TEMPERATURE_MAXIMUM,
             Field.TEMPERATURE_MINIMUM: Parameter.TEMPERATURE_MINIMUM,
             Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
-        },
-        visible_fields={
-            Field.HEATING_COOLING: Parameter.HEATING_COOLING,
-            Field.HUMIDITY: Parameter.HUMIDITY,
-            Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
+            Field.HEATING_COOLING: visible(parameter=Parameter.HEATING_COOLING),
+            Field.HUMIDITY: visible(parameter=Parameter.HUMIDITY),
+            Field.TEMPERATURE: visible(parameter=Parameter.ACTUAL_TEMPERATURE),
         },
         channel_fields={
             0: {
@@ -801,6 +814,8 @@ RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
             Field.LOWERING_MODE: Parameter.LOWERING_MODE,
             Field.MANU_MODE: Parameter.MANU_MODE,
             Field.SETPOINT: Parameter.SET_TEMPERATURE,
+            Field.HUMIDITY: visible(parameter=Parameter.ACTUAL_HUMIDITY),
+            Field.TEMPERATURE: visible(parameter=Parameter.ACTUAL_TEMPERATURE),
         },
         channel_fields={
             None: {
@@ -810,14 +825,8 @@ RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
                 Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
                 Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
             },
-        },
-        visible_fields={
-            Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
-            Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
-        },
-        visible_channel_fields={
             0: {
-                Field.VALVE_STATE: Parameter.VALVE_STATE,
+                Field.VALVE_STATE: visible(parameter=Parameter.VALVE_STATE),
             },
         },
     ),
@@ -834,6 +843,8 @@ RF_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
             Field.LOWERING_MODE: Parameter.LOWERING_MODE,
             Field.MANU_MODE: Parameter.MANU_MODE,
             Field.SETPOINT: Parameter.SET_TEMPERATURE,
+            Field.HUMIDITY: visible(parameter=Parameter.ACTUAL_HUMIDITY),
+            Field.TEMPERATURE: visible(parameter=Parameter.ACTUAL_TEMPERATURE),
         },
         channel_fields={
             None: {
@@ -843,14 +854,8 @@ RF_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
                 Field.TEMPERATURE_OFFSET: Parameter.TEMPERATURE_OFFSET,
                 Field.WEEK_PROGRAM_POINTER: Parameter.WEEK_PROGRAM_POINTER,
             },
-        },
-        visible_fields={
-            Field.HUMIDITY: Parameter.ACTUAL_HUMIDITY,
-            Field.TEMPERATURE: Parameter.ACTUAL_TEMPERATURE,
-        },
-        visible_channel_fields={
             0: {
-                Field.VALVE_STATE: Parameter.VALVE_STATE,
+                Field.VALVE_STATE: visible(parameter=Parameter.VALVE_STATE),
             },
         },
     ),
@@ -860,9 +865,9 @@ RF_THERMOSTAT_GROUP_CONFIG: Final = ProfileConfig(
 SIMPLE_RF_THERMOSTAT_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.SIMPLE_RF_THERMOSTAT,
     channel_group=ChannelGroupConfig(
-        visible_fields={
-            Field.HUMIDITY: Parameter.HUMIDITY,
-            Field.TEMPERATURE: Parameter.TEMPERATURE,
+        fields={
+            Field.HUMIDITY: visible(parameter=Parameter.HUMIDITY),
+            Field.TEMPERATURE: visible(parameter=Parameter.TEMPERATURE),
         },
         channel_fields={
             1: {

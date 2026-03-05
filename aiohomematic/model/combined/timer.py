@@ -29,7 +29,7 @@ class CombinedDpTimerAction(CombinedDataPoint[float | None], CombinedDataPointPr
 
     __slots__ = ("_unit_dp", "_value_dp")
 
-    _category = DataPointCategory.SENSOR
+    _category = DataPointCategory.ACTION_NUMBER
 
     def __init__(
         self,

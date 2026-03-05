@@ -174,7 +174,7 @@ class TestCombinedDpTimerAction:
         assert timer.max == 36000.0
         assert timer.value is None
         assert timer.is_valid is True
-        assert timer.category == DataPointCategory.SENSOR
+        assert timer.category == DataPointCategory.ACTION_NUMBER
 
     def test_init_without_unit_dp(self) -> None:
         """Test initialization with DpDummy as unit data point."""

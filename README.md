@@ -138,7 +138,7 @@ See [Getting Started](https://sukramj.github.io/aiohomematic/getting_started/) f
 
 ## Requirements
 
-- **Python**: 3.13+
+- **Python**: 3.14+
 - **CCU Firmware**: CCU2 ≥2.61.x, CCU3 ≥3.61.x
 - There is not active testing to identify the minimum required firmware versions.
 
@@ -179,7 +179,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 If you find this project useful, consider [sponsoring](https://github.com/sponsors/SukramJ) the development.
 
 [license-shield]: https://img.shields.io/github/license/SukramJ/aiohomematic.svg?style=for-the-badge
-[pythonbadge]: https://img.shields.io/badge/Python-3.13+-blue?style=for-the-badge&logo=python&logoColor=white
+[pythonbadge]: https://img.shields.io/badge/Python-3.14+-blue?style=for-the-badge&logo=python&logoColor=white
 [release]: https://github.com/SukramJ/aiohomematic/releases
 [releasebadge]: https://img.shields.io/github/v/release/SukramJ/aiohomematic?style=for-the-badge
 [sponsorsbadge]: https://img.shields.io/github/sponsors/SukramJ?style=for-the-badge&label=Sponsors&color=ea4aaa

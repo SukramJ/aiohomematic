@@ -28,7 +28,7 @@ def fix_xml_rpc_encoding(*, text: str) -> str:
     """
     try:
         return text.encode("iso-8859-1").decode("utf-8")
-    except (UnicodeDecodeError, UnicodeEncodeError):
+    except UnicodeDecodeError, UnicodeEncodeError:
         return text
 
 

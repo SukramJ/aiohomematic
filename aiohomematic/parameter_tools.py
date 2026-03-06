@@ -286,7 +286,7 @@ def _values_equal(*, param_type: ParameterType, old: Any, new: Any) -> bool:
     if param_type == ParameterType.FLOAT:
         try:
             return float(old) == float(new)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return bool(old == new)
     return bool(old == new)
 

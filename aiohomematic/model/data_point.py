@@ -1432,7 +1432,7 @@ class BaseParameterDataPoint[
                     ),
                 )
             return cast(ParameterT, convert_value(value=value, target_type=self._type, value_list=self.values))
-        except (ValueError, TypeError):  # pragma: no cover
+        except ValueError, TypeError:  # pragma: no cover
             _LOGGER.debug(
                 "CONVERT_VALUE: conversion failed for %s, %s, %s, value: [%s]",
                 self._device.interface_id,
@@ -1458,7 +1458,7 @@ class BaseParameterDataPoint[
                 parameter=status_param,
             ):
                 return status_param
-        except (AttributeError, KeyError):
+        except AttributeError, KeyError:
             # has_parameter not available or lookup failed
             pass
         return None

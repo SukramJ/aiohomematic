@@ -708,7 +708,7 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
                 group_no = int(parts[0])
                 field_name = parts[2]
                 field = ScheduleField[field_name]
-            except (ValueError, KeyError):
+            except ValueError, KeyError:
                 # Skip invalid entries
                 continue
 
@@ -978,7 +978,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
                 _slot_type = slot_type_name.lower()
                 _weekday = WeekdayStr(slot_weekday_name)
                 _slot_no = int(slot_no_str)
-            except (ValueError, KeyError):
+            except ValueError, KeyError:
                 # Gracefully skip invalid entries instead of crashing
                 continue
 

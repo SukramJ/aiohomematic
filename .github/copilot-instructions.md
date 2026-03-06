@@ -6,7 +6,7 @@ This document provides guidance for GitHub Copilot when working with the aiohome
 
 **aiohomematic** is an async Python library for controlling Homematic and HomematicIP devices. It powers the Home Assistant integration "Homematic(IP) Local".
 
-- **Python Version**: 3.13+
+- **Python Version**: 3.14+
 - **Type Safety**: Fully typed with mypy strict mode
 - **Async Framework**: AsyncIO-based
 

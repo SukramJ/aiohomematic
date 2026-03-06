@@ -759,7 +759,7 @@ def build_aiohomematic_method_index(aiohomematic_path: Path) -> set[str]:
                                 if isinstance(target, ast.Name):
                                     methods.add(target.id)
 
-        except (SyntaxError, Exception):
+        except SyntaxError, Exception:
             continue
 
     return methods

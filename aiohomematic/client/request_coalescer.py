@@ -42,7 +42,7 @@ Example Usage
 Thread Safety
 -------------
 RequestCoalescer uses an asyncio.Lock to protect the check-and-register
-operation, making it safe even in free-threading scenarios (Python 3.13+).
+operation, making it safe even in free-threading scenarios (Python 3.14+).
 
 """
 

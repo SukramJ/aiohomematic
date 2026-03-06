@@ -104,7 +104,7 @@ def load_package_all(package_path: str, base_path: Path) -> set[str]:
                             for elt in node.value.elts
                             if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
                         }
-    except (SyntaxError, OSError):
+    except SyntaxError, OSError:
         pass
     return set()
 
@@ -123,7 +123,7 @@ def check_file(
         with open(file_path, encoding="utf-8") as f:
             content = f.read()
             tree = ast.parse(content)
-    except (SyntaxError, OSError):
+    except SyntaxError, OSError:
         return violations
 
     for node in ast.walk(tree):

@@ -4,7 +4,7 @@ This guide covers setting up a development environment for contributing to aioho
 
 ## Prerequisites
 
-- **Python**: 3.13 or higher
+- **Python**: 3.14 or higher
 - **Git**: For version control
 - **Package Manager**: pip or uv (recommended)
 
@@ -18,7 +18,7 @@ git clone https://github.com/sukramj/aiohomematic.git
 cd aiohomematic
 
 # Create virtual environment
-python3.13 -m venv venv
+python3.14 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies

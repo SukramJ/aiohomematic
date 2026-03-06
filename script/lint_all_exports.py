@@ -242,7 +242,7 @@ def get_exported_symbols(init_path: Path) -> set[str]:
     try:
         content = init_path.read_text(encoding="utf-8")
         tree = ast.parse(content)
-    except (SyntaxError, OSError):
+    except SyntaxError, OSError:
         return set()
 
     symbols: set[str] = set()

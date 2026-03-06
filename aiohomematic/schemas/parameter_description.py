@@ -83,7 +83,7 @@ class ParameterDataModel(BaseModel):
             return 0
         try:
             return int(v)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return 0
 
     @field_validator("tab_order", mode="before")
@@ -94,7 +94,7 @@ class ParameterDataModel(BaseModel):
             return None
         try:
             return int(v)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None
 
     @field_validator("type", mode="before")

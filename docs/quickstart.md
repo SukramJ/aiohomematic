@@ -29,7 +29,7 @@ sequenceDiagram
 
 ## Prerequisites
 
-- Python 3.13+
+- Python 3.14+
 - A Homematic backend (CCU3, OpenCCU, Homegear, etc.)
 - Network access to your backend
 

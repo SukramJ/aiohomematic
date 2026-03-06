@@ -136,7 +136,7 @@ python -c "from aiohomematic.const import *; print('JSON-RPC only:', INTERFACES_
 
 ### Key Characteristics
 
-- **Language**: Python 3.13+
+- **Language**: Python 3.14+
 - **Framework**: AsyncIO-based
 - **Status**: Production/Stable (Development Status 5)
 - **Type Safety**: Fully typed with mypy strict mode
@@ -359,7 +359,7 @@ python-slugify>=8.0.0   # URL-safe string conversion
 
 ### Prerequisites
 
-- **Python**: 3.13 or higher
+- **Python**: 3.14 or higher
 - **Package Manager**: pip, uv (recommended)
 - **Git**: For version control
 
@@ -371,7 +371,7 @@ git clone https://github.com/sukramj/aiohomematic.git
 cd aiohomematic
 
 # Create virtual environment
-python3.13 -m venv venv
+python3.14 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
@@ -471,7 +471,7 @@ if TYPE_CHECKING:
 
 #### Ruff Configuration
 
-- **Target**: Python 3.13
+- **Target**: Python 3.14
 - **Line Length**: 120 characters
 - **Enabled Rules**: A, ASYNC, B, C, D, E, F, FLY, G, I, INP, ISC, LOG, PERF, PGH, PIE, PL, PT, PYI, RET, RSE, RUF, S, SIM, SLOT, T, TID, TRY, UP, W
 

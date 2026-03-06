@@ -748,7 +748,7 @@ class SessionPlayer:
                         data = json.loads(file_pointer.read())
 
                 self._store[file_id] = data
-            except (json.JSONDecodeError, zipfile.BadZipFile, UnicodeDecodeError, OSError):
+            except json.JSONDecodeError, zipfile.BadZipFile, UnicodeDecodeError, OSError:
                 return DataOperationResult.LOAD_FAIL
             return DataOperationResult.LOAD_SUCCESS
 

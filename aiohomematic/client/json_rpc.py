@@ -1785,7 +1785,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             response = await self._post(method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
             if (json_result := response[_JsonKey.RESULT]) is not None:
                 return bool(json_result)
-        except (AuthFailure, InternalBackendException):
+        except AuthFailure, InternalBackendException:
             # AuthFailure: "access denied (ADMIN needed)" means auth is enabled
             # InternalBackendException: Backend error, assume auth is enabled to be safe
             return True

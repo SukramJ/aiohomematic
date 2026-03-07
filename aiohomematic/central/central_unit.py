@@ -610,11 +610,15 @@ class CentralUnit(
 
         if self._config.start_direct:
             if await self._client_coordinator.start_clients():
-                for client in self._client_coordinator.clients:
-                    await self._device_coordinator.refresh_device_descriptions_and_create_missing_devices(
-                        client=client,
-                        refresh_only_existing=False,
+                await asyncio.gather(
+                    *(
+                        self._device_coordinator.refresh_device_descriptions_and_create_missing_devices(
+                            client=client,
+                            refresh_only_existing=False,
+                        )
+                        for client in self._client_coordinator.clients
                     )
+                )
         else:
             # Device creation is now done inside start_clients() before hub init
             await self._client_coordinator.start_clients()

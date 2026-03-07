@@ -8,10 +8,10 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
-import contextlib
 from datetime import datetime
 import logging
 from typing import Final, Unpack, override
+import weakref
 
 from aiohomematic import ccu_translations
 from aiohomematic.const import (
@@ -43,6 +43,14 @@ from aiohomematic.type_aliases import UnsubscribeCallback
 __all__ = ["CombinedDataPoint"]
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+
+def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly: disable
+    """Clean up subscription callbacks (invoked by weakref.finalize)."""
+    for unreg in callbacks:
+        if unreg is not None:
+            unreg()
+    callbacks.clear()
 
 
 class CombinedDataPoint[ParameterT](BaseDataPoint, CallbackDataPointProtocol):
@@ -102,11 +110,7 @@ class CombinedDataPoint[ParameterT](BaseDataPoint, CallbackDataPointProtocol):
         self._service: bool = False
         self._operations: int = Operations.WRITE
         self._unit: str | None = None
-
-    def __del__(self) -> None:
-        """Clean up subscriptions when the object is garbage collected."""
-        with contextlib.suppress(Exception):
-            self.unsubscribe_from_data_point_updated()
+        weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
     _relevant_data_points: Final = DelegatedProperty[tuple[GenericDataPointProtocolAny, ...]](
         path="_readable_data_points"

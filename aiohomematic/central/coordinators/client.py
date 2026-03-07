@@ -493,7 +493,8 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
             if interface_config.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
                 await self._create_client(interface_config=interface_config)
 
-        # Create secondary clients
+        # Create secondary clients in parallel (each interface is independent)
+        secondary_configs: list[hmcl.InterfaceConfig] = []
         for interface_config in self._config_provider.config.enabled_interface_configs:
             if interface_config.interface not in PRIMARY_CLIENT_CANDIDATE_INTERFACES:
                 if (
@@ -509,7 +510,9 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
                     )
                     interface_config.disable()
                     continue
-                await self._create_client(interface_config=interface_config)
+                secondary_configs.append(interface_config)
+
+        await asyncio.gather(*(self._create_client(interface_config=ic) for ic in secondary_configs))
 
         if not self.all_clients_active:
             _LOGGER.warning(
@@ -535,9 +538,14 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
 
     async def _de_init_clients(self) -> None:
         """De-initialize all clients."""
-        for name, client in self._clients.items():
+
+        async def _deinit_single_client(name: str, client: ClientProtocol) -> None:
             if await client.deinit_proxy():
                 _LOGGER.debug("DE_INIT_CLIENTS: Proxy de-initialized: %s", name)
+
+        await asyncio.gather(
+            *(_deinit_single_client(name=name, client=client) for name, client in self._clients.items())
+        )
 
     def _get_primary_client(self) -> ClientProtocol | None:
         """
@@ -556,6 +564,7 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
 
     async def _init_clients(self) -> None:
         """Initialize all clients."""
+        # First pass: remove unavailable interfaces (must be sequential - modifies dict)
         for client in self._clients.copy().values():
             if client.interface not in self._system_info_provider.system_information.available_interfaces:
                 _LOGGER.debug(
@@ -564,12 +573,15 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
                     self._central_info.name,
                 )
                 del self._clients[client.interface_id]
-                continue
 
+        # Second pass: initialize proxies in parallel (each interface is independent)
+        async def _init_single_client(client: ClientProtocol) -> None:
             if await client.init_proxy() == ProxyInitState.INIT_SUCCESS:
                 _LOGGER.debug(
                     "INIT_CLIENTS: client %s initialized for %s", client.interface_id, self._central_info.name
                 )
+
+        await asyncio.gather(*(_init_single_client(client=client) for client in self._clients.values()))
 
     def _on_health_record_event(self, *, event: HealthRecordedEvent) -> None:
         """

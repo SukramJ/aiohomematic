@@ -8,10 +8,10 @@ Public API of this module is defined by __all__.
 
 from __future__ import annotations
 
-import contextlib
 from datetime import datetime
 import logging
 from typing import Final, Unpack, cast, override
+import weakref
 
 from aiohomematic import ccu_translations
 from aiohomematic.const import (
@@ -42,6 +42,15 @@ from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_propert
 from aiohomematic.type_aliases import ParamType, UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+
+def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly: disable
+    """Clean up subscription callbacks (invoked by weakref.finalize)."""
+    for unreg in callbacks:
+        if unreg is not None:
+            unreg()
+    callbacks.clear()
+
 
 # Key type for calculated data point dictionary
 type _DataPointKey = tuple[str, ParamsetKey | None]
@@ -103,11 +112,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         self._unit: str | None = None
         self._multiplier: float = 1.0
         self._post_init()
-
-    def __del__(self) -> None:
-        """Clean up subscriptions when the object is garbage collected."""
-        with contextlib.suppress(Exception):
-            self.unsubscribe_from_data_point_updated()
+        weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
     @staticmethod
     def is_relevant_for_model(*, channel: ChannelProtocol) -> bool:

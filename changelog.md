@@ -44,6 +44,23 @@
   concurrently instead of sequentially.
 - **Optimized custom_id lookup**: `get_data_point_by_custom_id()` now iterates
   devices directly instead of materializing a full tuple first.
+- **Parallel interface operations**: Client creation (secondary), initialization,
+  de-initialization, device discovery (`start_direct`), and firmware refresh now
+  run concurrently across interfaces via `asyncio.gather()`, while operations
+  within a single interface remain serial (CCU limitation).
+- **Parallel async checks**: `remove_central_link()` now runs `_has_central_link()`
+  and `_has_program_ids()` concurrently instead of sequentially.
+- **Pre-compiled description marker regex**: Program and system variable description
+  marker removal now uses a single pre-compiled regex pattern instead of iterating
+  over all `DescriptionMarker` enum values with `str.replace()`.
+- **`weakref.finalize` for subscription cleanup**: `CustomDataPoint`,
+  `CalculatedDataPoint`, `CombinedDataPoint`, and `ClimateWeekProfileDataPoint`
+  now use `weakref.finalize()` instead of `__del__()` for subscription cleanup,
+  ensuring reliable garbage collection even with circular references.
+- **`slots=True` for dataclasses**: `ValidationResult` and `ParamsetChange`
+  dataclasses now use `slots=True` to reduce per-instance memory overhead.
+- **Optimized `is_in_multi_channel_group()`**: Replaced list comprehension with
+  `sum()` generator and early `None` return.
 
 # Version 2026.3.2 (2026-03-06)
 

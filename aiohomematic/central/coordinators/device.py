@@ -703,10 +703,14 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             )
             device.refresh_firmware_data()
         else:
-            for client in self._coordinator_provider.client_coordinator.clients:
-                await self.refresh_device_descriptions_and_create_missing_devices(
-                    client=client, refresh_only_existing=True
+            await asyncio.gather(
+                *(
+                    self.refresh_device_descriptions_and_create_missing_devices(
+                        client=client, refresh_only_existing=True
+                    )
+                    for client in self._coordinator_provider.client_coordinator.clients
                 )
+            )
             for device in self.devices:
                 if device.is_updatable:
                     device.refresh_firmware_data()

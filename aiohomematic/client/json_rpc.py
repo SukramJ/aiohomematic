@@ -127,6 +127,10 @@ from aiohomematic.support.mixins import LogContextMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 
+# Pre-compiled pattern for removing description markers (HAHM, HX, INTERNAL, MQTT)
+# from program/sysvar descriptions. Avoids per-marker string.replace() loops.
+_DESCRIPTION_MARKER_PATTERN: Final = re.compile("|".join(re.escape(marker.value) for marker in DescriptionMarker))
+
 # Pattern to match JSON string values (between quotes, handling escaped quotes).
 # This allows us to sanitize control characters only within string values, not in JSON structure.
 _JSON_STRING_PATTERN: Final = re.compile(r'"(?:[^"\\]|\\.)*"')
@@ -808,8 +812,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     enabled_default = True
                 if description:
                     # Remove default markers from description
-                    for marker in DescriptionMarker:
-                        description = description.replace(marker, "").strip()
+                    description = _DESCRIPTION_MARKER_PATTERN.sub("", description).strip()
                 name = prog[_JsonKey.NAME]
                 is_active = prog[_JsonKey.IS_ACTIVE]
                 last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]
@@ -883,8 +886,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 if description:
                     extended_sysvar = DescriptionMarker.HAHM in description
                     # Remove default markers from description
-                    for marker in DescriptionMarker:
-                        description = description.replace(marker, "").strip()
+                    description = _DESCRIPTION_MARKER_PATTERN.sub("", description).strip()
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
                 if val_list := var.get(_JsonKey.VALUE_LIST):

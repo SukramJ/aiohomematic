@@ -16,7 +16,7 @@ from collections.abc import Set as AbstractSet
 from typing import Any
 
 from aiohttp import ClientSession
-from pydantic import BaseModel, ConfigDict, PrivateAttr, SkipValidation, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, SkipValidation, model_validator
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.central.central_unit import CentralUnit
@@ -76,7 +76,7 @@ class CentralConfig(BaseModel):
     name: str
     """Name identifier for the central unit."""
 
-    password: str
+    password: str = Field(repr=False, exclude=True)
     """Password for authentication."""
 
     username: str

@@ -21,7 +21,7 @@ import asyncio
 from collections import defaultdict
 from datetime import UTC, datetime
 import logging
-import random
+import secrets
 from typing import TYPE_CHECKING, Any, Final, Self, cast
 
 from slugify import slugify
@@ -486,7 +486,7 @@ class SessionRecorder:
 
         # Create randomized address mapping
         randomized = device_addresses.copy()
-        random.shuffle(randomized)
+        secrets.SystemRandom().shuffle(randomized)
         address_map = dict(zip(device_addresses, randomized, strict=True))
 
         # Replace addresses in the serialized data

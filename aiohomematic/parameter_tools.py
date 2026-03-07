@@ -129,7 +129,7 @@ def get_parameter_step(*, parameter_data: ParameterData) -> float | None:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ValidationResult:
     """Result of a parameter value validation."""
 
@@ -267,7 +267,7 @@ def coerce_value(*, parameter_data: ParameterData, value: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ParamsetChange:
     """A single parameter change in a paramset diff."""
 

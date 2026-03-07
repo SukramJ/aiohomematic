@@ -25,9 +25,11 @@ __all__ = [
 def delete_file(directory: str, file_name: str) -> None:  # kwonly: disable
     """Delete the file. File can contain a wildcard."""
     if os.path.exists(directory):
+        real_directory = os.path.realpath(directory)
         for file_path in glob.glob(os.path.join(directory, file_name)):
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+            resolved = os.path.realpath(file_path)
+            if os.path.commonpath([resolved, real_directory]) == real_directory and os.path.isfile(resolved):
+                os.remove(resolved)
 
 
 def cleanup_script_for_session_recorder(*, script: str) -> str:
@@ -52,7 +54,7 @@ def _check_or_create_directory_sync(*, directory: str) -> bool:
         return False
     if not os.path.exists(directory):
         try:
-            os.makedirs(directory)
+            os.makedirs(directory, mode=0o700)
         except OSError as oserr:
             raise AioHomematicException(
                 i18n.tr(

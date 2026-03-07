@@ -46,6 +46,7 @@ from aiohomematic.const import (
 from aiohomematic.exceptions import NoConnectionException
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
+    ClientProtocol,
     ConfigProviderProtocol,
     ConnectionStateProviderProtocol,
     DeviceDataRefresherProtocol,
@@ -482,33 +483,7 @@ class BackgroundScheduler:
 
         if (poll_clients := self._client_coordinator.poll_clients) is not None and len(poll_clients) > 0:
             _LOGGER.debug("REFRESH_CLIENT_DATA: Loading data for %s", self._central_info.name)
-            for client in poll_clients:
-                start_time = datetime.now()
-                self._emit_refresh_triggered(
-                    refresh_type=DataRefreshType.CLIENT_DATA,
-                    interface_id=client.interface_id,
-                    scheduled=True,
-                )
-                try:
-                    await self._device_data_refresher.load_and_refresh_data_point_data(interface=client.interface)
-                    self._event_coordinator.set_last_event_seen_for_interface(interface_id=client.interface_id)
-                    duration_ms = (datetime.now() - start_time).total_seconds() * 1000
-                    await self._emit_refresh_completed(
-                        refresh_type=DataRefreshType.CLIENT_DATA,
-                        interface_id=client.interface_id,
-                        success=True,
-                        duration_ms=duration_ms,
-                    )
-                except Exception as exc:
-                    duration_ms = (datetime.now() - start_time).total_seconds() * 1000
-                    await self._emit_refresh_completed(
-                        refresh_type=DataRefreshType.CLIENT_DATA,
-                        interface_id=client.interface_id,
-                        success=False,
-                        duration_ms=duration_ms,
-                        error_message=str(exc),
-                    )
-                    raise
+            await asyncio.gather(*(self._refresh_single_client(client=client) for client in poll_clients))
 
     async def _refresh_connectivity_data(self) -> None:
         """Refresh connectivity binary sensors."""
@@ -640,6 +615,35 @@ class BackgroundScheduler:
             await self._emit_refresh_completed(
                 refresh_type=DataRefreshType.PROGRAM,
                 interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
+
+    async def _refresh_single_client(self, *, client: ClientProtocol) -> None:
+        """Refresh data for a single polled client."""
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type=DataRefreshType.CLIENT_DATA,
+            interface_id=client.interface_id,
+            scheduled=True,
+        )
+        try:
+            await self._device_data_refresher.load_and_refresh_data_point_data(interface=client.interface)
+            self._event_coordinator.set_last_event_seen_for_interface(interface_id=client.interface_id)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.CLIENT_DATA,
+                interface_id=client.interface_id,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.CLIENT_DATA,
+                interface_id=client.interface_id,
                 success=False,
                 duration_ms=duration_ms,
                 error_message=str(exc),

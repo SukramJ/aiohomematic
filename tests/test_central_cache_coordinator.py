@@ -21,13 +21,13 @@ from aiohomematic_test_support.event_capture import EventCapture
 class _FakeCentral:
     """Minimal fake CentralUnit for testing - implements all required protocols."""
 
-    def __init__(self, *, name: str = "test_central", tmp_dir: str = "/tmp/test") -> None:  # noqa: S108  # nosec B108
+    def __init__(self, *, name: str = "test_central", tmp_dir: str) -> None:
         """Initialize a fake central."""
         self.name = name
         self.available = True
         self.model = "Test"
         self.config = MagicMock()
-        self.config.cache_dir = "/tmp/test_cache"  # noqa: S108  # nosec B108
+        self.config.cache_dir = tmp_dir
         self.config.enable_session_recording = False
         self.config.storage_directory = tmp_dir
         self.config.session_recorder_start = False

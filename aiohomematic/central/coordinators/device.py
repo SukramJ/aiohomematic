@@ -433,8 +433,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         _LOGGER.debug("CREATE_DEVICES: Finished creating devices for %s", self._central_info.name)
 
         if new_devices:
-            for device in new_devices:
-                await device.finalize_init()
+            await asyncio.gather(*(device.finalize_init() for device in new_devices))
             new_dps: dict[DataPointCategory, Any] = _get_new_data_points(new_devices=new_devices)
             new_dps[DataPointCategory.EVENT_GROUP] = _get_new_event_groups(new_devices=new_devices)
             self._coordinator_provider.event_coordinator.publish_system_event(
@@ -704,10 +703,14 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             )
             device.refresh_firmware_data()
         else:
-            for client in self._coordinator_provider.client_coordinator.clients:
-                await self.refresh_device_descriptions_and_create_missing_devices(
-                    client=client, refresh_only_existing=True
+            await asyncio.gather(
+                *(
+                    self.refresh_device_descriptions_and_create_missing_devices(
+                        client=client, refresh_only_existing=True
+                    )
+                    for client in self._coordinator_provider.client_coordinator.clients
                 )
+            )
             for device in self.devices:
                 if device.is_updatable:
                     device.refresh_firmware_data()

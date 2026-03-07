@@ -38,7 +38,6 @@ from datetime import datetime
 from enum import StrEnum, unique
 from functools import partial
 import logging
-import os
 from pathlib import Path
 import re
 from ssl import SSLContext
@@ -128,6 +127,10 @@ from aiohomematic.support.mixins import LogContextMixin
 
 _LOGGER: Final = logging.getLogger(__name__)
 
+# Pre-compiled pattern for removing description markers (HAHM, HX, INTERNAL, MQTT)
+# from program/sysvar descriptions. Avoids per-marker string.replace() loops.
+_DESCRIPTION_MARKER_PATTERN: Final = re.compile("|".join(re.escape(marker.value) for marker in DescriptionMarker))
+
 # Pattern to match JSON string values (between quotes, handling escaped quotes).
 # This allows us to sanitize control characters only within string values, not in JSON structure.
 _JSON_STRING_PATTERN: Final = re.compile(r'"(?:[^"\\]|\\.)*"')
@@ -135,6 +138,23 @@ _JSON_STRING_PATTERN: Final = re.compile(r'"(?:[^"\\]|\\.)*"')
 # Pattern to match unescaped control characters (U+0000 to U+001F, U+007F) in strings.
 # These must be escaped as \uXXXX per RFC 8259.
 _CONTROL_CHAR_PATTERN: Final = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _escape_rega_string(*, value: str) -> str:
+    """
+    Escape a string value for safe interpolation into ReGa script string literals.
+
+    Prevents ReGa script injection by escaping backslashes and double quotes,
+    which could otherwise break out of the string context in ReGa scripts.
+
+    Args:
+        value: The raw string value to escape.
+
+    Returns:
+        Escaped string safe for use inside ReGa double-quoted string literals.
+
+    """
+    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def _sanitize_json_control_chars(*, data: str) -> str:
@@ -330,7 +350,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._tls: Final = tls
         self._tls_context: Final[SSLContext | bool] = get_tls_context(verify_tls=verify_tls) if tls else False
         self._url: Final = f"{device_url}{PATH_JSON_RPC}"
-        self._script_cache: Final[dict[str, str]] = {}
+        if not tls:
+            _LOGGER.info(
+                i18n.tr(
+                    key="log.client.json_rpc.tls_disabled",
+                    url=device_url,
+                )
+            )
+        self._script_cache: Final[dict[RegaScript, str]] = {}
         self._last_session_id_refresh: datetime | None = None
         self._session_id: str | None = None
         self._session_recorder: Final = session_recorder
@@ -448,6 +475,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             True if the device was accepted successfully.
 
         """
+        if not is_device_address(address=device_address):
+            _LOGGER.error(
+                i18n.tr(
+                    key="log.client.json_rpc.accept_device_in_inbox.invalid_address",
+                    device_address=device_address,
+                )
+            )
+            return False
         try:
             response = await self._post_script(
                 script_name=RegaScript.ACCEPT_DEVICE_IN_INBOX,
@@ -590,7 +625,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         Download firmware to the CCU for installation.
 
         Args:
-            firmware_url: URL to download the firmware from.
+            firmware_url: URL to download the firmware from. Only http and https schemes are allowed.
 
         Returns:
             True if firmware was downloaded successfully, False otherwise.
@@ -598,6 +633,15 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """
         if not self._client_session:
             _LOGGER.error(i18n.tr(key="exception.client.json_post.no_session"))
+            return False
+
+        if not firmware_url.startswith(("http://", "https://")):
+            _LOGGER.error(
+                i18n.tr(
+                    key="log.client.json_rpc.download_firmware.invalid_url",
+                    url=firmware_url,
+                )
+            )
             return False
 
         # CCU downloads firmware via /config/cp_maintenance.cgi with POST
@@ -768,8 +812,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     enabled_default = True
                 if description:
                     # Remove default markers from description
-                    for marker in DescriptionMarker:
-                        description = description.replace(marker, "").strip()
+                    description = _DESCRIPTION_MARKER_PATTERN.sub("", description).strip()
                 name = prog[_JsonKey.NAME]
                 is_active = prog[_JsonKey.IS_ACTIVE]
                 last_execute_time = prog[_JsonKey.LAST_EXECUTE_TIME]
@@ -843,8 +886,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 if description:
                     extended_sysvar = DescriptionMarker.HAHM in description
                     # Remove default markers from description
-                    for marker in DescriptionMarker:
-                        description = description.replace(marker, "").strip()
+                    description = _DESCRIPTION_MARKER_PATTERN.sub("", description).strip()
                 unit = var[_JsonKey.UNIT]
                 values: tuple[str, ...] | None = None
                 if val_list := var.get(_JsonKey.VALUE_LIST):
@@ -1835,16 +1877,16 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
         return descriptions
 
-    async def _get_script(self, *, script_name: str) -> str | None:
+    async def _get_script(self, *, script_name: RegaScript) -> str | None:
         """Return a script from the script cache. Load if required."""
         if script_name in self._script_cache:
             return self._script_cache[script_name]
 
-        def _load_script(script_name: str) -> str | None:
+        def _load_script(script_name: RegaScript) -> str | None:
             """Load script from file system."""
-            script_file = os.path.join(Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name)
+            script_file = Path(__file__).resolve().parent / REGA_SCRIPT_PATH / script_name.value
             try:
-                if script := Path(script_file).read_text(encoding=UTF_8):
+                if script := script_file.read_text(encoding=UTF_8):
                     self._script_cache[script_name] = script
                     return script
             except FileNotFoundError:
@@ -1984,7 +2026,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     async def _post_script(
         self,
         *,
-        script_name: str,
+        script_name: RegaScript,
         extra_params: dict[_JsonKey, Any] | None = None,
         keep_session: bool = True,
     ) -> dict[str, Any] | Any:
@@ -2008,7 +2050,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         if extra_params:
             for variable, value in extra_params.items():
-                script = script.replace(f"##{variable}##", value)
+                script = script.replace(f"##{variable}##", _escape_rega_string(value=str(value)))
 
         method = _JsonRpcMethod.REGA_RUN_SCRIPT
         response = await self._do_post(

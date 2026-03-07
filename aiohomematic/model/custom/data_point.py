@@ -9,10 +9,10 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from collections.abc import Mapping
-import contextlib
 from datetime import datetime
 import logging
 from typing import Any, Final, Unpack, override
+import weakref
 
 from aiohomematic import ccu_translations
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
@@ -37,6 +37,14 @@ from aiohomematic.support.address import get_channel_address
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+
+def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly: disable
+    """Clean up subscription callbacks (invoked by weakref.finalize)."""
+    for unreg in callbacks:
+        if unreg is not None:
+            unreg()
+    callbacks.clear()
 
 
 class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
@@ -88,11 +96,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         self._post_init()
         if self.usage == DataPointUsage.CDP_PRIMARY:
             self._device.init_week_profile(data_point=self)
-
-    def __del__(self) -> None:
-        """Clean up subscriptions when the object is garbage collected."""
-        with contextlib.suppress(Exception):
-            self.unsubscribe_from_data_point_updated()
+        weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
     allow_undefined_generic_data_points: Final = DelegatedProperty[bool](path="_allow_undefined_generic_data_points")
     channel_group: Final = DelegatedProperty[RebasedChannelGroupConfig](path="_channel_group")

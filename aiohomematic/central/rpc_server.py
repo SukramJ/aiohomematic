@@ -22,7 +22,7 @@ import xmlrpc.client
 from aiohttp import web
 
 from aiohomematic import client as hmcl, compat, i18n
-from aiohomematic.const import IP_ANY_V4, PORT_ANY, SystemEventType, UpdateDeviceHint
+from aiohomematic.const import IP_ANY_V4, MAX_RPC_BACKGROUND_TASKS, PORT_ANY, SystemEventType, UpdateDeviceHint
 from aiohomematic.interfaces.central import RpcServerCentralProtocol
 from aiohomematic.metrics import MetricKeys, emit_counter, emit_gauge, emit_latency
 from aiohomematic.property_decorators import DelegatedProperty
@@ -446,6 +446,15 @@ class AsyncRPCFunctions:
 
     def _create_background_task(self, coro: Any, /, *, name: str) -> None:
         """Create a background task and track it to prevent garbage collection."""
+        if len(self._background_tasks) >= MAX_RPC_BACKGROUND_TASKS:
+            _LOGGER.warning(
+                i18n.tr(
+                    key="log.central.rpc_server.background_task_limit_reached",
+                    limit=MAX_RPC_BACKGROUND_TASKS,
+                    task_name=name,
+                )
+            )
+            return
         task: asyncio.Task[None] = asyncio.create_task(coro, name=name)
         self._background_tasks.add(task)
         task.add_done_callback(self._on_background_task_done)
@@ -584,6 +593,12 @@ class AsyncXmlRpcServer:
         for entry in self._centrals.values():
             if entry.central.client_coordinator.has_client(interface_id=interface_id):
                 return entry
+        _LOGGER.warning(
+            i18n.tr(
+                key="log.central.rpc_server.unknown_interface_id",
+                interface_id=interface_id,
+            )
+        )
         return None
 
     def remove_central(

@@ -88,9 +88,10 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
 
     def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
         """Return Homematic data_point by custom_id."""
-        for dp in self.get_data_points(registered=True):
-            if dp.custom_id == custom_id:
-                return dp
+        for device in self._device_registry.devices:
+            for dp in device.get_data_points(registered=True):
+                if dp.custom_id == custom_id:
+                    return dp
         return None
 
     def get_data_points(

@@ -484,7 +484,7 @@ class Storage(StorageProtocol):
     def _save_sync(self, *, data: dict[str, Any] | list[Any]) -> None:
         """Save data synchronously with atomic write."""
         # Ensure directory exists
-        os.makedirs(self._base_directory, exist_ok=True)
+        os.makedirs(self._base_directory, mode=0o700, exist_ok=True)
 
         # In raw mode, save data directly; otherwise wrap with version metadata
         to_save = data if self._raw_mode else {"_version": self._version, "_key": self._key, "data": data}
@@ -509,6 +509,7 @@ class Storage(StorageProtocol):
                 # Write as plain JSON
                 with open(temp_path, "wb") as f:
                     f.write(serialized)
+            os.chmod(temp_path, 0o600)
             os.replace(temp_path, target_path)
         except OSError as exc:
             # Clean up temp file on failure

@@ -14,9 +14,9 @@ Public API of this module is defined by __all__.
 from __future__ import annotations
 
 from collections.abc import Mapping
-import contextlib
 import logging
 from typing import Any, Final, cast, override
+import weakref
 
 from aiohomematic import i18n
 from aiohomematic.const import (
@@ -54,6 +54,14 @@ __all__ = [
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+
+def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly: disable
+    """Clean up subscription callbacks (invoked by weakref.finalize)."""
+    for unsub in callbacks:
+        unsub()
+    callbacks.clear()
+
 
 _PARAMETER_NAME: Final = "WEEK_PROFILE"
 _MAX_SIMPLE_ENTRIES: Final = 24
@@ -286,13 +294,7 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         self._dp_profile_pointer: GenericDataPointProtocolAny | None = None
         self._schedule_profile_nos: Final = schedule_profile_nos
         self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
-
-    def __del__(self) -> None:
-        """Clean up subscriptions."""
-        with contextlib.suppress(Exception):
-            for unsub in self._unsubscribe_callbacks:
-                unsub()
-            self._unsubscribe_callbacks.clear()
+        weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
     @staticmethod
     def _map_to_schedule_profile(*, value: Any) -> ScheduleProfile | None:

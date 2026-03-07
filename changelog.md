@@ -1,3 +1,78 @@
+# Version 2026.3.3 (2026-03-07)
+
+## What's Changed
+
+### Security
+
+- **ReGa script injection prevention**: Added `_escape_rega_string()` to escape
+  backslashes and double quotes before interpolating values into ReGa script
+  templates, preventing script injection via crafted system variable names,
+  device addresses, or program IDs.
+- **Device address validation**: `accept_device_in_inbox()` now validates the
+  device address format before passing it to ReGa script substitution.
+- **Password field protection**: `CentralConfig.password` now uses
+  `Field(repr=False, exclude=True)` to prevent accidental exposure via
+  `repr()`, `str()`, or `model_dump()`.
+- **Authorization header sanitization**: Added pattern for `Authorization: Basic`
+  headers to `_SENSITIVE_PATTERNS` in error message sanitization.
+- **TLS disabled warning**: JSON-RPC client now logs an info message when TLS is
+  disabled, warning that credentials are transmitted in plain text.
+- **Unknown interface_id logging**: RPC callback server now logs a warning when
+  receiving events for an unregistered interface_id.
+- **ReGa script path traversal prevention**: `_get_script()` and `_post_script()`
+  now require `RegaScript` enum instead of arbitrary strings, preventing path
+  traversal attacks via crafted script names.
+- **Firmware URL scheme validation**: `download_firmware()` now rejects URLs with
+  non-HTTP(S) schemes, preventing the CCU from connecting to arbitrary protocols.
+- **Restrictive temp file permissions**: Storage temp files are now created with
+  `0o600` permissions before being atomically replaced, preventing other users
+  from reading cached data.
+- **Path traversal protection in `delete_file()`**: File paths resolved via glob
+  are now validated to stay within the target directory using `realpath()` checks.
+- **Documented `DEFAULT_VERIFY_TLS=False`**: Added comment explaining that TLS
+  verification is disabled by default due to self-signed certificates in typical
+  home automation setups.
+- **RPC background task limit**: The XML-RPC callback server now enforces a
+  maximum of 1000 concurrent background tasks (`MAX_RPC_BACKGROUND_TASKS`).
+  Excess tasks are dropped with a warning, preventing memory exhaustion from
+  event floods.
+- **Cryptographic RNG for address anonymization**: Replaced `random.randint()`
+  and `random.shuffle()` with `secrets.randbelow()` and
+  `secrets.SystemRandom().shuffle()` for device address anonymization in exports
+  and session recordings.
+- **Restrictive directory permissions**: `os.makedirs()` calls in storage,
+  device export, and file operations now use `mode=0o700`, ensuring only the
+  owner can access storage directories.
+
+### Performance
+
+- **EventBus pre-sorted handlers**: Handlers are now inserted in priority order
+  via `bisect.insort` during subscription, eliminating `sorted()` on every
+  event publish.
+- **Parallel device finalization**: `finalize_init()` for new devices now runs
+  concurrently via `asyncio.gather()`, reducing startup time.
+- **Parallel client refresh**: Polled interface data refreshes now run
+  concurrently instead of sequentially.
+- **Optimized custom_id lookup**: `get_data_point_by_custom_id()` now iterates
+  devices directly instead of materializing a full tuple first.
+- **Parallel interface operations**: Client creation (secondary), initialization,
+  de-initialization, device discovery (`start_direct`), and firmware refresh now
+  run concurrently across interfaces via `asyncio.gather()`, while operations
+  within a single interface remain serial (CCU limitation).
+- **Parallel async checks**: `remove_central_link()` now runs `_has_central_link()`
+  and `_has_program_ids()` concurrently instead of sequentially.
+- **Pre-compiled description marker regex**: Program and system variable description
+  marker removal now uses a single pre-compiled regex pattern instead of iterating
+  over all `DescriptionMarker` enum values with `str.replace()`.
+- **`weakref.finalize` for subscription cleanup**: `CustomDataPoint`,
+  `CalculatedDataPoint`, `CombinedDataPoint`, and `ClimateWeekProfileDataPoint`
+  now use `weakref.finalize()` instead of `__del__()` for subscription cleanup,
+  ensuring reliable garbage collection even with circular references.
+- **`slots=True` for dataclasses**: `ValidationResult` and `ParamsetChange`
+  dataclasses now use `slots=True` to reduce per-instance memory overhead.
+- **Optimized `is_in_multi_channel_group()`**: Replaced list comprehension with
+  `sum()` generator and early `None` return.
+
 # Version 2026.3.2 (2026-03-06)
 
 ## What's Changed
@@ -7,7 +82,8 @@
 - **Python 3.14 minimum**: Dropped Python 3.13 support. Python 3.14 is now the
   minimum required version. All tool configurations (ruff, mypy, pylint) updated
   to target Python 3.14.
-- 
+-
+
 # Version 2026.3.1 (2026-03-05)
 
 ## What's Changed

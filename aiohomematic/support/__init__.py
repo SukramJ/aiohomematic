@@ -27,8 +27,8 @@ import hashlib
 import inspect
 from ipaddress import IPv4Address, IPv6Address
 import logging
-import random
 import re
+import secrets
 import socket
 import ssl
 import sys
@@ -482,7 +482,7 @@ def cleanup_text_from_html_tags(*, text: str) -> str:
 
 def create_random_device_addresses(*, addresses: list[str]) -> dict[str, str]:
     """Create a random device address."""
-    return {adr: f"VCU{int(random.randint(1000000, 9999999))}" for adr in addresses}
+    return {adr: f"VCU{secrets.randbelow(9000000) + 1000000}" for adr in addresses}
 
 
 # --- Structured error boundary logging helpers ---

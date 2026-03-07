@@ -21,7 +21,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.3.2"
+VERSION: Final = "2026.3.3"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -48,6 +48,9 @@ DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
+# TLS certificate verification is disabled by default because home automation
+# setups typically use self-signed certificates on the CCU. Callers should set
+# verify_tls=True when using publicly trusted certificates.
 DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 
@@ -269,6 +272,7 @@ PING_PONG_CACHE_MAX_SIZE: Final = 100  # Maximum entries in ping/pong cache per 
 LOCAL_HOST: Final = "127.0.0.1"
 MAX_CACHE_AGE: Final = 10
 MAX_CONCURRENT_HTTP_SESSIONS: Final = 3
+MAX_RPC_BACKGROUND_TASKS: Final = 10000
 MAX_WAIT_FOR_CALLBACK: Final = 60
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
 DEVICE_DESCRIPTIONS_ZIP_DIR: Final = "device_descriptions"

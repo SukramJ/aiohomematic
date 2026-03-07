@@ -50,7 +50,7 @@ from datetime import datetime
 from functools import partial
 import logging
 import os
-import random
+import secrets
 from typing import Any, Final, cast
 import zipfile
 
@@ -754,7 +754,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         if channel_no is None:
             return False
 
-        return len([s for s, m in self._channel_to_group.items() if m == self._channel_to_group.get(channel_no)]) > 1
+        if (group_id := self._channel_to_group.get(channel_no)) is None:
+            return False
+        return sum(1 for m in self._channel_to_group.values() if m == group_id) > 1
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def load_value_cache(self) -> None:
@@ -1466,7 +1468,10 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     @inspector(scope=ServiceScope.INTERNAL)
     async def remove_central_link(self) -> None:
         """Remove a central link."""
-        if self._has_key_press_events and await self._has_central_link() and not await self._has_program_ids():
+        if not self._has_key_press_events:
+            return
+        has_link, has_programs = await asyncio.gather(self._has_central_link(), self._has_program_ids())
+        if has_link and not has_programs:
             await self._device.client.report_value_usage(
                 channel_address=self._address, value_id=REPORT_VALUE_USAGE_VALUE_ID, ref_counter=0
             )
@@ -2028,7 +2033,7 @@ class _DefinitionExporter:
         self._storage_directory: Final = device.config_provider.config.storage_directory
         self._interface_id: Final = device.interface_id
         self._device_address: Final = device.address
-        self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
+        self._random_id: Final[str] = f"VCU{secrets.randbelow(9000000) + 1000000}"
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def export_data(self) -> None:
@@ -2096,7 +2101,7 @@ class _DefinitionExporter:
     ) -> None:
         """Write export data to a ZIP file with subdirectories."""
         # Ensure directory exists
-        os.makedirs(self._storage_directory, exist_ok=True)
+        os.makedirs(self._storage_directory, mode=0o700, exist_ok=True)
 
         zip_path = os.path.join(self._storage_directory, f"{model}.zip")
         temp_path = f"{zip_path}.tmp"

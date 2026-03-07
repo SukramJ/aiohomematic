@@ -54,7 +54,7 @@ def _check_or_create_directory_sync(*, directory: str) -> bool:
         return False
     if not os.path.exists(directory):
         try:
-            os.makedirs(directory)
+            os.makedirs(directory, mode=0o700)
         except OSError as oserr:
             raise AioHomematicException(
                 i18n.tr(

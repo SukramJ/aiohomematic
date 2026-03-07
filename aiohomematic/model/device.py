@@ -50,7 +50,7 @@ from datetime import datetime
 from functools import partial
 import logging
 import os
-import random
+import secrets
 from typing import Any, Final, cast
 import zipfile
 
@@ -2033,7 +2033,7 @@ class _DefinitionExporter:
         self._storage_directory: Final = device.config_provider.config.storage_directory
         self._interface_id: Final = device.interface_id
         self._device_address: Final = device.address
-        self._random_id: Final[str] = f"VCU{int(random.randint(1000000, 9999999))}"
+        self._random_id: Final[str] = f"VCU{secrets.randbelow(9000000) + 1000000}"
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def export_data(self) -> None:
@@ -2101,7 +2101,7 @@ class _DefinitionExporter:
     ) -> None:
         """Write export data to a ZIP file with subdirectories."""
         # Ensure directory exists
-        os.makedirs(self._storage_directory, exist_ok=True)
+        os.makedirs(self._storage_directory, mode=0o700, exist_ok=True)
 
         zip_path = os.path.join(self._storage_directory, f"{model}.zip")
         temp_path = f"{zip_path}.tmp"

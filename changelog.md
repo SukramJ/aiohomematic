@@ -32,6 +32,17 @@
 - **Documented `DEFAULT_VERIFY_TLS=False`**: Added comment explaining that TLS
   verification is disabled by default due to self-signed certificates in typical
   home automation setups.
+- **RPC background task limit**: The XML-RPC callback server now enforces a
+  maximum of 1000 concurrent background tasks (`MAX_RPC_BACKGROUND_TASKS`).
+  Excess tasks are dropped with a warning, preventing memory exhaustion from
+  event floods.
+- **Cryptographic RNG for address anonymization**: Replaced `random.randint()`
+  and `random.shuffle()` with `secrets.randbelow()` and
+  `secrets.SystemRandom().shuffle()` for device address anonymization in exports
+  and session recordings.
+- **Restrictive directory permissions**: `os.makedirs()` calls in storage,
+  device export, and file operations now use `mode=0o700`, ensuring only the
+  owner can access storage directories.
 
 ### Performance
 

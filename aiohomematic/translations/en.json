@@ -140,6 +140,7 @@
   "log.central.rename_device.not_found": "RENAME_DEVICE failed: Device {device_address} not found on {name}",
   "log.central.restart_clients.restarted": "RESTART_CLIENTS: Central {name} restarted clients",
   "log.central.rpc_server.background_task_failed": "Background task {task_name} failed: {error}",
+  "log.central.rpc_server.background_task_limit_reached": "Background task limit reached ({limit}). Dropping task: {task_name}",
   "log.central.rpc_server.error": "ERROR failed: interface_id = {interface_id}, error_code = {error_code}, message = {msg}",
   "log.central.rpc_server.method_failed": "XML-RPC method {method_name} failed",
   "log.central.rpc_server.protocol_error": "XML-RPC protocol error: {error}",

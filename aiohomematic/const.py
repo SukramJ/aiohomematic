@@ -272,6 +272,7 @@ PING_PONG_CACHE_MAX_SIZE: Final = 100  # Maximum entries in ping/pong cache per 
 LOCAL_HOST: Final = "127.0.0.1"
 MAX_CACHE_AGE: Final = 10
 MAX_CONCURRENT_HTTP_SESSIONS: Final = 3
+MAX_RPC_BACKGROUND_TASKS: Final = 10000
 MAX_WAIT_FOR_CALLBACK: Final = 60
 NO_CACHE_ENTRY: Final = "NO_CACHE_ENTRY"
 DEVICE_DESCRIPTIONS_ZIP_DIR: Final = "device_descriptions"

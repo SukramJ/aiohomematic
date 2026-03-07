@@ -103,9 +103,10 @@ Example Usage
 from __future__ import annotations
 
 import asyncio
+import bisect
 from collections import defaultdict
 from collections.abc import Coroutine, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from datetime import datetime
 import logging
 import time
@@ -164,6 +165,12 @@ class _PrioritizedHandler:
     handler: EventHandler
     priority: EventPriority
     order: int  # Insertion order for stable sorting within same priority
+    sort_key: tuple[int, int] = dataclass_field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Precompute sort key for bisect-based insertion."""
+        # Negate priority so higher priority sorts first (lower sort key).
+        self.sort_key = (-self.priority, self.order)
 
 
 @dataclass(slots=True)
@@ -1076,16 +1083,12 @@ class EventBus:
                 self._event_count[event_type],
             )
 
-        # Sort handlers by priority (descending) then by insertion order (ascending).
-        # Higher priority values execute first; same priority uses FIFO order.
-        sorted_handlers = sorted(
-            prioritized_handlers,
-            key=lambda ph: (-ph.priority, ph.order),
-        )
+        # Handlers are pre-sorted by priority (descending) then insertion order (ascending)
+        # via bisect.insort during subscribe(). No sorting needed at publish time.
 
         # Concurrent handler invocation with error isolation.
         # Each handler runs independently; failures don't affect siblings.
-        tasks = [self._safe_call_handler(handler=ph.handler, event=event) for ph in sorted_handlers]
+        tasks = [self._safe_call_handler(handler=ph.handler, event=event) for ph in prioritized_handlers]
         await asyncio.gather(*tasks, return_exceptions=True)
 
     async def publish_batch(self, *, events: Sequence[Event]) -> None:
@@ -1147,17 +1150,13 @@ class EventBus:
             # Track event statistics
             self._event_count[event_type] += len(grouped_events)
 
-            # Sort handlers by priority
-            sorted_handlers = sorted(
-                prioritized_handlers,
-                key=lambda ph: (-ph.priority, ph.order),
-            )
+            # Handlers are pre-sorted via bisect.insort during subscribe().
 
             # Create tasks for all event-handler combinations
             all_tasks.extend(
                 self._safe_call_handler(handler=ph.handler, event=event)
                 for event in grouped_events
-                for ph in sorted_handlers
+                for ph in prioritized_handlers
             )
 
         if all_tasks:
@@ -1239,7 +1238,11 @@ class EventBus:
             order=self._handler_order_counter,
         )
         self._handler_order_counter += 1
-        self._subscriptions[event_type][event_key].append(prioritized_handler)
+        bisect.insort(
+            self._subscriptions[event_type][event_key],
+            prioritized_handler,
+            key=lambda ph: ph.sort_key,
+        )
 
         _LOGGER.debug(
             "SUBSCRIBE: Subscribed to %s with priority %s (total subscribers: %d)",

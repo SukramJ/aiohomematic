@@ -20,6 +20,18 @@
 - **Unknown interface_id logging**: RPC callback server now logs a warning when
   receiving events for an unregistered interface_id.
 
+### Performance
+
+- **EventBus pre-sorted handlers**: Handlers are now inserted in priority order
+  via `bisect.insort` during subscription, eliminating `sorted()` on every
+  event publish.
+- **Parallel device finalization**: `finalize_init()` for new devices now runs
+  concurrently via `asyncio.gather()`, reducing startup time.
+- **Parallel client refresh**: Polled interface data refreshes now run
+  concurrently instead of sequentially.
+- **Optimized custom_id lookup**: `get_data_point_by_custom_id()` now iterates
+  devices directly instead of materializing a full tuple first.
+
 # Version 2026.3.2 (2026-03-06)
 
 ## What's Changed

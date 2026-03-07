@@ -584,6 +584,12 @@ class AsyncXmlRpcServer:
         for entry in self._centrals.values():
             if entry.central.client_coordinator.has_client(interface_id=interface_id):
                 return entry
+        _LOGGER.warning(
+            i18n.tr(
+                key="log.central.rpc_server.unknown_interface_id",
+                interface_id=interface_id,
+            )
+        )
         return None
 
     def remove_central(

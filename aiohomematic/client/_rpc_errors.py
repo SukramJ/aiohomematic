@@ -46,6 +46,8 @@ _SENSITIVE_PATTERNS: Final[tuple[tuple[str, str], ...]] = (
     # Passwords in URLs or params
     (r"['\"]?password['\"]?\s*[:=]\s*['\"][^'\"]*['\"]", "password=<redacted>"),
     (r"['\"]?passwd['\"]?\s*[:=]\s*['\"][^'\"]*['\"]", "passwd=<redacted>"),
+    # HTTP Basic Authorization headers (Base64-encoded credentials)
+    (r"Authorization\s*:\s*Basic\s+[\w+/=]+", "Authorization: Basic <redacted>"),
 )
 
 

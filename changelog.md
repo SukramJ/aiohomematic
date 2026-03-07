@@ -1,3 +1,25 @@
+# Version 2026.3.3 (2026-03-07)
+
+## What's Changed
+
+### Security
+
+- **ReGa script injection prevention**: Added `_escape_rega_string()` to escape
+  backslashes and double quotes before interpolating values into ReGa script
+  templates, preventing script injection via crafted system variable names,
+  device addresses, or program IDs.
+- **Device address validation**: `accept_device_in_inbox()` now validates the
+  device address format before passing it to ReGa script substitution.
+- **Password field protection**: `CentralConfig.password` now uses
+  `Field(repr=False, exclude=True)` to prevent accidental exposure via
+  `repr()`, `str()`, or `model_dump()`.
+- **Authorization header sanitization**: Added pattern for `Authorization: Basic`
+  headers to `_SENSITIVE_PATTERNS` in error message sanitization.
+- **TLS disabled warning**: JSON-RPC client now logs an info message when TLS is
+  disabled, warning that credentials are transmitted in plain text.
+- **Unknown interface_id logging**: RPC callback server now logs a warning when
+  receiving events for an unregistered interface_id.
+
 # Version 2026.3.2 (2026-03-06)
 
 ## What's Changed
@@ -7,7 +29,8 @@
 - **Python 3.14 minimum**: Dropped Python 3.13 support. Python 3.14 is now the
   minimum required version. All tool configurations (ruff, mypy, pylint) updated
   to target Python 3.14.
-- 
+-
+
 # Version 2026.3.1 (2026-03-05)
 
 ## What's Changed

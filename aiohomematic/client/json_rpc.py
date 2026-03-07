@@ -137,6 +137,23 @@ _JSON_STRING_PATTERN: Final = re.compile(r'"(?:[^"\\]|\\.)*"')
 _CONTROL_CHAR_PATTERN: Final = re.compile(r"[\x00-\x1f\x7f]")
 
 
+def _escape_rega_string(*, value: str) -> str:
+    """
+    Escape a string value for safe interpolation into ReGa script string literals.
+
+    Prevents ReGa script injection by escaping backslashes and double quotes,
+    which could otherwise break out of the string context in ReGa scripts.
+
+    Args:
+        value: The raw string value to escape.
+
+    Returns:
+        Escaped string safe for use inside ReGa double-quoted string literals.
+
+    """
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def _sanitize_json_control_chars(*, data: str) -> str:
     """
     Escape unescaped control characters in JSON string values.
@@ -330,6 +347,13 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._tls: Final = tls
         self._tls_context: Final[SSLContext | bool] = get_tls_context(verify_tls=verify_tls) if tls else False
         self._url: Final = f"{device_url}{PATH_JSON_RPC}"
+        if not tls:
+            _LOGGER.info(
+                i18n.tr(
+                    key="log.client.json_rpc.tls_disabled",
+                    url=device_url,
+                )
+            )
         self._script_cache: Final[dict[str, str]] = {}
         self._last_session_id_refresh: datetime | None = None
         self._session_id: str | None = None
@@ -448,6 +472,14 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             True if the device was accepted successfully.
 
         """
+        if not is_device_address(address=device_address):
+            _LOGGER.error(
+                i18n.tr(
+                    key="log.client.json_rpc.accept_device_in_inbox.invalid_address",
+                    device_address=device_address,
+                )
+            )
+            return False
         try:
             response = await self._post_script(
                 script_name=RegaScript.ACCEPT_DEVICE_IN_INBOX,
@@ -2008,7 +2040,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         if extra_params:
             for variable, value in extra_params.items():
-                script = script.replace(f"##{variable}##", value)
+                script = script.replace(f"##{variable}##", _escape_rega_string(value=str(value)))
 
         method = _JsonRpcMethod.REGA_RUN_SCRIPT
         response = await self._do_post(

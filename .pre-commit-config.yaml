@@ -38,7 +38,7 @@ repos:
         files: ^aiohomematic/.+/__init__\.py$
         pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.15.1
+    rev: v0.15.5
     hooks:
       - id: ruff
         args:
@@ -46,7 +46,7 @@ repos:
       - id: ruff-format
         files: ^((aiohomematic|aiohomematic_test_support|pylint|script|tests)/.+)?[^/]+\.py$
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.0
+    rev: v2.4.2
     hooks:
       - id: codespell
         args:

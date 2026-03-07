@@ -48,6 +48,9 @@ DEFAULT_SYSVAR_MARKERS: Final[tuple[DescriptionMarker | str, ...]] = ()
 DEFAULT_TLS: Final = False
 DEFAULT_UN_IGNORES: Final[frozenset[str]] = frozenset()
 DEFAULT_USE_GROUP_CHANNEL_FOR_COVER_STATE: Final = True
+# TLS certificate verification is disabled by default because home automation
+# setups typically use self-signed certificates on the CCU. Callers should set
+# verify_tls=True when using publicly trusted certificates.
 DEFAULT_VERIFY_TLS: Final = False
 DEFAULT_INCLUDE_DEFAULT_DPS: Final = True
 

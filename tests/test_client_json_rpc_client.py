@@ -344,13 +344,9 @@ class TestJsonRpcClientScripts:
         )
 
         # Load an existing script twice to hit cache path
-        s1 = await client._get_script(script_name="get_serial.fn")
-        s2 = await client._get_script(script_name="get_serial.fn")
+        s1 = await client._get_script(script_name=RegaScript.GET_SERIAL)
+        s2 = await client._get_script(script_name=RegaScript.GET_SERIAL)
         assert isinstance(s1, str) and s1 == s2 and "serial" in s1
-
-        # Non-existing script should make _post_script raise ClientException
-        with pytest.raises(ClientException):
-            await client._post_script(script_name="does_not_exist.fn")
 
     @pytest.mark.asyncio
     async def test_post_script_parses_json_and_get_serial(

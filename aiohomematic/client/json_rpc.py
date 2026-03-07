@@ -38,7 +38,6 @@ from datetime import datetime
 from enum import StrEnum, unique
 from functools import partial
 import logging
-import os
 from pathlib import Path
 import re
 from ssl import SSLContext
@@ -354,7 +353,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     url=device_url,
                 )
             )
-        self._script_cache: Final[dict[str, str]] = {}
+        self._script_cache: Final[dict[RegaScript, str]] = {}
         self._last_session_id_refresh: datetime | None = None
         self._session_id: str | None = None
         self._session_recorder: Final = session_recorder
@@ -622,7 +621,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         Download firmware to the CCU for installation.
 
         Args:
-            firmware_url: URL to download the firmware from.
+            firmware_url: URL to download the firmware from. Only http and https schemes are allowed.
 
         Returns:
             True if firmware was downloaded successfully, False otherwise.
@@ -630,6 +629,15 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """
         if not self._client_session:
             _LOGGER.error(i18n.tr(key="exception.client.json_post.no_session"))
+            return False
+
+        if not firmware_url.startswith(("http://", "https://")):
+            _LOGGER.error(
+                i18n.tr(
+                    key="log.client.json_rpc.download_firmware.invalid_url",
+                    url=firmware_url,
+                )
+            )
             return False
 
         # CCU downloads firmware via /config/cp_maintenance.cgi with POST
@@ -1867,16 +1875,16 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
         return descriptions
 
-    async def _get_script(self, *, script_name: str) -> str | None:
+    async def _get_script(self, *, script_name: RegaScript) -> str | None:
         """Return a script from the script cache. Load if required."""
         if script_name in self._script_cache:
             return self._script_cache[script_name]
 
-        def _load_script(script_name: str) -> str | None:
+        def _load_script(script_name: RegaScript) -> str | None:
             """Load script from file system."""
-            script_file = os.path.join(Path(__file__).resolve().parent, REGA_SCRIPT_PATH, script_name)
+            script_file = Path(__file__).resolve().parent / REGA_SCRIPT_PATH / script_name.value
             try:
-                if script := Path(script_file).read_text(encoding=UTF_8):
+                if script := script_file.read_text(encoding=UTF_8):
                     self._script_cache[script_name] = script
                     return script
             except FileNotFoundError:
@@ -2016,7 +2024,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
     async def _post_script(
         self,
         *,
-        script_name: str,
+        script_name: RegaScript,
         extra_params: dict[_JsonKey, Any] | None = None,
         keep_session: bool = True,
     ) -> dict[str, Any] | Any:

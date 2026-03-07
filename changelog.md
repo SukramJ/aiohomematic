@@ -19,6 +19,19 @@
   disabled, warning that credentials are transmitted in plain text.
 - **Unknown interface_id logging**: RPC callback server now logs a warning when
   receiving events for an unregistered interface_id.
+- **ReGa script path traversal prevention**: `_get_script()` and `_post_script()`
+  now require `RegaScript` enum instead of arbitrary strings, preventing path
+  traversal attacks via crafted script names.
+- **Firmware URL scheme validation**: `download_firmware()` now rejects URLs with
+  non-HTTP(S) schemes, preventing the CCU from connecting to arbitrary protocols.
+- **Restrictive temp file permissions**: Storage temp files are now created with
+  `0o600` permissions before being atomically replaced, preventing other users
+  from reading cached data.
+- **Path traversal protection in `delete_file()`**: File paths resolved via glob
+  are now validated to stay within the target directory using `realpath()` checks.
+- **Documented `DEFAULT_VERIFY_TLS=False`**: Added comment explaining that TLS
+  verification is disabled by default due to self-signed certificates in typical
+  home automation setups.
 
 ### Performance
 

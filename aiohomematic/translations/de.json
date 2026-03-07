@@ -180,6 +180,7 @@
   "log.client.json_rpc.download_backup.no_session": "DOWNLOAD_BACKUP fehlgeschlagen: Keine Session-ID verfügbar",
   "log.client.json_rpc.download_firmware.error": "DOWNLOAD_FIRMWARE fehlgeschlagen: {reason}",
   "log.client.json_rpc.download_firmware.failed": "DOWNLOAD_FIRMWARE fehlgeschlagen: HTTP-Status {status}",
+  "log.client.json_rpc.download_firmware.invalid_url": "DOWNLOAD_FIRMWARE fehlgeschlagen: Ungültiges URL-Schema für Firmware (nur http/https erlaubt): {url}",
   "log.client.json_rpc.download_firmware.no_session": "DOWNLOAD_FIRMWARE fehlgeschlagen: Keine Session-ID verfügbar",
   "log.client.json_rpc.get_all_system_variables.parse_failed": "GET_ALL_SYSTEM_VARIABLES fehlgeschlagen: {exc_type} [{reason}] SysVar {legacy_name} konnte nicht geparst werden",
   "log.client.json_rpc.get_backend_info.failed": "GET_BACKEND_INFO fehlgeschlagen: JSON konnte nicht dekodiert werden: {reason}",

@@ -509,6 +509,7 @@ class Storage(StorageProtocol):
                 # Write as plain JSON
                 with open(temp_path, "wb") as f:
                     f.write(serialized)
+            os.chmod(temp_path, 0o600)
             os.replace(temp_path, target_path)
         except OSError as exc:
             # Clean up temp file on failure

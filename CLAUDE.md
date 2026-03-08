@@ -2302,6 +2302,57 @@ This policy ensures:
 
 ---
 
+## Interaction Protocol
+
+**These rules govern how the AI assistant communicates and works with the user. They are non-negotiable.**
+
+### 1. Describe Approach Before Coding
+
+Before writing any code, describe your planned approach and wait for explicit approval. This includes:
+
+- What files will be created or modified
+- What the high-level approach is
+- Any trade-offs or alternatives considered
+
+**Exception**: Trivial changes (typo fixes, single-line edits) where the intent is unambiguous may proceed directly.
+
+### 2. Clarify Ambiguous Requirements
+
+If the requirements are ambiguous or incomplete, ask clarifying questions **before** writing any code. Do not guess or make assumptions about:
+
+- Which behavior is desired when multiple interpretations exist
+- Scope boundaries (what's included vs. out of scope)
+- Priority or ordering when multiple changes are requested
+
+### 3. Suggest Edge Cases and Tests After Implementation
+
+After finishing any code change, proactively:
+
+- List edge cases that the implementation handles (or doesn't)
+- Suggest specific test cases to cover those edge cases
+- Identify any boundary conditions or error scenarios worth testing
+
+### 4. Bug Fixing: Test-First Approach
+
+When fixing a bug:
+
+1. **First**, write a test that reproduces the bug (the test must fail)
+2. **Then**, fix the code until the test passes
+3. **Finally**, verify no other tests broke
+
+This ensures the bug is properly understood before attempting a fix, and prevents regressions.
+
+### 5. Learn From Corrections
+
+Every time the user corrects a mistake:
+
+1. Reflect on what went wrong and why
+2. Identify the root cause (not just the symptom)
+3. Update memory files if the correction reveals a recurring pattern
+4. State the lesson learned and the plan to avoid repeating it
+
+---
+
 ## Tips for AI Assistants
 
 ### Do's
@@ -2319,6 +2370,11 @@ This policy ensures:
 ✅ **Always** check `git tag --list` BEFORE modifying changelog.md (tagged versions are immutable)
 ✅ **Always** update BOTH `changelog.md` AND `aiohomematic/const.py:VERSION` together (must be in sync)
 ✅ **Always** create implementation plans that are Haiku-executable
+✅ **Always** describe your approach and wait for approval before writing code
+✅ **Always** ask clarifying questions when requirements are ambiguous
+✅ **Always** list edge cases and suggest tests after completing code changes
+✅ **Always** fix bugs test-first: write a failing test, then fix the code
+✅ **Always** reflect on corrections and update memory to prevent repeat mistakes
 
 ### Don'ts
 
@@ -2332,19 +2388,24 @@ This policy ensures:
 ❌ **Never** break backward compatibility without major version bump
 ❌ **Never** leave legacy compatibility layers or deprecated aliases
 ❌ **Never** create plans with ambiguities or "TBD" items
+❌ **Never** start coding without describing the approach first (unless trivial)
+❌ **Never** guess when requirements are ambiguous — ask instead
+❌ **Never** fix a bug without first writing a reproducing test
 
 ### Refactoring Workflow
 
 When performing a refactoring task, follow this workflow:
 
-1. **Plan**: Create a detailed implementation plan (see Implementation Plan Requirements)
-2. **Clarify**: Resolve ALL ambiguities before starting implementation
-3. **Implement**: Make all changes following the exact plan
-4. **Clean**: Remove all legacy code, aliases, and compatibility shims
-5. **Test**: Run `pytest tests/` - all tests must pass
-6. **Lint**: Run `prek run --all-files` - no errors allowed
-7. **Document**: Update changelog.md and create migration guide if needed
-8. **Verify**: Check for leftover TODOs related to migration
+1. **Describe**: Explain the planned approach and wait for user approval
+2. **Clarify**: Ask questions to resolve ALL ambiguities before starting
+3. **Plan**: Create a detailed implementation plan (see Implementation Plan Requirements)
+4. **Implement**: Make all changes following the exact plan
+5. **Clean**: Remove all legacy code, aliases, and compatibility shims
+6. **Test**: Run `pytest tests/` - all tests must pass
+7. **Edge Cases**: List edge cases and suggest additional test cases
+8. **Lint**: Run `prek run --all-files` - no errors allowed
+9. **Document**: Update changelog.md and create migration guide if needed
+10. **Verify**: Check for leftover TODOs related to migration
 
 ### Implementation Plan Quality Standard
 
@@ -2370,5 +2431,5 @@ Before finalizing any implementation plan, verify:
 
 ---
 
-**Last Updated**: 2025-12-27
+**Last Updated**: 2026-03-08
 **Version**: 2025.12.49

@@ -403,14 +403,17 @@ class CentralHealth(CentralHealthProtocol):
     @property
     def overall_health_score(self) -> float:
         """
-        Calculate weighted average health score across all clients.
+        Calculate health score based on client availability.
+
+        Returns the ratio of healthy (available) clients to total clients,
+        consistent with the MetricsObserver sensor calculation.
 
         Returns 0.0 if no clients are registered.
         """
         if not self.client_health:
             return 0.0
-        scores = [h.health_score for h in self.client_health.values()]
-        return sum(scores) / len(scores)
+        healthy_count = sum(1 for h in self.client_health.values() if h.is_available)
+        return healthy_count / len(self.client_health)
 
     @property
     def primary_client_healthy(self) -> bool:
@@ -661,6 +664,11 @@ class HealthTracker(HealthTrackerProtocol):
         """
         self._state_machine = state_machine
 
+    def sync_central_state(self) -> None:
+        """Synchronize the cached central state from the state machine."""
+        if self._state_machine is not None:
+            self._central_health.update_central_state(state=self._state_machine.state)
+
     def unregister_client(self, *, interface_id: str) -> None:
         """
         Remove a client from health tracking.
@@ -683,7 +691,8 @@ class HealthTracker(HealthTrackerProtocol):
             if (health := self._central_health.get_client_health(interface_id=interface_id)) is not None:
                 health.update_from_client(client=client)
 
-        # Update central state in health
+        # Sync central state independently of external sync_central_state() calls,
+        # because health updates can occur without a preceding _evaluate_central_state().
         if self._state_machine is not None:
             self._central_health.update_central_state(state=self._state_machine.state)
 
@@ -717,7 +726,8 @@ class HealthTracker(HealthTrackerProtocol):
             # Emit health metric event for event-driven metrics
             self._emit_health_event(interface_id=interface_id, health=health)
 
-        # Update central state in health
+        # Sync central state independently of external sync_central_state() calls,
+        # because health updates can occur without a preceding _evaluate_central_state().
         if self._state_machine is not None:
             self._central_health.update_central_state(state=self._state_machine.state)
 

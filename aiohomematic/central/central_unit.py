@@ -634,6 +634,7 @@ class CentralUnit(
             {c.interface_id: c.state.value for c in clients},
         )
         self._evaluate_central_state(trigger="start() completed", from_start=True)
+        self._health_tracker.sync_central_state()
 
     async def stop(self) -> None:
         """Stop processing of the central unit."""
@@ -920,6 +921,7 @@ class CentralUnit(
         # Only transition if central is in a state that allows it.
         if self._central_state_machine.state not in (CentralState.STARTING, CentralState.STOPPED):
             self._evaluate_central_state(trigger=f"triggered by {interface_id}")
+            self._health_tracker.sync_central_state()
 
     def _start_scheduler(self) -> None:
         """Start the background scheduler."""

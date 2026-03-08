@@ -1028,6 +1028,10 @@ class HealthTrackerProtocol(Protocol):
         """Set the primary interface for health tracking."""
 
     @abstractmethod
+    def sync_central_state(self) -> None:
+        """Synchronize the cached central state from the state machine."""
+
+    @abstractmethod
     def unregister_client(self, *, interface_id: str) -> None:
         """Unregister a client from health tracking."""
 

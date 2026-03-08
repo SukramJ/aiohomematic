@@ -403,14 +403,17 @@ class CentralHealth(CentralHealthProtocol):
     @property
     def overall_health_score(self) -> float:
         """
-        Calculate weighted average health score across all clients.
+        Calculate health score based on client availability.
+
+        Returns the ratio of healthy (available) clients to total clients,
+        consistent with the MetricsObserver sensor calculation.
 
         Returns 0.0 if no clients are registered.
         """
         if not self.client_health:
             return 0.0
-        scores = [h.health_score for h in self.client_health.values()]
-        return sum(scores) / len(scores)
+        healthy_count = sum(1 for h in self.client_health.values() if h.is_available)
+        return healthy_count / len(self.client_health)
 
     @property
     def primary_client_healthy(self) -> bool:

@@ -1,3 +1,15 @@
+# Version 2026.3.4 (2026-03-08)
+
+## What's Changed
+
+### Fixed
+
+- **Health tracker central state sync**: Added `sync_central_state()` to
+  `HealthTracker` to synchronize the cached central state after
+  `_evaluate_central_state()` completes. Previously, the `CentralHealth` object
+  could hold a stale central state after start or system status events that did
+  not trigger a client health update.
+
 # Version 2026.3.3 (2026-03-07)
 
 ## What's Changed

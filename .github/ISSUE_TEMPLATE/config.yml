@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Frontend Issues / Frontend-Probleme
-    url: https://github.com/sukramj/homematicip_local_frontend/issues
+    url: https://github.com/SukramJ/homematicip-local-frontend/issues
     about: Report issues with the frontend (UI, dashboard cards, visual bugs) in the homematicip_local_frontend repository. / Melde Frontend-Probleme (Benutzeroberfläche, Dashboard-Karten, visuelle Fehler) im homematicip_local_frontend Repository.
   - name: Feature Requests
     url: https://github.com/sukramj/aiohomematic/discussions

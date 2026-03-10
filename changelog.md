@@ -1,3 +1,16 @@
+# Version 2026.3.5 (2026-03-10)
+
+## What's Changed
+
+### Added
+
+- **Cover capabilities**: Introduced `CoverCapabilities` dataclass with static
+  capability flags (`position`, `tilt`, `stop`, `vent`) for cover entities,
+  consistent with the existing capabilities pattern used by Light, Climate, Lock,
+  and Siren. Predefined capability sets: `COVER_CAPABILITIES`,
+  `BLIND_CAPABILITIES`, `GARAGE_CAPABILITIES`. This replaces the need for
+  `isinstance()` checks to determine cover features.
+
 # Version 2026.3.4 (2026-03-08)
 
 ## What's Changed

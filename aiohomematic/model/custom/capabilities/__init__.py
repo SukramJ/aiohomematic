@@ -21,6 +21,12 @@ from aiohomematic.model.custom.capabilities.climate import (
     IP_THERMOSTAT_CAPABILITIES,
     ClimateCapabilities,
 )
+from aiohomematic.model.custom.capabilities.cover import (
+    BLIND_CAPABILITIES,
+    COVER_CAPABILITIES,
+    GARAGE_CAPABILITIES,
+    CoverCapabilities,
+)
 from aiohomematic.model.custom.capabilities.light import (
     COLOR_DIMMER_CAPABILITIES,
     COLOR_TEMP_DIMMER_CAPABILITIES,
@@ -43,6 +49,11 @@ from aiohomematic.model.custom.capabilities.siren import (
 )
 
 __all__ = [
+    # Cover
+    "BLIND_CAPABILITIES",
+    "COVER_CAPABILITIES",
+    "CoverCapabilities",
+    "GARAGE_CAPABILITIES",
     # Light
     "COLOR_DIMMER_CAPABILITIES",
     "COLOR_TEMP_DIMMER_CAPABILITIES",

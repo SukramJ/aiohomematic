@@ -13,6 +13,7 @@ import pytest
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpBlind, CustomDpCover, CustomDpGarage, CustomDpIpBlind, CustomDpWindowDrive
+from aiohomematic.model.custom.capabilities.cover import BLIND_CAPABILITIES, COVER_CAPABILITIES, GARAGE_CAPABILITIES
 from aiohomematic.model.custom.cover import (
     _CLOSED_LEVEL,
     _OPEN_LEVEL,
@@ -62,6 +63,11 @@ class TestCustomDpCover:
         central, mock_client, _ = central_client_factory_with_homegear_client
         cover: CustomDpCover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU8537918", 4))
         assert cover.usage == DataPointUsage.CDP_PRIMARY
+        assert cover.capabilities is COVER_CAPABILITIES
+        assert cover.capabilities.position is True
+        assert cover.capabilities.tilt is False
+        assert cover.capabilities.stop is True
+        assert cover.capabilities.vent is False
         assert cover.current_position == 0
         assert cover.is_closed is True
         await cover.set_position(position=81)
@@ -168,6 +174,7 @@ class TestCustomDpWindowDrive:
         central, mock_client, _ = central_client_factory_with_homegear_client
         cover: CustomDpWindowDrive = cast(CustomDpWindowDrive, get_prepared_custom_data_point(central, "VCU0000350", 1))
         assert cover.usage == DataPointUsage.CDP_PRIMARY
+        assert cover.capabilities is COVER_CAPABILITIES
         assert cover.current_position == 0
         assert cover._group_level == _WD_CLOSED_LEVEL
         assert cover.is_closed is True
@@ -240,6 +247,11 @@ class TestCustomDpBlind:
         central, mock_client, _ = central_client_factory_with_homegear_client
         cover: CustomDpBlind = cast(CustomDpBlind, get_prepared_custom_data_point(central, "VCU0000144", 1))
         assert cover.usage == DataPointUsage.CDP_PRIMARY
+        assert cover.capabilities is BLIND_CAPABILITIES
+        assert cover.capabilities.position is True
+        assert cover.capabilities.tilt is True
+        assert cover.capabilities.stop is True
+        assert cover.capabilities.vent is False
         assert cover.service_method_names == (
             "close",
             "close_tilt",
@@ -521,6 +533,7 @@ class TestCustomDpIpBlind:
             CustomDpIpBlind, get_prepared_custom_data_point(central=central, address="VCU1223813", channel_no=4)
         )
         assert cover.usage == DataPointUsage.CDP_PRIMARY
+        assert cover.capabilities is BLIND_CAPABILITIES
 
         assert cover.current_position == 0
         assert cover.current_tilt_position == 0
@@ -1004,6 +1017,11 @@ class TestCustomDpGarage:
             CustomDpGarage, get_prepared_custom_data_point(central=central, address="VCU3574044", channel_no=1)
         )
         assert cover.usage == DataPointUsage.CDP_PRIMARY
+        assert cover.capabilities is GARAGE_CAPABILITIES
+        assert cover.capabilities.position is True
+        assert cover.capabilities.tilt is False
+        assert cover.capabilities.stop is True
+        assert cover.capabilities.vent is True
         assert cover.service_method_names == (
             "close",
             "load_data_point_value",

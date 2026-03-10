@@ -399,22 +399,28 @@ from aiohomematic.model.custom import (
     CustomDpDimmer,
     CustomDpIpThermostat,
     CustomDpCover,
-    CustomDpLock,
+    CustomDpGarage,
 )
 
 # Check if device has specific functionality
 for cdp in device.custom_data_points:
     if isinstance(cdp, CustomDpDimmer):
         # Dimmer-specific operations
-        await cdp.set_level(level=0.5)  # 50%
+        await cdp.turn_on(brightness=128)
 
     elif isinstance(cdp, CustomDpIpThermostat):
         # Climate-specific operations
         await cdp.set_temperature(temperature=21.5)
 
-    elif isinstance(cdp, CustomDpCover):
-        # Cover-specific operations
-        await cdp.set_level(level=0.0)  # Fully open
+    elif isinstance(cdp, (CustomDpCover, CustomDpGarage)):
+        # Use capabilities instead of isinstance() for feature detection
+        if cdp.capabilities.tilt:
+            await cdp.set_position(position=80, tilt_position=50)
+        else:
+            await cdp.set_position(position=80)
+
+        if cdp.capabilities.vent:
+            await cdp.vent()  # Garage door ventilation
 ```
 
 ---

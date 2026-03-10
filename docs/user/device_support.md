@@ -58,6 +58,67 @@ Some devices benefit from **custom mappings** that combine multiple parameters i
 - **Proper actions** - `climate.set_temperature` instead of raw parameter writes
 - **State aggregation** - Combined availability and error handling
 
+## Cover Device Details
+
+Cover devices are mapped to the Home Assistant `cover` platform. Different device types expose different capabilities, which are reported via `CoverCapabilities`:
+
+### Cover Types and Capabilities
+
+| Device Type | Class | position | tilt | stop | vent | HA device_class |
+| --- | --- | --- | --- | --- | --- | --- |
+| RF Shutters (HM-LC-Bl1-*) | `CustomDpCover` | yes | no | yes | no | `shutter` |
+| IP Shutters (HmIP-BROLL, HmIP-FROLL) | `CustomDpCover` | yes | no | yes | no | `shutter` |
+| RF Blinds (HM-LC-Ja1PBU-FM) | `CustomDpBlind` | yes | yes | yes | no | `blind` |
+| IP Blinds (HmIP-BBL, HmIP-FBL, HmIP-DRBLI4) | `CustomDpIpBlind` | yes | yes | yes | no | `blind` |
+| Window Drive (HM-Sec-Win) | `CustomDpWindowDrive` | yes | no | yes | no | `window` |
+| Garage Door (HmIP-MOD-HO, HmIP-MOD-TM) | `CustomDpGarage` | yes | no | yes | yes | `garage` |
+
+### Checking Capabilities
+
+Integrations should use `capabilities` instead of `isinstance()` checks:
+
+```python
+cover = get_custom_data_point(device, channel_no)
+
+if cover.capabilities.tilt:
+    # Blind with tilt support
+    await cover.open_tilt()
+
+if cover.capabilities.vent:
+    # Garage door with ventilation position
+    await cover.vent()
+```
+
+### Garage Door Specifics
+
+Garage doors (HmIP-MOD-HO, HmIP-MOD-TM) differ fundamentally from other cover types:
+
+**Discrete states instead of continuous position.** While shutters and blinds have a continuous position range (0-100%), garage doors only have three discrete states:
+
+| State | Mapped Position | Description |
+| --- | --- | --- |
+| CLOSED | 0 | Door fully closed |
+| VENTILATION_POSITION | 10 | Door slightly open for ventilation |
+| OPEN | 100 | Door fully open |
+
+**Asymmetric read/write parameters.** The device state is read from `DOOR_STATE` and `SECTION`, while commands are sent to `DOOR_COMMAND`. The available commands are:
+
+| Command | Description |
+| --- | --- |
+| OPEN | Open the door |
+| CLOSE | Close the door |
+| PARTIAL_OPEN | Move to ventilation position |
+| STOP | Stop movement |
+| NOP | No operation |
+
+**Position slider behavior.** Because the Home Assistant cover platform has no native concept for a ventilation position, the garage door maps its three states to discrete position values (0/10/100). The position slider in the UI therefore has three effective zones:
+
+- 0-10: Closes the door
+- 11-50: Moves to ventilation position
+- 51-100: Opens the door
+
+**No continuous positioning.** Setting a position value like 75 does not move the door to 75% open. It maps to the nearest discrete command (in this case, OPEN).
+
 ## Parameter Filtering
 
 **Not all parameters become entities.** The integration filters parameters to provide a clean, useful set of entities:

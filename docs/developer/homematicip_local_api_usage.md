@@ -329,10 +329,11 @@ BaseDataPoint is the core class for all device parameters and controls.
 
 **Cover Operations:**
 
+- **`capabilities`** - Cover capabilities (CoverCapabilities: position, tilt, stop, vent)
 - **`current_position`** - Current position (0-100)
-- **`current_tilt_position`** - Current tilt position
+- **`current_tilt_position`** - Current tilt position (blinds only)
 - **`current_channel_position`** - Channel-specific position
-- **`current_channel_tilt_position`** - Channel-specific tilt position
+- **`current_channel_tilt_position`** - Channel-specific tilt position (blinds only)
 - **`is_closed`** - Closed state
 - **`is_opening`** - Opening state
 - **`is_closing`** - Closing state
@@ -341,9 +342,10 @@ BaseDataPoint is the core class for all device parameters and controls.
 - **`open`** - Open cover
 - **`close`** - Close cover
 - **`stop`** - Stop movement
-- **`open_tilt`** - Open tilt
-- **`close_tilt`** - Close tilt
-- **`stop_tilt`** - Stop tilt movement
+- **`open_tilt`** - Open tilt (blinds only, check `capabilities.tilt`)
+- **`close_tilt`** - Close tilt (blinds only, check `capabilities.tilt`)
+- **`stop_tilt`** - Stop tilt movement (blinds only, check `capabilities.tilt`)
+- **`vent`** - Move to ventilation position (garage doors only, check `capabilities.vent`)
 
 **Lock Operations:**
 

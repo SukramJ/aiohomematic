@@ -23,7 +23,7 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpActionFloat, DpActionSelect, DpBinarySensor, DpSelect, DpSensor
-from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property, state_property
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
 
@@ -92,17 +92,9 @@ class PlaySoundArgs(TypedDict, total=False):
 class BaseCustomDpSiren(CustomDataPoint):
     """Class for Homematic siren data point."""
 
-    __slots__ = ("_capabilities",)
+    __slots__ = ("_cached_capabilities",)
 
     _category = DataPointCategory.SIREN
-
-    @property
-    def capabilities(self) -> SirenCapabilities:
-        """Return the siren capabilities."""
-        if (caps := getattr(self, "_capabilities", None)) is None:
-            caps = self._compute_capabilities()
-            object.__setattr__(self, "_capabilities", caps)
-        return caps
 
     @state_property
     @abstractmethod
@@ -118,6 +110,11 @@ class BaseCustomDpSiren(CustomDataPoint):
     @abstractmethod
     def is_on(self) -> bool:
         """Return true if siren is on."""
+
+    @info_property(cached=True)
+    def capabilities(self) -> SirenCapabilities:
+        """Return the siren capabilities."""
+        return self._compute_capabilities()
 
     @abstractmethod
     @bind_collector(priority=CommandPriority.CRITICAL)

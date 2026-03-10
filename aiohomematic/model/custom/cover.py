@@ -29,7 +29,7 @@ from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpActionString, DpFloat, DpSelect, DpSensor
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import info_property, state_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
     """Class for Homematic cover data point."""
 
     __slots__ = (
-        "_capabilities",
+        "_cached_capabilities",
         "_command_processing_lock",
         "_use_group_channel_for_cover_state",
     )
@@ -137,14 +137,6 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
         ):
             return float(self._dp_group_level.value)
         return self._dp_level.value if self._dp_level.value is not None else self._closed_level
-
-    @property
-    def capabilities(self) -> CoverCapabilities:
-        """Return the cover capabilities."""
-        if (caps := getattr(self, "_capabilities", None)) is None:
-            caps = self._compute_capabilities()
-            object.__setattr__(self, "_capabilities", caps)
-        return caps
 
     @state_property
     def current_channel_position(self) -> int:
@@ -174,6 +166,11 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
         if self._dp_direction.value is not None:
             return str(self._dp_direction.value) == _CoverActivity.OPENING
         return None
+
+    @info_property(cached=True)
+    def capabilities(self) -> CoverCapabilities:
+        """Return the cover capabilities."""
+        return self._compute_capabilities()
 
     @bind_collector
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
@@ -564,7 +561,7 @@ class CustomDpIpBlind(CustomDpBlind):
     _dp_combined = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpActionString)
     _dp_operation_mode: Final = DataPointField(field=Field.OPERATION_MODE, dpt=DpSelect)
 
-    @property
+    @state_property
     def operation_mode(self) -> str | None:
         """Return operation mode of cover."""
         val = self._dp_operation_mode.value
@@ -588,7 +585,7 @@ class CustomDpIpBlind(CustomDpBlind):
 class CustomDpGarage(PositionMixin, CustomDataPoint):
     """Class for Homematic garage data point."""
 
-    __slots__ = ("_capabilities",)
+    __slots__ = ("_cached_capabilities",)
 
     _category = DataPointCategory.COVER
 
@@ -596,14 +593,6 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     _dp_door_command: Final = DataPointField(field=Field.DOOR_COMMAND, dpt=DpActionSelect)
     _dp_door_state: Final = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
     _dp_section: Final = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
-
-    @property
-    def capabilities(self) -> CoverCapabilities:
-        """Return the cover capabilities."""
-        if (caps := getattr(self, "_capabilities", None)) is None:
-            caps = self._compute_capabilities()
-            object.__setattr__(self, "_capabilities", caps)
-        return caps
 
     @state_property
     def current_position(self) -> int | None:
@@ -636,6 +625,11 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         if self._dp_section.value is not None:
             return int(self._dp_section.value) == _GarageDoorActivity.OPENING
         return None
+
+    @info_property(cached=True)
+    def capabilities(self) -> CoverCapabilities:
+        """Return the cover capabilities."""
+        return self._compute_capabilities()
 
     @bind_collector
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:

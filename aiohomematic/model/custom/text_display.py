@@ -116,7 +116,7 @@ class CustomDpTextDisplay(CustomDataPoint):
     available_text_colors: Final = DelegatedProperty[tuple[str, ...] | None](
         path="_dp_display_data_text_color.values", kind=Kind.STATE
     )
-    burst_limit_warning: Final = DelegatedProperty[bool](path="_dp_burst_limit_warning.value")
+    burst_limit_warning: Final = DelegatedProperty[bool](path="_dp_burst_limit_warning.value", kind=Kind.STATE)
 
     @state_property
     def has_icons(self) -> bool:

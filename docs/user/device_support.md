@@ -64,14 +64,14 @@ Cover devices are mapped to the Home Assistant `cover` platform. Different devic
 
 ### Cover Types and Capabilities
 
-| Device Type | Class | position | tilt | stop | vent | HA device_class |
-| --- | --- | --- | --- | --- | --- | --- |
-| RF Shutters (HM-LC-Bl1-*) | `CustomDpCover` | yes | no | yes | no | `shutter` |
-| IP Shutters (HmIP-BROLL, HmIP-FROLL) | `CustomDpCover` | yes | no | yes | no | `shutter` |
-| RF Blinds (HM-LC-Ja1PBU-FM) | `CustomDpBlind` | yes | yes | yes | no | `blind` |
-| IP Blinds (HmIP-BBL, HmIP-FBL, HmIP-DRBLI4) | `CustomDpIpBlind` | yes | yes | yes | no | `blind` |
-| Window Drive (HM-Sec-Win) | `CustomDpWindowDrive` | yes | no | yes | no | `window` |
-| Garage Door (HmIP-MOD-HO, HmIP-MOD-TM) | `CustomDpGarage` | yes | no | yes | yes | `garage` |
+| Device Type                                 | Class                 | position | tilt | stop | vent | HA device_class |
+| ------------------------------------------- | --------------------- | -------- | ---- | ---- | ---- | --------------- |
+| RF Shutters (HM-LC-Bl1-\*)                  | `CustomDpCover`       | yes      | no   | yes  | no   | `shutter`       |
+| IP Shutters (HmIP-BROLL, HmIP-FROLL)        | `CustomDpCover`       | yes      | no   | yes  | no   | `shutter`       |
+| RF Blinds (HM-LC-Ja1PBU-FM)                 | `CustomDpBlind`       | yes      | yes  | yes  | no   | `blind`         |
+| IP Blinds (HmIP-BBL, HmIP-FBL, HmIP-DRBLI4) | `CustomDpIpBlind`     | yes      | yes  | yes  | no   | `blind`         |
+| Window Drive (HM-Sec-Win)                   | `CustomDpWindowDrive` | yes      | no   | yes  | no   | `window`        |
+| Garage Door (HmIP-MOD-HO, HmIP-MOD-TM)      | `CustomDpGarage`      | yes      | no   | yes  | yes  | `garage`        |
 
 ### Checking Capabilities
 
@@ -95,21 +95,21 @@ Garage doors (HmIP-MOD-HO, HmIP-MOD-TM) differ fundamentally from other cover ty
 
 **Discrete states instead of continuous position.** While shutters and blinds have a continuous position range (0-100%), garage doors only have three discrete states:
 
-| State | Mapped Position | Description |
-| --- | --- | --- |
-| CLOSED | 0 | Door fully closed |
-| VENTILATION_POSITION | 10 | Door slightly open for ventilation |
-| OPEN | 100 | Door fully open |
+| State                | Mapped Position | Description                        |
+| -------------------- | --------------- | ---------------------------------- |
+| CLOSED               | 0               | Door fully closed                  |
+| VENTILATION_POSITION | 10              | Door slightly open for ventilation |
+| OPEN                 | 100             | Door fully open                    |
 
 **Asymmetric read/write parameters.** The device state is read from `DOOR_STATE` and `SECTION`, while commands are sent to `DOOR_COMMAND`. The available commands are:
 
-| Command | Description |
-| --- | --- |
-| OPEN | Open the door |
-| CLOSE | Close the door |
+| Command      | Description                  |
+| ------------ | ---------------------------- |
+| OPEN         | Open the door                |
+| CLOSE        | Close the door               |
 | PARTIAL_OPEN | Move to ventilation position |
-| STOP | Stop movement |
-| NOP | No operation |
+| STOP         | Stop movement                |
+| NOP          | No operation                 |
 
 **Position slider behavior.** Because the Home Assistant cover platform has no native concept for a ventilation position, the garage door maps its three states to discrete position values (0/10/100). The position slider in the UI therefore has three effective zones:
 

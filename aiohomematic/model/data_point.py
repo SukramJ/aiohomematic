@@ -99,7 +99,9 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
     ProductGroup,
+    Quantity,
     ServiceScope,
+    ValueBehavior,
     check_ignore_parameter_on_initial_load,
 )
 from aiohomematic.context import (
@@ -126,6 +128,13 @@ from aiohomematic.interfaces import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.client import ValueAndParamsetOperationsProtocol
+from aiohomematic.model.data_point_metadata import (
+    get_binary_sensor_quantity_by_device_and_param,
+    get_binary_sensor_quantity_by_param,
+    get_quantity_metadata_by_device_and_param,
+    get_quantity_metadata_by_param,
+    get_quantity_metadata_by_unit,
+)
 from aiohomematic.model.optimistic import OptimisticValueTracker
 from aiohomematic.model.support import (
     DataPointNameData,
@@ -760,6 +769,8 @@ class BaseParameterDataPoint[
 
     __slots__ = (
         "_cached__enabled_by_channel_operation_mode",
+        "_cached_quantity",
+        "_cached_value_behavior",
         "_current_value",
         "_default",
         "_description",
@@ -1065,10 +1076,58 @@ class BaseParameterDataPoint[
             self._client.last_value_send_tracker.get_last_value_send(dpk=self.dpk),
         )
 
+    @config_property(cached=True)
+    def quantity(self) -> Quantity | None:
+        """
+        Return the semantic quantity of this data point.
+
+        Describes what physical or logical quantity the data point measures
+        (e.g., temperature, humidity, voltage). Resolved from parameter name,
+        device model, or unit.
+        """
+        device_model = self._device.model if hasattr(self, "_device") else ""
+
+        # For binary sensors, use dedicated lookup
+        if self.category == DataPointCategory.BINARY_SENSOR:
+            if q := get_binary_sensor_quantity_by_device_and_param(
+                device_model=device_model, parameter=self._parameter
+            ):
+                return q
+            return get_binary_sensor_quantity_by_param(parameter=self._parameter)
+
+        # For sensors/numbers: try device+param override first, then param, then unit fallback
+        if metadata := get_quantity_metadata_by_device_and_param(device_model=device_model, parameter=self._parameter):
+            return metadata.quantity
+        if metadata := get_quantity_metadata_by_param(parameter=self._parameter):
+            return metadata.quantity
+        if self._unit and (metadata := get_quantity_metadata_by_unit(unit=self._unit)):
+            return metadata.quantity
+        return None
+
     @config_property
     def unique_id(self) -> str:
         """Return the unique_id."""
         return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
+
+    @config_property(cached=True)
+    def value_behavior(self) -> ValueBehavior | None:
+        """
+        Return the value behavior of this data point.
+
+        Describes how the numeric value behaves over time:
+        - INSTANTANEOUS: Point-in-time reading (temperature, voltage)
+        - CUMULATIVE: Running total that may reset (energy counter)
+        - MONOTONIC: Running total that only increases (lifetime consumption)
+        """
+        device_model = self._device.model if hasattr(self, "_device") else ""
+
+        if metadata := get_quantity_metadata_by_device_and_param(device_model=device_model, parameter=self._parameter):
+            return metadata.value_behavior
+        if metadata := get_quantity_metadata_by_param(parameter=self._parameter):
+            return metadata.value_behavior
+        if self._unit and (metadata := get_quantity_metadata_by_unit(unit=self._unit)):
+            return metadata.value_behavior
+        return None
 
     @hm_property(cached=True)
     def _enabled_by_channel_operation_mode(self) -> bool | None:

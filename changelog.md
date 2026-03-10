@@ -4,12 +4,40 @@
 
 ### Added
 
+- **Data point metadata**: Introduced `Quantity` and `ValueBehavior` enums in
+  `const.py` and a new `data_point_metadata.py` module that maps Homematic
+  parameters to their semantic quantity (e.g., temperature, humidity, energy)
+  and value behavior (instantaneous, cumulative, monotonic). The `quantity` and
+  `value_behavior` properties are now available on `BaseParameterDataPoint`.
 - **Cover capabilities**: Introduced `CoverCapabilities` dataclass with static
   capability flags (`position`, `tilt`, `stop`, `vent`) for cover entities,
   consistent with the existing capabilities pattern used by Light, Climate, Lock,
   and Siren. Predefined capability sets: `COVER_CAPABILITIES`,
   `BLIND_CAPABILITIES`, `GARAGE_CAPABILITIES`. This replaces the need for
   `isinstance()` checks to determine cover features.
+- **Cover device documentation**: Added detailed documentation for cover device
+  types, capabilities, and garage door specifics including discrete state
+  mapping and position slider behavior.
+
+### Changed
+
+- **Capabilities use `info_property(cached=True)`**: Replaced manual
+  `getattr`/`object.__setattr__` caching pattern in `capabilities` properties
+  across Climate, Light, Lock, and Siren with the declarative
+  `@info_property(cached=True)` decorator. The `_capabilities` slot has been
+  renamed to `_cached_capabilities` accordingly.
+- **Property decorator improvements**: `config_property` and `info_property`
+  now support a `cached=True` parameter for lazy-computed immutable values.
+  Dataclass instances in log context are automatically converted to dicts.
+- **Light property categorization**: Reclassified `brightness_pct`,
+  `group_brightness`, `group_brightness_pct`, and other light properties from
+  plain `@property` to `@state_property` for proper state tracking.
+- **Climate temperature bounds**: `min_temp` and `max_temp` in
+  `BaseCustomDpClimate` changed from `@state_property` to `@config_property`
+  since temperature bounds are configuration values, not runtime state.
+- **DelegatedProperty kind annotations**: Added `Kind.CONFIG`/`Kind.STATE`
+  annotations to `ClimateWeekProfile.max_temp`/`min_temp` and
+  `CustomDpTextDisplay.burst_limit_warning`.
 
 # Version 2026.3.4 (2026-03-08)
 

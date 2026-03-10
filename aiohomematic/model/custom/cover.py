@@ -17,6 +17,12 @@ from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
 from aiohomematic.interfaces import GenericDataPointProtocolAny
+from aiohomematic.model.custom.capabilities.cover import (
+    BLIND_CAPABILITIES,
+    COVER_CAPABILITIES,
+    GARAGE_CAPABILITIES,
+    CoverCapabilities,
+)
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
@@ -105,6 +111,7 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
     """Class for Homematic cover data point."""
 
     __slots__ = (
+        "_capabilities",
         "_command_processing_lock",
         "_use_group_channel_for_cover_state",
     )
@@ -130,6 +137,14 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
         ):
             return float(self._dp_group_level.value)
         return self._dp_level.value if self._dp_level.value is not None else self._closed_level
+
+    @property
+    def capabilities(self) -> CoverCapabilities:
+        """Return the cover capabilities."""
+        if (caps := getattr(self, "_capabilities", None)) is None:
+            caps = self._compute_capabilities()
+            object.__setattr__(self, "_capabilities", caps)
+        return caps
 
     @state_property
     def current_channel_position(self) -> int:
@@ -207,6 +222,10 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
     async def stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
         await self._dp_stop.send_value(value=True, collector=collector)
+
+    def _compute_capabilities(self) -> CoverCapabilities:
+        """Compute static capabilities. Base cover supports position and stop."""
+        return COVER_CAPABILITIES
 
     @override
     def _post_init(self) -> None:
@@ -440,6 +459,10 @@ class CustomDpBlind(CustomDpCover):
         """Stop the device if in motion. Use only when command_processing_lock is held."""
         await self.stop(collector=collector)
 
+    def _compute_capabilities(self) -> CoverCapabilities:
+        """Compute static capabilities. Blinds support position, tilt, and stop."""
+        return BLIND_CAPABILITIES
+
     def _get_combined_value(self, *, level: float | None = None, tilt_level: float | None = None) -> str | None:
         """Return the combined parameter."""
         if level is None and tilt_level is None:
@@ -565,7 +588,7 @@ class CustomDpIpBlind(CustomDpBlind):
 class CustomDpGarage(PositionMixin, CustomDataPoint):
     """Class for Homematic garage data point."""
 
-    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+    __slots__ = ("_capabilities",)
 
     _category = DataPointCategory.COVER
 
@@ -573,6 +596,14 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     _dp_door_command: Final = DataPointField(field=Field.DOOR_COMMAND, dpt=DpActionSelect)
     _dp_door_state: Final = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
     _dp_section: Final = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
+
+    @property
+    def capabilities(self) -> CoverCapabilities:
+        """Return the cover capabilities."""
+        if (caps := getattr(self, "_capabilities", None)) is None:
+            caps = self._compute_capabilities()
+            object.__setattr__(self, "_capabilities", caps)
+        return caps
 
     @state_property
     def current_position(self) -> int | None:
@@ -660,6 +691,10 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         if not self.is_state_change(vent=True):
             return
         await self._dp_door_command.send_value(value=_GarageDoorCommand.PARTIAL_OPEN, collector=collector)
+
+    def _compute_capabilities(self) -> CoverCapabilities:
+        """Compute static capabilities. Garage doors support position, stop, and vent."""
+        return GARAGE_CAPABILITIES
 
 
 # =============================================================================

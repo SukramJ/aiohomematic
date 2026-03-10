@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 import contextlib
+import dataclasses
 from datetime import datetime
 from enum import Enum, StrEnum, unique
 from functools import singledispatch
@@ -645,7 +646,7 @@ def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = Fal
             if isinstance(value, LogContextProtocol):
                 result.update({f"{name[:1]}.{k}": v for k, v in value.log_context.items()})
             else:
-                result[name] = _get_text_value(value)
+                result[name] = _get_text_value_with_dataclass_fallback(value=value)
         except Exception:
             # Avoid propagating side effects/errors from getters
             result[name] = None
@@ -696,6 +697,15 @@ def _get_text_value_enum(value: Enum) -> str:  # kwonly: disable
 def _get_text_value_datetime(value: datetime) -> float:  # kwonly: disable
     """Convert datetime to unix timestamp."""
     return datetime.timestamp(value)
+
+
+def _get_text_value_with_dataclass_fallback(*, value: Any) -> Any:
+    """Normalize value, converting dataclass instances to dicts."""
+    result = _get_text_value(value)
+    # If singledispatch returned unchanged and it's a dataclass, convert to dict
+    if result is value and dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return {k: _get_text_value(v) for k, v in dataclasses.asdict(value).items()}
+    return result
 
 
 def get_hm_property_by_log_context(*, data_object: Any) -> Mapping[str, Any]:

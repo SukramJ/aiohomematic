@@ -2290,6 +2290,83 @@ ScheduleDict: TypeAlias = dict[str, Any]
 """JSON-serializable schedule dictionary for public API."""
 
 
+@unique
+class Quantity(StrEnum):
+    """
+    Semantic quantity describing what a data point measures.
+
+    This classifies the physical or logical quantity a data point represents,
+    independent of any specific smart home platform. Values are universal terms
+    for measurement types and detection categories.
+    """
+
+    # Sensor quantities
+    CO2 = "carbon_dioxide"
+    CURRENT = "current"
+    ENERGY = "energy"
+    ENUM = "enum"
+    FREQUENCY = "frequency"
+    GAS = "gas"
+    HUMIDITY = "humidity"
+    ILLUMINANCE = "illuminance"
+    PM1 = "pm1"
+    PM10 = "pm10"
+    PM25 = "pm25"
+    POWER = "power"
+    PRESSURE = "pressure"
+    SIGNAL_STRENGTH = "signal_strength"
+    TEMPERATURE = "temperature"
+    VOLTAGE = "voltage"
+    VOLUME_FLOW_RATE = "volume_flow_rate"
+    WIND_SPEED = "wind_speed"
+
+    # Binary sensor quantities
+    BATTERY = "battery"
+    HEAT = "heat"
+    MOISTURE = "moisture"
+    MOTION = "motion"
+    OCCUPANCY = "occupancy"
+    OPENING = "opening"
+    PRESENCE = "presence"
+    PROBLEM = "problem"
+    RUNNING = "running"
+    SAFETY = "safety"
+    SMOKE = "smoke"
+    TAMPER = "tamper"
+    WINDOW = "window"
+
+    # Cover quantities
+    BLIND = "blind"
+    GARAGE = "garage"
+    SHADE = "shade"
+    SHUTTER = "shutter"
+
+    # Switch quantities
+    OUTLET = "outlet"
+    SWITCH = "switch"
+
+    # Button quantities
+    IDENTIFY = "identify"
+    RESTART = "restart"
+    UPDATE = "update"
+
+
+@unique
+class ValueBehavior(StrEnum):
+    """
+    Describes how a numeric value behaves over time.
+
+    This is a platform-independent classification of value semantics:
+    - INSTANTANEOUS: Point-in-time reading (e.g., current temperature, voltage)
+    - CUMULATIVE: Running total that may reset (e.g., energy counter after power cycle)
+    - MONOTONIC: Running total that only increases (e.g., lifetime energy consumption)
+    """
+
+    INSTANTANEOUS = "instantaneous"
+    CUMULATIVE = "cumulative"
+    MONOTONIC = "monotonic"
+
+
 # Define public API for this module
 __all__ = tuple(
     sorted(

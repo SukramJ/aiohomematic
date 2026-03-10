@@ -22,7 +22,7 @@ from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, S
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpActionSelect, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
-from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property, state_property
 
 # Activity states indicating LED is active
 _ACTIVITY_STATES_ACTIVE: Final[frozenset[str]] = frozenset({"UP", "DOWN"})
@@ -221,7 +221,7 @@ class SoundPlayerLedOnArgs(LightOnArgs, total=False):
 class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     """Base class for Homematic light data point."""
 
-    __slots__ = ("_capabilities",)
+    __slots__ = ("_cached_capabilities",)
 
     _category = DataPointCategory.LIGHT
 
@@ -232,48 +232,6 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE)
 
     @property
-    def brightness_pct(self) -> int | None:
-        """Return the brightness in percent of this light."""
-        return self.level_to_brightness_pct(self._dp_level.value or _MIN_BRIGHTNESS)
-
-    @property
-    def capabilities(self) -> LightCapabilities:
-        """Return the light capabilities."""
-        if (caps := getattr(self, "_capabilities", None)) is None:
-            caps = self._compute_capabilities()
-            object.__setattr__(self, "_capabilities", caps)
-        return caps
-
-    @property
-    def group_brightness(self) -> int | None:
-        """Return the group brightness of this light between min/max brightness."""
-        if self._dp_group_level.value is not None:
-            return self.level_to_brightness(self._dp_group_level.value)
-        return None
-
-    @property
-    def group_brightness_pct(self) -> int | None:
-        """Return the group brightness in percent of this light."""
-        if self._dp_group_level.value is not None:
-            return self.level_to_brightness_pct(self._dp_group_level.value)
-        return None
-
-    @property
-    def has_color_temperature(self) -> bool:
-        """Return True if light currently has color temperature."""
-        return self.color_temp_kelvin is not None
-
-    @property
-    def has_effects(self) -> bool:
-        """Return True if light currently has effects."""
-        return self.effects is not None and len(self.effects) > 0
-
-    @property
-    def has_hs_color(self) -> bool:
-        """Return True if light currently has hs color."""
-        return self.hs_color is not None
-
-    @property
     def last_level(self) -> float | None:
         """Return the last non-default level value."""
         return self._dp_level.last_non_default_value
@@ -282,6 +240,11 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     def brightness(self) -> int | None:
         """Return the brightness of this light between min/max brightness."""
         return self.level_to_brightness(self._dp_level.value or _MIN_BRIGHTNESS)
+
+    @state_property
+    def brightness_pct(self) -> int | None:
+        """Return the brightness in percent of this light."""
+        return self.level_to_brightness_pct(self._dp_level.value or _MIN_BRIGHTNESS)
 
     @state_property
     def color_temp_kelvin(self) -> int | None:
@@ -299,6 +262,35 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         return None
 
     @state_property
+    def group_brightness(self) -> int | None:
+        """Return the group brightness of this light between min/max brightness."""
+        if self._dp_group_level.value is not None:
+            return self.level_to_brightness(self._dp_group_level.value)
+        return None
+
+    @state_property
+    def group_brightness_pct(self) -> int | None:
+        """Return the group brightness in percent of this light."""
+        if self._dp_group_level.value is not None:
+            return self.level_to_brightness_pct(self._dp_group_level.value)
+        return None
+
+    @state_property
+    def has_color_temperature(self) -> bool:
+        """Return True if light currently has color temperature."""
+        return self.color_temp_kelvin is not None
+
+    @state_property
+    def has_effects(self) -> bool:
+        """Return True if light currently has effects."""
+        return self.effects is not None and len(self.effects) > 0
+
+    @state_property
+    def has_hs_color(self) -> bool:
+        """Return True if light currently has hs color."""
+        return self.hs_color is not None
+
+    @state_property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         return None
@@ -307,6 +299,11 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     def is_on(self) -> bool | None:
         """Return true if dimmer is on."""
         return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
+
+    @info_property(cached=True)
+    def capabilities(self) -> LightCapabilities:
+        """Return the light capabilities."""
+        return self._compute_capabilities()
 
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
@@ -529,28 +526,6 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         return (self._dp_level,)
 
     @property
-    def has_color_temperature(self) -> bool:
-        """Return True if light currently has color temperature (mode-dependent)."""
-        return self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE
-
-    @property
-    def has_effects(self) -> bool:
-        """Return True if light currently has effects (mode-dependent)."""
-        return (
-            self._device_operation_mode != _DeviceOperationMode.PWM
-            and self.effects is not None
-            and len(self.effects) > 0
-        )
-
-    @property
-    def has_hs_color(self) -> bool:
-        """Return True if light currently has hs color (mode-dependent)."""
-        return self._device_operation_mode in (
-            _DeviceOperationMode.RGBW,
-            _DeviceOperationMode.RGB,
-        )
-
-    @property
     def usage(self) -> DataPointUsage:
         """
         Return the data_point usage.
@@ -575,6 +550,28 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     def effects(self) -> tuple[str, ...] | None:
         """Return the supported effects."""
         return self._dp_effect.values or ()
+
+    @state_property
+    def has_color_temperature(self) -> bool:
+        """Return True if light currently has color temperature (mode-dependent)."""
+        return self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE
+
+    @state_property
+    def has_effects(self) -> bool:
+        """Return True if light currently has effects (mode-dependent)."""
+        return (
+            self._device_operation_mode != _DeviceOperationMode.PWM
+            and self.effects is not None
+            and len(self.effects) > 0
+        )
+
+    @state_property
+    def has_hs_color(self) -> bool:
+        """Return True if light currently has hs color (mode-dependent)."""
+        return self._device_operation_mode in (
+            _DeviceOperationMode.RGBW,
+            _DeviceOperationMode.RGB,
+        )
 
     @state_property
     def hs_color(self) -> tuple[float, float] | None:
@@ -679,10 +676,10 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
 
     _effect_list: tuple[str, ...]
 
-    channel_color_name: Final = DelegatedProperty[str | None](path="_dp_channel_color.value")
+    channel_color_name: Final = DelegatedProperty[str | None](path="_dp_channel_color.value", kind=Kind.STATE)
     effects: Final = DelegatedProperty[tuple[str, ...] | None](path="_effect_list", kind=Kind.STATE)
 
-    @property
+    @state_property
     def channel_hs_color(self) -> tuple[float, float] | None:
         """Return the channel hue and saturation color value [float, float]."""
         if self._dp_channel_color.value is not None:

@@ -20,7 +20,7 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpSensor, DpSwitch
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import info_property, state_property
 
 
 @unique
@@ -61,18 +61,10 @@ class LockState(StrEnum):
 class BaseCustomDpLock(CustomDataPoint):
     """Class for HomematicIP lock data point."""
 
-    __slots__ = ("_capabilities",)
+    __slots__ = ("_cached_capabilities",)
 
     _category = DataPointCategory.LOCK
     _ignore_multiple_channels_for_name = True
-
-    @property
-    def capabilities(self) -> LockCapabilities:
-        """Return the lock capabilities."""
-        if (caps := getattr(self, "_capabilities", None)) is None:
-            caps = self._compute_capabilities()
-            object.__setattr__(self, "_capabilities", caps)
-        return caps
 
     @state_property
     def is_jammed(self) -> bool:
@@ -93,6 +85,11 @@ class BaseCustomDpLock(CustomDataPoint):
     def is_unlocking(self) -> bool | None:
         """Return true if the lock is unlocking."""
         return None
+
+    @info_property(cached=True)
+    def capabilities(self) -> LockCapabilities:
+        """Return the lock capabilities."""
+        return self._compute_capabilities()
 
     @abstractmethod
     @bind_collector(priority=CommandPriority.CRITICAL)

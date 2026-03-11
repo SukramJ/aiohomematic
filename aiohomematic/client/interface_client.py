@@ -23,6 +23,7 @@ from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.client.command_throttle import CommandPriority, CommandThrottle
+from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.state_change import wait_for_state_change_or_timeout
 from aiohomematic.client.state_machine import ClientStateMachine
@@ -67,7 +68,6 @@ from aiohomematic.support.address import get_device_address, is_channel_address,
 from aiohomematic.support.mixins import LogContextMixin
 
 if TYPE_CHECKING:
-    from aiohomematic.client.config import InterfaceConfig
     from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol
 
 __all__ = ["InterfaceClient"]

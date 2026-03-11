@@ -10,8 +10,6 @@ This module provides:
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import json as _stdlib_json
 import sys
 import sysconfig

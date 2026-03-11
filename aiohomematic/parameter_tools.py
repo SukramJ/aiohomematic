@@ -16,8 +16,6 @@ All functions are pure (no I/O, no side-effects) and operate solely on the
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 import inspect

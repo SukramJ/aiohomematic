@@ -10,8 +10,6 @@ Public API
 - JsonCcuBackend: Backend for CCU-Jack using JSON-RPC exclusively
 """
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 

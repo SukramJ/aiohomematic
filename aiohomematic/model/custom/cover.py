@@ -6,8 +6,6 @@ Custom cover data points for blinds, shutters, and garage doors.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import asyncio
 from enum import IntEnum, StrEnum, unique
 import logging

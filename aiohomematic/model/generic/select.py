@@ -6,8 +6,6 @@ Generic select data points for dropdown selection values.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException

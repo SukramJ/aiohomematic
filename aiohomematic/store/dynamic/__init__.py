@@ -26,8 +26,6 @@ Public API
 - PingPongTracker: Connection health monitoring via ping/pong
 """
 
-from __future__ import annotations
-
 from aiohomematic.store.dynamic.command import CommandTracker
 from aiohomematic.store.dynamic.data import CentralDataCache
 from aiohomematic.store.dynamic.details import DeviceDetailsCache

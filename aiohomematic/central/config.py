@@ -6,8 +6,6 @@ Configuration classes for CentralUnit initialization.
 This module provides CentralConfig for configuring and creating CentralUnit instances.
 """
 
-from __future__ import annotations
-
 # Pydantic validators require a fixed signature that cannot use keyword-only args
 __kwonly_check__ = False
 

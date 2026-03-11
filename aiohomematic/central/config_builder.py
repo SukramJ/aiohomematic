@@ -30,8 +30,6 @@ Public API of this module is defined by __all__.
 
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self
 

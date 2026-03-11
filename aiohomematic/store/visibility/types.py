@@ -7,8 +7,6 @@ This module contains shared type aliases and data classes used across
 the visibility system components.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, NamedTuple
 

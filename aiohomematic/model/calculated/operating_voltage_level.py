@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for calculating the operating voltage level in the sensor category."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum, unique

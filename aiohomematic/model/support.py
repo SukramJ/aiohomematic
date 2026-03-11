@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Support for data points used within aiohomematic."""
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections.abc import Mapping
 from enum import StrEnum

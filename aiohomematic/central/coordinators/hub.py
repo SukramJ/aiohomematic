@@ -13,8 +13,6 @@ The HubCoordinator provides:
 - Program execution and state management
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import datetime
 import logging

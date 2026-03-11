@@ -14,8 +14,6 @@ Public API
 - ClimateCapabilities: Capability flags for climate entities
 """
 
-from __future__ import annotations
-
 from aiohomematic.model.custom.capabilities.climate import (
     BASIC_CLIMATE_CAPABILITIES,
     IP_THERMOSTAT_CAPABILITIES,

@@ -7,8 +7,6 @@ This module provides connection status management for the central unit,
 tracking issues per transport (JSON-RPC and XML-RPC proxies).
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Final

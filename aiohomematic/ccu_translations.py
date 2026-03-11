@@ -18,8 +18,6 @@ ensured via double-checked locking during lazy initialization.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import contextlib
 import json
 import logging

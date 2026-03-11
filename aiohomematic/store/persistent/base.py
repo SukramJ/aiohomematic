@@ -22,8 +22,6 @@ BasePersistentCache separates concerns:
 - Factory creation: Via StorageFactoryProtocol
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from datetime import datetime
 import logging

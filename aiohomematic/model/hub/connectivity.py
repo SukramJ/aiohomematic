@@ -12,8 +12,6 @@ Public API
 - HmInterfaceConnectivitySensor: Binary sensor showing interface connectivity
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import Final, override

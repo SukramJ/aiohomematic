@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for hub inbox sensor."""
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import Final, override

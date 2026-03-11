@@ -15,8 +15,6 @@ TTL mechanism:
     - Expiration is lazy: checked on access/update
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections import defaultdict
 from datetime import UTC, datetime

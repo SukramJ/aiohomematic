@@ -41,8 +41,6 @@ Public API
 - PARAMSET_PATCHES: Central registry of all defined patches
 """
 
-from __future__ import annotations
-
 from aiohomematic.store.patches.matcher import ParamsetPatchMatcher
 from aiohomematic.store.patches.paramset_patches import PARAMSET_PATCHES, ParamsetPatch
 

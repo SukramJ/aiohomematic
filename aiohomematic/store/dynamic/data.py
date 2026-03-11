@@ -11,8 +11,6 @@ This avoids background task overhead for a small number of interface-keyed entri
 Stale data causes a cache miss → refresh cycle (self-healing).
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import datetime
 import logging

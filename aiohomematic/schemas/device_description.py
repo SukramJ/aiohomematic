@@ -5,8 +5,6 @@ This module validates and normalizes DeviceDescription data received
 from Homematic backends via listDevices() and newDevices() callbacks.
 """
 
-from __future__ import annotations
-
 # Pydantic field_validators require a fixed signature (cls, v) that cannot use keyword-only args
 __kwonly_check__ = False
 

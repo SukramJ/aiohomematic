@@ -33,8 +33,6 @@ All operations assume they run in the same event loop.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections import deque
 from dataclasses import dataclass, field

@@ -18,8 +18,6 @@ The scheduler runs tasks based on configurable intervals and handles errors
 gracefully without affecting other tasks.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Callable
 import contextlib

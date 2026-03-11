@@ -9,8 +9,6 @@ This is Homematic domain knowledge, independent of any smart home platform.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Final, NamedTuple
 

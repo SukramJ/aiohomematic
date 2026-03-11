@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Decorators for central used within aiohomematic."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 from functools import partial, wraps

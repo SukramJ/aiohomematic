@@ -6,8 +6,6 @@ Base implementation for combined data points writing to multiple underlying data
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import Final, Unpack, override

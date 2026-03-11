@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for calculating the apparent temperature in the sensor category."""
 
-from __future__ import annotations
-
 import logging
 from typing import Final
 

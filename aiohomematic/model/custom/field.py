@@ -9,8 +9,6 @@ eliminating boilerplate in _init_data_point_fields() methods.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Final, cast, overload
 
 from aiohomematic.const import Field

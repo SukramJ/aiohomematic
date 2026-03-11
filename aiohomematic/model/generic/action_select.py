@@ -9,8 +9,6 @@ Action selects are used for write-only ENUM parameters that have a VALUE_LIST.
 They provide a value getter for displaying the current selection.
 """
 
-from __future__ import annotations
-
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory
 from aiohomematic.exceptions import ValidationException

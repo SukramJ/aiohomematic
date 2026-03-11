@@ -9,8 +9,6 @@ Pure state management — no event publishing, logging, or I/O.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable
 import time

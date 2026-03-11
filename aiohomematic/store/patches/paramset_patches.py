@@ -10,8 +10,6 @@ criteria and the fields to correct.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Final
 

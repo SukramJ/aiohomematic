@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for hub data points implemented using the sensor category."""
 
-from __future__ import annotations
-
 import logging
 from typing import Any, Final
 

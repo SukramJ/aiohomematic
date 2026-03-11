@@ -6,8 +6,6 @@ Generic button data points for momentary press actions.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.model.generic.data_point import GenericDataPoint

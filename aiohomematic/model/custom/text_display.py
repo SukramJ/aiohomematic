@@ -9,8 +9,6 @@ such as the HmIP-WRCD (Wall-mount Remote Control with Display).
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Final, TypedDict, Unpack
 

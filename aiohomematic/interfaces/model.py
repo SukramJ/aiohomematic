@@ -33,8 +33,6 @@ Individual sub-protocols (for fine-grained dependencies):
 - DeviceLinkManagementProtocol, DeviceGroupManagementProtocol, DeviceLifecycleProtocol
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections.abc import Callable, Mapping
 from datetime import datetime

@@ -9,8 +9,6 @@ receiving callbacks from the Homematic backend.
 This is the standard XML-RPC server implementation (see ADR 0012).
 """
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 import logging

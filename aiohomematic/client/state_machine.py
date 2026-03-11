@@ -12,8 +12,6 @@ The state machine ensures:
 - Invalid transitions raise exceptions for early error detection
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Final

@@ -10,8 +10,6 @@ Public API
 - wait_for_state_change_or_timeout: Wait for data point callbacks after set_value/put_paramset
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Final

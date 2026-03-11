@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for AioHomematic hub data points."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any, Final, override
 

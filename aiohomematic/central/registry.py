@@ -9,8 +9,6 @@ that are safe for both GIL-enabled and free-threaded Python builds.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 import threading
 from typing import TYPE_CHECKING, Final

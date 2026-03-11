@@ -459,8 +459,6 @@ async def fetch_devices(
     ...
 
 # ✅ CORRECT - Using TYPE_CHECKING for imports
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -477,19 +475,9 @@ if TYPE_CHECKING:
 
 #### Import Requirements
 
-**MANDATORY**: Every Python file MUST start with:
-
-```python
-from __future__ import annotations
-```
-
-This is enforced by ruff's `required-imports` setting.
-
 #### Import Sorting (isort via ruff)
 
 ```python
-# Correct import order:
-from __future__ import annotations
 
 # 1. Standard library
 import asyncio
@@ -868,8 +856,6 @@ mock_json_rpc_server
 
 ```python
 """Test for central unit."""
-
-from __future__ import annotations
 
 import pytest
 
@@ -2171,7 +2157,7 @@ A valid implementation plan must:
 
 **Plan Template**:
 
-````markdown
+```markdown
 ## Implementation Plan: {Feature Name}
 
 ### Overview
@@ -2188,15 +2174,6 @@ One paragraph describing what will be implemented and why.
 **File**: `full/path/to/file.py`
 **Action**: Create / Modify / Delete
 
-**Code**:
-
-```python
-# Complete code to add/replace
-from __future__ import annotations
-...
-```
-````
-
 **Verification**: How to verify this step succeeded
 
 ### Step 2: ...
@@ -2207,8 +2184,7 @@ from __future__ import annotations
 - [ ] prek run --all-files passes
 - [ ] No mypy errors
 - [ ] Changelog updated
-
-````
+```
 
 ### Clean Code Policy
 
@@ -2217,6 +2193,7 @@ When implementing new features or refactoring existing code:
 1. **No Legacy Code**: After implementation, the codebase must be clean without any legacy compatibility layers, deprecated aliases, or backward-compatibility shims introduced during the change.
 
 2. **No Backward Compatibility Layers**: Do not create:
+
    - Type aliases for old names
    - Re-exports of renamed symbols
    - Deprecation warnings for removed APIs
@@ -2226,6 +2203,7 @@ When implementing new features or refactoring existing code:
 3. **Complete Migration**: All usages of changed APIs must be updated in a single change. Partial migrations that leave legacy code are not acceptable.
 
 4. **Protocol Inheritance**: When splitting protocols (e.g., `DeviceProtocol` into sub-protocols):
+
    - The implementation class (e.g., `Device`) must inherit from all sub-protocols
    - The composite protocol (e.g., `DeviceProtocol`) must inherit from all sub-protocols
    - No separate "legacy" protocol should remain
@@ -2251,7 +2229,7 @@ grep -r "TODO.*migration\|FIXME.*migration\|TODO.*remove\|TODO.*deprecated" aioh
 
 # 4. Check for unused imports/code
 ruff check --select F401,F841
-````
+```
 
 ### Migration Plan Requirements
 
@@ -2357,7 +2335,6 @@ Every time the user corrects a mistake:
 
 ### Do's
 
-✅ **Always** include `from __future__ import annotations` at the top of Python files
 ✅ **Always** provide complete type annotations for all functions and methods
 ✅ **Always** run prek hooks before committing
 ✅ **Always** write tests for new functionality

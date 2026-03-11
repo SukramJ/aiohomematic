@@ -6,8 +6,6 @@ Descriptor-based field definitions for combined data points.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, Final, Protocol, overload
 
 from aiohomematic.const import Field

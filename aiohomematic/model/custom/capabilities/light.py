@@ -17,8 +17,6 @@ Public API
 - RGBW_LIGHT_CAPABILITIES: RGBW light capabilities (dynamic features via has_*)
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Final
 

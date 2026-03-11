@@ -7,8 +7,6 @@ This module provides the ModelVisibilityValidator class which handles
 model-level visibility decisions like relevant paramsets and model ignoring.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Final
 

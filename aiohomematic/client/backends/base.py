@@ -12,8 +12,6 @@ Public API
 - BaseBackend: Abstract base class for backend implementations
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 import logging
 from typing import Any, Final

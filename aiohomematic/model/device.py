@@ -42,8 +42,6 @@ The Device/Channel classes are the anchor used by generic, custom, calculated,
 and hub model code to attach data points and events.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Mapping
 from datetime import datetime

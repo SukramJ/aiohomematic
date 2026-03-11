@@ -32,8 +32,6 @@ Client protocols are organized following the Interface Segregation Principle:
     - `ClientProtocol`: Combines all sub-protocols for complete client access
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime

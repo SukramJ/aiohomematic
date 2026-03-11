@@ -16,8 +16,6 @@ identified by a unique interface_id derived from the central name and
 interface type.
 """
 
-from __future__ import annotations
-
 # Pydantic field_validators require a fixed signature (cls, v) that cannot use keyword-only args
 __kwonly_check__ = False
 

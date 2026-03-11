@@ -12,8 +12,6 @@ Public API
 - IP_THERMOSTAT_CAPABILITIES: IP thermostat capabilities
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Final
 

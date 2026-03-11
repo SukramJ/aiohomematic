@@ -61,8 +61,6 @@ implementations to provide a uniform API for reading, writing, and observing
 parameter values across all supported devices.
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 import asyncio
 from collections.abc import Callable, Mapping

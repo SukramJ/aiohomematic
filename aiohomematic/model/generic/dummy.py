@@ -18,8 +18,6 @@ Key properties:
 - It exposes safe, static defaults for metadata and state.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any, cast
 

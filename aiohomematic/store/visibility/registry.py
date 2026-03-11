@@ -22,8 +22,6 @@ The registry acts as a facade, delegating to the specialized components while
 maintaining backward compatibility with the existing public API.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Final
 

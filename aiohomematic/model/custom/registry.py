@@ -30,8 +30,6 @@ Example usage:
     configs = DeviceProfileRegistry.get_configs(model="HmIP-BWTH")
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, ClassVar
 

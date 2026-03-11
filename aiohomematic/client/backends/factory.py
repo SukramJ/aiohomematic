@@ -8,8 +8,6 @@ Public API
 - create_backend: Factory function to create backend based on interface/version
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 import logging
 from typing import TYPE_CHECKING, Final

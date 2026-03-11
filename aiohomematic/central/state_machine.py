@@ -40,8 +40,6 @@ overall system state:
 - FAILED: Max retries reached, manual intervention required
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import datetime
 import logging

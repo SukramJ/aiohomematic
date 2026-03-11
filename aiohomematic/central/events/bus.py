@@ -100,8 +100,6 @@ Example Usage
 
 """
 
-from __future__ import annotations
-
 import asyncio
 import bisect
 from collections import defaultdict

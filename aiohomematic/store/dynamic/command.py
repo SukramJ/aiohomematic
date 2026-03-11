@@ -12,8 +12,6 @@ Memory management strategy (three-tier approach):
     3. Hard limit eviction: When MAX_SIZE reached, remove oldest 20% of entries
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import Any, Final

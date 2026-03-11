@@ -47,8 +47,6 @@ Public API
 - MAX_CONCURRENT_RECOVERIES: Maximum parallel recovery operations
 """
 
-from __future__ import annotations
-
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime

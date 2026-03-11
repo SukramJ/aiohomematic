@@ -13,8 +13,6 @@ The EventCoordinator provides:
 - Integration with EventBus for modern event handling
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from functools import partial

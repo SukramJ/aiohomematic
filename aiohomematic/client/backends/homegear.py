@@ -10,8 +10,6 @@ Public API
 - HomegearBackend: Backend for Homegear and pydevccu systems
 """
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Any, Final, cast
 

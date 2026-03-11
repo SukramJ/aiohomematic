@@ -36,8 +36,6 @@ Public API entry points commonly used by integrators
   custom data points to function properly.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Final
 

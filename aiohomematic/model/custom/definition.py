@@ -10,8 +10,6 @@ in registry.py.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping
 import logging
 from typing import Final, cast

@@ -13,8 +13,6 @@ Public API
 - SMART_DOOR_LOCK_CAPABILITIES: Smart door lock capabilities
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Final
 

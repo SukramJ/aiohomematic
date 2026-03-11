@@ -31,8 +31,6 @@ Public API
 - cleanup_files: Clean up cache files for a central unit
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from typing import Final

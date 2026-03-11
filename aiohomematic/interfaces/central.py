@@ -8,8 +8,6 @@ allowing components to depend on central functionality without coupling
 to the full CentralUnit implementation.
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Protocol, Unpack, runtime_checkable

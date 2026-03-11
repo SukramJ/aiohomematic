@@ -6,8 +6,6 @@ Custom lock data points for door locks and access control.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from enum import StrEnum, unique
 from typing import Final

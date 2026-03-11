@@ -29,8 +29,6 @@ Notes
 
 """
 
-from __future__ import annotations
-
 import asyncio
 from asyncio import Semaphore
 from collections.abc import Mapping

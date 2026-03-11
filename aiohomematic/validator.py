@@ -6,8 +6,6 @@ Validator functions used within aiohomematic.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import inspect
 
 from aiohomematic import i18n

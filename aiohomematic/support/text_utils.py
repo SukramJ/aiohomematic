@@ -7,8 +7,6 @@ Provides helpers for handling encoding issues when communicating
 with the Homematic CCU via XML-RPC (ISO-8859-1 transport).
 """
 
-from __future__ import annotations
-
 import inspect
 
 

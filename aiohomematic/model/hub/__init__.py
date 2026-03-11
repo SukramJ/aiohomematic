@@ -46,8 +46,6 @@ Related modules
 
 """
 
-from __future__ import annotations
-
 from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.connectivity import HmInterfaceConnectivitySensor

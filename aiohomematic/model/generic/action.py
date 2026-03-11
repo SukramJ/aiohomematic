@@ -8,8 +8,6 @@ Public API of this module is defined by __all__.
 Actions are used to send data for write only parameters to backend.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from aiohomematic.const import DataPointCategory

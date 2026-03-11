@@ -18,8 +18,6 @@ Notes on caching
 - Marked with cached=True always store on first access and invalidates on set/delete.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable, Mapping
 import contextlib
 import dataclasses

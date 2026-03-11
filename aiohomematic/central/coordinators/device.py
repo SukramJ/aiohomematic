@@ -14,8 +14,6 @@ The DeviceCoordinator provides:
 - Data point and event creation for devices
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections import defaultdict
 from collections.abc import Mapping

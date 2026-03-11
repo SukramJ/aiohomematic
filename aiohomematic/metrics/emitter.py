@@ -34,8 +34,6 @@ Usage
     )
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import time
 from typing import TYPE_CHECKING, Protocol, Self, runtime_checkable

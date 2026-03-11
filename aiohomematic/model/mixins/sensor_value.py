@@ -1,7 +1,5 @@
 """Sensor value transformation mixin."""
 
-from __future__ import annotations
-
 from typing import Any, Protocol
 
 from aiohomematic.model.support import check_length_and_log, get_value_from_value_list

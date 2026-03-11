@@ -165,8 +165,6 @@ For explicit imports, use the submodules:
 - ``aiohomematic.interfaces.coordinators``: Coordinator-specific protocols
 """
 
-from __future__ import annotations
-
 from aiohomematic._log_context_protocol import LogContextProtocol
 from aiohomematic.interfaces.central import (
     BackupProviderProtocol,

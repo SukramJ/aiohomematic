@@ -11,8 +11,6 @@ Public API
 - InterfaceClient: Unified client for all Homematic backend types
 """
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime
 import logging

@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for hub data points implemented using the binary_sensor category."""
 
-from __future__ import annotations
-
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
 from aiohomematic.property_decorators import state_property

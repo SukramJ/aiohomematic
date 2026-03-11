@@ -10,8 +10,6 @@ related read-only lookups in one place.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Final
 

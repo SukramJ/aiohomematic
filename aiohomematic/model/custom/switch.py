@@ -6,8 +6,6 @@ Custom switch data points for advanced switching devices.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Final, Unpack, override
 

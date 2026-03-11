@@ -5,8 +5,6 @@ This module validates and normalizes ParameterData (ParameterDescription)
 received from Homematic backends via getParamsetDescription().
 """
 
-from __future__ import annotations
-
 # Pydantic field_validators require a fixed signature (cls, v) that cannot use keyword-only args
 __kwonly_check__ = False
 

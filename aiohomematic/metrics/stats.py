@@ -13,8 +13,6 @@ Public API
 - ServiceStats: Service method execution statistics (call count, errors, timing)
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import math
 

@@ -7,8 +7,6 @@ from Homematic backends (CCU, Homegear) via XML-RPC and JSON-RPC.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 from aiohomematic.schemas.device_description import DeviceDescriptionModel

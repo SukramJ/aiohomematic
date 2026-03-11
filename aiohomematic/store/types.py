@@ -19,8 +19,6 @@ Cache Entry Types
 - PongTracker: Ping/pong tracking entry with token and seen time
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum, unique

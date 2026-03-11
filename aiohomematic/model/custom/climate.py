@@ -50,7 +50,7 @@ from aiohomematic.model.generic import (
     DpSensor,
     DpSwitch,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, info_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     _category = DataPointCategory.CLIMATE
 
-    @info_property(cached=True)
+    @config_property(cached=True)
     def capabilities(self) -> ClimateCapabilities:
         """Return the climate capabilities."""
         return self._compute_capabilities()
@@ -237,7 +237,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Return temperature unit."""
         return _TEMP_CELSIUS
 
-    @state_property
+    @state_property(alt_name="action")
     def activity(self) -> ClimateActivity | None:
         """Return the current activity."""
         return None
@@ -268,22 +268,22 @@ class BaseCustomDpClimate(CustomDataPoint):
             return min_temp + _DEFAULT_TEMPERATURE_STEP
         return min_temp
 
-    @state_property
+    @state_property(alt_name="hvac_mode")
     def mode(self) -> ClimateMode:
         """Return current operation mode."""
         return ClimateMode.HEAT
 
-    @state_property
+    @state_property(alt_name="hvac_modes")
     def modes(self) -> tuple[ClimateMode, ...]:
         """Return the available operation modes."""
         return (ClimateMode.HEAT,)
 
-    @state_property
+    @state_property(alt_name="preset_mode")
     def profile(self) -> ClimateProfile:
         """Return the current profile."""
         return ClimateProfile.NONE
 
-    @state_property
+    @state_property(alt_name="preset_modes")
     def profiles(self) -> tuple[ClimateProfile, ...]:
         """Return available profiles."""
         return (ClimateProfile.NONE,)
@@ -490,7 +490,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         """Return the number of supported profiles."""
         return len(self._profiles)
 
-    @state_property
+    @state_property(alt_name="action")
     def activity(self) -> ClimateActivity | None:
         """Return the current activity."""
         if self._dp_valve_state.value is None:
@@ -501,7 +501,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             return ClimateActivity.HEAT
         return ClimateActivity.IDLE
 
-    @state_property
+    @state_property(alt_name="hvac_mode")
     def mode(self) -> ClimateMode:
         """Return current operation mode."""
         if self.target_temperature and self.target_temperature <= _OFF_TEMPERATURE:
@@ -510,12 +510,12 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             return ClimateMode.HEAT
         return ClimateMode.AUTO
 
-    @state_property
+    @state_property(alt_name="hvac_modes")
     def modes(self) -> tuple[ClimateMode, ...]:
         """Return the available operation modes."""
         return (ClimateMode.AUTO, ClimateMode.HEAT, ClimateMode.OFF)
 
-    @state_property
+    @state_property(alt_name="preset_mode")
     def profile(self) -> ClimateProfile:
         """Return the current profile."""
         if self._dp_control_mode.value is None:
@@ -528,7 +528,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             return self._current_profile_name or ClimateProfile.NONE
         return ClimateProfile.NONE
 
-    @state_property
+    @state_property(alt_name="preset_modes")
     def profiles(self) -> tuple[ClimateProfile, ...]:
         """Return available profile."""
         control_modes = [ClimateProfile.BOOST, ClimateProfile.COMFORT, ClimateProfile.ECO, ClimateProfile.NONE]
@@ -709,7 +709,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         """Return the number of supported profiles."""
         return len(self._profiles)
 
-    @state_property
+    @state_property(alt_name="action")
     def activity(self) -> ClimateActivity | None:
         """
         Return the current activity.
@@ -754,7 +754,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL
         return ClimateActivity.IDLE
 
-    @state_property
+    @state_property(alt_name="hvac_mode")
     def mode(self) -> ClimateMode:
         """Return current operation mode."""
         if self.target_temperature and self.target_temperature <= _OFF_TEMPERATURE:
@@ -765,7 +765,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return ClimateMode.AUTO
         return ClimateMode.AUTO
 
-    @state_property
+    @state_property(alt_name="hvac_modes")
     def modes(self) -> tuple[ClimateMode, ...]:
         """Return the available operation modes."""
         return (
@@ -774,7 +774,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             ClimateMode.OFF,
         )
 
-    @state_property
+    @state_property(alt_name="preset_mode")
     def profile(self) -> ClimateProfile:
         """Return the current control mode."""
         if self._dp_boost_mode.value:
@@ -785,7 +785,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             return self._current_profile_name or ClimateProfile.NONE
         return ClimateProfile.NONE
 
-    @state_property
+    @state_property(alt_name="preset_modes")
     def profiles(self) -> tuple[ClimateProfile, ...]:
         """Return available control modes."""
         control_modes = [ClimateProfile.BOOST, ClimateProfile.NONE]

@@ -1,3 +1,35 @@
+# Version 2026.3.6 (2026-03-11)
+
+## What's Changed
+
+### Added
+
+- **Property `alt_name` support**: All property decorators (`config_property`,
+  `state_property`, `info_property`, `hm_property`) and `DelegatedProperty` now
+  accept an optional `alt_name` parameter. When `use_alt_names=True` is passed
+  to `get_hm_property_by_kind()`, the alternative name is used as dict key
+  instead of the property name. This enables payload keys to differ from
+  internal property names.
+- `PayloadMixin` (`config_payload`, `state_payload`, `info_payload`) now uses
+  `use_alt_names=True` by default, so properties with `alt_name` automatically
+  use the alternative key in payloads. Log context remains unaffected and
+  continues to use the original property name.
+
+### Changed
+
+- **Capabilities use `config_property(cached=True)`**: Reclassified
+  `capabilities` properties in Climate, Cover, Garage, Light, Lock, and Siren
+  from `@info_property(cached=True)` to `@config_property(cached=True)`.
+  Capabilities describe immutable device features determined at init, which
+  aligns with `Kind.CONFIG` semantics.
+- **Device payload alt_names**: Added `alt_name` mappings to `Device` properties
+  for Home Assistant-aligned payload keys: `address` → `serial_number`,
+  `model_description` → `model_id`, `firmware` → `sw_version`,
+  `identifier` → `identifiers`, `room` → `suggested_area`.
+- **Climate payload alt_names**: Added `alt_name` mappings to climate properties:
+  `activity` → `action`, `mode` → `hvac_mode`, `modes` → `hvac_modes`,
+  `profile` → `preset_mode`, `profiles` → `preset_modes`.
+
 # Version 2026.3.5 (2026-03-10)
 
 ## What's Changed

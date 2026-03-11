@@ -94,7 +94,7 @@ class DelegatedProperty[ValueT]:
 
     """
 
-    __slots__ = ("_cache_attr", "_cached", "_doc", "_parts", "_path", "kind", "log_context")
+    __slots__ = ("_cache_attr", "_cached", "_doc", "_parts", "_path", "alt_name", "kind", "log_context")
 
     __kwonly_check__ = False
 
@@ -106,6 +106,7 @@ class DelegatedProperty[ValueT]:
         kind: Kind = Kind.SIMPLE,
         cached: bool = False,
         log_context: bool = False,
+        alt_name: str | None = None,
     ) -> None:
         """
         Initialize the delegated property descriptor.
@@ -116,6 +117,7 @@ class DelegatedProperty[ValueT]:
             kind: Categorize as config/info/state/simple.
             cached: Enable per-instance caching of the delegated value.
             log_context: Include this property in structured log context if True.
+            alt_name: Alternative name used as dict key in payload methods.
 
         """
         self._path: Final = path
@@ -124,6 +126,7 @@ class DelegatedProperty[ValueT]:
         self.kind: Final = kind
         self._cached: Final = cached
         self.log_context = log_context
+        self.alt_name: Final = alt_name
         if cached:
             # Use the property name (set in __set_name__) for cache attribute
             # Fallback to path-based name if __set_name__ is not called
@@ -241,14 +244,16 @@ class _GenericProperty[GETTER, SETTER](property):
         kind: Kind = Kind.SIMPLE,
         cached: bool = False,
         log_context: bool = False,
+        alt_name: str | None = None,
     ) -> None:
         """
         Initialize the descriptor.
 
-        Mirrors the standard property signature and adds two options:
+        Mirrors the standard property signature and adds options:
         - kind: specify the kind of property (e.g. simple, cached, config, info, state).
         - cached: enable per-instance caching of the computed value.
         - log_context: mark this property as relevant for structured logging.
+        - alt_name: alternative name used as dict key in payload methods.
         """
         super().__init__(fget, fset, fdel, doc)
         if doc is None and fget is not None:
@@ -257,6 +262,7 @@ class _GenericProperty[GETTER, SETTER](property):
         self.kind: Final = kind
         self._cached: Final = cached
         self.log_context = log_context
+        self.alt_name: Final = alt_name
         self._cache_attr: str = ""
         if cached:
             if fget is not None:
@@ -389,6 +395,7 @@ class _GenericProperty[GETTER, SETTER](property):
             kind=self.kind,
             cached=self._cached,
             log_context=self.log_context,
+            alt_name=self.alt_name,
         )
 
     def getter(self, fget: Callable[[Any], GETTER], /) -> _GenericProperty[GETTER, SETTER]:
@@ -401,6 +408,7 @@ class _GenericProperty[GETTER, SETTER](property):
             kind=self.kind,
             cached=self._cached,
             log_context=self.log_context,
+            alt_name=self.alt_name,
         )
 
     def setter(self, fset: Callable[[Any, SETTER], None], /) -> _GenericProperty[GETTER, SETTER]:
@@ -413,6 +421,7 @@ class _GenericProperty[GETTER, SETTER](property):
             kind=self.kind,
             cached=self._cached,
             log_context=self.log_context,
+            alt_name=self.alt_name,
         )
 
 
@@ -425,7 +434,7 @@ def hm_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]: 
 
 @overload
 def hm_property(  # kwonly: disable
-    *, kind: Kind = ..., cached: bool = ..., log_context: bool = ...
+    *, kind: Kind = ..., cached: bool = ..., log_context: bool = ..., alt_name: str | None = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
@@ -435,6 +444,7 @@ def hm_property[PR](  # kwonly: disable
     kind: Kind = Kind.SIMPLE,
     cached: bool = False,
     log_context: bool = False,
+    alt_name: str | None = None,
 ) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as a computed attribute.
@@ -450,15 +460,16 @@ def hm_property[PR](  # kwonly: disable
         kind: Specify the kind of property (e.g. simple, config, info, state).
         cached: Optionally enable per-instance caching for this property.
         log_context: Include this property in structured log context if True.
+        alt_name: Alternative name used as dict key in payload methods.
 
     """
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
-            return _GenericProperty(f, kind=kind, cached=cached, log_context=log_context)
+            return _GenericProperty(f, kind=kind, cached=cached, log_context=log_context, alt_name=alt_name)
 
         return wrapper
-    return _GenericProperty(func, kind=kind, cached=cached, log_context=log_context)
+    return _GenericProperty(func, kind=kind, cached=cached, log_context=log_context, alt_name=alt_name)
 
 
 # ----- config_property -----
@@ -470,7 +481,7 @@ def config_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, An
 
 @overload
 def config_property(  # kwonly: disable
-    *, cached: bool = ..., log_context: bool = ...
+    *, cached: bool = ..., log_context: bool = ..., alt_name: str | None = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
@@ -479,6 +490,7 @@ def config_property[PR](  # kwonly: disable
     *,
     cached: bool = False,
     log_context: bool = False,
+    alt_name: str | None = None,
 ) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as a configuration property.
@@ -493,15 +505,16 @@ def config_property[PR](  # kwonly: disable
             None and the returned callable expects the function to decorate.
         cached: Enable per-instance caching for this property when True.
         log_context: Include this property in structured log context if True.
+        alt_name: Alternative name used as dict key in payload methods.
 
     """
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
-            return _GenericProperty(f, kind=Kind.CONFIG, cached=cached, log_context=log_context)
+            return _GenericProperty(f, kind=Kind.CONFIG, cached=cached, log_context=log_context, alt_name=alt_name)
 
         return wrapper
-    return _GenericProperty(func, kind=Kind.CONFIG, cached=cached, log_context=log_context)
+    return _GenericProperty(func, kind=Kind.CONFIG, cached=cached, log_context=log_context, alt_name=alt_name)
 
 
 # ----- info_property -----
@@ -513,7 +526,7 @@ def info_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any]
 
 @overload
 def info_property(  # kwonly: disable
-    *, cached: bool = ..., log_context: bool = ...
+    *, cached: bool = ..., log_context: bool = ..., alt_name: str | None = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
@@ -522,6 +535,7 @@ def info_property[PR](  # kwonly: disable
     *,
     cached: bool = False,
     log_context: bool = False,
+    alt_name: str | None = None,
 ) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as an informational/metadata property.
@@ -536,15 +550,16 @@ def info_property[PR](  # kwonly: disable
             None and the returned callable expects the function to decorate.
         cached: Enable per-instance caching for this property when True.
         log_context: Include this property in structured log context if True.
+        alt_name: Alternative name used as dict key in payload methods.
 
     """
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
-            return _GenericProperty(f, kind=Kind.INFO, cached=cached, log_context=log_context)
+            return _GenericProperty(f, kind=Kind.INFO, cached=cached, log_context=log_context, alt_name=alt_name)
 
         return wrapper
-    return _GenericProperty(func, kind=Kind.INFO, cached=cached, log_context=log_context)
+    return _GenericProperty(func, kind=Kind.INFO, cached=cached, log_context=log_context, alt_name=alt_name)
 
 
 # ----- state_property -----
@@ -556,7 +571,7 @@ def state_property[PR](func: Callable[[Any], PR], /) -> _GenericProperty[PR, Any
 
 @overload
 def state_property(  # kwonly: disable
-    *, cached: bool = ..., log_context: bool = ...
+    *, cached: bool = ..., log_context: bool = ..., alt_name: str | None = ...
 ) -> Callable[[Callable[[Any], R]], _GenericProperty[R, Any]]: ...
 
 
@@ -565,6 +580,7 @@ def state_property[PR](  # kwonly: disable
     *,
     cached: bool = False,
     log_context: bool = False,
+    alt_name: str | None = None,
 ) -> _GenericProperty[PR, Any] | Callable[[Callable[[Any], PR]], _GenericProperty[PR, Any]]:
     """
     Decorate a method as a dynamic state property.
@@ -579,27 +595,38 @@ def state_property[PR](  # kwonly: disable
             None and the returned callable expects the function to decorate.
         cached: Enable per-instance caching for this property when True.
         log_context: Include this property in structured log context if True.
+        alt_name: Alternative name used as dict key in payload methods.
 
     """
     if func is None:
 
         def wrapper(f: Callable[[Any], PR]) -> _GenericProperty[PR, Any]:
-            return _GenericProperty(f, kind=Kind.STATE, cached=cached, log_context=log_context)
+            return _GenericProperty(f, kind=Kind.STATE, cached=cached, log_context=log_context, alt_name=alt_name)
 
         return wrapper
-    return _GenericProperty(func, kind=Kind.STATE, cached=cached, log_context=log_context)
+    return _GenericProperty(func, kind=Kind.STATE, cached=cached, log_context=log_context, alt_name=alt_name)
 
 
 # ----------
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class _PropertyNames:
+    """Cached property names and alt-name mappings for a class/kind combination."""
+
+    names: tuple[str, ...]
+    alt_names: dict[str, str]
+
+
 # Cache for per-class attribute names by decorator to avoid repeated dir() scans
 # Use WeakKeyDictionary to allow classes to be garbage-collected without leaking cache entries.
-# Structure: {cls: {decorator_class: (attr_name1, attr_name2, ...)}}
-_PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[Kind, tuple[str, ...]]] = WeakKeyDictionary()
+# Structure: {cls: {kind: _PropertyNames(names=(...), alt_names={...})}}
+_PUBLIC_ATTR_CACHE: WeakKeyDictionary[type, dict[Kind, _PropertyNames]] = WeakKeyDictionary()
 
 
-def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = False) -> Mapping[str, Any]:
+def get_hm_property_by_kind(
+    *, data_object: Any, kind: Kind, context: bool = False, use_alt_names: bool = False
+) -> Mapping[str, Any]:
     """
     Collect properties from an object that are defined using a specific decorator.
 
@@ -610,6 +637,7 @@ def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = Fal
             log_context=True. When such a property's value implements LogContextProtocol,
             its items are flattened into the result using a short prefix of the property
             name (e.g. "p.key").
+        use_alt_names: If True, use alt_name as dict key when defined on the property.
 
     Returns:
         Mapping[str, Any]: A mapping of attribute name to normalized value. Values are converted via
@@ -629,27 +657,31 @@ def get_hm_property_by_kind(*, data_object: Any, kind: Kind, context: bool = Fal
         decorator_cache = {}
         _PUBLIC_ATTR_CACHE[cls] = decorator_cache
 
-    if (names := decorator_cache.get(kind)) is None:
-        names = tuple(
-            y
-            for y in dir(cls)
-            if (gp := getattr(cls, y)) and isinstance(gp, _GenericProperty | DelegatedProperty) and gp.kind == kind
-        )
-        decorator_cache[kind] = names
+    if (prop_names := decorator_cache.get(kind)) is None:
+        names: list[str] = []
+        alt_name_map: dict[str, str] = {}
+        for y in dir(cls):
+            if (gp := getattr(cls, y)) and isinstance(gp, _GenericProperty | DelegatedProperty) and gp.kind == kind:
+                names.append(y)
+                if gp.alt_name is not None:
+                    alt_name_map[y] = gp.alt_name
+        prop_names = _PropertyNames(names=tuple(names), alt_names=alt_name_map)
+        decorator_cache[kind] = prop_names
 
     result: dict[str, Any] = {}
-    for name in names:
+    for name in prop_names.names:
         if context and getattr(cls, name).log_context is False:
             continue
+        key = prop_names.alt_names.get(name, name) if use_alt_names else name
         try:
             value = getattr(data_object, name)
             if isinstance(value, LogContextProtocol):
                 result.update({f"{name[:1]}.{k}": v for k, v in value.log_context.items()})
             else:
-                result[name] = _get_text_value_with_dataclass_fallback(value=value)
+                result[key] = _get_text_value_with_dataclass_fallback(value=value)
         except Exception:
             # Avoid propagating side effects/errors from getters
-            result[name] = None
+            result[key] = None
     return result
 
 

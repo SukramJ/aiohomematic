@@ -399,7 +399,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     is_updatable: Final = DelegatedProperty[bool](path="_is_updatable")
     manufacturer: Final = DelegatedProperty[str](path="_manufacturer", kind=Kind.INFO)
     model: Final = DelegatedProperty[str](path="_model", kind=Kind.INFO, log_context=True)
-    model_description: Final = DelegatedProperty[str](path="_model_description", kind=Kind.INFO)
+    model_description: Final = DelegatedProperty[str](path="_model_description", kind=Kind.INFO, alt_name="model_id")
     name: Final = DelegatedProperty[str](path="_name", kind=Kind.INFO)
     parameter_visibility_provider: Final = DelegatedProperty[ParameterVisibilityProviderProtocol](
         path="_parameter_visibility_provider"
@@ -539,17 +539,17 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         """Return the availability of the device."""
         return self._availability.is_reachable()
 
-    @info_property
+    @info_property(alt_name="sw_version")
     def firmware(self) -> str:
         """Return the firmware of the device."""
         return self._firmware.firmware
 
-    @info_property
+    @info_property(alt_name="identifiers")
     def identifier(self) -> str:
         """Return the identifier of the device."""
         return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
 
-    @info_property
+    @info_property(alt_name="suggested_area")
     def room(self) -> str | None:
         """Return the room of the device, if only one assigned in the backend."""
         if self._rooms and len(self._rooms) == 1:

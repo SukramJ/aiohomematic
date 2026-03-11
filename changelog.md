@@ -22,8 +22,13 @@
   from `@info_property(cached=True)` to `@config_property(cached=True)`.
   Capabilities describe immutable device features determined at init, which
   aligns with `Kind.CONFIG` semantics.
-- **Device address alt_name**: `Device.address` now has
-  `alt_name="serial_number"`, so it appears as `serial_number` in payloads.
+- **Device payload alt_names**: Added `alt_name` mappings to `Device` properties
+  for Home Assistant-aligned payload keys: `address` → `serial_number`,
+  `model_description` → `model_id`, `firmware` → `sw_version`,
+  `identifier` → `identifiers`, `room` → `suggested_area`.
+- **Climate payload alt_names**: Added `alt_name` mappings to climate properties:
+  `activity` → `action`, `mode` → `hvac_mode`, `modes` → `hvac_modes`,
+  `profile` → `preset_mode`, `profiles` → `preset_modes`.
 
 # Version 2026.3.5 (2026-03-10)
 

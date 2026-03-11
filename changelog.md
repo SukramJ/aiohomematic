@@ -1,3 +1,17 @@
+# Version 2026.3.7 (2026-03-11)
+
+## What's Changed
+
+### Added
+
+- **`PayloadProtocol`**: New protocol interface guaranteeing `config_payload`,
+  `info_payload`, and `state_payload` properties. Added to `DeviceProtocol`,
+  `ChannelProtocol`, `BaseDataPointProtocol`, `GenericHubDataPointProtocol`,
+  and `CentralProtocol`. Downstream consumers can now depend on the payload API
+  through protocol interfaces. Defined in `_payload_protocol.py` (minimal module
+  to avoid circular imports, following the `_log_context_protocol.py` pattern).
+  `PayloadMixin` now explicitly inherits from `PayloadProtocol`.
+
 # Version 2026.3.6 (2026-03-11)
 
 ## What's Changed

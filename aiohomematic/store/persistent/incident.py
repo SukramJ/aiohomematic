@@ -33,8 +33,6 @@ Public API
 - IncidentStore: Persistent incident storage with size/time limits
 """
 
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any, Final

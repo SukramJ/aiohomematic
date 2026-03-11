@@ -17,8 +17,6 @@ Public API
 
 """
 
-from __future__ import annotations
-
 from aiohomematic.client.backends.capabilities import (
     CCU_CAPABILITIES,
     HOMEGEAR_CAPABILITIES,

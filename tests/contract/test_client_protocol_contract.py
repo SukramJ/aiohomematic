@@ -18,8 +18,6 @@ The contract ensures that:
 See ADR-0018 for architectural context and rationale.
 """
 
-from __future__ import annotations
-
 import inspect
 
 import pytest

@@ -10,8 +10,6 @@ Public API
 - CcuBackend: Backend for CCU3/CCU2 systems
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Mapping
 from datetime import datetime

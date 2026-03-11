@@ -15,8 +15,6 @@ All event types in this module:
 These events are re-exported from `central.events` for backward compatibility.
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime

@@ -6,8 +6,6 @@ Base implementation for generic data points.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import Any, Final, TypeAlias

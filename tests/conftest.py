@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Test support for aiohomematic."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import AsyncGenerator, Generator
 import logging

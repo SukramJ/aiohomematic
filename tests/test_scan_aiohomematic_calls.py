@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic call scanner (script.scan_aiohomematic_calls)."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import script.scan_aiohomematic_calls as scanner

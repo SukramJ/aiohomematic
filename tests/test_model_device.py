@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.model.device.Device and Channel."""
 
-from __future__ import annotations
-
 import asyncio
 from typing import Any
 import zipfile

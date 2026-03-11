@@ -14,8 +14,6 @@ Functions and classes that don't fit a specific submodule remain here.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import asyncio
 import base64
 from collections.abc import Collection, Mapping

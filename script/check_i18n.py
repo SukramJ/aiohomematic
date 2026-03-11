@@ -26,8 +26,6 @@ Outputs lines in the form:
 …and exits non-zero if any issues are found.
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 from collections.abc import Iterable

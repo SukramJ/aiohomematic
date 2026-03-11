@@ -12,8 +12,6 @@ This package contains the event bus infrastructure and event type definitions:
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from aiohomematic.central.events.bus import (
     CacheInvalidatedEvent,
     ConnectionHealthChangedEvent,

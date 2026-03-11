@@ -7,18 +7,14 @@ This module provides connection status management for the central unit,
 tracking issues per transport (JSON-RPC and XML-RPC proxies).
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
+from aiohomematic.interfaces.central import EventBusProviderProtocol
 from aiohomematic.support import extract_exc_args
-
-if TYPE_CHECKING:
-    from aiohomematic.interfaces.central import EventBusProviderProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

@@ -7,8 +7,6 @@ Covers event type determination and creation, and generic data point type
 selection without instantiating concrete data points.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 import pytest

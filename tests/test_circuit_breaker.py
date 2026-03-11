@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for CircuitBreaker."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock

@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for install mode hub data points."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime, timedelta
 import logging

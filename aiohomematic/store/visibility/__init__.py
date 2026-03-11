@@ -29,8 +29,6 @@ Key concepts
   to avoid noise in event streams.
 """
 
-from __future__ import annotations
-
 from aiohomematic.store.visibility.registry import ParameterVisibilityRegistry, check_ignore_parameters_is_clean
 
 __all__ = [

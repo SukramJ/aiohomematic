@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for hub data points implemented using the switch category."""
 
-from __future__ import annotations
-
 from typing import Final
 
 from aiohomematic.const import DataPointCategory

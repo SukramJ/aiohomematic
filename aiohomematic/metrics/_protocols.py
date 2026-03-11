@@ -16,8 +16,6 @@ These protocols are:
 IMPORTANT: This module must NOT import from interfaces/ to avoid circular imports.
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 

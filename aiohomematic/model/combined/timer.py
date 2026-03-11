@@ -6,8 +6,6 @@ Combined timer data point for value+unit timer pairs.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from typing import Any, Final, cast
 
 from aiohomematic.const import DataPointCategory, Field, ParameterType

@@ -6,8 +6,6 @@ Generic sensor data points for numeric and text values.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 import logging
 from typing import Any, Final, cast

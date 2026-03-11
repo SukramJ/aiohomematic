@@ -13,8 +13,6 @@ Public API
 - SOUND_PLAYER_CAPABILITIES: Sound player capabilities
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Final
 

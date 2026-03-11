@@ -8,8 +8,6 @@ Covers in_progress property, install() with progress monitoring,
 version change detection, and timeout handling.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Coroutine
 from datetime import datetime

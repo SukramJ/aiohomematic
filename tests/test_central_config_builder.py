@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for CentralConfigBuilder."""
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic.central import CentralConfigBuilder, ValidationError

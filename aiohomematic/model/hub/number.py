@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for data points implemented using the number category."""
 
-from __future__ import annotations
-
 import logging
 from typing import Final
 

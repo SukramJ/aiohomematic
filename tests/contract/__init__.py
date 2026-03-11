@@ -50,5 +50,3 @@ Contract Scope
 
 See ADR-0018 for architectural context and rationale.
 """
-
-from __future__ import annotations

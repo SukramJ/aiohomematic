@@ -16,8 +16,6 @@ The contract ensures that:
 See ADR-0018 for architectural context.
 """
 
-from __future__ import annotations
-
 from aiohomematic.central.coordinators import DeviceLink, LinkableChannel
 
 # =============================================================================

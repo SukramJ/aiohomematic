@@ -10,8 +10,6 @@ Unlike DpAction which uses Any as the value type, DpActionString provides
 type-safe string value handling.
 """
 
-from __future__ import annotations
-
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.generic.data_point import GenericDataPoint
 

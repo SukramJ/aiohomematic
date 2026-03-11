@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Benchmark test infrastructure."""
 
-from __future__ import annotations
-
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field

@@ -8,8 +8,6 @@ allowing components to depend on specific coordinators without coupling
 to the full CentralUnit implementation.
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 

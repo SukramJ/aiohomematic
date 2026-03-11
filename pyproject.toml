@@ -588,7 +588,7 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true # Keep imports sorted even within sections
-required-imports = ["from __future__ import annotations"] # Always include future annotations import at top
+required-imports = []
 known-first-party = ["aiohomematic",] # Treat these as first-party for import sorting
 known-third-party = ["orjson", "pydantic"] # Treat these as third-party packages
 combine-as-imports = true # Combine multiple as-imports from the same module

@@ -35,8 +35,6 @@ This approach provides:
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections import defaultdict
 from collections.abc import Callable

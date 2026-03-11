@@ -10,8 +10,6 @@ numeric ranges (MIN/MAX). They provide a number entity in HA while being
 write-only at the protocol level.
 """
 
-from __future__ import annotations
-
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.generic.number import BaseDpNumber
 

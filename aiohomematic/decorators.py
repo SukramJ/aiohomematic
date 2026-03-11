@@ -6,8 +6,6 @@ Common Decorators used within aiohomematic.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from functools import wraps
 import inspect

@@ -7,8 +7,6 @@ Covers properties, latest_firmware selection, in_progress state, register/unregi
 of handlers, and refresh/update methods.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import Any
 

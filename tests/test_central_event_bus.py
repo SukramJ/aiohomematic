@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.central.event_bus."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable
 from datetime import datetime

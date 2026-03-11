@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for the compat module (JSON abstraction and free-threading detection)."""
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic import compat

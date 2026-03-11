@@ -9,8 +9,6 @@ coverage without touching production logic. It covers:
 - PingPongTracker counters, threshold flags, event emission, and warnings.
 """
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime, timedelta
 import time

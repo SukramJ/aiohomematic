@@ -15,8 +15,6 @@ Lookup order:
 3) Fallback to the key itself
 """
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 from dataclasses import dataclass, field

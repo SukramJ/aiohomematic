@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Lightweight aiohttp-based JSON-RPC mock used in tests."""
 
-from __future__ import annotations
-
 from typing import Any, Final
 
 from aiohttp import web

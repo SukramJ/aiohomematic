@@ -7,8 +7,6 @@ This module provides DeviceDetailsCache which enriches devices with human-readab
 names, interface mapping, rooms, functions, and address IDs fetched via the backend.
 """
 
-from __future__ import annotations
-
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime

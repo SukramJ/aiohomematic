@@ -25,8 +25,6 @@ Public API of this module is defined by __all__.
 
 """
 
-from __future__ import annotations
-
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from datetime import datetime

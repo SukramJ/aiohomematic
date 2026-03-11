@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for the CentralRegistry thread-safe registry."""
 
-from __future__ import annotations
-
 import threading
 from unittest.mock import MagicMock
 

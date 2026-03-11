@@ -7,8 +7,6 @@ This module provides the ChannelParamsetRules and ModelRules classes which
 manage parameter rules indexed by channel/paramset and model name respectively.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 

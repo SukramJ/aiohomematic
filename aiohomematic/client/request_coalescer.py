@@ -46,8 +46,6 @@ operation, making it safe even in free-threading scenarios (Python 3.14+).
 
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field

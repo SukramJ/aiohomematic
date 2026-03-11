@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Threaded XML-RPC mock server used in tests only."""
 
-from __future__ import annotations
-
 from socketserver import ThreadingMixIn
 import threading
 from xmlrpc.server import SimpleXMLRPCServer

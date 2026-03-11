@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
-from __future__ import annotations
+
 
 import asyncio
 

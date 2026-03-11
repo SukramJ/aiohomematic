@@ -1,8 +1,6 @@
 """Example for aiohomematic."""
 
 # !/usr/bin/python3
-from __future__ import annotations
-
 import asyncio
 import logging
 import os

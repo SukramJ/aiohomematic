@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for FailureReason propagation through state machines."""
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 from aiohomematic.central.events import SystemStatusChangedEvent

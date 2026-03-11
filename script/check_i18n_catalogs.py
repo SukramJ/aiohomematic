@@ -23,8 +23,6 @@ Exit code:
 Usage in prek: run with `--fix` to allow auto-fixes (en.json sync + sorting).
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 from collections.abc import Iterable

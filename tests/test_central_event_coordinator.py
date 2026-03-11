@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.central.event_coordinator."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock

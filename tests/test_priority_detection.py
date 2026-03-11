@@ -1,7 +1,5 @@
 """Tests for command priority detection."""
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 from aiohomematic.client import CommandPriority

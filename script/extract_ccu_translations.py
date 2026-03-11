@@ -24,8 +24,6 @@ Environment Variables:
     OUTPUT_DIR  Output directory (default: aiohomematic/translations/ccu_extract)
 """
 
-from __future__ import annotations
-
 import contextlib
 import json
 import os

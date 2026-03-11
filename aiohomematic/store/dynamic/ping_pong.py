@@ -7,8 +7,6 @@ This module provides PingPongTracker which tracks ping/pong timestamps to detect
 connection health issues and publishes interface events on mismatch thresholds.
 """
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime
 import logging

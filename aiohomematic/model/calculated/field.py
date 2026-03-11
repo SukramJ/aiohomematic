@@ -9,8 +9,6 @@ eliminating boilerplate in _post_init() methods.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, Final, cast, overload
 
 from aiohomematic.const import ParamsetKey

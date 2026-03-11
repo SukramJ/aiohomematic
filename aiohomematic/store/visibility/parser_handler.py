@@ -7,8 +7,6 @@ This module provides the UnIgnoreRuleParser class which handles parsing of
 un-ignore configuration entries and initialization of rule structures.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 import logging
 from typing import TYPE_CHECKING, Final

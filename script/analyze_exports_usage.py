@@ -17,8 +17,6 @@ Usage:
     python script/analyze_exports_usage.py
 """
 
-from __future__ import annotations
-
 import ast
 from collections import defaultdict
 from dataclasses import dataclass, field

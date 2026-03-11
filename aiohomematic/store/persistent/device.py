@@ -7,8 +7,6 @@ This module provides DeviceDescriptionRegistry which persists device description
 per interface, including the mapping of device/channels and model metadata.
 """
 
-from __future__ import annotations
-
 from collections import defaultdict
 from collections.abc import Mapping
 import logging

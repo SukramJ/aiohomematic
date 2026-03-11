@@ -347,8 +347,6 @@ Full → Simple Format (Reading):
 
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from enum import IntEnum
 import logging

@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for keyword-only method linter (script.lint_kwonly)."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import script.lint_kwonly as kwlint

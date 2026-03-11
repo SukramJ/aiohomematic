@@ -22,8 +22,6 @@ Package structure
 
 """
 
-from __future__ import annotations
-
 from aiohomematic.store.patches import PARAMSET_PATCHES, ParamsetPatch, ParamsetPatchMatcher
 from aiohomematic.store.serialization import cleanup_params_for_session, freeze_params, unfreeze_params
 from aiohomematic.store.storage import (

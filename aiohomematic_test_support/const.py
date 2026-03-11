@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Constants for tests."""
 
-from __future__ import annotations
-
 import functools
 import json
 import os

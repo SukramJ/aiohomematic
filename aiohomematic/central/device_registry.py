@@ -14,8 +14,6 @@ The DeviceRegistry provides:
 - Virtual remote device access
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from typing import Final

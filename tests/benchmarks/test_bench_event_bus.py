@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Performance benchmarks for EventBus."""
 
-from __future__ import annotations
-
 from datetime import datetime
 
 import pytest

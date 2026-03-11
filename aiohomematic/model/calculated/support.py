@@ -8,8 +8,6 @@ Climate related formula are based on:
  - https://gist.github.com/E3V3A/8f9f0aa18380d4ab2546cd50b725a219
 """
 
-from __future__ import annotations
-
 import logging
 import math
 from typing import Final

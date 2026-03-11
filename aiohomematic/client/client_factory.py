@@ -10,8 +10,6 @@ Public API
 - ClientConfig: Configuration holder for client creation
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Final, cast
 
 from aiohomematic import i18n

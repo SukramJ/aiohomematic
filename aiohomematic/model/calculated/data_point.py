@@ -6,8 +6,6 @@ Base implementation for calculated data points deriving values from other data p
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 import logging
 from typing import Final, Unpack, cast, override

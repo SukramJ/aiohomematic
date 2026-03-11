@@ -6,8 +6,6 @@ Mixin classes for log context and payload introspection.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any
 

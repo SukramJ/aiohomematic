@@ -7,8 +7,6 @@ This module provides the ParameterVisibilityDecider class which handles
 parameter-level ignore/hidden/un-ignore decisions.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from functools import cache
 import logging

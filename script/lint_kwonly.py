@@ -26,8 +26,6 @@ Exit status is non-zero if any violations are found. Output is in a grep-friendl
 format: "path:lineno:col: message".
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 from collections.abc import Iterable

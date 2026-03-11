@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for switch data points of aiohomematic."""
 
-from __future__ import annotations
-
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta

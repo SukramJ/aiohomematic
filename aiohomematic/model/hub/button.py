@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for hub data points implemented using the button category."""
 
-from __future__ import annotations
-
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.model.hub.data_point import GenericProgramDataPoint

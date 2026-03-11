@@ -15,8 +15,6 @@ The contract ensures that:
 4. resolve_field_value() correctly extracts parameter and visibility
 """
 
-from __future__ import annotations
-
 from aiohomematic.const import Parameter
 from aiohomematic.model.custom import PROFILE_CONFIGS, FieldMapping, resolve_field_value, visible
 

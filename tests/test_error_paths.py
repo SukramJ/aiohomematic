@@ -10,8 +10,6 @@ This module covers gaps identified in the architecture review (#2):
 - CentralDataCache error paths (expiration, initialization, statistics)
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import datetime

@@ -18,8 +18,6 @@ Public API
 - MetricsSnapshot: Point-in-time snapshot of all metrics
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime

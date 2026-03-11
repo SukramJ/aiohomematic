@@ -35,8 +35,6 @@ Fetch operations are protected by semaphores to prevent concurrent updates
 of the same data category.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Collection, Mapping, Set as AbstractSet
 from datetime import datetime

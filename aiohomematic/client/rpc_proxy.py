@@ -19,8 +19,6 @@ Notes
 
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 import asyncio
 from collections.abc import Mapping
@@ -31,12 +29,13 @@ import errno
 import http.client
 import logging
 from ssl import SSLContext, SSLError
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 from xml.parsers.expat import ExpatError
 import xmlrpc.client
 
 from aiohomematic import central as hmcu, i18n
 from aiohomematic.async_support import Looper
+from aiohomematic.central.events import EventBus
 from aiohomematic.client._rpc_errors import RpcContext, map_xmlrpc_fault, sanitize_error_message
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.const import ISO_8859_1
@@ -48,15 +47,12 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
+from aiohomematic.interfaces import IncidentRecorderProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent import SessionRecorder
 from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import extract_exc_args, get_tls_context, log_boundary_error
 from aiohomematic.type_aliases import CallableAny
-
-if TYPE_CHECKING:
-    from aiohomematic.central.events import EventBus
-    from aiohomematic.interfaces import IncidentRecorderProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

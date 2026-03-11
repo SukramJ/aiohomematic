@@ -14,8 +14,6 @@ Public API
 - cleanup_params_for_session: Clean script content in params for lookup
 """
 
-from __future__ import annotations
-
 import ast
 from datetime import datetime
 from typing import Any, Final

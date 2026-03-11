@@ -6,8 +6,6 @@ Custom climate data points for thermostats and HVAC controls.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime, timedelta

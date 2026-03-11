@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Test parameter inspection, validation, and comparison utilities."""
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic.const import Flag, Operations, ParameterData, ParameterType

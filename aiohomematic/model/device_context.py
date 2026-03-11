@@ -14,8 +14,6 @@ Benefits of DeviceContext
 - Organizes dependencies into logical groups
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 

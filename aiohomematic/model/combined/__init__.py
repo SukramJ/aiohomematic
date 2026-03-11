@@ -16,8 +16,6 @@ Modules/classes:
 - CombinedTimerField: Descriptor for declarative combined timer field definitions.
 """
 
-from __future__ import annotations
-
 from aiohomematic.model.combined.data_point import CombinedDataPoint
 from aiohomematic.model.combined.field import CombinedHsColorField, CombinedTimerField
 from aiohomematic.model.combined.hs_color import CombinedDpHsColor

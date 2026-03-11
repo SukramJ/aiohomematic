@@ -6,8 +6,6 @@ Address parsing and validation utilities for Homematic device/channel addresses.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from functools import lru_cache
 
 from aiohomematic.const import ADDRESS_SEPARATOR, CHANNEL_ADDRESS_PATTERN, DEVICE_ADDRESS_PATTERN, ParamsetKey

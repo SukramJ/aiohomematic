@@ -62,8 +62,6 @@ Notes
 
 """
 
-from __future__ import annotations
-
 # Re-export public API from submodules (excluding sub-packages coordinators/ and events/)
 # For coordinators, import from: aiohomematic.central.coordinators
 # For events, import from: aiohomematic.central.events

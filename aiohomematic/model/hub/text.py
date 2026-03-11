@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for hub data points implemented using the text category."""
 
-from __future__ import annotations
-
 from typing import cast
 
 from aiohomematic.const import DataPointCategory

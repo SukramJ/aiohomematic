@@ -14,8 +14,6 @@ visibility, including:
 These rules are used by ParameterVisibilityRegistry to make visibility decisions.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 import re
 from typing import Final, TypeAlias

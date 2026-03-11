@@ -18,8 +18,6 @@ of the central unit's functionality:
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from aiohomematic.central.coordinators.cache import CacheCoordinator
 from aiohomematic.central.coordinators.client import ClientCoordinator
 from aiohomematic.central.coordinators.configuration import (

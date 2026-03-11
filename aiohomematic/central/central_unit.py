@@ -7,8 +7,6 @@ This module provides the CentralUnit class that orchestrates interfaces, devices
 channels, data points, events, and background jobs for a Homematic CCU.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
 import logging

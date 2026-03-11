@@ -21,8 +21,6 @@ The contract ensures that:
 See ADR for architectural context and rationale.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic.const import DataPointCategory, Quantity, ValueBehavior

@@ -13,8 +13,6 @@ Public API
 - GARAGE_CAPABILITIES: Garage door capabilities (position + stop + vent)
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Final
 

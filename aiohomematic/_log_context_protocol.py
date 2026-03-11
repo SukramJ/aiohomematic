@@ -7,8 +7,6 @@ This module is intentionally minimal to avoid circular imports.
 It's imported by property_decorators.py which is near the bottom of the import chain.
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable

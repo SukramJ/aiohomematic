@@ -21,8 +21,6 @@ The singledispatch converters are extensible - register new type handlers with:
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import ast
 from datetime import datetime, timedelta
 from enum import Enum

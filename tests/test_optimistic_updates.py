@@ -1,7 +1,5 @@
 """Tests for optimistic update system."""
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 from aiohomematic.const import RollbackReason

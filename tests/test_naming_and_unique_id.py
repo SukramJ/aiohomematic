@@ -9,8 +9,6 @@ This module verifies the exact patterns and rules for:
 - Name data structures (ChannelNameData, DataPointNameData)
 """
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic.const import ADDRESS_SEPARATOR

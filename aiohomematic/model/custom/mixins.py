@@ -23,8 +23,6 @@ multiple inheritance::
         ...
 """
 
-from __future__ import annotations
-
 from enum import StrEnum, unique
 from typing import Any, Protocol, TypedDict, Unpack, runtime_checkable
 

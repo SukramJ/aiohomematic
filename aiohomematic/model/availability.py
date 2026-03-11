@@ -10,8 +10,6 @@ into a single unified view for external consumers.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Final

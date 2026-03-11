@@ -6,8 +6,6 @@ Custom valve data points for heating valve controls.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Final, Unpack, override
 

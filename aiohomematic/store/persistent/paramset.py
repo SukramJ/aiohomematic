@@ -20,8 +20,6 @@ and rebuilt from the CCU. This ensures all patches are applied without complex
 migration logic.
 """
 
-from __future__ import annotations
-
 from collections import defaultdict
 from collections.abc import Mapping
 import logging

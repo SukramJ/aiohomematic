@@ -100,8 +100,6 @@ Example Usage
 
 """
 
-from __future__ import annotations
-
 import asyncio
 import bisect
 from collections import defaultdict
@@ -126,13 +124,12 @@ from aiohomematic.const import (
     ProgramTrigger,
     RecoveryStage,
 )
+from aiohomematic.interfaces import TaskSchedulerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 if TYPE_CHECKING:
     from typing import Self
-
-    from aiohomematic.interfaces import TaskSchedulerProtocol
 
 _LOGGER: Final = logging.getLogger(__name__)
 

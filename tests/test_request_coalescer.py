@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for RequestCoalescer."""
 
-from __future__ import annotations
-
 import asyncio
 
 import pytest

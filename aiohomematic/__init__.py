@@ -67,8 +67,6 @@ Public API at the top-level package is defined by `__all__`.
 
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 import signal

@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Module for data points implemented using the update category."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Final, override
 

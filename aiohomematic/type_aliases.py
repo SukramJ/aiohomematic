@@ -7,8 +7,6 @@ This module centralizes `Callable[...]` type aliases to avoid repeating
 signatures across the code base and to satisfy mypy strict rules.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable, Coroutine, Mapping
 from typing import Any, TypeAlias
 

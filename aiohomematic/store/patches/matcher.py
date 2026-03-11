@@ -9,8 +9,6 @@ patches to paramset descriptions based on device context.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Any, Final, cast
 

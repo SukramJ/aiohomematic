@@ -1,7 +1,5 @@
 """Tests for command throttle with priority queue."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime
 from types import SimpleNamespace

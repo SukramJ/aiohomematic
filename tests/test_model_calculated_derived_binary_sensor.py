@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.model.calculated.derived_binary_sensor."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import Any
 

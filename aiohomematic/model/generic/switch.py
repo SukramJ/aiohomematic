@@ -6,8 +6,6 @@ Generic switch data points for toggle operations.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from aiohomematic.const import DataPointCategory, Parameter, ParameterType
 from aiohomematic.decorators import inspector
 from aiohomematic.model.data_point import CallParameterCollector

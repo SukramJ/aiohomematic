@@ -6,8 +6,6 @@ Constants used by aiohomematic.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime

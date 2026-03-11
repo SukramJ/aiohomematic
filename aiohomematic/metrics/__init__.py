@@ -35,8 +35,6 @@ Note: Protocol dependencies for MetricsAggregator are in aiohomematic.interfaces
 
 """
 
-from __future__ import annotations
-
 from aiohomematic.metrics.aggregator import MetricsAggregator
 from aiohomematic.metrics.dataclasses import (
     CacheMetrics,

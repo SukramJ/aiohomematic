@@ -27,8 +27,6 @@ Usage
     tracker = observer.get_latency(MetricKeys.ping_pong_rtt(interface_id="hmip_rf"))
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 

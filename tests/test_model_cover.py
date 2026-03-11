@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for cover data points of aiohomematic."""
 
-from __future__ import annotations
-
 import asyncio
 from typing import cast
 from unittest.mock import DEFAULT, call

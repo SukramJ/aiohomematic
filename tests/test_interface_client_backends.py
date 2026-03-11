@@ -9,8 +9,6 @@ These tests verify that InterfaceClient correctly handles:
 - Backend-specific behaviors
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any

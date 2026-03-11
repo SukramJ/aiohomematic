@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for the hmcli module."""
 
-from __future__ import annotations
-
 import json
 import sys
 from typing import Any

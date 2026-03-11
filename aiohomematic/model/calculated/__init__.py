@@ -34,8 +34,6 @@ These calculated data points complement generic and custom data points by
 exposing useful metrics not directly provided by the device/firmware.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Final
 

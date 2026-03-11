@@ -6,8 +6,6 @@ Combined HS color data point for hue+saturation pairs.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from typing import Final
 
 from aiohomematic.const import DataPointCategory, Field, Operations, ParameterType

@@ -22,8 +22,6 @@ Exit codes:
     1 - Invalid imports found
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 from collections.abc import Iterator

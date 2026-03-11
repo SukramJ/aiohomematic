@@ -16,8 +16,6 @@ Example complex entries:
 - "STATE:VALUES@*:*" (wildcard for all models/channels)
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 import re
 from typing import Final

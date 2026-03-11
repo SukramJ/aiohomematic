@@ -6,8 +6,6 @@ Base implementation for custom device-specific data points.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import datetime
 import logging

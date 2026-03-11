@@ -18,8 +18,6 @@ Key types and functions
 - sanitize_error_message: Sanitizes error messages to remove sensitive data.
 """
 
-from __future__ import annotations
-
 from asyncio import TimeoutError as AsyncTimeoutError
 from collections.abc import Mapping
 from dataclasses import dataclass

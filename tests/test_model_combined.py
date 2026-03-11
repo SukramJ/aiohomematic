@@ -1,7 +1,5 @@
 """Tests for combined data points (CombinedDpTimerAction, CombinedDpHsColor, CombinedDataPoint)."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock

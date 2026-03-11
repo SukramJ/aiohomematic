@@ -29,8 +29,6 @@ Notes
 
 """
 
-from __future__ import annotations
-
 import asyncio
 from asyncio import Semaphore
 from collections.abc import Mapping
@@ -41,14 +39,8 @@ import logging
 from pathlib import Path
 import re
 from ssl import SSLContext
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 from urllib.parse import unquote
-
-from aiohomematic.compat import JSONDecodeError
-
-if TYPE_CHECKING:
-    from aiohomematic.central.events import EventBus
-    from aiohomematic.interfaces import IncidentRecorderProtocol
 
 from aiohttp import (
     ClientConnectorCertificateError,
@@ -63,8 +55,10 @@ from aiohttp import (
 
 from aiohomematic import central as hmcu, compat, i18n
 from aiohomematic.async_support import Looper
+from aiohomematic.central.events import EventBus
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error, sanitize_error_message
+from aiohomematic.compat import JSONDecodeError
 from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
@@ -109,6 +103,7 @@ from aiohomematic.exceptions import (
     NoConnectionException,
     UnsupportedException,
 )
+from aiohomematic.interfaces import IncidentRecorderProtocol
 from aiohomematic.model.support import convert_value
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.persistent import SessionRecorder

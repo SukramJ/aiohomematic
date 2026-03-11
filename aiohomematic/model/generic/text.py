@@ -6,8 +6,6 @@ Generic text data points for string input values.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from typing import cast
 
 from aiohomematic.const import DataPointCategory

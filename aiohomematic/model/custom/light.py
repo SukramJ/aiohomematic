@@ -6,8 +6,6 @@ Custom light data points for dimmers and colored lighting.
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from enum import StrEnum, unique
 import math

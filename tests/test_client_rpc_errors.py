@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for mapping of RPC errors to aiohomematic exceptions."""
 
-from __future__ import annotations
-
 from aiohomematic.client._rpc_errors import RpcContext, map_jsonrpc_error, map_transport_error, map_xmlrpc_fault
 from aiohomematic.exceptions import AuthFailure, ClientException, InternalBackendException, NoConnectionException
 

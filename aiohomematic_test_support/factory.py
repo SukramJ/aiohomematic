@@ -31,8 +31,6 @@ Factories use the builder pattern with fluent configuration:
 Public API of this module is defined by __all__.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import AsyncGenerator, Callable
 import contextlib

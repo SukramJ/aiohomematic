@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Helpers for tests."""
 
-from __future__ import annotations
-
 import importlib.resources
 import logging
 import os

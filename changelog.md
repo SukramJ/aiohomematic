@@ -14,6 +14,11 @@
   `use_alt_names=True` by default, so properties with `alt_name` automatically
   use the alternative key in payloads. Log context remains unaffected and
   continues to use the original property name.
+- **Exact contract tests for payload key stability**: Rewrote property decorator
+  contract tests to use exact set equality via `get_hm_property_by_kind()`
+  instead of subset checks. Tests now detect property additions, removals, Kind
+  reclassifications, and `alt_name` changes for `Device`, Climate, and generic
+  `DataPoint` classes. Added INFO key verification for generic data points.
 
 ### Changed
 

@@ -15,8 +15,6 @@ Requirements:
     Tests are skipped if the required pydevccu version is not installed.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest

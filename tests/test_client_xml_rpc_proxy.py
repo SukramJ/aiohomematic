@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for client/rpc_proxy.py of aiohomematic."""
 
-from __future__ import annotations
-
 from enum import Enum
 import xmlrpc.client
 

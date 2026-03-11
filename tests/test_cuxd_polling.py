@@ -12,8 +12,6 @@ Test Scenarios:
 3. Data point refresh calls correct JSON-RPC methods
 """
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.async_support."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Iterable
 from concurrent.futures import CancelledError as FutCancelledError

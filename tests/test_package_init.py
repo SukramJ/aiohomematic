@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for package import side effects and signal handling in aiohomematic."""
 
-from __future__ import annotations
-
 import importlib
 import sys
 from types import SimpleNamespace

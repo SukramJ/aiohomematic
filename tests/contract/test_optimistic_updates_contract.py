@@ -21,8 +21,6 @@ The contract ensures that:
 See docs/adr/0020-command-throttling-priority-and-optimistic-updates.md for details.
 """
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 from aiohomematic.const import RollbackReason

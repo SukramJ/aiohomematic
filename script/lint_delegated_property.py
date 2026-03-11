@@ -53,8 +53,6 @@ Exit codes
     1: Errors found
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 from collections import defaultdict

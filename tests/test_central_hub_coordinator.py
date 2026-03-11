@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.central.hub_coordinator."""
 
-from __future__ import annotations
-
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 

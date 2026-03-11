@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Edge case tests for store modules."""
 
-from __future__ import annotations
-
 import contextlib
 from pathlib import Path
 

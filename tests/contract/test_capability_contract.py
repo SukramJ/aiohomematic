@@ -20,8 +20,6 @@ The contract ensures that:
 See ADR-0018 for architectural context and rationale.
 """
 
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Any

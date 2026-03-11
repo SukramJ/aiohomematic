@@ -1,7 +1,5 @@
 """Test data point validity logic."""
 
-from __future__ import annotations
-
 from unittest.mock import Mock
 
 from aiohomematic.const import ParameterStatus, ParameterType

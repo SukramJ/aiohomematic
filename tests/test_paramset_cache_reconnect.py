@@ -7,8 +7,6 @@ Verifies that paramsets cached during initial connection are properly
 reused during reconnection, avoiding unnecessary re-fetching from CCU.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 import pytest

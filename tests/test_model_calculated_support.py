@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for model/calculated/support.py of aiohomematic."""
 
-from __future__ import annotations
-
 from aiohomematic.model.calculated.support import (
     calculate_apparent_temperature,
     calculate_dew_point,

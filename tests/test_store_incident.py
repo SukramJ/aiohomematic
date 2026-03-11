@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for IncidentStore in aiohomematic."""
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic.async_support import Looper

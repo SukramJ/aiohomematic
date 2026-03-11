@@ -12,8 +12,6 @@ the legacy ClientCCU/DeviceHandler implementation for:
 - Request coalescing
 """
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime
 from types import SimpleNamespace

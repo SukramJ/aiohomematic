@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Integration and unit tests for the JSON-RPC client using the local mock server."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any

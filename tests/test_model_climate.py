@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for climate data points of aiohomematic."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import cast
 from unittest.mock import call

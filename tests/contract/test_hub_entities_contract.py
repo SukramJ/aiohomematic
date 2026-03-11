@@ -17,8 +17,6 @@ The contract ensures that:
 See ADR-0018 for architectural context.
 """
 
-from __future__ import annotations
-
 from aiohomematic.const import HUB_CATEGORIES, DataPointCategory
 from aiohomematic.model.hub import (
     ConnectivityDpType,

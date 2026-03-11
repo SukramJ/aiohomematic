@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.central.client_coordinator."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

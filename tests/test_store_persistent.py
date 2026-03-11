@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for store/persistent.py of aiohomematic."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import UTC, datetime
 import json

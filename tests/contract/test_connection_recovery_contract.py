@@ -19,8 +19,6 @@ The contract ensures that:
 See ADR-0018 for architectural context.
 """
 
-from __future__ import annotations
-
 from aiohomematic.central.coordinators.connection_recovery import (
     BASE_RETRY_DELAY,
     HEARTBEAT_RETRY_INTERVAL,

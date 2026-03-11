@@ -9,8 +9,6 @@ This module implements the test patterns from concept_event_utilization.md secti
 - 3.3: Timing and performance tests with events
 """
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime, timedelta
 

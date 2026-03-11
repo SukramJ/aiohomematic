@@ -7,8 +7,6 @@ These tests focus on CentralConfig helper properties/methods and
 CentralConnectionState issue tracking and logging paths.
 """
 
-from __future__ import annotations
-
 import logging
 
 import pytest

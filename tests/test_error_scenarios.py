@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Comprehensive error scenario and edge case tests for aiohomematic."""
 
-from __future__ import annotations
-
 import contextlib
 from unittest.mock import Mock
 

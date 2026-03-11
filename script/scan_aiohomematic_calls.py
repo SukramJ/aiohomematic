@@ -15,8 +15,6 @@ Output:
     A sorted list of aiohomematic methods being called, grouped by class.
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 from collections import defaultdict

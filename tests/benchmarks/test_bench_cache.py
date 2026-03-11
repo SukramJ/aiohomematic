@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Performance benchmarks for CommandTracker cache operations."""
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic.const import DataPointKey, ParamsetKey

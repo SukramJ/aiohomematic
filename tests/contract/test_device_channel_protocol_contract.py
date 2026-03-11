@@ -7,8 +7,6 @@ These tests verify that the protocol interfaces maintain their structure
 and signatures, ensuring API stability for consumers.
 """
 
-from __future__ import annotations
-
 import inspect
 
 import pytest

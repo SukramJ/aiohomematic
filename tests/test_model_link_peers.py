@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for link peer functionality on Channel, including change events."""
 
-from __future__ import annotations
-
 import pytest
 
 # We reuse the real central/client factory fixtures from tests/conftest.py

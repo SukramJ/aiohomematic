@@ -17,8 +17,6 @@ The contract ensures that:
 See ADR-0018 for architectural context.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable
 from typing import Any

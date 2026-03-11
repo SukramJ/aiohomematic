@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Unit tests for aiohomematic.client (__init__.py)."""
 
-from __future__ import annotations
-
 from types import SimpleNamespace
 from typing import Any
 

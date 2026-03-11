@@ -13,8 +13,6 @@ Environment variables:
     PROFILE_LIMIT   How many lines to print in the summary. Default: 50
 """
 
-from __future__ import annotations
-
 import cProfile
 import os
 from pathlib import Path

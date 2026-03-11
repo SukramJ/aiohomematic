@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Test the LinkCoordinator facade."""
 
-from __future__ import annotations
-
 from unittest.mock import AsyncMock, MagicMock, PropertyMock
 
 import pytest

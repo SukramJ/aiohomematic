@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for CCU translation lookup functions."""
 
-from __future__ import annotations
-
 import pytest
 
 from aiohomematic.ccu_translations import (

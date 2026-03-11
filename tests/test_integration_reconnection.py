@@ -7,8 +7,6 @@ These tests validate the system's ability to handle connection loss,
 reconnection scenarios, and state recovery after network issues.
 """
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime
 from typing import Any

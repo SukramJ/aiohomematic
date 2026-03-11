@@ -8,8 +8,6 @@ ensuring proper coordination between device discovery, value operations,
 event handling, and connection management.
 """
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime
 from typing import Any

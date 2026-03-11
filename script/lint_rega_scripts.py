@@ -15,8 +15,6 @@ Usage:
 If no files are specified, all .fn files in aiohomematic/rega_scripts/ are checked.
 """
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
 import re

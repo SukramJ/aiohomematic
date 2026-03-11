@@ -11,8 +11,6 @@ These tests cover:
 All tests include a docstring.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from typing import Any

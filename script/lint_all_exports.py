@@ -30,8 +30,6 @@ Exit codes:
     1 - Validation errors found
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 from dataclasses import dataclass, field

@@ -11,8 +11,6 @@ These tests verify the connection lifecycle operations:
 - State machine transitions
 """
 
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Any

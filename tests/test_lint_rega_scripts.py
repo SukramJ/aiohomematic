@@ -2,8 +2,6 @@
 # Copyright (c) 2021-2026
 """Tests for the ReGa script linter."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 # Import from script directory

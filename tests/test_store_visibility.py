@@ -8,8 +8,6 @@ paramset relevance. They use minimal stubs and do not alter production code.
 All tests include a docstring.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any
 

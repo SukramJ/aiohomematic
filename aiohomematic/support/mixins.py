@@ -9,6 +9,7 @@ Public API of this module is defined by __all__.
 from collections.abc import Mapping
 from typing import Any
 
+from aiohomematic._payload_protocol import PayloadProtocol
 from aiohomematic.property_decorators import Kind, get_hm_property_by_kind, get_hm_property_by_log_context, hm_property
 
 __all__ = [
@@ -30,7 +31,7 @@ class LogContextMixin:
         }
 
 
-class PayloadMixin:
+class PayloadMixin(PayloadProtocol):
     """Mixin to add payload methods to class."""
 
     __slots__ = ()

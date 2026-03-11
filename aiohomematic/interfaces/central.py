@@ -1205,6 +1205,7 @@ class LinkFacadeProtocol(Protocol):
 # Import protocols from other interface modules for CentralProtocol composition.
 # These imports are placed here (after all local protocols are defined) to avoid
 # circular import issues while allowing proper inheritance.
+from aiohomematic._payload_protocol import PayloadProtocol  # noqa: E402
 from aiohomematic.interfaces.client import (  # noqa: E402
     CallbackAddressProviderProtocol,
     ClientDependenciesProtocol,
@@ -1235,6 +1236,8 @@ class CentralProtocol(
     JsonRpcClientProviderProtocol,
     # From interfaces/coordinators.py
     CoordinatorProviderProtocol,
+    # From interfaces/model.py
+    PayloadProtocol,
     Protocol,
 ):
     """

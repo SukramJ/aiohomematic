@@ -118,6 +118,7 @@ class CentralUnit(
                       metrics_observer, metrics_aggregator
 
         """
+        PayloadMixin.__init__(self)
         # -- 1. Core configuration and runtime --
         self._config: Final[CentralConfigProtocol] = central_config
         i18n.set_locale(locale=self._config.locale)

@@ -42,7 +42,7 @@ class PayloadMixin:
         """Return the config payload."""
         return {
             key: value
-            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.CONFIG).items()
+            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.CONFIG, use_alt_names=True).items()
             if value is not None
         }
 
@@ -51,7 +51,7 @@ class PayloadMixin:
         """Return the info payload."""
         return {
             key: value
-            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.INFO).items()
+            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.INFO, use_alt_names=True).items()
             if value is not None
         }
 
@@ -60,6 +60,6 @@ class PayloadMixin:
         """Return the state payload."""
         return {
             key: value
-            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.STATE).items()
+            for key, value in get_hm_property_by_kind(data_object=self, kind=Kind.STATE, use_alt_names=True).items()
             if value is not None
         }

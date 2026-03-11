@@ -371,7 +371,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             f"events: {len(self.generic_events)}"
         )
 
-    address: Final = DelegatedProperty[str](path="_address", kind=Kind.INFO, log_context=True)
+    address: Final = DelegatedProperty[str](path="_address", kind=Kind.INFO, log_context=True, alt_name="serial_number")
     central_info: Final = DelegatedProperty[CentralInfoProtocol](path="_central_info")
     channel_lookup: Final = DelegatedProperty[ChannelLookupProtocol](path="_channel_lookup")
     channels: Final = DelegatedProperty[Mapping[str, ChannelProtocol]](path="_channels")

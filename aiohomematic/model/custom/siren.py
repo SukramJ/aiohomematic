@@ -23,7 +23,7 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpActionFloat, DpActionSelect, DpBinarySensor, DpSelect, DpSensor
-from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
 
@@ -96,6 +96,11 @@ class BaseCustomDpSiren(CustomDataPoint):
 
     _category = DataPointCategory.SIREN
 
+    @config_property(cached=True)
+    def capabilities(self) -> SirenCapabilities:
+        """Return the siren capabilities."""
+        return self._compute_capabilities()
+
     @state_property
     @abstractmethod
     def available_lights(self) -> tuple[str, ...] | None:
@@ -110,11 +115,6 @@ class BaseCustomDpSiren(CustomDataPoint):
     @abstractmethod
     def is_on(self) -> bool:
         """Return true if siren is on."""
-
-    @info_property(cached=True)
-    def capabilities(self) -> SirenCapabilities:
-        """Return the siren capabilities."""
-        return self._compute_capabilities()
 
     @abstractmethod
     @bind_collector(priority=CommandPriority.CRITICAL)

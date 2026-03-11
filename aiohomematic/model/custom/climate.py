@@ -50,7 +50,7 @@ from aiohomematic.model.generic import (
     DpSensor,
     DpSwitch,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, info_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ class BaseCustomDpClimate(CustomDataPoint):
 
     _category = DataPointCategory.CLIMATE
 
-    @info_property(cached=True)
+    @config_property(cached=True)
     def capabilities(self) -> ClimateCapabilities:
         """Return the climate capabilities."""
         return self._compute_capabilities()

@@ -22,7 +22,7 @@ from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, S
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpActionSelect, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
-from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 
 # Activity states indicating LED is active
 _ACTIVITY_STATES_ACTIVE: Final[frozenset[str]] = frozenset({"UP", "DOWN"})
@@ -236,6 +236,11 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         """Return the last non-default level value."""
         return self._dp_level.last_non_default_value
 
+    @config_property(cached=True)
+    def capabilities(self) -> LightCapabilities:
+        """Return the light capabilities."""
+        return self._compute_capabilities()
+
     @state_property
     def brightness(self) -> int | None:
         """Return the brightness of this light between min/max brightness."""
@@ -299,11 +304,6 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     def is_on(self) -> bool | None:
         """Return true if dimmer is on."""
         return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
-
-    @info_property(cached=True)
-    def capabilities(self) -> LightCapabilities:
-        """Return the light capabilities."""
-        return self._compute_capabilities()
 
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:

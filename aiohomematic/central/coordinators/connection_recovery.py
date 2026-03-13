@@ -624,7 +624,11 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
 
         # Check if this is a startup failure (no clients connected)
         # vs a runtime failure (clients existed but lost connection)
-        if event.old_state == CentralState.INITIALIZING and event.trigger == "no clients connected":
+        # Note: trigger format is "no clients connected (<context>)" e.g.
+        # "no clients connected (start() completed)" — use startswith for robust matching.
+        if event.old_state == CentralState.INITIALIZING and (
+            event.trigger is not None and event.trigger.startswith("no clients connected")
+        ):
             _LOGGER.info(  # i18n-log: ignore
                 "CONNECTION_RECOVERY: Central FAILED during startup (reason: %s), "
                 "starting heartbeat retry for automatic reconnection",

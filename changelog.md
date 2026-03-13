@@ -1,3 +1,17 @@
+# Version 2026.3.8 (2026-03-13)
+
+## What's Changed
+
+### Fixed
+
+- **Connection recovery heartbeat not starting after startup failure**: The
+  `_on_central_state_changed` handler compared the trigger string with exact
+  match (`== "no clients connected"`), but `central_unit.py` emits
+  `"no clients connected (start() completed)"`. Changed to `startswith` for
+  robust matching. Without this fix, the heartbeat timer never started after
+  a startup failure (e.g., CCU rebooting after firmware update), leaving the
+  central stuck in `FAILED` state with no automatic retry.
+
 # Version 2026.3.7 (2026-03-11)
 
 ## What's Changed

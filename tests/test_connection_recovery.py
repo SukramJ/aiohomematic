@@ -17,6 +17,7 @@ from aiohomematic.central.coordinators.connection_recovery import (
     InterfaceRecoveryState,
 )
 from aiohomematic.central.events import (
+    CentralStateChangedEvent,
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     ConnectionLostEvent,
@@ -1047,6 +1048,80 @@ class TestConnectionRecoveryCoordinatorEvents:
 
 class TestConnectionRecoveryCoordinatorHeartbeat:
     """Tests for ConnectionRecoveryCoordinator heartbeat functionality."""
+
+    def test_on_central_state_changed_ignores_non_failed_state(self) -> None:
+        """Test heartbeat does not start for non-FAILED state transitions."""
+        coordinator = self._create_coordinator()
+
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.INITIALIZING,
+            new_state=CentralState.RUNNING,
+            trigger="all clients connected",
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is False
+        coordinator.stop()
+
+    def test_on_central_state_changed_ignores_runtime_failure(self) -> None:
+        """Test heartbeat does not start for runtime failures (not from INITIALIZING)."""
+        coordinator = self._create_coordinator()
+
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.RUNNING,
+            new_state=CentralState.FAILED,
+            trigger="no clients connected (triggered by test-interface)",
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is False
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_on_central_state_changed_starts_heartbeat_on_bare_trigger(self) -> None:
+        """Test heartbeat starts when central fails with bare trigger string."""
+        coordinator = self._create_coordinator()
+
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.INITIALIZING,
+            new_state=CentralState.FAILED,
+            trigger="no clients connected",
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is True
+        await asyncio.sleep(0.01)
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_on_central_state_changed_starts_heartbeat_on_startup_failure(self) -> None:
+        """Test heartbeat starts when central fails during startup with context in trigger."""
+        coordinator = self._create_coordinator()
+
+        # Simulate the actual trigger format from central_unit.py:
+        # reason=f"no clients connected ({trigger})" where trigger="start() completed"
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.INITIALIZING,
+            new_state=CentralState.FAILED,
+            trigger="no clients connected (start() completed)",
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is True
+        await asyncio.sleep(0.01)
+        coordinator.stop()
 
     @pytest.mark.asyncio
     async def test_on_heartbeat_timer_fired_skipped_when_not_failed(self) -> None:

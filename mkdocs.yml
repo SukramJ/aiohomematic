@@ -145,6 +145,8 @@ nav:
       - "0020 Command Throttling": adr/0020-command-throttling-priority-and-optimistic-updates.md
       - "0021 Blind Command Lock": adr/0021-blind-command-processing-lock.md
       - "0022 Week Profile Data Point": adr/0022-week-profile-data-point.md
+      - "0023 Paramset Consistency Checker": adr/0023-paramset-consistency-checker.md
+      - "0024 CCU Translation Extraction": adr/0024-ccu-translation-extraction.md
 
 markdown_extensions:
   # Python Markdown

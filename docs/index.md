@@ -71,6 +71,15 @@ asyncio.run(main())
 ### For Users (Home Assistant)
 
 - [User Guide](user/homeassistant_integration.md) - Complete integration guide
+- **Features**:
+  - [Actions Reference](user/features/homeassistant_actions.md) - Available Home Assistant actions
+  - [CCU Backup](user/features/backup.md) - Backup agent and manual backup
+  - [Calculated Climate Sensors](user/features/calculated_climate_sensors.md) - Derived climate metrics
+  - [Climate Schedule Card](user/features/climate_schedule_card.md) - Climate schedule UI card
+  - [Device Configuration Panel](user/features/config_panel.md) - Device configuration in HA
+  - [Optimistic Updates](user/features/optimistic_updates.md) - Instant UI feedback and rollback
+  - [Schedule Card](user/features/schedule_card.md) - Schedule management UI card
+  - [Week Profile](user/features/week_profile.md) - Weekly schedule management
 - [Troubleshooting](troubleshooting/index.md) - Common issues and solutions
 - [FAQ](faq.md) - Frequently asked questions
 - [Glossary](reference/glossary.md) - Terminology reference

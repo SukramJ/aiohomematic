@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import logging
 import os
 from pathlib import Path
+import ssl
 from typing import Any, Final
 from unittest.mock import patch
 
@@ -400,6 +401,34 @@ class TestTLSHelpers:
         """Test tls_context."""
         assert get_tls_context(verify_tls=False).check_hostname is False
         assert get_tls_context(verify_tls=True).check_hostname is True
+
+    def test_tls_context_falls_back_without_certifi(self) -> None:
+        """Test that only system paths are used when certifi is not installed."""
+        from aiohomematic.support import _create_tls_context
+
+        with (
+            patch("aiohomematic.support._CERTIFI_CA_FILE", None),
+            patch.object(ssl.SSLContext, "load_verify_locations") as mock_load,
+            patch.object(ssl.SSLContext, "set_default_verify_paths") as mock_default,
+        ):
+            _create_tls_context(verify_tls=True)
+
+            mock_default.assert_called_once()
+            mock_load.assert_not_called()
+
+    def test_tls_context_loads_certifi_when_available(self) -> None:
+        """Test that certifi CA bundle is loaded when certifi is installed."""
+        from aiohomematic.support import _create_tls_context
+
+        with (
+            patch("aiohomematic.support._CERTIFI_CA_FILE", "/fake/cacert.pem"),
+            patch.object(ssl.SSLContext, "load_verify_locations") as mock_load,
+            patch.object(ssl.SSLContext, "set_default_verify_paths") as mock_default,
+        ):
+            _create_tls_context(verify_tls=True)
+
+            mock_default.assert_called_once()
+            mock_load.assert_called_once_with(cafile="/fake/cacert.pem")
 
 
 class TestTimeHelpers:

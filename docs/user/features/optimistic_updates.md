@@ -32,11 +32,11 @@ UI shows "On" immediately          ← optimistic update
 
 When a rollback occurs, a warning message appears in the Home Assistant log. The message includes the **reason** for the rollback:
 
-| Reason         | Meaning                                                                 |
-| -------------- | ----------------------------------------------------------------------- |
-| **timeout**    | The CCU did not confirm the command within 30 seconds                   |
-| **send_error** | The command could not be sent to the CCU (e.g., connection lost)        |
-| **mismatch**   | The CCU confirmed a different value than what was sent (logged as debug)|
+| Reason         | Meaning                                                                  |
+| -------------- | ------------------------------------------------------------------------ |
+| **timeout**    | The CCU did not confirm the command within 30 seconds                    |
+| **send_error** | The command could not be sent to the CCU (e.g., connection lost)         |
+| **mismatch**   | The CCU confirmed a different value than what was sent (logged as debug) |
 
 ### Example log message
 
@@ -45,6 +45,7 @@ Optimistic rollback for Power Galerie/STATE: False -> True (reason=timeout, age=
 ```
 
 This means:
+
 - The device **Power Galerie** was switched to **On** (`True`)
 - The CCU did not confirm within 30 seconds
 - The UI reverted back to **Off** (`False`)
@@ -103,6 +104,7 @@ If the duty cycle is above 90%, the CCU cannot send more commands. Wait for it t
 8. Disable debug logging again (same path as step 2–3)
 
 In the debug log, look for:
+
 - `set_value` entries for the affected devices — confirms the command was sent
 - `event` entries for the same devices — shows if the CCU sent a confirmation
 - Any error messages related to the affected interface
@@ -122,5 +124,6 @@ Rollbacks that suddenly appear after a configuration change often point to:
 The rollback timeout is configured via `TimeoutConfig.optimistic_update_timeout` (default: **30 seconds**). This is not configurable through the Home Assistant UI — it is a library-level setting that applies to all devices.
 
 The 30-second default is chosen to balance:
+
 - **Fast feedback** — users are notified within 30 seconds if a command failed
 - **Tolerance for slow devices** — battery-powered devices and busy networks may need several seconds to respond

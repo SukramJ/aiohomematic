@@ -32,6 +32,13 @@ import ssl
 import sys
 from typing import Any, Final
 
+try:
+    import certifi
+
+    _CERTIFI_CA_FILE: str | None = certifi.where()
+except ImportError:
+    _CERTIFI_CA_FILE = None
+
 from aiohomematic import compat, i18n
 from aiohomematic.const import (
     CCU_PASSWORD_PATTERN,
@@ -155,6 +162,10 @@ def _create_tls_context(*, verify_tls: bool) -> ssl.SSLContext:
         # This only works for OpenSSL >= 1.0.0
         sslcontext.options |= ssl.OP_NO_COMPRESSION
     sslcontext.set_default_verify_paths()
+    # Additionally load certifi's CA bundle when available (e.g. in Home Assistant)
+    # so both system and certifi certificates are trusted.
+    if _CERTIFI_CA_FILE:
+        sslcontext.load_verify_locations(cafile=_CERTIFI_CA_FILE)
     return sslcontext
 
 

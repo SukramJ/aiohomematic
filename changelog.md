@@ -1,3 +1,15 @@
+# Version 2026.3.9 (2026-03-16)
+
+## What's Changed
+
+### Improved
+
+- **TLS: Use certifi CA bundle when available**: The TLS context now loads the
+  `certifi` CA bundle in addition to the system default verify paths when the
+  `certifi` package is installed. This ensures trusted certificates work
+  out-of-the-box in environments like Home Assistant that ship `certifi` but may
+  not have a complete system trust store.
+
 # Version 2026.3.8 (2026-03-13)
 
 ## What's Changed

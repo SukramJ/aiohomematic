@@ -38,7 +38,7 @@ repos:
         files: ^aiohomematic/.+/__init__\.py$
         pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.15.5
+    rev: v0.15.6
     hooks:
       - id: ruff
         args:

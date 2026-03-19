@@ -816,6 +816,18 @@ class DataPointCategory(StrEnum):
     WEEK_PROFILE = "week_profile"
 
 
+# Action categories never receive CCU event confirmations, so optimistic
+# updates must be skipped to avoid spurious timeout rollbacks.
+ACTION_DATA_POINT_CATEGORIES: Final[frozenset[DataPointCategory]] = frozenset(
+    {
+        DataPointCategory.ACTION,
+        DataPointCategory.ACTION_NUMBER,
+        DataPointCategory.ACTION_SELECT,
+        DataPointCategory.BUTTON,
+    }
+)
+
+
 class DataPointKey(NamedTuple):
     """Key for data points."""
 

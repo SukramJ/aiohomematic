@@ -316,23 +316,27 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
         )
         channels: list[ConfigurableChannel] = []
         for address, description in sorted(device_with_channels.items()):
-            # Skip the device-level entry (no colon in address)
-            if get_device_address(address=address) == address and ":" not in address:
-                continue
-
-            channel_type = description.get("TYPE", "")
-
-            # Skip channels not visible or internal (CCU-compatible FLAGS check)
-            channel_flags: int = description.get("FLAGS") or 0
-            if not (channel_flags & Flag.VISIBLE) or (channel_flags & Flag.INTERNAL):
-                continue
-
             # Skip WEEK_PROGRAM channels (handled by schedule cards)
-            if channel_type == "WEEK_PROGRAM":
+            if (channel_type := description.get("TYPE", "")) == "WEEK_PROGRAM":
                 continue
+
+            # Device-level entry (no colon) and internal channels (e.g. :0):
+            # include only if they have a MASTER paramset
+            is_device_level = get_device_address(address=address) == address and ":" not in address
+            channel_flags: int = description.get("FLAGS") or 0
+            is_hidden = not (channel_flags & Flag.VISIBLE) or (channel_flags & Flag.INTERNAL)
+
+            if is_device_level or is_hidden:
+                raw_ps = description.get("PARAMSETS", [])
+                if ParamsetKey.MASTER.value not in raw_ps:
+                    continue
 
             raw_paramsets = description.get("PARAMSETS", [])
-            paramset_keys = tuple(ParamsetKey(ps) for ps in raw_paramsets if ps in {pk.value for pk in ParamsetKey})
+            if is_device_level or is_hidden:
+                # Only expose MASTER for device-level and internal channels
+                paramset_keys: tuple[ParamsetKey, ...] = (ParamsetKey.MASTER,)
+            else:
+                paramset_keys = tuple(ParamsetKey(ps) for ps in raw_paramsets if ps in {pk.value for pk in ParamsetKey})
             if paramset_keys:
                 channels.append(
                     ConfigurableChannel(

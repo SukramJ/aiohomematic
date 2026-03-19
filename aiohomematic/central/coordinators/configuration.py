@@ -364,7 +364,7 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
 
             channel_list: list[ConfigurableDeviceChannel] = []
             for ch in channels:
-                # Only advertise MASTER if it has writable visible parameters
+                # Only advertise MASTER if it has visible, non-internal parameters
                 effective_keys: list[str] = []
                 for pk in ch.paramset_keys:
                     if pk == ParamsetKey.MASTER:
@@ -373,13 +373,11 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
                             channel_address=ch.address,
                             paramset_key=pk,
                         )
-                        has_writable = any(
-                            is_parameter_visible(parameter_data=pd)
-                            and not is_parameter_internal(parameter_data=pd)
-                            and is_parameter_writable(parameter_data=pd)
+                        has_visible = any(
+                            is_parameter_visible(parameter_data=pd) and not is_parameter_internal(parameter_data=pd)
                             for pd in descriptions.values()
                         )
-                        if has_writable:
+                        if has_visible:
                             effective_keys.append(pk.value)
                     else:
                         effective_keys.append(pk.value)

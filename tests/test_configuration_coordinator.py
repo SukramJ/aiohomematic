@@ -1029,8 +1029,8 @@ class TestGetConfigurableDevices:
         # STATE from channel :1 should NOT be in maintenance
         assert maint.rssi_device is None
 
-    def test_master_without_writable_params_excluded(self) -> None:
-        """Test MASTER paramset excluded when no writable visible params."""
+    def test_master_with_readonly_visible_params_included(self) -> None:
+        """Test MASTER paramset included when it has visible (even read-only) params."""
         device = _make_mock_device()
         coordinator, _, _, paramset_desc_prov = _make_coordinator(
             devices=(device,),
@@ -1047,6 +1047,35 @@ class TestGetConfigurableDevices:
         paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
             ParamsetKey.MASTER: {
                 "READONLY": _make_pd(FLAGS=Flag.VISIBLE, OPERATIONS=Operations.READ),
+            },
+            ParamsetKey.VALUES: {},
+        }
+
+        result = coordinator.get_configurable_devices()
+        assert len(result) == 1
+        ch = result[0].channels[0]
+        # MASTER should be included (visible params exist, even if read-only)
+        assert "MASTER" in ch.paramset_keys
+        assert "VALUES" in ch.paramset_keys
+
+    def test_master_without_visible_params_excluded(self) -> None:
+        """Test MASTER paramset excluded when no visible params at all."""
+        device = _make_mock_device()
+        coordinator, _, _, paramset_desc_prov = _make_coordinator(
+            devices=(device,),
+            device_with_channels={
+                "VCU0000001": {"TYPE": "DEVICE"},
+                "VCU0000001:1": {
+                    "TYPE": "SWITCH",
+                    "FLAGS": Flag.VISIBLE,
+                    "PARAMSETS": ["MASTER", "VALUES"],
+                },
+            },
+        )
+        # MASTER descriptions: only an internal parameter
+        paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
+            ParamsetKey.MASTER: {
+                "INTERNAL_PARAM": _make_pd(FLAGS=Flag.INTERNAL, OPERATIONS=Operations.READ),
             },
             ParamsetKey.VALUES: {},
         }

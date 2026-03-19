@@ -9,6 +9,10 @@
   channels were previously excluded from `get_configurable_channels()`. They are
   now included when they have a MASTER paramset (restricted to MASTER only),
   allowing configuration of device-wide settings that live on these channels.
+- **Show read-only MASTER parameters in device configuration**: The MASTER
+  paramset filter in `get_configurable_devices()` previously required parameters
+  to be writable. It now includes all visible, non-internal parameters regardless
+  of write access, so read-only configuration values are also displayed.
 
 # Version 2026.3.9 (2026-03-19)
 

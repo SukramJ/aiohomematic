@@ -1,6 +1,15 @@
-# Version 2026.3.9 (2026-03-16)
+# Version 2026.3.9 (2026-03-19)
 
 ## What's Changed
+
+### Fixed
+
+- **Skip optimistic updates for action data points**: Action data points
+  (ACTION, ACTION_NUMBER, ACTION_SELECT, BUTTON) and parameters without event
+  support never receive CCU event confirmations. The optimistic update timer
+  would always expire after 30 seconds, causing spurious OPTIMISTIC_ROLLBACK
+  timeout warnings in the log. This was particularly visible with the HmIP-MP3P
+  LED channel (Repetitions, Ramp Time, Duration parameters).
 
 ### Improved
 

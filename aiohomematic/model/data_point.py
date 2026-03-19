@@ -77,6 +77,7 @@ from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemove
 from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.const import (
     _OPTIONAL_PARAMETERS,
+    ACTION_DATA_POINT_CATEGORIES,
     DEFAULT_MULTIPLIER,
     DP_KEY_VALUE,
     INIT_DATETIME,
@@ -1164,10 +1165,18 @@ class BaseParameterDataPoint[
         set the optimistic value, publish the update event, and schedule
         the automatic rollback timer.
 
+        Skipped when the data point cannot receive CCU event confirmations:
+        - Action categories (ACTION, ACTION_NUMBER, ACTION_SELECT, BUTTON)
+        - VALUES parameters without event support (Operations.EVENT not set)
+        Without confirmations, the rollback timer would always fire after 30s,
+        causing spurious log warnings.
+
         During bursts (rapid successive sends), only the first send captures
         the previous value for rollback. Subsequent sends overwrite the
         optimistic value but keep the original rollback target.
         """
+        if self._category in ACTION_DATA_POINT_CATEGORIES or not self.has_events:
+            return
         self._optimistic.apply(value=value, current_value=self._value)
         self.publish_data_point_updated_event()
         self._schedule_optimistic_rollback(timeout=self._central_info.config.timeout_config.optimistic_update_timeout)

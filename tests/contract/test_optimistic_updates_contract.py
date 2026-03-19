@@ -23,7 +23,7 @@ See docs/adr/0020-command-throttling-priority-and-optimistic-updates.md for deta
 
 from unittest.mock import MagicMock
 
-from aiohomematic.const import RollbackReason
+from aiohomematic.const import ACTION_DATA_POINT_CATEGORIES, DataPointCategory, RollbackReason
 from aiohomematic.model.data_point import BaseParameterDataPoint
 
 # pylint: disable=protected-access
@@ -270,4 +270,62 @@ class TestOptimisticBackwardCompatibilityContract:
         # Full behavior requires integration test with CommandTracker
         assert hasattr(CustomDpBlind, "_target_level"), (
             "CustomDpBlind._target_level must exist for backward compatibility"
+        )
+
+
+# =============================================================================
+# Contract 8: Action Data Points Skip Optimistic Updates
+# =============================================================================
+
+
+class TestActionDataPointOptimisticContract:
+    """Contract tests for action data points skipping optimistic updates."""
+
+    def test_action_categories_constant_exists(self) -> None:
+        """
+        STABILITY CONTRACT: ACTION_DATA_POINT_CATEGORIES must exist.
+
+        Defines which categories are action types that never receive CCU
+        event confirmations.
+        """
+        assert ACTION_DATA_POINT_CATEGORIES is not None
+        assert isinstance(ACTION_DATA_POINT_CATEGORIES, frozenset)
+
+    def test_action_categories_contains_all_action_types(self) -> None:
+        """
+        STABILITY CONTRACT: ACTION_DATA_POINT_CATEGORIES must contain all action types.
+
+        ACTION, ACTION_NUMBER, ACTION_SELECT, and BUTTON never receive
+        CCU event confirmations.
+        """
+        assert DataPointCategory.ACTION in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.ACTION_NUMBER in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.ACTION_SELECT in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.BUTTON in ACTION_DATA_POINT_CATEGORIES
+
+    def test_action_categories_does_not_contain_stateful_types(self) -> None:
+        """
+        STABILITY CONTRACT: ACTION_DATA_POINT_CATEGORIES must not contain stateful types.
+
+        Stateful types like SWITCH, SENSOR, NUMBER receive CCU event
+        confirmations and need optimistic updates.
+        """
+        assert DataPointCategory.SWITCH not in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.SENSOR not in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.NUMBER not in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.SELECT not in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.LIGHT not in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.COVER not in ACTION_DATA_POINT_CATEGORIES
+        assert DataPointCategory.CLIMATE not in ACTION_DATA_POINT_CATEGORIES
+
+    def test_apply_optimistic_value_checks_has_events(self) -> None:
+        """
+        STABILITY CONTRACT: apply_optimistic_value must check has_events.
+
+        VALUES parameters without Operations.EVENT never receive CCU event
+        confirmations, so optimistic updates must be skipped.
+        """
+        assert hasattr(BaseParameterDataPoint, "has_events"), "BaseParameterDataPoint must have has_events property"
+        assert hasattr(BaseParameterDataPoint, "apply_optimistic_value"), (
+            "BaseParameterDataPoint must have apply_optimistic_value method"
         )

@@ -493,6 +493,79 @@ class TestGetConfigurableChannels:
         assert len(channels) == 1
         assert channels[0].paramset_keys == (ParamsetKey.MASTER,)
 
+    def test_includes_device_level_entry_with_master(self) -> None:
+        """Test device-level entry (no colon) is included when it has MASTER."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001": {"TYPE": "DEVICE", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["VALUES"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 2
+        assert channels[0].address == "VCU0000001"
+        assert channels[0].channel_type == "DEVICE"
+        assert channels[0].paramset_keys == (ParamsetKey.MASTER,)
+        assert channels[1].address == "VCU0000001:1"
+
+    def test_includes_hidden_channels_with_master(self) -> None:
+        """Test channels without FLAGS are included if they have MASTER."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 2
+        assert channels[0].address == "VCU0000001:0"
+        assert channels[0].paramset_keys == (ParamsetKey.MASTER,)
+        assert channels[1].address == "VCU0000001:1"
+
+    def test_includes_internal_channels_with_master(self) -> None:
+        """Test channels with INTERNAL flag are included when they have MASTER."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 3, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 2
+        assert channels[0].address == "VCU0000001:0"
+        assert channels[0].paramset_keys == (ParamsetKey.MASTER,)
+        assert channels[1].address == "VCU0000001:1"
+
+    def test_includes_invisible_channels_with_master(self) -> None:
+        """Test channels without VISIBLE flag are included when they have MASTER."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 0, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 2
+        assert channels[0].address == "VCU0000001:0"
+        assert channels[0].paramset_keys == (ParamsetKey.MASTER,)
+        assert channels[1].address == "VCU0000001:1"
+
     def test_missing_type_defaults_to_empty(self) -> None:
         """Test channel without TYPE gets empty string."""
         coordinator, _, _, _ = _make_coordinator(
@@ -528,22 +601,6 @@ class TestGetConfigurableChannels:
         assert channels[0].paramset_keys == (ParamsetKey.MASTER, ParamsetKey.VALUES)
         assert channels[1].address == "VCU0000001:1"
 
-    def test_skips_channels_without_flags(self) -> None:
-        """Test channels without FLAGS key are skipped."""
-        coordinator, _, _, _ = _make_coordinator(
-            device_with_channels={
-                "VCU0000001:0": {"TYPE": "MAINTENANCE", "PARAMSETS": ["MASTER"]},
-                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
-            },
-        )
-
-        channels = coordinator.get_configurable_channels(
-            interface_id="ccu-main",
-            device_address="VCU0000001",
-        )
-        assert len(channels) == 1
-        assert channels[0].address == "VCU0000001:1"
-
     def test_skips_channels_without_paramsets(self) -> None:
         """Test channels without paramset keys are skipped."""
         coordinator, _, _, _ = _make_coordinator(
@@ -561,27 +618,11 @@ class TestGetConfigurableChannels:
         assert len(channels) == 1
         assert channels[0].address == "VCU0000001:1"
 
-    def test_skips_device_level_entry(self) -> None:
-        """Test device-level entry (no colon) is skipped."""
+    def test_skips_device_level_entry_without_master(self) -> None:
+        """Test device-level entry (no colon) is skipped when it has no MASTER."""
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
-                "VCU0000001": {"TYPE": "DEVICE", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
-                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["VALUES"]},
-            },
-        )
-
-        channels = coordinator.get_configurable_channels(
-            interface_id="ccu-main",
-            device_address="VCU0000001",
-        )
-        assert len(channels) == 1
-        assert channels[0].address == "VCU0000001:1"
-
-    def test_skips_internal_channels(self) -> None:
-        """Test channels with INTERNAL flag are skipped."""
-        coordinator, _, _, _ = _make_coordinator(
-            device_with_channels={
-                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 3, "PARAMSETS": ["MASTER"]},
+                "VCU0000001": {"TYPE": "DEVICE", "FLAGS": 1, "PARAMSETS": ["VALUES"]},
                 "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
             },
         )
@@ -593,11 +634,43 @@ class TestGetConfigurableChannels:
         assert len(channels) == 1
         assert channels[0].address == "VCU0000001:1"
 
-    def test_skips_invisible_channels(self) -> None:
-        """Test channels without VISIBLE flag are skipped."""
+    def test_skips_hidden_channels_without_master(self) -> None:
+        """Test channels without FLAGS are skipped if they have no MASTER."""
         coordinator, _, _, _ = _make_coordinator(
             device_with_channels={
-                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 0, "PARAMSETS": ["MASTER"]},
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "PARAMSETS": ["VALUES"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 1
+        assert channels[0].address == "VCU0000001:1"
+
+    def test_skips_internal_channels_without_master(self) -> None:
+        """Test channels with INTERNAL flag are skipped when they have no MASTER."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 3, "PARAMSETS": ["VALUES"]},
+                "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
+            },
+        )
+
+        channels = coordinator.get_configurable_channels(
+            interface_id="ccu-main",
+            device_address="VCU0000001",
+        )
+        assert len(channels) == 1
+        assert channels[0].address == "VCU0000001:1"
+
+    def test_skips_invisible_channels_without_master(self) -> None:
+        """Test channels without VISIBLE flag are skipped when they have no MASTER."""
+        coordinator, _, _, _ = _make_coordinator(
+            device_with_channels={
+                "VCU0000001:0": {"TYPE": "MAINTENANCE", "FLAGS": 0, "PARAMSETS": ["VALUES"]},
                 "VCU0000001:1": {"TYPE": "SWITCH", "FLAGS": 1, "PARAMSETS": ["MASTER"]},
             },
         )
@@ -956,8 +1029,8 @@ class TestGetConfigurableDevices:
         # STATE from channel :1 should NOT be in maintenance
         assert maint.rssi_device is None
 
-    def test_master_without_writable_params_excluded(self) -> None:
-        """Test MASTER paramset excluded when no writable visible params."""
+    def test_master_with_readonly_visible_params_included(self) -> None:
+        """Test MASTER paramset included when it has visible (even read-only) params."""
         device = _make_mock_device()
         coordinator, _, _, paramset_desc_prov = _make_coordinator(
             devices=(device,),
@@ -974,6 +1047,35 @@ class TestGetConfigurableDevices:
         paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
             ParamsetKey.MASTER: {
                 "READONLY": _make_pd(FLAGS=Flag.VISIBLE, OPERATIONS=Operations.READ),
+            },
+            ParamsetKey.VALUES: {},
+        }
+
+        result = coordinator.get_configurable_devices()
+        assert len(result) == 1
+        ch = result[0].channels[0]
+        # MASTER should be included (visible params exist, even if read-only)
+        assert "MASTER" in ch.paramset_keys
+        assert "VALUES" in ch.paramset_keys
+
+    def test_master_without_visible_params_excluded(self) -> None:
+        """Test MASTER paramset excluded when no visible params at all."""
+        device = _make_mock_device()
+        coordinator, _, _, paramset_desc_prov = _make_coordinator(
+            devices=(device,),
+            device_with_channels={
+                "VCU0000001": {"TYPE": "DEVICE"},
+                "VCU0000001:1": {
+                    "TYPE": "SWITCH",
+                    "FLAGS": Flag.VISIBLE,
+                    "PARAMSETS": ["MASTER", "VALUES"],
+                },
+            },
+        )
+        # MASTER descriptions: only an internal parameter
+        paramset_desc_prov.get_channel_paramset_descriptions.return_value = {
+            ParamsetKey.MASTER: {
+                "INTERNAL_PARAM": _make_pd(FLAGS=Flag.INTERNAL, OPERATIONS=Operations.READ),
             },
             ParamsetKey.VALUES: {},
         }

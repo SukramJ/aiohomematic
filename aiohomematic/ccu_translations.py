@@ -32,6 +32,7 @@ __all__ = [
     "get_parameter_help",
     "get_parameter_translation",
     "get_parameter_value_translation",
+    "resolve_channel_type",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -303,3 +304,28 @@ def get_parameter_value_translation(
 
     # Fall back to value-only (generic, shortest translation)
     return _store.get_value_fallback(value=value, locale=lang)
+
+
+def resolve_channel_type(
+    *,
+    channel_type: str,
+    is_hmip: bool = False,
+) -> str:
+    """
+    Resolve the effective channel type for translation lookups.
+
+    The CCU uses the same channel type (e.g., SHUTTER_CONTACT) for both
+    HM and HmIP devices, but HmIP devices may have different parameter
+    semantics (e.g., position A/B meanings are swapped). The CCU WebUI
+    handles this by appending _HMIP to the channel type for translation
+    lookups. This function replicates that behavior.
+    """
+    if not is_hmip or not channel_type:
+        return channel_type
+    hmip_type = f"{channel_type}_HMIP"
+    # Check if any translation exists for the _HMIP variant
+    for locale in _SUPPORTED_LOCALES:
+        translations = _store.get(category="parameters", locale=locale)
+        if any(key.startswith(f"{hmip_type.lower()}|") for key in translations):
+            return hmip_type
+    return channel_type

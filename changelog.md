@@ -1,3 +1,14 @@
+# Version 2026.3.11 (2026-03-21)
+
+## What's Changed
+
+### Added
+
+- **Add `resolve_channel_type` for HmIP translation lookups**: New function
+  that resolves the effective channel type for translation lookups by appending
+  `_HMIP` when HmIP-specific translations exist, matching the CCU WebUI
+  behavior where HmIP devices may have different parameter semantics.
+
 # Version 2026.3.10 (2026-03-19)
 
 ## What's Changed

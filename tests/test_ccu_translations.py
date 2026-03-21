@@ -12,6 +12,7 @@ from aiohomematic.ccu_translations import (
     get_parameter_help,
     get_parameter_translation,
     get_parameter_value_translation,
+    resolve_channel_type,
 )
 
 
@@ -632,6 +633,51 @@ class TestGetDeviceIcon:
         """Test that unknown model returns None."""
         result = get_device_icon(model="NONEXISTENT_MODEL_XYZ")
         assert result is None
+
+
+class TestResolveChannelType:
+    """Test resolve_channel_type for HmIP channel type resolution."""
+
+    def test_case_insensitive_lookup(self) -> None:
+        """Test that lookup works regardless of input case."""
+        result_upper = resolve_channel_type(channel_type="SHUTTER_CONTACT", is_hmip=True)
+        result_lower = resolve_channel_type(channel_type="shutter_contact", is_hmip=True)
+        # Both should resolve to the _HMIP variant (preserving original case)
+        assert result_upper == "SHUTTER_CONTACT_HMIP"
+        assert result_lower == "shutter_contact_HMIP"
+
+    def test_empty_channel_type(self) -> None:
+        """Test that empty channel type is returned as-is."""
+        result = resolve_channel_type(channel_type="", is_hmip=True)
+        assert result == ""
+
+    def test_hmip_with_known_variant(self) -> None:
+        """Test that HmIP device with known _HMIP translations returns _HMIP variant."""
+        result = resolve_channel_type(channel_type="SHUTTER_CONTACT", is_hmip=True)
+        assert result == "SHUTTER_CONTACT_HMIP"
+
+    def test_hmip_without_variant_returns_original(self) -> None:
+        """Test that HmIP device without _HMIP translations returns original type."""
+        result = resolve_channel_type(channel_type="CLIMATECONTROL_REGULATOR", is_hmip=True)
+        assert result == "CLIMATECONTROL_REGULATOR"
+
+    def test_non_hmip_returns_unchanged(self) -> None:
+        """Test that non-HmIP devices return the original channel type."""
+        result = resolve_channel_type(channel_type="SHUTTER_CONTACT", is_hmip=False)
+        assert result == "SHUTTER_CONTACT"
+
+    def test_original_type_gives_hm_translations(self) -> None:
+        """Test that the original channel type gives HM (non-HmIP) translations."""
+        label_de = get_parameter_translation(parameter="MSG_FOR_POS_A", channel_type="SHUTTER_CONTACT", locale="de")
+        assert label_de is not None
+        assert "geschlossen" in label_de.lower()
+
+    def test_resolved_type_produces_correct_translations(self) -> None:
+        """Test that the resolved channel type gives correct HmIP translations."""
+        resolved = resolve_channel_type(channel_type="SHUTTER_CONTACT", is_hmip=True)
+        label_de = get_parameter_translation(parameter="MSG_FOR_POS_A", channel_type=resolved, locale="de")
+        assert label_de is not None
+        assert "offen" in label_de.lower()
 
 
 class TestProfileLocalizationTranslations:

@@ -497,6 +497,8 @@
   "rgbw_color|color": "Farbe",
   "rssi": "RSSI",
   "rssi_peer": "RSSI Peer",
+  "sample_interval": "Abtastintervall",
+  "sample_interval_door_state": "Abtastintervall Türzustand",
   "saturation_status": "Sättigung Status",
   "scene": "Szene",
   "section_status": "Abschnitt Status",

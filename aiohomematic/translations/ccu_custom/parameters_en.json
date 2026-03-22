@@ -497,6 +497,8 @@
   "rgbw_color|color": "Color",
   "rssi": "RSSI",
   "rssi_peer": "RSSI Peer",
+  "sample_interval": "Sample Interval",
+  "sample_interval_door_state": "Sample Interval Door State",
   "saturation_status": "Saturation Status",
   "scene": "Scene",
   "section_status": "Section Status",

@@ -1,3 +1,13 @@
+# Version 2026.3.13 (2026-03-22)
+
+## What's Changed
+
+### Added
+
+- **Add custom translations for `sample_interval` parameters**: Added German
+  and English translations for `sample_interval` and
+  `sample_interval_door_state` CCU parameters.
+
 # Version 2026.3.12 (2026-03-22)
 
 ## What's Changed

@@ -2,11 +2,21 @@
 
 ## What's Changed
 
+### Improved
+
+- **Extract 134 additional parameter translations from CCU firmware**: Expanded
+  the CCU translation extraction script to scan all easymode TCL files (not just
+  `*_master.tcl`), resolving parameter-to-template-variable mappings from
+  `hmipChannelConfigDialogs.tcl` and other HmIP configuration dialogs. Also
+  broadened the template variable regex to match all camelCase variables (not
+  just `stringTable*`/`lbl*` prefixes). PNAME labels now take priority over
+  easymode TCL labels to preserve official localization quality.
+
 ### Added
 
-- **Add custom translations for `sample_interval` parameters**: Added German
-  and English translations for `sample_interval` and
-  `sample_interval_door_state` CCU parameters.
+- **Add custom translation for `sample_interval_door_state`**: Added German and
+  English translation for the `sample_interval_door_state` parameter which has
+  no label in the CCU firmware (only help text exists).
 
 # Version 2026.3.12 (2026-03-22)
 

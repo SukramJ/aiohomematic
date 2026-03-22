@@ -431,8 +431,11 @@ _PNAME_ENTRY_RE = re.compile(r'"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"')
 # Regex to extract 'set param PARAM_NAME' from easymode TCL files
 _TCL_SET_PARAM_RE = re.compile(r"set\s+param\s+([A-Z][A-Z0-9_]*)")
 
-# Regex to extract ${stringTableXxx} or ${lblXxx} template references in TCL
-_TCL_TEMPLATE_REF_RE = re.compile(r"\$\{((?:stringTable|lbl)\w+)\}")
+# Regex to extract ${templateVar} references in TCL (label candidates).
+# Matches any camelCase variable name (e.g. stringTableXxx, lblXxx, genericXxx).
+# Uppercase-only names (e.g. GROUP, PMSwChannel) and short vars (e.g. p, s, m)
+# are excluded — they are typically structural, not translatable labels.
+_TCL_TEMPLATE_REF_RE = re.compile(r"\$\{([a-z]\w{2,})\}")
 
 
 def parse_pname_file(content: str) -> dict[str, str]:
@@ -460,13 +463,13 @@ def parse_easymode_tcl_mappings(easymode_dir: Path) -> dict[str, str]:
     """
     Extract parameter -> template variable mappings from easymode TCL files.
 
-    Parse all *_master.tcl files for 'set param PARAM_NAME' followed by
-    a ${stringTableXxx} or ${lblXxx} template reference within the next
-    few lines. Return a mapping from parameter name to template variable name.
+    Parse all *.tcl files for 'set param PARAM_NAME' followed by
+    a ${templateVar} reference within the next few lines.
+    Return a mapping from parameter name to template variable name.
     """
     mappings: dict[str, str] = {}
 
-    for tcl_file in sorted(easymode_dir.rglob("*_master.tcl")):
+    for tcl_file in sorted(easymode_dir.rglob("*.tcl")):
         try:
             content = tcl_file.read_text(encoding="utf-8")
         except UnicodeDecodeError:
@@ -1325,9 +1328,20 @@ def main() -> int:
                 parameter_values[key] = value
                 existing_pv_lower.add(key.lower())
 
+        # Merge PNAME direct parameter labels (higher priority than easymode TCL,
+        # because PNAME files contain official localization labels while easymode
+        # TCL files contain UI-layout descriptions that may include HTML artifacts)
+        pname_count = 0
+        existing_lower = {k.lower() for k in parameters}
+        if locale in pname_data:
+            for key, value in pname_data[locale].items():
+                if key.lower() not in existing_lower:
+                    parameters[key] = value
+                    existing_lower.add(key.lower())
+                    pname_count += 1
+
         # Resolve easymode TCL mappings (param -> template var -> translation)
         easymode_count = 0
-        existing_lower = {k.lower() for k in parameters}
         for param_name, template_var in easymode_mappings.items():
             if param_name.lower() in existing_lower:
                 continue
@@ -1339,16 +1353,7 @@ def main() -> int:
                     existing_lower.add(param_name.lower())
                     easymode_count += 1
 
-        # Merge PNAME direct parameter labels (lower priority than stringtable + easymode)
-        pname_count = 0
-        if locale in pname_data:
-            for key, value in pname_data[locale].items():
-                if key.lower() not in existing_lower:
-                    parameters[key] = value
-                    existing_lower.add(key.lower())
-                    pname_count += 1
-
-        # Merge profile localization (lowest priority — after PNAME)
+        # Merge profile localization (lowest priority — after easymode)
         profile_count = 0
         if locale in profile_localization_data:
             for key, value in profile_localization_data[locale].items():

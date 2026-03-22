@@ -14,9 +14,11 @@
 
 ### Added
 
-- **Add custom translation for `sample_interval_door_state`**: Added German and
-  English translation for the `sample_interval_door_state` parameter which has
-  no label in the CCU firmware (only help text exists).
+- **Add 85 custom parameter translations**: Added German and English labels for
+  parameters that have help text in the CCU firmware but no label (e.g.
+  `blocking_period`, `door_lock_hold_time`, `sensor_sensitivity_rain`,
+  `mounting_orientation`, ESI OBIS codes, soil moisture settings, and many more
+  HmIP MASTER parameters).
 
 # Version 2026.3.12 (2026-03-22)
 

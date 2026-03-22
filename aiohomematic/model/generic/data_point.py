@@ -172,6 +172,13 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         if self._validate_state_change and not self.is_state_change(value=converted_value):
             return set()
 
+        # Skip duplicate sends when an optimistic value with the same target is
+        # already pending. The CCU confirms identical values only once, so a
+        # second apply() would increment pending_sends to 2 while only one
+        # confirmation arrives, causing a spurious rollback after 30s (#3049).
+        if self._optimistic.is_active and self._optimistic.value == converted_value:
+            return set()
+
         self.apply_optimistic_value(value=converted_value)
 
         # Detect command priority for throttling (CRITICAL/HIGH/LOW)

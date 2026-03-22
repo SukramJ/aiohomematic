@@ -1,3 +1,21 @@
+# Version 2026.3.12 (2026-03-22)
+
+## What's Changed
+
+### Fixed
+
+- **Skip duplicate optimistic sends for identical values**: When an automation
+  triggers `switch.turn_on` twice in rapid succession (~100ms), the second send
+  is now skipped if an optimistic value with the same target is already pending.
+  Previously, the optimistic tracker incremented `pending_sends` to 2 while the
+  CCU only confirmed once, causing a spurious rollback after 30s that set the
+  switch to OFF despite the device being physically ON (#3049).
+
+### Improved
+
+- **Hide `BOOTED` parameter by default**: Added `BOOTED` to the default hidden
+  parameters list in visibility rules.
+
 # Version 2026.3.11 (2026-03-21)
 
 ## What's Changed

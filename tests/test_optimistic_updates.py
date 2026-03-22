@@ -1,9 +1,16 @@
 """Tests for optimistic update system."""
 
+from typing import cast
 from unittest.mock import MagicMock
 
+import pytest
+
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import RollbackReason
 from aiohomematic.model.data_point import BaseParameterDataPoint
+from aiohomematic.model.generic import DpSwitch
+
+TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
 
 
 class TestOptimisticUpdateBasics:
@@ -155,6 +162,92 @@ class TestOptimisticUpdateEvents:
         assert len(params) > 1  # At least self + some fields
 
 
+class TestDuplicateSendOptimistic:
+    """Test that duplicate sends do not cause spurious optimistic rollback (issue #3049)."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_different_value_send_while_optimistic_active(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that sending a different value while optimistic is active still sends."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch,
+            central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"),
+        )
+        # Simulate optimistic True pending (before CCU event)
+        switch._optimistic.apply(value=True, current_value=switch._value)
+        assert switch.is_optimistic is True
+
+        call_count_before = len([c for c in mock_client.method_calls if c[0] == "set_value"])
+
+        # Send False: different value, should proceed
+        await switch.send_value(value=False)
+
+        call_count_after = len([c for c in mock_client.method_calls if c[0] == "set_value"])
+        assert call_count_after == call_count_before + 1  # One new RPC call
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_duplicate_send_value_skips_second_send(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Test that sending the same value twice skips the second RPC call.
+
+        Reproduces issue #3049: When an automation triggers switch.turn_on twice
+        within 100ms, the optimistic tracker increments pending_sends to 2.
+        The CCU only confirms once, leaving pending_sends=1, causing a spurious
+        rollback after 30s even though the device is physically ON.
+
+        To simulate the race condition (second send before CCU event arrives),
+        we manually set the optimistic state and then call send_value.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch,
+            central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"),
+        )
+        # Simulate the state after first send but before CCU event arrives:
+        # - _value is still False/None (no event yet)
+        # - optimistic is active with value=True, pending_sends=1
+        switch._optimistic.apply(value=True, current_value=switch._value)
+        assert switch.is_optimistic is True
+        assert switch._optimistic.pending_sends == 1
+
+        call_count_before = len([c for c in mock_client.method_calls if c[0] == "set_value"])
+
+        # Second send with same value: should be skipped (no additional RPC call)
+        await switch.send_value(value=True)
+        assert switch._optimistic.pending_sends == 1  # Still 1, not 2
+
+        call_count_after = len([c for c in mock_client.method_calls if c[0] == "set_value"])
+        assert call_count_after == call_count_before  # No additional RPC call
+
+
 class TestPriorityAndOptimisticIntegration:
     """Test that priority detection works with optimistic updates."""
 
@@ -164,7 +257,5 @@ class TestPriorityAndOptimisticIntegration:
         # Then optimistic update happens (line ~174+)
         # CRITICAL priority for locks/sirens is declared at the service-method level
         # via @bind_collector(priority=CommandPriority.CRITICAL)
-
-        from aiohomematic.client import CommandPriority
 
         assert CommandPriority.CRITICAL.value == 0  # Highest priority

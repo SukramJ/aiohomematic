@@ -148,6 +148,7 @@ IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
         "BOOST_STATE",
         "BOOST_TIME",
         "BOOT",
+        "BOOTED",
         "BULB",
         "CLEAR_ERROR",
         "CLEAR_WINDOW_OPEN_SYMBOL",

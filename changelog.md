@@ -1,3 +1,25 @@
+# Version 2026.3.13 (2026-03-22)
+
+## What's Changed
+
+### Improved
+
+- **Extract 134 additional parameter translations from CCU firmware**: Expanded
+  the CCU translation extraction script to scan all easymode TCL files (not just
+  `*_master.tcl`), resolving parameter-to-template-variable mappings from
+  `hmipChannelConfigDialogs.tcl` and other HmIP configuration dialogs. Also
+  broadened the template variable regex to match all camelCase variables (not
+  just `stringTable*`/`lbl*` prefixes). PNAME labels now take priority over
+  easymode TCL labels to preserve official localization quality.
+
+### Added
+
+- **Add 85 custom parameter translations**: Added German and English labels for
+  parameters that have help text in the CCU firmware but no label (e.g.
+  `blocking_period`, `door_lock_hold_time`, `sensor_sensitivity_rain`,
+  `mounting_orientation`, ESI OBIS codes, soil moisture settings, and many more
+  HmIP MASTER parameters).
+
 # Version 2026.3.12 (2026-03-22)
 
 ## What's Changed

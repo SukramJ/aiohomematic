@@ -1,3 +1,32 @@
+# Version 2026.3.14 (2026-03-23)
+
+## What's Changed
+
+### Added
+
+- **Add CCU easymode metadata extraction**: New script
+  `script/extract_ccu_easymodes.py` parses TCL easymode configuration files from
+  the CCU WebUI and extracts structured metadata for 65 channel types, including
+  easymode profiles, subsets, parameter ordering, and option preset references.
+  Supports dual-source loading from local OCCU checkout and/or remote CCU instance.
+
+- **Add easymode data loader API**: New module `aiohomematic/easymode_data.py`
+  provides thread-safe, lazily loaded access to extracted easymode metadata
+  (channel metadata, option presets, cross-validation rules) via `pkgutil.get_data()`.
+
+- **Add 46 option preset definitions**: Extracted preset sets (BLIND_LEVEL, DELAY,
+  LENGTH_OF_STAY, DIM_ONLEVEL, RAMPTIME, LOGIC_COMBINATION, etc.) from
+  `options.tcl` for use in configuration UI dropdowns.
+
+- **Add cross-parameter validation**: New `validate_cross_parameters()` function
+  in `parameter_tools.py` checks constraints between related parameters (e.g.
+  DIM_MAX_LEVEL >= DIM_MIN_LEVEL, COND_VALUE_HI >= COND_VALUE_LO). Integrated
+  into `ConfigurationCoordinator.put_paramset()` to validate before RPC call.
+
+- **Include easymode extract data in package**: Updated `pyproject.toml` to
+  include `easymode_extract/*.json` and `easymode_extract/channel_metadata/*.json`
+  in the distributed package.
+
 # Version 2026.3.13 (2026-03-22)
 
 ## What's Changed

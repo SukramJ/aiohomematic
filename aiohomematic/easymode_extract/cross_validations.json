@@ -1,0 +1,46 @@
+{
+  "rules": [
+    {
+      "applies_to_params": ["DIM_MAX_LEVEL", "DIM_MIN_LEVEL"],
+      "error_key": "cross_validation.max_must_be_gte_min",
+      "id": "dim_max_gte_min",
+      "param_a": "DIM_MAX_LEVEL",
+      "param_b": "DIM_MIN_LEVEL",
+      "rule": "gte"
+    },
+    {
+      "applies_to_params": ["SHORT_ON_LEVEL", "DIM_MIN_LEVEL", "DIM_MAX_LEVEL"],
+      "error_key": "cross_validation.level_must_be_in_range",
+      "id": "short_on_level_in_dim_range",
+      "max_param": "DIM_MAX_LEVEL",
+      "min_param": "DIM_MIN_LEVEL",
+      "param": "SHORT_ON_LEVEL",
+      "rule": "between"
+    },
+    {
+      "applies_to_params": ["LONG_ON_LEVEL", "DIM_MIN_LEVEL", "DIM_MAX_LEVEL"],
+      "error_key": "cross_validation.level_must_be_in_range",
+      "id": "long_on_level_in_dim_range",
+      "max_param": "DIM_MAX_LEVEL",
+      "min_param": "DIM_MIN_LEVEL",
+      "param": "LONG_ON_LEVEL",
+      "rule": "between"
+    },
+    {
+      "applies_to_params": ["SHORT_COND_VALUE_HI", "SHORT_COND_VALUE_LO"],
+      "error_key": "cross_validation.hi_must_be_gte_lo",
+      "id": "short_cond_hi_gte_lo",
+      "param_a": "SHORT_COND_VALUE_HI",
+      "param_b": "SHORT_COND_VALUE_LO",
+      "rule": "gte"
+    },
+    {
+      "applies_to_params": ["LONG_COND_VALUE_HI", "LONG_COND_VALUE_LO"],
+      "error_key": "cross_validation.hi_must_be_gte_lo",
+      "id": "long_cond_hi_gte_lo",
+      "param_a": "LONG_COND_VALUE_HI",
+      "param_b": "LONG_COND_VALUE_LO",
+      "rule": "gte"
+    }
+  ]
+}

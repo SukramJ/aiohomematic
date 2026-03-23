@@ -1,0 +1,1943 @@
+{
+  "channel_type": "SWITCH_PANIC",
+  "sender_types": {
+    "KEY": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird der Alarm f&uuml;r die eingestellte Zeit eingeschaltet. Ist eine Einschaltverz&ouml;gerungszeit eingestellt, so wird der Alarm erst nach Ablauf dieser Zeit eingeschaltet.",
+          "id": 1,
+          "name_key": "panic_on",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "LONG_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_MULTIEXECUTE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "LONG_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird der Alarm f&uuml;r die eingestellte Zeit ausgeschaltet.",
+          "id": 2,
+          "name_key": "panic_off",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "LONG_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "LONG_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird der Alarm f&uuml;r die eingestellte Zeit je nach aktuellem Zustand ein- oder ausgeschaltet (Togglefunktion). Ist eine Ein- oder Ausschaltverz&ouml;gerungszeit eingestellt, so wird der Alarm erst nach Ablauf dieser Zeit ein- bzw. ausgeschaltet.",
+          "id": 3,
+          "name_key": "panic_on_off",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "LONG_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "LONG_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        }
+      ]
+    },
+    "MOTION_DETECTOR": {
+      "option_presets": {
+        "SHORT_ONDELAY_TIME_SIRPAN": "DELAY",
+        "SHORT_ON_TIME_SIRPAN": "LENGTH_OF_STAY"
+      },
+      "parameter_order": [
+        "SHORT_ON_TIME_MODE_SIRPAN",
+        "SHORT_ON_TIME_SIRPAN",
+        "SHORT_ONDELAY_TIME_SIRPAN"
+      ],
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "id": 1,
+          "name_key": "switch_on",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "LONG_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_MULTIEXECUTE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "LONG_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 255
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Der Bewegungsmelder ist au&szlig;er Betrieb.",
+          "id": 2,
+          "name_key": "no_action",
+          "params": {
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            }
+          }
+        }
+      ]
+    },
+    "ROTARY_HANDLE_SENSOR": {
+      "option_presets": {
+        "SHORT_OFFDELAY_TIME_SIRPAN": "DELAY",
+        "SHORT_OFF_TIME_SIRPAN": "LENGTH_OF_OFF",
+        "SHORT_ONDELAY_TIME_SIRPAN": "DELAY",
+        "SHORT_ON_TIME_SIRPAN": "LENGTH_OF_STAY"
+      },
+      "parameter_order": [
+        "SHORT_ONDELAY_TIME_SIRPAN",
+        "SHORT_ON_TIME_SIRPAN",
+        "SHORT_OFFDELAY_TIME_SIRPAN",
+        "SHORT_OFF_TIME_SIRPAN"
+      ],
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "Beim &Ouml;ffnen des Schaltkontaktes wird der Alarm eingeschaltet. Die Schaltzuordnung l&auml;sst sich auch umkehren.",
+          "id": 1,
+          "name_key": "panic_on",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Bei Erkennung des &Auml;nderungssignals wird der Alarm f&uuml;r eine bestimmte Zeit eingeschaltet.",
+          "id": 2,
+          "name_key": "change_signal",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Bei Erkennung des &Auml;nderungssignals wird der Alarm f&uuml;r eine bestimmte Zeit eingeschaltet.",
+          "id": 3,
+          "name_key": "panic_on_off",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        }
+      ],
+      "subsets": [
+        {
+          "id": 1,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_1",
+          "option_value": 1,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        },
+        {
+          "id": 2,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_2",
+          "option_value": 2,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 2,
+            "SHORT_CT_OFF_SIRPAN": 2,
+            "SHORT_CT_ONDELAY_SIRPAN": 2,
+            "SHORT_CT_ON_SIRPAN": 2
+          }
+        },
+        {
+          "id": 3,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_3",
+          "option_value": 3,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        },
+        {
+          "id": 4,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_4",
+          "option_value": 4,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 3,
+            "SHORT_CT_OFF_SIRPAN": 3,
+            "SHORT_CT_ONDELAY_SIRPAN": 3,
+            "SHORT_CT_ON_SIRPAN": 3
+          }
+        },
+        {
+          "id": 5,
+          "member_params": [
+            "SHORT_COND_VALUE_LO_SIRPAN",
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_5",
+          "option_value": 5,
+          "values": {
+            "SHORT_COND_VALUE_LO_SIRPAN": 0,
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        },
+        {
+          "id": 6,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_6",
+          "option_value": 6,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 2,
+            "SHORT_CT_ON_SIRPAN": 2
+          }
+        },
+        {
+          "id": 7,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_7",
+          "option_value": 7,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 2,
+            "SHORT_CT_OFF_SIRPAN": 2,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        }
+      ]
+    },
+    "SHUTTER_CONTACT": {
+      "option_presets": {
+        "SHORT_OFFDELAY_TIME_SIRPAN": "DELAY",
+        "SHORT_OFF_TIME_SIRPAN": "LENGTH_OF_OFF",
+        "SHORT_ONDELAY_TIME_SIRPAN": "DELAY",
+        "SHORT_ON_TIME_SIRPAN": "LENGTH_OF_STAY"
+      },
+      "parameter_order": [
+        "SHORT_ONDELAY_TIME_SIRPAN",
+        "SHORT_ON_TIME_SIRPAN",
+        "SHORT_OFFDELAY_TIME_SIRPAN",
+        "SHORT_OFF_TIME_SIRPAN"
+      ],
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "Beim &Ouml;ffnen des Schaltkontaktes wird der Alarm eingeschaltet. Die Schaltzuordnung l&auml;sst sich auch umkehren.",
+          "id": 1,
+          "name_key": "panic_on",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Bei Erkennung des &Auml;nderungssignals wird der Alarm f&uuml;r eine bestimmte Zeit eingeschaltet.",
+          "id": 2,
+          "name_key": "change_signal",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Bei Erkennung des &Auml;nderungssignals wird der Alarm f&uuml;r eine bestimmte Zeit eingeschaltet.",
+          "id": 3,
+          "name_key": "panic_on_off",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        }
+      ],
+      "subsets": [
+        {
+          "id": 1,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_1",
+          "option_value": 1,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        },
+        {
+          "id": 2,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_2",
+          "option_value": 2,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 2,
+            "SHORT_CT_OFF_SIRPAN": 2,
+            "SHORT_CT_ONDELAY_SIRPAN": 2,
+            "SHORT_CT_ON_SIRPAN": 2
+          }
+        },
+        {
+          "id": 3,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_3",
+          "option_value": 3,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        },
+        {
+          "id": 4,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_4",
+          "option_value": 4,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 3,
+            "SHORT_CT_OFF_SIRPAN": 3,
+            "SHORT_CT_ONDELAY_SIRPAN": 3,
+            "SHORT_CT_ON_SIRPAN": 3
+          }
+        },
+        {
+          "id": 5,
+          "member_params": [
+            "SHORT_COND_VALUE_LO_SIRPAN",
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_5",
+          "option_value": 5,
+          "values": {
+            "SHORT_COND_VALUE_LO_SIRPAN": 0,
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        },
+        {
+          "id": 6,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_6",
+          "option_value": 6,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 0,
+            "SHORT_CT_OFF_SIRPAN": 0,
+            "SHORT_CT_ONDELAY_SIRPAN": 2,
+            "SHORT_CT_ON_SIRPAN": 2
+          }
+        },
+        {
+          "id": 7,
+          "member_params": [
+            "SHORT_CT_OFFDELAY_SIRPAN",
+            "SHORT_CT_OFF_SIRPAN",
+            "SHORT_CT_ONDELAY_SIRPAN",
+            "SHORT_CT_ON_SIRPAN"
+          ],
+          "name_key": "subset_7",
+          "option_value": 7,
+          "values": {
+            "SHORT_CT_OFFDELAY_SIRPAN": 2,
+            "SHORT_CT_OFF_SIRPAN": 2,
+            "SHORT_CT_ONDELAY_SIRPAN": 0,
+            "SHORT_CT_ON_SIRPAN": 0
+          }
+        }
+      ]
+    },
+    "VIRTUAL_KEY": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird der Alarm f&uuml;r die eingestellte Zeit eingeschaltet. Ist eine Einschaltverz&ouml;gerungszeit eingestellt, so wird der Alarm erst nach Ablauf dieser Zeit eingeschaltet.",
+          "id": 1,
+          "name_key": "panic_on",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "LONG_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_MULTIEXECUTE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "LONG_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird der Alarm f&uuml;r die eingestellte Zeit ausgeschaltet.",
+          "id": 2,
+          "name_key": "panic_off",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "LONG_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "LONG_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird der Alarm f&uuml;r die eingestellte Zeit je nach aktuellem Zustand ein- oder ausgeschaltet (Togglefunktion). Ist eine Ein- oder Ausschaltverz&ouml;gerungszeit eingestellt, so wird der Alarm erst nach Ablauf dieser Zeit ein- bzw. ausgeschaltet.",
+          "id": 3,
+          "name_key": "panic_on_off",
+          "params": {
+            "LONG_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "LONG_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "LONG_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            },
+            "SHORT_ACTION_TYPE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 180
+            },
+            "SHORT_COND_VALUE_LO_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_CT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_JT_OFFDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFF_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ONDELAY_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFF_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 111600
+            },
+            "SHORT_ONDELAY_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_LEVEL_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 200
+            },
+            "SHORT_ON_TIME_MODE_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_TIME_SIRPAN": {
+              "constraint_type": "fixed",
+              "value": 120
+            }
+          }
+        }
+      ]
+    }
+  }
+}

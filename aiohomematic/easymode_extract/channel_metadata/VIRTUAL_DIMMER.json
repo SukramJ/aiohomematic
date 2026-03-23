@@ -1,0 +1,3488 @@
+{
+  "channel_type": "VIRTUAL_DIMMER",
+  "sender_types": {
+    "VIRTUAL_DIMMER": {
+      "option_presets": {
+        "LONG_DIM_MAX_LEVEL": "DIM_ONLEVEL",
+        "SHORT_RAMPON_TIME": "RAMPTIME"
+      },
+      "parameter_order": ["SHORT_RAMPON_TIME", "LONG_DIM_MAX_LEVEL"],
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "Mit einem kurzen Tastendruck wird das Licht auf die eingestellte Helligkeit eingeschaltet. Mit einem langen Tastendruck wird das Licht hochgedimmt.",
+          "id": 1,
+          "name_key": "dimmer_on_brighter",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen Tastendruck wird das Licht ausgeschaltet. Mit einem langen Tastendruck wird das Licht runtergedimmt.",
+          "id": 2,
+          "name_key": "dimmer_off_darker",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.1,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.1,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen Tastendruck wechselt das Licht zwischen der eingestellten Helligkeit und aus. Mit einem langen Tastendruck wird das Licht abwechselnd hoch- und runtergedimmt.",
+          "id": 3,
+          "name_key": "dimmer_on_off_b_d",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 108000.0,
+              "min_value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000.0,
+              "min_value": 0.0
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000.0,
+              "min_value": 0.0
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 108000.0,
+              "min_value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Das Licht wird durch kurzen oder langen Tastendruck f&uuml;r die eingestellte Zeit eingeschaltet. In der Ausschaltverz&ouml;gerung wird der Pegel zur Vorwarnung leicht abgesenkt, um anschlie&szlig;end langsam bis auf aus runterzudimmen.",
+          "id": 4,
+          "name_key": "light_stairway",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 20.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.9,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 120.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 20.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 20.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.9,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 120.0,
+              "max_value": 111600.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 20.0,
+              "max_value": 108000.0,
+              "min_value": 0.0
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000.0,
+              "min_value": 0.0
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen Tastendruck wird das Licht auf die eingestellte Helligkeit eingeschaltet und nach der eingestellten Zeit langsam auf aus runtergedimmt. Mit einem langen Tastendruck wird das Licht abwechselnd hoch- und runtergedimmt.",
+          "id": 5,
+          "name_key": "sleep_well",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 1800.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 1800.0,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 1800.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 1800.0,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            }
+          }
+        },
+        {
+          "description": "Das Licht wechselt im eingestellten Takt endlos zwischen den beiden Helligkeitswerten.",
+          "id": 6,
+          "name_key": "blink",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen Tastendruck wird das Licht langsam auf die eingestellten Helligkeit hochgedimmt. Mit einem langen Tastendruck wird das Licht abwechselnd hoch- und runtergedimmt.",
+          "id": 7,
+          "name_key": "wake_up_light",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.8,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 60.0,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.8,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 60.0,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Das Licht wird durch kurzen oder langen Tastendruck auf die eingestellten Helligkeit eingeschaltet.",
+          "id": 8,
+          "name_key": "dimmer_on",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Das Licht wird durch kurzen oder langen Tastendruck ausgeschaltet.",
+          "id": 9,
+          "name_key": "dimmer_off",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "list",
+              "values": [0, 1]
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "range",
+              "default": 0.5,
+              "max_value": 108000,
+              "min_value": 0.0
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Das Licht wird durch kurzen oder langen Tastendruck hochgedimmt.",
+          "id": 10,
+          "name_key": "dim_up",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "range",
+              "default": 1.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 2
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 3
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "range",
+              "default": 111600.0,
+              "max_value": 111600,
+              "min_value": 0.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Das Licht wird durch kurzen oder langen Tastendruck runtergedimmt.",
+          "id": 11,
+          "name_key": "dim_down",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "LONG_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "LONG_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "LONG_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_DIM_MIN_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "LONG_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "LONG_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "LONG_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "LONG_MULTIEXECUTE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "LONG_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "LONG_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "LONG_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "LONG_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "LONG_ON_TIME": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "LONG_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "LONG_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "LONG_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "SHORT_COND_VALUE_HI": {
+              "constraint_type": "fixed",
+              "value": 100
+            },
+            "SHORT_COND_VALUE_LO": {
+              "constraint_type": "fixed",
+              "value": 50
+            },
+            "SHORT_CT_OFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_CT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_DIM_MAX_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_DIM_MIN_LEVEL": {
+              "constraint_type": "range",
+              "default": 0.0,
+              "max_value": 1.0,
+              "min_value": 0.0
+            },
+            "SHORT_DIM_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_JT_OFF": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_OFFDELAY": {
+              "constraint_type": "fixed",
+              "value": 5
+            },
+            "SHORT_JT_ON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_ONDELAY": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_JT_RAMPOFF": {
+              "constraint_type": "fixed",
+              "value": 6
+            },
+            "SHORT_JT_RAMPON": {
+              "constraint_type": "fixed",
+              "value": 4
+            },
+            "SHORT_OFFDELAY_BLINK": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_OFFDELAY_NEWTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_OLDTIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_OFFDELAY_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            },
+            "SHORT_OFFDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_OFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 111600.0
+            },
+            "SHORT_OFF_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_MODE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ONDELAY_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.0
+            },
+            "SHORT_ON_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_ON_LEVEL_PRIO": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ON_MIN_LEVEL": {
+              "constraint_type": "fixed",
+              "value": 0.1
+            },
+            "SHORT_ON_TIME": {
+              "constraint_type": "fixed",
+              "value": 1.0
+            },
+            "SHORT_ON_TIME_MODE": {
+              "constraint_type": "fixed",
+              "value": 1
+            },
+            "SHORT_RAMPOFF_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMPON_TIME": {
+              "constraint_type": "fixed",
+              "value": 0.5
+            },
+            "SHORT_RAMP_START_STEP": {
+              "constraint_type": "fixed",
+              "value": 0.05
+            }
+          }
+        },
+        {
+          "description": "Die Taste ist nicht aktiv.",
+          "id": 12,
+          "name_key": "not_active",
+          "params": {
+            "LONG_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_ACTION_TYPE": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "UI_VIRTUAL": {
+              "constraint_type": "fixed",
+              "value": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

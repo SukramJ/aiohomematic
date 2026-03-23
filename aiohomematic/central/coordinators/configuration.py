@@ -32,6 +32,7 @@ from aiohomematic.parameter_tools import (
     is_parameter_internal,
     is_parameter_visible,
     is_parameter_writable,
+    validate_cross_parameters,
     validate_paramset,
 )
 from aiohomematic.support.address import get_device_address
@@ -517,6 +518,23 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
                     success=False,
                     validated=True,
                     validation_errors={param: result.reason for param, result in failures.items()},
+                )
+
+            # Cross-parameter validation: check constraints between parameters.
+            # Merge with current values to validate against full state.
+            current_values = await self.get_paramset(
+                interface_id=interface_id,
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+            )
+            if cross_errors := validate_cross_parameters(
+                values=values,
+                current_values=current_values,
+            ):
+                return PutParamsetResult(
+                    success=False,
+                    validated=True,
+                    validation_errors=cross_errors,
                 )
 
         client = self._client_provider.get_client(interface_id=interface_id)

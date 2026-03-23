@@ -67,7 +67,7 @@ include = ["aiohomematic", "aiohomematic.*"]
 exclude = ["aiohomematic_test_support", "aiohomematic_test_support.*", "tests", "tests.*", "dist", "build"]
 
 [tool.setuptools.package-data]
-aiohomematic = ["py.typed", "rega_scripts/*.fn", "translations/*.json"]
+aiohomematic = ["py.typed", "rega_scripts/*.fn", "translations/*.json", "easymode_extract/*.json", "easymode_extract/channel_metadata/*.json"]
 
 [tool.pylint.MAIN]
 py-version = "3.14"

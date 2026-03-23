@@ -1171,9 +1171,11 @@ class TestCopyParamset:
         """Test successful copy returns old values and copied values."""
         coordinator, client_prov, _, paramset_desc_prov = _make_coordinator()
         mock_client = client_prov.get_client.return_value
-        # First call: source values; second call: old target values
+        # First call: source values; second call: old target values;
+        # third call: current values for cross-parameter validation in put_paramset
         mock_client.get_paramset.side_effect = [
             {"PARAM": 99},
+            {"PARAM": 0},
             {"PARAM": 0},
         ]
         paramset_desc_prov.get_channel_paramset_descriptions.return_value = {

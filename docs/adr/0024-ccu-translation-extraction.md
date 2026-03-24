@@ -93,40 +93,46 @@ path (no async dependencies needed for a development tool).
 ### Output Structure
 
 ```
-aiohomematic/translations/ccu_extract/   # Auto-generated (script output)
-  channel_types_de.json       # 181+ entries
-  channel_types_en.json
-  device_models_de.json       # 366+ entries
-  device_models_en.json
-  parameters_de.json          # 809+ entries
-  parameters_en.json
-  parameter_values_de.json    # 1149+ entries
-  parameter_values_en.json
+aiohomematic/ccu_data/
+  translation_extract.json.gz   # Auto-generated gzip archive (script output)
+                                # Contains all categories as top-level keys:
+                                # channel_types_de, channel_types_en,
+                                # device_models_de, device_models_en,
+                                # parameters_de, parameters_en,
+                                # parameter_values_de, parameter_values_en,
+                                # parameter_help_de, parameter_help_en,
+                                # device_icons
 
-aiohomematic/translations/ccu_custom/    # Hand-maintained overrides
-  channel_types_de.json       # {} by default
-  channel_types_en.json
-  device_models_de.json
-  device_models_en.json
-  parameters_de.json
-  parameters_en.json
-  parameter_values_de.json
-  parameter_values_en.json
+  translation_custom/           # Hand-maintained overrides (editable JSON files)
+    channel_types_de.json       # {} by default
+    channel_types_en.json
+    device_models_de.json
+    device_models_en.json
+    parameters_de.json
+    parameters_en.json
+    parameter_values_de.json
+    parameter_values_en.json
+    parameter_help_de.json
+    parameter_help_en.json
+    device_icons.json
 ```
 
-All files are flat `{key: label}` dictionaries sorted by key. The `ccu_extract/` files
-are generated artifacts checked into git and regenerated periodically when OCCU updates
-its translations. The `ccu_custom/` files allow overriding or supplementing individual
-translations without editing the generated files — custom keys survive re-extraction.
-At load time, `ccu_custom/` is merged on top of `ccu_extract/`.
+All translation data uses flat `{key: label}` dictionaries sorted by key. The
+`translation_extract.json.gz` archive is a generated artifact checked into git and
+regenerated periodically when OCCU updates its translations. The `translation_custom/`
+files allow overriding or supplementing individual translations without editing the
+generated archive — custom keys survive re-extraction. At load time,
+`translation_custom/` is merged on top of the extracted archive.
 
 ### Key Design Decisions
 
-**Four separate files per locale** rather than one monolithic file, because:
+**Single gzip-compressed archive** for extracted translations, because:
 
-- Each category has distinct key patterns and lookup semantics
-- Separate files keep individual cache entries small
-- Consumers typically need only one category at a time
+- Reduces package size from ~636 KB to ~125 KB (80% reduction)
+- All categories are loaded eagerly at import time anyway
+- Single I/O operation instead of 11 separate file reads
+- Hand-maintained overrides remain as individual editable JSON files in
+  `translation_custom/`
 
 **Parameter keys include channel-type scope** using the pipe separator:
 
@@ -203,16 +209,16 @@ and fall back to ISO-8859-1 on decode error.
            └────────────────────────┼────────────────────────┘
                                     │
                                     ▼
-                     aiohomematic/translations/ccu_extract/
-                     ┌─────────────────────────────┐
-                     │  channel_types_{locale}.json │
-                     │  device_models_{locale}.json │
-                     │  parameters_{locale}.json    │
-                     │  parameter_values_{locale}.json│
-                     └──────────────┬──────────────┘
+                     aiohomematic/ccu_data/
+                     ┌──────────────────────────────────┐
+                     │  translation_extract.json.gz      │
+                     │  (all categories in one archive)  │
+                     │  + translation_custom/*.json       │
+                     │  (hand-maintained overrides)       │
+                     └──────────────┬───────────────────┘
                                     │
                      aiohomematic/ccu_translations.py
-                     (lazy-loaded, typed lookup API)
+                     (eagerly loaded, typed lookup API)
                                     │
               ┌─────────────────────┼─────────────────────┐
               │                     │                     │
@@ -283,7 +289,7 @@ A `_reset_locale_for_testing()` internal function allows tests to bypass the loc
 | Missing translations    | Medium     | Low    | 248 unresolved refs from newer devices; fallback to raw IDs |
 | Stale checked-in files  | Medium     | Low    | Re-run script periodically; CI can diff against OCCU        |
 | Encoding surprises      | Low        | Low    | UTF-8 -> ISO-8859-1 fallback covers known variants          |
-| Large file size in repo | Low        | Low    | ~500KB total for 8 files; static data, low churn            |
+| Large file size in repo | Low        | Low    | ~125KB gzip archive + ~244KB custom overrides; static data  |
 
 ## Deferred Work
 
@@ -335,13 +341,16 @@ Include the original OCCU JS files and parse them at runtime. Rejected because:
 - Runtime parsing overhead on every startup
 - Larger package size than pre-processed JSON
 
-### 4. Single Monolithic Translation File
+### 4. Individual JSON Files Per Category (Original Approach, Superseded)
 
-One JSON file per locale with nested categories. Rejected because:
+Individual JSON files per category and locale (e.g., `channel_types_de.json`,
+`parameters_en.json`). This was the original implementation but was replaced by
+gzip-compressed archives in version 2026.3.15 because:
 
-- Forces loading all categories even when only one is needed
-- Complicates the caching strategy
-- Makes diffs harder to review when only one category changes
+- 11 separate files added ~636 KB to the package (vs. 125 KB gzip archive)
+- All categories were loaded eagerly at import time anyway, so lazy per-file
+  loading provided no practical benefit
+- A single archive simplifies the extraction script output
 
 ## References
 

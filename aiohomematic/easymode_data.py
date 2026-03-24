@@ -6,8 +6,9 @@ Loader for CCU easymode metadata.
 Provide access to extracted easymode data (parameter groups, profiles, presets,
 subsets, cross-validations) from CCU WebUI TCL configuration files.
 
-The auto-generated JSON files live in ``easymode_extract/`` and are produced
-by ``script/extract_ccu_easymodes.py``.
+The data is stored as a single gzip-compressed JSON archive in
+``ccu_data/easymode_extract.json.gz``, produced by
+``script/extract_ccu_easymodes.py``.
 
 All public functions are pure dict lookups after first access (no I/O),
 making them safe to call from the asyncio event loop. Thread safety is
@@ -17,6 +18,7 @@ Public API of this module is defined by __all__.
 """
 
 from dataclasses import dataclass, field
+import gzip
 import json
 import logging
 import pkgutil
@@ -168,6 +170,8 @@ class _EasymodeStore:
         "_option_presets",
     )
 
+    _ARCHIVE_RESOURCE: Final = "ccu_data/easymode_extract.json.gz"
+
     def __init__(self) -> None:
         self._channel_metadata: Final[dict[str, ChannelMetadata]] = {}
         self._option_presets: Final[dict[str, OptionPresetDef]] = {}
@@ -176,24 +180,23 @@ class _EasymodeStore:
         self._lock: Final = threading.Lock()
 
     @staticmethod
-    def _load_json(resource: str) -> dict[str, Any] | None:
-        """Load a JSON resource from the package."""
+    def _load_archive() -> dict[str, Any] | None:
+        """Load the gzip-compressed JSON archive from the package."""
         try:
-            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=resource)):
+            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=_EasymodeStore._ARCHIVE_RESOURCE)):
                 return None
-            result: dict[str, Any] = json.loads(data_bytes)
-        except (FileNotFoundError, json.JSONDecodeError) as err:
-            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
+            raw_json = gzip.decompress(data_bytes)
+            result: dict[str, Any] = json.loads(raw_json)
+        except (FileNotFoundError, json.JSONDecodeError, OSError) as err:
+            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, _EasymodeStore._ARCHIVE_RESOURCE, err)
             return None
         else:
             return result
 
     def get_channel_metadata(self, *, channel_type: str) -> ChannelMetadata | None:
-        """Return metadata for a channel type, loading on demand."""
+        """Return metadata for a channel type."""
         self._ensure_loaded()
-        if channel_type in self._channel_metadata:
-            return self._channel_metadata[channel_type]
-        return self._load_channel_metadata(channel_type=channel_type)
+        return self._channel_metadata.get(channel_type)
 
     def get_cross_validation_rules(self) -> list[CrossValidationRule]:
         """Return all cross-validation rules."""
@@ -211,34 +214,32 @@ class _EasymodeStore:
         return dict(self._option_presets)
 
     def _ensure_loaded(self) -> None:
-        """Load data if not yet loaded (double-checked locking)."""
+        """Load all data from archive if not yet loaded (double-checked locking)."""
         if self._loaded:
             return
         with self._lock:
             if self._loaded:
                 return  # type: ignore[unreachable]
-            self._load_option_presets()
-            self._load_cross_validations()
+            if (archive := self._load_archive()) is not None:
+                self._parse_channel_metadata(raw=archive.get("channel_metadata", {}))
+                self._parse_option_presets(raw=archive.get("option_presets", {}))
+                self._parse_cross_validations(raw=archive.get("cross_validations", {}))
             self._loaded = True
 
-    def _load_channel_metadata(self, *, channel_type: str) -> ChannelMetadata | None:
-        """Load channel metadata from JSON file on demand."""
-        if not (raw := self._load_json(f"easymode_extract/channel_metadata/{channel_type}.json")):
-            return None
-        sender_types: dict[str, SenderTypeMetadata] = {}
-        for st_name, st_data in raw.get("sender_types", {}).items():
-            sender_types[st_name] = self._parse_sender_type(data=st_data)
-        metadata = ChannelMetadata(
-            channel_type=channel_type,
-            sender_types=sender_types,
-        )
-        self._channel_metadata[channel_type] = metadata
-        return metadata
+    def _parse_channel_metadata(self, *, raw: dict[str, Any]) -> None:
+        """Parse all channel metadata from the archive."""
+        for channel_type, channel_data in raw.items():
+            sender_types: dict[str, SenderTypeMetadata] = {}
+            for st_name, st_data in channel_data.get("sender_types", {}).items():
+                sender_types[st_name] = self._parse_sender_type(data=st_data)
+            self._channel_metadata[channel_type] = ChannelMetadata(
+                channel_type=channel_type,
+                sender_types=sender_types,
+            )
+        _LOGGER.debug("Loaded %d channel metadata entries", len(self._channel_metadata))
 
-    def _load_cross_validations(self) -> None:
-        """Load cross_validations.json."""
-        if not (raw := self._load_json("easymode_extract/cross_validations.json")):
-            return
+    def _parse_cross_validations(self, *, raw: dict[str, Any]) -> None:
+        """Parse cross-validation rules from the archive."""
         self._cross_validation_rules = [
             CrossValidationRule(
                 id=r["id"],
@@ -255,10 +256,8 @@ class _EasymodeStore:
         ]
         _LOGGER.debug("Loaded %d cross-validation rules", len(self._cross_validation_rules))
 
-    def _load_option_presets(self) -> None:
-        """Load option_presets.json."""
-        if not (raw := self._load_json("easymode_extract/option_presets.json")):
-            return
+    def _parse_option_presets(self, *, raw: dict[str, Any]) -> None:
+        """Parse option presets from the archive."""
         for preset_type, data in raw.items():
             presets = tuple(
                 OptionPresetEntry(

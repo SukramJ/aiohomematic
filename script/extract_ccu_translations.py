@@ -25,6 +25,7 @@ Environment Variables:
 """
 
 import contextlib
+import html as html_module
 import json
 import os
 from pathlib import Path
@@ -330,19 +331,8 @@ def clean_value(value: str) -> str:
     # Strip HTML tags: <br/> -> space, other tags removed
     decoded = re.sub(r"<br\s*/?>", " ", decoded)
     decoded = re.sub(r"</?\w+[^>]*>", "", decoded)
-    # Decode HTML entities
-    decoded = decoded.replace("&nbsp;", " ")
-    decoded = decoded.replace("&amp;", "&")
-    decoded = decoded.replace("&auml;", "ä")
-    decoded = decoded.replace("&ouml;", "ö")
-    decoded = decoded.replace("&uuml;", "ü")
-    decoded = decoded.replace("&Auml;", "Ä")
-    decoded = decoded.replace("&Ouml;", "Ö")
-    decoded = decoded.replace("&Uuml;", "Ü")
-    decoded = decoded.replace("&szlig;", "ß")
-    decoded = decoded.replace("&quot;", '"')
-    decoded = decoded.replace("&lt;", "<")
-    decoded = decoded.replace("&gt;", ">")
+    # Decode HTML entities (handles entities with and without semicolons)
+    decoded = html_module.unescape(decoded)
     # Normalize whitespace
     decoded = " ".join(decoded.split())
     return decoded.strip()
@@ -392,10 +382,8 @@ def clean_value_markdown(value: str) -> str:
     # URL-decode (%FC -> ü, etc.) using Latin-1 encoding
     decoded = unquote(value, encoding="latin-1")
 
-    # Decode HTML entities
-    decoded = _HTML_ENTITY_RE.sub(_decode_html_entity, decoded)
-    for entity, char in _HTML_ENTITY_MAP.items():
-        decoded = decoded.replace(entity, char)
+    # Decode HTML entities (handles entities with and without semicolons)
+    decoded = html_module.unescape(decoded)
 
     # Convert HTML tags to Markdown (order matters)
     # Bold

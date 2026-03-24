@@ -271,6 +271,7 @@ def get_parameter_value_translation(
     value: str,
     channel_type: str | None = None,
     locale: str = "en",
+    use_fallback: bool = True,
 ) -> str | None:
     """
     Return human-readable translation for a parameter enum value.
@@ -279,6 +280,9 @@ def get_parameter_value_translation(
     then fall back to global lookup (PARAMETER=VALUE), then strip
     SHORT_/LONG_ prefixes and retry, then fall back to value-only
     lookup (shortest match for VALUE).
+
+    If use_fallback is False, skip the value-only fallback and only
+    try parameter-specific lookups.
     """
     lang = _get_locale(locale=locale)
     translations = _store.get(category="parameter_values", locale=lang)
@@ -301,6 +305,9 @@ def get_parameter_value_translation(
             return label
         if (label := translations.get(f"{base}={value_lower}")) is not None:
             return label
+
+    if not use_fallback:
+        return None
 
     # Fall back to value-only (generic, shortest translation)
     return _store.get_value_fallback(value=value, locale=lang)

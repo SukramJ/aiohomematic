@@ -1,0 +1,93 @@
+{
+  "channel_type": "RGBW_COLOR",
+  "sender_types": {
+    "KEY": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird .....",
+          "id": 1,
+          "name_key": "choose_Mode",
+          "params": {
+            "LONG_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "list",
+              "values": [253, 254, 255]
+            },
+            "SHORT_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "list",
+              "values": [253, 254, 255]
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird .....",
+          "id": 2,
+          "name_key": "jumpToColor",
+          "params": {
+            "LONG_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "range",
+              "default": 0,
+              "max_value": 200,
+              "min_value": 0
+            },
+            "SHORT_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "range",
+              "default": 0,
+              "max_value": 200,
+              "min_value": 0
+            }
+          }
+        }
+      ]
+    },
+    "VIRTUAL_KEY": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird .....",
+          "id": 1,
+          "name_key": "choose_Mode",
+          "params": {
+            "LONG_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "list",
+              "values": [253, 254, 255]
+            },
+            "SHORT_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "list",
+              "values": [253, 254, 255]
+            }
+          }
+        },
+        {
+          "description": "Mit einem kurzen oder langen Tastendruck wird .....",
+          "id": 2,
+          "name_key": "jumpToColor",
+          "params": {
+            "LONG_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "range",
+              "default": 0,
+              "max_value": 200,
+              "min_value": 0
+            },
+            "SHORT_ACT_HSV_COLOR_VALUE": {
+              "constraint_type": "range",
+              "default": 0,
+              "max_value": 200,
+              "min_value": 0
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "channel_type": "CLIMATECONTROL_VENT_DRIVE",
+  "sender_types": {
+    "CLIMATECONTROL_REGULATOR": {
+      "profiles": [
+        {
+          "description": "no",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "description": "no",
+          "id": 1,
+          "name_key": "no_profile",
+          "params": {}
+        }
+      ]
+    }
+  }
+}

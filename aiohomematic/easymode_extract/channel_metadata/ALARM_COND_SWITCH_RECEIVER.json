@@ -1,0 +1,207 @@
+{
+  "channel_type": "ALARM_COND_SWITCH_RECEIVER",
+  "sender_types": {
+    "ALARM_COND_SWITCH_TRANSMITTER": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "id": 1,
+          "name_key": "switch_on",
+          "params": {
+            "SHORT_ON_TIME_BASE": {
+              "constraint_type": "range",
+              "default": 7,
+              "max_value": 7,
+              "min_value": 0
+            },
+            "SHORT_ON_TIME_FACTOR": {
+              "constraint_type": "range",
+              "default": 31,
+              "max_value": 31,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_ACOUSTIC": {
+              "constraint_type": "range",
+              "default": 1,
+              "max_value": 17,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_OPTICAL": {
+              "constraint_type": "range",
+              "default": 4,
+              "max_value": 7,
+              "min_value": 0
+            }
+          }
+        }
+      ]
+    },
+    "DISPLAY_INPUT_TRANSMITTER": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "id": 1,
+          "name_key": "switch_on",
+          "params": {
+            "SHORT_ON_TIME_BASE": {
+              "constraint_type": "range",
+              "default": 7,
+              "max_value": 7,
+              "min_value": 0
+            },
+            "SHORT_ON_TIME_FACTOR": {
+              "constraint_type": "range",
+              "default": 31,
+              "max_value": 31,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_ACOUSTIC": {
+              "constraint_type": "range",
+              "default": 1,
+              "max_value": 17,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_OPTICAL": {
+              "constraint_type": "range",
+              "default": 4,
+              "max_value": 7,
+              "min_value": 0
+            }
+          }
+        },
+        {
+          "id": 2,
+          "name_key": "switch_off",
+          "params": {
+            "SHORT_SIGNAL_SELECTION_ACOUSTIC": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_OPTICAL": {
+              "constraint_type": "fixed",
+              "value": 0
+            }
+          }
+        }
+      ]
+    },
+    "DISPLAY_LEVEL_INPUT_TRANSMITTER": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "id": 1,
+          "name_key": "switch_on",
+          "params": {
+            "SHORT_ON_TIME_BASE": {
+              "constraint_type": "range",
+              "default": 7,
+              "max_value": 7,
+              "min_value": 0
+            },
+            "SHORT_ON_TIME_FACTOR": {
+              "constraint_type": "range",
+              "default": 31,
+              "max_value": 31,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_ACOUSTIC": {
+              "constraint_type": "range",
+              "default": 1,
+              "max_value": 17,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_OPTICAL": {
+              "constraint_type": "range",
+              "default": 4,
+              "max_value": 7,
+              "min_value": 0
+            }
+          }
+        },
+        {
+          "id": 2,
+          "name_key": "switch_off",
+          "params": {
+            "SHORT_SIGNAL_SELECTION_ACOUSTIC": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_OPTICAL": {
+              "constraint_type": "fixed",
+              "value": 0
+            }
+          }
+        }
+      ]
+    },
+    "KEY_TRANSCEIVER": {
+      "profiles": [
+        {
+          "description": "Expertenprofil",
+          "id": 0,
+          "name_key": "expert",
+          "params": {}
+        },
+        {
+          "id": 1,
+          "name_key": "switch_on",
+          "params": {
+            "SHORT_ON_TIME_BASE": {
+              "constraint_type": "range",
+              "default": 7,
+              "max_value": 7,
+              "min_value": 0
+            },
+            "SHORT_ON_TIME_FACTOR": {
+              "constraint_type": "range",
+              "default": 31,
+              "max_value": 31,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_ACOUSTIC": {
+              "constraint_type": "range",
+              "default": 1,
+              "max_value": 17,
+              "min_value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_OPTICAL": {
+              "constraint_type": "range",
+              "default": 4,
+              "max_value": 7,
+              "min_value": 0
+            }
+          }
+        },
+        {
+          "id": 2,
+          "name_key": "switch_off",
+          "params": {
+            "SHORT_SIGNAL_SELECTION_ACOUSTIC": {
+              "constraint_type": "fixed",
+              "value": 0
+            },
+            "SHORT_SIGNAL_SELECTION_OPTICAL": {
+              "constraint_type": "fixed",
+              "value": 0
+            }
+          }
+        }
+      ]
+    }
+  }
+}

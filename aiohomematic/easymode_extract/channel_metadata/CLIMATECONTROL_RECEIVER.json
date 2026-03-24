@@ -1,0 +1,37 @@
+{
+  "channel_type": "CLIMATECONTROL_RECEIVER",
+  "sender_types": {
+    "CLIMATECONTROL_REGULATOR": {
+      "profiles": [
+        {
+          "description": "no",
+          "id": 0,
+          "name_key": "no_profile",
+          "params": {}
+        },
+        {
+          "description": "no",
+          "id": 1,
+          "name_key": "no_profile",
+          "params": {}
+        }
+      ]
+    },
+    "THERMALCONTROL_TRANSMIT": {
+      "profiles": [
+        {
+          "description": "no",
+          "id": 0,
+          "name_key": "no_profile",
+          "params": {}
+        },
+        {
+          "description": "no",
+          "id": 1,
+          "name_key": "no_profile",
+          "params": {}
+        }
+      ]
+    }
+  }
+}

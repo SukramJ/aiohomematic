@@ -1,0 +1,21 @@
+{
+  "channel_type": "CLIMATECONTROL_INPUT_RECEIVER",
+  "sender_types": {
+    "CLIMATECONTROL_INPUT_TRANSMITTER": {
+      "profiles": [
+        {
+          "description": "no",
+          "id": 0,
+          "name_key": "no_profile",
+          "params": {}
+        },
+        {
+          "description": "no",
+          "id": 1,
+          "name_key": "no_profile",
+          "params": {}
+        }
+      ]
+    }
+  }
+}

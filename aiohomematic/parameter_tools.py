@@ -22,6 +22,7 @@ import inspect
 from typing import Any
 
 from aiohomematic.const import Flag, Operations, ParameterData, ParameterType
+from aiohomematic.easymode_data import get_cross_validation_rules
 
 # ---------------------------------------------------------------------------
 # ParameterHelper -- flag / operation queries and enum helpers
@@ -219,6 +220,60 @@ def validate_paramset(
         if not result.valid:
             failures[parameter] = result
     return failures
+
+
+def validate_cross_parameters(
+    *,
+    values: dict[str, Any],
+    current_values: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    """
+    Validate cross-parameter constraints.
+
+    Merge *values* (to be written) with *current_values* (existing state)
+    and check all applicable cross-validation rules from the easymode
+    extract data.
+
+    Return dict of ``parameter_id -> error_key`` for violations.
+    An empty dict indicates that all cross-parameter constraints pass.
+    """
+    merged = dict(current_values or {})
+    merged.update(values)
+
+    errors: dict[str, str] = {}
+    for rule in get_cross_validation_rules():
+        # Only check rules where all referenced params are present
+        if not all(p in merged for p in rule.applies_to_params):
+            continue
+
+        if rule.rule == "gte" and rule.param_a and rule.param_b:
+            val_a = merged[rule.param_a]
+            val_b = merged[rule.param_b]
+            if isinstance(val_a, (int, float)) and isinstance(val_b, (int, float)) and val_a < val_b:
+                errors[rule.param_a] = rule.error_key
+
+        elif rule.rule == "lte" and rule.param_a and rule.param_b:
+            val_a = merged[rule.param_a]
+            val_b = merged[rule.param_b]
+            if isinstance(val_a, (int, float)) and isinstance(val_b, (int, float)) and val_a > val_b:
+                errors[rule.param_a] = rule.error_key
+
+        elif rule.rule == "between" and rule.param and rule.min_param and rule.max_param:
+            val = merged[rule.param]
+            val_min = merged[rule.min_param]
+            val_max = merged[rule.max_param]
+            if (
+                isinstance(val, (int, float))
+                and isinstance(val_min, (int, float))
+                and isinstance(val_max, (int, float))
+            ) and (val < val_min or val > val_max):
+                errors[rule.param] = rule.error_key
+
+        elif rule.rule == "not_equal" and rule.param_a and rule.param_b:
+            if merged[rule.param_a] == merged[rule.param_b]:
+                errors[rule.param_a] = rule.error_key
+
+    return errors
 
 
 def coerce_value(*, parameter_data: ParameterData, value: Any) -> Any:

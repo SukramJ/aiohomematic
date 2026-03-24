@@ -473,17 +473,32 @@ def parse_easymode_tcl_mappings(easymode_dir: Path) -> dict[str, str]:
                 continue
 
             # Search next 10 lines for the template variable reference
+            in_comment = False
             for j in range(i + 1, min(i + 11, len(lines))):
+                stripped = lines[j].strip()
                 # Stop if we hit the next 'set param'
                 if _TCL_SET_PARAM_RE.search(lines[j]):
                     break
-                template_match = _TCL_TEMPLATE_REF_RE.search(lines[j])
-                if template_match:
+                # Skip TCL comment blocks: set comment { ... }
+                if stripped.startswith("set comment"):
+                    in_comment = True
+                    continue
+                if in_comment:
+                    if "}" in stripped:
+                        in_comment = False
+                    continue
+                for template_match in _TCL_TEMPLATE_REF_RE.finditer(lines[j]):
                     var_name = template_match.group(1)
                     # Skip uppercase-only names (structural vars, not labels)
-                    if var_name.upper() != var_name:
-                        mappings[param_name] = var_name
-                        break
+                    if var_name.upper() == var_name:
+                        continue
+                    # Skip option value vars (e.g. optionSat, optionMon) — not labels
+                    if var_name.startswith("option"):
+                        continue
+                    mappings[param_name] = var_name
+                    break
+                if param_name in mappings:
+                    break
 
     return mappings
 

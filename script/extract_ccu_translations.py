@@ -500,6 +500,57 @@ def parse_easymode_tcl_mappings(easymode_dir: Path) -> dict[str, str]:
     return mappings
 
 
+# Regex to extract 'set options(N) "${templateVar}"' from easymode TCL files
+_TCL_SET_OPTION_RE = re.compile(r'set\s+options?\((\d+)\)\s+"([^"]*)"')
+
+
+def parse_easymode_tcl_option_values(easymode_dir: Path) -> dict[str, dict[int, str]]:
+    """
+    Extract parameter -> {index: template_var} mappings from easymode TCL files.
+
+    Parse all *.tcl files for 'set param PARAM_NAME' followed by
+    'set options(N) "${templateVar}"' blocks within the next lines.
+    Return a mapping from parameter name to {index: template_var_name}.
+    """
+    result: dict[str, dict[int, str]] = {}
+
+    for tcl_file in sorted(easymode_dir.rglob("*.tcl")):
+        try:
+            content = tcl_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            content = tcl_file.read_text(encoding="iso-8859-1")
+
+        lines = content.splitlines()
+        for i, line in enumerate(lines):
+            param_match = _TCL_SET_PARAM_RE.search(line)
+            if not param_match:
+                continue
+            param_name = param_match.group(1)
+            if param_name in result:
+                continue
+
+            # Scan following lines for set options(N) "${templateVar}" blocks
+            entries: dict[int, str] = {}
+            for j in range(i + 1, min(i + 30, len(lines))):
+                # Stop if we hit the next 'set param'
+                if _TCL_SET_PARAM_RE.search(lines[j]):
+                    break
+                option_match = _TCL_SET_OPTION_RE.search(lines[j])
+                if option_match:
+                    idx = int(option_match.group(1))
+                    val = option_match.group(2)
+                    # Extract template variable from the value
+                    tvars = _TEMPLATE_VAR_IN_OPTION_RE.findall(val)
+                    interesting = [v for v in tvars if v not in _OPTION_SKIP_VARS]
+                    if interesting:
+                        entries[idx] = interesting[0]
+
+            if entries:
+                result[param_name] = entries
+
+    return result
+
+
 # Regex patterns for options.tcl parsing
 _OPTION_TYPE_BLOCK_RE = re.compile(r'"([A-Z][A-Z0-9_]*)"[^{]*\{')
 _OPTION_SET_RE = re.compile(r'set\s+options\(([^)]+)\)\s+"([^"]*)"')
@@ -880,7 +931,7 @@ def load_profile_localization_files(
     return merged
 
 
-# Type alias for the 8-tuple returned by load_sources_*
+# Type alias for the 9-tuple returned by load_sources_*
 _SourceTuple = tuple[
     dict[str, dict[str, dict[str, str]]],  # locale_data
     dict[str, str],  # stringtable_mapping
@@ -890,6 +941,7 @@ _SourceTuple = tuple[
     dict[str, dict[str, str]],  # help_data (locale -> {param -> raw_html})
     dict[str, str],  # icon_data (model -> filename, locale-independent)
     dict[str, dict[str, str]],  # profile_localization_data (locale -> {param -> label})
+    dict[str, dict[int, str]],  # easymode_option_values (param -> {index -> template_var})
 ]
 
 
@@ -899,8 +951,8 @@ def load_sources_local(
     """
     Load all translation sources from a local OCCU checkout.
 
-    Return 8-tuple of (locale_data, stringtable_mapping, pname_data, easymode_mappings,
-    options_tcl_data, help_data, icon_data, profile_localization_data).
+    Return 9-tuple of (locale_data, stringtable_mapping, pname_data, easymode_mappings,
+    options_tcl_data, help_data, icon_data, profile_localization_data, easymode_option_values).
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
     pname_data: dict[str, dict[str, str]] = {}
@@ -981,6 +1033,10 @@ def load_sources_local(
         options_tcl_data = parse_options_tcl(options_content)
         print(f"  options.tcl: {len(options_tcl_data)} option types")
 
+    # Parse easymode TCL files for inline option value translations
+    easymode_option_values = parse_easymode_tcl_option_values(easymode_dir)
+    print(f"  easymode TCL option values: {len(easymode_option_values)} parameters")
+
     # Load device icon database (locale-independent)
     devdb_path = occu_path / "WebUI" / "www" / _DEVDB_PATH
     icon_data: dict[str, str] = {}
@@ -1001,6 +1057,7 @@ def load_sources_local(
         help_data,
         icon_data,
         profile_localization_data,
+        easymode_option_values,
     )
 
 
@@ -1010,8 +1067,8 @@ def load_sources_remote(
     """
     Load all translation sources from a remote CCU via HTTP.
 
-    Return 8-tuple of (locale_data, stringtable_mapping, pname_data, easymode_mappings,
-    options_tcl_data, help_data, icon_data, profile_localization_data).
+    Return 9-tuple of (locale_data, stringtable_mapping, pname_data, easymode_mappings,
+    options_tcl_data, help_data, icon_data, profile_localization_data, easymode_option_values).
     Easymode/options TCL, profile localization, and DEVDB parsing not supported for remote.
     """
     locale_data: dict[str, dict[str, dict[str, str]]] = {}
@@ -1102,7 +1159,7 @@ def load_sources_remote(
     except Exception:
         pass  # DEVDB.tcl is optional for remote
 
-    return locale_data, stringtable_mapping, pname_data, {}, {}, help_data, icon_data, {}
+    return locale_data, stringtable_mapping, pname_data, {}, {}, help_data, icon_data, {}, {}
 
 
 # Known MASTER_LANG JS files (for remote fetching where glob is not available)
@@ -1152,8 +1209,8 @@ def _merge_sources(
     overlay: _SourceTuple,
 ) -> _SourceTuple:
     """Merge two source tuples. Overlay entries take precedence over base."""
-    b_locale, b_stmap, b_pname, b_easy, b_opts, b_help, b_icons, b_ploc = base
-    o_locale, o_stmap, o_pname, o_easy, o_opts, o_help, o_icons, o_ploc = overlay
+    b_locale, b_stmap, b_pname, b_easy, b_opts, b_help, b_icons, b_ploc, b_eov = base
+    o_locale, o_stmap, o_pname, o_easy, o_opts, o_help, o_icons, o_ploc, o_eov = overlay
 
     # Merge locale_data (deep merge per locale per js_file)
     merged_locale: dict[str, dict[str, dict[str, str]]] = {}
@@ -1206,6 +1263,13 @@ def _merge_sources(
         merged.update(o_ploc.get(locale, {}))
         merged_ploc[locale] = merged
 
+    # Merge easymode option values (deep merge per param)
+    merged_eov: dict[str, dict[int, str]] = {}
+    for param in set(b_eov) | set(o_eov):
+        merged = dict(b_eov.get(param, {}))
+        merged.update(o_eov.get(param, {}))
+        merged_eov[param] = merged
+
     return (
         merged_locale,
         merged_stmap,
@@ -1215,6 +1279,7 @@ def _merge_sources(
         merged_help,
         merged_icons,
         merged_ploc,
+        merged_eov,
     )
 
 
@@ -1233,6 +1298,131 @@ def _load_dotenv(env_file: Path) -> None:
         value = value.strip().strip("\"'")
         if key and key not in os.environ:
             os.environ[key] = value
+
+
+def _process_locale(
+    *,
+    locale: str,
+    locale_data: dict[str, dict[str, dict[str, str]]],
+    stringtable_mapping: dict[str, str],
+    pname_data: dict[str, dict[str, str]],
+    easymode_mappings: dict[str, str],
+    options_tcl_data: dict[str, dict[str, str]],
+    help_data: dict[str, dict[str, str]],
+    profile_localization_data: dict[str, dict[str, str]],
+    easymode_option_values: dict[str, dict[int, str]],
+    output_dir: Path,
+) -> None:
+    """Process and output translation files for a single locale."""
+    ld = locale_data[locale]
+    print(f"Processing locale '{locale}'...")
+
+    # Channel types
+    channel_raw = ld.get("translate.lang.channelDescription.js", {})
+    channel_types = extract_channel_types(channel_raw)
+    count = write_json(output_dir, f"channel_types_{locale}.json", channel_types)
+    print(f"  channel_types_{locale}.json: {count} entries")
+
+    # Device models
+    device_raw = ld.get("translate.lang.deviceDescription.js", {})
+    device_models = extract_device_models(device_raw)
+    count = write_json(output_dir, f"device_models_{locale}.json", device_models)
+    print(f"  device_models_{locale}.json: {count} entries")
+
+    # Parameter names and values (resolved via stringtable mapping)
+    all_translations = merge_translation_dicts(ld)
+    parameters, parameter_values, unresolved = resolve_parameter_translations(stringtable_mapping, all_translations)
+
+    # Resolve options.tcl translations (option_type=value -> translated label)
+    options_values, options_count = resolve_options_tcl_translations(options_tcl_data, all_translations)
+    # Merge: don't override existing entries from stringtable
+    existing_pv_lower = {k.lower() for k in parameter_values}
+    for key, value in options_values.items():
+        if key.lower() not in existing_pv_lower:
+            parameter_values[key] = value
+            existing_pv_lower.add(key.lower())
+
+    # Resolve easymode TCL inline option values (param=index -> translated label)
+    # These are 'set options(N) "${templateVar}"' patterns inside easymode TCL files.
+    profile_loc = profile_localization_data.get(locale, {})
+    easymode_options_count = 0
+    for param_name, entries in easymode_option_values.items():
+        for index, template_var in entries.items():
+            key = f"{param_name}={index}"
+            if key.lower() in existing_pv_lower:
+                continue
+            resolved = all_translations.get(template_var) or profile_loc.get(template_var)
+            if resolved:
+                cleaned = clean_value(resolved)
+                if cleaned:
+                    parameter_values[key] = cleaned
+                    existing_pv_lower.add(key.lower())
+                    easymode_options_count += 1
+
+    # Merge PNAME direct parameter labels (higher priority than easymode TCL,
+    # because PNAME files contain official localization labels while easymode
+    # TCL files contain UI-layout descriptions that may include HTML artifacts)
+    pname_count = 0
+    existing_lower = {k.lower() for k in parameters}
+    if locale in pname_data:
+        for key, value in pname_data[locale].items():
+            if key.lower() not in existing_lower:
+                parameters[key] = value
+                existing_lower.add(key.lower())
+                pname_count += 1
+
+    # Resolve easymode TCL mappings (param -> template var -> translation)
+    # Look up in JS translations first, then fall back to profile localization
+    # (e.g. DSTStartDayOfWeek is defined in DaylightSavingTime.txt, not in JS files)
+    easymode_count = 0
+    for param_name, template_var in easymode_mappings.items():
+        if param_name.lower() in existing_lower:
+            continue
+        resolved = all_translations.get(template_var) or profile_loc.get(template_var)
+        if resolved:
+            cleaned = clean_value(resolved)
+            if cleaned:
+                parameters[param_name] = cleaned
+                existing_lower.add(param_name.lower())
+                easymode_count += 1
+
+    # Merge profile localization (lowest priority — after easymode)
+    profile_count = 0
+    if locale in profile_localization_data:
+        for key, value in profile_localization_data[locale].items():
+            if key.lower() not in existing_lower:
+                parameters[key] = value
+                existing_lower.add(key.lower())
+                profile_count += 1
+
+    count = write_json(output_dir, f"parameters_{locale}.json", parameters)
+    print(
+        f"  parameters_{locale}.json: {count} entries "
+        f"(+{easymode_count} easymode, +{pname_count} PNAME, +{profile_count} profile)"
+    )
+    count = write_json(output_dir, f"parameter_values_{locale}.json", parameter_values)
+    print(
+        f"  parameter_values_{locale}.json: {count} entries "
+        f"(+{options_count} options.tcl, +{easymode_options_count} easymode options)"
+    )
+
+    if unresolved:
+        print(f"  ({unresolved} unresolved template references)")
+
+    # Parameter help texts (HTML -> Markdown)
+    if locale in help_data:
+        parameter_help: dict[str, str] = {}
+        for key, raw_html in help_data[locale].items():
+            # Resolve ${templateVar} references using all translations
+            resolved = resolve_template(raw_html, all_translations)
+            if resolved is None:
+                # Strip unresolved ${vars} and use remaining text
+                resolved = _TEMPLATE_VAR_RE.sub("", raw_html)
+            markdown = clean_value_markdown(resolved)
+            if markdown:
+                parameter_help[key] = markdown
+        count = write_json(output_dir, f"parameter_help_{locale}.json", parameter_help)
+        print(f"  parameter_help_{locale}.json: {count} entries")
 
 
 def main() -> int:
@@ -1279,6 +1469,7 @@ def main() -> int:
             help_data,
             icon_data,
             profile_localization_data,
+            easymode_option_values,
         ) = sources[0]
     else:
         # Merge: OCCU local as base, remote CCU as overlay
@@ -1291,6 +1482,7 @@ def main() -> int:
             help_data,
             icon_data,
             profile_localization_data,
+            easymode_option_values,
         ) = _merge_sources(sources[0], sources[1])
         print("\nMerged local and remote sources.")
 
@@ -1303,96 +1495,18 @@ def main() -> int:
 
     # Phase 2 & 3: Process and output per locale
     for locale in _LOCALES:
-        ld = locale_data[locale]
-        print(f"Processing locale '{locale}'...")
-
-        # Channel types
-        channel_raw = ld.get("translate.lang.channelDescription.js", {})
-        channel_types = extract_channel_types(channel_raw)
-        count = write_json(output_dir, f"channel_types_{locale}.json", channel_types)
-        print(f"  channel_types_{locale}.json: {count} entries")
-
-        # Device models
-        device_raw = ld.get("translate.lang.deviceDescription.js", {})
-        device_models = extract_device_models(device_raw)
-        count = write_json(output_dir, f"device_models_{locale}.json", device_models)
-        print(f"  device_models_{locale}.json: {count} entries")
-
-        # Parameter names and values (resolved via stringtable mapping)
-        all_translations = merge_translation_dicts(ld)
-        parameters, parameter_values, unresolved = resolve_parameter_translations(stringtable_mapping, all_translations)
-
-        # Resolve options.tcl translations (option_type=value -> translated label)
-        options_values, options_count = resolve_options_tcl_translations(options_tcl_data, all_translations)
-        # Merge: don't override existing entries from stringtable
-        existing_pv_lower = {k.lower() for k in parameter_values}
-        for key, value in options_values.items():
-            if key.lower() not in existing_pv_lower:
-                parameter_values[key] = value
-                existing_pv_lower.add(key.lower())
-
-        # Merge PNAME direct parameter labels (higher priority than easymode TCL,
-        # because PNAME files contain official localization labels while easymode
-        # TCL files contain UI-layout descriptions that may include HTML artifacts)
-        pname_count = 0
-        existing_lower = {k.lower() for k in parameters}
-        if locale in pname_data:
-            for key, value in pname_data[locale].items():
-                if key.lower() not in existing_lower:
-                    parameters[key] = value
-                    existing_lower.add(key.lower())
-                    pname_count += 1
-
-        # Resolve easymode TCL mappings (param -> template var -> translation)
-        # Look up in JS translations first, then fall back to profile localization
-        # (e.g. DSTStartDayOfWeek is defined in DaylightSavingTime.txt, not in JS files)
-        profile_loc = profile_localization_data.get(locale, {})
-        easymode_count = 0
-        for param_name, template_var in easymode_mappings.items():
-            if param_name.lower() in existing_lower:
-                continue
-            resolved = all_translations.get(template_var) or profile_loc.get(template_var)
-            if resolved:
-                cleaned = clean_value(resolved)
-                if cleaned:
-                    parameters[param_name] = cleaned
-                    existing_lower.add(param_name.lower())
-                    easymode_count += 1
-
-        # Merge profile localization (lowest priority — after easymode)
-        profile_count = 0
-        if locale in profile_localization_data:
-            for key, value in profile_localization_data[locale].items():
-                if key.lower() not in existing_lower:
-                    parameters[key] = value
-                    existing_lower.add(key.lower())
-                    profile_count += 1
-
-        count = write_json(output_dir, f"parameters_{locale}.json", parameters)
-        print(
-            f"  parameters_{locale}.json: {count} entries "
-            f"(+{easymode_count} easymode, +{pname_count} PNAME, +{profile_count} profile)"
+        _process_locale(
+            locale=locale,
+            locale_data=locale_data,
+            stringtable_mapping=stringtable_mapping,
+            pname_data=pname_data,
+            easymode_mappings=easymode_mappings,
+            options_tcl_data=options_tcl_data,
+            help_data=help_data,
+            profile_localization_data=profile_localization_data,
+            easymode_option_values=easymode_option_values,
+            output_dir=output_dir,
         )
-        count = write_json(output_dir, f"parameter_values_{locale}.json", parameter_values)
-        print(f"  parameter_values_{locale}.json: {count} entries (+{options_count} options.tcl)")
-
-        if unresolved:
-            print(f"  ({unresolved} unresolved template references)")
-
-        # Parameter help texts (HTML -> Markdown)
-        if locale in help_data:
-            parameter_help: dict[str, str] = {}
-            for key, raw_html in help_data[locale].items():
-                # Resolve ${templateVar} references using all translations
-                resolved = resolve_template(raw_html, all_translations)
-                if resolved is None:
-                    # Strip unresolved ${vars} and use remaining text
-                    resolved = _TEMPLATE_VAR_RE.sub("", raw_html)
-                markdown = clean_value_markdown(resolved)
-                if markdown:
-                    parameter_help[key] = markdown
-            count = write_json(output_dir, f"parameter_help_{locale}.json", parameter_help)
-            print(f"  parameter_help_{locale}.json: {count} entries")
 
     print(f"\nDone. Translations written to {output_dir}/")
     return 0

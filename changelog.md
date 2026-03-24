@@ -1,4 +1,4 @@
-# Version 2026.3.14 (2026-03-23)
+# Version 2026.3.14 (2026-03-24)
 
 ## What's Changed
 
@@ -26,6 +26,18 @@
 - **Include easymode extract data in package**: Updated `pyproject.toml` to
   include `easymode_extract/*.json` and `easymode_extract/channel_metadata/*.json`
   in the distributed package.
+
+- **Extract easymode TCL inline option value translations**: New
+  `parse_easymode_tcl_option_values()` in `script/extract_ccu_translations.py`
+  extracts `param=index` → translated label mappings from `set options(N)`
+  patterns inside easymode TCL files, adding ~320 new parameter value
+  translations per locale (EN/DE) for parameters like `acoustic_alarm_signal`,
+  `acoustic_alarm_timing`, `optical_alarm_signal`, and many more.
+
+- **Add `use_fallback` parameter to `get_parameter_value_translation()`**: New
+  optional `use_fallback` flag (default `True`) allows callers to skip the
+  generic value-only fallback and restrict lookups to parameter-specific
+  translations only.
 
 # Version 2026.3.13 (2026-03-22)
 

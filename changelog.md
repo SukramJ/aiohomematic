@@ -1,3 +1,27 @@
+# Version 2026.3.15 (2026-03-24)
+
+## What's Changed
+
+### Improved
+
+- **Consolidate CCU extracted data into gzip archives**: Restructured the storage
+  of CCU-sourced data from individual JSON files to gzip-compressed archives,
+  reducing package size from ~11 MB to ~516 KB (95% reduction).
+
+  - New directory `aiohomematic/ccu_data/` replaces the previous scattered layout:
+    - `easymode_extract.json.gz` — all easymode metadata (was 65 files + 2 in
+      `easymode_extract/`, 10 MB → 140 KB)
+    - `translation_extract.json.gz` — all extracted CCU translations (was 11 files
+      in `translations/ccu_extract/`, 636 KB → 125 KB)
+    - `translation_custom/` — hand-maintained translation overrides (unchanged,
+      editable JSON files)
+  - Updated `easymode_data.py` and `ccu_translations.py` loaders to decompress
+    from `.json.gz` archives via `gzip.decompress()` + `pkgutil.get_data()`
+  - Updated extraction scripts (`extract_ccu_easymodes.py`,
+    `extract_ccu_translations.py`) to output gzip archives directly
+  - Removed `aiohomematic/easymode_extract/`, `translations/ccu_extract/`, and
+    `translations/ccu_custom/` directories
+
 # Version 2026.3.14 (2026-03-24)
 
 ## What's Changed

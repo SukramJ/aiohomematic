@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Extract CCU WebUI translations and generate JSON files for aiohomematic.
+Extract CCU WebUI translations and generate a gzip-compressed JSON archive.
 
 Parse JavaScript translation files from the OpenCCU/RaspberryMatic WebUI
-and the stringtable mapping file, then output structured JSON translation
-files for channel types, device models, parameter names, and parameter values.
+and the stringtable mapping file, then output a single
+``translation_extract.json.gz`` archive containing channel types, device models,
+parameter names, parameter values, parameter help, and device icons.
 
 Usage:
     # From local OCCU checkout (preferred)
@@ -21,10 +22,11 @@ Usage:
 Environment Variables:
     OCCU_PATH   Path to local OCCU checkout (preferred)
     CCU_URL     URL of a live CCU instance (alternative)
-    OUTPUT_DIR  Output directory (default: aiohomematic/translations/ccu_extract)
+    OUTPUT_DIR  Output directory (default: aiohomematic/ccu_data)
 """
 
 import contextlib
+import gzip
 import html as html_module
 import json
 import os
@@ -89,7 +91,7 @@ def _is_help_file(filename: str) -> bool:
 
 
 # Default output directory (relative to project root)
-_DEFAULT_OUTPUT_DIR = "aiohomematic/translations/ccu_extract"
+_DEFAULT_OUTPUT_DIR = "aiohomematic/ccu_data"
 
 # Mapping from options.tcl type name to VALUE_LIST strings.
 # These are the enum values as returned by the CCU API for each parameter.
@@ -801,15 +803,9 @@ def fetch_remote_file(ccu_url: str, relative_path: str) -> str:
         return result
 
 
-def write_json(output_dir: Path, filename: str, data: dict[str, str]) -> int:
-    """Write sorted JSON file with lowercase keys. Return entry count."""
-    sorted_data = dict(sorted((k.lower(), v) for k, v in data.items()))
-    file_path = output_dir / filename
-    file_path.write_text(
-        json.dumps(sorted_data, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    return len(sorted_data)
+def _prepare_data(data: dict[str, str]) -> dict[str, str]:
+    """Return sorted dict with lowercase keys."""
+    return dict(sorted((k.lower(), v) for k, v in data.items()))
 
 
 def load_master_lang_files(
@@ -1329,23 +1325,23 @@ def _process_locale(
     help_data: dict[str, dict[str, str]],
     profile_localization_data: dict[str, dict[str, str]],
     easymode_option_values: dict[str, dict[int, str]],
-    output_dir: Path,
+    archive: dict[str, dict[str, str]],
 ) -> None:
-    """Process and output translation files for a single locale."""
+    """Process translations for a single locale and store in archive dict."""
     ld = locale_data[locale]
     print(f"Processing locale '{locale}'...")
 
     # Channel types
     channel_raw = ld.get("translate.lang.channelDescription.js", {})
-    channel_types = extract_channel_types(channel_raw)
-    count = write_json(output_dir, f"channel_types_{locale}.json", channel_types)
-    print(f"  channel_types_{locale}.json: {count} entries")
+    channel_types = _prepare_data(extract_channel_types(channel_raw))
+    archive[f"channel_types_{locale}"] = channel_types
+    print(f"  channel_types_{locale}: {len(channel_types)} entries")
 
     # Device models
     device_raw = ld.get("translate.lang.deviceDescription.js", {})
-    device_models = extract_device_models(device_raw)
-    count = write_json(output_dir, f"device_models_{locale}.json", device_models)
-    print(f"  device_models_{locale}.json: {count} entries")
+    device_models = _prepare_data(extract_device_models(device_raw))
+    archive[f"device_models_{locale}"] = device_models
+    print(f"  device_models_{locale}: {len(device_models)} entries")
 
     # Parameter names and values (resolved via stringtable mapping)
     all_translations = merge_translation_dicts(ld)
@@ -1413,14 +1409,16 @@ def _process_locale(
                 existing_lower.add(key.lower())
                 profile_count += 1
 
-    count = write_json(output_dir, f"parameters_{locale}.json", parameters)
+    parameters_prepared = _prepare_data(parameters)
+    archive[f"parameters_{locale}"] = parameters_prepared
     print(
-        f"  parameters_{locale}.json: {count} entries "
+        f"  parameters_{locale}: {len(parameters_prepared)} entries "
         f"(+{easymode_count} easymode, +{pname_count} PNAME, +{profile_count} profile)"
     )
-    count = write_json(output_dir, f"parameter_values_{locale}.json", parameter_values)
+    pv_prepared = _prepare_data(parameter_values)
+    archive[f"parameter_values_{locale}"] = pv_prepared
     print(
-        f"  parameter_values_{locale}.json: {count} entries "
+        f"  parameter_values_{locale}: {len(pv_prepared)} entries "
         f"(+{options_count} options.tcl, +{easymode_options_count} easymode options)"
     )
 
@@ -1439,8 +1437,9 @@ def _process_locale(
             markdown = clean_value_markdown(resolved)
             if markdown:
                 parameter_help[key] = markdown
-        count = write_json(output_dir, f"parameter_help_{locale}.json", parameter_help)
-        print(f"  parameter_help_{locale}.json: {count} entries")
+        help_prepared = _prepare_data(parameter_help)
+        archive[f"parameter_help_{locale}"] = help_prepared
+        print(f"  parameter_help_{locale}: {len(help_prepared)} entries")
 
 
 def main() -> int:
@@ -1506,12 +1505,16 @@ def main() -> int:
 
     print()
 
+    # Collect all data into archive dict
+    archive: dict[str, dict[str, str]] = {}
+
     # Device icons (locale-independent, outside locale loop)
     if icon_data:
-        count = write_json(output_dir, "device_icons.json", icon_data)
-        print(f"device_icons.json: {count} entries")
+        icons_prepared = _prepare_data(icon_data)
+        archive["device_icons"] = icons_prepared
+        print(f"device_icons: {len(icons_prepared)} entries")
 
-    # Phase 2 & 3: Process and output per locale
+    # Phase 2 & 3: Process per locale, collecting into archive
     for locale in _LOCALES:
         _process_locale(
             locale=locale,
@@ -1523,10 +1526,17 @@ def main() -> int:
             help_data=help_data,
             profile_localization_data=profile_localization_data,
             easymode_option_values=easymode_option_values,
-            output_dir=output_dir,
+            archive=archive,
         )
 
-    print(f"\nDone. Translations written to {output_dir}/")
+    # Write gzip-compressed archive
+    archive_path = output_dir / "translation_extract.json.gz"
+    raw = json.dumps(archive, separators=(",", ":"), ensure_ascii=False, sort_keys=True).encode()
+    with gzip.open(archive_path, "wb", compresslevel=9) as gz:
+        gz.write(raw)
+
+    size_kb = archive_path.stat().st_size / 1024
+    print(f"\nDone. Archive written to {archive_path} ({size_kb:.0f} KB)")
     return 0
 
 

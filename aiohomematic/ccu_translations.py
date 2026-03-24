@@ -6,10 +6,11 @@ Loader for CCU-sourced translation data.
 Provide access to human-readable translations for channel types, device models,
 parameter names, and parameter enum values extracted from the OpenCCU WebUI.
 
-The auto-generated JSON files live in ``translations/ccu_extract/`` and are
-produced by ``script/extract_ccu_translations.py``.  Hand-maintained overrides
-go into ``translations/ccu_custom/`` (same file names).  At load time the two
-layers are merged: custom keys override or supplement extracted keys.
+Extracted translations are stored as a single gzip-compressed JSON archive in
+``ccu_data/translation_extract.json.gz``, produced by
+``script/extract_ccu_translations.py``.  Hand-maintained overrides live in
+``ccu_data/translation_custom/`` as individual JSON files.  At load time the
+two layers are merged: custom keys override or supplement extracted keys.
 
 All public functions are pure dict lookups after first access (no I/O),
 making them safe to call from the asyncio event loop. Thread safety is
@@ -19,11 +20,12 @@ Public API of this module is defined by __all__.
 """
 
 import contextlib
+import gzip
 import json
 import logging
 import pkgutil
 import threading
-from typing import Final
+from typing import Any, Final
 
 __all__ = [
     "get_channel_type_translation",
@@ -42,7 +44,8 @@ _SUPPORTED_LOCALES: Final = frozenset({"de", "en"})
 _DEFAULT_LOCALE: Final = "en"
 _CATEGORIES: Final = ("channel_types", "device_models", "parameter_help", "parameters", "parameter_values")
 _LOCALE_INDEPENDENT_CATEGORIES: Final = ("device_icons",)
-_SUBDIRS: Final = ("ccu_extract", "ccu_custom")
+_EXTRACT_ARCHIVE_RESOURCE: Final = "ccu_data/translation_extract.json.gz"
+_CUSTOM_DIR: Final = "ccu_data/translation_custom"
 
 # Prefixes used in LINK paramset parameter names (e.g. SHORT_ON_LEVEL, LONG_RAMPON_TIME).
 # The CCU WebUI strips these when looking up translations; we do the same as fallback
@@ -70,6 +73,32 @@ class _TranslationStore:
         self._loaded: bool = False
         self._lock: Final = threading.Lock()
 
+    @staticmethod
+    def _load_extract_archive() -> dict[str, Any]:
+        """Load the gzip-compressed translation extract archive."""
+        try:
+            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=_EXTRACT_ARCHIVE_RESOURCE)):
+                return {}
+            raw_json = gzip.decompress(data_bytes)
+            result: dict[str, Any] = json.loads(raw_json)
+        except (FileNotFoundError, json.JSONDecodeError, OSError) as err:
+            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, _EXTRACT_ARCHIVE_RESOURCE, err)
+            return {}
+        else:
+            return result
+
+    @staticmethod
+    def _merge_custom_file(*, target: dict[str, str], filename: str) -> None:
+        """Merge a custom override JSON file into the target dict."""
+        resource = f"{_CUSTOM_DIR}/{filename}"
+        try:
+            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=resource)):
+                return
+            raw: dict[str, str] = json.loads(data_bytes)
+            target.update({k.lower(): v for k, v in raw.items()})
+        except (FileNotFoundError, json.JSONDecodeError) as err:
+            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
+
     def get(self, *, category: str, locale: str) -> dict[str, str]:
         """Return translation dict for category and locale."""
         if not self._loaded:
@@ -90,9 +119,9 @@ class _TranslationStore:
         """
         Load all translation files (double-checked locking).
 
-        For each category/locale pair, load from ``ccu_extract/`` first,
-        then merge ``ccu_custom/`` on top so that custom keys override or
-        supplement extracted keys.
+        Load extracted translations from the gzip archive, then merge
+        custom overrides from individual JSON files on top so that
+        custom keys override or supplement extracted keys.
 
         Use pkgutil.get_data() instead of Path.read_text() to avoid
         blocking file I/O detection in Home Assistant's event loop.
@@ -100,34 +129,23 @@ class _TranslationStore:
         with self._lock:
             if self._loaded:
                 return
+            extract_data = self._load_extract_archive()
             for category in _CATEGORIES:
                 for locale in _SUPPORTED_LOCALES:
                     key = f"{category}_{locale}"
-                    filename = f"{key}.json"
                     merged: dict[str, str] = {}
-                    for subdir in _SUBDIRS:
-                        resource = f"translations/{subdir}/{filename}"
-                        try:
-                            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=resource)):
-                                continue
-                            raw: dict[str, str] = json.loads(data_bytes)
-                            merged.update({k.lower(): v for k, v in raw.items()})
-                        except (FileNotFoundError, json.JSONDecodeError) as err:
-                            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
+                    # Layer 1: extracted data from archive
+                    if (extracted := extract_data.get(key)) is not None:
+                        merged.update({k.lower(): v for k, v in extracted.items()})
+                    # Layer 2: custom overrides from individual files
+                    self._merge_custom_file(target=merged, filename=f"{key}.json")
                     self._data[key] = merged
             # Load locale-independent categories (single file, no locale suffix)
             for category in _LOCALE_INDEPENDENT_CATEGORIES:
-                filename = f"{category}.json"
                 li_merged: dict[str, str] = {}
-                for subdir in _SUBDIRS:
-                    resource = f"translations/{subdir}/{filename}"
-                    try:
-                        if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=resource)):
-                            continue
-                        li_raw: dict[str, str] = json.loads(data_bytes)
-                        li_merged.update({k.lower(): v for k, v in li_raw.items()})
-                    except (FileNotFoundError, json.JSONDecodeError) as err:
-                        _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
+                if (extracted := extract_data.get(category)) is not None:
+                    li_merged.update({k.lower(): v for k, v in extracted.items()})
+                self._merge_custom_file(target=li_merged, filename=f"{category}.json")
                 self._data[category] = li_merged
             # Build value-only indices for parameter_values:
             # Maps each enum value to its shortest (most generic) translation.

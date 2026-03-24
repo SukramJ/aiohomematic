@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
 """
-Extract CCU easymode metadata and generate JSON files for aiohomematic.
+Extract CCU easymode metadata and generate a gzip-compressed JSON archive.
 
 Parse TCL easymode configuration files from the OpenCCU/RaspberryMatic WebUI
-and output structured JSON metadata files for parameter groups, profiles,
-subsets, option presets, conditional visibility, and cross-validation rules.
+and output a single ``easymode_extract.json.gz`` archive containing channel
+metadata, option presets, and cross-validation rules.
 
 Usage:
     # From local OCCU checkout (preferred)
@@ -21,11 +21,12 @@ Usage:
 Environment Variables:
     OCCU_PATH   Path to local OCCU checkout (preferred)
     CCU_URL     URL of a live CCU instance (alternative)
-    OUTPUT_DIR  Output directory (default: aiohomematic/easymode_extract)
+    OUTPUT_DIR  Output directory (default: aiohomematic/ccu_data)
 """
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 from pathlib import Path
@@ -42,7 +43,7 @@ import urllib.request
 _EASYMODE_DIR = "config/easymodes"
 _OPTIONS_TCL_PATH = f"{_EASYMODE_DIR}/etc/options.tcl"
 
-_DEFAULT_OUTPUT_DIR = "aiohomematic/easymode_extract"
+_DEFAULT_OUTPUT_DIR = "aiohomematic/ccu_data"
 
 # Directories/files to skip when scanning easymode directories
 _SKIP_DIRS = frozenset(
@@ -608,49 +609,31 @@ def _merge_sources(
 # ---------------------------------------------------------------------------
 
 
-def write_json(output_dir: Path, filename: str, data: Any) -> int:
-    """Write JSON file with consistent formatting. Return entry count."""
-    filepath = output_dir / filename
-    filepath.parent.mkdir(parents=True, exist_ok=True)
-    with filepath.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False, sort_keys=True)
-        f.write("\n")
-    if isinstance(data, dict):
-        return len(data)
-    if isinstance(data, list):
-        return len(data)
-    return 1
-
-
 def generate_output(
     channel_metadata: dict[str, dict[str, Any]],
     option_presets: dict[str, Any],
     output_dir: Path,
 ) -> None:
-    """Generate all output JSON files."""
-    print(f"\nWriting output to {output_dir}/")
+    """Generate a single gzip-compressed JSON archive."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = output_dir / "easymode_extract.json.gz"
 
-    # 1. Write per-channel-type metadata files
-    ch_meta_dir = output_dir / "channel_metadata"
-    ch_meta_dir.mkdir(parents=True, exist_ok=True)
-    for ct_name, metadata in sorted(channel_metadata.items()):
-        count = write_json(ch_meta_dir, f"{ct_name}.json", metadata)
-        sender_count = len(metadata.get("sender_types", {}))
-        print(f"  channel_metadata/{ct_name}.json: {sender_count} sender types")
+    archive = {
+        "channel_metadata": dict(sorted(channel_metadata.items())),
+        "option_presets": dict(sorted(option_presets.items())),
+        "cross_validations": {"rules": _CROSS_VALIDATION_RULES},
+    }
 
-    print(f"  Total: {len(channel_metadata)} channel type files")
+    raw = json.dumps(archive, separators=(",", ":"), ensure_ascii=False, sort_keys=True).encode()
+    with gzip.open(archive_path, "wb", compresslevel=9) as gz:
+        gz.write(raw)
 
-    # 2. Write global option presets
-    count = write_json(output_dir, "option_presets.json", option_presets)
-    print(f"  option_presets.json: {count} option types")
-
-    # 3. Write cross-validation rules
-    count = write_json(
-        output_dir,
-        "cross_validations.json",
-        {"rules": _CROSS_VALIDATION_RULES},
-    )
-    print(f"  cross_validations.json: {len(_CROSS_VALIDATION_RULES)} rules")
+    size_kb = archive_path.stat().st_size / 1024
+    print(f"\nWriting output to {archive_path}")
+    print(f"  {len(channel_metadata)} channel types")
+    print(f"  {len(option_presets)} option preset types")
+    print(f"  {len(_CROSS_VALIDATION_RULES)} cross-validation rules")
+    print(f"  Archive size: {size_kb:.0f} KB")
 
 
 # ---------------------------------------------------------------------------
@@ -705,7 +688,7 @@ def main() -> int:
 
     generate_output(channel_metadata, option_presets, output_dir)
 
-    print(f"\nDone. Easymode metadata written to {output_dir}/")
+    print(f"\nDone. Easymode archive written to {output_dir}/easymode_extract.json.gz")
     return 0
 
 

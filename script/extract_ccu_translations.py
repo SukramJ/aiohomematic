@@ -432,10 +432,10 @@ _PNAME_ENTRY_RE = re.compile(r'"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"')
 _TCL_SET_PARAM_RE = re.compile(r"set\s+param\s+([A-Z][A-Z0-9_]*)")
 
 # Regex to extract ${templateVar} references in TCL (label candidates).
-# Matches any camelCase variable name (e.g. stringTableXxx, lblXxx, genericXxx).
-# Uppercase-only names (e.g. GROUP, PMSwChannel) and short vars (e.g. p, s, m)
-# are excluded — they are typically structural, not translatable labels.
-_TCL_TEMPLATE_REF_RE = re.compile(r"\$\{([a-z]\w{2,})\}")
+# Matches any mixed-case variable name (e.g. stringTableXxx, DSTStartDayOfWeek).
+# Short vars (e.g. p, s, m) are excluded via the minimum length requirement.
+# Uppercase-only names (e.g. ACTION, BLUE) are excluded in the matching code.
+_TCL_TEMPLATE_REF_RE = re.compile(r"\$\{([a-zA-Z]\w{2,})\}")
 
 
 def parse_pname_file(content: str) -> dict[str, str]:
@@ -491,8 +491,11 @@ def parse_easymode_tcl_mappings(easymode_dir: Path) -> dict[str, str]:
                     break
                 template_match = _TCL_TEMPLATE_REF_RE.search(lines[j])
                 if template_match:
-                    mappings[param_name] = template_match.group(1)
-                    break
+                    var_name = template_match.group(1)
+                    # Skip uppercase-only names (structural vars, not labels)
+                    if var_name.upper() != var_name:
+                        mappings[param_name] = var_name
+                        break
 
     return mappings
 
@@ -1341,11 +1344,14 @@ def main() -> int:
                     pname_count += 1
 
         # Resolve easymode TCL mappings (param -> template var -> translation)
+        # Look up in JS translations first, then fall back to profile localization
+        # (e.g. DSTStartDayOfWeek is defined in DaylightSavingTime.txt, not in JS files)
+        profile_loc = profile_localization_data.get(locale, {})
         easymode_count = 0
         for param_name, template_var in easymode_mappings.items():
             if param_name.lower() in existing_lower:
                 continue
-            resolved = all_translations.get(template_var)
+            resolved = all_translations.get(template_var) or profile_loc.get(template_var)
             if resolved:
                 cleaned = clean_value(resolved)
                 if cleaned:

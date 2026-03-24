@@ -508,9 +508,10 @@ def parse_easymode_tcl_option_values(easymode_dir: Path) -> dict[str, dict[int, 
     """
     Extract parameter -> {index: template_var} mappings from easymode TCL files.
 
-    Parse all *.tcl files for 'set param PARAM_NAME' followed by
-    'set options(N) "${templateVar}"' blocks within the next lines.
-    Return a mapping from parameter name to {index: template_var_name}.
+    For each 'set param PARAM_NAME', scan ahead for inline option definitions
+    and ComboBox/OptionBox usage. If inline options are found they are used;
+    otherwise the most recently defined options are reused (handles parameters
+    that share the same option set without redefining it).
     """
     result: dict[str, dict[int, str]] = {}
 
@@ -521,6 +522,8 @@ def parse_easymode_tcl_option_values(easymode_dir: Path) -> dict[str, dict[int, 
             content = tcl_file.read_text(encoding="iso-8859-1")
 
         lines = content.splitlines()
+        current_options: dict[int, str] = {}
+
         for i, line in enumerate(lines):
             param_match = _TCL_SET_PARAM_RE.search(line)
             if not param_match:
@@ -529,24 +532,36 @@ def parse_easymode_tcl_option_values(easymode_dir: Path) -> dict[str, dict[int, 
             if param_name in result:
                 continue
 
-            # Scan following lines for set options(N) "${templateVar}" blocks
-            entries: dict[int, str] = {}
+            # Scan ahead: collect inline options and check for ComboBox usage
+            inline_options: dict[int, str] = {}
+            has_combobox = False
             for j in range(i + 1, min(i + 30, len(lines))):
-                # Stop if we hit the next 'set param'
                 if _TCL_SET_PARAM_RE.search(lines[j]):
                     break
+                if re.search(r"array_clear\s+option", lines[j]):
+                    inline_options = {}
+                    continue
                 option_match = _TCL_SET_OPTION_RE.search(lines[j])
                 if option_match:
                     idx = int(option_match.group(1))
                     val = option_match.group(2)
-                    # Extract template variable from the value
                     tvars = _TEMPLATE_VAR_IN_OPTION_RE.findall(val)
                     interesting = [v for v in tvars if v not in _OPTION_SKIP_VARS]
                     if interesting:
-                        entries[idx] = interesting[0]
+                        inline_options[idx] = interesting[0]
+                    continue
+                if "get_ComboBox" in lines[j] or "getOptionBox" in lines[j]:
+                    has_combobox = True
 
-            if entries:
-                result[param_name] = entries
+            if has_combobox:
+                # Use inline options if found, otherwise reuse previous options
+                effective = inline_options or current_options
+                if effective:
+                    result[param_name] = dict(effective)
+
+            # Update current options for subsequent reuse
+            if inline_options:
+                current_options = dict(inline_options)
 
     return result
 

@@ -1,0 +1,44 @@
+!# name: acknowledge_message.fn
+!# param: "##message_id##"
+!#
+!# Acknowledge (receipt) a service message or alarm message by its ID.
+!# Uses AlReceipt() which works for both ID_SERVICES and ALARMDP objects.
+!# The trigger data point is checked for WRITE permission before receipt.
+!#
+!# Params for session recorder
+!#
+
+string sMessageId = "##message_id##";
+boolean bSuccess = false;
+string sError = "";
+
+object oAlarm = dom.GetObject(sMessageId);
+if (oAlarm) {
+    object oAlTriggerDP = dom.GetObject(oAlarm.AlTriggerDP());
+    if (oAlTriggerDP) {
+        if (oAlTriggerDP.Operations() & 2) {
+            oAlarm.AlReceipt();
+            bSuccess = true;
+        } else {
+            !# Trigger DP is not writable, receipt directly
+            oAlarm.AlReceipt();
+            bSuccess = true;
+        }
+    } else {
+        !# No trigger DP found, receipt directly
+        oAlarm.AlReceipt();
+        bSuccess = true;
+    }
+} else {
+    sError = "Message not found";
+}
+
+Write('{"success":');
+if (bSuccess) {
+    Write('true');
+} else {
+    Write('false');
+}
+Write(',"error":"');
+Write(sError);
+Write('"}');

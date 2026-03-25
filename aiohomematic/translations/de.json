@@ -171,6 +171,7 @@
   "log.client.is_callback_alive.no_events": "IS_CALLBACK_ALIVE: Callback für {interface_id} hat seit {seconds}s keine Ereignisse erhalten",
   "log.client.json_rpc.accept_device_in_inbox.failed": "ACCEPT_DEVICE_IN_INBOX für {device_address} fehlgeschlagen: JSON konnte nicht dekodiert werden: {reason}",
   "log.client.json_rpc.accept_device_in_inbox.invalid_address": "ACCEPT_DEVICE_IN_INBOX fehlgeschlagen: Ungültige Geräteadresse: {device_address}",
+  "log.client.json_rpc.acknowledge_message.decode_failed": "ACKNOWLEDGE_MESSAGE fehlgeschlagen: JSON konnte nicht dekodiert werden für Meldung {message_id}: {reason}",
   "log.client.json_rpc.create_backup_start.failed": "CREATE_BACKUP_START fehlgeschlagen: JSON konnte nicht dekodiert werden: {reason}",
   "log.client.json_rpc.create_backup_status.failed": "CREATE_BACKUP_STATUS fehlgeschlagen: JSON konnte nicht dekodiert werden: {reason}",
   "log.client.json_rpc.do_login.max_attempts_reached": "DO_LOGIN fehlgeschlagen: Maximale Anzahl fehlgeschlagener Anmeldeversuche ({max_attempts}) erreicht. Bitte Zugangsdaten überprüfen.",

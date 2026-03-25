@@ -1335,6 +1335,7 @@ class RegaScript(StrEnum):
     """Enum with Homematic rega scripts."""
 
     ACCEPT_DEVICE_IN_INBOX = "accept_device_in_inbox.fn"
+    ACKNOWLEDGE_MESSAGE = "acknowledge_message.fn"
     CREATE_BACKUP_START = "create_backup_start.fn"
     CREATE_BACKUP_STATUS = "create_backup_status.fn"
     FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"

@@ -148,6 +148,7 @@ class _FakeCentral:
 
 def _make_capabilities(
     *,
+    alarm_messages: bool = True,
     backup: bool = True,
     device_firmware_update: bool = True,
     firmware_update_trigger: bool = True,
@@ -170,6 +171,7 @@ def _make_capabilities(
 ) -> SimpleNamespace:
     """Create a capabilities object with all fields."""
     return SimpleNamespace(
+        alarm_messages=alarm_messages,
         backup=backup,
         device_firmware_update=device_firmware_update,
         firmware_update_trigger=firmware_update_trigger,
@@ -198,6 +200,7 @@ CCU_CAPABILITIES = _make_capabilities(
 )
 
 HOMEGEAR_CAPABILITIES = _make_capabilities(
+    alarm_messages=False,  # No alarm messages
     backup=False,  # Homegear doesn't support backup
     device_firmware_update=False,  # No firmware updates
     firmware_update_trigger=False,
@@ -242,6 +245,7 @@ class _FakeBackend:
         self.calls: list[tuple[str, Any]] = []
 
         # Configurable return values
+        self._alarm_messages_result: tuple[Any, ...] = ()
         self._rooms_result: dict[str, set[str]] = {}
         self._functions_result: dict[str, set[str]] = {}
         self._programs_result: tuple[Any, ...] = ()
@@ -271,6 +275,10 @@ class _FakeBackend:
     async def execute_program(self, *, pid: str) -> bool:
         self.calls.append(("execute_program", pid))
         return True
+
+    async def get_alarm_messages(self) -> tuple[Any, ...]:
+        self.calls.append(("get_alarm_messages", None))
+        return self._alarm_messages_result
 
     async def get_all_functions(self) -> dict[str, set[str]]:
         self.calls.append(("get_all_functions", None))
@@ -402,6 +410,17 @@ class TestBackendCapabilityGating:
 
         assert result is False
         assert not any(call[0] == "execute_program" for call in backend.calls)
+
+    @pytest.mark.asyncio
+    async def test_get_alarm_messages_capability_disabled(self) -> None:
+        """get_alarm_messages should return empty when capability disabled."""
+        caps = _make_capabilities(alarm_messages=False)
+        client, backend, _ = _create_client_with_capabilities(caps)
+
+        result = await client.get_alarm_messages()
+
+        assert result == ()
+        assert not any(call[0] == "get_alarm_messages" for call in backend.calls)
 
     @pytest.mark.asyncio
     async def test_get_all_functions_capability_disabled(self) -> None:

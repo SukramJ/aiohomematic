@@ -75,6 +75,7 @@ from aiohomematic.const import (
     RENAME_SYSVAR_BY_NAME,
     TIMEOUT,
     UTF_8,
+    AlarmMessageData,
     BackupStatus,
     BackupStatusData,
     CCUType,
@@ -208,6 +209,13 @@ def _log_json_parse_error_context(*, data: str, script_name: str, error: Excepti
     )
 
 
+def _parse_tab_separated(*, value: str) -> tuple[str, ...]:
+    """Parse a tab-separated string into a tuple of decoded strings."""
+    if not value:
+        return ()
+    return tuple(unquote(string=item, encoding=ISO_8859_1) for item in value.split("\t") if item)
+
+
 @unique
 class _JsonKey(StrEnum):
     """Enum for Homematic json keys."""
@@ -218,6 +226,7 @@ class _JsonKey(StrEnum):
     CHANNELS = "channels"
     CHANNEL_IDS = "channelIds"
     CHECK_SCRIPT_AVAILABLE = "check_script_available"
+    COUNTER = "counter"
     CURRENT_FIRMWARE = "current_firmware"
     DESCRIPTION = "description"
     DEVICE_ADDRESS = "device_address"
@@ -225,6 +234,7 @@ class _JsonKey(StrEnum):
     ERROR = "error"
     FILE = "file"
     FILENAME = "filename"
+    FUNCTIONS = "functions"
     HOSTNAME = "hostname"
     ID = "id"
     INSTALL_MODE = "installMode"
@@ -235,8 +245,11 @@ class _JsonKey(StrEnum):
     KEY = "key"
     KEYMODE = "keymode"
     LAST_EXECUTE_TIME = "lastExecuteTime"
+    LAST_TIMESTAMP = "last_timestamp"
+    LAST_TRIGGER = "last_trigger"
     MAX_VALUE = "maxValue"
     MESSAGE = "message"
+    MESSAGE_ID = "message_id"
     MIN_VALUE = "minValue"
     MODE = "mode"
     NAME = "name"
@@ -244,7 +257,9 @@ class _JsonKey(StrEnum):
     PARAMSET_KEY = "paramsetKey"
     PASSWORD = "password"
     PRODUCT = "product"
+    QUITTABLE = "quittable"
     RESULT = "result"
+    ROOMS = "rooms"
     SCRIPT = "script"
     SERIAL = "serial"
     SESSION_ID = "_session_id_"
@@ -498,6 +513,37 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return False
 
+    async def acknowledge_message(self, *, message_id: str) -> bool:
+        """
+        Acknowledge (receipt) a service message or alarm message.
+
+        Args:
+            message_id: The Rega ID of the message to acknowledge.
+
+        Returns:
+            True if the message was acknowledged successfully.
+
+        """
+        try:
+            response = await self._post_script(
+                script_name=RegaScript.ACKNOWLEDGE_MESSAGE,
+                extra_params={_JsonKey.MESSAGE_ID: message_id},
+            )
+
+            _LOGGER.debug("ACKNOWLEDGE_MESSAGE: Acknowledging message %s", message_id)
+            if json_result := response[_JsonKey.RESULT]:
+                return bool(json_result.get(_JsonKey.SUCCESS, False))
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    key="log.client.json_rpc.acknowledge_message.decode_failed",
+                    message_id=message_id,
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return False
+
     def clear_session(self) -> None:
         """Clear the current session."""
         self._session_id = None
@@ -698,6 +744,41 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
 
         return True
+
+    async def get_alarm_messages(self) -> tuple[AlarmMessageData, ...]:
+        """Get all active alarm messages from the backend."""
+        messages: list[AlarmMessageData] = []
+
+        try:
+            response = await self._post_script(script_name=RegaScript.GET_ALARM_MESSAGES)
+
+            _LOGGER.debug("GET_ALARM_MESSAGES: Getting alarm messages")
+            if json_result := response[_JsonKey.RESULT]:
+                messages.extend(
+                    AlarmMessageData(
+                        alarm_id=msg[_JsonKey.ID],
+                        name=unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1),
+                        description=unquote(string=msg.get(_JsonKey.DESCRIPTION, ""), encoding=ISO_8859_1),
+                        device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
+                        timestamp=msg.get(_JsonKey.TIMESTAMP, ""),
+                        last_timestamp=msg.get(_JsonKey.LAST_TIMESTAMP, ""),
+                        counter=msg.get(_JsonKey.COUNTER, 0),
+                        last_trigger=unquote(string=msg.get(_JsonKey.LAST_TRIGGER, ""), encoding=ISO_8859_1),
+                        rooms=_parse_tab_separated(
+                            value=msg.get(_JsonKey.ROOMS, ""),
+                        ),
+                    )
+                    for msg in json_result
+                )
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    key="log.client.json_rpc.get_alarm_messages.decode_failed",
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return tuple(messages)
 
     async def get_all_channel_rega_ids_function(self) -> Mapping[int, set[str]]:
         """Get all rega_ids per function from the backend."""
@@ -1089,6 +1170,15 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                             msg_type=msg_type,
                             address=msg.get(_JsonKey.ADDRESS, ""),
                             device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
+                            last_timestamp=msg.get(_JsonKey.LAST_TIMESTAMP, ""),
+                            counter=msg.get(_JsonKey.COUNTER, 0),
+                            rooms=_parse_tab_separated(
+                                value=msg.get(_JsonKey.ROOMS, ""),
+                            ),
+                            functions=_parse_tab_separated(
+                                value=msg.get(_JsonKey.FUNCTIONS, ""),
+                            ),
+                            quittable=msg.get(_JsonKey.QUITTABLE, False),
                         )
                     )
         except JSONDecodeError as jderr:

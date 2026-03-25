@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.3.16"
+VERSION: Final = "2026.3.17"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1335,9 +1335,11 @@ class RegaScript(StrEnum):
     """Enum with Homematic rega scripts."""
 
     ACCEPT_DEVICE_IN_INBOX = "accept_device_in_inbox.fn"
+    ACKNOWLEDGE_MESSAGE = "acknowledge_message.fn"
     CREATE_BACKUP_START = "create_backup_start.fn"
     CREATE_BACKUP_STATUS = "create_backup_status.fn"
     FETCH_ALL_DEVICE_DATA = "fetch_all_device_data.fn"
+    GET_ALARM_MESSAGES = "get_alarm_messages.fn"
     GET_BACKEND_INFO = "get_backend_info.fn"
     GET_INBOX_DEVICES = "get_inbox_devices.fn"
     GET_PROGRAM_DESCRIPTIONS = "get_program_descriptions.fn"
@@ -1406,9 +1408,11 @@ class IntegrationIssueType(StrEnum):
 class DataRefreshType(StrEnum):
     """Type of data refresh operation."""
 
+    ALARM_MESSAGES = "alarm_messages"
     CLIENT_DATA = "client_data"
     CONNECTIVITY = "connectivity"
     INBOX = "inbox"
+    SERVICE_MESSAGES = "service_messages"
     METRICS = "metrics"
     PROGRAM = "program"
     SYSTEM_UPDATE = "system_update"
@@ -1975,6 +1979,26 @@ class ServiceMessageData:
     msg_type: int
     address: str = ""
     device_name: str = ""
+    last_timestamp: str = ""
+    counter: int = 0
+    rooms: tuple[str, ...] = ()
+    functions: tuple[str, ...] = ()
+    quittable: bool = False
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class AlarmMessageData:
+    """Dataclass for alarm messages."""
+
+    alarm_id: str
+    name: str
+    description: str = ""
+    device_name: str = ""
+    timestamp: str = ""
+    last_timestamp: str = ""
+    counter: int = 0
+    last_trigger: str = ""
+    rooms: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

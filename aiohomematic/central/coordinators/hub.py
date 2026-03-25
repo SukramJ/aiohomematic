@@ -248,6 +248,18 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             return success
         return False
 
+    @inspector(re_raise=False)
+    async def fetch_alarm_messages_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch alarm messages data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_alarm_messages_data(scheduled=scheduled)
+
     def fetch_connectivity_data(self, *, scheduled: bool) -> None:
         """
         Refresh connectivity binary sensors with current values.
@@ -305,6 +317,18 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
 
         """
         await self._hub.fetch_program_data(scheduled=scheduled)
+
+    @inspector(re_raise=False)
+    async def fetch_service_messages_data(self, *, scheduled: bool) -> None:
+        """
+        Fetch service messages data from the backend.
+
+        Args:
+        ----
+            scheduled: Whether this is a scheduled refresh
+
+        """
+        await self._hub.fetch_service_messages_data(scheduled=scheduled)
 
     @inspector(re_raise=False)
     async def fetch_system_update_data(self, *, scheduled: bool) -> None:
@@ -431,6 +455,8 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         await self._hub.fetch_program_data(scheduled=True)
         await self._hub.fetch_sysvar_data(scheduled=True)
         await self._hub.fetch_inbox_data(scheduled=False)
+        await self._hub.fetch_service_messages_data(scheduled=False)
+        await self._hub.fetch_alarm_messages_data(scheduled=False)
         await self._hub.init_install_mode()
         self._hub.init_metrics()
         self._hub.init_connectivity()

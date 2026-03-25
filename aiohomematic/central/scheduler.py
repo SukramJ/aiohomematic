@@ -198,6 +198,14 @@ class BackgroundScheduler:
                 run_interval=self._config_provider.config.schedule_timer_config.sys_scan_interval,
             ),
             SchedulerJob(
+                task=self._refresh_service_messages_data,
+                run_interval=self._config_provider.config.schedule_timer_config.sys_scan_interval,
+            ),
+            SchedulerJob(
+                task=self._refresh_alarm_messages_data,
+                run_interval=self._config_provider.config.schedule_timer_config.sys_scan_interval,
+            ),
+            SchedulerJob(
                 task=self._refresh_system_update_data,
                 run_interval=self._config_provider.config.schedule_timer_config.system_update_check_interval,
             ),
@@ -474,6 +482,38 @@ class BackgroundScheduler:
         if event.event_type == DeviceLifecycleEventType.CREATED:
             self._devices_created_event.set()
 
+    async def _refresh_alarm_messages_data(self) -> None:
+        """Refresh alarm messages data."""
+        if not self._primary_client_avaliable or not self.devices_created:
+            return
+
+        _LOGGER.debug("REFRESH_ALARM_MESSAGES_DATA: For %s", self._central_info.name)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type=DataRefreshType.ALARM_MESSAGES,
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            await self._hub_data_fetcher.fetch_alarm_messages_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.ALARM_MESSAGES,
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.ALARM_MESSAGES,
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
+
     async def _refresh_client_data(self) -> None:
         """Refresh client data for polled interfaces."""
         if not self._central_info.available:
@@ -612,6 +652,38 @@ class BackgroundScheduler:
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
             await self._emit_refresh_completed(
                 refresh_type=DataRefreshType.PROGRAM,
+                interface_id=None,
+                success=False,
+                duration_ms=duration_ms,
+                error_message=str(exc),
+            )
+            raise
+
+    async def _refresh_service_messages_data(self) -> None:
+        """Refresh service messages data."""
+        if not self._primary_client_avaliable or not self.devices_created:
+            return
+
+        _LOGGER.debug("REFRESH_SERVICE_MESSAGES_DATA: For %s", self._central_info.name)
+        start_time = datetime.now()
+        self._emit_refresh_triggered(
+            refresh_type=DataRefreshType.SERVICE_MESSAGES,
+            interface_id=None,
+            scheduled=True,
+        )
+        try:
+            await self._hub_data_fetcher.fetch_service_messages_data(scheduled=True)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.SERVICE_MESSAGES,
+                interface_id=None,
+                success=True,
+                duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            await self._emit_refresh_completed(
+                refresh_type=DataRefreshType.SERVICE_MESSAGES,
                 interface_id=None,
                 success=False,
                 duration_ms=duration_ms,

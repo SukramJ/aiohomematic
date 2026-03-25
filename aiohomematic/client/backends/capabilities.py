@@ -51,6 +51,7 @@ class BackendCapabilities(BaseModel):
     metadata: bool = False
     rename: bool = False
     rega_id_lookup: bool = False
+    alarm_messages: bool = False
     service_messages: bool = False
     system_update_info: bool = False
     inbox_devices: bool = False
@@ -77,6 +78,7 @@ CCU_CAPABILITIES: Final = BackendCapabilities(
     firmware_updates=True,
     linking=True,
     value_usage_reporting=True,
+    alarm_messages=True,
     functions=True,
     rooms=True,
     metadata=True,

@@ -22,6 +22,7 @@ from aiohomematic.const import (
     INTERFACES_SUPPORTING_FIRMWARE_UPDATES,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
     LINKABLE_INTERFACES,
+    AlarmMessageData,
     Backend,
     BackupData,
     BackupStatus,
@@ -191,6 +192,10 @@ class CcuBackend(BaseBackend):
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program."""
         return await self._json_rpc.execute_program(pid=pid)
+
+    async def get_alarm_messages(self) -> tuple[AlarmMessageData, ...]:
+        """Return alarm messages."""
+        return await self._json_rpc.get_alarm_messages()
 
     async def get_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
         """Return all device data via JSON-RPC."""

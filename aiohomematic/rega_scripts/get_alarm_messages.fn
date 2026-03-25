@@ -1,0 +1,105 @@
+!# name: get_alarm_messages.fn
+!#
+!# Return all active alarm messages from the CCU.
+!# Alarm messages come from ID_SYSTEM_VARIABLES collection,
+!# filtered for ALARMDP type with active alarm state and a valid
+!# trigger data point (to exclude system counting variables and
+!# user-created alarm-type sysvars without device triggers).
+!#
+!# Note: Service messages are handled separately by get_service_messages.fn.
+!#
+
+string sVarId;
+boolean bFirst = true;
+
+Write('[');
+
+object oSysvars = dom.GetObject(ID_SYSTEM_VARIABLES);
+if (oSysvars) {
+    foreach(sVarId, oSysvars.EnumIDs()) {
+        object oVar = dom.GetObject(sVarId);
+        if (oVar) {
+            if (oVar.TypeName() == "ALARMDP") {
+                if (oVar.AlState() == asOncoming) {
+                    integer iTriggerDP = oVar.AlTriggerDP();
+                    if (iTriggerDP > 0) {
+                        object oTrigger = dom.GetObject(iTriggerDP);
+                        if (oTrigger) {
+                            if (bFirst) {
+                                bFirst = false;
+                            } else {
+                                Write(',');
+                            }
+
+                            string sName = oVar.Name();
+                            if (sName) {
+                                sName = sName.UriEncode();
+                            } else {
+                                sName = "";
+                            }
+
+                            string sDescription = "";
+                            string sDPInfo = oVar.DPInfo();
+                            if (sDPInfo) {
+                                sDescription = sDPInfo.UriEncode();
+                            }
+
+                            string sTimestamp = "";
+                            time tTime = oVar.Timestamp();
+                            if (tTime) {
+                                sTimestamp = tTime.ToString();
+                            }
+
+                            string sLastTrigger = "";
+                            string sTriggerName = oTrigger.Name();
+                            if (sTriggerName) {
+                                sLastTrigger = sTriggerName.UriEncode();
+                            }
+
+                            !# Note: oTrigger.Channel() returns the channel ID, not the object.
+                            string sDeviceName = "";
+                            string sRooms = "";
+                            integer iChnId = oTrigger.Channel();
+                            if (iChnId) {
+                                object oChn = dom.GetObject(iChnId);
+                                if (oChn) {
+                                    sDeviceName = oChn.Name();
+                                    if (sDeviceName) {
+                                        sDeviceName = sDeviceName.UriEncode();
+                                    } else {
+                                        sDeviceName = "";
+                                    }
+                                    boolean bFirstRoom = true;
+                                    string sRoomId;
+                                    foreach(sRoomId, oChn.ChnRoom()) {
+                                        object oRoom = dom.GetObject(sRoomId);
+                                        if (oRoom) {
+                                            if (bFirstRoom) {
+                                                bFirstRoom = false;
+                                            } else {
+                                                sRooms = sRooms # "\t";
+                                            }
+                                            sRooms = sRooms # oRoom.Name().UriEncode();
+                                        }
+                                    }
+                                }
+                            }
+
+                            Write('{"id":"' # oVar.ID() # '",');
+                            Write('"name":"' # sName # '",');
+                            Write('"description":"' # sDescription # '",');
+                            Write('"device_name":"' # sDeviceName # '",');
+                            Write('"timestamp":"' # sTimestamp # '",');
+                            Write('"last_timestamp":"' # sTimestamp # '",');
+                            Write('"counter":0,');
+                            Write('"last_trigger":"' # sLastTrigger # '",');
+                            Write('"rooms":"' # sRooms # '"}');
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+Write(']');

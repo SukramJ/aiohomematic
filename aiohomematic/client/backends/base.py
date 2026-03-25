@@ -20,6 +20,7 @@ from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.const import (
+    AlarmMessageData,
     BackupData,
     CircuitState,
     CommandRxMode,
@@ -137,6 +138,10 @@ class BaseBackend(BackendOperationsProtocol, ABC):
     async def execute_program(self, *, pid: str) -> bool:
         """Execute program (unsupported by default)."""
         return False
+
+    async def get_alarm_messages(self) -> tuple[AlarmMessageData, ...]:
+        """Return alarm messages (unsupported by default)."""
+        return ()
 
     async def get_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:
         """Return all device data (unsupported by default)."""

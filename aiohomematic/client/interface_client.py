@@ -33,6 +33,7 @@ from aiohomematic.const import (
     INIT_DATETIME,
     VIRTUAL_REMOTE_MODELS,
     WAIT_FOR_CALLBACK,
+    AlarmMessageData,
     BackupData,
     CallSource,
     ClientState,
@@ -402,6 +403,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     paramset_description=paramset_description,
                     device_type=device_type,
                 )
+
+    async def get_alarm_messages(self) -> tuple[AlarmMessageData, ...]:
+        """Get all active alarm messages from the backend."""
+        if not self._backend.capabilities.alarm_messages:
+            return ()
+        return await self._backend.get_alarm_messages()
 
     async def get_all_device_descriptions(self, *, device_address: str) -> tuple[DeviceDescription, ...]:
         """Get all device descriptions from the backend."""

@@ -82,11 +82,17 @@ class _FakeHub:
     def __init__(self) -> None:
         """Initialize fake hub."""
 
+    async def fetch_alarm_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch alarm messages data."""
+
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
         """Fetch inbox data."""
 
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data."""
+
+    async def fetch_service_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch service messages data."""
 
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch sysvar data."""
@@ -899,12 +905,16 @@ class TestHubCoordinatorInitHub:
         coordinator._hub.fetch_program_data = AsyncMock()  # type: ignore[method-assign]
         coordinator._hub.fetch_sysvar_data = AsyncMock()  # type: ignore[method-assign]
         coordinator._hub.fetch_inbox_data = AsyncMock()  # type: ignore[method-assign]
+        coordinator._hub.fetch_service_messages_data = AsyncMock()  # type: ignore[method-assign]
+        coordinator._hub.fetch_alarm_messages_data = AsyncMock()  # type: ignore[method-assign]
 
         await coordinator.init_hub()
 
         coordinator._hub.fetch_program_data.assert_called_once_with(scheduled=True)
         coordinator._hub.fetch_sysvar_data.assert_called_once_with(scheduled=True)
         coordinator._hub.fetch_inbox_data.assert_called_once_with(scheduled=False)
+        coordinator._hub.fetch_service_messages_data.assert_called_once_with(scheduled=False)
+        coordinator._hub.fetch_alarm_messages_data.assert_called_once_with(scheduled=False)
 
 
 class TestHubCoordinatorIntegration:

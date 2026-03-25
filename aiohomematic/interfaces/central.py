@@ -651,6 +651,10 @@ class HubFetchOperationsProtocol(Protocol):
     """
 
     @abstractmethod
+    async def fetch_alarm_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch alarm messages data from the backend."""
+
+    @abstractmethod
     def fetch_connectivity_data(self, *, scheduled: bool) -> None:
         """Refresh connectivity binary sensors with current values."""
 
@@ -665,6 +669,10 @@ class HubFetchOperationsProtocol(Protocol):
     @abstractmethod
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data from the backend."""
+
+    @abstractmethod
+    async def fetch_service_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch service messages data from the backend."""
 
     @abstractmethod
     async def fetch_system_update_data(self, *, scheduled: bool) -> None:

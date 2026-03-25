@@ -27,7 +27,7 @@ Public API
   SysvarDpNumber, SysvarDpSwitch, SysvarDpText
 - Install mode: InstallModeDpButton, InstallModeDpSensor, InstallModeDpType
 - Metrics: HmSystemHealthSensor, HmConnectionLatencySensor, HmLastEventAgeSensor, MetricsDpType
-- Other: HmInboxSensor, HmUpdate
+- Other: HmAlarmMessagesSensor, HmInboxSensor, HmServiceMessagesSensor, HmUpdate
 - Base types: GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
 
 Sysvar type mapping
@@ -46,6 +46,7 @@ Related modules
 
 """
 
+from aiohomematic.model.hub.alarm_messages import HmAlarmMessagesSensor
 from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.connectivity import HmInterfaceConnectivitySensor
@@ -57,11 +58,14 @@ from aiohomematic.model.hub.metrics import HmConnectionLatencySensor, HmLastEven
 from aiohomematic.model.hub.number import SysvarDpNumber
 from aiohomematic.model.hub.select import SysvarDpSelect
 from aiohomematic.model.hub.sensor import SysvarDpSensor
+from aiohomematic.model.hub.service_messages import HmServiceMessagesSensor
 from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from aiohomematic.model.hub.text import SysvarDpText
 from aiohomematic.model.hub.update import HmUpdate
 
 __all__ = [
+    # Alarm messages
+    "HmAlarmMessagesSensor",
     # Base
     "GenericHubDataPoint",
     "GenericProgramDataPoint",
@@ -86,6 +90,8 @@ __all__ = [
     "ProgramDpButton",
     "ProgramDpSwitch",
     "ProgramDpType",
+    # Service messages
+    "HmServiceMessagesSensor",
     # Sysvar
     "SysvarDpBinarySensor",
     "SysvarDpNumber",

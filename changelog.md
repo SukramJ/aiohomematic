@@ -1,3 +1,32 @@
+# Version 2026.3.17 (2026-03-25)
+
+## What's Changed
+
+### Added
+
+- **Service messages hub sensor**: New `HmServiceMessagesSensor` exposes active CCU
+  service messages (from `ID_SERVICES`) as a hub sensor in Home Assistant. The sensor
+  value is the count of active messages; full message details are available via the
+  `messages` attribute.
+
+- **Alarm messages hub sensor**: New `HmAlarmMessagesSensor` exposes active CCU alarm
+  messages (from `ID_SYSTEM_VARIABLES`) as a hub sensor. These are user-created system
+  alarms shown in the CCU WebUI under "Alarmmeldungen" — previously not available in
+  aiohomematic at all.
+
+- **Extended service message data**: `ServiceMessageData` now includes `last_timestamp`,
+  `counter`, `rooms` (tuple), `functions` (tuple), and `quittable` flag, matching the
+  data shown in the CCU WebUI. Inactive channels are filtered out.
+
+- **Alarm message data**: New `AlarmMessageData` dataclass with `alarm_id`, `name`,
+  `description`, `timestamp`, `last_timestamp`, `counter`, `last_trigger`, and `rooms`.
+
+- **New ReGa script**: `get_alarm_messages.fn` reads alarm messages from
+  `ID_SYSTEM_VARIABLES`, filtered for active `ALARMDP` objects.
+
+- **Backend capability**: `alarm_messages` flag added to `BackendCapabilities`
+  (enabled for CCU backend only).
+
 # Version 2026.3.16 (2026-03-24)
 
 ## What's Changed

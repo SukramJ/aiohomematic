@@ -4,7 +4,7 @@
 
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
 from aiohttp import ClientConnectorCertificateError, ClientSession, ContentTypeError
 from aiohttp.client_exceptions import ClientConnectorError, ClientError
@@ -1587,3 +1587,932 @@ class TestServiceMessagesAndSystemUpdate:
         assert result is True
 
         await client.stop()
+
+
+class TestJsonRpcClientNewCoverage:
+    """Additional tests to improve coverage for previously untested methods."""
+
+    @pytest.mark.asyncio
+    async def test_acknowledge_message_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """acknowledge_message returns False on JSONDecodeError."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(*, script_name: str, extra_params: Any = None, keep_session: bool = True) -> None:
+            raise compat.JSONDecodeError("bad json")
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.acknowledge_message(message_id="99")
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_acknowledge_message_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """acknowledge_message returns True when the script reports success."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: {_JsonKey.SUCCESS: True}}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.acknowledge_message(message_id="42")
+        assert result is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_create_backup_start_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """create_backup_start returns False on JSONDecodeError."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(*, script_name: str, extra_params: Any = None, keep_session: bool = True) -> None:
+            raise compat.JSONDecodeError("bad json")
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.create_backup_start()
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_create_backup_start_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """create_backup_start returns True when the script reports success."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: {_JsonKey.SUCCESS: True}}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.create_backup_start()
+        assert result is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_create_backup_status_completed(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """create_backup_status returns COMPLETED status when backup finished."""
+        from aiohomematic.const import BackupStatus
+
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: {_JsonKey.STATUS: "completed"},
+            }
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.create_backup_status()
+        assert result.status == BackupStatus.COMPLETED
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_create_backup_status_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """create_backup_status returns IDLE BackupStatusData on JSONDecodeError."""
+        from aiohomematic.const import BackupStatus
+
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(*, script_name: str, extra_params: Any = None, keep_session: bool = True) -> None:
+            raise compat.JSONDecodeError("bad json")
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.create_backup_status()
+        assert result.status == BackupStatus.IDLE
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_create_backup_status_running(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """create_backup_status returns RUNNING status with metadata when backup is in progress."""
+        from aiohomematic.const import BackupStatus
+
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: {
+                    _JsonKey.STATUS: "running",
+                    _JsonKey.FILE: "/usr/local/backup.tar.gz",
+                    _JsonKey.FILENAME: "backup.tar.gz",
+                    _JsonKey.SIZE: 1024,
+                },
+            }
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.create_backup_status()
+        assert result.status == BackupStatus.RUNNING
+        assert result.filename == "backup.tar.gz"
+        assert result.size == 1024
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_create_backup_status_unknown_falls_back_to_idle(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """create_backup_status falls back to IDLE for unknown status strings."""
+        from aiohomematic.const import BackupStatus
+
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: {_JsonKey.STATUS: "totally_unknown_status"},
+            }
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.create_backup_status()
+        assert result.status == BackupStatus.IDLE
+        await client.stop()
+
+        async def fake_login_or_renew() -> None:
+            pass
+
+        monkeypatch.setattr(client, "_login_or_renew", fake_login_or_renew)
+
+        class _FakeErrorResponse:
+            status = 503
+
+            async def __aenter__(self) -> Self:
+                return self
+
+            async def __aexit__(self, *args: object) -> None:
+                pass
+
+            async def read(self) -> bytes:
+                return b""
+
+        monkeypatch.setattr(client._client_session, "get", lambda *a, **kw: _FakeErrorResponse())
+
+        result = await client.download_backup()
+        assert result is None
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_download_backup_http_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """download_backup returns None when the HTTP GET returns a non-200 status."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "my-sid"  # type: ignore[attr-defined]
+
+        async def fake_login_or_renew() -> None:
+            pass
+
+        monkeypatch.setattr(client, "_login_or_renew", fake_login_or_renew)
+
+        class _FakeBadResponse:
+            status = 500
+
+            async def __aenter__(self) -> Self:
+                return self
+
+            async def __aexit__(self, *args: object) -> None:
+                pass
+
+            async def read(self) -> bytes:
+                return b""
+
+        monkeypatch.setattr(client._client_session, "get", lambda *a, **kw: _FakeBadResponse())
+
+        result = await client.download_backup()
+        assert result is None
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_download_backup_no_session_after_login(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """download_backup returns None when session_id remains None after login attempt."""
+        client = self._make_client(aiohttp_session)
+        # session_id stays None
+
+        async def fake_login_or_renew() -> None:
+            pass  # does NOT set _session_id
+
+        monkeypatch.setattr(client, "_login_or_renew", fake_login_or_renew)
+        await client.download_backup()
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_download_backup_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """download_backup returns bytes content when the HTTP GET returns 200."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "my-sid"  # type: ignore[attr-defined]
+
+        # Patch _login_or_renew so it does nothing (session already set)
+        async def fake_login_or_renew() -> None:
+            pass
+
+        monkeypatch.setattr(client, "_login_or_renew", fake_login_or_renew)
+
+        fake_content = b"PKzip-backup-data"
+
+        class _FakeGetResponse:
+            status = 200
+
+            async def __aenter__(self) -> Self:
+                return self
+
+            async def __aexit__(self, *args: object) -> None:
+                pass
+
+            async def read(self) -> bytes:
+                return fake_content
+
+        monkeypatch.setattr(client._client_session, "get", lambda *a, **kw: _FakeGetResponse())
+
+        result = await client.download_backup()
+        assert result == fake_content
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_download_firmware_http_failure(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """download_firmware returns False when backend returns non-200 status."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "my-sid"  # type: ignore[attr-defined]
+
+        async def fake_login_or_renew() -> None:
+            pass
+
+        monkeypatch.setattr(client, "_login_or_renew", fake_login_or_renew)
+
+        class _FakeBadPostResponse:
+            status = 500
+
+            async def __aenter__(self) -> Self:
+                return self
+
+            async def __aexit__(self, *args: object) -> None:
+                pass
+
+        monkeypatch.setattr(client._client_session, "post", lambda *a, **kw: _FakeBadPostResponse())
+
+        result = await client.download_firmware(firmware_url="http://example.com/firmware.bin")
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_download_firmware_invalid_url(self, aiohttp_session: ClientSession) -> None:
+        """download_firmware returns False immediately for non-http(s) firmware URLs."""
+        client = self._make_client(aiohttp_session)
+        result = await client.download_firmware(firmware_url="ftp://evil.example/fw.bin")
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_download_firmware_no_session_after_login(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """download_firmware returns False when no session after login."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_login_or_renew() -> None:
+            pass
+
+        monkeypatch.setattr(client, "_login_or_renew", fake_login_or_renew)
+        # session_id is None by default
+        result = await client.download_firmware(firmware_url="http://example.com/fw.bin")
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_download_firmware_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """download_firmware returns True when the backend POST responds with 200."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "my-sid"  # type: ignore[attr-defined]
+
+        async def fake_login_or_renew() -> None:
+            pass
+
+    @pytest.mark.asyncio
+    async def test_get_alarm_messages_empty(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_alarm_messages returns empty tuple when result is empty list."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: []}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.get_alarm_messages()
+        assert result == ()
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_alarm_messages_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_alarm_messages returns empty tuple on JSONDecodeError."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(*, script_name: str, extra_params: Any = None, keep_session: bool = True) -> None:
+            raise compat.JSONDecodeError("bad json")
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.get_alarm_messages()
+        assert result == ()
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_alarm_messages_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_alarm_messages parses and returns AlarmMessageData tuples."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: [
+                    {
+                        _JsonKey.ID: "1",
+                        _JsonKey.NAME: "ALARM%20ONE",
+                        _JsonKey.DESCRIPTION: "desc",
+                        _JsonKey.TIMESTAMP: "2024-01-01 00:00:00",
+                        _JsonKey.LAST_TIMESTAMP: "2024-01-01 01:00:00",
+                        _JsonKey.COUNTER: 3,
+                        _JsonKey.LAST_TRIGGER: "trigger",
+                        _JsonKey.ROOMS: "Room%201",
+                    }
+                ],
+            }
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.get_alarm_messages()
+        assert len(result) == 1
+        assert result[0].alarm_id == "1"
+        assert result[0].name == "ALARM ONE"
+        assert result[0].counter == 3
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_all_programs_empty_result(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_all_programs returns empty tuple when backend returns no programs."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: None}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.get_all_programs(markers=())
+        assert result == ()
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_all_programs_with_marker_filters_internal(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_all_programs with markers excludes internal programs not matching any marker."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: [
+                    {
+                        _JsonKey.ID: "ext1",
+                        _JsonKey.NAME: "External Program",
+                        _JsonKey.IS_ACTIVE: True,
+                        _JsonKey.IS_INTERNAL: False,
+                        _JsonKey.LAST_EXECUTE_TIME: "2024-01-01T00:00:00",
+                    },
+                    {
+                        _JsonKey.ID: "int1",
+                        _JsonKey.NAME: "Internal Program",
+                        _JsonKey.IS_ACTIVE: True,
+                        _JsonKey.IS_INTERNAL: True,
+                        _JsonKey.LAST_EXECUTE_TIME: "2024-01-01T00:00:00",
+                    },
+                ],
+            }
+
+        async def fake_prog_desc() -> dict[str, Any]:
+            return {"ext1": "#HAHM# External"}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        monkeypatch.setattr(client, "_get_program_descriptions", fake_prog_desc)
+
+        # When markers does NOT include INTERNAL, internal programs are excluded
+        result = await client.get_all_programs(markers=(DescriptionMarker.HAHM,))
+        ids = [p.pid for p in result]
+        assert "int1" not in ids
+        # ext1 matches the HAHM marker via description
+        assert "ext1" in ids
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_inbox_devices_empty(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_inbox_devices returns empty tuple when no devices are in the inbox."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: []}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.get_inbox_devices()
+        assert result == ()
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_inbox_devices_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_inbox_devices returns empty tuple on JSONDecodeError."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(*, script_name: str, extra_params: Any = None, keep_session: bool = True) -> None:
+            raise compat.JSONDecodeError("bad json")
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.get_inbox_devices()
+        assert result == ()
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_inbox_devices_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_inbox_devices returns populated InboxDeviceData tuples."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: [
+                    {
+                        _JsonKey.ID: 7,
+                        _JsonKey.ADDRESS: "VCU1234567",
+                        _JsonKey.NAME: "My%20Device",
+                        _JsonKey.TYPE: "HmIP-SWDO",
+                        _JsonKey.INTERFACE: "HmIP-RF",
+                    }
+                ],
+            }
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.get_inbox_devices()
+        assert len(result) == 1
+        assert result[0].device_id == 7
+        assert result[0].address == "VCU1234567"
+        assert result[0].name == "My Device"
+        assert result[0].device_type == "HmIP-SWDO"
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_install_mode_returns_remaining_time(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_install_mode returns the remaining seconds from the backend response."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: 42}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.get_install_mode(interface=Interface.HMIP_RF)
+        assert result == 42
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_install_mode_returns_zero_when_no_result(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_install_mode returns 0 when result is falsy."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: None}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.get_install_mode(interface=Interface.HMIP_RF)
+        assert result == 0
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_has_credentials_false_empty_username(self, aiohttp_session: ClientSession) -> None:
+        """_has_credentials returns False when username is empty."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="",
+            password="pass",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+        assert client._has_credentials is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_has_credentials_true(self, aiohttp_session: ClientSession) -> None:
+        """_has_credentials returns True when both username and password are non-empty."""
+        client = self._make_client(aiohttp_session)
+        assert client._has_credentials is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_has_program_ids_false(self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch) -> None:
+        """has_program_ids returns False when backend responds with None result."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: None}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.has_program_ids(rega_id=9999)
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_has_program_ids_true(self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch) -> None:
+        """has_program_ids returns True when backend responds with truthy result."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: True}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.has_program_ids(rega_id=1234)
+        assert result is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_is_activated_false_when_no_session(self, aiohttp_session: ClientSession) -> None:
+        """is_activated returns False when session_id is None."""
+        client = self._make_client(aiohttp_session)
+        assert client.is_activated is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_is_activated_true_when_session_set(self, aiohttp_session: ClientSession) -> None:
+        """is_activated returns True when session_id is populated."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "my-session"  # type: ignore[attr-defined]
+        assert client.is_activated is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_is_present_false(self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch) -> None:
+        """is_present returns False when backend reports interface not present."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: None}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.is_present(interface=Interface.HMIP_RF)
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_is_present_true(self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch) -> None:
+        """is_present returns True when backend confirms the interface is present."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: True}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.is_present(interface=Interface.HMIP_RF)
+        assert result is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_is_service_available_returns_false_when_login_returns_none(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """is_service_available returns False when _do_login returns None."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_do_login() -> None:
+            return None
+
+        monkeypatch.setattr(client, "_do_login", fake_do_login)
+        result = await client.is_service_available()
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_is_service_available_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """is_service_available returns True when login succeeds."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_do_login() -> str:
+            return "session-123"
+
+        monkeypatch.setattr(client, "_do_login", fake_do_login)
+        result = await client.is_service_available()
+        assert result is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_is_service_available_unavailable_on_exception(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """is_service_available returns False when login raises a homematic exception."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_do_login() -> None:
+            raise NoConnectionException("unreachable")
+
+        monkeypatch.setattr(client, "_do_login", fake_do_login)
+        result = await client.is_service_available()
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_set_install_mode_hmip_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """set_install_mode_hmip returns True when the backend responds with a non-None result."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: True}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.set_install_mode_hmip(interface=Interface.HMIP_RF)
+        assert result is True
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_set_install_mode_hmip_with_device_address(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """set_install_mode_hmip passes device_address to the backend correctly."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        captured: dict[str, Any] = {}
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            captured["extra_params"] = extra_params
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: True}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        result = await client.set_install_mode_hmip(
+            interface=Interface.HMIP_RF,
+            on=False,
+            time=120,
+            device_address="VCU1234567",
+        )
+        assert result is True
+        assert captured["extra_params"]["address"] == "VCU1234567"
+        assert captured["extra_params"]["on"] == "false"
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_set_program_state_disable(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """set_program_state returns True and sends state='0' when disabling a program."""
+        client = self._make_client(aiohttp_session)
+
+        captured: dict[str, Any] = {}
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            captured["extra_params"] = extra_params
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: None}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.set_program_state(pid="p2", state=False)
+        assert result is True
+        assert captured["extra_params"][_JsonKey.STATE] == "0"
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_set_program_state_enable(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """set_program_state returns True and sends state='1' when enabling a program."""
+        client = self._make_client(aiohttp_session)
+
+        captured: dict[str, Any] = {}
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            captured["extra_params"] = extra_params
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: {"ok": True}}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.set_program_state(pid="p1", state=True)
+        assert result is True
+        assert captured["extra_params"][_JsonKey.STATE] == "1"
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_closes_internal_session(self) -> None:
+        """stop() closes the internally created session when no external session is provided."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            tls=False,
+        )
+        assert client._is_internal_session is True
+        # stop() must not raise even without a real server
+        await client.stop()
+        assert client._client_session.closed is True
+
+    @pytest.mark.asyncio
+    async def test_stop_does_not_close_external_session(self, aiohttp_session: ClientSession) -> None:
+        """stop() must not close an externally supplied session."""
+        client = self._make_client(aiohttp_session)
+        assert client._is_internal_session is False
+        await client.stop()
+        assert aiohttp_session.closed is False
+
+    @pytest.mark.asyncio
+    async def test_trigger_firmware_update_json_decode_error(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """trigger_firmware_update returns False on JSONDecodeError."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(*, script_name: str, extra_params: Any = None, keep_session: bool = True) -> None:
+            raise compat.JSONDecodeError("bad json")
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.trigger_firmware_update()
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_trigger_firmware_update_not_triggered(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """trigger_firmware_update returns False when the script reports not triggered."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: {_JsonKey.SUCCESS: False, _JsonKey.MESSAGE: "not supported"},
+            }
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.trigger_firmware_update()
+        assert result is False
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_trigger_firmware_update_success(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """trigger_firmware_update returns True when the script reports success."""
+        client = self._make_client(aiohttp_session)
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: {_JsonKey.SUCCESS: True, _JsonKey.MESSAGE: "started"},
+            }
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+        result = await client.trigger_firmware_update()
+        assert result is True
+        await client.stop()
+
+    def _make_client(self, aiohttp_session: ClientSession) -> AioJsonRpcAioHttpClient:
+        """Return a client configured for unit testing without real network access."""
+        conn_state = hmcu.CentralConnectionState()
+        return AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )

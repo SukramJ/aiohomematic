@@ -2288,13 +2288,27 @@ class HubProtocol(Protocol):
 
     @property
     @abstractmethod
+    def alarm_messages_dp(self) -> GenericHubDataPointProtocol | None:
+        """Return the alarm messages data point."""
+
+    @property
+    @abstractmethod
     def inbox_dp(self) -> GenericHubDataPointProtocol | None:
         """Return the inbox data point."""
 
     @property
     @abstractmethod
+    def service_messages_dp(self) -> GenericHubDataPointProtocol | None:
+        """Return the service messages data point."""
+
+    @property
+    @abstractmethod
     def update_dp(self) -> GenericHubDataPointProtocol | None:
         """Return the system update data point."""
+
+    @abstractmethod
+    async def fetch_alarm_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch alarm messages data for the hub."""
 
     @abstractmethod
     async def fetch_inbox_data(self, *, scheduled: bool) -> None:
@@ -2307,6 +2321,10 @@ class HubProtocol(Protocol):
     @abstractmethod
     async def fetch_program_data(self, *, scheduled: bool) -> None:
         """Fetch program data for the hub."""
+
+    @abstractmethod
+    async def fetch_service_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch service messages data for the hub."""
 
     @abstractmethod
     async def fetch_system_update_data(self, *, scheduled: bool) -> None:

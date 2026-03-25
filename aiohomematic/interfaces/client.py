@@ -483,6 +483,9 @@ class MetadataOperationsProtocol(Protocol):
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
 
+    async def get_alarm_messages(self) -> tuple[Any, ...]:
+        """Get all active alarm messages from the backend."""
+
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Get all functions from the backend."""
 

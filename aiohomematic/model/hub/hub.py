@@ -73,6 +73,7 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
+from aiohomematic.model.hub.alarm_messages import HmAlarmMessagesSensor
 from aiohomematic.model.hub.binary_sensor import SysvarDpBinarySensor
 from aiohomematic.model.hub.button import ProgramDpButton
 from aiohomematic.model.hub.connectivity import HmInterfaceConnectivitySensor
@@ -83,6 +84,7 @@ from aiohomematic.model.hub.metrics import HmConnectionLatencySensor, HmLastEven
 from aiohomematic.model.hub.number import SysvarDpNumber
 from aiohomematic.model.hub.select import SysvarDpSelect
 from aiohomematic.model.hub.sensor import SysvarDpSensor
+from aiohomematic.model.hub.service_messages import HmServiceMessagesSensor
 from aiohomematic.model.hub.switch import ProgramDpSwitch, SysvarDpSwitch
 from aiohomematic.model.hub.text import SysvarDpText
 from aiohomematic.model.hub.update import HmUpdate
@@ -124,6 +126,7 @@ class Hub(HubProtocol):
     """The Homematic hub."""
 
     __slots__ = (
+        "_alarm_messages_dp",
         "_central_info",
         "_channel_lookup",
         "_client_provider",
@@ -141,10 +144,13 @@ class Hub(HubProtocol):
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_primary_client_provider",
+        "_sema_fetch_alarm_messages",
         "_sema_fetch_inbox",
         "_sema_fetch_programs",
+        "_sema_fetch_service_messages",
         "_sema_fetch_sysvars",
         "_sema_fetch_update",
+        "_service_messages_dp",
         "_task_scheduler",
         "_unsubscribers",
         "_update_dp",
@@ -173,6 +179,8 @@ class Hub(HubProtocol):
         self._sema_fetch_programs: Final = asyncio.Semaphore()
         self._sema_fetch_update: Final = asyncio.Semaphore()
         self._sema_fetch_inbox: Final = asyncio.Semaphore()
+        self._sema_fetch_service_messages: Final = asyncio.Semaphore()
+        self._sema_fetch_alarm_messages: Final = asyncio.Semaphore()
         self._config_provider: Final = config_provider
         self._central_info: Final = central_info
         self._client_provider: Final = client_provider
@@ -189,15 +197,19 @@ class Hub(HubProtocol):
         self._health_tracker: Final = health_tracker
         self._update_dp: HmUpdate | None = None
         self._inbox_dp: HmInboxSensor | None = None
+        self._service_messages_dp: HmServiceMessagesSensor | None = None
+        self._alarm_messages_dp: HmAlarmMessagesSensor | None = None
         self._install_mode_dps: dict[Interface, InstallModeDpType] = {}
         self._metrics_dps: MetricsDpType | None = None
         self._connectivity_dps: dict[str, ConnectivityDpType] = {}
         self._unsubscribers: list[Callable[[], None]] = []
 
+    alarm_messages_dp: Final = DelegatedProperty[HmAlarmMessagesSensor | None](path="_alarm_messages_dp")
     connectivity_dps: Final = DelegatedProperty[Mapping[str, ConnectivityDpType]](path="_connectivity_dps")
     inbox_dp: Final = DelegatedProperty[HmInboxSensor | None](path="_inbox_dp")
     install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_install_mode_dps")
     metrics_dps: Final = DelegatedProperty[MetricsDpType | None](path="_metrics_dps")
+    service_messages_dp: Final = DelegatedProperty[HmServiceMessagesSensor | None](path="_service_messages_dp")
     update_dp: Final = DelegatedProperty[HmUpdate | None](path="_update_dp")
 
     def create_connectivity_dps(self) -> Mapping[str, ConnectivityDpType]:
@@ -302,6 +314,20 @@ class Hub(HubProtocol):
 
         return self._metrics_dps
 
+    @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
+    async def fetch_alarm_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch alarm messages data for the hub."""
+        if self._central_info.model is not Backend.CCU:
+            return
+        _LOGGER.debug(
+            "FETCH_ALARM_MESSAGES_DATA: %s fetching of alarm messages for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        async with self._sema_fetch_alarm_messages:
+            if self._central_info.available:
+                await self._update_alarm_messages_data_point()
+
     def fetch_connectivity_data(self, *, scheduled: bool) -> None:
         """
         Refresh connectivity binary sensors with current values.
@@ -392,6 +418,20 @@ class Hub(HubProtocol):
                 # to allow hub operations when secondary clients (e.g., CUxD) fail
                 if (client := self._primary_client_provider.primary_client) and client.available:
                     await self._update_program_data_points()
+
+    @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
+    async def fetch_service_messages_data(self, *, scheduled: bool) -> None:
+        """Fetch service messages data for the hub."""
+        if self._central_info.model is not Backend.CCU:
+            return
+        _LOGGER.debug(
+            "FETCH_SERVICE_MESSAGES_DATA: %s fetching of service messages for %s",
+            "Scheduled" if scheduled else "Manual",
+            self._central_info.name,
+        )
+        async with self._sema_fetch_service_messages:
+            if self._central_info.available:
+                await self._update_service_messages_data_point()
 
     @inspector(re_raise=False, scope=ServiceScope.INTERNAL)
     async def fetch_system_update_data(self, *, scheduled: bool) -> None:
@@ -692,6 +732,34 @@ class Hub(HubProtocol):
         for vid in del_data_point_ids:
             self._hub_data_point_manager.remove_sysvar_data_point(vid=vid)
 
+    async def _update_alarm_messages_data_point(self) -> None:
+        """Retrieve alarm messages and update the data point."""
+        if not (client := self._primary_client_provider.primary_client):
+            return
+
+        alarms = await client.get_alarm_messages()
+        is_new = False
+
+        if self._alarm_messages_dp is None:
+            self._alarm_messages_dp = HmAlarmMessagesSensor(
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+            )
+            is_new = True
+
+        self._alarm_messages_dp.update_data(alarms=alarms, write_at=datetime.now())
+
+        if is_new:
+            self._event_publisher.publish_system_event(
+                system_event=SystemEventType.HUB_REFRESHED,
+                new_data_points=_get_new_hub_data_points(data_points=[self._alarm_messages_dp]),
+            )
+
     async def _update_inbox_data_point(self) -> None:
         """Retrieve inbox devices and update the data point."""
         if not (client := self._primary_client_provider.primary_client):
@@ -752,6 +820,34 @@ class Hub(HubProtocol):
             self._event_publisher.publish_system_event(
                 system_event=SystemEventType.HUB_REFRESHED,
                 new_data_points=_get_new_hub_data_points(data_points=new_programs),
+            )
+
+    async def _update_service_messages_data_point(self) -> None:
+        """Retrieve service messages and update the data point."""
+        if not (client := self._primary_client_provider.primary_client):
+            return
+
+        messages = await client.get_service_messages()
+        is_new = False
+
+        if self._service_messages_dp is None:
+            self._service_messages_dp = HmServiceMessagesSensor(
+                config_provider=self._config_provider,
+                central_info=self._central_info,
+                event_bus_provider=self._event_bus_provider,
+                event_publisher=self._event_publisher,
+                task_scheduler=self._task_scheduler,
+                paramset_description_provider=self._paramset_description_provider,
+                parameter_visibility_provider=self._parameter_visibility_provider,
+            )
+            is_new = True
+
+        self._service_messages_dp.update_data(messages=messages, write_at=datetime.now())
+
+        if is_new:
+            self._event_publisher.publish_system_event(
+                system_event=SystemEventType.HUB_REFRESHED,
+                new_data_points=_get_new_hub_data_points(data_points=[self._service_messages_dp]),
             )
 
     async def _update_system_update_data_point(self) -> None:

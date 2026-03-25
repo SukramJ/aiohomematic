@@ -17,11 +17,6 @@ if (oServices) {
     foreach(sAlarmId, oServices.EnumIDs()) {
         object oAlarm = dom.GetObject(sAlarmId);
         if (oAlarm && (oAlarm.AlState() == 1)) {
-            if (bFirst) {
-                bFirst = false;
-            } else {
-                Write(',');
-            }
 
             string sRawName = oAlarm.Name();
             string sName = "";
@@ -41,6 +36,23 @@ if (oServices) {
             string sAddress = "";
             string sDeviceName = "";
 
+            !# Last update timestamp (separate from AlOccurrenceTime which is first occurrence)
+            string sLastTimestamp = "";
+            time tLastTime = oAlarm.Timestamp();
+            if (tLastTime) {
+                sLastTimestamp = tLastTime.ToString();
+            }
+
+            !# Trigger count
+            integer iCounter = oAlarm.AlCounter();
+
+            !# Quittable flag (Operations has WRITE bit = 2)
+            boolean bQuittable = false;
+            integer iOps = oAlarm.Operations();
+            if (iOps & 2) {
+                bQuittable = true;
+            }
+
             !# Extract address from alarm name (format: "AL-ADDRESS:X.PARAM")
             if (sRawName.Find("AL-") == 0) {
                 string sTmp = sRawName.Substr(3);
@@ -50,32 +62,82 @@ if (oServices) {
                 }
             }
 
-            !# Get device name from trigger data point channel
+            !# Get device name, rooms, and functions from trigger data point channel
+            string sRooms = "";
+            string sFunctions = "";
+            boolean bSkip = false;
             integer iTriggerDP = oAlarm.AlTriggerDP();
             if (iTriggerDP) {
                 object oTrigger = dom.GetObject(iTriggerDP);
                 if (oTrigger) {
                     object oChn = oTrigger.Channel();
                     if (oChn) {
-                        if (sAddress == "") {
-                            sAddress = oChn.Address();
+                        !# Skip inactive channels
+                        if (oChn.ChnInactive()) {
+                            bSkip = true;
                         }
-                        sDeviceName = oChn.Name();
-                        if (sDeviceName) {
-                            sDeviceName = sDeviceName.UriEncode();
-                        } else {
-                            sDeviceName = "";
+                        if (!bSkip) {
+                            if (sAddress == "") {
+                                sAddress = oChn.Address();
+                            }
+                            sDeviceName = oChn.Name();
+                            if (sDeviceName) {
+                                sDeviceName = sDeviceName.UriEncode();
+                            } else {
+                                sDeviceName = "";
+                            }
+                            !# Rooms (collect all)
+                            boolean bFirstRoom = true;
+                            string sRoomId;
+                            foreach(sRoomId, oChn.ChnRoom()) {
+                                object oRoom = dom.GetObject(sRoomId);
+                                if (oRoom) {
+                                    if (bFirstRoom) {
+                                        bFirstRoom = false;
+                                    } else {
+                                        sRooms = sRooms # "\t";
+                                    }
+                                    sRooms = sRooms # oRoom.Name().UriEncode();
+                                }
+                            }
+                            !# Functions (collect all)
+                            boolean bFirstFunc = true;
+                            string sFuncId;
+                            foreach(sFuncId, oChn.ChnFunction()) {
+                                object oFunc = dom.GetObject(sFuncId);
+                                if (oFunc) {
+                                    if (bFirstFunc) {
+                                        bFirstFunc = false;
+                                    } else {
+                                        sFunctions = sFunctions # "\t";
+                                    }
+                                    sFunctions = sFunctions # oFunc.Name().UriEncode();
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            Write('{"id":"' # oAlarm.ID() # '",');
-            Write('"name":"' # sName # '",');
-            Write('"timestamp":"' # sTimestamp # '",');
-            Write('"type":' # iType # ',');
-            Write('"address":"' # sAddress # '",');
-            Write('"device_name":"' # sDeviceName # '"}');
+            if (!bSkip) {
+                if (bFirst) {
+                    bFirst = false;
+                } else {
+                    Write(',');
+                }
+
+                Write('{"id":"' # oAlarm.ID() # '",');
+                Write('"name":"' # sName # '",');
+                Write('"timestamp":"' # sTimestamp # '",');
+                Write('"type":' # iType # ',');
+                Write('"address":"' # sAddress # '",');
+                Write('"device_name":"' # sDeviceName # '",');
+                Write('"last_timestamp":"' # sLastTimestamp # '",');
+                Write('"counter":' # iCounter # ',');
+                Write('"rooms":"' # sRooms # '",');
+                Write('"functions":"' # sFunctions # '",');
+                Write('"quittable":' # bQuittable # '}');
+            }
         }
     }
 }

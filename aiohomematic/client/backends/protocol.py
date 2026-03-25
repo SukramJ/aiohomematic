@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from aiohomematic.client.backends.capabilities import BackendCapabilities
     from aiohomematic.client.circuit_breaker import CircuitBreaker
     from aiohomematic.const import (
+        AlarmMessageData,
         BackupData,
         CommandRxMode,
         DescriptionMarker,
@@ -128,6 +129,10 @@ class BackendOperationsProtocol(Protocol):
 
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program by ID."""
+        ...
+
+    async def get_alarm_messages(self) -> tuple[AlarmMessageData, ...]:
+        """Return active alarm messages."""
         ...
 
     async def get_all_device_data(self, *, interface: Interface) -> dict[str, Any] | None:

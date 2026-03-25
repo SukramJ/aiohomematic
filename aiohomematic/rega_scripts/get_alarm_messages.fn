@@ -1,0 +1,100 @@
+!# name: get_alarm_messages.fn
+!#
+!# Return all active alarm messages from the CCU.
+!# Alarm messages come from ID_SYSTEM_VARIABLES collection,
+!# filtered for ALARMDP type with active alarm state.
+!#
+!# Note: Service messages are handled separately by get_service_messages.fn.
+!#
+
+string sVarId;
+boolean bFirst = true;
+
+Write('[');
+
+object oSysvars = dom.GetObject(ID_SYSTEM_VARIABLES);
+if (oSysvars) {
+    foreach(sVarId, oSysvars.EnumIDs()) {
+        object oVar = dom.GetObject(sVarId);
+        if (oVar && (oVar.TypeName() == "ALARMDP") && (oVar.AlState() == asOncoming) && (oVar.State() == true)) {
+            if (bFirst) {
+                bFirst = false;
+            } else {
+                Write(',');
+            }
+
+            string sName = oVar.Name();
+            if (sName) {
+                sName = sName.UriEncode();
+            } else {
+                sName = "";
+            }
+
+            string sDescription = "";
+            string sDPInfo = oVar.DPInfo();
+            if (sDPInfo) {
+                sDescription = sDPInfo.UriEncode();
+            }
+
+            !# First occurrence timestamp
+            string sTimestamp = "";
+            time tTime = oVar.AlOccurrenceTime();
+            if (tTime) {
+                sTimestamp = tTime.ToString();
+            }
+
+            !# Last trigger timestamp
+            string sLastTimestamp = "";
+            time tLastTime = oVar.Timestamp();
+            if (tLastTime) {
+                sLastTimestamp = tLastTime.ToString();
+            }
+
+            !# Trigger count
+            integer iCounter = oVar.AlCounter();
+
+            !# Last trigger message (with fallback for older firmware)
+            string sLastTrigger = "";
+            string sAltd = oVar.LastTriggerMessage();
+            if (sAltd) {
+                sLastTrigger = sAltd.UriEncode();
+            }
+
+            !# Room info from trigger data point channel (collect all)
+            string sRooms = "";
+            integer iTriggerDP = oVar.AlTriggerDP();
+            if (iTriggerDP) {
+                object oTrigger = dom.GetObject(iTriggerDP);
+                if (oTrigger) {
+                    object oChn = oTrigger.Channel();
+                    if (oChn) {
+                        boolean bFirstRoom = true;
+                        string sRoomId;
+                        foreach(sRoomId, oChn.ChnRoom()) {
+                            object oRoom = dom.GetObject(sRoomId);
+                            if (oRoom) {
+                                if (bFirstRoom) {
+                                    bFirstRoom = false;
+                                } else {
+                                    sRooms = sRooms # "\t";
+                                }
+                                sRooms = sRooms # oRoom.Name().UriEncode();
+                            }
+                        }
+                    }
+                }
+            }
+
+            Write('{"id":"' # oVar.ID() # '",');
+            Write('"name":"' # sName # '",');
+            Write('"description":"' # sDescription # '",');
+            Write('"timestamp":"' # sTimestamp # '",');
+            Write('"last_timestamp":"' # sLastTimestamp # '",');
+            Write('"counter":' # iCounter # ',');
+            Write('"last_trigger":"' # sLastTrigger # '",');
+            Write('"rooms":"' # sRooms # '"}');
+        }
+    }
+}
+
+Write(']');

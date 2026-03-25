@@ -800,3 +800,605 @@ class TestDeviceDataPoints:
         exp = Exporter(device=device)
         anon = exp._anonymize_address(address=f"{device.address}:1")  # type: ignore[attr-defined]
         assert anon.split(":")[0] != device.address.split(":")[0]
+
+
+class TestDeviceGetterNoneChannel:
+    """Tests for Device.get_generic_data_point and get_generic_event with channel_address=None."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_generic_data_point_no_channel_address_found(
+        self, central_client_factory_with_homegear_client
+    ) -> None:
+        """Test get_generic_data_point with channel_address=None loops channels and returns match."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        # With channel_address=None and a known parameter, it should find a match by iterating channels.
+        from aiohomematic.const import Parameter
+
+        result = device.get_generic_data_point(channel_address=None, parameter=Parameter.UN_REACH)
+        # UN_REACH exists on channel :0, so we get a non-None result via the loop path.
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_generic_data_point_no_channel_address_not_found(
+        self, central_client_factory_with_homegear_client
+    ) -> None:
+        """Test get_generic_data_point with channel_address=None returns None when parameter absent."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        # A deliberately non-existent parameter should return None after looping all channels.
+        result = device.get_generic_data_point(channel_address=None, parameter="__NONEXISTENT__")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_generic_event_no_channel_address_found(
+        self, central_client_factory_with_homegear_client
+    ) -> None:
+        """Test get_generic_event with channel_address=None returns first matching event."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        # At least one channel should have a KEYPRESS event; iterate via channel_address=None.
+        all_events = [e for ch in device.channels.values() for e in ch.generic_events]
+        if all_events:
+            first_event = all_events[0]
+            result = device.get_generic_event(channel_address=None, parameter=first_event.parameter)
+            assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_generic_event_no_channel_address_not_found(
+        self, central_client_factory_with_homegear_client
+    ) -> None:
+        """Test get_generic_event with channel_address=None returns None when parameter absent."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        result = device.get_generic_event(channel_address=None, parameter="__NONEXISTENT_EVENT__")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_identify_channel_returns_none(self, central_client_factory_with_homegear_client) -> None:
+        """Test identify_channel returns None when text matches no channel address or id."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        # Text that cannot match any channel address or rega_id.
+        result = device.identify_channel(text="totally_unknown_xyz_999999")
+        assert result is None
+
+
+class TestDeviceAvailabilityDetails:
+    """Tests for _DeviceAvailability helper methods."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_battery_level_battery_state_fallback(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test _get_battery_level BATTERY_STATE fallback path when no OperatingVoltageLevel exists."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.const import Parameter
+        from aiohomematic.model.device import Channel, Device
+
+        # Patch at the class level: get_calculated_data_point returns None to skip OperatingVoltageLevel.
+        monkeypatch.setattr(Channel, "get_calculated_data_point", lambda self, *, parameter: None)
+
+        # Patch get_generic_data_point on Device class to return fake BATTERY_STATE dp.
+        class _FakeDp:
+            value: Any = 85.0
+
+        original_get_generic = Device.get_generic_data_point
+
+        def fake_get_generic(
+            self: Any,
+            *,
+            channel_address: str | None = None,
+            parameter: str | None = None,
+            paramset_key: Any = None,
+            state_path: str | None = None,
+        ) -> Any:
+            if parameter == Parameter.BATTERY_STATE:
+                return _FakeDp()
+            return original_get_generic(
+                self,
+                channel_address=channel_address,
+                parameter=parameter,
+                paramset_key=paramset_key,
+                state_path=state_path,
+            )
+
+        monkeypatch.setattr(Device, "get_generic_data_point", fake_get_generic)
+
+        result = device._availability._get_battery_level()  # type: ignore[attr-defined]
+        assert result == 85
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_last_updated_empty_channels(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test _get_last_updated returns None when all channels have no data points."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.model.device import Channel
+
+        # Patch get_data_points to always return an empty tuple.
+        monkeypatch.setattr(Channel, "get_data_points", lambda self, **kw: ())
+
+        result = device._availability._get_last_updated()  # type: ignore[attr-defined]
+        assert result is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_low_battery_channels_iteration(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test _get_low_battery iterates channels 0, 1, 2 and returns value when found."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.const import Parameter
+        from aiohomematic.model.device import Device
+
+        class _FakeLowBatDp:
+            value: Any = True
+
+        device_address = device.address
+        original = Device.get_generic_data_point
+
+        def fake_get_generic(
+            self: Any,
+            *,
+            channel_address: str | None = None,
+            parameter: str | None = None,
+            paramset_key: Any = None,
+            state_path: str | None = None,
+        ) -> Any:
+            # Return True LOW_BAT on channel :1 only.
+            if parameter == Parameter.LOW_BAT and channel_address == f"{device_address}:1":
+                return _FakeLowBatDp()
+            if parameter == Parameter.LOW_BAT and channel_address == f"{device_address}:0":
+                return None
+            return original(
+                self,
+                channel_address=channel_address,
+                parameter=parameter,
+                paramset_key=paramset_key,
+                state_path=state_path,
+            )
+
+        monkeypatch.setattr(Device, "get_generic_data_point", fake_get_generic)
+
+        result = device._availability._get_low_battery()  # type: ignore[attr-defined]
+        assert result is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_low_battery_returns_none_when_absent(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test _get_low_battery returns None when LOW_BAT absent on all channels."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.const import Parameter
+        from aiohomematic.model.device import Device
+
+        original = Device.get_generic_data_point
+
+        def no_low_bat(
+            self: Any,
+            *,
+            channel_address: str | None = None,
+            parameter: str | None = None,
+            paramset_key: Any = None,
+            state_path: str | None = None,
+        ) -> Any:
+            if parameter == Parameter.LOW_BAT:
+                return None
+            return original(
+                self,
+                channel_address=channel_address,
+                parameter=parameter,
+                paramset_key=paramset_key,
+                state_path=state_path,
+            )
+
+        monkeypatch.setattr(Device, "get_generic_data_point", no_low_bat)
+
+        result = device._availability._get_low_battery()  # type: ignore[attr-defined]
+        assert result is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_signal_strength_when_rssi_absent(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test _get_signal_strength returns None when RSSI_DEVICE absent on channel 0."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.const import Parameter
+        from aiohomematic.model.device import Device
+
+        original = Device.get_generic_data_point
+
+        def no_rssi(
+            self: Any,
+            *,
+            channel_address: str | None = None,
+            parameter: str | None = None,
+            paramset_key: Any = None,
+            state_path: str | None = None,
+        ) -> Any:
+            if parameter == Parameter.RSSI_DEVICE:
+                return None
+            return original(
+                self,
+                channel_address=channel_address,
+                parameter=parameter,
+                paramset_key=paramset_key,
+                state_path=state_path,
+            )
+
+        monkeypatch.setattr(Device, "get_generic_data_point", no_rssi)
+
+        result = device._availability._get_signal_strength()  # type: ignore[attr-defined]
+        assert result is None
+
+
+class TestDeviceFirmwareRefresh:
+    """Tests for _DeviceFirmware.refresh_data partial change detection."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_refresh_data_no_change_does_not_publish(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test refresh_data does not publish event when firmware data unchanged."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        published: list[int] = []
+
+        def on_firmware_update() -> None:
+            published.append(1)
+
+        remove = device.subscribe_to_firmware_updated(handler=on_firmware_update)
+
+        # Capture original description and ensure provider returns same data.
+        orig_desc = dict(device._device_description)  # type: ignore[attr-defined]
+
+        from aiohomematic.store.persistent import DeviceDescriptionRegistry
+
+        def same_desc(self, *, interface_id: str, address: str) -> dict[str, Any]:
+            return dict(orig_desc)
+
+        monkeypatch.setattr(DeviceDescriptionRegistry, "get_device_description", same_desc)
+
+        device.refresh_firmware_data()
+        await central.looper.block_till_done()
+
+        assert not published, "No firmware event should fire when nothing changed."
+        remove()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_refresh_data_only_firmware_updatable_changes(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test refresh_data publishes event when only firmware_updatable field changes."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        published: list[int] = []
+
+        def on_firmware_update() -> None:
+            published.append(1)
+
+        remove = device.subscribe_to_firmware_updated(handler=on_firmware_update)
+
+        orig_desc = dict(device._device_description)  # type: ignore[attr-defined]
+        modified_desc = dict(orig_desc)
+        # Flip FIRMWARE_UPDATABLE to trigger a partial change.
+        modified_desc["FIRMWARE_UPDATABLE"] = not (orig_desc.get("FIRMWARE_UPDATABLE") or False)
+
+        from aiohomematic.store.persistent import DeviceDescriptionRegistry
+
+        def modified(self, *, interface_id: str, address: str) -> dict[str, Any]:
+            return dict(modified_desc)
+
+        monkeypatch.setattr(DeviceDescriptionRegistry, "get_device_description", modified)
+
+        device.refresh_firmware_data()
+        await central.looper.block_till_done()
+
+        assert published, "Firmware event should fire when firmware_updatable changes."
+        remove()
+
+
+class TestValueCachePaths:
+    """Tests for _ValueCache cache hit and device unavailable branches."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_value_cache_hit(self, central_client_factory_with_homegear_client, monkeypatch) -> None:
+        """Test get_value returns cached value on subsequent identical call (cache hit path)."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.const import CallSource, ParamsetKey
+
+        # Pick a real generic data point from channel :0 with VALUES paramset.
+        ch0_dps = [
+            dp for dp in device.generic_data_points if dp.channel.no == 0 and dp.paramset_key == ParamsetKey.VALUES
+        ]
+        assert ch0_dps, "Need at least one VALUES dp on channel :0."
+        dp0 = ch0_dps[0]
+        dpk = dp0.dpk
+
+        backend_calls: list[int] = []
+        original_get_value = device.client.get_value
+
+        async def counting_get_value(**kw: Any) -> Any:
+            backend_calls.append(1)
+            return original_get_value(**kw)
+
+        monkeypatch.setattr(device.client, "get_value", counting_get_value)
+
+        # First call: populates cache.
+        await device.value_cache.get_value(dpk=dpk, call_source=CallSource.HM_INIT)
+        calls_after_first = len(backend_calls)
+
+        # Second call with direct_call=False: should hit device_cache, no backend call.
+        await device.value_cache.get_value(dpk=dpk, call_source=CallSource.HM_INIT, direct_call=False)
+        assert len(backend_calls) == calls_after_first, "Cache hit should not call backend again."
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_values_for_cache_device_unavailable(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test _get_values_for_cache returns empty dict when device unavailable."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.const import ForcedDeviceAvailability, ParamsetKey
+
+        # Force device to unavailable state.
+        device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+        assert device.available is False
+
+        ch0_dps = [
+            dp for dp in device.generic_data_points if dp.channel.no == 0 and dp.paramset_key == ParamsetKey.VALUES
+        ]
+        assert ch0_dps
+        dpk = ch0_dps[0].dpk
+
+        result = await device.value_cache._get_values_for_cache(dpk=dpk)  # type: ignore[attr-defined]
+        assert result == {}
+
+        # Restore availability.
+        device.set_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
+
+
+class TestChannelRemoveAndLifecycle:
+    """Tests for Channel.remove, _has_central_link exception, and on_config_changed notifications."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_channel_has_central_link_exception_handling(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test _has_central_link returns False gracefully when get_metadata raises exception."""
+        central, client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.exceptions import BaseHomematicException
+
+        ch = next(iter(device.channels.values()))
+
+        async def raise_exc(*, address: str, data_id: str) -> None:
+            raise BaseHomematicException("metadata unavailable")
+
+        monkeypatch.setattr(client, "get_metadata", raise_exc)
+
+        result = await ch._has_central_link()  # type: ignore[attr-defined]
+        assert result is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_channel_on_config_changed_notifies_data_points(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """Test Channel.on_config_changed reloads paramset and notifies data points."""
+        central, client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        fetch_calls: list[str] = []
+
+        async def fake_fetch(*, channel_address: str, paramset_key: Any, device_type: str) -> None:
+            fetch_calls.append(channel_address)
+
+        monkeypatch.setattr(client, "fetch_paramset_description", fake_fetch)
+
+        async def fake_get_link_peers(*, channel_address: str) -> tuple[str, ...]:
+            return ()
+
+        monkeypatch.setattr(client, "get_link_peers", fake_get_link_peers)
+
+        ch = next(iter(device.channels.values()))
+        await ch.on_config_changed()
+
+        # At least the current channel should have had its paramset description reloaded.
+        assert ch.address in fetch_calls
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_channel_remove_clears_data_points(self, central_client_factory_with_homegear_client) -> None:
+        """Test Channel.remove clears all data points and events from collections."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        # Pick a non-zero channel that has some generic data points.
+        ch = next(
+            (c for c in device.channels.values() if c.no is not None and c.no > 0 and len(c.generic_data_points) > 0),
+            None,
+        )
+        assert ch is not None, "Need a non-zero channel with generic data points."
+
+        assert len(ch.generic_data_points) > 0
+
+        # Call remove on the channel.
+        ch.remove()
+
+        # After remove, all collections should be cleared.
+        assert len(ch.generic_data_points) == 0
+        assert len(ch.generic_events) == 0
+        assert len(ch.calculated_data_points) == 0

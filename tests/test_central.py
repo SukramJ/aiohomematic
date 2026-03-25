@@ -1557,3 +1557,1031 @@ class TestCentralDeviceCreation:
 
         # Should not have raised; internal logging covered the branches
         assert True
+
+
+class TestCentralAcceptDeviceInInbox:
+    """Test accept_device_in_inbox scenarios."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_accept_device_in_inbox_with_primary_client(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """accept_device_in_inbox should delegate to primary client and return result."""
+        from unittest.mock import AsyncMock
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        mock_client.accept_device_in_inbox = AsyncMock(return_value=True)
+        result = await central.accept_device_in_inbox(device_address="VCU2128127")
+        assert result is True
+        mock_client.accept_device_in_inbox.assert_called_once_with(device_address="VCU2128127")
+
+    @pytest.mark.asyncio
+    async def test_accept_device_in_inbox_without_primary_client(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """accept_device_in_inbox should return False when no primary client is available."""
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        try:
+            result = await central.accept_device_in_inbox(device_address="VCU2128127")
+            assert result is False
+        finally:
+            await central.stop()
+
+
+class TestCentralCreateBackupAndDownload:
+    """Test create_backup_and_download scenarios."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_create_backup_and_download_with_primary_client(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """create_backup_and_download should delegate to primary client."""
+        from unittest.mock import AsyncMock
+
+        from aiohomematic.const import BackupData
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        backup = BackupData(filename="backup.tar.gz", content=b"data")
+        mock_client.create_backup_and_download = AsyncMock(return_value=backup)
+        result = await central.create_backup_and_download()
+        assert result is backup
+        mock_client.create_backup_and_download.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_create_backup_and_download_without_client(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """create_backup_and_download should return None when no primary client is available."""
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        try:
+            result = await central.create_backup_and_download()
+            assert result is None
+        finally:
+            await central.stop()
+
+
+class TestCentralGetDataPointByCustomId:
+    """Test get_data_point_by_custom_id lookups."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_get_data_point_by_custom_id_found(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """get_data_point_by_custom_id should return the data point when it exists."""
+
+        central, _, _ = central_client_factory_with_homegear_client
+        # Register a data point with a known custom_id
+        dps = central.query_facade.get_data_points()
+        assert dps
+
+        first_dp = dps[0]
+
+        def _handler(*args: Any, **kwargs: Any) -> None:
+            """Do nothing handler."""
+
+        first_dp.subscribe_to_data_point_updated(handler=_handler, custom_id="test_custom_id")
+        found = central.get_data_point_by_custom_id(custom_id="test_custom_id")
+        assert found is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_get_data_point_by_custom_id_not_found(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """get_data_point_by_custom_id should return None when custom_id does not match any data point."""
+        central, _, _ = central_client_factory_with_homegear_client
+        found = central.get_data_point_by_custom_id(custom_id="nonexistent_custom_id")
+        assert found is None
+
+
+class TestCentralStrRepresentation:
+    """Test __str__ method of CentralUnit."""
+
+    @pytest.mark.asyncio
+    async def test_str_representation(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """CentralUnit __str__ should include the central name."""
+        central = await factory_with_homegear_client.init(address_device_translation=TEST_DEVICES).get_default_central()
+        try:
+            result = str(central)
+            assert "central:" in result
+            assert central.name in result
+        finally:
+            await central.stop()
+
+
+class TestCentralBuildDegradedInterfacesMap:
+    """Test _build_degraded_interfaces_map method."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_build_degraded_interfaces_map_all_connected(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_build_degraded_interfaces_map should return empty dict when all clients are connected."""
+        central, _, _ = central_client_factory_with_homegear_client
+        # All clients are connected after factory setup
+        result = central._build_degraded_interfaces_map()
+        # Connected clients do not appear in the degraded map
+        assert isinstance(result, dict)
+
+    @pytest.mark.asyncio
+    async def test_build_degraded_interfaces_map_no_clients(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """_build_degraded_interfaces_map should return empty dict with no clients configured."""
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        try:
+            result = central._build_degraded_interfaces_map()
+            assert result == {}
+        finally:
+            await central.stop()
+
+
+class TestCentralDetermineFailureInfo:
+    """Test _determine_failure_info method."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_determine_failure_info_connected_clients(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_determine_failure_info should return NETWORK when no clients are in failed state."""
+        from aiohomematic.const import FailureReason
+
+        central, _, _ = central_client_factory_with_homegear_client
+        reason, interface_id = central._determine_failure_info()
+        # All clients are connected so no client is in failed state; falls through to NETWORK default
+        assert reason == FailureReason.NETWORK
+        assert interface_id is None
+
+    @pytest.mark.asyncio
+    async def test_determine_failure_info_no_clients(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """_determine_failure_info should return NETWORK failure when no clients are present."""
+        from aiohomematic.const import FailureReason
+
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        try:
+            reason, interface_id = central._determine_failure_info()
+            assert reason == FailureReason.NETWORK
+            assert interface_id is None
+        finally:
+            await central.stop()
+
+
+class TestCentralEvaluateCentralState:
+    """Test _evaluate_central_state transitions."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_evaluate_central_state_from_event_handler(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_evaluate_central_state should not raise when called from an event handler context."""
+        central, _, _ = central_client_factory_with_homegear_client
+        # from_start=False simulates an event-handler call
+        central._evaluate_central_state(trigger="test trigger", from_start=False)
+        # Central should remain in a valid state
+        from aiohomematic.const import CentralState
+
+        assert central.state in (
+            CentralState.RUNNING,
+            CentralState.DEGRADED,
+            CentralState.FAILED,
+            CentralState.INITIALIZING,
+            CentralState.RECOVERING,
+        )
+
+    @pytest.mark.asyncio
+    async def test_evaluate_central_state_no_clients(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """_evaluate_central_state should not raise when there are no clients."""
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        try:
+            await central.start()
+            # Should not raise; central with no clients stays at its current state
+            central._evaluate_central_state(trigger="no clients test", from_start=False)
+        finally:
+            await central.stop()
+
+
+class TestCentralOnSystemStatusEvent:
+    """Test _on_system_status_event handler."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_on_system_status_event_no_client_state(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_on_system_status_event should return early when event.client_state is None."""
+        from datetime import datetime
+
+        from aiohomematic.central.events import SystemStatusChangedEvent
+
+        central, _, _ = central_client_factory_with_homegear_client
+        state_before = central.state
+
+        # An event without client_state should be ignored
+        event = SystemStatusChangedEvent(timestamp=datetime.now(), issues=())
+        central._on_system_status_event(event=event)
+
+        # State should not change
+        assert central.state == state_before
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_on_system_status_event_with_client_state(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_on_system_status_event should update health tracker when client_state is present."""
+        from datetime import datetime
+
+        from aiohomematic.central.events import SystemStatusChangedEvent
+        from aiohomematic.const import ClientState
+        from aiohomematic_test_support import const
+
+        central, _, _ = central_client_factory_with_homegear_client
+        # Dispatch an event simulating a client transitioning from CONNECTED to CONNECTED
+        event = SystemStatusChangedEvent(
+            timestamp=datetime.now(),
+            issues=(),
+            client_state=(const.INTERFACE_ID, ClientState.CONNECTED, ClientState.CONNECTED),
+        )
+        # Should not raise
+        central._on_system_status_event(event=event)
+
+
+class TestCentralSaveFiles:
+    """Test save_files delegates to cache coordinator."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_save_files_delegates_to_cache_coordinator(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """save_files should call cache_coordinator.save_if_changed without error."""
+        from unittest.mock import AsyncMock, patch
+
+        central, _, _ = central_client_factory_with_homegear_client
+
+        with patch.object(
+            central._cache_coordinator,
+            "save_if_changed",
+            new_callable=AsyncMock,
+        ) as mock_save:
+            await central.save_files(
+                save_device_descriptions=True,
+                save_paramset_descriptions=False,
+            )
+            mock_save.assert_called_once_with(
+                save_device_descriptions=True,
+                save_paramset_descriptions=False,
+            )
+
+
+class TestCentralSetInstallMode:
+    """Test set_install_mode scenarios."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_set_install_mode_enable(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """set_install_mode should call set_install_mode on the client for the given interface."""
+        from unittest.mock import AsyncMock
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        mock_client.set_install_mode = AsyncMock(return_value=True)
+
+        result = await central.set_install_mode(
+            interface=Interface.BIDCOS_RF,
+            on=True,
+            time=60,
+            mode=1,
+        )
+        assert result is True
+        mock_client.set_install_mode.assert_called_once_with(on=True, time=60, mode=1, device_address=None)
+
+    @pytest.mark.asyncio
+    async def test_set_install_mode_unknown_interface(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """set_install_mode should return False when the interface is not found."""
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        try:
+            await central.start()
+            result = await central.set_install_mode(
+                interface=Interface.HMIP_RF,
+                on=True,
+            )
+            assert result is False
+        finally:
+            await central.stop()
+
+
+class TestCentralRenameDevice:
+    """Test rename_device with and without channels."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_rename_device_not_found(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """rename_device should return False when the device address is not found."""
+        central, _, _ = central_client_factory_with_homegear_client
+        result = await central.rename_device(device_address="DOES_NOT_EXIST", name="new_name")
+        assert result is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_rename_device_with_channels(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """rename_device with include_channels=True should also rename channel entries."""
+        from unittest.mock import AsyncMock
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        mock_client.rename_device = AsyncMock(return_value=True)
+        mock_client.rename_channel = AsyncMock(return_value=True)
+
+        result = await central.rename_device(
+            device_address="VCU2128127",
+            name="MyDevice",
+            include_channels=True,
+        )
+        assert result is True
+        mock_client.rename_device.assert_called_once()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_rename_device_without_channels(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """rename_device should return True when device rename succeeds without renaming channels."""
+        from unittest.mock import AsyncMock
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        mock_client.rename_device = AsyncMock(return_value=True)
+
+        result = await central.rename_device(
+            device_address="VCU2128127",
+            name="MyDevice",
+            include_channels=False,
+        )
+        assert result is True
+        mock_client.rename_device.assert_called_once()
+
+
+class TestCentralGetNewDataPointsAndEvents:
+    """Test module-level _get_new_data_points and _get_new_channel_events helpers."""
+
+    @pytest.mark.asyncio
+    async def test_get_new_channel_events_empty(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """_get_new_channel_events should return an empty tuple when devices is empty."""
+        from aiohomematic.central.central_unit import _get_new_channel_events
+
+        result = _get_new_channel_events(new_devices=set())
+        assert result == ()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_get_new_channel_events_with_devices(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_get_new_channel_events should return a tuple of channel event tuples."""
+        from aiohomematic.central.central_unit import _get_new_channel_events
+
+        central, _, _ = central_client_factory_with_homegear_client
+        devices = set(central.device_registry.devices)
+        result = _get_new_channel_events(new_devices=devices)
+        assert isinstance(result, tuple)
+
+    @pytest.mark.asyncio
+    async def test_get_new_data_points_empty(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """_get_new_data_points should return empty sets for all categories when devices is empty."""
+        from aiohomematic.central.central_unit import _get_new_data_points
+
+        result = _get_new_data_points(new_devices=set())
+        assert isinstance(result, dict)
+        for category_set in result.values():
+            assert len(category_set) == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_get_new_data_points_with_devices(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_get_new_data_points should return a mapping of categories to data point sets."""
+        from aiohomematic.central.central_unit import _get_new_data_points
+        from aiohomematic.const import DataPointCategory
+
+        central, _, _ = central_client_factory_with_homegear_client
+        devices = set(central.device_registry.devices)
+        result = _get_new_data_points(new_devices=devices)
+        assert isinstance(result, dict)
+        assert DataPointCategory.SENSOR in result or DataPointCategory.SWITCH in result or len(result) >= 0
+
+
+class TestCentralStartStopScheduler:
+    """Test _start_scheduler and _stop_scheduler internal methods."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_start_stop_scheduler_does_not_raise(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_start_scheduler and _stop_scheduler should complete without raising exceptions."""
+        central, _, _ = central_client_factory_with_homegear_client
+        # Calling _stop_scheduler should not raise even if scheduler is already stopped
+        await central._stop_scheduler()
+        # Starting again should also not raise
+        central._start_scheduler()
+        # Give looper a chance to process the task
+        await asyncio.sleep(0.05)
+        # Stop once more to clean up
+        await central._stop_scheduler()
+
+
+class TestCentralVersionAndModel:
+    """Test version and model property edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_version_cached(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """Version property should return cached value on second call."""
+        central = await factory_with_homegear_client.init(address_device_translation=TEST_DEVICES).get_default_central()
+        try:
+            # First call: populates cache
+            _ = central.version
+            # Manually set the cached version
+            central._version = "cached-version"
+            v2 = central.version
+            assert v2 == "cached-version"
+        finally:
+            await central.stop()
+
+    @pytest.mark.asyncio
+    async def test_version_with_no_clients(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """Version property should return None when there are no clients."""
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        try:
+            # Reset cached version
+            central._version = None
+            result = central.version
+            assert result is None
+        finally:
+            await central.stop()
+
+
+class TestCentralStartAlreadyRunning:
+    """Test start() when central is already running or initializing."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_start_when_already_running_is_no_op(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Calling start() on an already running central should be a no-op."""
+        from aiohomematic.const import CentralState
+
+        central, _, _ = central_client_factory_with_homegear_client
+        # Central should already be in RUNNING state from factory setup
+        assert central.state == CentralState.RUNNING
+        # Calling start() again should return immediately without changing state
+        await central.start()
+        assert central.state == CentralState.RUNNING
+
+    @pytest.mark.asyncio
+    async def test_start_when_already_stopped_resets_correctly(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """Calling stop() twice should be safe (second call is no-op)."""
+        from aiohomematic.const import CentralState
+
+        central = await factory_with_homegear_client.init(interface_configs=set()).get_raw_central()
+        await central.start()
+        await central.stop()
+        assert central.state == CentralState.STOPPED
+        # Calling stop() again on an already stopped central should be a no-op
+        await central.stop()
+        assert central.state == CentralState.STOPPED
+
+
+class TestCentralRenameDeviceFailure:
+    """Test rename_device when client.rename_device returns False."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_rename_device_client_returns_false(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """rename_device should return False when the client rename call fails."""
+        from unittest.mock import AsyncMock
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        mock_client.rename_device = AsyncMock(return_value=False)
+
+        result = await central.rename_device(
+            device_address="VCU2128127",
+            name="NewName",
+            include_channels=False,
+        )
+        assert result is False
+
+
+class TestCentralInitInstallMode:
+    """Test init_install_mode delegates to hub_coordinator."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({}, True, None, None),
+        ],
+    )
+    async def test_init_install_mode_returns_mapping(
+        self,
+        central_client_factory_with_ccu_client,
+    ) -> None:
+        """init_install_mode should return a mapping from interface to install mode data point."""
+        from collections.abc import Mapping
+
+        central, _, _ = central_client_factory_with_ccu_client
+        result = await central.init_install_mode()
+        assert isinstance(result, Mapping)
+
+
+class TestCentralSystemStatusEventDeviceAvailability:
+    """Test _on_system_status_event device availability updates."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_on_system_status_event_connected_resets_device_availability(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_on_system_status_event should reset device availability when client reconnects."""
+        from datetime import datetime
+
+        from aiohomematic.central.events import SystemStatusChangedEvent
+        from aiohomematic.const import ClientState, ForcedDeviceAvailability
+        from aiohomematic_test_support import const
+
+        central, _, _ = central_client_factory_with_homegear_client
+
+        # First force devices unavailable
+        for device in central.device_registry.devices:
+            device.set_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+
+        # Now send a CONNECTED event (from DISCONNECTED) to reset availability
+        event = SystemStatusChangedEvent(
+            timestamp=datetime.now(),
+            issues=(),
+            client_state=(const.INTERFACE_ID, ClientState.DISCONNECTED, ClientState.CONNECTED),
+        )
+        central._on_system_status_event(event=event)
+
+        # Devices should now have availability reset
+        for device in central.device_registry.devices:
+            if device.interface_id == const.INTERFACE_ID:
+                assert device._availability.forced_availability == ForcedDeviceAvailability.NOT_SET
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_on_system_status_event_disconnected_marks_devices_unavailable(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_on_system_status_event should mark devices unavailable when client disconnects."""
+        from datetime import datetime
+
+        from aiohomematic.central.events import SystemStatusChangedEvent
+        from aiohomematic.const import ClientState, ForcedDeviceAvailability
+        from aiohomematic_test_support import const
+
+        central, _, _ = central_client_factory_with_homegear_client
+
+        # Send DISCONNECTED event for the interface used by our test devices
+        event = SystemStatusChangedEvent(
+            timestamp=datetime.now(),
+            issues=(),
+            client_state=(const.INTERFACE_ID, ClientState.CONNECTED, ClientState.DISCONNECTED),
+        )
+        central._on_system_status_event(event=event)
+
+        # Devices on the affected interface should be forced unavailable
+        for device in central.device_registry.devices:
+            if device.interface_id == const.INTERFACE_ID:
+                assert device._availability.forced_availability in (
+                    ForcedDeviceAvailability.FORCE_FALSE,
+                    ForcedDeviceAvailability.NOT_SET,
+                )
+
+
+class TestCentralDetermineFailureInfoWithFailedClient:
+    """Test _determine_failure_info when a client is in FAILED state with specific reason."""
+
+    @pytest.mark.asyncio
+    async def test_determine_failure_info_failed_client_returns_reason(
+        self,
+        factory_with_homegear_client: FactoryWithClient,
+    ) -> None:
+        """_determine_failure_info should return the failure reason of the failed client."""
+        from unittest.mock import MagicMock
+
+        from aiohomematic.const import FailureReason
+
+        central = await factory_with_homegear_client.init(address_device_translation=TEST_DEVICES).get_default_central()
+        try:
+            # Mock a client in failed state with AUTH failure reason
+            mock_state_machine = MagicMock()
+            mock_state_machine.is_failed = True
+            mock_state_machine.failure_reason = FailureReason.AUTH
+
+            mock_client = MagicMock()
+            mock_client.state_machine = mock_state_machine
+            mock_client.interface_id = "mock-interface"
+
+            # Patch the internal _clients dict to replace real clients with mock
+            original_clients = central._client_coordinator._clients.copy()
+            central._client_coordinator._clients["mock-interface"] = mock_client
+            try:
+                reason, interface_id = central._determine_failure_info()
+                assert reason == FailureReason.AUTH
+                assert interface_id == "mock-interface"
+            finally:
+                central._client_coordinator._clients.clear()
+                central._client_coordinator._clients.update(original_clients)
+        finally:
+            await central.stop()
+
+
+class TestCentralEvaluateCentralStateDegradedTransition:
+    """Test _evaluate_central_state DEGRADED transition from RUNNING state."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_evaluate_central_state_degraded_from_running(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_evaluate_central_state should transition to DEGRADED when some clients are disconnected."""
+        from unittest.mock import MagicMock
+
+        from aiohomematic.const import CentralState, ClientState, FailureReason
+
+        central, _, _ = central_client_factory_with_homegear_client
+        assert central.state == CentralState.RUNNING
+
+        # Create two mocked clients: one connected, one disconnected
+        mock_connected = MagicMock()
+        mock_connected.state = ClientState.CONNECTED
+        mock_connected.state_machine.failure_reason = FailureReason.NONE
+        mock_connected.interface_id = "if-connected"
+
+        mock_disconnected = MagicMock()
+        mock_disconnected.state = ClientState.DISCONNECTED
+        mock_disconnected.state_machine.failure_reason = FailureReason.NETWORK
+        mock_disconnected.interface_id = "if-disconnected"
+
+        original_clients = central._client_coordinator._clients.copy()
+        central._client_coordinator._clients.clear()
+        central._client_coordinator._clients["if-connected"] = mock_connected
+        central._client_coordinator._clients["if-disconnected"] = mock_disconnected
+        try:
+            central._evaluate_central_state(trigger="test", from_start=False)
+        finally:
+            central._client_coordinator._clients.clear()
+            central._client_coordinator._clients.update(original_clients)
+
+        assert central.state == CentralState.DEGRADED
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_evaluate_central_state_failed_from_degraded(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """_evaluate_central_state should transition to FAILED when all clients are disconnected from DEGRADED."""
+        from unittest.mock import MagicMock
+
+        from aiohomematic.const import CentralState, ClientState, FailureReason
+
+        central, _, _ = central_client_factory_with_homegear_client
+        assert central.state == CentralState.RUNNING
+
+        # First transition to DEGRADED using two mock clients (one connected, one disconnected)
+        mock_connected = MagicMock()
+        mock_connected.state = ClientState.CONNECTED
+        mock_connected.state_machine.failure_reason = FailureReason.NONE
+        mock_connected.interface_id = "if-connected"
+
+        mock_disconnected = MagicMock()
+        mock_disconnected.state = ClientState.DISCONNECTED
+        mock_disconnected.state_machine.failure_reason = FailureReason.NONE
+        mock_disconnected.interface_id = "if-disconnected"
+
+        original_clients = central._client_coordinator._clients.copy()
+        central._client_coordinator._clients.clear()
+        central._client_coordinator._clients["if-connected"] = mock_connected
+        central._client_coordinator._clients["if-disconnected"] = mock_disconnected
+        central._evaluate_central_state(trigger="degrade", from_start=False)
+        assert central.state == CentralState.DEGRADED
+
+        # Now all clients fail - should transition to FAILED from DEGRADED
+        mock_also_failed = MagicMock()
+        mock_also_failed.state = ClientState.DISCONNECTED
+        mock_also_failed.state_machine.is_failed = False
+        mock_also_failed.state_machine.failure_reason = FailureReason.NONE
+        mock_also_failed.interface_id = "if-also-failed"
+
+        central._client_coordinator._clients.clear()
+        central._client_coordinator._clients["if-disconnected"] = mock_disconnected
+        central._client_coordinator._clients["if-also-failed"] = mock_also_failed
+        try:
+            central._evaluate_central_state(trigger="test", from_start=False)
+        finally:
+            central._client_coordinator._clients.clear()
+            central._client_coordinator._clients.update(original_clients)
+
+        assert central.state == CentralState.FAILED

@@ -1542,6 +1542,943 @@ class TestConnectionRecoveryCoordinatorFullRecovery:
         return coordinator, state_machine, event_bus
 
 
+class TestConnectionRecoveryCoordinatorRecoverAll:
+    """Tests for _recover_all_interfaces partial/full success/failure."""
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_all_fail(self) -> None:
+        """Test _recover_all_interfaces does not transition when all fail."""
+        coordinator, state_machine, _ = self._create_coordinator()
+        coordinator._in_failed_state = True
+
+        coordinator._recovery_states["iface-1"] = InterfaceRecoveryState(interface_id="iface-1")
+        coordinator._recovery_states["iface-2"] = InterfaceRecoveryState(interface_id="iface-2")
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_execute_recovery_stages",
+            new=AsyncMock(return_value=False),
+        ):
+            await coordinator._recover_all_interfaces(interface_ids=["iface-1", "iface-2"])
+
+        state_machine.transition_to.assert_not_called()
+        assert coordinator._in_failed_state is True
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_all_succeed(self) -> None:
+        """Test _recover_all_interfaces transitions to RUNNING when all succeed."""
+        coordinator, state_machine, _ = self._create_coordinator()
+        coordinator._in_failed_state = True
+
+        coordinator._recovery_states["iface-1"] = InterfaceRecoveryState(interface_id="iface-1")
+        coordinator._recovery_states["iface-2"] = InterfaceRecoveryState(interface_id="iface-2")
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_execute_recovery_stages",
+            new=AsyncMock(return_value=True),
+        ):
+            await coordinator._recover_all_interfaces(interface_ids=["iface-1", "iface-2"])
+
+        assert coordinator._in_failed_state is False
+        state_machine.transition_to.assert_called()
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_exception_in_one(self) -> None:
+        """Test _recover_all_interfaces handles exception in one recovery."""
+        coordinator, state_machine, _ = self._create_coordinator()
+        coordinator._in_failed_state = True
+
+        coordinator._recovery_states["iface-1"] = InterfaceRecoveryState(interface_id="iface-1")
+        coordinator._recovery_states["iface-2"] = InterfaceRecoveryState(interface_id="iface-2")
+
+        results_iter = iter([True, RuntimeError("Unexpected")])
+
+        async def mixed_exception(self_inner, *, interface_id: str) -> bool:
+            result = next(results_iter)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_execute_recovery_stages",
+            new=mixed_exception,
+        ):
+            await coordinator._recover_all_interfaces(interface_ids=["iface-1", "iface-2"])
+
+        assert any(
+            call.kwargs.get("target") == CentralState.DEGRADED for call in state_machine.transition_to.call_args_list
+        )
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_partial_success(self) -> None:
+        """Test _recover_all_interfaces transitions to DEGRADED on partial success."""
+        coordinator, state_machine, _ = self._create_coordinator()
+        coordinator._in_failed_state = True
+
+        coordinator._recovery_states["iface-1"] = InterfaceRecoveryState(interface_id="iface-1")
+        coordinator._recovery_states["iface-2"] = InterfaceRecoveryState(interface_id="iface-2")
+
+        results_iter = iter([True, False])
+
+        async def mixed_results(self_inner, *, interface_id: str) -> bool:
+            return next(results_iter)
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_execute_recovery_stages",
+            new=mixed_results,
+        ):
+            await coordinator._recover_all_interfaces(interface_ids=["iface-1", "iface-2"])
+
+        # Verify transition to DEGRADED
+        assert any(
+            call.kwargs.get("target") == CentralState.DEGRADED for call in state_machine.transition_to.call_args_list
+        )
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_skips_when_shutdown(self) -> None:
+        """Test _recover_all_interfaces exits early when shutdown."""
+        coordinator, state_machine, _ = self._create_coordinator()
+        coordinator._shutdown = True
+
+        await coordinator._recover_all_interfaces(interface_ids=["iface-1"])
+
+        state_machine.transition_to.assert_not_called()
+        coordinator.stop()
+
+    def _create_coordinator(self) -> tuple[ConnectionRecoveryCoordinator, MagicMock, EventBus]:
+        """Create coordinator with state machine for recover-all tests."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        state_machine = MagicMock()
+        state_machine.can_transition_to.return_value = True
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=MagicMock(),
+            client_provider=MagicMock(),
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=state_machine,
+        )
+
+        return coordinator, state_machine, event_bus
+
+
+class TestConnectionRecoveryStartupFailurePath:
+    """Tests for startup failure recovery (client doesn't exist)."""
+
+    @pytest.mark.asyncio
+    async def test_execute_recovery_stages_startup_failure_skips_rpc(self) -> None:
+        """Test recovery skips RPC/warmup/stability for startup failures."""
+        coordinator, event_bus = self._create_coordinator()
+
+        stage_events: list[RecoveryStageChangedEvent] = []
+        event_bus.subscribe(
+            event_type=RecoveryStageChangedEvent,
+            event_key=None,
+            handler=lambda event: stage_events.append(event),
+        )
+
+        state = InterfaceRecoveryState(interface_id="test")
+        coordinator._recovery_states["test"] = state
+
+        # Client doesn't exist (startup failure)
+        coordinator._client_provider.get_client.side_effect = Exception("Client not found")
+
+        mock_config = MagicMock()
+        mock_config.interface_id = "test"
+        coordinator._config_provider.config.enabled_interface_configs = [mock_config]
+        coordinator._coordinator_provider.client_coordinator._create_client = AsyncMock(return_value=True)
+
+        mock_new_client = MagicMock()
+        mock_new_client.available = True
+        mock_new_client.interface = Interface.HMIP_RF
+
+        def get_client_after_creation(*, interface_id: str):
+            if coordinator._coordinator_provider.client_coordinator._create_client.called:
+                return mock_new_client
+            raise Exception("Client not found")
+
+        coordinator._client_provider.get_client.side_effect = get_client_after_creation
+
+        coordinator._device_data_refresher.load_and_refresh_data_point_data = AsyncMock()
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_check_tcp_port_available",
+            new=AsyncMock(return_value=True),
+        ):
+            result = await coordinator._execute_recovery_stages(interface_id="test")
+
+        assert result is True
+
+        await asyncio.sleep(0.05)
+
+        stages_traversed = [e.new_stage for e in stage_events]
+        assert RecoveryStage.COOLDOWN in stages_traversed
+        assert RecoveryStage.TCP_CHECKING in stages_traversed
+        assert RecoveryStage.RPC_CHECKING not in stages_traversed
+        assert RecoveryStage.WARMING_UP not in stages_traversed
+        assert RecoveryStage.STABILITY_CHECK not in stages_traversed
+        assert RecoveryStage.RECONNECTING in stages_traversed
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_stage_reconnect_client_creation_exception(self) -> None:
+        """Test _stage_reconnect handles exception during client creation."""
+        coordinator, _ = self._create_coordinator()
+
+        coordinator._client_provider.get_client.side_effect = Exception("Client not found")
+
+        mock_config = MagicMock()
+        mock_config.interface_id = "test"
+        coordinator._config_provider.config.enabled_interface_configs = [mock_config]
+        coordinator._coordinator_provider.client_coordinator._create_client = AsyncMock(
+            side_effect=RuntimeError("Creation failed")
+        )
+
+        result = await coordinator._stage_reconnect(interface_id="test")
+
+        assert result is False
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_stage_reconnect_client_creation_no_config(self) -> None:
+        """Test _stage_reconnect returns False when no interface config found."""
+        coordinator, _ = self._create_coordinator()
+
+        coordinator._client_provider.get_client.side_effect = Exception("Client not found")
+        coordinator._config_provider.config.enabled_interface_configs = []
+
+        result = await coordinator._stage_reconnect(interface_id="test")
+
+        assert result is False
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_stage_reconnect_client_creation_not_available(self) -> None:
+        """Test _stage_reconnect returns False when created client is not available."""
+        coordinator, _ = self._create_coordinator()
+
+        coordinator._client_provider.get_client.side_effect = Exception("Client not found")
+
+        mock_config = MagicMock()
+        mock_config.interface_id = "test"
+        coordinator._config_provider.config.enabled_interface_configs = [mock_config]
+        coordinator._coordinator_provider.client_coordinator._create_client = AsyncMock(return_value=True)
+
+        mock_new_client = MagicMock()
+        mock_new_client.available = False
+
+        def get_client_after_creation(*, interface_id: str):
+            if coordinator._coordinator_provider.client_coordinator._create_client.called:
+                return mock_new_client
+            raise Exception("Client not found")
+
+        coordinator._client_provider.get_client.side_effect = get_client_after_creation
+
+        result = await coordinator._stage_reconnect(interface_id="test")
+
+        assert result is False
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_stage_reconnect_client_creation_success(self) -> None:
+        """Test _stage_reconnect creates client successfully for startup failure."""
+        coordinator, _ = self._create_coordinator()
+
+        coordinator._client_provider.get_client.side_effect = Exception("Client not found")
+
+        mock_config = MagicMock()
+        mock_config.interface_id = "test"
+        coordinator._config_provider.config.enabled_interface_configs = [mock_config]
+        coordinator._coordinator_provider.client_coordinator._create_client = AsyncMock(return_value=True)
+
+        mock_new_client = MagicMock()
+        mock_new_client.available = True
+
+        def get_client_after_creation(*, interface_id: str):
+            if coordinator._coordinator_provider.client_coordinator._create_client.called:
+                return mock_new_client
+            raise Exception("Client not found")
+
+        coordinator._client_provider.get_client.side_effect = get_client_after_creation
+
+        result = await coordinator._stage_reconnect(interface_id="test")
+
+        assert result is True
+        coordinator.stop()
+
+    def _create_coordinator(self) -> tuple[ConnectionRecoveryCoordinator, EventBus]:
+        """Create coordinator for startup failure tests."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        config = MagicMock()
+        config.timeout_config.reconnect_initial_cooldown = 0.001
+        config.timeout_config.reconnect_warmup_delay = 0.001
+        config.timeout_config.reconnect_tcp_check_timeout = 0.02
+        config.host = "127.0.0.1"
+        config.tls = False
+
+        config_provider = MagicMock()
+        config_provider.config = config
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=config_provider,
+            client_provider=MagicMock(),
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+        )
+
+        return coordinator, event_bus
+
+
+class TestConnectionRecoveryHubDataRefresh:
+    """Tests for _refresh_hub_data_after_recovery."""
+
+    @pytest.mark.asyncio
+    async def test_refresh_hub_data_all_enabled(self) -> None:
+        """Test _refresh_hub_data_after_recovery refreshes all data when enabled."""
+        hub_fetcher = MagicMock()
+        hub_fetcher.fetch_system_update_data = AsyncMock()
+        hub_fetcher.fetch_program_data = AsyncMock()
+        hub_fetcher.fetch_sysvar_data = AsyncMock()
+
+        coordinator = self._create_coordinator(
+            hub_data_fetcher=hub_fetcher,
+            enable_programs=True,
+            enable_sysvars=True,
+        )
+
+        await coordinator._refresh_hub_data_after_recovery()
+
+        hub_fetcher.fetch_system_update_data.assert_awaited_once_with(scheduled=False)
+        hub_fetcher.fetch_program_data.assert_awaited_once_with(scheduled=False)
+        hub_fetcher.fetch_sysvar_data.assert_awaited_once_with(scheduled=False)
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_refresh_hub_data_exception_in_program_refresh(self) -> None:
+        """Test _refresh_hub_data_after_recovery handles exception in program refresh."""
+        hub_fetcher = MagicMock()
+        hub_fetcher.fetch_system_update_data = AsyncMock()
+        hub_fetcher.fetch_program_data = AsyncMock(side_effect=Exception("Program refresh failed"))
+        hub_fetcher.fetch_sysvar_data = AsyncMock()
+
+        coordinator = self._create_coordinator(
+            hub_data_fetcher=hub_fetcher,
+            enable_programs=True,
+            enable_sysvars=True,
+        )
+
+        await coordinator._refresh_hub_data_after_recovery()
+
+        hub_fetcher.fetch_sysvar_data.assert_awaited_once()
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_refresh_hub_data_exception_in_system_update(self) -> None:
+        """Test _refresh_hub_data_after_recovery handles exception in system update."""
+        hub_fetcher = MagicMock()
+        hub_fetcher.fetch_system_update_data = AsyncMock(side_effect=Exception("System update failed"))
+        hub_fetcher.fetch_program_data = AsyncMock()
+        hub_fetcher.fetch_sysvar_data = AsyncMock()
+
+        coordinator = self._create_coordinator(
+            hub_data_fetcher=hub_fetcher,
+            enable_programs=True,
+            enable_sysvars=True,
+        )
+
+        await coordinator._refresh_hub_data_after_recovery()
+
+        hub_fetcher.fetch_program_data.assert_awaited_once()
+        hub_fetcher.fetch_sysvar_data.assert_awaited_once()
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_refresh_hub_data_no_fetcher(self) -> None:
+        """Test _refresh_hub_data_after_recovery returns early without fetcher."""
+        coordinator = self._create_coordinator(hub_data_fetcher=None)
+
+        await coordinator._refresh_hub_data_after_recovery()
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_refresh_hub_data_programs_disabled(self) -> None:
+        """Test _refresh_hub_data_after_recovery skips programs when disabled."""
+        hub_fetcher = MagicMock()
+        hub_fetcher.fetch_system_update_data = AsyncMock()
+        hub_fetcher.fetch_program_data = AsyncMock()
+        hub_fetcher.fetch_sysvar_data = AsyncMock()
+
+        coordinator = self._create_coordinator(
+            hub_data_fetcher=hub_fetcher,
+            enable_programs=False,
+            enable_sysvars=True,
+        )
+
+        await coordinator._refresh_hub_data_after_recovery()
+
+        hub_fetcher.fetch_system_update_data.assert_awaited_once()
+        hub_fetcher.fetch_program_data.assert_not_awaited()
+        hub_fetcher.fetch_sysvar_data.assert_awaited_once()
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_refresh_hub_data_sysvars_disabled(self) -> None:
+        """Test _refresh_hub_data_after_recovery skips sysvars when disabled."""
+        hub_fetcher = MagicMock()
+        hub_fetcher.fetch_system_update_data = AsyncMock()
+        hub_fetcher.fetch_program_data = AsyncMock()
+        hub_fetcher.fetch_sysvar_data = AsyncMock()
+
+        coordinator = self._create_coordinator(
+            hub_data_fetcher=hub_fetcher,
+            enable_programs=True,
+            enable_sysvars=False,
+        )
+
+        await coordinator._refresh_hub_data_after_recovery()
+
+        hub_fetcher.fetch_system_update_data.assert_awaited_once()
+        hub_fetcher.fetch_program_data.assert_awaited_once()
+        hub_fetcher.fetch_sysvar_data.assert_not_awaited()
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_stage_data_load_triggers_hub_refresh(self) -> None:
+        """Test _stage_data_load calls _refresh_hub_data_after_recovery."""
+        hub_fetcher = MagicMock()
+        hub_fetcher.fetch_system_update_data = AsyncMock()
+        hub_fetcher.fetch_program_data = AsyncMock()
+        hub_fetcher.fetch_sysvar_data = AsyncMock()
+
+        coordinator = self._create_coordinator(
+            hub_data_fetcher=hub_fetcher,
+            enable_programs=True,
+            enable_sysvars=True,
+        )
+
+        mock_client = MagicMock()
+        mock_client.interface = Interface.HMIP_RF
+        coordinator._client_provider.get_client.return_value = mock_client
+        coordinator._device_data_refresher.load_and_refresh_data_point_data = AsyncMock()
+
+        result = await coordinator._stage_data_load(interface_id="test")
+
+        assert result is True
+        hub_fetcher.fetch_system_update_data.assert_awaited_once()
+        coordinator.stop()
+
+    def _create_coordinator(
+        self,
+        *,
+        hub_data_fetcher: MagicMock | None = None,
+        enable_programs: bool = False,
+        enable_sysvars: bool = False,
+    ) -> ConnectionRecoveryCoordinator:
+        """Create coordinator for hub data refresh tests."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        config = MagicMock()
+        config.enable_program_scan = enable_programs
+        config.enable_sysvar_scan = enable_sysvars
+        config.timeout_config.reconnect_initial_cooldown = 0.001
+        config.timeout_config.reconnect_warmup_delay = 0.001
+        config.timeout_config.reconnect_tcp_check_timeout = 0.02
+        config.host = "127.0.0.1"
+        config.tls = False
+
+        config_provider = MagicMock()
+        config_provider.config = config
+
+        device_data_refresher = MagicMock()
+        device_data_refresher.load_and_refresh_data_point_data = AsyncMock()
+
+        return ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=config_provider,
+            client_provider=MagicMock(),
+            coordinator_provider=MagicMock(),
+            device_data_refresher=device_data_refresher,
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+            hub_data_fetcher=hub_data_fetcher,
+        )
+
+
+class TestConnectionRecoveryHeartbeatFiltering:
+    """Tests for heartbeat loop interface filtering logic."""
+
+    @pytest.mark.asyncio
+    async def test_heartbeat_loop_filters_client_lookup_exception(self) -> None:
+        """Test _heartbeat_loop handles client lookup exception."""
+        coordinator, event_bus = self._create_coordinator()
+        coordinator._in_failed_state = True
+
+        state = InterfaceRecoveryState(interface_id="test")
+        state.attempt_count = 0
+        coordinator._recovery_states["test"] = state
+
+        coordinator._client_provider.get_client.side_effect = Exception("Client not found")
+
+        events: list[HeartbeatTimerFiredEvent] = []
+        event_bus.subscribe(
+            event_type=HeartbeatTimerFiredEvent,
+            event_key=None,
+            handler=lambda event: events.append(event),
+        )
+
+        async def stop_after_one():
+            await asyncio.sleep(0.01)
+            coordinator._in_failed_state = False
+
+        task = asyncio.create_task(stop_after_one())
+
+        with patch(
+            "aiohomematic.central.coordinators.connection_recovery.HEARTBEAT_RETRY_INTERVAL",
+            0.005,
+        ):
+            await asyncio.wait_for(coordinator._heartbeat_loop(), timeout=1.0)
+
+        await task
+        await asyncio.sleep(0.02)
+
+        assert len(events) >= 1
+        assert "test" in events[0].interface_ids
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_heartbeat_loop_filters_unavailable_clients(self) -> None:
+        """Test _heartbeat_loop includes interfaces with unavailable clients."""
+        coordinator, event_bus = self._create_coordinator()
+        coordinator._in_failed_state = True
+
+        state = InterfaceRecoveryState(interface_id="test")
+        state.attempt_count = 0
+        coordinator._recovery_states["test"] = state
+
+        mock_client = MagicMock()
+        mock_client.available = False
+        coordinator._client_provider.get_client.return_value = mock_client
+
+        events: list[HeartbeatTimerFiredEvent] = []
+        event_bus.subscribe(
+            event_type=HeartbeatTimerFiredEvent,
+            event_key=None,
+            handler=lambda event: events.append(event),
+        )
+
+        async def stop_after_one():
+            await asyncio.sleep(0.01)
+            coordinator._in_failed_state = False
+
+        task = asyncio.create_task(stop_after_one())
+
+        with patch(
+            "aiohomematic.central.coordinators.connection_recovery.HEARTBEAT_RETRY_INTERVAL",
+            0.005,
+        ):
+            await asyncio.wait_for(coordinator._heartbeat_loop(), timeout=1.0)
+
+        await task
+        await asyncio.sleep(0.02)
+
+        assert len(events) >= 1
+        assert "test" in events[0].interface_ids
+        coordinator.stop()
+
+    def _create_coordinator(self) -> tuple[ConnectionRecoveryCoordinator, EventBus]:
+        """Create coordinator for heartbeat filtering tests."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        return ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=MagicMock(),
+            client_provider=MagicMock(),
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+        ), event_bus
+
+
+class TestConnectionRecoveryCentralStateChanged:
+    """Tests for _on_central_state_changed edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_on_central_state_changed_initializes_all_interfaces(self) -> None:
+        """Test _on_central_state_changed creates recovery state for all configured interfaces."""
+        coordinator = self._create_coordinator()
+
+        mock_config_1 = MagicMock()
+        mock_config_1.interface_id = "iface-1"
+        mock_config_2 = MagicMock()
+        mock_config_2.interface_id = "iface-2"
+        mock_config_3 = MagicMock()
+        mock_config_3.interface_id = "iface-3"
+        coordinator._config_provider.config.enabled_interface_configs = [mock_config_1, mock_config_2, mock_config_3]
+
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.INITIALIZING,
+            new_state=CentralState.FAILED,
+            trigger="no clients connected (start() completed)",
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is True
+        assert len(coordinator._recovery_states) == 3
+        assert "iface-1" in coordinator._recovery_states
+        assert "iface-2" in coordinator._recovery_states
+        assert "iface-3" in coordinator._recovery_states
+        coordinator.stop()
+
+    def test_on_central_state_changed_shutdown_skips(self) -> None:
+        """Test _on_central_state_changed does nothing when shutdown."""
+        coordinator = self._create_coordinator()
+        coordinator._shutdown = True
+
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.INITIALIZING,
+            new_state=CentralState.FAILED,
+            trigger="no clients connected",
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is False
+        coordinator.stop()
+
+    def test_on_central_state_changed_trigger_none(self) -> None:
+        """Test _on_central_state_changed does nothing when trigger is None."""
+        coordinator = self._create_coordinator()
+
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.INITIALIZING,
+            new_state=CentralState.FAILED,
+            trigger=None,
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is False
+        coordinator.stop()
+
+    def test_on_central_state_changed_wrong_trigger_prefix(self) -> None:
+        """Test _on_central_state_changed ignores unrelated trigger messages."""
+        coordinator = self._create_coordinator()
+
+        event = CentralStateChangedEvent(
+            timestamp=datetime.now(),
+            central_name="test-central",
+            old_state=CentralState.INITIALIZING,
+            new_state=CentralState.FAILED,
+            trigger="configuration error",
+        )
+
+        coordinator._on_central_state_changed(event=event)
+
+        assert coordinator._in_failed_state is False
+        coordinator.stop()
+
+    def _create_coordinator(self) -> ConnectionRecoveryCoordinator:
+        """Create coordinator for central state changed tests."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        return ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=MagicMock(),
+            client_provider=MagicMock(),
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+        )
+
+
+class TestConnectionRecoveryIncidentDetails:
+    """Tests for incident recording client state extraction."""
+
+    @pytest.mark.asyncio
+    async def test_record_connection_lost_incident_client_exception(self) -> None:
+        """Test incident recording handles exception during client state extraction."""
+        incident_recorder = MagicMock()
+        incident_recorder.record_incident = AsyncMock()
+
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        client_provider = MagicMock()
+        client_provider.get_client.side_effect = Exception("Client not found")
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=MagicMock(),
+            client_provider=client_provider,
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+            incident_recorder=incident_recorder,
+        )
+
+        event = ConnectionLostEvent(
+            timestamp=datetime.now(),
+            interface_id="test",
+            reason="Connection timeout",
+            detected_at=datetime.now(),
+        )
+
+        coordinator._record_connection_lost_incident(event=event)
+        await asyncio.sleep(0.05)
+
+        incident_recorder.record_incident.assert_awaited_once()
+        call_kwargs = incident_recorder.record_incident.await_args.kwargs
+        assert call_kwargs["context"]["client_state"] is None
+        assert call_kwargs["context"]["circuit_breaker_state"] is None
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_record_connection_lost_incident_client_state_extraction(self) -> None:
+        """Test incident recording extracts client and circuit breaker state."""
+        incident_recorder = MagicMock()
+        incident_recorder.record_incident = AsyncMock()
+
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        mock_client = MagicMock()
+        mock_client.state.state.value = "connected"
+        mock_client._circuit_breaker = MagicMock()
+        mock_client._circuit_breaker.state.value = "closed"
+
+        client_provider = MagicMock()
+        client_provider.get_client.return_value = mock_client
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=MagicMock(),
+            client_provider=client_provider,
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+            incident_recorder=incident_recorder,
+        )
+
+        event = ConnectionLostEvent(
+            timestamp=datetime.now(),
+            interface_id="test",
+            reason="Connection timeout",
+            detected_at=datetime.now(),
+        )
+
+        coordinator._record_connection_lost_incident(event=event)
+        await asyncio.sleep(0.05)
+
+        incident_recorder.record_incident.assert_awaited_once()
+        call_kwargs = incident_recorder.record_incident.await_args.kwargs
+        assert call_kwargs["context"]["client_state"] == "connected"
+        assert call_kwargs["context"]["circuit_breaker_state"] == "closed"
+        coordinator.stop()
+
+
+class TestConnectionRecoveryTcpCheckPortFallback:
+    """Tests for _stage_tcp_check port determination fallback chain."""
+
+    @pytest.mark.asyncio
+    async def test_stage_tcp_check_client_json_rpc_fallback(self) -> None:
+        """Test TCP check uses JSON-RPC port via client interface type fallback."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        config = MagicMock()
+        config.host = "127.0.0.1"
+        config.tls = False
+        config.timeout_config.reconnect_tcp_check_timeout = 0.02
+        config.enabled_interface_configs = []
+
+        config_provider = MagicMock()
+        config_provider.config = config
+
+        mock_client = MagicMock()
+        mock_client.interface = Interface.CUXD
+        mock_client._interface_config.port = None
+
+        client_provider = MagicMock()
+        client_provider.get_client.return_value = mock_client
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=config_provider,
+            client_provider=client_provider,
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+        )
+
+        state = InterfaceRecoveryState(interface_id="test")
+        coordinator._recovery_states["test"] = state
+
+        tcp_check_calls: list[dict] = []
+
+        async def capture_tcp_check(self_inner, *, host: str, port: int) -> bool:
+            tcp_check_calls.append({"host": host, "port": port})
+            return True
+
+        with (
+            patch.object(
+                ConnectionRecoveryCoordinator,
+                "_get_client_port",
+                return_value=None,
+            ),
+            patch.object(
+                ConnectionRecoveryCoordinator,
+                "_check_tcp_port_available",
+                new=capture_tcp_check,
+            ),
+        ):
+            result = await coordinator._stage_tcp_check(interface_id="test")
+
+        assert result is True
+        assert tcp_check_calls[0]["port"] == 80
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_stage_tcp_check_json_rpc_port_from_config(self) -> None:
+        """Test TCP check uses JSON-RPC default port for CUxD from interface config."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        mock_interface_config = MagicMock()
+        mock_interface_config.interface_id = "test"
+        mock_interface_config.port = 8701
+        mock_interface_config.interface = Interface.CUXD
+
+        config = MagicMock()
+        config.host = "127.0.0.1"
+        config.tls = False
+        config.timeout_config.reconnect_tcp_check_timeout = 0.02
+        config.enabled_interface_configs = [mock_interface_config]
+
+        config_provider = MagicMock()
+        config_provider.config = config
+
+        client_provider = MagicMock()
+        client_provider.get_client.side_effect = Exception("Client not found")
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=config_provider,
+            client_provider=client_provider,
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+        )
+
+        state = InterfaceRecoveryState(interface_id="test")
+        coordinator._recovery_states["test"] = state
+
+        tcp_check_calls: list[dict] = []
+
+        async def capture_tcp_check(self_inner, *, host: str, port: int) -> bool:
+            tcp_check_calls.append({"host": host, "port": port})
+            return True
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_check_tcp_port_available",
+            new=capture_tcp_check,
+        ):
+            result = await coordinator._stage_tcp_check(interface_id="test")
+
+        assert result is True
+        assert tcp_check_calls[0]["port"] == 80
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_stage_tcp_check_port_from_interface_config(self) -> None:
+        """Test TCP check gets port from interface config when client port unavailable."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        mock_interface_config = MagicMock()
+        mock_interface_config.interface_id = "test"
+        mock_interface_config.port = 2010
+        mock_interface_config.interface = Interface.HMIP_RF
+
+        config = MagicMock()
+        config.host = "127.0.0.1"
+        config.tls = False
+        config.timeout_config.reconnect_tcp_check_timeout = 0.02
+        config.enabled_interface_configs = [mock_interface_config]
+
+        config_provider = MagicMock()
+        config_provider.config = config
+
+        client_provider = MagicMock()
+        client_provider.get_client.side_effect = Exception("Client not found")
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=config_provider,
+            client_provider=client_provider,
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=None,
+        )
+
+        state = InterfaceRecoveryState(interface_id="test")
+        coordinator._recovery_states["test"] = state
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_check_tcp_port_available",
+            new=AsyncMock(return_value=True),
+        ):
+            result = await coordinator._stage_tcp_check(interface_id="test")
+
+        assert result is True
+        coordinator.stop()
+
+
 class TestConnectionRecoveryCoordinatorAdditionalCoverage:
     """Additional tests to improve coverage to 90%+."""
 

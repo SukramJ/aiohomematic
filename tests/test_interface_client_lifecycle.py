@@ -973,3 +973,1012 @@ class TestInterfaceClientReconnect:
         call_names = [call[0] for call in backend.calls]
         assert "deinit_proxy" in call_names
         assert "init_proxy" in call_names
+
+
+# ---------------------------------------------------------------------------
+# Extended fakes with persistent tracked state for additional coverage tests
+# ---------------------------------------------------------------------------
+
+
+class _TrackingDeviceDetails:
+    """Device details tracker with call recording."""
+
+    def __init__(self) -> None:
+        self.add_name_calls: list[dict[str, Any]] = []
+        self.add_id_calls: list[dict[str, Any]] = []
+        self.add_iface_calls: list[dict[str, Any]] = []
+
+    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
+        """Record add_address_rega_id call."""
+        self.add_id_calls.append({"address": address, "rega_id": rega_id})
+
+    def add_interface(self, *, address: str, interface: Interface) -> None:
+        """Record add_interface call."""
+        self.add_iface_calls.append({"address": address, "interface": interface})
+
+    def add_name(self, *, address: str, name: str) -> None:
+        """Record add_name call."""
+        self.add_name_calls.append({"address": address, "name": name})
+
+
+class _TrackingDataCache:
+    """Data cache tracker with call recording."""
+
+    def __init__(self) -> None:
+        self.add_data_calls: list[dict[str, Any]] = []
+
+    def add_data(self, **kwargs: Any) -> None:
+        """Record add_data call."""
+        self.add_data_calls.append(kwargs)
+
+
+class _TrackingParamsetDescriptions(_FakeParamsetDescriptions):
+    """Paramset descriptions tracker with call recording."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_calls: list[dict[str, Any]] = []
+
+    def add(
+        self,
+        *,
+        interface_id: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        paramset_description: dict[str, Any],
+        device_type: str,
+    ) -> None:
+        """Record add call and delegate to parent."""
+        self.add_calls.append(
+            {
+                "interface_id": interface_id,
+                "channel_address": channel_address,
+                "paramset_key": paramset_key,
+                "paramset_description": paramset_description,
+                "device_type": device_type,
+            }
+        )
+        super().add(
+            interface_id=interface_id,
+            channel_address=channel_address,
+            paramset_key=paramset_key,
+            paramset_description=paramset_description,
+            device_type=device_type,
+        )
+
+
+class _ExtendedFakeCentral(_FakeCentral):
+    """
+    Extended fake central with stable tracked objects for coverage tests.
+
+    Overrides cache_coordinator to return a stable object with tracking.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._channels: dict[str, Any] = {}
+        self._data_points: dict[str, Any] = {}
+        self._tracking_device_details = _TrackingDeviceDetails()
+        self._tracking_data_cache = _TrackingDataCache()
+        self._tracking_paramset_descriptions = _TrackingParamsetDescriptions()
+        # Override paramset_descriptions so the tracking version is used everywhere
+        self.paramset_descriptions = self._tracking_paramset_descriptions
+
+        self.config.schedule_timer_config = SimpleNamespace(  # type: ignore[attr-defined]
+            master_poll_after_send_intervals=(0.01,),
+        )
+
+    @property
+    def cache_coordinator(self) -> Any:
+        return SimpleNamespace(
+            device_details=self._tracking_device_details,
+            paramset_descriptions=self._tracking_paramset_descriptions,
+            data_cache=self._tracking_data_cache,
+            device_descriptions=self.device_descriptions,
+            incident_store=None,
+        )
+
+    @property
+    def device_coordinator(self) -> Any:
+        parent = self
+
+        class _FakeDeviceCoordinator:
+            async def add_new_devices(
+                self, *, interface_id: str, device_descriptions: tuple[dict[str, Any], ...]
+            ) -> None:
+                parent._device_coordinator_add_called.append((interface_id, device_descriptions))
+
+            def get_channel(self, *, channel_address: str) -> Any:
+                return parent._channels.get(channel_address)
+
+            def get_device(self, *, address: str) -> Any:
+                dev_addr = address.split(":")[0] if ":" in address else address
+                return parent._devices.get(dev_addr)
+
+        return _FakeDeviceCoordinator()
+
+    @property
+    def query_facade(self) -> Any:
+        parent = self
+
+        class _FakeQueryFacade:
+            def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: Any) -> Any:
+                key = f"{channel_address}:{parameter}:{paramset_key}"
+                return parent._data_points.get(key)
+
+        return _FakeQueryFacade()
+
+    def add_channel(self, channel_address: str) -> None:
+        """Add a fake channel for testing."""
+        self._channels[channel_address] = SimpleNamespace(
+            get_readable_data_points=lambda paramset_key: (),
+        )
+
+
+class _ExtendedFakeBackend(_FakeBackend):
+    """Extended fake backend with additional method coverage for new tests."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._all_device_data: dict[str, Any] | None = {"dev1:1": {"LEVEL": 0.5}}
+        self._device_details: list[dict[str, Any]] | None = [
+            {
+                "address": "dev1",
+                "name": "Test Device",
+                "id": 42,
+                "interface": "BidCos-RF",
+                "channels": [
+                    {"address": "dev1:0", "name": "Ch 0", "id": 43},
+                    {"address": "dev1:1", "name": "Ch 1", "id": 44},
+                ],
+            }
+        ]
+        self._delete_sysvar_result: bool = True
+        self._get_sysvar_result: Any = "test_value"
+        self._set_sysvar_result: bool = True
+
+    async def delete_system_variable(self, *, name: str) -> bool:
+        """Delete a system variable."""
+        self.calls.append(("delete_system_variable", name))
+        return self._delete_sysvar_result
+
+    async def get_all_device_data(self, *, interface: Any) -> dict[str, Any] | None:
+        """Return configurable all-device-data result."""
+        self.calls.append(("get_all_device_data", interface))
+        return self._all_device_data
+
+    async def get_device_details(self, *, addresses: tuple[str, ...] | None = None) -> list[dict[str, Any]] | None:
+        """Return configurable device details result."""
+        self.calls.append(("get_device_details", addresses))
+        return self._device_details
+
+    async def get_paramset(self, *, channel_address: str, paramset_key: ParamsetKey | str) -> dict[str, Any]:
+        """Return paramset using channel_address keyword (protocol-compliant)."""
+        self.calls.append(("get_paramset", (channel_address, paramset_key)))
+        return {"LEVEL": 0.5}
+
+    async def get_paramset_description(
+        self, *, channel_address: str, paramset_key: ParamsetKey
+    ) -> dict[str, Any] | None:
+        """Return paramset description using channel_address keyword (protocol-compliant)."""
+        self.calls.append(("get_paramset_description", (channel_address, paramset_key)))
+        return {
+            "LEVEL": {
+                "TYPE": "FLOAT",
+                "OPERATIONS": 7,
+                "MIN": 0.0,
+                "MAX": 1.0,
+            },
+        }
+
+    async def get_system_variable(self, *, name: str) -> Any:
+        """Return a system variable value."""
+        self.calls.append(("get_system_variable", name))
+        return self._get_sysvar_result
+
+    async def get_value(self, *, channel_address: str, parameter: str) -> Any:
+        """Return value using channel_address keyword (protocol-compliant)."""
+        self.calls.append(("get_value", (channel_address, parameter)))
+        return 0.5
+
+    async def put_paramset(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey | str,
+        values: dict[str, Any],
+        rx_mode: Any | None = None,
+    ) -> None:
+        """Put paramset using channel_address keyword (protocol-compliant)."""
+        self.calls.append(("put_paramset", (channel_address, paramset_key, values, rx_mode)))
+
+    async def set_system_variable(self, *, name: str, value: Any) -> bool:
+        """Set a system variable."""
+        self.calls.append(("set_system_variable", (name, value)))
+        return self._set_sysvar_result
+
+    async def set_value(
+        self,
+        *,
+        channel_address: str,
+        parameter: str,
+        value: Any,
+        rx_mode: Any | None = None,
+    ) -> None:
+        """Set value using channel_address keyword (protocol-compliant)."""
+        self.calls.append(("set_value", (channel_address, parameter, value, rx_mode)))
+
+
+def _create_extended_interface_client(
+    central: _ExtendedFakeCentral | None = None,
+    backend: _ExtendedFakeBackend | None = None,
+) -> InterfaceClient:
+    """Create an InterfaceClient with extended fake dependencies."""
+    if central is None:
+        central = _ExtendedFakeCentral()
+    if backend is None:
+        backend = _ExtendedFakeBackend()
+
+    iface_cfg = InterfaceConfig(central_name="test", interface=Interface.BIDCOS_RF, port=32001)
+
+    return InterfaceClient(
+        backend=backend,  # type: ignore[arg-type]
+        central=central,  # type: ignore[arg-type]
+        interface_config=iface_cfg,
+        version="2.0",
+    )
+
+
+# ---------------------------------------------------------------------------
+# New test classes for additional coverage
+# ---------------------------------------------------------------------------
+
+
+class TestFetchAllDeviceData:
+    """Test fetch_all_device_data device data caching."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_all_device_data_caches_data(self) -> None:
+        """fetch_all_device_data should store data in data cache when backend returns data."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_all_device_data()
+
+        assert any(call[0] == "get_all_device_data" for call in backend.calls)
+        assert len(central._tracking_data_cache.add_data_calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_fetch_all_device_data_empty_dict_not_cached(self) -> None:
+        """fetch_all_device_data should not cache empty dict (falsy value)."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        backend._all_device_data = {}
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_all_device_data()
+
+        assert len(central._tracking_data_cache.add_data_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_fetch_all_device_data_no_data_returned(self) -> None:
+        """fetch_all_device_data should not call cache when backend returns None."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        backend._all_device_data = None
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_all_device_data()
+
+        assert len(central._tracking_data_cache.add_data_calls) == 0
+
+
+class TestFetchDeviceDetails:
+    """Test fetch_device_details CCU vs Homegear hierarchy handling."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_device_details_adds_names_and_ids(self) -> None:
+        """fetch_device_details should add device names and rega IDs to tracking cache."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_device_details()
+
+        assert any(call[0] == "get_device_details" for call in backend.calls)
+        # Device (dev1) + 2 channels (dev1:0, dev1:1) = 3 name calls
+        assert len(central._tracking_device_details.add_name_calls) == 3
+
+    @pytest.mark.asyncio
+    async def test_fetch_device_details_no_data_returned(self) -> None:
+        """fetch_device_details should do nothing when backend returns None."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        backend._device_details = None
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_device_details()
+
+        assert len(central._tracking_device_details.add_name_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_fetch_device_details_no_interface_uses_client_interface(self) -> None:
+        """fetch_device_details should fall back to client interface when device has none."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        # Device with no "interface" key
+        backend._device_details = [
+            {
+                "address": "dev1",
+                "name": "Test Device",
+                "id": 42,
+                "channels": [],
+            }
+        ]
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_device_details()
+
+        assert len(central._tracking_device_details.add_iface_calls) == 1
+        assert central._tracking_device_details.add_iface_calls[0]["interface"] == Interface.BIDCOS_RF
+
+    @pytest.mark.asyncio
+    async def test_fetch_device_details_with_interface_uses_device_interface(self) -> None:
+        """fetch_device_details should use interface from device data when provided."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        # Default backend has "interface": "BidCos-RF"
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_device_details()
+
+        assert len(central._tracking_device_details.add_iface_calls) == 1
+        assert central._tracking_device_details.add_iface_calls[0]["interface"] == Interface.BIDCOS_RF
+
+    @pytest.mark.asyncio
+    async def test_fetch_device_details_zero_id_not_added(self) -> None:
+        """fetch_device_details should not add rega_id when it is zero (Homegear path)."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        backend._device_details = [
+            {
+                "address": "dev1",
+                "name": "Test Device",
+                "id": 0,
+                "interface": "BidCos-RF",
+                "channels": [],
+            }
+        ]
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_device_details()
+
+        # id=0 means no rega_id call
+        assert len(central._tracking_device_details.add_id_calls) == 0
+
+
+class TestFetchParamsetDescription:
+    """Test fetch_paramset_description single paramset caching."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_paramset_description_caches_result(self) -> None:
+        """fetch_paramset_description should add result to paramset description cache."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_paramset_description(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.VALUES,
+            device_type="TEST_DEVICE",
+        )
+
+        assert any(call[0] == "get_paramset_description" for call in backend.calls)
+        assert len(central._tracking_paramset_descriptions.add_calls) == 1
+        call = central._tracking_paramset_descriptions.add_calls[0]
+        assert call["channel_address"] == "dev1:1"
+        assert call["paramset_key"] == ParamsetKey.VALUES
+        assert call["device_type"] == "TEST_DEVICE"
+
+    @pytest.mark.asyncio
+    async def test_fetch_paramset_description_empty_dict_is_cached(self) -> None:
+        """fetch_paramset_description should cache empty dict (valid for HmIP MASTER)."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+
+        async def _return_empty(*, channel_address: str, paramset_key: Any) -> dict[str, Any]:
+            return {}
+
+        backend.get_paramset_description = _return_empty  # type: ignore[method-assign]
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_paramset_description(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.MASTER,
+            device_type="TEST_DEVICE",
+        )
+
+        assert len(central._tracking_paramset_descriptions.add_calls) == 1
+        assert central._tracking_paramset_descriptions.add_calls[0]["paramset_description"] == {}
+
+    @pytest.mark.asyncio
+    async def test_fetch_paramset_description_none_not_cached(self) -> None:
+        """fetch_paramset_description should skip caching when backend returns None."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+
+        async def _return_none(*, channel_address: str, paramset_key: Any) -> None:
+            return None
+
+        backend.get_paramset_description = _return_none  # type: ignore[method-assign]
+        client = _create_extended_interface_client(central, backend)
+
+        await client.fetch_paramset_description(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.VALUES,
+            device_type="TEST_DEVICE",
+        )
+
+        assert len(central._tracking_paramset_descriptions.add_calls) == 0
+
+
+class TestFetchParamsetDescriptions:
+    """Test fetch_paramset_descriptions batch with PARENT_TYPE resolution."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_paramset_descriptions_falls_back_to_type(self) -> None:
+        """fetch_paramset_descriptions should use TYPE when PARENT_TYPE is absent (root device)."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        device_description: dict[str, Any] = {
+            "ADDRESS": "dev1",
+            "TYPE": "ROOT_DEVICE_TYPE",
+            "PARAMSETS": ["VALUES", "MASTER"],
+        }
+
+        await client.fetch_paramset_descriptions(device_description=device_description)
+
+        assert len(central._tracking_paramset_descriptions.add_calls) > 0
+        for call in central._tracking_paramset_descriptions.add_calls:
+            assert call["device_type"] == "ROOT_DEVICE_TYPE"
+
+    @pytest.mark.asyncio
+    async def test_fetch_paramset_descriptions_skips_link_paramset(self) -> None:
+        """fetch_paramset_descriptions should skip LINK paramset keys."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        device_description: dict[str, Any] = {
+            "ADDRESS": "dev1:1",
+            "TYPE": "CHANNEL_TYPE",
+            "PARAMSETS": ["VALUES", "MASTER", "LINK"],
+        }
+
+        await client.fetch_paramset_descriptions(device_description=device_description)
+
+        paramset_keys = [call["paramset_key"] for call in central._tracking_paramset_descriptions.add_calls]
+        assert ParamsetKey.LINK not in paramset_keys
+
+    @pytest.mark.asyncio
+    async def test_fetch_paramset_descriptions_uses_parent_type(self) -> None:
+        """fetch_paramset_descriptions should use PARENT_TYPE when available (channel)."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        device_description: dict[str, Any] = {
+            "ADDRESS": "dev1:1",
+            "TYPE": "CHANNEL_TYPE",
+            "PARENT_TYPE": "ROOT_DEVICE_TYPE",
+            "PARAMSETS": ["VALUES", "MASTER"],
+        }
+
+        await client.fetch_paramset_descriptions(device_description=device_description)
+
+        # All cached entries should use PARENT_TYPE for device_type
+        assert len(central._tracking_paramset_descriptions.add_calls) > 0
+        for call in central._tracking_paramset_descriptions.add_calls:
+            assert call["device_type"] == "ROOT_DEVICE_TYPE"
+
+
+class TestGetParamsetDescriptionOnDemand:
+    """Test get_paramset_description_on_demand LINK paramset loading."""
+
+    @pytest.mark.asyncio
+    async def test_get_paramset_description_on_demand_returns_description(self) -> None:
+        """get_paramset_description_on_demand should return description without caching."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.get_paramset_description_on_demand(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.LINK,
+        )
+
+        assert result is not None
+        assert isinstance(result, dict)
+        # Should NOT have added to paramset description cache
+        assert len(central._tracking_paramset_descriptions.add_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_paramset_description_on_demand_returns_empty_when_none(self) -> None:
+        """get_paramset_description_on_demand should return empty dict when backend returns None."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+
+        async def _return_none(*, channel_address: str, paramset_key: Any) -> None:
+            return None
+
+        backend.get_paramset_description = _return_none  # type: ignore[method-assign]
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.get_paramset_description_on_demand(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.LINK,
+        )
+
+        assert result == {}
+
+
+class TestInitProxyJsonRpcBackend:
+    """Test init_proxy JSON-RPC backend path (no callbacks)."""
+
+    @pytest.mark.asyncio
+    async def test_init_proxy_json_rpc_backend_no_callback_calls(self) -> None:
+        """init_proxy for JSON-RPC backend should list devices instead of registering callback."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        backend.capabilities.rpc_callback = False
+        backend._list_devices_result = ({"ADDRESS": "dev1", "TYPE": "TEST", "PARAMSETS": ["VALUES"]},)
+        client = _create_extended_interface_client(central, backend)
+
+        await client.init_client()
+        result = await client.init_proxy()
+
+        assert result == ProxyInitState.INIT_SUCCESS
+        assert client.state == ClientState.CONNECTED
+        # Should NOT have called init_proxy on the backend
+        assert not any(call[0] == "init_proxy" for call in backend.calls)
+        # Should have called list_devices to discover devices
+        assert any(call[0] == "list_devices" for call in backend.calls)
+
+    @pytest.mark.asyncio
+    async def test_init_proxy_json_rpc_device_descriptions_forwarded(self) -> None:
+        """init_proxy without callback should forward device descriptions to coordinator."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        backend.capabilities.rpc_callback = False
+        device_desc = {"ADDRESS": "dev1", "TYPE": "TEST", "PARAMSETS": ["VALUES"]}
+        backend._list_devices_result = (device_desc,)
+        client = _create_extended_interface_client(central, backend)
+
+        await client.init_client()
+        await client.init_proxy()
+
+        assert len(central._device_coordinator_add_called) == 1
+        _, descriptions = central._device_coordinator_add_called[0]
+        assert device_desc in descriptions
+
+
+class TestIsCallbackAliveStateTransition:
+    """Test is_callback_alive state transitions and incident recording."""
+
+    def test_is_callback_alive_failed_state_returns_false(self) -> None:
+        """is_callback_alive should return False when client is in FAILED state."""
+        central = _FakeCentral()
+        backend = _FakeBackend()
+        client = _create_interface_client(central, backend)
+
+        # Force to FAILED state via INITIALIZING -> INITIALIZED -> CONNECTING then exception-path
+        # Use force=True to set state directly
+        client._state_machine.transition_to(target=ClientState.INITIALIZING)
+        client._state_machine.transition_to(target=ClientState.FAILED)
+
+        result = client.is_callback_alive()
+
+        assert result is False
+
+    def test_is_callback_alive_no_duplicate_event_on_second_dead_check(self) -> None:
+        """is_callback_alive should not re-publish dead event when already marked dead."""
+        central = _FakeCentral()
+        central._last_event_seen = datetime.now() - timedelta(minutes=10)
+        backend = _FakeBackend()
+        client = _create_interface_client(central, backend)
+
+        central._event_bus.published_events.clear()
+
+        # First call: transitions alive -> dead, publishes event
+        client.is_callback_alive()
+        events_after_first = len(central._event_bus.published_events)
+
+        # Second call: already dead, should NOT publish again
+        central._event_bus.published_events.clear()
+        client.is_callback_alive()
+        events_after_second = len(central._event_bus.published_events)
+
+        assert events_after_first == 1
+        assert events_after_second == 0
+
+    def test_is_callback_alive_transitions_false_to_true(self) -> None:
+        """is_callback_alive should publish recovered event when state goes false->true."""
+        from aiohomematic.central.events import SystemStatusChangedEvent
+
+        central = _FakeCentral()
+        backend = _FakeBackend()
+        client = _create_interface_client(central, backend)
+
+        # Simulate prior dead state
+        client._is_callback_alive = False
+        # Recent event = callback is alive again
+        central._last_event_seen = datetime.now()
+
+        central._event_bus.published_events.clear()
+        result = client.is_callback_alive()
+
+        assert result is True
+        recovery_events = [
+            e
+            for e in central._event_bus.published_events
+            if isinstance(e, SystemStatusChangedEvent) and e.callback_state == (client.interface_id, True)
+        ]
+        assert len(recovery_events) == 1
+
+
+class TestIsConnectedPushUpdates:
+    """Test is_connected push_updates=False path."""
+
+    @pytest.mark.asyncio
+    async def test_is_connected_no_ping_pong_returns_true(self) -> None:
+        """is_connected should return True when ping_pong=False (CUxD/CCU-Jack path)."""
+        central = _FakeCentral()
+        backend = _FakeBackend()
+        backend.capabilities.push_updates = True
+        backend.capabilities.ping_pong = False
+        client = _create_interface_client(central, backend)
+
+        result = await client.is_connected()
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_is_connected_no_push_updates_returns_true_without_callback_check(self) -> None:
+        """is_connected should return True when push_updates=False regardless of callback age."""
+        central = _FakeCentral()
+        backend = _FakeBackend()
+        backend.capabilities.push_updates = False
+        # Set last event very old to test that callback_warn is NOT checked
+        central._last_event_seen = datetime.now() - timedelta(hours=1)
+        client = _create_interface_client(central, backend)
+
+        result = await client.is_connected()
+
+        assert result is True
+
+
+class TestPutParamset:
+    """Test put_paramset LINK detection and RX mode validation."""
+
+    @pytest.mark.asyncio
+    async def test_put_paramset_basic_succeeds(self) -> None:
+        """put_paramset with ParamsetKey.VALUES should succeed and return dpk_values."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.put_paramset(
+            channel_address="dev1:1",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={"LEVEL": 0.5},
+            wait_for_callback=None,
+        )
+
+        assert any(call[0] == "put_paramset" for call in backend.calls)
+        assert isinstance(result, set)
+
+    @pytest.mark.asyncio
+    async def test_put_paramset_link_address_returns_empty_set(self) -> None:
+        """put_paramset with a channel address as key should detect LINK call and return empty set."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        # A valid channel address (5-20 chars before ":" + channel no) as key means LINK call.
+        # CHANNEL_ADDRESS_PATTERN requires 5-20 alphanumeric/dash chars, so use VCU-format addresses.
+        result = await client.put_paramset(
+            channel_address="VCU0000001:1",
+            paramset_key_or_link_address="VCU0000002:1",
+            values={"LEVEL": 0.5},
+            wait_for_callback=None,
+        )
+
+        assert result == set()
+        assert any(call[0] == "put_paramset" for call in backend.calls)
+
+
+class TestSetValueNonValuesParamset:
+    """Test set_value non-VALUES paramset routing."""
+
+    @pytest.mark.asyncio
+    async def test_set_value_master_paramset_routes_to_put_paramset(self) -> None:
+        """set_value with MASTER paramset should route to put_paramset backend call."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.set_value(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.MASTER,
+            parameter="CYCLICINFOMSGDIS",
+            value=1,
+            wait_for_callback=None,
+        )
+
+        # MASTER routes through put_paramset, not set_value
+        assert any(call[0] == "put_paramset" for call in backend.calls)
+        assert not any(call[0] == "set_value" for call in backend.calls)
+        assert isinstance(result, set)
+
+    @pytest.mark.asyncio
+    async def test_set_value_values_paramset_uses_set_value_backend(self) -> None:
+        """set_value with VALUES paramset should call backend set_value directly."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.set_value(
+            channel_address="dev1:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=0.5,
+            wait_for_callback=None,
+        )
+
+        assert any(call[0] == "set_value" for call in backend.calls)
+        assert isinstance(result, set)
+
+
+class TestSystemVariableOperations:
+    """Test system variable delete, get, set operations."""
+
+    @pytest.mark.asyncio
+    async def test_delete_system_variable(self) -> None:
+        """delete_system_variable should delegate to backend and return result."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.delete_system_variable(name="test_var")
+
+        assert result is True
+        assert any(call[0] == "delete_system_variable" and call[1] == "test_var" for call in backend.calls)
+
+    @pytest.mark.asyncio
+    async def test_delete_system_variable_returns_false_on_failure(self) -> None:
+        """delete_system_variable should propagate False result from backend."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        backend._delete_sysvar_result = False
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.delete_system_variable(name="nonexistent_var")
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_get_system_variable(self) -> None:
+        """get_system_variable should return value from backend."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.get_system_variable(name="test_var")
+
+        assert result == "test_value"
+        assert any(call[0] == "get_system_variable" and call[1] == "test_var" for call in backend.calls)
+
+    @pytest.mark.asyncio
+    async def test_set_system_variable(self) -> None:
+        """set_system_variable should delegate to backend with the provided legacy_name and value."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        client = _create_extended_interface_client(central, backend)
+
+        result = await client.set_system_variable(legacy_name="test_var", value=42)
+
+        assert result is True
+        sysvar_calls = [call for call in backend.calls if call[0] == "set_system_variable"]
+        assert len(sysvar_calls) == 1
+        name, value = sysvar_calls[0][1]
+        assert name == "test_var"
+        assert value == 42
+
+
+class TestClearJsonRpcSession:
+    """Test clear_json_rpc_session method."""
+
+    def test_clear_json_rpc_session_calls_clear(self) -> None:
+        """clear_json_rpc_session should call json_rpc_client.clear_session."""
+        central = _FakeCentral()
+        clear_called: list[bool] = []
+
+        def _track_clear() -> None:
+            clear_called.append(True)
+
+        central.json_rpc_client.clear_session = _track_clear  # type: ignore[attr-defined]
+        client = _create_interface_client(central=central)
+
+        client.clear_json_rpc_session()
+
+        assert len(clear_called) == 1
+
+    def test_clear_json_rpc_session_does_not_raise(self) -> None:
+        """clear_json_rpc_session should complete without raising exceptions."""
+        client = _create_interface_client()
+
+        # Should not raise
+        client.clear_json_rpc_session()
+
+
+class TestStop:
+    """Test stop() full shutdown sequence."""
+
+    @pytest.mark.asyncio
+    async def test_stop_calls_backend_stop(self) -> None:
+        """stop() should call backend.stop()."""
+        central = _FakeCentral()
+        backend = _FakeBackend()
+        stop_called: list[bool] = []
+        original_stop = backend.stop
+
+        async def _tracking_stop() -> None:
+            stop_called.append(True)
+            await original_stop()
+
+        backend.stop = _tracking_stop  # type: ignore[method-assign]
+        client = _create_interface_client(central, backend)
+
+        await client.init_client()
+        await client.init_proxy()
+        await client.stop()
+
+        assert len(stop_called) == 1
+
+    @pytest.mark.asyncio
+    async def test_stop_from_disconnected_state(self) -> None:
+        """stop() should work from DISCONNECTED state."""
+        client = _create_interface_client()
+
+        await client.init_client()
+        await client.init_proxy()
+        await client.deinit_proxy()
+        assert client.state == ClientState.DISCONNECTED
+
+        await client.stop()
+
+        assert client.state == ClientState.STOPPED
+
+    @pytest.mark.asyncio
+    async def test_stop_transitions_to_stopped(self) -> None:
+        """stop() should transition state to STOPPED after being connected."""
+        client = _create_interface_client()
+
+        # Must be in CONNECTED or DISCONNECTED to allow STOPPING transition
+        await client.init_client()
+        await client.init_proxy()
+        assert client.state == ClientState.CONNECTED
+
+        await client.stop()
+
+        assert client.state == ClientState.STOPPED
+
+    @pytest.mark.asyncio
+    async def test_stop_unsubscribes_events(self) -> None:
+        """stop() should unsubscribe from both event bus subscriptions."""
+        central = _FakeCentral()
+        unsubscribe_calls: list[str] = []
+
+        def _tracking_subscribe(*, event_type: Any, event_key: Any, handler: Any) -> Any:
+            def _unsubscribe() -> None:
+                unsubscribe_calls.append("unsubscribed")
+
+            return _unsubscribe
+
+        central._event_bus.subscribe = _tracking_subscribe  # type: ignore[method-assign]
+        client = _create_interface_client(central=central)
+
+        await client.init_client()
+        await client.init_proxy()
+        await client.stop()
+
+        # Both subscriptions (state_change + system_status) should be unsubscribed
+        assert len(unsubscribe_calls) == 2
+
+
+class TestMarkAllDevicesForcedAvailability:
+    """Test _mark_all_devices_forced_availability method."""
+
+    @pytest.mark.asyncio
+    async def test_mark_available_skips_when_already_available(self) -> None:
+        """_mark_all_devices_forced_availability skips set when already available and marking available."""
+        from aiohomematic.const import ForcedDeviceAvailability
+
+        central = _FakeCentral()
+        availability_calls: list[Any] = []
+
+        def _track_availability(**kwargs: Any) -> None:
+            availability_calls.append(kwargs)
+
+        central.add_device("dev1")
+        central._devices["dev1"].set_forced_availability = _track_availability
+
+        backend = _FakeBackend()
+        client = _create_interface_client(central, backend)
+
+        # Connect first so is_available = True
+        await client.init_client()
+        await client.init_proxy()
+        assert client.available is True
+
+        availability_calls.clear()
+
+        # Marking available when already available should be skipped
+        client._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
+
+        assert len(availability_calls) == 0
+
+    def test_mark_unavailable_calls_set_forced_on_all_interface_devices(self) -> None:
+        """_mark_all_devices_forced_availability should call set_forced_availability on matching devices."""
+        from aiohomematic.const import ForcedDeviceAvailability
+
+        central = _FakeCentral()
+        availability_calls: list[Any] = []
+
+        def _track_availability(**kwargs: Any) -> None:
+            availability_calls.append(kwargs)
+
+        central.add_device("dev1")
+        central.add_device("dev2")
+        central._devices["dev1"].set_forced_availability = _track_availability
+        central._devices["dev2"].set_forced_availability = _track_availability
+
+        backend = _FakeBackend()
+        client = _create_interface_client(central, backend)
+
+        client._mark_all_devices_forced_availability(forced_availability=ForcedDeviceAvailability.FORCE_FALSE)
+
+        assert len(availability_calls) == 2
+
+
+class TestPollMasterValues:
+    """Test _poll_master_values BidCos polling task creation."""
+
+    @pytest.mark.asyncio
+    async def test_poll_master_values_creates_task(self) -> None:
+        """_poll_master_values should schedule a background polling task via looper."""
+        central = _ExtendedFakeCentral()
+        backend = _ExtendedFakeBackend()
+        task_calls: list[Any] = []
+
+        def _track_task(*, target: Any, name: str) -> None:
+            task_calls.append((target, name))
+            # Close the coroutine to avoid ResourceWarning
+            if hasattr(target, "close"):
+                target.close()
+
+        central.looper.create_task = _track_task  # type: ignore[method-assign]
+        client = _create_extended_interface_client(central, backend)
+
+        fake_channel = SimpleNamespace(
+            get_readable_data_points=lambda paramset_key: (),
+        )
+
+        await client._poll_master_values(channel=fake_channel, paramset_key=ParamsetKey.MASTER)
+
+        assert len(task_calls) == 1
+        _, name = task_calls[0]
+        assert "poll_master_dp_values" in name

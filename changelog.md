@@ -27,6 +27,11 @@
 - **Backend capability**: `alarm_messages` flag added to `BackendCapabilities`
   (enabled for CCU backend only).
 
+- **Acknowledge messages**: New `acknowledge_message()` method on `AioJsonRpcAioHttpClient`
+  allows quitting (receipting) service messages and alarm messages by their ReGa ID.
+  Uses new `acknowledge_message.fn` ReGa script with `AlReceipt()` for both
+  `ID_SERVICES` and `ALARMDP` objects.
+
 # Version 2026.3.16 (2026-03-24)
 
 ## What's Changed

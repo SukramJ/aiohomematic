@@ -171,6 +171,7 @@
   "log.client.is_callback_alive.no_events": "IS_CALLBACK_ALIVE: Callback for {interface_id} has not received events for {seconds}s",
   "log.client.json_rpc.accept_device_in_inbox.failed": "ACCEPT_DEVICE_IN_INBOX for {device_address} failed: Unable to decode json: {reason}",
   "log.client.json_rpc.accept_device_in_inbox.invalid_address": "ACCEPT_DEVICE_IN_INBOX failed: Invalid device address: {device_address}",
+  "log.client.json_rpc.acknowledge_message.decode_failed": "ACKNOWLEDGE_MESSAGE failed: Unable to decode json for message {message_id}: {reason}",
   "log.client.json_rpc.create_backup_start.failed": "CREATE_BACKUP_START failed: Unable to decode json: {reason}",
   "log.client.json_rpc.create_backup_status.failed": "CREATE_BACKUP_STATUS failed: Unable to decode json: {reason}",
   "log.client.json_rpc.do_login.max_attempts_reached": "DO_LOGIN failed: Max failed login attempts ({max_attempts}) reached. Consider checking credentials.",

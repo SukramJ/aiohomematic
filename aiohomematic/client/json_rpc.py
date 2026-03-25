@@ -249,6 +249,7 @@ class _JsonKey(StrEnum):
     LAST_TRIGGER = "last_trigger"
     MAX_VALUE = "maxValue"
     MESSAGE = "message"
+    MESSAGE_ID = "message_id"
     MIN_VALUE = "minValue"
     MODE = "mode"
     NAME = "name"
@@ -506,6 +507,37 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 i18n.tr(
                     key="log.client.json_rpc.accept_device_in_inbox.failed",
                     device_address=device_address,
+                    reason=extract_exc_args(exc=jderr),
+                )
+            )
+
+        return False
+
+    async def acknowledge_message(self, *, message_id: str) -> bool:
+        """
+        Acknowledge (receipt) a service message or alarm message.
+
+        Args:
+            message_id: The Rega ID of the message to acknowledge.
+
+        Returns:
+            True if the message was acknowledged successfully.
+
+        """
+        try:
+            response = await self._post_script(
+                script_name=RegaScript.ACKNOWLEDGE_MESSAGE,
+                extra_params={_JsonKey.MESSAGE_ID: message_id},
+            )
+
+            _LOGGER.debug("ACKNOWLEDGE_MESSAGE: Acknowledging message %s", message_id)
+            if json_result := response[_JsonKey.RESULT]:
+                return bool(json_result.get(_JsonKey.SUCCESS, False))
+        except JSONDecodeError as jderr:
+            _LOGGER.error(
+                i18n.tr(
+                    key="log.client.json_rpc.acknowledge_message.decode_failed",
+                    message_id=message_id,
                     reason=extract_exc_args(exc=jderr),
                 )
             )

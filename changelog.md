@@ -25,6 +25,10 @@
 - **New ReGa script**: `get_alarm_messages.fn` reads alarm messages from
   `ID_SYSTEM_VARIABLES`, filtered for active `ALARMDP` objects.
 
+- **New device HmIP-DLP**: Added support for the IP Door Lock Pro with lock
+  control (channel 12) and button lock (channel 0). Includes battery data
+  (4× AA).
+
 - **Backend capability**: `alarm_messages` flag added to `BackendCapabilities`
   (enabled for CCU backend only).
 

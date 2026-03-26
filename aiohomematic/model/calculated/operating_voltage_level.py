@@ -241,6 +241,7 @@ _BATTERY_DATA: Final = (
     _BatteryData(model="ELV-SH-WSM", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-DBB", battery=_BatteryType.R03),
     _BatteryData(model="HmIP-DLD", battery=_BatteryType.R6, quantity=3),
+    _BatteryData(model="HmIP-DLP", battery=_BatteryType.R6, quantity=4),
     _BatteryData(model="HmIP-DLS", battery=_BatteryType.CR2032),
     _BatteryData(model="HmIP-ESI", battery=_BatteryType.R6, quantity=2),
     _BatteryData(model="HmIP-KRC", battery=_BatteryType.R03),

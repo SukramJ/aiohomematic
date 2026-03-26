@@ -294,6 +294,29 @@ DeviceProfileRegistry.register_multiple(
     ),
 )
 
+# IP Lock with Button Lock (HmIP-DLP - multiple configs)
+DeviceProfileRegistry.register_multiple(
+    category=DataPointCategory.LOCK,
+    models="HmIP-DLP",
+    configs=(
+        DeviceConfig(
+            data_point_class=CustomDpIpLock,
+            profile_type=DeviceProfile.IP_LOCK,
+            extended=ExtendedDeviceConfig(
+                additional_data_points={
+                    0: (Parameter.ERROR_JAMMED,),
+                }
+            ),
+            channels=(12,),
+        ),
+        DeviceConfig(
+            data_point_class=CustomDpButtonLock,
+            profile_type=DeviceProfile.IP_BUTTON_LOCK,
+            channels=(0,),
+        ),
+    ),
+)
+
 # RF Button Lock
 DeviceProfileRegistry.register(
     category=DataPointCategory.LOCK,

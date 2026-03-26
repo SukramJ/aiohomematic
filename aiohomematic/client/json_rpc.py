@@ -759,6 +759,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                         alarm_id=msg[_JsonKey.ID],
                         name=unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1),
                         description=unquote(string=msg.get(_JsonKey.DESCRIPTION, ""), encoding=ISO_8859_1),
+                        device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
                         timestamp=msg.get(_JsonKey.TIMESTAMP, ""),
                         last_timestamp=msg.get(_JsonKey.LAST_TIMESTAMP, ""),
                         counter=msg.get(_JsonKey.COUNTER, 0),

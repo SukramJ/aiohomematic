@@ -19,7 +19,8 @@
   data shown in the CCU WebUI. Inactive channels are filtered out.
 
 - **Alarm message data**: New `AlarmMessageData` dataclass with `alarm_id`, `name`,
-  `description`, `timestamp`, `last_timestamp`, `counter`, `last_trigger`, and `rooms`.
+  `description`, `device_name`, `timestamp`, `last_timestamp`, `counter`, `last_trigger`,
+  and `rooms`.
 
 - **New ReGa script**: `get_alarm_messages.fn` reads alarm messages from
   `ID_SYSTEM_VARIABLES`, filtered for active `ALARMDP` objects.
@@ -31,6 +32,26 @@
   allows quitting (receipting) service messages and alarm messages by their ReGa ID.
   Uses new `acknowledge_message.fn` ReGa script with `AlReceipt()` for both
   `ID_SERVICES` and `ALARMDP` objects.
+
+### Fixed
+
+- **get_alarm_messages.fn**: Fixed ReGa parse error caused by non-existent
+  `LastTriggerMessage()` method. Replaced with trigger data point name via
+  `AlTriggerDP()`. Added `AlTriggerDP() > 0` filter to exclude system counting
+  variables (`${sysVarAlarmMessages}`, `${sysVarPresence}`) and user-created
+  alarm-type sysvars without device triggers. Switched from compound `&&`
+  conditions to nested `if` statements to prevent ReGa error propagation.
+
+- **get_alarm_messages.fn / get_service_messages.fn**: Fixed `device_name`,
+  `rooms`, and `functions` fields being empty or containing ReGa object IDs
+  instead of actual names. Root cause: `oTrigger.Channel()` returns the
+  channel ID (integer), not the object — added `dom.GetObject(iChnId)` to
+  resolve the channel object before accessing `Name()`, `ChnRoom()`, and
+  `ChnFunction()`.
+
+- **get_service_messages.fn**: Removed `ChnInactive()` check that caused
+  runtime errors on some channels, breaking the entire iteration and producing
+  malformed JSON output (`[,,,]`).
 
 # Version 2026.3.16 (2026-03-24)
 

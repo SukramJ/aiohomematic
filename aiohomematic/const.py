@@ -1993,6 +1993,7 @@ class AlarmMessageData:
     alarm_id: str
     name: str
     description: str = ""
+    device_name: str = ""
     timestamp: str = ""
     last_timestamp: str = ""
     counter: int = 0

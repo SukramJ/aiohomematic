@@ -63,20 +63,17 @@ if (oServices) {
             }
 
             !# Get device name, rooms, and functions from trigger data point channel
+            !# Note: oTrigger.Channel() returns the channel ID (integer), not the object.
             string sRooms = "";
             string sFunctions = "";
-            boolean bSkip = false;
             integer iTriggerDP = oAlarm.AlTriggerDP();
             if (iTriggerDP) {
                 object oTrigger = dom.GetObject(iTriggerDP);
                 if (oTrigger) {
-                    object oChn = oTrigger.Channel();
-                    if (oChn) {
-                        !# Skip inactive channels
-                        if (oChn.ChnInactive()) {
-                            bSkip = true;
-                        }
-                        if (!bSkip) {
+                    integer iChnId = oTrigger.Channel();
+                    if (iChnId) {
+                        object oChn = dom.GetObject(iChnId);
+                        if (oChn) {
                             if (sAddress == "") {
                                 sAddress = oChn.Address();
                             }
@@ -119,7 +116,7 @@ if (oServices) {
                 }
             }
 
-            if (!bSkip) {
+            if (true) {
                 if (bFirst) {
                     bFirst = false;
                 } else {

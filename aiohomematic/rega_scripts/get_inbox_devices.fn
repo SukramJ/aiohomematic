@@ -43,8 +43,13 @@ if (oDevices) {
                     sType = "";
                 }
 
-                sInterface = oDev.Interface();
-                if (!sInterface) {
+                object oIf = dom.GetObject(oDev.Interface());
+                if (oIf) {
+                    sInterface = oIf.Name();
+                    if (!sInterface) {
+                        sInterface = "";
+                    }
+                } else {
                     sInterface = "";
                 }
 

@@ -1,3 +1,14 @@
+# Version 2026.3.18 (2026-03-27)
+
+## What's Changed
+
+### Added
+
+- **SysvarDpSwitch turn_on/turn_off**: Added `turn_on()` and `turn_off()` methods
+  to `SysvarDpSwitch`, enabling direct use as a HA `SwitchEntity`. Previously only
+  the generic `send_variable(value=...)` was available. The methods use optimistic
+  state updates via `send_variable`.
+
 # Version 2026.3.17 (2026-03-25)
 
 ## What's Changed

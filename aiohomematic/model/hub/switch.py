@@ -18,6 +18,16 @@ class SysvarDpSwitch(GenericSysvarDataPoint):
     _category = DataPointCategory.HUB_SWITCH
     _is_extended = True
 
+    @inspector
+    async def turn_off(self) -> None:
+        """Turn the switch off."""
+        await self.send_variable(value=False)
+
+    @inspector
+    async def turn_on(self) -> None:
+        """Turn the switch on."""
+        await self.send_variable(value=True)
+
 
 class ProgramDpSwitch(GenericProgramDataPoint):
     """Implementation of a program switch data_point."""

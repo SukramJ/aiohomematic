@@ -1198,6 +1198,15 @@ class LinkFacadeProtocol(Protocol):
         """Return all enriched direct links for a device."""
 
     @abstractmethod
+    async def get_link_info(
+        self,
+        *,
+        sender_address: str,
+        receiver_address: str,
+    ) -> dict[str, Any]:
+        """Get link info (name and description) for a link between two channels."""
+
+    @abstractmethod
     def get_linkable_channels(
         self,
         *,
@@ -1216,6 +1225,17 @@ class LinkFacadeProtocol(Protocol):
         receiver_channel_address: str,
     ) -> bool:
         """Remove a direct link between two channels."""
+
+    @abstractmethod
+    async def set_link_info(
+        self,
+        *,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (name and description) for a link between two channels."""
 
 
 # =============================================================================

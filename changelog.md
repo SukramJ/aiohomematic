@@ -38,17 +38,20 @@
 
 #### OpenCCU API Extensions
 
-- **System variable creation**: New JSON-RPC methods `create_system_variable_bool()`,
+- **System variable creation**: New methods `create_system_variable_bool()`,
   `create_system_variable_float()`, and `create_system_variable_enum()` for
-  creating system variables on the CCU backend.
+  creating system variables on the CCU backend. Exposed through JSON-RPC client,
+  backend protocol, CcuBackend, InterfaceClient, and HubCoordinator.
 
-- **Link info read/write**: New JSON-RPC methods `get_link_info()` and
-  `set_link_info()` for reading and writing link metadata (name, description)
-  between paired device channels.
+- **Link info read/write**: New methods `get_link_info()` and `set_link_info()`
+  for reading and writing link metadata (name, description) between paired
+  device channels. Exposed through JSON-RPC client, backend protocol,
+  CcuBackend, InterfaceClient, and LinkCoordinator.
 
-- **Service message suppression**: New JSON-RPC methods
-  `get_suppressed_service_messages()` and `suppress_service_message()` for
-  suppressing or unsuppressing service messages per channel.
+- **Service message suppression**: New methods `get_suppressed_service_messages()`
+  and `suppress_service_message()` for suppressing or unsuppressing service
+  messages per channel. Exposed through JSON-RPC client, backend protocol,
+  CcuBackend, InterfaceClient, and HubCoordinator.
 
 #### Parameter Metadata
 

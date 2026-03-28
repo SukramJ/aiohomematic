@@ -249,6 +249,21 @@ class LinkCoordinator(LinkFacadeProtocol):
 
         return tuple(links)
 
+    async def get_link_info(
+        self,
+        *,
+        sender_address: str,
+        receiver_address: str,
+    ) -> dict[str, Any]:
+        """Get link info (name and description) for a link between two channels."""
+        if (device := self._device_registry.get_device(address=sender_address)) is None:
+            return {}
+        return await device.client.get_link_info(
+            interface=device.interface,
+            sender_address=sender_address,
+            receiver_address=receiver_address,
+        )
+
     def get_linkable_channels(
         self,
         *,
@@ -324,6 +339,25 @@ class LinkCoordinator(LinkFacadeProtocol):
             )
             return False
         return True
+
+    async def set_link_info(
+        self,
+        *,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (name and description) for a link between two channels."""
+        if (device := self._device_registry.get_device(address=sender_address)) is None:
+            return False
+        return await device.client.set_link_info(
+            interface=device.interface,
+            sender_address=sender_address,
+            receiver_address=receiver_address,
+            name=name,
+            description=description,
+        )
 
 
 __all__ = tuple(

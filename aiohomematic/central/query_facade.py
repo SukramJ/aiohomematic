@@ -10,6 +10,7 @@ related read-only lookups in one place.
 Public API of this module is defined by __all__.
 """
 
+from dataclasses import dataclass
 import logging
 from typing import TYPE_CHECKING, Final
 
@@ -40,7 +41,18 @@ if TYPE_CHECKING:
     from aiohomematic.central.coordinators import CacheCoordinator, ClientCoordinator, DeviceCoordinator, HubCoordinator
     from aiohomematic.central.device_registry import DeviceRegistry
 
-__all__ = ["DeviceQueryFacade"]
+__all__ = ["DeviceQueryFacade", "ScheduleInfo"]
+
+
+@dataclass(frozen=True, slots=True)
+class ScheduleInfo:
+    """Schedule capability metadata for a device."""
+
+    device_address: str
+    device_name: str
+    schedule_channel_address: str | None
+    has_schedule: bool
+
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -321,6 +333,24 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
                 and ((paramset_key and ge.paramset_key == paramset_key) or paramset_key is None)
             )
         )
+
+    def get_schedule_capable_devices(self) -> tuple[ScheduleInfo, ...]:
+        """Return schedule capability metadata for all devices with week profiles."""
+        results: list[ScheduleInfo] = []
+        for device in self._device_registry.devices:
+            if not device.has_week_profile:
+                continue
+            if (wp := device.week_profile) is None:
+                continue
+            results.append(
+                ScheduleInfo(
+                    device_address=device.address,
+                    device_name=device.name,
+                    schedule_channel_address=wp.schedule_channel_address,
+                    has_schedule=wp.has_schedule,
+                )
+            )
+        return tuple(results)
 
     def get_state_paths(self, *, rpc_callback_supported: bool | None = None) -> tuple[str, ...]:
         """Return the data point paths."""

@@ -224,7 +224,9 @@ class _JsonKey(StrEnum):
     ADDRESS = "address"
     AVAILABLE_FIRMWARE = "available_firmware"
     CHANNELS = "channels"
+    CHANNEL_ADDRESS = "channelAddress"
     CHANNEL_IDS = "channelIds"
+    CHN_ID = "chnID"
     CHECK_SCRIPT_AVAILABLE = "check_script_available"
     COUNTER = "counter"
     CURRENT_FIRMWARE = "current_firmware"
@@ -237,8 +239,10 @@ class _JsonKey(StrEnum):
     FUNCTIONS = "functions"
     HOSTNAME = "hostname"
     ID = "id"
+    INIT_VAL = "init_val"
     INSTALL_MODE = "installMode"
     INTERFACE = "interface"
+    INTERNAL = "internal"
     IS_ACTIVE = "isActive"
     IS_HA_APP = "is_ha_app"
     IS_INTERNAL = "isInternal"
@@ -254,6 +258,7 @@ class _JsonKey(StrEnum):
     MODE = "mode"
     NAME = "name"
     ON = "on"
+    PARAMETER_ID = "parameterId"
     PARAMSET_KEY = "paramsetKey"
     PASSWORD = "password"
     PRODUCT = "product"
@@ -261,9 +266,12 @@ class _JsonKey(StrEnum):
     RESULT = "result"
     ROOMS = "rooms"
     SCRIPT = "script"
+    RECEIVER_ADDRESS = "receiverAddress"
+    SENDER_ADDRESS = "senderAddress"
     SERIAL = "serial"
     SESSION_ID = "_session_id_"
     SET = "set"
+    SUPPRESS = "suppress"
     SID = "sid"
     SIZE = "size"
     STATE = "state"
@@ -294,16 +302,20 @@ class _JsonRpcMethod(StrEnum):
     DEVICE_SET_NAME = "Device.setName"
     INTERFACE_GET_DEVICE_DESCRIPTION = "Interface.getDeviceDescription"
     INTERFACE_GET_INSTALL_MODE = "Interface.getInstallMode"
+    INTERFACE_GET_LINK_INFO = "Interface.getLinkInfo"
     INTERFACE_GET_MASTER_VALUE = "Interface.getMasterValue"
     INTERFACE_GET_PARAMSET = "Interface.getParamset"
     INTERFACE_GET_PARAMSET_DESCRIPTION = "Interface.getParamsetDescription"
     INTERFACE_GET_VALUE = "Interface.getValue"
     INTERFACE_IS_PRESENT = "Interface.isPresent"
+    INTERFACE_GET_SUPPRESSED_SERVICE_MESSAGES = "Interface.getSuppressedServiceMessages"
     INTERFACE_LIST_DEVICES = "Interface.listDevices"
     INTERFACE_LIST_INTERFACES = "Interface.listInterfaces"
     INTERFACE_PUT_PARAMSET = "Interface.putParamset"
     INTERFACE_SET_INSTALL_MODE_HMIP = "Interface.setInstallModeHMIP"
+    INTERFACE_SET_LINK_INFO = "Interface.setLinkInfo"
     INTERFACE_SET_VALUE = "Interface.setValue"
+    INTERFACE_SUPPRESS_SERVICE_MESSAGES = "Interface.suppressServiceMessages"
     PROGRAM_EXECUTE = "Program.execute"
     PROGRAM_GET_ALL = "Program.getAll"
     REGA_RUN_SCRIPT = "ReGa.runScript"
@@ -313,6 +325,9 @@ class _JsonRpcMethod(StrEnum):
     SESSION_RENEW = "Session.renew"
     SUBSECTION_GET_ALL = "Subsection.getAll"
     SYSTEM_LIST_METHODS = "system.listMethods"
+    SYSVAR_CREATE_BOOL = "SysVar.createBool"
+    SYSVAR_CREATE_ENUM = "SysVar.createEnum"
+    SYSVAR_CREATE_FLOAT = "SysVar.createFloat"
     SYSVAR_DELETE_SYSVAR_BY_NAME = "SysVar.deleteSysVarByName"
     SYSVAR_GET_ALL = "SysVar.getAll"
     SYSVAR_GET_VALUE_BY_NAME = "SysVar.getValueByName"
@@ -594,6 +609,57 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
 
         return BackupStatusData(status=BackupStatus.IDLE)
+
+    async def create_system_variable_bool(self, *, name: str, init_val: bool = False) -> dict[str, Any]:
+        """Create a boolean system variable on the backend."""
+        params = {
+            _JsonKey.NAME: name,
+            _JsonKey.INIT_VAL: int(init_val),
+            _JsonKey.INTERNAL: 0,
+            _JsonKey.CHN_ID: -1,
+        }
+        response = await self._post(method=_JsonRpcMethod.SYSVAR_CREATE_BOOL, extra_params=params)
+        result: dict[str, Any] = response.get(_JsonKey.RESULT, {})
+        _LOGGER.debug("CREATE_SYSTEM_VARIABLE_BOOL: Created bool sysvar '%s'", name)
+        return result
+
+    async def create_system_variable_enum(
+        self,
+        *,
+        name: str,
+        value_list: tuple[str, ...],
+    ) -> dict[str, Any]:
+        """Create an enum system variable on the backend."""
+        params = {
+            _JsonKey.NAME: name,
+            _JsonKey.VALUE_LIST: ";".join(value_list),
+            _JsonKey.INTERNAL: 0,
+            _JsonKey.CHN_ID: -1,
+        }
+        response = await self._post(method=_JsonRpcMethod.SYSVAR_CREATE_ENUM, extra_params=params)
+        result: dict[str, Any] = response.get(_JsonKey.RESULT, {})
+        _LOGGER.debug("CREATE_SYSTEM_VARIABLE_ENUM: Created enum sysvar '%s'", name)
+        return result
+
+    async def create_system_variable_float(
+        self,
+        *,
+        name: str,
+        min_value: float = 0.0,
+        max_value: float = 65000.0,
+    ) -> dict[str, Any]:
+        """Create a float system variable on the backend."""
+        params = {
+            _JsonKey.NAME: name,
+            _JsonKey.MIN_VALUE: min_value,
+            _JsonKey.MAX_VALUE: max_value,
+            _JsonKey.INTERNAL: 0,
+            _JsonKey.CHN_ID: -1,
+        }
+        response = await self._post(method=_JsonRpcMethod.SYSVAR_CREATE_FLOAT, extra_params=params)
+        result: dict[str, Any] = response.get(_JsonKey.RESULT, {})
+        _LOGGER.debug("CREATE_SYSTEM_VARIABLE_FLOAT: Created float sysvar '%s'", name)
+        return result
 
     async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
@@ -1073,6 +1139,24 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return 0
 
+    async def get_link_info(
+        self,
+        *,
+        interface: Interface,
+        sender_address: str,
+        receiver_address: str,
+    ) -> dict[str, Any]:
+        """Get link info (name and description) from the backend."""
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.SENDER_ADDRESS: sender_address,
+            _JsonKey.RECEIVER_ADDRESS: receiver_address,
+        }
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_GET_LINK_INFO, extra_params=params)
+        result: dict[str, Any] = response.get(_JsonKey.RESULT, {})
+        _LOGGER.debug("GET_LINK_INFO: Got link info for %s -> %s", sender_address, receiver_address)
+        return result
+
     async def get_paramset(
         self, *, interface: Interface, address: str, paramset_key: ParamsetKey | str
     ) -> dict[str, Any] | None:
@@ -1190,6 +1274,29 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             )
 
         return tuple(messages)
+
+    async def get_suppressed_service_messages(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+    ) -> tuple[str, ...]:
+        """Get suppressed service message parameter IDs for a channel."""
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.CHANNEL_ADDRESS: channel_address,
+        }
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_GET_SUPPRESSED_SERVICE_MESSAGES,
+            extra_params=params,
+        )
+        result = response.get(_JsonKey.RESULT, [])
+        _LOGGER.debug(
+            "GET_SUPPRESSED_SERVICE_MESSAGES: Got %d suppressed messages for %s",
+            len(result),
+            channel_address,
+        )
+        return tuple(result) if isinstance(result, list) else ()
 
     async def get_system_information(self) -> SystemInformation:
         """Get system information of the the backend."""
@@ -1464,6 +1571,27 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         _LOGGER.debug("SET_INSTALL_MODE_HMIP: Setting install mode for HmIP-RF")
         return response[_JsonKey.RESULT] is not None
 
+    async def set_link_info(
+        self,
+        *,
+        interface: Interface,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (name and description) on the backend."""
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.SENDER_ADDRESS: sender_address,
+            _JsonKey.RECEIVER_ADDRESS: receiver_address,
+            _JsonKey.NAME: name,
+            _JsonKey.DESCRIPTION: description,
+        }
+        response = await self._post(method=_JsonRpcMethod.INTERFACE_SET_LINK_INFO, extra_params=params)
+        _LOGGER.debug("SET_LINK_INFO: Set link info for %s -> %s", sender_address, receiver_address)
+        return response.get(_JsonKey.RESULT) is not None
+
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
         """Set the program state on the backend."""
         params = {
@@ -1537,6 +1665,33 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         """Stop the json rpc client."""
         if self._is_internal_session:
             await self._client_session.close()
+
+    async def suppress_service_message(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+        parameter_id: str = "",
+        suppress: bool = True,
+    ) -> bool:
+        """Suppress or unsuppress a service message for a channel."""
+        params = {
+            _JsonKey.INTERFACE: interface,
+            _JsonKey.CHANNEL_ADDRESS: channel_address,
+            _JsonKey.PARAMETER_ID: parameter_id,
+            _JsonKey.SUPPRESS: suppress,
+        }
+        response = await self._post(
+            method=_JsonRpcMethod.INTERFACE_SUPPRESS_SERVICE_MESSAGES,
+            extra_params=params,
+        )
+        _LOGGER.debug(
+            "SUPPRESS_SERVICE_MESSAGE: %s message '%s' for %s",
+            "Suppressed" if suppress else "Unsuppressed",
+            parameter_id or "all",
+            channel_address,
+        )
+        return response.get(_JsonKey.RESULT) is not None
 
     async def trigger_firmware_update(self) -> bool:
         """

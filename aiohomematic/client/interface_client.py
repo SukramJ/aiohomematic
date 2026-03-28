@@ -273,6 +273,20 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return None
         return await self._backend.create_backup_and_download(max_wait_time=max_wait_time, poll_interval=poll_interval)
 
+    async def create_system_variable_bool(self, *, name: str, init_val: bool = False) -> dict[str, Any]:
+        """Create a boolean system variable on the backend."""
+        return await self._backend.create_system_variable_bool(name=name, init_val=init_val)
+
+    async def create_system_variable_enum(self, *, name: str, value_list: tuple[str, ...]) -> dict[str, Any]:
+        """Create an enum system variable on the backend."""
+        return await self._backend.create_system_variable_enum(name=name, value_list=value_list)
+
+    async def create_system_variable_float(
+        self, *, name: str, min_value: float = 0.0, max_value: float = 65000.0
+    ) -> dict[str, Any]:
+        """Create a float system variable on the backend."""
+        return await self._backend.create_system_variable_float(name=name, min_value=min_value, max_value=max_value)
+
     async def deinit_proxy(self) -> ProxyInitState:
         """De-initialize the proxy."""
         if not self._backend.capabilities.rpc_callback:
@@ -489,6 +503,14 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return 0
         return await self._backend.get_install_mode()
 
+    async def get_link_info(
+        self, *, interface: Interface, sender_address: str, receiver_address: str
+    ) -> dict[str, Any]:
+        """Get link info (name and description) from the backend."""
+        return await self._backend.get_link_info(
+            interface=interface, sender_address=sender_address, receiver_address=receiver_address
+        )
+
     async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return a list of link peers."""
         if not self._backend.capabilities.linking:
@@ -606,6 +628,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         if not self._backend.capabilities.service_messages:
             return ()
         return await self._backend.get_service_messages(message_type=message_type)
+
+    async def get_suppressed_service_messages(self, *, interface: Interface, channel_address: str) -> tuple[str, ...]:
+        """Get suppressed service message parameter IDs for a channel."""
+        return await self._backend.get_suppressed_service_messages(interface=interface, channel_address=channel_address)
 
     async def get_system_update_info(self) -> SystemUpdateData | None:
         """Get system update information from the backend."""
@@ -1015,6 +1041,24 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return False
         return await self._backend.set_install_mode(on=on, time=time, mode=mode, device_address=device_address)
 
+    async def set_link_info(
+        self,
+        *,
+        interface: Interface,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (name and description) on the backend."""
+        return await self._backend.set_link_info(
+            interface=interface,
+            sender_address=sender_address,
+            receiver_address=receiver_address,
+            name=name,
+            description=description,
+        )
+
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
         if not self._backend.capabilities.metadata:
@@ -1131,6 +1175,19 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")
         await self._backend.stop()
         self._state_machine.transition_to(target=ClientState.STOPPED, reason="services stopped")
+
+    async def suppress_service_message(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+        parameter_id: str = "",
+        suppress: bool = True,
+    ) -> bool:
+        """Suppress or unsuppress a service message for a channel."""
+        return await self._backend.suppress_service_message(
+            interface=interface, channel_address=channel_address, parameter_id=parameter_id, suppress=suppress
+        )
 
     async def trigger_firmware_update(self) -> bool:
         """Trigger the CCU firmware update process."""

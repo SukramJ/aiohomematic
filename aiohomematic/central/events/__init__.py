@@ -38,6 +38,7 @@ from aiohomematic.central.events.bus import (
     RecoveryStageChangedEvent,
     RequestCoalescedEvent,
     RpcParameterReceivedEvent,
+    SubscriptionGroup,
     SysvarStateChangedEvent,
 )
 from aiohomematic.central.events.integration import (
@@ -98,6 +99,7 @@ __all__ = [
     "EventBus",
     "EventPriority",
     "HandlerStats",
+    "SubscriptionGroup",
     # Integration events
     "DataPointsCreatedEvent",
     "DeviceLifecycleEvent",

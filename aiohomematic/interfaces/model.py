@@ -43,6 +43,7 @@ from aiohomematic.const import (
     CallSource,
     DataPointCategory,
     DataPointKey,
+    DataPointType,
     DataPointUsage,
     DeviceFirmwareState,
     DeviceTriggerEventType,
@@ -132,6 +133,11 @@ class CallbackDataPointProtocol(Protocol):
     @abstractmethod
     def custom_id(self) -> str | None:
         """Return the custom id."""
+
+    @property
+    @abstractmethod
+    def data_point_type(self) -> DataPointType | None:
+        """Return the canonical data point type for downstream consumers."""
 
     @property
     @abstractmethod

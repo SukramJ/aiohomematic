@@ -1,3 +1,66 @@
+# Version 2026.3.19 (2026-03-28)
+
+## What's Changed
+
+### Added
+
+#### Cross-Project Platform Improvements
+
+- **DataPointType enum**: New `DataPointType` StrEnum providing a canonical
+  data point type (SENSOR, SWITCH, CLIMATE, COVER, LIGHT, LOCK, etc.) for
+  downstream consumers. Accessible via `data_point.data_point_type` property
+  on all data point types. Eliminates isinstance checks and custom mapping
+  logic in bridges and integrations.
+
+- **CentralUnit async context manager**: `CentralUnit` now supports `async with`
+  for automatic `start()`/`stop()` lifecycle management, preventing resource leaks.
+
+- **EventBus subscription groups**: New `SubscriptionGroup` class and
+  `event_bus.create_subscription_group(name)` factory method for collective
+  subscription lifecycle management. Replaces error-prone manual unsubscribe
+  callback tracking with `group.subscribe()` / `group.unsubscribe_all()`.
+
+- **Device name in events**: `DeviceTriggerEvent`, `DeviceLifecycleEvent`,
+  `OptimisticRollbackEvent`, and `DataPointStateChangedEvent` now carry
+  human-readable device names (`device_name` / `device_names` fields),
+  eliminating the need for downstream consumers to perform separate device
+  registry lookups.
+
+- **State transition callback API**: New `central.on_state_transition()` method
+  for registering handlers on specific `CentralState` transitions (e.g.,
+  DEGRADED → RUNNING). Supports wildcard `from_state=None` for any-source
+  transitions.
+
+- **Extended query facade**: `get_data_points()` now accepts a `data_point_type`
+  filter parameter. New `get_devices()` method with `interface` and `available`
+  filters for device-level queries. New `get_schedule_capable_devices()` method
+  returning `ScheduleInfo` objects for devices with week profile support.
+
+#### OpenCCU API Extensions
+
+- **System variable creation**: New methods `create_system_variable_bool()`,
+  `create_system_variable_float()`, and `create_system_variable_enum()` for
+  creating system variables on the CCU backend. Exposed through JSON-RPC client,
+  backend protocol, CcuBackend, InterfaceClient, and HubCoordinator.
+
+- **Link info read/write**: New methods `get_link_info()` and `set_link_info()`
+  for reading and writing link metadata (name, description) between paired
+  device channels. Exposed through JSON-RPC client, backend protocol,
+  CcuBackend, InterfaceClient, and LinkCoordinator.
+
+- **Service message suppression**: New methods `get_suppressed_service_messages()`
+  and `suppress_service_message()` for suppressing or unsuppressing service
+  messages per channel. Exposed through JSON-RPC client, backend protocol,
+  CcuBackend, InterfaceClient, and HubCoordinator.
+
+#### Parameter Metadata
+
+- **Conditional visibility metadata**: `SenderTypeMetadata` now supports
+  `conditional_visibility` (rules for showing/hiding parameters based on
+  trigger values), `parameter_groups` (semantic grouping of related parameters),
+  and `cross_validation_rule_ids` (references to applicable cross-parameter
+  validation rules). Data is parsed from the easymode archive when available.
+
 # Version 2026.3.18 (2026-03-27)
 
 ## What's Changed

@@ -215,6 +215,26 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         """
         return self._hub.create_install_mode_dps()
 
+    async def create_system_variable_bool(self, *, name: str, init_val: bool = False) -> dict[str, Any]:
+        """Create a boolean system variable on the backend."""
+        if client := self._primary_client_provider.primary_client:
+            return await client.create_system_variable_bool(name=name, init_val=init_val)
+        return {}
+
+    async def create_system_variable_enum(self, *, name: str, value_list: tuple[str, ...]) -> dict[str, Any]:
+        """Create an enum system variable on the backend."""
+        if client := self._primary_client_provider.primary_client:
+            return await client.create_system_variable_enum(name=name, value_list=value_list)
+        return {}
+
+    async def create_system_variable_float(
+        self, *, name: str, min_value: float = 0.0, max_value: float = 65000.0
+    ) -> dict[str, Any]:
+        """Create a float system variable on the backend."""
+        if client := self._primary_client_provider.primary_client:
+            return await client.create_system_variable_float(name=name, min_value=min_value, max_value=max_value)
+        return {}
+
     async def execute_program(self, *, pid: str) -> bool:
         """
         Execute a program on the backend.
@@ -404,6 +424,12 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
                     return program
         return None
 
+    async def get_suppressed_service_messages(self, *, interface: Interface, channel_address: str) -> tuple[str, ...]:
+        """Get suppressed service message parameter IDs for a channel."""
+        if client := self._primary_client_provider.primary_client:
+            return await client.get_suppressed_service_messages(interface=interface, channel_address=channel_address)
+        return ()
+
     async def get_system_variable(self, *, legacy_name: str) -> Any | None:
         """
         Get system variable value from the backend.
@@ -554,3 +580,21 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
                     name=self._central_info.name,
                 )
             )
+
+    async def suppress_service_message(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+        parameter_id: str = "",
+        suppress: bool = True,
+    ) -> bool:
+        """Suppress or unsuppress a service message for a channel."""
+        if client := self._primary_client_provider.primary_client:
+            return await client.suppress_service_message(
+                interface=interface,
+                channel_address=channel_address,
+                parameter_id=parameter_id,
+                suppress=suppress,
+            )
+        return False

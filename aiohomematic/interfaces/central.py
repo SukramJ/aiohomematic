@@ -19,6 +19,7 @@ from aiohomematic.const import (
     CentralState,
     ClientState,
     DataPointCategory,
+    DataPointType,
     DescriptionMarker,
     DeviceFirmwareState,
     DeviceTriggerEventType,
@@ -57,6 +58,7 @@ if TYPE_CHECKING:
         ChannelEventGroupProtocol,
         ChannelProtocol,
         CustomDataPointProtocol,
+        DeviceProtocol,
         GenericDataPointProtocolAny,
         GenericEventProtocolAny,
         GenericSysvarDataPointProtocol,
@@ -457,11 +459,21 @@ class DeviceQueryFacadeProtocol(Protocol):
         self,
         *,
         category: DataPointCategory | None = None,
+        data_point_type: DataPointType | None = None,
         interface: Interface | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
     ) -> tuple[CallbackDataPointProtocol, ...]:
         """Return all externally registered data points."""
+
+    @abstractmethod
+    def get_devices(
+        self,
+        *,
+        interface: Interface | None = None,
+        available: bool | None = None,
+    ) -> tuple[DeviceProtocol, ...]:
+        """Return devices matching the given filters."""
 
     @abstractmethod
     def get_event(
@@ -1186,6 +1198,15 @@ class LinkFacadeProtocol(Protocol):
         """Return all enriched direct links for a device."""
 
     @abstractmethod
+    async def get_link_info(
+        self,
+        *,
+        sender_address: str,
+        receiver_address: str,
+    ) -> dict[str, Any]:
+        """Get link info (name and description) for a link between two channels."""
+
+    @abstractmethod
     def get_linkable_channels(
         self,
         *,
@@ -1204,6 +1225,17 @@ class LinkFacadeProtocol(Protocol):
         receiver_channel_address: str,
     ) -> bool:
         """Remove a direct link between two channels."""
+
+    @abstractmethod
+    async def set_link_info(
+        self,
+        *,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (name and description) for a link between two channels."""
 
 
 # =============================================================================

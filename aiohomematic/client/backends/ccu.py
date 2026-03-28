@@ -181,6 +181,20 @@ class CcuBackend(BaseBackend):
         _LOGGER.warning("CREATE_BACKUP: Timeout after %.1fs", max_wait_time)  # i18n-log: ignore
         return None
 
+    async def create_system_variable_bool(self, *, name: str, init_val: bool = False) -> dict[str, Any]:
+        """Create a boolean system variable."""
+        return await self._json_rpc.create_system_variable_bool(name=name, init_val=init_val)
+
+    async def create_system_variable_enum(self, *, name: str, value_list: tuple[str, ...]) -> dict[str, Any]:
+        """Create an enum system variable."""
+        return await self._json_rpc.create_system_variable_enum(name=name, value_list=value_list)
+
+    async def create_system_variable_float(
+        self, *, name: str, min_value: float = 0.0, max_value: float = 65000.0
+    ) -> dict[str, Any]:
+        """Create a float system variable."""
+        return await self._json_rpc.create_system_variable_float(name=name, min_value=min_value, max_value=max_value)
+
     async def deinit_proxy(self, *, init_url: str) -> None:
         """De-initialize the proxy."""
         await self._proxy.init(init_url)
@@ -267,6 +281,14 @@ class CcuBackend(BaseBackend):
             return await self._json_rpc.get_install_mode(interface=self._interface)
         return cast(int, await self._proxy.getInstallMode())
 
+    async def get_link_info(
+        self, *, interface: Interface, sender_address: str, receiver_address: str
+    ) -> dict[str, Any]:
+        """Get link info (name and description)."""
+        return await self._json_rpc.get_link_info(
+            interface=interface, sender_address=sender_address, receiver_address=receiver_address
+        )
+
     async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return link peers."""
         return tuple(await self._proxy_read.getLinkPeers(channel_address))
@@ -320,6 +342,12 @@ class CcuBackend(BaseBackend):
     ) -> tuple[ServiceMessageData, ...]:
         """Return service messages."""
         return await self._json_rpc.get_service_messages(message_type=message_type)
+
+    async def get_suppressed_service_messages(self, *, interface: Interface, channel_address: str) -> tuple[str, ...]:
+        """Get suppressed service message parameter IDs for a channel."""
+        return await self._json_rpc.get_suppressed_service_messages(
+            interface=interface, channel_address=channel_address
+        )
 
     async def get_system_update_info(self) -> SystemUpdateData | None:
         """Return system update info."""
@@ -418,6 +446,24 @@ class CcuBackend(BaseBackend):
             await self._proxy.setInstallMode(on, time, mode)
         return True
 
+    async def set_link_info(
+        self,
+        *,
+        interface: Interface,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (name and description)."""
+        return await self._json_rpc.set_link_info(
+            interface=interface,
+            sender_address=sender_address,
+            receiver_address=receiver_address,
+            name=name,
+            description=description,
+        )
+
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Set metadata for an address."""
         await self._proxy.setMetadata(address, data_id, value)
@@ -449,6 +495,19 @@ class CcuBackend(BaseBackend):
         """Stop the backend and release resources."""
         await self._proxy.stop()
         await self._proxy_read.stop()
+
+    async def suppress_service_message(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+        parameter_id: str = "",
+        suppress: bool = True,
+    ) -> bool:
+        """Suppress or unsuppress a service message for a channel."""
+        return await self._json_rpc.suppress_service_message(
+            interface=interface, channel_address=channel_address, parameter_id=parameter_id, suppress=suppress
+        )
 
     async def trigger_firmware_update(self) -> bool:
         """Trigger system firmware update."""

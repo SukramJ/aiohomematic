@@ -126,6 +126,20 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         """Create backup (unsupported by default)."""
         return None
 
+    async def create_system_variable_bool(self, *, name: str, init_val: bool = False) -> dict[str, Any]:
+        """Create boolean system variable (unsupported by default)."""
+        return {}
+
+    async def create_system_variable_enum(self, *, name: str, value_list: tuple[str, ...]) -> dict[str, Any]:
+        """Create enum system variable (unsupported by default)."""
+        return {}
+
+    async def create_system_variable_float(
+        self, *, name: str, min_value: float = 0.0, max_value: float = 65000.0
+    ) -> dict[str, Any]:
+        """Create float system variable (unsupported by default)."""
+        return {}
+
     @abstractmethod
     async def deinit_proxy(self, *, init_url: str) -> None:
         """De-initialize proxy."""
@@ -182,6 +196,12 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         """Return install mode time (unsupported by default)."""
         return 0
 
+    async def get_link_info(
+        self, *, interface: Interface, sender_address: str, receiver_address: str
+    ) -> dict[str, Any]:
+        """Get link info (unsupported by default)."""
+        return {}
+
     async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return link peers (unsupported by default)."""
         return ()
@@ -214,6 +234,10 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         self, *, message_type: ServiceMessageType | None = None
     ) -> tuple[ServiceMessageData, ...]:
         """Return service messages (unsupported by default)."""
+        return ()
+
+    async def get_suppressed_service_messages(self, *, interface: Interface, channel_address: str) -> tuple[str, ...]:
+        """Get suppressed service messages (unsupported by default)."""
         return ()
 
     async def get_system_update_info(self) -> SystemUpdateData | None:
@@ -291,6 +315,18 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         """Set install mode (unsupported by default)."""
         return False
 
+    async def set_link_info(
+        self,
+        *,
+        interface: Interface,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (unsupported by default)."""
+        return False
+
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Set metadata (unsupported by default)."""
         return {}
@@ -319,6 +355,17 @@ class BaseBackend(BackendOperationsProtocol, ABC):
     async def stop(self) -> None:
         """Stop the backend."""
         ...
+
+    async def suppress_service_message(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+        parameter_id: str = "",
+        suppress: bool = True,
+    ) -> bool:
+        """Suppress service message (unsupported by default)."""
+        return False
 
     async def trigger_firmware_update(self) -> bool:
         """Trigger system firmware update (unsupported by default)."""

@@ -144,6 +144,9 @@ class SenderTypeMetadata:
     subsets: tuple[SubsetDef, ...] = ()
     parameter_order: tuple[str, ...] = ()
     option_presets: dict[str, str] = field(default_factory=dict)  # param -> preset_type
+    conditional_visibility: tuple[ConditionalVisibilityRule, ...] = ()
+    parameter_groups: tuple[ParameterGroupDef, ...] = ()
+    cross_validation_rule_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -308,11 +311,31 @@ class _EasymodeStore:
             )
             for s in data.get("subsets", [])
         )
+        conditional_visibility = tuple(
+            ConditionalVisibilityRule(
+                trigger=cv["trigger"],
+                trigger_value=cv["trigger_value"],
+                show=tuple(cv.get("show", ())),
+                hide=tuple(cv.get("hide", ())),
+            )
+            for cv in data.get("conditional_visibility", [])
+        )
+        parameter_groups = tuple(
+            ParameterGroupDef(
+                id=pg["id"],
+                label=pg.get("label", {}),
+                parameters=tuple(pg["parameters"]),
+            )
+            for pg in data.get("parameter_groups", [])
+        )
         return SenderTypeMetadata(
             profiles=profiles,
             subsets=subsets,
             parameter_order=tuple(data.get("parameter_order", [])),
             option_presets=data.get("option_presets", {}),
+            conditional_visibility=conditional_visibility,
+            parameter_groups=parameter_groups,
+            cross_validation_rule_ids=tuple(data.get("cross_validation_rule_ids", [])),
         )
 
 

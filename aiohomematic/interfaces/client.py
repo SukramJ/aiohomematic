@@ -372,6 +372,11 @@ class LinkOperationsProtocol(Protocol):
     async def add_link(self, *, sender_address: str, receiver_address: str, name: str, description: str) -> None:
         """Add a link between two devices."""
 
+    async def get_link_info(
+        self, *, interface: Interface, sender_address: str, receiver_address: str
+    ) -> dict[str, Any]:
+        """Get link info (name and description)."""
+
     async def get_link_peers(self, *, channel_address: str) -> tuple[str, ...]:
         """Return a list of link peers."""
 
@@ -380,6 +385,17 @@ class LinkOperationsProtocol(Protocol):
 
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Remove a link between two devices."""
+
+    async def set_link_info(
+        self,
+        *,
+        interface: Interface,
+        sender_address: str,
+        receiver_address: str,
+        name: str,
+        description: str,
+    ) -> bool:
+        """Set link info (name and description)."""
 
 
 @runtime_checkable
@@ -410,6 +426,17 @@ class SystemVariableOperationsProtocol(Protocol):
     """
 
     __slots__ = ()
+
+    async def create_system_variable_bool(self, *, name: str, init_val: bool = False) -> dict[str, Any]:
+        """Create a boolean system variable on the backend."""
+
+    async def create_system_variable_enum(self, *, name: str, value_list: tuple[str, ...]) -> dict[str, Any]:
+        """Create an enum system variable on the backend."""
+
+    async def create_system_variable_float(
+        self, *, name: str, min_value: float = 0.0, max_value: float = 65000.0
+    ) -> dict[str, Any]:
+        """Create a float system variable on the backend."""
 
     async def delete_system_variable(self, *, name: str) -> bool:
         """Delete a system variable from the backend."""
@@ -507,6 +534,9 @@ class MetadataOperationsProtocol(Protocol):
     async def get_service_messages(self, *, message_type: Any | None = None) -> tuple[Any, ...]:
         """Get all active service messages from the backend."""
 
+    async def get_suppressed_service_messages(self, *, interface: Interface, channel_address: str) -> tuple[str, ...]:
+        """Get suppressed service message parameter IDs for a channel."""
+
     async def get_system_update_info(self) -> Any | None:
         """Get system update information from the backend."""
 
@@ -528,6 +558,16 @@ class MetadataOperationsProtocol(Protocol):
 
     async def set_metadata(self, *, address: str, data_id: str, value: dict[str, Any]) -> dict[str, Any]:
         """Write the metadata for an object."""
+
+    async def suppress_service_message(
+        self,
+        *,
+        interface: Interface,
+        channel_address: str,
+        parameter_id: str = "",
+        suppress: bool = True,
+    ) -> bool:
+        """Suppress or unsuppress a service message for a channel."""
 
 
 @runtime_checkable

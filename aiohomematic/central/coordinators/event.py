@@ -91,6 +91,7 @@ class EventCoordinator(
     __slots__ = (
         "_client_provider",
         "_data_point_unsubscribes",
+        "_device_name_resolver",
         "_event_bus",
         "_health_tracker",
         "_last_event_seen_for_interface",
@@ -102,6 +103,7 @@ class EventCoordinator(
         self,
         *,
         client_provider: ClientProviderProtocol,
+        device_name_resolver: Callable[..., str | None],
         event_bus: EventBus,
         health_tracker: HealthTrackerProtocol,
         task_scheduler: TaskSchedulerProtocol,
@@ -112,12 +114,14 @@ class EventCoordinator(
         Args:
         ----
             client_provider: Provider for client access
+            device_name_resolver: Resolve device address to human-readable name
             event_bus: EventBus for event subscription and publishing
             health_tracker: Health tracker for recording events
             task_scheduler: Provider for task scheduling
 
         """
         self._client_provider: Final = client_provider
+        self._device_name_resolver: Final = device_name_resolver
         self._event_bus: Final = event_bus
         self._health_tracker: Final = health_tracker
         self._task_scheduler: Final = task_scheduler
@@ -334,6 +338,7 @@ class EventCoordinator(
                     channel_no=event_data.channel_no,
                     parameter=event_data.parameter,
                     value=event_data.value,
+                    device_name=self._device_name_resolver(device_address=event_data.device_address),
                 )
             )
 
@@ -417,6 +422,8 @@ class EventCoordinator(
         if not (device_addresses := kwargs.get("addresses", ())):
             return
 
+        device_names = tuple(self._device_name_resolver(device_address=addr) or "" for addr in device_addresses)
+
         async def _publish_event() -> None:
             """Publish device removed event."""
             await self._event_bus.publish(
@@ -424,6 +431,7 @@ class EventCoordinator(
                     timestamp=timestamp,
                     event_type=DeviceLifecycleEventType.REMOVED,
                     device_addresses=device_addresses,
+                    device_names=device_names,
                 )
             )
 
@@ -436,24 +444,27 @@ class EventCoordinator(
         """Emit DeviceLifecycleEvent and DataPointsCreatedEvent for DEVICES_CREATED."""
         new_data_points: Mapping[DataPointCategory, Any] = kwargs.get("new_data_points", {})
 
-        # Extract device addresses from data points
-        device_addresses: set[str] = set()
+        # Extract device addresses and names from data points
+        device_address_names: dict[str, str] = {}
 
         for category, data_points in new_data_points.items():
             if category in (DataPointCategory.EVENT, DataPointCategory.EVENT_GROUP):
                 continue
             for dp in data_points:
-                device_addresses.add(dp.device.address)
+                if dp.device.address not in device_address_names:
+                    device_address_names[dp.device.address] = dp.device.name
 
         async def _publish_events() -> None:
             """Publish device lifecycle and data points created events."""
             # Emit DeviceLifecycleEvent for device creation
-            if device_addresses:
+            if device_address_names:
+                sorted_addresses = tuple(sorted(device_address_names))
                 await self._event_bus.publish(
                     event=DeviceLifecycleEvent(
                         timestamp=timestamp,
                         event_type=DeviceLifecycleEventType.CREATED,
-                        device_addresses=tuple(sorted(device_addresses)),
+                        device_addresses=sorted_addresses,
+                        device_names=tuple(device_address_names[a] for a in sorted_addresses),
                     )
                 )
 

@@ -874,6 +874,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
                         timestamp=datetime.now(),
                         event_type=DeviceLifecycleEventType.AVAILABILITY_CHANGED,
                         availability_changes=((self._address, new_available),),
+                        device_names=(self._name,),
                     )
                 )
 

@@ -10,7 +10,7 @@ channels, data points, events, and background jobs for a Homematic CCU.
 import asyncio
 from collections.abc import Mapping, Set as AbstractSet
 import logging
-from typing import Final
+from typing import Final, Self
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper
@@ -173,6 +173,7 @@ class CentralUnit(
         )
         self._event_coordinator: Final = EventCoordinator(
             client_provider=self._client_coordinator,
+            device_name_resolver=self._resolve_device_name,
             event_bus=self._event_bus,
             health_tracker=self._health_tracker,
             task_scheduler=self.looper,
@@ -299,6 +300,15 @@ class CentralUnit(
         self._rpc_callback_ip: str = IP_ANY_V4
         self._listen_ip_addr: str = IP_ANY_V4
         self._listen_port_xml_rpc: int = PORT_ANY
+
+    async def __aenter__(self) -> Self:
+        """Start the central unit (async context manager entry)."""
+        await self.start()
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        """Stop the central unit (async context manager exit)."""
+        await self.stop()
 
     def __str__(self) -> str:
         """Provide some useful information."""
@@ -921,6 +931,12 @@ class CentralUnit(
         if self._central_state_machine.state not in (CentralState.STARTING, CentralState.STOPPED):
             self._evaluate_central_state(trigger=f"triggered by {interface_id}")
             self._health_tracker.sync_central_state()
+
+    def _resolve_device_name(self, *, device_address: str) -> str | None:
+        """Resolve a device address to its human-readable name."""
+        if device := self._device_registry.get_device(address=device_address):
+            return device.name
+        return None
 
     def _start_scheduler(self) -> None:
         """Start the background scheduler."""

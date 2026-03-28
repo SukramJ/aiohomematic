@@ -388,6 +388,8 @@ class DataPointStateChangedEvent(Event):
     custom_id: str
     old_value: Any = None
     new_value: Any = None
+    device_name: str | None = None
+    """Human-readable device name."""
 
     @property
     def key(self) -> Any:
@@ -431,6 +433,9 @@ class OptimisticRollbackEvent(Event):
 
     age_seconds: float = 0.0
     """Age of optimistic value when rolled back (in seconds)."""
+
+    device_name: str | None = None
+    """Human-readable device name."""
 
     @property
     def key(self) -> Any:
@@ -952,6 +957,19 @@ class EventBus:
                 )
         return total_removed
 
+    def create_subscription_group(self, *, name: str) -> SubscriptionGroup:
+        """
+        Create a named subscription group for collective lifecycle management.
+
+        Args:
+            name: Identifier for logging and debugging.
+
+        Returns:
+            A new SubscriptionGroup bound to this EventBus.
+
+        """
+        return SubscriptionGroup(name=name, event_bus=self)
+
     def get_event_stats(self) -> dict[str, int]:
         """
         Get statistics about published events (for debugging).
@@ -1435,3 +1453,87 @@ class EventBatch:
 
         self._flushed = True
         return count
+
+
+class SubscriptionGroup:
+    """
+    Manage a group of event subscriptions with collective unsubscribe.
+
+    Collects ``UnsubscribeCallback`` instances from ``EventBus.subscribe()``
+    and provides ``unsubscribe_all()`` to clean up all subscriptions at once.
+    This eliminates the error-prone pattern of manually tracking unsubscribe
+    callbacks in a list.
+
+    Example::
+
+        group = event_bus.create_subscription_group(name="my-bridge")
+        group.subscribe(
+            event_type=DataPointValueReceivedEvent,
+            event_key=None,
+            handler=on_update,
+        )
+        group.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=on_lifecycle,
+        )
+        # Later: clean up all at once
+        group.unsubscribe_all()
+
+    """
+
+    def __init__(self, *, name: str, event_bus: EventBus) -> None:
+        """Initialize the subscription group."""
+        self._name: Final = name
+        self._event_bus: Final = event_bus
+        self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
+
+    @property
+    def name(self) -> str:
+        """Return the group name."""
+        return self._name
+
+    @property
+    def subscription_count(self) -> int:
+        """Return the number of active subscriptions in this group."""
+        return len(self._unsubscribe_callbacks)
+
+    def subscribe(
+        self,
+        *,
+        event_type: type[T_Event],
+        event_key: Any,
+        handler: EventHandler,
+        priority: EventPriority = EventPriority.NORMAL,
+    ) -> UnsubscribeCallback:
+        """
+        Subscribe to an event type and track the subscription in this group.
+
+        Args:
+            event_type: The event class to listen for.
+            event_key: The key for unique identification.
+            handler: Async or sync callback with signature (*, event: EventType) -> None.
+            priority: Handler priority (default: NORMAL).
+
+        Returns:
+            A callable that unsubscribes this handler when called.
+
+        """
+        unsubscribe = self._event_bus.subscribe(
+            event_type=event_type,
+            event_key=event_key,
+            handler=handler,
+            priority=priority,
+        )
+        self._unsubscribe_callbacks.append(unsubscribe)
+        return unsubscribe
+
+    def unsubscribe_all(self) -> None:
+        """Unsubscribe all tracked subscriptions."""
+        for unsubscribe in self._unsubscribe_callbacks:
+            unsubscribe()
+        self._unsubscribe_callbacks.clear()
+        _LOGGER.debug(
+            "SUBSCRIPTION_GROUP: Group '%s' unsubscribed all",
+            self._name,
+        )

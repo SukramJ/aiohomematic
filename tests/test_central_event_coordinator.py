@@ -140,6 +140,7 @@ class TestEventCoordinatorBasics:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -155,6 +156,7 @@ class TestEventCoordinatorBasics:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -174,6 +176,7 @@ class TestEventCoordinatorDataPointSubscription:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -200,6 +203,7 @@ class TestEventCoordinatorDataPointEvent:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -232,6 +236,7 @@ class TestEventCoordinatorDataPointEvent:
 
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -256,6 +261,7 @@ class TestEventCoordinatorDataPointEvent:
 
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -283,6 +289,7 @@ class TestEventCoordinatorEmitMethods:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -304,6 +311,7 @@ class TestEventCoordinatorEmitMethods:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -324,6 +332,7 @@ class TestEventCoordinatorEmitMethods:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -354,6 +363,7 @@ class TestEventCoordinatorLastEventSeen:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -367,6 +377,7 @@ class TestEventCoordinatorLastEventSeen:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -393,6 +404,7 @@ class TestEventCoordinatorLastEventSeen:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -413,6 +425,7 @@ class TestEventCoordinatorClear:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -454,6 +467,7 @@ class TestEventCoordinatorEventRouting:
 
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -477,6 +491,7 @@ class TestEventCoordinatorEventRouting:
 
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -503,6 +518,7 @@ class TestEventCoordinatorEventRouting:
 
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -539,6 +555,7 @@ class TestEventCoordinatorSystemEvents:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -559,6 +576,7 @@ class TestEventCoordinatorSystemEvents:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -580,6 +598,7 @@ class TestEventCoordinatorSystemEvents:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -603,6 +622,7 @@ class TestEventCoordinatorDeviceTriggerEvents:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -626,6 +646,7 @@ class TestEventCoordinatorDeviceTriggerEvents:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,
@@ -650,6 +671,7 @@ class TestEventCoordinatorDeviceTriggerEvents:
         central = _FakeCentral()
         coordinator = EventCoordinator(
             client_provider=central,
+            device_name_resolver=lambda *, device_address: None,
             event_bus=central.event_bus,
             health_tracker=central.health_tracker,
             task_scheduler=central.looper,

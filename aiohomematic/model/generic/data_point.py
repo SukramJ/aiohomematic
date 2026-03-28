@@ -117,6 +117,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
                     timestamp=datetime.now(),
                     event_type=DeviceLifecycleEventType.AVAILABILITY_CHANGED,
                     availability_changes=((self._device.address, new_value is False),),
+                    device_names=(self._device.name,),
                 )
             )
 

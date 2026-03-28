@@ -1598,6 +1598,7 @@ class BaseParameterDataPoint[
             restored_value=restored_value,
             error=error,
             age_seconds=age_seconds,
+            device_name=self._device.name,
         )
 
         self._event_bus_provider.event_bus.publish_sync(event=event)

@@ -1,3 +1,23 @@
+# Version 2026.3.19 (2026-03-28)
+
+## What's Changed
+
+### Added
+
+- **CentralUnit async context manager**: `CentralUnit` now supports `async with`
+  for automatic `start()`/`stop()` lifecycle management, preventing resource leaks.
+
+- **EventBus subscription groups**: New `SubscriptionGroup` class and
+  `event_bus.create_subscription_group(name)` factory method for collective
+  subscription lifecycle management. Replaces error-prone manual unsubscribe
+  callback tracking with `group.subscribe()` / `group.unsubscribe_all()`.
+
+- **Device name in events**: `DeviceTriggerEvent`, `DeviceLifecycleEvent`,
+  `OptimisticRollbackEvent`, and `DataPointStateChangedEvent` now carry
+  human-readable device names (`device_name` / `device_names` fields),
+  eliminating the need for downstream consumers to perform separate device
+  registry lookups.
+
 # Version 2026.3.18 (2026-03-27)
 
 ## What's Changed

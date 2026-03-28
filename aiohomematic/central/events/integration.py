@@ -340,6 +340,10 @@ class DeviceLifecycleEvent(Event):
     interface_id: str | None = None
     """Interface ID for delayed device creation (used for repair issues)."""
 
+    # Device names parallel to device_addresses (same order, same length when available)
+    device_names: tuple[str, ...] = ()
+    """Human-readable device names corresponding to device_addresses."""
+
     @property
     def key(self) -> Any:
         """Key identifier for this event."""
@@ -445,6 +449,9 @@ class DeviceTriggerEvent(Event):
 
     value: str | int | float | bool
     """Event value."""
+
+    device_name: str | None = None
+    """Human-readable device name (None if device not found)."""
 
     @property
     def key(self) -> Any:

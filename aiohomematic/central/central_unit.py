@@ -8,9 +8,9 @@ channels, data points, events, and background jobs for a Homematic CCU.
 """
 
 import asyncio
-from collections.abc import Mapping, Set as AbstractSet
+from collections.abc import Callable, Mapping, Set as AbstractSet
 import logging
-from typing import Final, Self
+from typing import Any, Final, Self
 
 from aiohomematic import client as hmcl, i18n
 from aiohomematic.async_support import Looper
@@ -27,7 +27,7 @@ from aiohomematic.central.coordinators import (
     LinkCoordinator,
 )
 from aiohomematic.central.device_registry import DeviceRegistry
-from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
+from aiohomematic.central.events import CentralStateChangedEvent, EventBus, SystemStatusChangedEvent
 from aiohomematic.central.health import CentralHealth, HealthTracker
 from aiohomematic.central.query_facade import DeviceQueryFacade
 from aiohomematic.central.registry import CENTRAL_REGISTRY
@@ -67,6 +67,7 @@ from aiohomematic.property_decorators import DelegatedProperty, Kind, info_prope
 from aiohomematic.store import LocalStorageFactory, StorageFactoryProtocol
 from aiohomematic.support import extract_exc_args, get_ip_addr
 from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -475,6 +476,42 @@ class CentralUnit(
             await self._cache_coordinator.data_cache.load(interface=interface)
         await self._cache_coordinator.data_cache.refresh_data_point_data(
             paramset_key=paramset_key, interface=interface, direct_call=direct_call
+        )
+
+    def on_state_transition(
+        self,
+        *,
+        to_state: CentralState,
+        from_state: CentralState | None = None,
+        handler: Callable[..., Any],
+    ) -> UnsubscribeCallback:
+        """
+        Register a handler for a specific central state transition.
+
+        Args:
+            to_state: Target state to listen for.
+            from_state: Source state filter (None means any source state).
+            handler: Async or sync callback with signature (*, event: CentralStateChangedEvent) -> None.
+
+        Returns:
+            A callable that unsubscribes this handler when called.
+
+        """
+
+        async def _filtered_handler(*, event: CentralStateChangedEvent) -> None:
+            """Filter event by from/to state and delegate to handler."""
+            if event.new_state != to_state:
+                return
+            if from_state is not None and event.old_state != from_state:
+                return
+            result = handler(event=event)
+            if asyncio.iscoroutine(result):
+                await result
+
+        return self._event_bus.subscribe(
+            event_type=CentralStateChangedEvent,
+            event_key=None,
+            handler=_filtered_handler,
         )
 
     async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:

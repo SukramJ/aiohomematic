@@ -17,6 +17,7 @@ from aiohomematic.const import (
     IGNORE_FOR_UN_IGNORE_PARAMETERS,
     UN_IGNORE_WILDCARD,
     DataPointCategory,
+    DataPointType,
     DeviceTriggerEventType,
     Interface,
     Operations,
@@ -28,6 +29,7 @@ from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
     ChannelEventGroupProtocol,
     CustomDataPointProtocol,
+    DeviceProtocol,
     GenericDataPointProtocol,
     GenericDataPointProtocolAny,
     GenericEventProtocolAny,
@@ -96,6 +98,7 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
         self,
         *,
         category: DataPointCategory | None = None,
+        data_point_type: DataPointType | None = None,
         interface: Interface | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
@@ -108,7 +111,25 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
             all_data_points.extend(
                 device.get_data_points(category=category, exclude_no_create=exclude_no_create, registered=registered)
             )
+        if data_point_type is not None:
+            return tuple(dp for dp in all_data_points if dp.data_point_type == data_point_type)
         return tuple(all_data_points)
+
+    def get_devices(
+        self,
+        *,
+        interface: Interface | None = None,
+        available: bool | None = None,
+    ) -> tuple[DeviceProtocol, ...]:
+        """Return devices matching the given filters."""
+        devices: list[DeviceProtocol] = []
+        for device in self._device_registry.devices:
+            if interface is not None and device.interface != interface:
+                continue
+            if available is not None and device.available != available:
+                continue
+            devices.append(device)
+        return tuple(devices)
 
     def get_event(
         self, *, channel_address: str | None = None, parameter: str | None = None, state_path: str | None = None

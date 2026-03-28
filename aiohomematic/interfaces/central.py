@@ -19,6 +19,7 @@ from aiohomematic.const import (
     CentralState,
     ClientState,
     DataPointCategory,
+    DataPointType,
     DescriptionMarker,
     DeviceFirmwareState,
     DeviceTriggerEventType,
@@ -57,6 +58,7 @@ if TYPE_CHECKING:
         ChannelEventGroupProtocol,
         ChannelProtocol,
         CustomDataPointProtocol,
+        DeviceProtocol,
         GenericDataPointProtocolAny,
         GenericEventProtocolAny,
         GenericSysvarDataPointProtocol,
@@ -457,11 +459,21 @@ class DeviceQueryFacadeProtocol(Protocol):
         self,
         *,
         category: DataPointCategory | None = None,
+        data_point_type: DataPointType | None = None,
         interface: Interface | None = None,
         exclude_no_create: bool = True,
         registered: bool | None = None,
     ) -> tuple[CallbackDataPointProtocol, ...]:
         """Return all externally registered data points."""
+
+    @abstractmethod
+    def get_devices(
+        self,
+        *,
+        interface: Interface | None = None,
+        available: bool | None = None,
+    ) -> tuple[DeviceProtocol, ...]:
+        """Return devices matching the given filters."""
 
     @abstractmethod
     def get_event(

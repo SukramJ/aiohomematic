@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.3.19"
+VERSION: Final = "2026.3.20"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -814,6 +814,66 @@ class DataPointCategory(StrEnum):
     UPDATE = "update"
     VALVE = "valve"
     WEEK_PROFILE = "week_profile"
+
+
+@unique
+class DataPointType(StrEnum):
+    """
+    Canonical data point type for downstream consumers.
+
+    Maps each data point to a functional type (sensor, switch, climate, etc.)
+    that downstream projects can use for entity/device routing without
+    isinstance checks or custom mapping logic.
+    """
+
+    BINARY_SENSOR = "binary_sensor"
+    BUTTON = "button"
+    CLIMATE = "climate"
+    COVER = "cover"
+    EVENT = "event"
+    LIGHT = "light"
+    LOCK = "lock"
+    NUMBER = "number"
+    SELECT = "select"
+    SENSOR = "sensor"
+    SIREN = "siren"
+    SWITCH = "switch"
+    TEXT = "text"
+    UPDATE = "update"
+    VALVE = "valve"
+
+
+_CATEGORY_TO_DATA_POINT_TYPE: Final[dict[DataPointCategory, DataPointType]] = {
+    DataPointCategory.ACTION: DataPointType.BUTTON,
+    DataPointCategory.ACTION_NUMBER: DataPointType.NUMBER,
+    DataPointCategory.ACTION_SELECT: DataPointType.SELECT,
+    DataPointCategory.BINARY_SENSOR: DataPointType.BINARY_SENSOR,
+    DataPointCategory.BUTTON: DataPointType.BUTTON,
+    DataPointCategory.CLIMATE: DataPointType.CLIMATE,
+    DataPointCategory.COVER: DataPointType.COVER,
+    DataPointCategory.EVENT: DataPointType.EVENT,
+    DataPointCategory.EVENT_GROUP: DataPointType.EVENT,
+    DataPointCategory.HUB_BINARY_SENSOR: DataPointType.BINARY_SENSOR,
+    DataPointCategory.HUB_BUTTON: DataPointType.BUTTON,
+    DataPointCategory.HUB_NUMBER: DataPointType.NUMBER,
+    DataPointCategory.HUB_SELECT: DataPointType.SELECT,
+    DataPointCategory.HUB_SENSOR: DataPointType.SENSOR,
+    DataPointCategory.HUB_SWITCH: DataPointType.SWITCH,
+    DataPointCategory.HUB_TEXT: DataPointType.TEXT,
+    DataPointCategory.HUB_UPDATE: DataPointType.UPDATE,
+    DataPointCategory.LIGHT: DataPointType.LIGHT,
+    DataPointCategory.LOCK: DataPointType.LOCK,
+    DataPointCategory.NUMBER: DataPointType.NUMBER,
+    DataPointCategory.SELECT: DataPointType.SELECT,
+    DataPointCategory.SENSOR: DataPointType.SENSOR,
+    DataPointCategory.SIREN: DataPointType.SIREN,
+    DataPointCategory.SWITCH: DataPointType.SWITCH,
+    DataPointCategory.TEXT: DataPointType.TEXT,
+    DataPointCategory.TEXT_DISPLAY: DataPointType.TEXT,
+    DataPointCategory.UPDATE: DataPointType.UPDATE,
+    DataPointCategory.VALVE: DataPointType.VALVE,
+    DataPointCategory.WEEK_PROFILE: DataPointType.SENSOR,
+}
 
 
 # Action categories never receive CCU event confirmations, so optimistic

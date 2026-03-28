@@ -76,6 +76,7 @@ from aiohomematic.async_support import loop_check
 from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent, OptimisticRollbackEvent
 from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.const import (
+    _CATEGORY_TO_DATA_POINT_TYPE,
     _OPTIONAL_PARAMETERS,
     ACTION_DATA_POINT_CATEGORIES,
     DEFAULT_MULTIPLIER,
@@ -87,6 +88,7 @@ from aiohomematic.const import (
     CallSource,
     DataPointCategory,
     DataPointKey,
+    DataPointType,
     DataPointUsage,
     EventData,
     Flag,
@@ -301,6 +303,11 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     def category(self) -> DataPointCategory:
         """Return the category of the data_point."""
         return self._category
+
+    @property
+    def data_point_type(self) -> DataPointType | None:
+        """Return the canonical data point type for downstream consumers."""
+        return _CATEGORY_TO_DATA_POINT_TYPE.get(self._category)
 
     @property
     @abstractmethod

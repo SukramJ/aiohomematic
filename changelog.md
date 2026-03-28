@@ -1,3 +1,24 @@
+# Version 2026.3.20 (2026-03-28)
+
+## What's Changed
+
+### Added
+
+- **DataPointType enum**: New `DataPointType` StrEnum providing a canonical
+  data point type (SENSOR, SWITCH, CLIMATE, COVER, LIGHT, LOCK, etc.) for
+  downstream consumers. Accessible via `data_point.data_point_type` property
+  on all data point types. Eliminates isinstance checks and custom mapping
+  logic in bridges and integrations.
+
+- **Extended query facade**: `get_data_points()` now accepts a `data_point_type`
+  filter parameter. New `get_devices()` method with `interface` and `available`
+  filters for device-level queries.
+
+- **State transition callback API**: New `central.on_state_transition()` method
+  for registering handlers on specific `CentralState` transitions (e.g.,
+  DEGRADED → RUNNING). Supports wildcard `from_state=None` for any-source
+  transitions.
+
 # Version 2026.3.19 (2026-03-28)
 
 ## What's Changed

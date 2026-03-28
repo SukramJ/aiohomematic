@@ -2111,10 +2111,6 @@ git tag --list '2025.12.*' | sort -V | tail -3
 echo "Changelog: $(head -1 changelog.md)" && echo "const.py:  VERSION = $(grep '^VERSION' aiohomematic/const.py)"
 ```
 
-### Release Summary Maintenance
-
-Use the `/update-release-summary` skill when updating `release_summary.md`.
-
 ### Implementation Plan Requirements
 
 **CRITICAL**: Implementation plans created by Opus/Sonnet MUST be executable by Haiku without errors.

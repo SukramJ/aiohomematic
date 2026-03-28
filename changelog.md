@@ -1,3 +1,21 @@
+# Version 2026.3.21 (2026-03-28)
+
+## What's Changed
+
+### Added
+
+- **System variable creation**: New JSON-RPC methods `create_system_variable_bool()`,
+  `create_system_variable_float()`, and `create_system_variable_enum()` for
+  creating system variables on the CCU backend.
+
+- **Link info read/write**: New JSON-RPC methods `get_link_info()` and
+  `set_link_info()` for reading and writing link metadata (name, description)
+  between paired device channels.
+
+- **Service message suppression**: New JSON-RPC methods
+  `get_suppressed_service_messages()` and `suppress_service_message()` for
+  suppressing or unsuppressing service messages per channel.
+
 # Version 2026.3.20 (2026-03-28)
 
 ## What's Changed

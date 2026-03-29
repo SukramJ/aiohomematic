@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import datetime
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -371,6 +372,10 @@ class _FakeCentral:
         """Return generic data point."""
         key = f"{channel_address}:{parameter}:{paramset_key}"
         return self._data_points.get(key)
+
+    def get_last_event_monotonic_for_interface(self, *, interface_id: str) -> float | None:
+        """Return last event monotonic timestamp."""
+        return time.monotonic()
 
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Return last event timestamp."""

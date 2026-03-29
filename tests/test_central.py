@@ -1393,6 +1393,7 @@ class TestCentralEventHandling:
         # Create a bare EventCoordinator instance
         event_coordinator = EventCoordinator.__new__(EventCoordinator)  # type: ignore[call-arg]
         event_coordinator._last_event_seen_for_interface = {}  # type: ignore[attr-defined]
+        event_coordinator._last_event_monotonic_for_interface = {}  # type: ignore[attr-defined]
 
         # Mock health_tracker for event recording
         mock_health_tracker = MagicMock()

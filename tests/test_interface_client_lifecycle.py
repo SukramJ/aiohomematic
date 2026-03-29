@@ -12,6 +12,7 @@ These tests verify the connection lifecycle operations:
 """
 
 from datetime import datetime, timedelta
+import time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -255,6 +256,7 @@ class _FakeCentral:
         self._data_points: dict[str, Any] = {}
         self.name = "test-central"
         self._last_event_seen: datetime | None = datetime.now()
+        self._last_event_monotonic: float | None = time.monotonic()
 
         class Cfg:
             host = "localhost"
@@ -331,6 +333,9 @@ class _FakeCentral:
         parent = self
 
         class _FakeEventCoordinator:
+            def get_last_event_monotonic_for_interface(self, *, interface_id: str) -> float | None:
+                return parent._last_event_monotonic
+
             def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
                 return parent._last_event_seen
 
@@ -665,6 +670,7 @@ class TestInterfaceClientIsCallbackAlive:
         central = _FakeCentral()
         # Set last event to 10 minutes ago (longer than default callback_warn_interval of 3 minutes)
         central._last_event_seen = datetime.now() - timedelta(minutes=10)
+        central._last_event_monotonic = time.monotonic() - 600
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
@@ -676,6 +682,7 @@ class TestInterfaceClientIsCallbackAlive:
         """is_callback_alive should publish SystemStatusChangedEvent when state changes."""
         central = _FakeCentral()
         central._last_event_seen = datetime.now() - timedelta(minutes=10)
+        central._last_event_monotonic = time.monotonic() - 600
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
@@ -1587,6 +1594,7 @@ class TestIsCallbackAliveStateTransition:
         """is_callback_alive should not re-publish dead event when already marked dead."""
         central = _FakeCentral()
         central._last_event_seen = datetime.now() - timedelta(minutes=10)
+        central._last_event_monotonic = time.monotonic() - 600
         backend = _FakeBackend()
         client = _create_interface_client(central, backend)
 
@@ -1653,6 +1661,7 @@ class TestIsConnectedPushUpdates:
         backend.capabilities.push_updates = False
         # Set last event very old to test that callback_warn is NOT checked
         central._last_event_seen = datetime.now() - timedelta(hours=1)
+        central._last_event_monotonic = time.monotonic() - 3600
         client = _create_interface_client(central, backend)
 
         result = await client.is_connected()

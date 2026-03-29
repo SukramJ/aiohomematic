@@ -47,6 +47,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime
 from enum import Enum
+import time
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic.client import CircuitState
@@ -176,6 +177,10 @@ class ConnectionHealth(ConnectionHealthProtocol):
     last_successful_request: datetime | None = None
     last_failed_request: datetime | None = None
     last_event_received: datetime | None = None
+    # Monotonic timestamps for DST-safe duration calculations
+    last_successful_request_monotonic: float = 0.0
+    last_failed_request_monotonic: float = 0.0
+    last_event_received_monotonic: float = 0.0
     consecutive_failures: int = 0
     reconnect_attempts: int = 0
     last_reconnect_attempt: datetime | None = None
@@ -190,10 +195,9 @@ class ConnectionHealth(ConnectionHealthProtocol):
         """
         if not self.is_connected:
             return False
-        if self.last_event_received is None:
+        if self.last_event_received_monotonic == 0.0:
             return False
-        age = (datetime.now() - self.last_event_received).total_seconds()
-        return age < EVENT_STALENESS_THRESHOLD
+        return (time.monotonic() - self.last_event_received_monotonic) < EVENT_STALENESS_THRESHOLD
 
     @property
     def health_score(self) -> float:
@@ -237,8 +241,8 @@ class ConnectionHealth(ConnectionHealthProtocol):
         # Recent Activity (30% total - 15% each for request and event)
         activity_weight = _WEIGHT_RECENT_ACTIVITY / 2
 
-        if self.last_successful_request:
-            age = (datetime.now() - self.last_successful_request).total_seconds()
+        if self.last_successful_request_monotonic > 0.0:
+            age = time.monotonic() - self.last_successful_request_monotonic
             if age < 60:
                 score += activity_weight
             elif age < 300:
@@ -246,8 +250,8 @@ class ConnectionHealth(ConnectionHealthProtocol):
             elif age < 600:
                 score += activity_weight * 0.33
 
-        if self.last_event_received:
-            age = (datetime.now() - self.last_event_received).total_seconds()
+        if self.last_event_received_monotonic > 0.0:
+            age = time.monotonic() - self.last_event_received_monotonic
             if age < 60:
                 score += activity_weight
             elif age < 300:
@@ -298,10 +302,12 @@ class ConnectionHealth(ConnectionHealthProtocol):
     def record_event_received(self) -> None:
         """Record that an event was received from the backend."""
         self.last_event_received = datetime.now()
+        self.last_event_received_monotonic = time.monotonic()
 
     def record_failed_request(self) -> None:
         """Record a failed RPC request."""
         self.last_failed_request = datetime.now()
+        self.last_failed_request_monotonic = time.monotonic()
         self.consecutive_failures += 1
 
     def record_reconnect_attempt(self) -> None:
@@ -312,6 +318,7 @@ class ConnectionHealth(ConnectionHealthProtocol):
     def record_successful_request(self) -> None:
         """Record a successful RPC request."""
         self.last_successful_request = datetime.now()
+        self.last_successful_request_monotonic = time.monotonic()
         self.consecutive_failures = 0
 
     def reset_reconnect_counter(self) -> None:

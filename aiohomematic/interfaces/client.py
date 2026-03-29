@@ -868,6 +868,10 @@ class LastEventTrackerProtocol(Protocol):
     """
 
     @abstractmethod
+    def get_last_event_monotonic_for_interface(self, *, interface_id: str) -> float | None:
+        """Get the last event monotonic timestamp for an interface (DST-safe)."""
+
+    @abstractmethod
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Get the last event timestamp for an interface."""
 

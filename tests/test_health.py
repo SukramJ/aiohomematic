@@ -3,6 +3,7 @@
 """Tests for Health Tracking System."""
 
 from datetime import datetime, timedelta
+import time
 from unittest.mock import MagicMock
 
 from aiohomematic.central import CentralHealth, ConnectionHealth, HealthTracker
@@ -40,6 +41,7 @@ class TestConnectionHealth:
             interface=Interface.HMIP_RF,
             client_state=ClientState.CONNECTED,
             last_event_received=datetime.now(),
+            last_event_received_monotonic=time.monotonic(),
         )
         assert health.can_receive_events is True
 
@@ -50,6 +52,7 @@ class TestConnectionHealth:
             interface=Interface.HMIP_RF,
             client_state=ClientState.CONNECTED,
             last_event_received=datetime.now() - timedelta(minutes=10),
+            last_event_received_monotonic=time.monotonic() - 600,
         )
         assert health.can_receive_events is False
 
@@ -85,6 +88,8 @@ class TestConnectionHealth:
             json_rpc_circuit=None,  # No JSON-RPC
             last_successful_request=datetime.now(),
             last_event_received=datetime.now(),
+            last_successful_request_monotonic=time.monotonic(),
+            last_event_received_monotonic=time.monotonic(),
         )
         # Should be close to 1.0
         assert health.health_score >= 0.9
@@ -122,6 +127,8 @@ class TestConnectionHealth:
             xml_rpc_circuit=CircuitState.CLOSED,
             last_successful_request=datetime.now() - timedelta(minutes=8),
             last_event_received=datetime.now() - timedelta(minutes=8),
+            last_successful_request_monotonic=time.monotonic() - 480,
+            last_event_received_monotonic=time.monotonic() - 480,
         )
         # Should still have some score but reduced
         score = health.health_score

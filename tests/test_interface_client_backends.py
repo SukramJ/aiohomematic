@@ -10,6 +10,7 @@ These tests verify that InterfaceClient correctly handles:
 """
 
 from datetime import datetime
+import time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -132,6 +133,7 @@ class _FakeCentral:
     def event_coordinator(self) -> Any:
         return SimpleNamespace(
             get_last_event_seen_for_interface=lambda *, interface_id: datetime.now(),
+            get_last_event_monotonic_for_interface=lambda *, interface_id: time.monotonic(),
         )
 
     @property

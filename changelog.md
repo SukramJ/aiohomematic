@@ -14,8 +14,9 @@
   and `COMMUNICATION` (5) to cover all CCU service message types.
 
 - **Additional information for message sensors**: `HmAlarmMessagesSensor` and
-  `HmServiceMessagesSensor` now expose human-readable message summaries via
-  `additional_information`, using the new enriched fields.
+  `HmServiceMessagesSensor` now expose each message as an individual extra state
+  attribute (`alarm_1`, `alarm_2`, ... / `message_1`, `message_2`, ...) with
+  human-readable display names, making them directly accessible in HA templates.
 
 - **Dynamic i18n key detection**: `check_i18n_catalogs.py` now recognizes
   f-string prefixes in `i18n.tr()` calls, preventing false unused-key warnings

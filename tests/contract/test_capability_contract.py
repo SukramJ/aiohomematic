@@ -21,6 +21,7 @@ See ADR-0018 for architectural context and rationale.
 """
 
 from datetime import datetime, timedelta
+import time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -76,6 +77,10 @@ class _FakeEventCoordinator:
 
     def __init__(self, *, last_event_time: datetime | None = None) -> None:
         self._last_event_time = last_event_time
+
+    def get_last_event_monotonic_for_interface(self, *, interface_id: str) -> float | None:
+        """Return the last event monotonic timestamp for an interface."""
+        return time.monotonic() if self._last_event_time is not None else None
 
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """Return the last event time for an interface."""

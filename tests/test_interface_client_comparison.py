@@ -14,6 +14,7 @@ the legacy ClientCCU/DeviceHandler implementation for:
 
 import asyncio
 from datetime import datetime
+import time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -307,6 +308,9 @@ class _FakeCentral:
     def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey) -> Any:
         key = f"{channel_address}:{parameter}:{paramset_key}"
         return self._data_points.get(key)
+
+    def get_last_event_monotonic_for_interface(self, *, interface_id: str) -> float | None:
+        return time.monotonic()
 
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         return datetime.now()

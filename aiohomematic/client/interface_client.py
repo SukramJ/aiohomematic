@@ -14,6 +14,7 @@ Public API
 import asyncio
 from datetime import datetime
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
@@ -96,6 +97,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         "_is_callback_alive",
         "_last_value_send_tracker",
         "_modified_at",
+        "_modified_at_monotonic",
         "_paramset_description_coalescer",
         "_ping_pong_tracker",
         "_reconnect_attempts",
@@ -158,6 +160,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             burst_window=central.config.timeout_config.burst_window,
         )
         self._modified_at: datetime = INIT_DATETIME
+        self._modified_at_monotonic: float = 0.0
 
         # Subscribe to connection state changes
         self._unsubscribe_system_status = central.event_bus.subscribe(
@@ -205,6 +208,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     def modified_at(self, value: datetime) -> None:
         """Write the last update datetime value."""
         self._modified_at = value
+        self._modified_at_monotonic = time.monotonic() if value != INIT_DATETIME else 0.0
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """Accept a device from the CCU inbox."""
@@ -765,12 +769,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return False
 
         if (
-            last_events_dt := self._central.event_coordinator.get_last_event_seen_for_interface(
+            last_event_monotonic := self._central.event_coordinator.get_last_event_monotonic_for_interface(
                 interface_id=self.interface_id
             )
         ) is not None:
             callback_warn = self._central.config.timeout_config.callback_warn_interval
-            if (seconds_since_last_event := (datetime.now() - last_events_dt).total_seconds()) > callback_warn:
+            if (seconds_since_last_event := time.monotonic() - last_event_monotonic) > callback_warn:
                 if self._is_callback_alive:
                     self._central.event_bus.publish_sync(
                         event=SystemStatusChangedEvent(
@@ -782,7 +786,9 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     self._record_callback_timeout_incident(
                         seconds_since_last_event=seconds_since_last_event,
                         callback_warn_interval=callback_warn,
-                        last_event_time=last_events_dt,
+                        last_event_time=self._central.event_coordinator.get_last_event_seen_for_interface(
+                            interface_id=self.interface_id
+                        ),
                     )
                 _LOGGER.error(
                     i18n.tr(
@@ -829,7 +835,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return True
 
         callback_warn = self._central.config.timeout_config.callback_warn_interval
-        return (datetime.now() - self.modified_at).total_seconds() < callback_warn
+        return self._modified_at_monotonic > 0.0 and (time.monotonic() - self._modified_at_monotonic) < callback_warn
 
     async def list_devices(self) -> tuple[DeviceDescription, ...] | None:
         """List devices of the backend."""
@@ -1032,7 +1038,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         self,
         *,
         on: bool = True,
-        time: int = 60,
+        time: int = 60,  # pylint: disable=redefined-outer-name
         mode: int = 1,
         device_address: str | None = None,
     ) -> bool:
@@ -1470,7 +1476,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         *,
         seconds_since_last_event: float,
         callback_warn_interval: float,
-        last_event_time: datetime,
+        last_event_time: datetime | None,
     ) -> None:
         """Record a CALLBACK_TIMEOUT incident for diagnostics."""
         incident_recorder = self._central.cache_coordinator.incident_store
@@ -1483,7 +1489,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         context = {
             "seconds_since_last_event": round(seconds_since_last_event, 2),
             "callback_warn_interval": callback_warn_interval,
-            "last_event_time": last_event_time.strftime(DATETIME_FORMAT_MILLIS),
+            "last_event_time": last_event_time.strftime(DATETIME_FORMAT_MILLIS) if last_event_time else "unknown",
             "client_state": self._state_machine.state.value,
             "circuit_breaker_state": circuit_breaker_state,
         }

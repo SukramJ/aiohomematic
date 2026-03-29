@@ -24,6 +24,14 @@
 
 ### Fixed
 
+- **DST-safe callback alive and connection checks**: Replaced `datetime.now()`
+  with `time.monotonic()` for all duration calculations in `is_callback_alive()`,
+  `is_connected()`, and `ConnectionHealth` scoring. Wall-clock time jumps during
+  DST transitions (or NTP corrections) caused false callback timeout detections
+  (e.g. 3602s instead of 2s after a spring-forward). Monotonic timestamps are
+  immune to clock adjustments. The `LastEventTrackerProtocol` gains a new
+  `get_last_event_monotonic_for_interface()` method.
+
 - **Alarm messages not returned**: Fixed ReGa script `get_alarm_messages.fn`
   not returning active alarm messages. The script required a resolvable trigger
   data point (`AlTriggerDP`), but system alarms (e.g. WatchDog) use the

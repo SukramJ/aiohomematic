@@ -17,6 +17,7 @@ from collections.abc import Callable, Mapping
 from datetime import datetime
 from functools import partial
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Final, TypedDict, Unpack
 
 from aiohomematic.interfaces import TaskSchedulerProtocol
@@ -128,6 +129,8 @@ class EventCoordinator(
 
         # Store last event seen datetime by interface_id
         self._last_event_seen_for_interface: Final[dict[str, datetime]] = {}
+        # Store last event seen monotonic timestamp by interface_id (DST-safe)
+        self._last_event_monotonic_for_interface: Final[dict[str, float]] = {}
 
         # Store data point subscription unsubscribe callbacks for cleanup
         self._data_point_unsubscribes: Final[list[Callable[[], None]]] = []
@@ -257,6 +260,23 @@ class EventCoordinator(
             )
         )
 
+    def get_last_event_monotonic_for_interface(self, *, interface_id: str) -> float | None:
+        """
+        Return the last event monotonic timestamp for an interface.
+
+        Uses time.monotonic() which is immune to DST and wall-clock adjustments.
+
+        Args:
+        ----
+            interface_id: Interface identifier
+
+        Returns:
+        -------
+            Monotonic timestamp of last event or None if no event seen yet
+
+        """
+        return self._last_event_monotonic_for_interface.get(interface_id)
+
     def get_last_event_seen_for_interface(self, *, interface_id: str) -> datetime | None:
         """
         Return the last event seen for an interface.
@@ -385,6 +405,7 @@ class EventCoordinator(
 
         """
         self._last_event_seen_for_interface[interface_id] = datetime.now()
+        self._last_event_monotonic_for_interface[interface_id] = time.monotonic()
 
         # Update health tracker with event received
         self._health_tracker.record_event_received(interface_id=interface_id)

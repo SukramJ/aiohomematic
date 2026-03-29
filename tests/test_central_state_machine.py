@@ -3,6 +3,7 @@
 """Tests for the Central State Machine architecture."""
 
 from datetime import datetime
+import time
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -146,6 +147,8 @@ class TestConnectionHealth:
             xml_rpc_circuit=CircuitState.CLOSED,
             last_successful_request=datetime.now(),
             last_event_received=datetime.now(),
+            last_successful_request_monotonic=time.monotonic(),
+            last_event_received_monotonic=time.monotonic(),
         )
         assert health.health_score >= 0.9
 

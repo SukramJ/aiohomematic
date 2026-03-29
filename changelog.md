@@ -1,3 +1,16 @@
+# Version 2026.3.20 (2026-03-29)
+
+## What's Changed
+
+### Fixed
+
+- **Alarm messages not returned**: Fixed ReGa script `get_alarm_messages.fn`
+  not returning active alarm messages. The script required a resolvable trigger
+  data point (`AlTriggerDP`), but system alarms (e.g. WatchDog) use the
+  sentinel value 65535 which has no backing object. Trigger information is now
+  optional. Also replaced the `asOncoming` constant with numeric `1` for
+  reliability across CCU firmware versions.
+
 # Version 2026.3.19 (2026-03-28)
 
 ## What's Changed

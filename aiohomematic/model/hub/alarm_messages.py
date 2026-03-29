@@ -4,7 +4,7 @@
 
 from datetime import datetime
 import logging
-from typing import Final, override
+from typing import Any, Final, override
 
 from slugify import slugify
 
@@ -28,6 +28,7 @@ from aiohomematic.support.mixins import PayloadMixin
 _LOGGER: Final = logging.getLogger(__name__)
 
 _ALARM_MESSAGES_SENSOR_NAME: Final = "alarm_messages"
+_ALARM_MESSAGES_PREFIX: Final = "alarm_"
 
 
 class HmAlarmMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
@@ -115,6 +116,16 @@ class HmAlarmMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, Paylo
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return None
+
+    @state_property
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information about the data point."""
+        ainfo = super().additional_information
+        for idx, m in enumerate(self._alarms, start=1):
+            ainfo[f"{_ALARM_MESSAGES_PREFIX}{idx}"] = (
+                f"{m.device_name}: {m.display_name}" if m.device_name else m.display_name
+            )
+        return ainfo
 
     @state_property
     def value(self) -> int:

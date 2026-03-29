@@ -1,3 +1,36 @@
+# Version 2026.3.20 (2026-03-29)
+
+## What's Changed
+
+### Added
+
+- **Message enrichment in aiohomematic**: `ServiceMessageData` and
+  `AlarmMessageData` now include pre-resolved fields (`message_code`,
+  `display_name`, `msg_type_name`) so downstream consumers no longer need to
+  extract parameter names from raw CCU message formats or map numeric types to
+  text. Translations are provided via the existing i18n system (en/de).
+
+- **ServiceMessageType enum extended**: Added `ALARM` (3), `UPDATE_PENDING` (4),
+  and `COMMUNICATION` (5) to cover all CCU service message types.
+
+- **Additional information for message sensors**: `HmAlarmMessagesSensor` and
+  `HmServiceMessagesSensor` now expose each message as an individual extra state
+  attribute (`alarm_1`, `alarm_2`, ... / `message_1`, `message_2`, ...) with
+  human-readable display names, making them directly accessible in HA templates.
+
+- **Dynamic i18n key detection**: `check_i18n_catalogs.py` now recognizes
+  f-string prefixes in `i18n.tr()` calls, preventing false unused-key warnings
+  for dynamically constructed translation keys.
+
+### Fixed
+
+- **Alarm messages not returned**: Fixed ReGa script `get_alarm_messages.fn`
+  not returning active alarm messages. The script required a resolvable trigger
+  data point (`AlTriggerDP`), but system alarms (e.g. WatchDog) use the
+  sentinel value 65535 which has no backing object. Trigger information is now
+  optional. Also replaced the `asOncoming` constant with numeric `1` for
+  reliability across CCU firmware versions.
+
 # Version 2026.3.19 (2026-03-28)
 
 ## What's Changed

@@ -92,6 +92,17 @@ def _collect_used_keys() -> set[str]:
         # Do not attempt to evaluate f-strings or variables; only literal keys matter.
         return None
 
+    def extract_fstring_prefix(arg: ast.AST) -> str | None:
+        """Extract the leading constant prefix from an f-string (e.g., 'message.code.' from f'message.code.{x}')."""
+        if not isinstance(arg, ast.JoinedStr) or not arg.values:
+            return None
+        first = arg.values[0]
+        if isinstance(first, ast.Constant) and isinstance(first.value, str):
+            return first.value
+        return None
+
+    prefixes: set[str] = set()
+
     for path in _iter_py_files():
         try:
             source = path.read_text(encoding="utf-8")
@@ -109,6 +120,10 @@ def _collect_used_keys() -> set[str]:
                 key = extract_literal_key(node.args[0])
                 if key:
                     keys.add(key)
+                else:
+                    prefix = extract_fstring_prefix(node.args[0])
+                    if prefix:
+                        prefixes.add(prefix)
                 continue
             # Check keyword argument 'key='
             for kw in node.keywords:
@@ -116,7 +131,15 @@ def _collect_used_keys() -> set[str]:
                     key = extract_literal_key(kw.value)
                     if key:
                         keys.add(key)
+                    else:
+                        prefix = extract_fstring_prefix(kw.value)
+                        if prefix:
+                            prefixes.add(prefix)
                     break
+
+    # Store prefixes so unused-key detection can account for dynamically used keys
+    _collect_used_keys._prefixes = prefixes  # type: ignore[attr-defined]
+
     return keys
 
 
@@ -163,8 +186,12 @@ def run(fix: bool, remove_unused: bool) -> int:
         problems.extend(f"Missing key in strings.json: {k}" for k in sorted(missing_in_strings))
 
     # 2) detect unused keys in strings.json
+    # Account for dynamically constructed keys (f-strings) by matching prefixes
+    dynamic_prefixes: set[str] = getattr(_collect_used_keys, "_prefixes", set())
     strings_keys = set(strings.keys())
-    unused_in_strings = strings_keys - used_keys
+    unused_in_strings = {
+        k for k in strings_keys - used_keys if not any(k.startswith(prefix) for prefix in dynamic_prefixes)
+    }
     if unused_in_strings:
         if remove_unused:
             # Remove unused keys from all catalogs

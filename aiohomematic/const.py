@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.3.19"
+VERSION: Final = "2026.3.20"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1610,6 +1610,9 @@ class ServiceMessageType(IntEnum):
     GENERIC = 0
     STICKY = 1
     CONFIG_PENDING = 2
+    ALARM = 3
+    UPDATE_PENDING = 4
+    COMMUNICATION = 5
 
 
 @unique
@@ -2037,6 +2040,9 @@ class ServiceMessageData:
     name: str
     timestamp: str
     msg_type: int
+    message_code: str = ""
+    display_name: str = ""
+    msg_type_name: str = ""
     address: str = ""
     device_name: str = ""
     last_timestamp: str = ""
@@ -2052,6 +2058,7 @@ class AlarmMessageData:
 
     alarm_id: str
     name: str
+    display_name: str = ""
     description: str = ""
     device_name: str = ""
     timestamp: str = ""

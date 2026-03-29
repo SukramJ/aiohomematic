@@ -216,6 +216,30 @@ def _parse_tab_separated(*, value: str) -> tuple[str, ...]:
     return tuple(unquote(string=item, encoding=ISO_8859_1) for item in value.split("\t") if item)
 
 
+def _extract_message_code(*, name: str) -> str:
+    """
+    Extract parameter code from message name.
+
+    CCU message names have the format ``AL-{ADDRESS}:{CHANNEL}.{PARAMETER}``.
+    This extracts the parameter part after the last dot. If no dot is present,
+    the full name is returned.
+    """
+    dot_index = name.rfind(".")
+    return name[dot_index + 1 :] if dot_index >= 0 else name
+
+
+def _resolve_message_display_name(*, message_code: str) -> str:
+    """Resolve a message code to a human-readable display name via i18n."""
+    translated = i18n.tr(key=f"message.code.{message_code}")
+    return translated if not translated.startswith("message.code.") else message_code
+
+
+def _resolve_msg_type_name(*, msg_type: int) -> str:
+    """Resolve a numeric message type to a human-readable name via i18n."""
+    translated = i18n.tr(key=f"message.type.{msg_type}")
+    return translated if not translated.startswith("message.type.") else str(msg_type)
+
+
 @unique
 class _JsonKey(StrEnum):
     """Enum for Homematic json keys."""
@@ -820,22 +844,25 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
             _LOGGER.debug("GET_ALARM_MESSAGES: Getting alarm messages")
             if json_result := response[_JsonKey.RESULT]:
-                messages.extend(
-                    AlarmMessageData(
-                        alarm_id=msg[_JsonKey.ID],
-                        name=unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1),
-                        description=unquote(string=msg.get(_JsonKey.DESCRIPTION, ""), encoding=ISO_8859_1),
-                        device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
-                        timestamp=msg.get(_JsonKey.TIMESTAMP, ""),
-                        last_timestamp=msg.get(_JsonKey.LAST_TIMESTAMP, ""),
-                        counter=msg.get(_JsonKey.COUNTER, 0),
-                        last_trigger=unquote(string=msg.get(_JsonKey.LAST_TRIGGER, ""), encoding=ISO_8859_1),
-                        rooms=_parse_tab_separated(
-                            value=msg.get(_JsonKey.ROOMS, ""),
-                        ),
+                for msg in json_result:
+                    name = unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1)
+                    message_code = _extract_message_code(name=name)
+                    messages.append(
+                        AlarmMessageData(
+                            alarm_id=msg[_JsonKey.ID],
+                            name=name,
+                            display_name=_resolve_message_display_name(message_code=message_code),
+                            description=unquote(string=msg.get(_JsonKey.DESCRIPTION, ""), encoding=ISO_8859_1),
+                            device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
+                            timestamp=msg.get(_JsonKey.TIMESTAMP, ""),
+                            last_timestamp=msg.get(_JsonKey.LAST_TIMESTAMP, ""),
+                            counter=msg.get(_JsonKey.COUNTER, 0),
+                            last_trigger=unquote(string=msg.get(_JsonKey.LAST_TRIGGER, ""), encoding=ISO_8859_1),
+                            rooms=_parse_tab_separated(
+                                value=msg.get(_JsonKey.ROOMS, ""),
+                            ),
+                        )
                     )
-                    for msg in json_result
-                )
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
@@ -1246,12 +1273,17 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     msg_type = msg[_JsonKey.TYPE]
                     if message_type is not None and msg_type != message_type:
                         continue
+                    name = unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1)
+                    message_code = _extract_message_code(name=name)
                     messages.append(
                         ServiceMessageData(
                             msg_id=msg[_JsonKey.ID],
-                            name=unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1),
+                            name=name,
                             timestamp=msg[_JsonKey.TIMESTAMP],
                             msg_type=msg_type,
+                            message_code=message_code,
+                            display_name=_resolve_message_display_name(message_code=message_code),
+                            msg_type_name=_resolve_msg_type_name(msg_type=msg_type),
                             address=msg.get(_JsonKey.ADDRESS, ""),
                             device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
                             last_timestamp=msg.get(_JsonKey.LAST_TIMESTAMP, ""),

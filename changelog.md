@@ -2,6 +2,25 @@
 
 ## What's Changed
 
+### Added
+
+- **Message enrichment in aiohomematic**: `ServiceMessageData` and
+  `AlarmMessageData` now include pre-resolved fields (`message_code`,
+  `display_name`, `msg_type_name`) so downstream consumers no longer need to
+  extract parameter names from raw CCU message formats or map numeric types to
+  text. Translations are provided via the existing i18n system (en/de).
+
+- **ServiceMessageType enum extended**: Added `ALARM` (3), `UPDATE_PENDING` (4),
+  and `COMMUNICATION` (5) to cover all CCU service message types.
+
+- **Additional information for message sensors**: `HmAlarmMessagesSensor` and
+  `HmServiceMessagesSensor` now expose human-readable message summaries via
+  `additional_information`, using the new enriched fields.
+
+- **Dynamic i18n key detection**: `check_i18n_catalogs.py` now recognizes
+  f-string prefixes in `i18n.tr()` calls, preventing false unused-key warnings
+  for dynamically constructed translation keys.
+
 ### Fixed
 
 - **Alarm messages not returned**: Fixed ReGa script `get_alarm_messages.fn`

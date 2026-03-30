@@ -1,3 +1,17 @@
+# Version 2026.3.21 (2026-03-30)
+
+## What's Changed
+
+### Fixed
+
+- **Quittable flag based on trigger datapoint**: `get_service_messages.fn` now
+  checks `OPERATION_WRITE` on the trigger datapoint instead of the alarm object,
+  matching the CCU WebUI behavior (`serviceMessages.htm`).
+
+- **Acknowledge only writable messages**: `acknowledge_message.fn` now refuses to
+  acknowledge messages whose trigger datapoint lacks the `OPERATION_WRITE` bit,
+  returning an error instead of silently acknowledging non-quittable messages.
+
 # Version 2026.3.20 (2026-03-29)
 
 ## What's Changed

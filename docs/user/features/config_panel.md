@@ -3,7 +3,7 @@
 The Homematic Device Configuration Panel is a sidebar panel in Home Assistant for editing device parameters, managing direct links between devices, and configuring schedules — directly from the Home Assistant UI.
 
 !!! note "Admin Only"
-    The configuration panel is only visible to admin users.
+The configuration panel is only visible to admin users.
 
 ---
 
@@ -23,11 +23,11 @@ The panel appears in the Home Assistant sidebar as **HM Device Configuration** (
 
 The panel is organized into three main tabs:
 
-| Tab | Purpose |
-| --- | ------- |
-| **Devices** | Browse, configure, and manage your Homematic devices |
+| Tab             | Purpose                                                |
+| --------------- | ------------------------------------------------------ |
+| **Devices**     | Browse, configure, and manage your Homematic devices   |
 | **Integration** | Monitor integration health, performance, and incidents |
-| **OpenCCU** | Manage the CCU hardware, RF interfaces, and firmware |
+| **OpenCCU**     | Manage the CCU hardware, RF interfaces, and firmware   |
 
 ---
 
@@ -39,24 +39,24 @@ The device list shows all configurable devices grouped by their RF interface (Hm
 
 Each device entry displays:
 
-| Information | Description |
-| ----------- | ----------- |
-| **Device name** | Name as configured on the CCU |
-| **Model** | Device model number (e.g. HmIP-eTRV-2) |
-| **Address** | Unique hardware identifier of the device |
-| **Channels** | Number of functional units on the device |
+| Information     | Description                              |
+| --------------- | ---------------------------------------- |
+| **Device name** | Name as configured on the CCU            |
+| **Model**       | Device model number (e.g. HmIP-eTRV-2)   |
+| **Address**     | Unique hardware identifier of the device |
+| **Channels**    | Number of functional units on the device |
 
 **Status icons** indicate the device's current state:
 
-| Icon | Meaning |
-| ---- | ------- |
-| :material-check-circle:{ .green } | Device is reachable |
-| :material-close-circle:{ .red } | Device is unreachable |
-| :material-battery-alert:{ .orange } | Low battery |
-| :material-clock-alert:{ .orange } | Configuration pending |
+| Icon                                | Meaning               |
+| ----------------------------------- | --------------------- |
+| :material-check-circle:{ .green }   | Device is reachable   |
+| :material-close-circle:{ .red }     | Device is unreachable |
+| :material-battery-alert:{ .orange } | Low battery           |
+| :material-clock-alert:{ .orange }   | Configuration pending |
 
 !!! tip "What is an interface?"
-    An interface is the radio protocol used by the device. **HmIP-RF** is used by modern HomematicIP devices, **BidCos-RF** by classic Homematic devices, and **BidCos-Wired** by wired devices. The interface determines how the CCU communicates with the device.
+An interface is the radio protocol used by the device. **HmIP-RF** is used by modern HomematicIP devices, **BidCos-RF** by classic Homematic devices, and **BidCos-Wired** by wired devices. The interface determines how the CCU communicates with the device.
 
 Click on a device to open the [Device Detail](#device-detail) view.
 
@@ -68,11 +68,11 @@ The device detail view shows all information about a single device and provides 
 
 **Device information:**
 
-| Field | Description |
-| ----- | ----------- |
-| **Model** | Device type (e.g. HmIP-eTRV-2) |
-| **Firmware** | Software version installed on the device |
-| **Address** | Hardware identifier (e.g. `001FD9499D7856`) |
+| Field        | Description                                 |
+| ------------ | ------------------------------------------- |
+| **Model**    | Device type (e.g. HmIP-eTRV-2)              |
+| **Firmware** | Software version installed on the device    |
+| **Address**  | Hardware identifier (e.g. `001FD9499D7856`) |
 
 **Available actions:**
 
@@ -84,11 +84,11 @@ The device detail view shows all information about a single device and provides 
 
 A device consists of one or more **channels**. Each channel represents a distinct function of the device — for example, a two-button switch has separate channels for each button.
 
-| Channel | Purpose |
-| ------- | ------- |
-| **Device Config** | Device-wide settings (e.g. display backlight, button lock) |
+| Channel                     | Purpose                                                                |
+| --------------------------- | ---------------------------------------------------------------------- |
+| **Device Config**           | Device-wide settings (e.g. display backlight, button lock)             |
 | **Channel 0 (Maintenance)** | Health data: signal strength (RSSI), battery, reachability, duty cycle |
-| **Channel 1, 2, ...** | Functional channels (e.g. relay, dimmer, sensor, thermostat) |
+| **Channel 1, 2, ...**       | Functional channels (e.g. relay, dimmer, sensor, thermostat)           |
 
 Each channel shows its **type** (e.g. SWITCH, DIMMER, CLIMATECONTROL_REGULATOR) and offers **Configure**, **Export**, and **Import** buttons.
 
@@ -96,14 +96,14 @@ Each channel shows its **type** (e.g. SWITCH, DIMMER, CLIMATECONTROL_REGULATOR) 
 
 Channel 0 is a special maintenance channel present on every device. It shows:
 
-| Field | Meaning |
-| ----- | ------- |
-| **RSSI Device** | Signal strength from the CCU to the device (in dBm). Values closer to 0 are better. Typical range: -40 (excellent) to -100 (poor). |
-| **RSSI Peer** | Signal strength from the device to its communication partner. Shows "—" if no direct links exist. |
-| **DC Limit** | Whether the device has reached its [duty cycle](https://en.wikipedia.org/wiki/Duty_cycle) limit. If "Yes", the device temporarily cannot send radio commands (regulatory limit to prevent radio interference). |
-| **Low Battery** | Whether the battery needs replacement. |
-| **Reachable** | Whether the CCU can communicate with the device. |
-| **Config Pending** | Whether a configuration change is waiting to be applied to the device (the device may be in sleep mode). |
+| Field              | Meaning                                                                                                                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RSSI Device**    | Signal strength from the CCU to the device (in dBm). Values closer to 0 are better. Typical range: -40 (excellent) to -100 (poor).                                                                             |
+| **RSSI Peer**      | Signal strength from the device to its communication partner. Shows "—" if no direct links exist.                                                                                                              |
+| **DC Limit**       | Whether the device has reached its [duty cycle](https://en.wikipedia.org/wiki/Duty_cycle) limit. If "Yes", the device temporarily cannot send radio commands (regulatory limit to prevent radio interference). |
+| **Low Battery**    | Whether the battery needs replacement.                                                                                                                                                                         |
+| **Reachable**      | Whether the CCU can communicate with the device.                                                                                                                                                               |
+| **Config Pending** | Whether a configuration change is waiting to be applied to the device (the device may be in sleep mode).                                                                                                       |
 
 ---
 
@@ -116,15 +116,15 @@ The parameter editor provides a form-based interface for editing device configur
 1. Select a device from the device list
 2. Choose a channel to configure
 3. The panel auto-generates a form with appropriate controls:
-     - **Sliders** for numeric parameters (e.g. temperature offset)
-     - **Toggles** for boolean parameters (e.g. button lock)
-     - **Dropdowns** for enum parameters (e.g. display mode)
-     - **Presets** for common value combinations (e.g. time intervals)
+   - **Sliders** for numeric parameters (e.g. temperature offset)
+   - **Toggles** for boolean parameters (e.g. button lock)
+   - **Dropdowns** for enum parameters (e.g. display mode)
+   - **Presets** for common value combinations (e.g. time intervals)
 4. Adjust values as needed
 5. Click **Save** to write changes to the device via the CCU
 
 !!! warning "Device Storage"
-    Writing to device MASTER parameters uses the device's internal storage. Excessive writes can degrade the device's EEPROM. The panel is designed for configuration changes, not for frequent state updates.
+Writing to device MASTER parameters uses the device's internal storage. Excessive writes can degrade the device's EEPROM. The panel is designed for configuration changes, not for frequent state updates.
 
 #### What is a Paramset? {#paramset}
 
@@ -177,7 +177,7 @@ Import a previously exported JSON configuration into a channel of the **same dev
 Direct links (also called **peerings** or **Direktverknüpfungen**) connect two device channels for direct peer-to-peer communication — without the CCU as intermediary.
 
 !!! example "Typical use case"
-    A wall switch directly controls a light actuator. When you press the switch, the command goes directly to the light via radio — even if the CCU is offline.
+A wall switch directly controls a light actuator. When you press the switch, the command goes directly to the light via radio — even if the CCU is offline.
 
 #### Advantages of Direct Links
 
@@ -234,7 +234,7 @@ For thermostat devices (e.g. HmIP-eTRV, HmIP-WTH):
 - **Import/Export**: Save and restore schedules as JSON
 
 !!! info "Profiles"
-    A **profile** is a complete weekly schedule. Most thermostats support multiple profiles (e.g. "Normal", "Energy saving", "Holiday"). The **active profile** is the one the device currently follows. Selecting a different profile in the dropdown loads its data for viewing/editing and activates it on the device.
+A **profile** is a complete weekly schedule. Most thermostats support multiple profiles (e.g. "Normal", "Energy saving", "Holiday"). The **active profile** is the one the device currently follows. Selecting a different profile in the dropdown loads its data for viewing/editing and activates it on the device.
 
 #### Device Schedules {#device-schedules}
 
@@ -242,15 +242,15 @@ For non-climate devices (switches, lights, covers, valves):
 
 - **Event list**: Shows all scheduled events grouped by weekday
 - **Event editor**: Configure each event with:
-    - **Time**: Fixed time (e.g. 06:00) or astronomical (relative to sunrise/sunset)
-    - **Weekdays**: Which days the event applies to
-    - **Level**: Target state (On/Off for switches, 0–100% for dimmers/covers)
-    - **Duration**: How long the action lasts (optional)
-    - **Ramp time**: Gradual transition time for lights (optional)
-    - **Target channels**: Which channels to control (for multi-channel devices)
+  - **Time**: Fixed time (e.g. 06:00) or astronomical (relative to sunrise/sunset)
+  - **Weekdays**: Which days the event applies to
+  - **Level**: Target state (On/Off for switches, 0–100% for dimmers/covers)
+  - **Duration**: How long the action lasts (optional)
+  - **Ramp time**: Gradual transition time for lights (optional)
+  - **Target channels**: Which channels to control (for multi-channel devices)
 
 !!! tip "Schedule Cards"
-    For a more visual schedule editing experience, use the dedicated Lovelace cards:
+For a more visual schedule editing experience, use the dedicated Lovelace cards:
 
     - [Climate Schedule Card](climate_schedule_card.md) for thermostats
     - [Schedule Card](schedule_card.md) for switches, lights, covers, and valves
@@ -263,18 +263,18 @@ The change history keeps a persistent log of all parameter changes made through 
 
 Each entry shows:
 
-| Field | Description |
-| ----- | ----------- |
-| **Timestamp** | When the change was made |
-| **Device** | Device name and model |
-| **Channel** | Channel address that was modified |
-| **Parameters** | Number of parameters changed |
-| **Source** | How the change was made: Manual, Import, or Copy |
+| Field          | Description                                      |
+| -------------- | ------------------------------------------------ |
+| **Timestamp**  | When the change was made                         |
+| **Device**     | Device name and model                            |
+| **Channel**    | Channel address that was modified                |
+| **Parameters** | Number of parameters changed                     |
+| **Source**     | How the change was made: Manual, Import, or Copy |
 
 Click an entry to expand the details and see each parameter's old and new value.
 
 !!! info "Storage"
-    The history is stored via Home Assistant's storage system with a 500-entry limit per config entry. When the limit is reached, the oldest entries are removed automatically.
+The history is stored via Home Assistant's storage system with a 500-entry limit per config entry. When the limit is reached, the oldest entries are removed automatically.
 
 The **Clear History** button permanently deletes all entries (with confirmation).
 
@@ -288,34 +288,34 @@ The Integration dashboard monitors the health and performance of the Homematic(I
 
 Shows the current state of the integration:
 
-| Field | Description |
-| ----- | ----------- |
-| **Central State** | The integration's connection status. "RUNNING" means everything is operational. Other states like "STARTUP" or "RECONNECT" indicate the integration is initializing or recovering. |
-| **Health Score** | A percentage (0–100%) indicating overall device communication quality. 100% means all devices are reachable and communicating normally. A lower score means some devices have communication issues. |
+| Field             | Description                                                                                                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Central State** | The integration's connection status. "RUNNING" means everything is operational. Other states like "STARTUP" or "RECONNECT" indicate the integration is initializing or recovering.                  |
+| **Health Score**  | A percentage (0–100%) indicating overall device communication quality. 100% means all devices are reachable and communicating normally. A lower score means some devices have communication issues. |
 
 ### Device Statistics {#device-statistics}
 
 A quick overview of your device fleet:
 
-| Field | Description |
-| ----- | ----------- |
-| **Total Devices** | Number of devices managed by this integration |
-| **Unreachable** | Devices currently not responding (shown as warning if > 0) |
-| **Firmware Updatable** | Devices with available firmware updates |
+| Field                  | Description                                                |
+| ---------------------- | ---------------------------------------------------------- |
+| **Total Devices**      | Number of devices managed by this integration              |
+| **Unreachable**        | Devices currently not responding (shown as warning if > 0) |
+| **Firmware Updatable** | Devices with available firmware updates                    |
 
 ### Command Throttle {#command-throttle}
 
 The **command throttle** is a protective mechanism that limits how fast commands are sent to the CCU.
 
 !!! question "Why is this needed?"
-    Homematic devices communicate via radio. If too many commands are sent in quick succession, they can interfere with each other — causing missed commands or delayed responses. The throttle ensures commands are spaced out, especially during automations or scenes that control many devices at once.
+Homematic devices communicate via radio. If too many commands are sent in quick succession, they can interfere with each other — causing missed commands or delayed responses. The throttle ensures commands are spaced out, especially during automations or scenes that control many devices at once.
 
-| Field | Description |
-| ----- | ----------- |
-| **Enabled** | Whether the throttle is active |
-| **Interval** | Minimum time between commands (in seconds) |
-| **Queue Size** | Number of commands currently waiting to be sent |
-| **Throttled** | Whether commands are currently being delayed |
+| Field           | Description                                                                        |
+| --------------- | ---------------------------------------------------------------------------------- |
+| **Enabled**     | Whether the throttle is active                                                     |
+| **Interval**    | Minimum time between commands (in seconds)                                         |
+| **Queue Size**  | Number of commands currently waiting to be sent                                    |
+| **Throttled**   | Whether commands are currently being delayed                                       |
 | **Burst Count** | Number of commands that can be sent in quick succession before throttling kicks in |
 
 Under normal operation, the queue is empty and "Throttled" shows "No". If the queue grows or throttling is active, it means many commands are being processed — this is expected during scenes or large automations.
@@ -325,7 +325,7 @@ Under normal operation, the queue is empty and "Throttled" shows "No". If the qu
 **Incidents** are logged communication events that occurred between the integration and the CCU or devices. These are **not bugs** and typically **do not require any action** from you.
 
 !!! warning "Incidents are not errors"
-    An incident does **not** mean something is broken. It is a normal diagnostic log entry — similar to a flight recorder. Common incidents include:
+An incident does **not** mean something is broken. It is a normal diagnostic log entry — similar to a flight recorder. Common incidents include:
 
     - A device temporarily not responding (e.g. battery-powered device in sleep mode)
     - A brief communication timeout during heavy radio traffic
@@ -344,7 +344,7 @@ The integration caches device metadata (parameter descriptions, channel informat
 - **Clear Cache**: Purges all cached device data. The integration will re-fetch everything from the CCU on the next restart.
 
 !!! note
-    Clearing the cache does not affect your device configurations or automations. It only forces the integration to re-read device metadata from the CCU.
+Clearing the cache does not affect your device configurations or automations. It only forces the integration to re-read device metadata from the CCU.
 
 ---
 
@@ -356,15 +356,15 @@ The OpenCCU dashboard provides direct access to CCU system administration featur
 
 Shows details about the connected CCU hardware:
 
-| Field | Description |
-| ----- | ----------- |
-| **Name** | CCU system name |
-| **Model** | Hardware model (e.g. CCU3, RaspberryMatic) |
-| **Version** | CCU firmware version |
-| **Serial** | Hardware serial number |
-| **Hostname** | Network hostname |
-| **Interfaces** | Configured radio interfaces |
-| **Auth Enabled** | Whether CCU authentication is active |
+| Field            | Description                                |
+| ---------------- | ------------------------------------------ |
+| **Name**         | CCU system name                            |
+| **Model**        | Hardware model (e.g. CCU3, RaspberryMatic) |
+| **Version**      | CCU firmware version                       |
+| **Serial**       | Hardware serial number                     |
+| **Hostname**     | Network hostname                           |
+| **Interfaces**   | Configured radio interfaces                |
+| **Auth Enabled** | Whether CCU authentication is active       |
 
 **Actions:**
 
@@ -382,19 +382,19 @@ New devices that have been detected but not yet accepted into the system. Click 
 
 Service messages are system notifications from the CCU about device states that may need attention:
 
-| Type | Meaning |
-| ---- | ------- |
-| **Generic** | General notification |
-| **Sticky** | Persistent notification that remains until acknowledged |
-| **Config Pending** | A device is waiting for a configuration to be applied |
-| **Alarm** | A warning condition (e.g. low battery, sabotage) |
-| **Update Pending** | A firmware update is available |
-| **Communication** | A communication issue was detected |
+| Type               | Meaning                                                 |
+| ------------------ | ------------------------------------------------------- |
+| **Generic**        | General notification                                    |
+| **Sticky**         | Persistent notification that remains until acknowledged |
+| **Config Pending** | A device is waiting for a configuration to be applied   |
+| **Alarm**          | A warning condition (e.g. low battery, sabotage)        |
+| **Update Pending** | A firmware update is available                          |
+| **Communication**  | A communication issue was detected                      |
 
 Each message shows the device name, address, message type, description, timestamp, and a counter (how often it occurred). **Quittable** messages can be acknowledged with the **Acknowledge** button.
 
 !!! tip
-    Most service messages resolve themselves (e.g. a battery-powered device reconnects after waking up). The messages are informational — they don't necessarily require immediate action.
+Most service messages resolve themselves (e.g. a battery-powered device reconnects after waking up). The messages are informational — they don't necessarily require immediate action.
 
 #### Alarm Messages {#alarm-messages}
 
@@ -409,25 +409,25 @@ Alarm messages are critical notifications that indicate a condition requiring at
 
 A sortable and filterable table showing the radio signal quality of all devices:
 
-| Column | Description |
-| ------ | ----------- |
-| **Device** | Device name |
-| **Model** | Device model |
-| **Interface** | Radio protocol (HmIP-RF, BidCos-RF) |
-| **Reachable** | Whether the device is currently responding |
-| **RSSI** | Signal strength in dBm (closer to 0 = better) |
-| **Battery** | Battery status (OK or Low) |
+| Column        | Description                                   |
+| ------------- | --------------------------------------------- |
+| **Device**    | Device name                                   |
+| **Model**     | Device model                                  |
+| **Interface** | Radio protocol (HmIP-RF, BidCos-RF)           |
+| **Reachable** | Whether the device is currently responding    |
+| **RSSI**      | Signal strength in dBm (closer to 0 = better) |
+| **Battery**   | Battery status (OK or Low)                    |
 
 Use the filter bar (shown when more than 10 devices) to search by name/model or filter by interface, reachability, or battery status.
 
 !!! info "Understanding RSSI values"
-    | Range | Quality |
-    | ----- | ------- |
-    | -40 to 0 dBm | Excellent |
-    | -60 to -40 dBm | Good |
-    | -80 to -60 dBm | Acceptable |
-    | -100 to -80 dBm | Poor — consider moving the device closer or adding a repeater |
-    | Below -100 dBm | Very poor — communication problems likely |
+| Range | Quality |
+| ----- | ------- |
+| -40 to 0 dBm | Excellent |
+| -60 to -40 dBm | Good |
+| -80 to -60 dBm | Acceptable |
+| -100 to -80 dBm | Poor — consider moving the device closer or adding a repeater |
+| Below -100 dBm | Very poor — communication problems likely |
 
     For more details, see [About RSSI values](../troubleshooting/rssi_fix.md).
 
@@ -435,17 +435,17 @@ Use the filter bar (shown when more than 10 devices) to search by name/model or 
 
 A sortable and filterable table showing firmware status for all devices:
 
-| Column | Description |
-| ------ | ----------- |
-| **Device** | Device name and model |
-| **Current FW** | Installed firmware version |
-| **Available FW** | Latest available firmware version |
-| **Status** | Update state (up-to-date, updatable, etc.) |
+| Column           | Description                                |
+| ---------------- | ------------------------------------------ |
+| **Device**       | Device name and model                      |
+| **Current FW**   | Installed firmware version                 |
+| **Available FW** | Latest available firmware version          |
+| **Status**       | Update state (up-to-date, updatable, etc.) |
 
 Click **Refresh Firmware Data** to fetch the latest firmware information from the CCU.
 
 !!! note
-    Firmware updates are managed by the CCU, not by this integration. The panel shows the status for informational purposes. To perform updates, use the CCU WebUI or the device's own update mechanism.
+Firmware updates are managed by the CCU, not by this integration. The panel shows the status for informational purposes. To perform updates, use the CCU WebUI or the device's own update mechanism.
 
 ### Install Mode {#install-mode}
 
@@ -457,7 +457,7 @@ Install mode puts the CCU into **pairing mode**, allowing new devices to join th
 - Once paired, the device appears in the [Inbox](#inbox)
 
 !!! tip
-    Only interfaces that are actually configured in the integration are shown. If you don't see an interface, check your integration configuration.
+Only interfaces that are actually configured in the integration are shown. If you don't see an interface, check your integration configuration.
 
 ---
 

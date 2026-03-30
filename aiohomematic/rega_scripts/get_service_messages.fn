@@ -46,12 +46,9 @@ if (oServices) {
             !# Trigger count
             integer iCounter = oAlarm.AlCounter();
 
-            !# Quittable flag (Operations has WRITE bit = 2)
+            !# Quittable flag — determined by the trigger datapoint's OPERATION_WRITE bit (2),
+            !# matching the CCU WebUI behavior (serviceMessages.htm checks oLastTrigger.Operations()).
             boolean bQuittable = false;
-            integer iOps = oAlarm.Operations();
-            if (iOps & 2) {
-                bQuittable = true;
-            }
 
             !# Extract address from alarm name (format: "AL-ADDRESS:X.PARAM")
             if (sRawName.Find("AL-") == 0) {
@@ -70,6 +67,11 @@ if (oServices) {
             if (iTriggerDP) {
                 object oTrigger = dom.GetObject(iTriggerDP);
                 if (oTrigger) {
+                    !# Check OPERATION_WRITE on the trigger datapoint (not the alarm object)
+                    integer iOps = oTrigger.Operations();
+                    if (iOps & 2) {
+                        bQuittable = true;
+                    }
                     integer iChnId = oTrigger.Channel();
                     if (iChnId) {
                         object oChn = dom.GetObject(iChnId);

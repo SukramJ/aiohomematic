@@ -14,20 +14,14 @@ string sError = "";
 
 object oAlarm = dom.GetObject(sMessageId);
 if (oAlarm) {
+    !# Check if trigger datapoint has OPERATION_WRITE (bit 2),
+    !# matching the CCU WebUI behavior (only writable messages can be acknowledged).
     object oAlTriggerDP = dom.GetObject(oAlarm.AlTriggerDP());
-    if (oAlTriggerDP) {
-        if (oAlTriggerDP.Operations() & 2) {
-            oAlarm.AlReceipt();
-            bSuccess = true;
-        } else {
-            !# Trigger DP is not writable, receipt directly
-            oAlarm.AlReceipt();
-            bSuccess = true;
-        }
-    } else {
-        !# No trigger DP found, receipt directly
+    if (oAlTriggerDP && (oAlTriggerDP.Operations() & 2)) {
         oAlarm.AlReceipt();
         bSuccess = true;
+    } else {
+        sError = "Message is not acknowledgeable";
     }
 } else {
     sError = "Message not found";

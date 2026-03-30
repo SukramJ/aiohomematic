@@ -12,6 +12,17 @@
   acknowledge messages whose trigger datapoint lacks the `OPERATION_WRITE` bit,
   returning an error instead of silently acknowledging non-quittable messages.
 
+### Changed
+
+- **Removed auto-enable of alarm/service SysVars**: The system variables
+  `${sysVarAlarmMessages}` (ID 40) and `${sysVarServiceMessages}` (ID 41) are no
+  longer force-enabled and renamed. These are fully superseded by the dedicated
+  `HmAlarmMessagesSensor` and `HmServiceMessagesSensor` hub data points.
+
+- **Exposed message DPs on HubCoordinator**: `alarm_messages_dp` and
+  `service_messages_dp` are now accessible via `HubCoordinator` as
+  `DelegatedProperty` for direct access from downstream consumers.
+
 # Version 2026.3.20 (2026-03-29)
 
 ## What's Changed

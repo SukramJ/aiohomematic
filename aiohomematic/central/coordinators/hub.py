@@ -40,7 +40,15 @@ from aiohomematic.interfaces import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.central import HealthTrackerProtocol
-from aiohomematic.model.hub import ConnectivityDpType, Hub, InstallModeDpType, MetricsDpType, ProgramDpType
+from aiohomematic.model.hub import (
+    ConnectivityDpType,
+    HmAlarmMessagesSensor,
+    HmServiceMessagesSensor,
+    Hub,
+    InstallModeDpType,
+    MetricsDpType,
+    ProgramDpType,
+)
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -126,9 +134,11 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             task_scheduler=task_scheduler,
         )
 
+    alarm_messages_dp: Final = DelegatedProperty[HmAlarmMessagesSensor | None](path="_hub.alarm_messages_dp")
     connectivity_dps: Final = DelegatedProperty[Mapping[str, ConnectivityDpType]](path="_hub.connectivity_dps")
     install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_hub.install_mode_dps")
     metrics_dps: Final = DelegatedProperty[MetricsDpType | None](path="_hub.metrics_dps")
+    service_messages_dp: Final = DelegatedProperty[HmServiceMessagesSensor | None](path="_hub.service_messages_dp")
 
     @property
     def data_point_paths(self) -> tuple[str, ...]:

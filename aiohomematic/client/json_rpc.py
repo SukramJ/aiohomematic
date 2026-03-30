@@ -63,6 +63,7 @@ from aiohomematic.const import (
     ALWAYS_ENABLE_SYSVARS_BY_ID,
     DEFAULT_INCLUDE_INTERNAL_PROGRAMS,
     DEFAULT_INCLUDE_INTERNAL_SYSVARS,
+    IGNORE_SYSVARS_BY_ID,
     ISO_8859_1,
     JSON_SESSION_AGE,
     LOGIN_BACKOFF_MULTIPLIER,
@@ -1016,7 +1017,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             for var in json_result:
                 enabled_default = False
                 extended_sysvar = False
-                var_id = var[_JsonKey.ID]
+                if (var_id := var[_JsonKey.ID]) in IGNORE_SYSVARS_BY_ID:
+                    continue
                 legacy_name = var[_JsonKey.NAME]
                 is_internal = var[_JsonKey.IS_INTERNAL]
                 if new_name := RENAME_SYSVAR_BY_NAME.get(legacy_name):

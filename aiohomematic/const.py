@@ -220,12 +220,11 @@ SCHEDULER_PROFILE_PATTERN: Final = re.compile(
 SCHEDULER_TIME_PATTERN: Final = re.compile(r"^(([0-1]{0,1}[0-9])|(2[0-4])):[0-5][0-9]")
 WEEK_PROFILE_PATTERN: Final = re.compile(r".*WEEK_PROFILE$")
 
-ALWAYS_ENABLE_SYSVARS_BY_ID: Final[frozenset[str]] = frozenset({"40", "41"})
+ALWAYS_ENABLE_SYSVARS_BY_ID: Final[frozenset[str]] = frozenset()
+IGNORE_SYSVARS_BY_ID: Final[frozenset[str]] = frozenset({"40", "41"})
 RENAME_SYSVAR_BY_NAME: Final[Mapping[str, str]] = MappingProxyType(
     {
-        "${sysVarAlarmMessages}": "ALARM_MESSAGES",
         "${sysVarPresence}": "PRESENCE",
-        "${sysVarServiceMessages}": "SERVICE_MESSAGES",
     }
 )
 

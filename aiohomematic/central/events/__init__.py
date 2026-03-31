@@ -6,37 +6,26 @@ Events sub-package for the central event system.
 This package contains the event bus infrastructure and event type definitions:
 
 - EventBus: Core event bus for type-safe event subscription and publishing
-- Event types: DataPointValueReceivedEvent, DeviceStateChangedEvent, etc.
-- Integration events: SystemStatusChangedEvent for Home Assistant integration
+- Public events: Stable API for external consumers (integrations, bridges)
+- Internal events: Coordinator communication (import from ``events.internal``)
 
 Public API of this module is defined by __all__.
+
+Internal events are available via ``aiohomematic.central.events.internal``
+and are re-exported here for backward compatibility, but they are **not**
+part of the stable public API.
 """
 
 from aiohomematic.central.events.bus import (
-    CacheInvalidatedEvent,
-    ConnectionHealthChangedEvent,
-    ConnectionLostEvent,
-    ConnectionStageChangedEvent,
     DataPointStateChangedEvent,
-    DataPointStatusReceivedEvent,
-    DataPointValueReceivedEvent,
-    DataRefreshCompletedEvent,
-    DataRefreshTriggeredEvent,
     DeviceRemovedEvent,
-    DeviceStateChangedEvent,
     EventBatch,
     EventBus,
-    FirmwareStateChangedEvent,
     HandlerStats,
-    HeartbeatTimerFiredEvent,
-    LinkPeerChangedEvent,
     OptimisticRollbackEvent,
-    ProgramExecutedEvent,
-    RecoveryAttemptedEvent,
     RecoveryCompletedEvent,
     RecoveryFailedEvent,
     RecoveryStageChangedEvent,
-    RequestCoalescedEvent,
     RpcParameterReceivedEvent,
     SubscriptionGroup,
     SysvarStateChangedEvent,
@@ -49,49 +38,43 @@ from aiohomematic.central.events.integration import (
     IntegrationIssue,
     SystemStatusChangedEvent,
 )
+from aiohomematic.central.events.internal import (  # noqa: F401
+    CacheInvalidatedEvent,
+    ConnectionHealthChangedEvent,
+    ConnectionLostEvent,
+    ConnectionStageChangedEvent,
+    DataPointStatusReceivedEvent,
+    DataPointValueReceivedEvent,
+    DataRefreshCompletedEvent,
+    DataRefreshTriggeredEvent,
+    DeviceStateChangedEvent,
+    FirmwareStateChangedEvent,
+    HeartbeatTimerFiredEvent,
+    LinkPeerChangedEvent,
+    ProgramExecutedEvent,
+    RecoveryAttemptedEvent,
+    RequestCoalescedEvent,
+)
 from aiohomematic.central.events.types import (
     CentralStateChangedEvent,
-    CircuitBreakerStateChangedEvent,
-    CircuitBreakerTrippedEvent,
+    CircuitBreakerStateChangedEvent,  # noqa: F401
+    CircuitBreakerTrippedEvent,  # noqa: F401
     ClientStateChangedEvent,
-    DataFetchCompletedEvent,
-    DataFetchOperation,
+    DataFetchCompletedEvent,  # noqa: F401
+    DataFetchOperation,  # noqa: F401
     Event,
     EventPriority,
-    HealthRecordedEvent,
+    HealthRecordedEvent,  # noqa: F401
 )
 
+# Only public events and EventBus infrastructure are part of the stable API.
+# Internal events are re-exported for backward compatibility but external
+# consumers should not depend on them.
 __all__ = [
-    # Event types
-    "CacheInvalidatedEvent",
-    "CentralStateChangedEvent",
-    "CircuitBreakerStateChangedEvent",
-    "CircuitBreakerTrippedEvent",
-    "ClientStateChangedEvent",
-    "ConnectionHealthChangedEvent",
-    "ConnectionLostEvent",
-    "ConnectionStageChangedEvent",
-    "DataFetchCompletedEvent",
-    "DataFetchOperation",
+    # Data point state events
     "DataPointStateChangedEvent",
-    "DataPointStatusReceivedEvent",
-    "DataPointValueReceivedEvent",
-    "DataRefreshCompletedEvent",
-    "DataRefreshTriggeredEvent",
     "DeviceRemovedEvent",
-    "DeviceStateChangedEvent",
-    "FirmwareStateChangedEvent",
-    "HealthRecordedEvent",
-    "HeartbeatTimerFiredEvent",
-    "LinkPeerChangedEvent",
     "OptimisticRollbackEvent",
-    "ProgramExecutedEvent",
-    "RecoveryAttemptedEvent",
-    "RecoveryCompletedEvent",
-    "RecoveryFailedEvent",
-    "RecoveryStageChangedEvent",
-    "RequestCoalescedEvent",
-    "RpcParameterReceivedEvent",
     "SysvarStateChangedEvent",
     # EventBus core
     "Event",
@@ -107,4 +90,13 @@ __all__ = [
     "DeviceTriggerEvent",
     "IntegrationIssue",
     "SystemStatusChangedEvent",
+    # RPC callback events
+    "RpcParameterReceivedEvent",
+    # Recovery events
+    "RecoveryCompletedEvent",
+    "RecoveryFailedEvent",
+    "RecoveryStageChangedEvent",
+    # State machine events
+    "CentralStateChangedEvent",
+    "ClientStateChangedEvent",
 ]

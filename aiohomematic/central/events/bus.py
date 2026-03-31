@@ -112,18 +112,13 @@ import types
 from typing import TYPE_CHECKING, Any, Final, Protocol, TypeVar
 
 from aiohomematic.central.events.integration import DeviceLifecycleEvent
-from aiohomematic.central.events.types import Event, EventPriority
-from aiohomematic.const import (
-    CacheInvalidationReason,
-    CacheType,
-    ConnectionStage,
-    DataPointKey,
-    DataRefreshType,
-    FailureReason,
-    ParamsetKey,
-    ProgramTrigger,
-    RecoveryStage,
+from aiohomematic.central.events.internal import (
+    DeviceStateChangedEvent,
+    FirmwareStateChangedEvent,
+    LinkPeerChangedEvent,
 )
+from aiohomematic.central.events.types import Event, EventPriority
+from aiohomematic.const import DataPointKey, FailureReason, ParamsetKey, RecoveryStage
 from aiohomematic.interfaces import TaskSchedulerProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
@@ -227,52 +222,6 @@ class HandlerStats:
 
 
 @dataclass(frozen=True, slots=True)
-class DataPointValueReceivedEvent(Event):
-    """
-    Fired when a data point value is updated from the backend.
-
-    Key is the DataPointKey.
-
-    The dpk (DataPointKey) contains:
-    - interface_id: Interface identifier (e.g., "BidCos-RF")
-    - channel_address: Full channel address (e.g., "VCU0000001:1")
-    - paramset_key: Paramset type (e.g., ParamsetKey.VALUES)
-    - parameter: Parameter name (e.g., "STATE")
-    """
-
-    dpk: DataPointKey
-    value: Any
-    received_at: datetime
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.dpk
-
-
-@dataclass(frozen=True, slots=True)
-class DataPointStatusReceivedEvent(Event):
-    """
-    Fired when a STATUS parameter value is updated from the backend.
-
-    Key is the DataPointKey of the MAIN parameter (not the STATUS parameter).
-
-    This event is routed to the main parameter's data point to update
-    its status attribute. For example, a LEVEL_STATUS event is routed
-    to the LEVEL data point.
-    """
-
-    dpk: DataPointKey
-    status_value: int | str
-    received_at: datetime
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.dpk
-
-
-@dataclass(frozen=True, slots=True)
 class RpcParameterReceivedEvent(Event):
     """
     Raw parameter update event from backend (re-published from RPC callbacks).
@@ -317,54 +266,6 @@ class SysvarStateChangedEvent(Event):
     def key(self) -> Any:
         """Key identifier for this event."""
         return self.state_path
-
-
-@dataclass(frozen=True, slots=True)
-class DeviceStateChangedEvent(Event):
-    """
-    Device state has changed.
-
-    Key is device_address.
-    """
-
-    device_address: str
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.device_address
-
-
-@dataclass(frozen=True, slots=True)
-class FirmwareStateChangedEvent(Event):
-    """
-    Device firmware state has changed.
-
-    Key is device_address.
-    """
-
-    device_address: str
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.device_address
-
-
-@dataclass(frozen=True, slots=True)
-class LinkPeerChangedEvent(Event):
-    """
-    Channel link peer addresses have changed.
-
-    Key is channel_address.
-    """
-
-    channel_address: str
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.channel_address
 
 
 @dataclass(frozen=True, slots=True)
@@ -476,231 +377,6 @@ class DeviceRemovedEvent(Event):
         return self.device_address or self.unique_id
 
 
-# =============================================================================
-# Connection Health Events (Phase 1)
-# =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class ConnectionStageChangedEvent(Event):
-    """
-    Connection reconnection stage progression.
-
-    Key is interface_id.
-
-    Emitted during staged reconnection when connection is lost and recovered.
-    Tracks progression through TCP check, RPC check, warmup, and establishment.
-    """
-
-    interface_id: str
-    stage: ConnectionStage
-    previous_stage: ConnectionStage
-    duration_in_previous_stage_ms: float
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-    @property
-    def stage_name(self) -> str:
-        """Return human-readable stage name."""
-        return self.stage.display_name
-
-
-@dataclass(frozen=True, slots=True)
-class ConnectionHealthChangedEvent(Event):
-    """
-    Connection health status update.
-
-    Key is interface_id.
-
-    Emitted when connection health status changes for an interface.
-    """
-
-    interface_id: str
-    is_healthy: bool
-    failure_reason: FailureReason | None
-    consecutive_failures: int
-    last_successful_contact: datetime | None
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-# =============================================================================
-# Cache Events (Phase 2)
-# =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class CacheInvalidatedEvent(Event):
-    """
-    Cache invalidation notification.
-
-    Key is scope (device_address, interface_id, or None for full cache).
-
-    Emitted when cache entries are invalidated or cleared.
-    """
-
-    cache_type: CacheType
-    reason: CacheInvalidationReason
-    scope: str | None
-    entries_affected: int
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.scope
-
-
-# =============================================================================
-# Circuit Breaker Events (Phase 3)
-# - CircuitBreakerStateChangedEvent (from types.py)
-# - CircuitBreakerTrippedEvent (from types.py)
-# =============================================================================
-
-
-# =============================================================================
-# State Machine Events (Phase 4)
-# - ClientStateChangedEvent (from types.py)
-# - CentralStateChangedEvent (from types.py)
-# =============================================================================
-
-
-# =============================================================================
-# Data Refresh Events (Phase 5)
-# =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class DataRefreshTriggeredEvent(Event):
-    """
-    Data refresh operation triggered.
-
-    Key is interface_id (or None for hub-level refreshes).
-
-    Emitted when a data refresh operation starts.
-    """
-
-    refresh_type: DataRefreshType
-    interface_id: str | None
-    scheduled: bool
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-@dataclass(frozen=True, slots=True)
-class DataRefreshCompletedEvent(Event):
-    """
-    Data refresh operation completed.
-
-    Key is interface_id (or None for hub-level refreshes).
-
-    Emitted when a data refresh operation completes (success or failure).
-    """
-
-    refresh_type: DataRefreshType
-    interface_id: str | None
-    success: bool
-    duration_ms: float
-    items_refreshed: int
-    error_message: str | None
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-# =============================================================================
-# Program/Sysvar Events (Phase 6)
-# =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class ProgramExecutedEvent(Event):
-    """
-    Backend program was executed.
-
-    Key is program_id.
-
-    Emitted when a Homematic program is executed.
-    """
-
-    program_id: str
-    program_name: str
-    triggered_by: ProgramTrigger
-    success: bool
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.program_id
-
-
-# =============================================================================
-# Request Coalescer Events (Phase 7)
-# =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class RequestCoalescedEvent(Event):
-    """
-    Multiple requests were coalesced into one.
-
-    Key is interface_id.
-
-    Emitted when duplicate requests are merged to reduce backend load.
-    """
-
-    request_key: str
-    coalesced_count: int
-    interface_id: str
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-# =============================================================================
-# Health Record Events (Phase 8)
-# - HealthRecordedEvent (from types.py)
-# =============================================================================
-
-
-# =============================================================================
-# Connection Recovery Events (Phase 9)
-# =============================================================================
-
-
-@dataclass(frozen=True, slots=True)
-class ConnectionLostEvent(Event):
-    """
-    Connection loss detected for an interface.
-
-    Key is interface_id.
-
-    Emitted when the BackgroundScheduler detects a connection loss,
-    triggering the ConnectionRecoveryCoordinator to start recovery.
-    """
-
-    interface_id: str
-    reason: str
-    detected_at: datetime
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
 @dataclass(frozen=True, slots=True)
 class RecoveryStageChangedEvent(Event):
     """
@@ -717,29 +393,6 @@ class RecoveryStageChangedEvent(Event):
     new_stage: RecoveryStage
     duration_in_old_stage_ms: float
     attempt_number: int
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.interface_id
-
-
-@dataclass(frozen=True, slots=True)
-class RecoveryAttemptedEvent(Event):
-    """
-    Recovery attempt completed.
-
-    Key is interface_id.
-
-    Emitted after each recovery attempt, regardless of success or failure.
-    """
-
-    interface_id: str
-    attempt_number: int
-    max_attempts: int
-    stage_reached: RecoveryStage
-    success: bool
-    error_message: str | None
 
     @property
     def key(self) -> Any:
@@ -804,26 +457,6 @@ class RecoveryFailedEvent(Event):
     def key(self) -> Any:
         """Key identifier for this event."""
         return self.interface_id or self.central_name
-
-
-@dataclass(frozen=True, slots=True)
-class HeartbeatTimerFiredEvent(Event):
-    """
-    Heartbeat timer fired in FAILED state.
-
-    Key is central_name.
-
-    Emitted by the heartbeat timer when the system is in FAILED state,
-    triggering a retry attempt for failed interfaces.
-    """
-
-    central_name: str
-    interface_ids: tuple[str, ...]
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.central_name
 
 
 class EventBus:
@@ -1467,16 +1100,20 @@ class SubscriptionGroup:
     Example::
 
         group = event_bus.create_subscription_group(name="my-bridge")
+
+        # EventBus-level subscriptions
         group.subscribe(
             event_type=DataPointValueReceivedEvent,
             event_key=None,
             handler=on_update,
         )
-        group.subscribe(
-            event_type=DeviceLifecycleEvent,
-            event_key=None,
-            handler=on_lifecycle,
-        )
+
+        # DataPoint/Device-level subscriptions via add()
+        group.add(unsubscribe=data_point.subscribe_to_data_point_updated(
+            handler=on_dp_update, custom_id="my-app",
+        ))
+        group.add(unsubscribe=device.subscribe_to_device_removed(handler=on_removed))
+
         # Later: clean up all at once
         group.unsubscribe_all()
 
@@ -1497,6 +1134,21 @@ class SubscriptionGroup:
     def subscription_count(self) -> int:
         """Return the number of active subscriptions in this group."""
         return len(self._unsubscribe_callbacks)
+
+    def add(self, *, unsubscribe: UnsubscribeCallback) -> None:
+        """
+        Track an external unsubscribe callback in this group.
+
+        Use this to add subscriptions from data points or devices
+        that are not managed by the EventBus directly::
+
+            group.add(data_point.subscribe_to_data_point_updated(
+                handler=on_update, custom_id="my-app",
+            ))
+            group.add(device.subscribe_to_device_removed(handler=on_removed))
+
+        """
+        self._unsubscribe_callbacks.append(unsubscribe)
 
     def subscribe(
         self,

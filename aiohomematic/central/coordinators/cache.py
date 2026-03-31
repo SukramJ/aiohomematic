@@ -19,12 +19,8 @@ from datetime import datetime
 import logging
 from typing import Final
 
-from aiohomematic.central.events import (
-    CacheInvalidatedEvent,
-    DataFetchCompletedEvent,
-    DataFetchOperation,
-    DeviceRemovedEvent,
-)
+from aiohomematic.central.events import DeviceRemovedEvent
+from aiohomematic.central.events.internal import CacheInvalidatedEvent, DataFetchCompletedEvent, DataFetchOperation
 from aiohomematic.const import (
     FILE_DEVICES,
     FILE_INCIDENTS,

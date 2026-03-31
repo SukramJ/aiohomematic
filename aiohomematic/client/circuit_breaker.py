@@ -66,7 +66,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.events.types import CircuitBreakerStateChangedEvent, CircuitBreakerTrippedEvent
+from aiohomematic.central.events.internal import CircuitBreakerStateChangedEvent, CircuitBreakerTrippedEvent
 from aiohomematic.const import CircuitState
 from aiohomematic.metrics import MetricKeys, emit_counter
 from aiohomematic.property_decorators import DelegatedProperty

@@ -217,6 +217,36 @@ For a comprehensive guide on choosing the right protocol for your use case, incl
   - Infrastructure coordinators (CacheCoordinator, DeviceCoordinator, DeviceRegistry, EventCoordinator) receive only protocol interfaces.
   - Factory coordinators (ClientCoordinator, HubCoordinator) use ClientFactoryProtocol and other protocol interfaces for all operations including object creation.
   - Facade coordinators (ConfigurationCoordinator, LinkCoordinator) provide high-level operations for device configuration and link management, delegating to clients and the device registry via protocol interfaces.
+
+### Coordinator responsibility matrix
+
+| Coordinator                       | Responsibility                                                                                                                                           | Does NOT do                                                                                                      |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **CacheCoordinator**              | Manages all persistent and dynamic caches (device descriptions, paramsets, data values, session recordings). Loads/saves to disk, clears on stop.        | Does not fetch data from backends (clients do that). Does not create devices or data points.                     |
+| **ClientCoordinator**             | Manages client lifecycle (creation, initialization, connection, failure tracking) for each configured interface.                                         | Does not manage client internal state machines. Does not perform backend operations (clients do that).           |
+| **ConfigurationCoordinator**      | High-level facade for device configuration operations (paramset read/write, validation, parameter discovery).                                            | Does not manage devices or channels. Does not track parameter change events.                                     |
+| **ConnectionRecoveryCoordinator** | Unified connection recovery: retry attempts, staged reconnection (TCP check, RPC check, warmup, reconnect, data load), central state transitions.        | Does not manage individual client instances. Does not create devices.                                            |
+| **DeviceCoordinator**             | Device discovery, creation, removal, and lifecycle operations including paramset consistency checks.                                                     | Does not manage caches directly (CacheCoordinator). Does not handle data point subscriptions (EventCoordinator). |
+| **EventCoordinator**              | Event subscriptions for data points and system variables, routes backend callbacks to EventBus, publishes typed lifecycle and trigger events.            | Does not manage data points directly. Does not handle client connections.                                        |
+| **HubCoordinator**                | Manages hub-level data points: programs, system variables, install mode, connectivity, metrics, service messages, alarm messages, inbox, system updates. | Does not manage device-level data points. Does not handle device discovery.                                      |
+| **LinkCoordinator**               | High-level facade for device direct link management (listing, discovering linkable candidates, creating, removing, updating links).                      | Does not manage devices directly. Does not create channels.                                                      |
+
+### Coordinator interaction matrix
+
+```
+                  Cache  Client  Config  Recovery  Device  Event  Hub  Link
+Cache               -      -       -        x        x      x     -     -
+Client              x      -       -        x        x      -     x     -
+Configuration       -      x       -        -        x      -     -     -
+ConnectionRecovery  x      x       -        -        x      -     x     -
+Device              x      x       -        -        -      x     -     -
+Event               -      x       -        -        -      -     -     -
+Hub                 -      -       -        -        -      x     -     -
+Link                -      x       -        -        x      -     -     -
+```
+
+Legend: `x` = depends on (reads from or delegates to), `-` = no dependency.
+
 - Caches
   - Persistent caches are loaded/saved by Central during startup/shutdown and used by Clients to avoid redundant metadata fetches.
   - Dynamic caches are updated by Clients and Central when values change, and consulted to answer quick queries or de-duplicate work.

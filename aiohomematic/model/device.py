@@ -54,9 +54,8 @@ import zipfile
 
 from aiohomematic import ccu_translations, compat, i18n
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.events import (
-    DeviceLifecycleEvent,
-    DeviceLifecycleEventType,
+from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+from aiohomematic.central.events.internal import (
     DeviceStateChangedEvent,
     FirmwareStateChangedEvent,
     LinkPeerChangedEvent,

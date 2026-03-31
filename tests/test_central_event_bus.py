@@ -1610,3 +1610,67 @@ class TestEventBusIntegration:
         assert len(sysvar_calls) == 1
         assert datapoint_calls[0] == dp_event
         assert sysvar_calls[0] == sv_event
+
+
+class TestSubscriptionGroup:
+    """Test SubscriptionGroup functionality."""
+
+    def test_add_mixed_with_subscribe(self) -> None:
+        """Test that add() and subscribe() callbacks are both cleaned up."""
+        bus = EventBus(task_scheduler=NoOpTaskScheduler())
+        group = bus.create_subscription_group(name="test-mixed")
+
+        external_unsub_called = False
+
+        def fake_unsubscribe() -> None:
+            nonlocal external_unsub_called
+            external_unsub_called = True
+
+        # One EventBus subscription via subscribe()
+        group.subscribe(
+            event_type=DeviceLifecycleEvent,
+            event_key=None,
+            handler=lambda event: None,
+        )
+        # One external callback via add()
+        group.add(unsubscribe=fake_unsubscribe)
+
+        assert group.subscription_count == 2
+
+        group.unsubscribe_all()
+        assert group.subscription_count == 0
+        assert external_unsub_called is True
+
+    def test_add_multiple_callbacks(self) -> None:
+        """Test that multiple add() callbacks are all invoked on unsubscribe_all."""
+        bus = EventBus(task_scheduler=NoOpTaskScheduler())
+        group = bus.create_subscription_group(name="test-multi")
+
+        call_log: list[int] = []
+
+        for i in range(5):
+            group.add(unsubscribe=lambda _i=i: call_log.append(_i))
+
+        assert group.subscription_count == 5
+
+        group.unsubscribe_all()
+        assert call_log == [0, 1, 2, 3, 4]
+        assert group.subscription_count == 0
+
+    def test_add_tracks_external_callback(self) -> None:
+        """Test that add() tracks an external unsubscribe callback."""
+        bus = EventBus(task_scheduler=NoOpTaskScheduler())
+        group = bus.create_subscription_group(name="test-group")
+
+        called = False
+
+        def fake_unsubscribe() -> None:
+            nonlocal called
+            called = True
+
+        group.add(unsubscribe=fake_unsubscribe)
+        assert group.subscription_count == 1
+
+        group.unsubscribe_all()
+        assert called is True
+        assert group.subscription_count == 0

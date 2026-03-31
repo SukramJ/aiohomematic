@@ -51,7 +51,7 @@ async def create_backend(
         proxy_read: XML-RPC proxy for read operations (None for JSON-only backends)
         json_rpc: JSON-RPC client
         paramset_provider: Provider for paramset descriptions
-        device_details_provider: Mapping of address to rega_id for room/function lookup
+        device_details_provider: Mapping of address to ise_id for room/function lookup
         has_push_updates: Whether interface supports push updates (from config)
 
     Returns:

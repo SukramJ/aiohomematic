@@ -533,14 +533,14 @@ class CentralUnit(
             )
             return False
 
-        if not await device.client.rename_device(rega_id=device.rega_id, new_name=name):
+        if not await device.client.rename_device(ise_id=device.ise_id, new_name=name):
             return False
 
         if include_channels:
             for channel in device.channels.values():
                 if channel.no is not None:
                     channel_name = f"{name}:{channel.no}"
-                    await device.client.rename_channel(rega_id=channel.rega_id, new_name=channel_name)
+                    await device.client.rename_channel(ise_id=channel.ise_id, new_name=channel_name)
 
         return True
 

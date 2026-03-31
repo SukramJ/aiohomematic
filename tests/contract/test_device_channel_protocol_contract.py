@@ -294,13 +294,13 @@ class TestDeviceConfigurationProtocolContract:
         """Verify DeviceConfigurationProtocol has ignore_on_initial_load property."""
         assert hasattr(DeviceConfigurationProtocol, "ignore_on_initial_load")
 
+    def test_has_ise_id_property(self) -> None:
+        """Verify DeviceConfigurationProtocol has ise_id property."""
+        assert hasattr(DeviceConfigurationProtocol, "ise_id")
+
     def test_has_product_group_property(self) -> None:
         """Verify DeviceConfigurationProtocol has product_group property."""
         assert hasattr(DeviceConfigurationProtocol, "product_group")
-
-    def test_has_rega_id_property(self) -> None:
-        """Verify DeviceConfigurationProtocol has rega_id property."""
-        assert hasattr(DeviceConfigurationProtocol, "rega_id")
 
     def test_has_room_property(self) -> None:
         """Verify DeviceConfigurationProtocol has room property."""
@@ -542,7 +542,7 @@ class TestDeviceProtocolCompositeContract:
     def test_includes_all_configuration_members(self) -> None:
         """Verify DeviceProtocol includes all configuration members."""
         assert hasattr(DeviceProtocol, "product_group")
-        assert hasattr(DeviceProtocol, "rega_id")
+        assert hasattr(DeviceProtocol, "ise_id")
         assert hasattr(DeviceProtocol, "room")
 
     def test_includes_all_identity_members(self) -> None:
@@ -599,6 +599,10 @@ class TestChannelIdentityProtocolContract:
         """Verify ChannelIdentityProtocol has full_name property."""
         assert hasattr(ChannelIdentityProtocol, "full_name")
 
+    def test_has_ise_id_property(self) -> None:
+        """Verify ChannelIdentityProtocol has ise_id property."""
+        assert hasattr(ChannelIdentityProtocol, "ise_id")
+
     def test_has_name_property(self) -> None:
         """Verify ChannelIdentityProtocol has name property."""
         assert hasattr(ChannelIdentityProtocol, "name")
@@ -606,10 +610,6 @@ class TestChannelIdentityProtocolContract:
     def test_has_no_property(self) -> None:
         """Verify ChannelIdentityProtocol has no property."""
         assert hasattr(ChannelIdentityProtocol, "no")
-
-    def test_has_rega_id_property(self) -> None:
-        """Verify ChannelIdentityProtocol has rega_id property."""
-        assert hasattr(ChannelIdentityProtocol, "rega_id")
 
     def test_has_type_name_property(self) -> None:
         """Verify ChannelIdentityProtocol has type_name property."""
@@ -893,7 +893,7 @@ class TestChannelProtocolCompositeContract:
         assert hasattr(ChannelProtocol, "full_name")
         assert hasattr(ChannelProtocol, "name")
         assert hasattr(ChannelProtocol, "no")
-        assert hasattr(ChannelProtocol, "rega_id")
+        assert hasattr(ChannelProtocol, "ise_id")
         assert hasattr(ChannelProtocol, "type_name")
         assert hasattr(ChannelProtocol, "unique_id")
 
@@ -1064,7 +1064,7 @@ class TestDeviceProtocolFullApiContract:
             "ignore_for_custom_data_point",
             "ignore_on_initial_load",
             "product_group",
-            "rega_id",
+            "ise_id",
             "room",
             "rooms",
             "rx_modes",
@@ -1103,7 +1103,7 @@ class TestChannelProtocolFullApiContract:
             "full_name",
             "name",
             "no",
-            "rega_id",
+            "ise_id",
             "type_name",
             "unique_id",
             # Data Point Access

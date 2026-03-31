@@ -294,7 +294,7 @@ class TestCuxdCcuJackCapabilities:
             "linking",
             "metadata",
             "programs",
-            "rega_id_lookup",
+            "ise_id_lookup",
             "rename",
             "rooms",
             "service_messages",

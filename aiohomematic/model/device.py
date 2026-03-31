@@ -160,6 +160,24 @@ __all__ = ["Channel", "Device"]
 _LOGGER: Final = logging.getLogger(__name__)
 
 
+def _is_word_char(*, char: str) -> bool:
+    """Return if the character is a word character (alphanumeric or underscore)."""
+    return char.isalnum() or char == "_"
+
+
+def _contains_word(*, text: str, word: str) -> bool:
+    """Check if word appears as a standalone token in text (bounded by non-word characters)."""
+    start = 0
+    while (idx := text.find(word, start)) >= 0:
+        before_ok = idx == 0 or not _is_word_char(char=text[idx - 1])
+        end = idx + len(word)
+        after_ok = end >= len(text) or not _is_word_char(char=text[end])
+        if before_ok and after_ok:
+            return True
+        start = idx + 1
+    return False
+
+
 class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     """
     Represent a Homematic device with channels and data points.
@@ -230,7 +248,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_group_channels",
         "_has_custom_data_point_definition",
         "_icon",
-        "_rega_id",
+        "_ise_id",
         "_ignore_for_custom_data_point",
         "_ignore_on_initial_load",
         "_interface",
@@ -290,7 +308,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._channel_lookup: Final = context.channel_lookup
         self._channel_to_group: Final[dict[int | None, int]] = {}
         self._group_channels: Final[dict[int, set[int | None]]] = {}
-        self._rega_id: Final = self._device_details_provider.get_address_id(address=self._address)
+        self._ise_id: Final = self._device_details_provider.get_address_id(address=self._address)
         self._interface: Final = self._device_details_provider.get_interface(address=self._address)
         self._client: Final = self._client_provider.get_client(interface_id=self._interface_id)
         self._device_description = self._device_description_provider.get_device_description(
@@ -395,6 +413,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     interface: Final = DelegatedProperty[Interface](path="_interface")
     interface_id: Final = DelegatedProperty[str](path="_interface_id", log_context=True)
     is_updatable: Final = DelegatedProperty[bool](path="_is_updatable")
+    ise_id: Final = DelegatedProperty[int](path="_ise_id")
     manufacturer: Final = DelegatedProperty[str](path="_manufacturer", kind=Kind.INFO)
     model: Final = DelegatedProperty[str](path="_model", kind=Kind.INFO, log_context=True)
     model_description: Final = DelegatedProperty[str](path="_model_description", kind=Kind.INFO, alt_name="model_id")
@@ -406,7 +425,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         path="_paramset_description_provider"
     )
     product_group: Final = DelegatedProperty[ProductGroup](path="_product_group")
-    rega_id: Final = DelegatedProperty[int](path="_rega_id")
     rooms: Final = DelegatedProperty[set[str]](path="_rooms")
     rx_modes: Final = DelegatedProperty[tuple[RxMode, ...]](path="_rx_modes")
     sub_model: Final = DelegatedProperty[str | None](path="_sub_model")
@@ -730,9 +748,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         for channel_address, channel in self._channels.items():
             if text.endswith(channel_address):
                 return channel
-            if str(channel.rega_id) in text:
+            if _contains_word(text=text, word=str(channel.ise_id)):
                 return channel
-            if str(channel.device.rega_id) in text:
+            if _contains_word(text=text, word=str(channel.device.ise_id)):
                 return channel
 
         return None
@@ -851,7 +869,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     @inspector
     async def rename(self, *, new_name: str) -> bool:
         """Rename the device on the CCU."""
-        return await self._client.rename_device(rega_id=self._rega_id, new_name=new_name)
+        return await self._client.rename_device(ise_id=self._ise_id, new_name=new_name)
 
     def set_forced_availability(self, *, forced_availability: ForcedDeviceAvailability) -> None:
         """Set the availability of the device."""
@@ -971,7 +989,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
         "_function",
         "_generic_data_points",
         "_generic_events",
-        "_rega_id",
+        "_ise_id",
         "_is_schedule_channel",
         "_type_translation",
         "_link_peer_addresses",
@@ -995,7 +1013,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
         self._device: Final = device
         self._address: Final = channel_address
-        self._rega_id: Final = self._device.device_details_provider.get_address_id(address=channel_address)
+        self._ise_id: Final = self._device.device_details_provider.get_address_id(address=channel_address)
         self._no: Final[int | None] = get_channel_no(address=channel_address)
         self._name_data: Final = get_channel_name_data(channel=self)
         self._channel_description: DeviceDescription = self._device.device_description_provider.get_device_description(
@@ -1065,6 +1083,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
     function: Final = DelegatedProperty[str | None](path="_function")
     is_schedule_channel: Final = DelegatedProperty[bool](path="_is_schedule_channel")
+    ise_id: Final = DelegatedProperty[int](path="_ise_id")
     link_peer_addresses: Final = DelegatedProperty[tuple[str, ...]](path="_link_peer_addresses")
     link_peer_source_categories: Final = DelegatedProperty[tuple[str, ...]](path="_link_source_categories")
     link_peer_target_categories: Final = DelegatedProperty[tuple[str, ...]](path="_link_target_categories")
@@ -1072,7 +1091,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     name_data: Final = DelegatedProperty[ChannelNameData](path="_name_data")
     no: Final = DelegatedProperty[int | None](path="_no", log_context=True)
     paramset_keys: Final = DelegatedProperty[tuple[ParamsetKey, ...]](path="_paramset_keys")
-    rega_id: Final = DelegatedProperty[int](path="_rega_id")
     rooms: Final = DelegatedProperty[set[str]](path="_rooms")
     type_name: Final = DelegatedProperty[str](path="_type_name")
     type_translation: Final = DelegatedProperty[str](path="_type_translation", kind=Kind.INFO)
@@ -1478,7 +1496,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     @inspector
     async def rename(self, *, new_name: str) -> bool:
         """Rename the channel on the CCU."""
-        return await self._device.client.rename_channel(rega_id=self._rega_id, new_name=new_name)
+        return await self._device.client.rename_channel(ise_id=self._ise_id, new_name=new_name)
 
     def subscribe_to_link_peer_changed(self, *, handler: LinkPeerChangedHandler) -> UnsubscribeCallback:
         """Subscribe to the link peer changed event."""
@@ -1514,7 +1532,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     async def _has_program_ids(self) -> bool:
         """Return if a channel has program ids."""
-        return bool(await self._device.client.has_program_ids(rega_id=self._rega_id))
+        return bool(await self._device.client.has_program_ids(ise_id=self._ise_id))
 
     @inspector(scope=ServiceScope.INTERNAL)
     async def _reload_paramset_descriptions(self) -> None:

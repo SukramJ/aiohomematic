@@ -1,3 +1,24 @@
+# Version 2026.3.22 (2026-03-31)
+
+## What's Changed
+
+### Fixed
+
+- **Fixed false channel identification for hub data points**: `Device.identify_channel`
+  used plain substring matching (`str(ise_id) in text`) for ISE ID lookups, causing
+  false positives when short numeric IDs (e.g. `0`, `10`) appeared as suffixes in
+  system variable names like `SV_HKV_10`. This could lead to incorrect name generation
+  and missing entities in Home Assistant. The method now uses word-boundary matching,
+  requiring the ID to be delimited by non-word characters.
+
+### Changed
+
+- **Renamed `rega_id` to `ise_id`**: Aligned internal naming with official Homematic
+  terminology. The CCU-internal object identifier is called `ise_id` (not `rega_id`)
+  in the Homematic ecosystem. This is a breaking API change affecting
+  `Device.ise_id`, `Channel.ise_id`, and client methods like `get_ise_id_by_address`,
+  `rename_device(ise_id=...)`, `rename_channel(ise_id=...)`, `has_program_ids(ise_id=...)`.
+
 # Version 2026.3.21 (2026-03-30)
 
 ## What's Changed
@@ -3015,7 +3036,7 @@ See ADR-0018 for architectural context.
   - Root cause: After coordinator refactoring, hub initialization happened BEFORE device creation
   - `identify_channel()` found no channels because devices didn't exist yet during sysvar creation
   - Fix: Device creation now happens BEFORE hub initialization in `start_clients()`
-  - Sysvars containing channel/device rega_ids are now properly linked to their devices in Home Assistant
+  - Sysvars containing channel/device ise_ids are now properly linked to their devices in Home Assistant
 
 ### New Features
 
@@ -4689,7 +4710,7 @@ See `docs/migrations/event_migration_2025_12.md` for detailed migration instruct
 
 - Add HubProtocol and WeekProfileProtocol to interfaces
 - Cleanup client api
-- Rename regaid to rega_id
+- Rename regaid to ise_id
 - Update documentation
 
 # Version 2025.12.1 (2025-12-01)

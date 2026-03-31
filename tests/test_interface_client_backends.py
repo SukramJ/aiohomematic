@@ -105,7 +105,7 @@ class _FakeCentral:
             device_details=SimpleNamespace(
                 add_interface=lambda **kwargs: None,
                 add_name=lambda **kwargs: None,
-                add_address_rega_id=lambda **kwargs: None,
+                add_address_ise_id=lambda **kwargs: None,
             ),
             paramset_descriptions=self.paramset_descriptions,
             data_cache=SimpleNamespace(add_data=lambda **kwargs: None),
@@ -163,7 +163,7 @@ def _make_capabilities(
     ping_pong: bool = True,
     programs: bool = True,
     push_updates: bool = True,
-    rega_id_lookup: bool = True,
+    ise_id_lookup: bool = True,
     rename: bool = True,
     rooms: bool = True,
     rpc_callback: bool = True,
@@ -186,7 +186,7 @@ def _make_capabilities(
         ping_pong=ping_pong,
         programs=programs,
         push_updates=push_updates,
-        rega_id_lookup=rega_id_lookup,
+        ise_id_lookup=ise_id_lookup,
         rename=rename,
         rooms=rooms,
         rpc_callback=rpc_callback,
@@ -210,7 +210,7 @@ HOMEGEAR_CAPABILITIES = _make_capabilities(
     functions=False,  # No function/room metadata
     inbox_devices=False,  # No inbox
     programs=False,  # No programs
-    rega_id_lookup=False,  # No ReGa
+    ise_id_lookup=False,  # No ReGa
     rooms=False,
     service_messages=False,  # No service messages
     system_update_info=False,
@@ -302,6 +302,10 @@ class _FakeBackend:
         self.calls.append(("get_install_mode", None))
         return 0
 
+    async def get_ise_id_by_address(self, *, address: str) -> int | None:
+        self.calls.append(("get_ise_id_by_address", address))
+        return None
+
     async def get_link_peers(self, *, address: str) -> tuple[str, ...]:
         self.calls.append(("get_link_peers", address))
         return ()
@@ -314,10 +318,6 @@ class _FakeBackend:
         self.calls.append(("get_metadata", (address, data_id)))
         return {}
 
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        self.calls.append(("get_rega_id_by_address", address))
-        return None
-
     async def get_service_messages(self, *, message_type: ServiceMessageType | None) -> tuple[Any, ...]:
         self.calls.append(("get_service_messages", message_type))
         return self._service_messages_result
@@ -326,8 +326,8 @@ class _FakeBackend:
         self.calls.append(("get_system_update_info", None))
         return self._system_update_result
 
-    async def has_program_ids(self, *, rega_id: int) -> bool:
-        self.calls.append(("has_program_ids", rega_id))
+    async def has_program_ids(self, *, ise_id: int) -> bool:
+        self.calls.append(("has_program_ids", ise_id))
         return False
 
     async def init_proxy(self, *, init_url: str, interface_id: str) -> bool:
@@ -505,6 +505,17 @@ class TestBackendCapabilityGating:
         assert not any(call[0] == "get_install_mode" for call in backend.calls)
 
     @pytest.mark.asyncio
+    async def test_get_ise_id_capability_disabled(self) -> None:
+        """get_ise_id_by_address should return None when capability disabled."""
+        caps = _make_capabilities(ise_id_lookup=False)
+        client, backend, _ = _create_client_with_capabilities(caps)
+
+        result = await client.get_ise_id_by_address(address="dev1:1")
+
+        assert result is None
+        assert not any(call[0] == "get_ise_id_by_address" for call in backend.calls)
+
+    @pytest.mark.asyncio
     async def test_get_link_peers_capability_disabled(self) -> None:
         """get_link_peers should return empty when linking capability disabled."""
         caps = _make_capabilities(linking=False)
@@ -525,17 +536,6 @@ class TestBackendCapabilityGating:
 
         assert result == {}
         assert not any(call[0] == "get_metadata" for call in backend.calls)
-
-    @pytest.mark.asyncio
-    async def test_get_rega_id_capability_disabled(self) -> None:
-        """get_rega_id_by_address should return None when capability disabled."""
-        caps = _make_capabilities(rega_id_lookup=False)
-        client, backend, _ = _create_client_with_capabilities(caps)
-
-        result = await client.get_rega_id_by_address(address="dev1:1")
-
-        assert result is None
-        assert not any(call[0] == "get_rega_id_by_address" for call in backend.calls)
 
     @pytest.mark.asyncio
     async def test_get_service_messages_capability_disabled(self) -> None:
@@ -565,7 +565,7 @@ class TestBackendCapabilityGating:
         caps = _make_capabilities(programs=False)
         client, backend, _ = _create_client_with_capabilities(caps)
 
-        result = await client.has_program_ids(rega_id=12345)
+        result = await client.has_program_ids(ise_id=12345)
 
         assert result is False
         assert not any(call[0] == "has_program_ids" for call in backend.calls)

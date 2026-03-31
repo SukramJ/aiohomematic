@@ -352,10 +352,10 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             for device in device_details:
                 device_address = device["address"]
                 self._central.cache_coordinator.device_details.add_name(address=device_address, name=device["name"])
-                # Only add rega_id if it's meaningful (non-zero for CCU, 0 for Homegear)
+                # Only add ise_id if it's meaningful (non-zero for CCU, 0 for Homegear)
                 if device["id"]:
-                    self._central.cache_coordinator.device_details.add_address_rega_id(
-                        address=device_address, rega_id=device["id"]
+                    self._central.cache_coordinator.device_details.add_address_ise_id(
+                        address=device_address, ise_id=device["id"]
                     )
                 # Use interface from device data (CCU provides this), fallback to client's interface (Homegear)
                 if (iface := device.get("interface")) and iface in Interface:
@@ -373,8 +373,8 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                         address=channel_address, name=channel["name"]
                     )
                     if channel["id"]:
-                        self._central.cache_coordinator.device_details.add_address_rega_id(
-                            address=channel_address, rega_id=channel["id"]
+                        self._central.cache_coordinator.device_details.add_address_ise_id(
+                            address=channel_address, ise_id=channel["id"]
                         )
 
     async def fetch_paramset_description(
@@ -507,6 +507,12 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return 0
         return await self._backend.get_install_mode()
 
+    async def get_ise_id_by_address(self, *, address: str) -> int | None:
+        """Get the ReGa ID for a device or channel address."""
+        if not self._backend.capabilities.ise_id_lookup:
+            return None
+        return await self._backend.get_ise_id_by_address(address=address)
+
     async def get_link_info(
         self, *, interface: Interface, sender_address: str, receiver_address: str
     ) -> dict[str, Any]:
@@ -617,12 +623,6 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return ProductGroup.VIRTUAL
         return ProductGroup.UNKNOWN
 
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Get the ReGa ID for a device or channel address."""
-        if not self._backend.capabilities.rega_id_lookup:
-            return None
-        return await self._backend.get_rega_id_by_address(address=address)
-
     async def get_service_messages(
         self,
         *,
@@ -675,11 +675,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     return device
         return None
 
-    async def has_program_ids(self, *, rega_id: int) -> bool:
+    async def has_program_ids(self, *, ise_id: int) -> bool:
         """Return if a channel has program ids."""
         if not self._backend.capabilities.programs:
             return False
-        return await self._backend.has_program_ids(rega_id=rega_id)
+        return await self._backend.has_program_ids(ise_id=ise_id)
 
     @inspector
     async def init_client(self) -> None:
@@ -1010,17 +1010,17 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             return
         await self._backend.remove_link(sender_address=sender_address, receiver_address=receiver_address)
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_channel(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a channel on the CCU."""
         if not self._backend.capabilities.rename:
             return False
-        return await self._backend.rename_channel(rega_id=rega_id, new_name=new_name)
+        return await self._backend.rename_channel(ise_id=ise_id, new_name=new_name)
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_device(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a device on the CCU."""
         if not self._backend.capabilities.rename:
             return False
-        return await self._backend.rename_device(rega_id=rega_id, new_name=new_name)
+        return await self._backend.rename_device(ise_id=ise_id, new_name=new_name)
 
     async def report_value_usage(self, *, channel_address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage."""

@@ -127,7 +127,7 @@ async def create_client(
         else None,
         json_rpc=client_deps.json_rpc_client,
         paramset_provider=client_deps.cache_coordinator.paramset_descriptions,
-        device_details_provider=client_deps.cache_coordinator.device_details.device_channel_rega_ids,
+        device_details_provider=client_deps.cache_coordinator.device_details.device_channel_ise_ids,
         has_push_updates=client_config.has_push_updates,
     )
 

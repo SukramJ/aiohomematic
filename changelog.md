@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- **Fixed acknowledge for alarm messages**: `acknowledge_message.fn` now distinguishes
+  between service messages (`ID_SERVICES`) and alarm messages. Service messages still
+  require `OPERATION_WRITE` on the trigger datapoint, while alarm messages are always
+  acknowledged — matching the CCU WebUI behavior (`alarmMessages.htm`).
+
 - **Fixed false channel identification for hub data points**: `Device.identify_channel`
   used plain substring matching (`str(ise_id) in text`) for ISE ID lookups, causing
   false positives when short numeric IDs (e.g. `0`, `10`) appeared as suffixes in

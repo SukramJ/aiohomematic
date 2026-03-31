@@ -14,14 +14,34 @@ string sError = "";
 
 object oAlarm = dom.GetObject(sMessageId);
 if (oAlarm) {
-    !# Check if trigger datapoint has OPERATION_WRITE (bit 2),
-    !# matching the CCU WebUI behavior (only writable messages can be acknowledged).
-    object oAlTriggerDP = dom.GetObject(oAlarm.AlTriggerDP());
-    if (oAlTriggerDP && (oAlTriggerDP.Operations() & 2)) {
+    !# Determine if this is a service message (from ID_SERVICES) or an alarm message
+    !# (from ID_SYSTEM_VARIABLES). The CCU WebUI handles them differently:
+    !#   - Service messages: only acknowledge if trigger DP has OPERATION_WRITE (bit 2)
+    !#   - Alarm messages: always acknowledge without write check
+    boolean bIsServiceMessage = false;
+    object oServices = dom.GetObject(ID_SERVICES);
+    if (oServices) {
+        string sSvcId;
+        foreach(sSvcId, oServices.EnumIDs()) {
+            if (sSvcId == sMessageId) {
+                bIsServiceMessage = true;
+            }
+        }
+    }
+
+    if (bIsServiceMessage) {
+        !# Service message: check OPERATION_WRITE on trigger datapoint
+        object oAlTriggerDP = dom.GetObject(oAlarm.AlTriggerDP());
+        if (oAlTriggerDP && (oAlTriggerDP.Operations() & 2)) {
+            oAlarm.AlReceipt();
+            bSuccess = true;
+        } else {
+            sError = "Message is not acknowledgeable";
+        }
+    } else {
+        !# Alarm message: always acknowledge (matches CCU WebUI alarmMessages.htm)
         oAlarm.AlReceipt();
         bSuccess = true;
-    } else {
-        sError = "Message is not acknowledgeable";
     }
 } else {
     sError = "Message not found";

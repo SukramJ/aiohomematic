@@ -1,3 +1,46 @@
+# Version 2026.3.23 (2026-03-31)
+
+## What's Changed
+
+### Added
+
+- **Event tier enforcement**: Internal events are now structurally separated
+  from public events. A new module `aiohomematic.central.events.internal`
+  contains all 20 internal event types (coordinator communication, cache
+  invalidation, circuit breaker, data refresh, etc.). Public events remain in
+  `bus.py`, `integration.py`, and `types.py`. The `__all__` export in
+  `events/__init__.py` only includes public events. Internal events are still
+  re-exported for backward compatibility but not via `import *`. A new lint
+  script `script/lint_event_tiers.py` enforces that external consumers do not
+  import internal events.
+
+- **SubscriptionGroup.add()**: New method to track external unsubscribe
+  callbacks (from `subscribe_to_data_point_updated()`,
+  `subscribe_to_device_removed()`, etc.) alongside EventBus subscriptions.
+  Enables single `unsubscribe_all()` cleanup for all subscription types.
+
+- **DeviceQueryFacade.get_data_points_by_type()**: Type-safe data point lookup
+  that filters by concrete class via `isinstance` and returns a precisely typed
+  tuple, eliminating the need for `cast()` in consumer code.
+
+- **Public API surface documentation**: New `docs/reference/api/public_api.md`
+  defines stable import paths in three tiers (Core, Data Point Models,
+  Specialized) for external consumers.
+
+- **Session playback documentation**: New
+  `docs/contributor/testing/session_playback.md` documents the ZIP session
+  format, recording/playback flow, parameter freezing, and mock proxy behavior.
+
+- **Coordinator responsibility matrix**: Added to `docs/architecture.md` with
+  per-coordinator responsibility summaries, boundary definitions, and an
+  interaction matrix showing data flow between coordinators.
+
+### Changed
+
+- **Event module structure**: Internal event classes moved from `bus.py` to
+  `internal.py`. All internal consumers updated to import from
+  `aiohomematic.central.events.internal` directly.
+
 # Version 2026.3.22 (2026-03-31)
 
 ## What's Changed

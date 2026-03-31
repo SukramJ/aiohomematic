@@ -30,14 +30,13 @@ from aiohomematic.async_support import loop_check
 from aiohomematic.central.decorators import callback_event
 from aiohomematic.central.events import (
     DataPointsCreatedEvent,
-    DataPointStatusReceivedEvent,
-    DataPointValueReceivedEvent,
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
     DeviceTriggerEvent,
     EventBus,
     RpcParameterReceivedEvent,
 )
+from aiohomematic.central.events.internal import DataPointStatusReceivedEvent, DataPointValueReceivedEvent
 from aiohomematic.const import (
     DataPointCategory,
     DataPointKey,

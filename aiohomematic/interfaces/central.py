@@ -467,6 +467,18 @@ class DeviceQueryFacadeProtocol(Protocol):
         """Return all externally registered data points."""
 
     @abstractmethod
+    def get_data_points_by_type(
+        self,
+        *,
+        data_point_class: type[Any],
+        category: DataPointCategory | None = None,
+        interface: Interface | None = None,
+        exclude_no_create: bool = True,
+        registered: bool | None = None,
+    ) -> tuple[Any, ...]:
+        """Return data points filtered by concrete class, with precise return type."""
+
+    @abstractmethod
     def get_devices(
         self,
         *,

@@ -53,7 +53,7 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final, TypeVar
 
-from aiohomematic.central.events import RequestCoalescedEvent
+from aiohomematic.central.events.internal import RequestCoalescedEvent
 from aiohomematic.metrics import MetricKeys, emit_counter
 from aiohomematic.property_decorators import DelegatedProperty
 

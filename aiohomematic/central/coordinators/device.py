@@ -23,13 +23,8 @@ from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
-from aiohomematic.central.events import (
-    DataFetchCompletedEvent,
-    DataFetchOperation,
-    DeviceRemovedEvent,
-    IntegrationIssue,
-    SystemStatusChangedEvent,
-)
+from aiohomematic.central.events import DeviceRemovedEvent, IntegrationIssue, SystemStatusChangedEvent
+from aiohomematic.central.events.internal import DataFetchCompletedEvent, DataFetchOperation
 from aiohomematic.const import (
     CATEGORIES,
     DataPointCategory,

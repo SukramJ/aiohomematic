@@ -101,8 +101,18 @@ class _FakeTaskScheduler:
         """Initialize fake task scheduler."""
         self._tasks: list[asyncio.Task[Any]] = []
 
-    def create_task(self, *, target: Coroutine[Any, Any, None], name: str) -> None:
+    def create_task(self, *, target: Coroutine[Any, Any, None] | Callable[[], None], name: str) -> None:
         """Create and track a task."""
+        if callable(target) and not asyncio.iscoroutine(target):
+            try:
+                result = target()
+                if asyncio.iscoroutine(result):
+                    task = asyncio.create_task(result, name=name)
+                    self._tasks.append(task)
+                    return
+            except RuntimeError:
+                return
+            return
         task = asyncio.create_task(target, name=name)
         self._tasks.append(task)
 

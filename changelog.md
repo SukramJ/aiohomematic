@@ -2,44 +2,55 @@
 
 ## What's Changed
 
+### Breaking
+
+- **Unified subscription architecture**: DataPoint subscriptions now go through
+  the EventBus instead of a separate mechanism. The following APIs have been
+  removed:
+
+  - `CallbackDataPoint.subscribe_to_data_point_updated(handler, custom_id)`
+  - `CallbackDataPoint.subscribe_to_device_removed(handler)`
+  - `CallbackDataPoint.subscribe_to_internal_data_point_updated(handler)`
+  - `CallbackDataPoint.custom_id` property
+  - `DataPointStateChangedEvent.custom_id` field
+  - `CentralUnit.get_data_point_by_custom_id()`
+  - `DeviceQueryFacade.get_data_point_by_custom_id()`
+
+  Consumers now subscribe directly via `EventBus.subscribe(event_type=DataPointStateChangedEvent, event_key=dp.unique_id, handler=...)` and use `SubscriptionGroup` for lifecycle management. See [migration guide](docs/migrations/event_tier_enforcement_2026_03.md).
+
+- **DataPoint registration separated from subscription**: New `register()` /
+  `unregister()` methods replace the implicit registration via
+  `subscribe_to_data_point_updated(custom_id=...)`. The `is_registered`
+  property is now a simple boolean flag.
+
 ### Added
 
-- **Event tier enforcement**: Internal events are now structurally separated
-  from public events. A new module `aiohomematic.central.events.internal`
-  contains all 20 internal event types (coordinator communication, cache
-  invalidation, circuit breaker, data refresh, etc.). Public events remain in
-  `bus.py`, `integration.py`, and `types.py`. The `__all__` export in
-  `events/__init__.py` only includes public events. Internal events are still
-  re-exported for backward compatibility but not via `import *`. A new lint
-  script `script/lint_event_tiers.py` enforces that external consumers do not
-  import internal events.
-
-- **SubscriptionGroup.add()**: New method to track external unsubscribe
-  callbacks (from `subscribe_to_data_point_updated()`,
-  `subscribe_to_device_removed()`, etc.) alongside EventBus subscriptions.
-  Enables single `unsubscribe_all()` cleanup for all subscription types.
+- **Event tier enforcement**: Internal events structurally separated into
+  `aiohomematic.central.events.internal`. Public `__all__` only exports public
+  events. New lint script `script/lint_event_tiers.py` enforces that external
+  consumers do not import internal events.
 
 - **DeviceQueryFacade.get_data_points_by_type()**: Type-safe data point lookup
-  that filters by concrete class via `isinstance` and returns a precisely typed
-  tuple, eliminating the need for `cast()` in consumer code.
+  filtering by concrete class, eliminating `cast()` in consumer code.
 
-- **Public API surface documentation**: New `docs/reference/api/public_api.md`
-  defines stable import paths in three tiers (Core, Data Point Models,
-  Specialized) for external consumers.
+- **Public API surface documentation**: `docs/reference/api/public_api.md`
+  defines stable import paths in three tiers for external consumers.
 
-- **Session playback documentation**: New
-  `docs/contributor/testing/session_playback.md` documents the ZIP session
-  format, recording/playback flow, parameter freezing, and mock proxy behavior.
+- **Session playback documentation**: `docs/contributor/testing/session_playback.md`
+  documents the test session recording and playback infrastructure.
 
 - **Coordinator responsibility matrix**: Added to `docs/architecture.md` with
-  per-coordinator responsibility summaries, boundary definitions, and an
-  interaction matrix showing data flow between coordinators.
+  per-coordinator summaries and interaction matrix.
 
 ### Changed
 
 - **Event module structure**: Internal event classes moved from `bus.py` to
-  `internal.py`. All internal consumers updated to import from
+  `internal.py`. All internal consumers import from
   `aiohomematic.central.events.internal` directly.
+
+- **publish_data_point_updated_event()**: Now publishes a single event instead
+  of N events (one per registered custom_id). Signature simplified: `data_point`
+  and `custom_id` parameters removed.
 
 # Version 2026.3.22 (2026-03-31)
 

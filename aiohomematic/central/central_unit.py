@@ -444,10 +444,6 @@ class CentralUnit(
             interface_config=interface_config,
         )
 
-    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
-        """Return Homematic data_point by custom_id."""
-        return self._query_facade.get_data_point_by_custom_id(custom_id=custom_id)
-
     def get_readable_generic_data_points(
         self, *, paramset_key: ParamsetKey | None = None, interface: Interface | None = None
     ) -> tuple[GenericDataPointProtocolAny, ...]:

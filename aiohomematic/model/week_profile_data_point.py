@@ -17,6 +17,7 @@ from typing import Any, Final, cast, override
 import weakref
 
 from aiohomematic import i18n
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     BIDCOS_DEVICE_CHANNEL_DUMMY,
     CallSource,
@@ -387,7 +388,11 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
     def set_climate_data_point(self, *, climate_data_point: CallbackDataPointProtocol) -> None:
         """Link climate CDP for schedule change notifications."""
         self._unsubscribe_callbacks.append(
-            self.subscribe_to_internal_data_point_updated(handler=climate_data_point.publish_data_point_updated_event)
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=self.unique_id,
+                handler=lambda *, event: climate_data_point.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+            )
         )
 
     def set_current_schedule_profile(self, *, profile: ScheduleProfile) -> None:
@@ -410,7 +415,11 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
 
         # Generic DP → CWPDP (profile sync)
         self._unsubscribe_callbacks.append(
-            data_point.subscribe_to_internal_data_point_updated(handler=self._on_profile_pointer_updated)
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=data_point.unique_id,
+                handler=lambda *, event: self._on_profile_pointer_updated(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+            )
         )
 
     @override
@@ -434,7 +443,7 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         """Write a single weekday to CCU."""
         await self._week_profile.set_weekday(profile=profile, weekday=weekday, weekday_data=weekday_data)
 
-    def _on_profile_pointer_updated(self, **kwargs: Any) -> None:
+    def _on_profile_pointer_updated(self) -> None:
         """Handle profile pointer DP updates to sync current_schedule_profile."""
         if self._dp_profile_pointer is None:
             return

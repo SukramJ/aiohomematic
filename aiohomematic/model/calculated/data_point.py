@@ -12,6 +12,7 @@ from typing import Final, Unpack, cast, override
 import weakref
 
 from aiohomematic import ccu_translations
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     INIT_DATETIME,
     CalculatedParameter,
@@ -286,8 +287,10 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         ):
             self._data_points[key] = generic_data_point
             self._unsubscribe_callbacks.append(
-                generic_data_point.subscribe_to_internal_data_point_updated(
-                    handler=self.publish_data_point_updated_event
+                self._event_bus_provider.event_bus.subscribe(
+                    event_type=DataPointStateChangedEvent,
+                    event_key=generic_data_point.unique_id,
+                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
                 )
             )
             return cast(dpt, generic_data_point)  # type: ignore[valid-type]
@@ -339,8 +342,10 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         """Resolve a data point by parameter and paramset_key, returning DpDummy if not found."""
         if generic_data_point := self._channel.get_generic_data_point(parameter=parameter, paramset_key=paramset_key):
             self._unsubscribe_callbacks.append(
-                generic_data_point.subscribe_to_internal_data_point_updated(
-                    handler=self.publish_data_point_updated_event
+                self._event_bus_provider.event_bus.subscribe(
+                    event_type=DataPointStateChangedEvent,
+                    event_key=generic_data_point.unique_id,
+                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
                 )
             )
             return generic_data_point

@@ -14,18 +14,18 @@ import logging
 from typing import Final, Unpack, cast, override
 
 from aiohomematic import i18n
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     BIDCOS_DEVICE_CHANNEL_DUMMY,
     DataPointCategory,
     DeviceProfile,
     Field,
-    InternalCustomID,
     Parameter,
     ParamsetKey,
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom.capabilities.climate import (
     BASIC_CLIMATE_CAPABILITIES,
     IP_THERMOSTAT_CAPABILITIES,
@@ -344,9 +344,7 @@ class BaseCustomDpClimate(CustomDataPoint):
         await self._dp_setpoint.send_value(value=temperature, collector=collector, do_validate=do_validate)
 
     @abstractmethod
-    def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
-    ) -> None:
+    def _manu_temp_changed(self) -> None:
         """Handle device state changes."""
 
     def _on_link_peer_changed(self) -> None:
@@ -366,8 +364,10 @@ class BaseCustomDpClimate(CustomDataPoint):
         super()._post_init()
 
         self._unsubscribe_callbacks.append(
-            self._dp_setpoint.subscribe_to_data_point_updated(
-                handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=self._dp_setpoint.unique_id,
+                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
             )
         )
 
@@ -424,8 +424,10 @@ class BaseCustomDpClimate(CustomDataPoint):
         for dp in (self._peer_level_dp, self._peer_state_dp):
             if dp is None:
                 continue
-            unreg = dp.subscribe_to_data_point_updated(
-                handler=self.publish_data_point_updated_event, custom_id=InternalCustomID.LINK_PEER
+            unreg = self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=dp.unique_id,
+                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
             )
             if unreg is not None:
                 # Track for both refresh-time cleanup and object removal cleanup
@@ -438,9 +440,7 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
-    def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
-    ) -> None:
+    def _manu_temp_changed(self) -> None:
         """Handle device state changes."""
 
 
@@ -611,22 +611,9 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         """Compute static capabilities. RF thermostats support profiles."""
         return IP_THERMOSTAT_CAPABILITIES
 
-    def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
-    ) -> None:
+    def _manu_temp_changed(self) -> None:
         """Handle device state changes."""
-        if (
-            data_point == self._dp_control_mode
-            and self.mode == ClimateMode.HEAT
-            and self._dp_setpoint.refreshed_recently
-        ):
-            self._old_manu_setpoint = self.target_temperature
-
-        if (
-            data_point == self._dp_setpoint
-            and self.mode == ClimateMode.HEAT
-            and self._dp_control_mode.refreshed_recently
-        ):
+        if self.mode == ClimateMode.HEAT:
             self._old_manu_setpoint = self.target_temperature
 
     @override
@@ -636,8 +623,10 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
 
         # subscribe to control_mode updates to track manual target temp
         self._unsubscribe_callbacks.append(
-            self._dp_control_mode.subscribe_to_data_point_updated(
-                handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=self._dp_control_mode.unique_id,
+                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
             )
         )
 
@@ -863,22 +852,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         """Compute static capabilities. IP thermostats support profiles."""
         return IP_THERMOSTAT_CAPABILITIES
 
-    def _manu_temp_changed(
-        self, *, data_point: GenericDataPointProtocolAny | None = None, custom_id: str | None = None
-    ) -> None:
+    def _manu_temp_changed(self) -> None:
         """Handle device state changes."""
-        if (
-            data_point == self._dp_set_point_mode
-            and self.mode == ClimateMode.HEAT
-            and self._dp_setpoint.refreshed_recently
-        ):
-            self._old_manu_setpoint = self.target_temperature
-
-        if (
-            data_point == self._dp_setpoint
-            and self.mode == ClimateMode.HEAT
-            and self._dp_set_point_mode.refreshed_recently
-        ):
+        if self.mode == ClimateMode.HEAT:
             self._old_manu_setpoint = self.target_temperature
 
     @override
@@ -888,8 +864,10 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
 
         # subscribe to set_point_mode updates to track manual target temp
         self._unsubscribe_callbacks.append(
-            self._dp_set_point_mode.subscribe_to_data_point_updated(
-                handler=self._manu_temp_changed, custom_id=InternalCustomID.MANU_TEMP
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=self._dp_set_point_mode.unique_id,
+                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
             )
         )
 

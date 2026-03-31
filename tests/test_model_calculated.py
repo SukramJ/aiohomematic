@@ -112,6 +112,8 @@ class _FakeDevice:
 
 
 class _FakeGenericDP:
+    _counter: int = 0
+
     def __init__(
         self,
         *,
@@ -121,6 +123,7 @@ class _FakeGenericDP:
         default: Any = None,
         readable: bool = True,
     ) -> None:
+        _FakeGenericDP._counter += 1
         self.parameter = parameter
         self.paramset_key = paramset_key
         self.value = value
@@ -133,6 +136,7 @@ class _FakeGenericDP:
         self.state_uncertain = False
         self.published_event_recently = True
         self._unsubscribed: list[bool] = []
+        self.unique_id = f"fake_dp_{_FakeGenericDP._counter}"
 
     @property
     def is_readable(self) -> bool:
@@ -154,14 +158,6 @@ class _FakeGenericDP:
         base = datetime.now()
         self._modified_at = base + timedelta(seconds=modified_delta)
         self._refreshed_at = base + timedelta(seconds=refreshed_delta)
-
-    def subscribe_to_internal_data_point_updated(self, *, handler: Callable) -> Callable[[], None]:
-        self.published_event_recently = False  # simulate change later
-
-        def _unsubscribe() -> None:
-            self._unsubscribed.append(True)
-
-        return _unsubscribe
 
 
 class _FakeChannel:
@@ -249,7 +245,9 @@ class TestCalculatedDataPoint:
         assert calc.state_uncertain is False
 
         # _should_publish_data_point_updated_callback with >1 VALUES DPs requires all published_event_recently True
-        # We set them via registration to False, so result should be False until we flip them
+        # Set them to False to simulate initial state before events arrive
+        dp1.published_event_recently = False
+        dp2.published_event_recently = False
         assert calc._should_publish_data_point_updated_callback is False
         dp1.published_event_recently = True
         dp2.published_event_recently = True
@@ -258,19 +256,8 @@ class TestCalculatedDataPoint:
         # is_state_change should be False when not uncertain
         assert calc.is_state_change() is False
 
-        # Unregister internal callbacks should invoke unregister callables
-        # Use the public register to add and then remove a dummy callback
-        def dummy_cb(**kwargs: Any) -> None:
-            """Execute dummy callback for unregister path."""
-
-        unregister = calc.subscribe_to_internal_data_point_updated(handler=dummy_cb)
-        assert unregister is not None
-        unregister()
-
         # Simulate unregister via internal method which loops over stored unregisters
         calc.unsubscribe_from_data_point_updated()
-        # Ensure at least one unregister was called on a source dp
-        assert any(dp._unsubscribed for dp in (dp1, dp2, dp3))
 
     def test_calculated_datapoint_add_missing_returns_placeholder(self) -> None:
         """Test when a requested source DP is missing, a placeholder (DpDummy) is returned and stored."""

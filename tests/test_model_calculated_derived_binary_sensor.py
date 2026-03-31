@@ -77,11 +77,15 @@ class _FakeDevice:
 
 
 class _FakeGenericDP:
+    _counter: int = 0
+
     def __init__(self, *, parameter: str, value: Any = None) -> None:
+        _FakeGenericDP._counter += 1
         self.parameter = parameter
         self._value = value
         self.is_readable = True
         self.paramset_key = ParamsetKey.VALUES
+        self.unique_id = f"fake_dbs_dp_{_FakeGenericDP._counter}"
 
     @property
     def value(self) -> Any:
@@ -90,9 +94,6 @@ class _FakeGenericDP:
     @value.setter
     def value(self, val: Any) -> None:
         self._value = val
-
-    def subscribe_to_internal_data_point_updated(self, handler: Callable[[], None]) -> Callable[[], None]:
-        return lambda: None
 
 
 class _FakeChannel:

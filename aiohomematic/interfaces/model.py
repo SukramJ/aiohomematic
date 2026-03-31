@@ -34,7 +34,7 @@ Individual sub-protocols (for fine-grained dependencies):
 """
 
 from abc import abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol, TypeAlias, Unpack, runtime_checkable
 
@@ -72,7 +72,7 @@ from aiohomematic.interfaces.operations import (
     TaskSchedulerProtocol,
 )
 from aiohomematic.property_decorators import state_property
-from aiohomematic.type_aliases import DataPointUpdatedHandler, DeviceRemovedHandler, FirmwareUpdateHandler
+from aiohomematic.type_aliases import FirmwareUpdateHandler
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import (
@@ -128,11 +128,6 @@ class CallbackDataPointProtocol(Protocol):
     @abstractmethod
     def category(self) -> DataPointCategory:
         """Return the category of the data point."""
-
-    @property
-    @abstractmethod
-    def custom_id(self) -> str | None:
-        """Return the custom id."""
 
     @property
     @abstractmethod
@@ -237,8 +232,6 @@ class CallbackDataPointProtocol(Protocol):
     def publish_data_point_updated_event(
         self,
         *,
-        data_point: CallbackDataPointProtocol | None = None,
-        custom_id: str | None = None,
         old_value: Any = None,
         new_value: Any = None,
     ) -> None:
@@ -249,14 +242,12 @@ class CallbackDataPointProtocol(Protocol):
         """Publish a device removed event."""
 
     @abstractmethod
-    def subscribe_to_data_point_updated(
-        self, *, handler: DataPointUpdatedHandler, custom_id: str
-    ) -> UnsubscribeCallback:
-        """Subscribe to data point updated event."""
+    def register(self) -> None:
+        """Mark data point as registered by an external consumer."""
 
     @abstractmethod
-    def subscribe_to_device_removed(self, *, handler: DeviceRemovedHandler) -> UnsubscribeCallback:
-        """Subscribe to the device removed event."""
+    def unregister(self) -> None:
+        """Mark data point as no longer registered."""
 
 
 @runtime_checkable
@@ -800,10 +791,6 @@ class GenericDataPointProtocol[ParameterT](BaseParameterDataPointProtocol[Parame
     ) -> set[DP_KEY_VALUE]:
         """Send value to CCU or use collector if set."""
 
-    @abstractmethod
-    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeCallback:
-        """Subscribe to internal data point updated event."""
-
 
 @runtime_checkable
 class GenericEventProtocol[ParameterT](BaseParameterDataPointProtocol[ParameterT], Protocol):
@@ -840,10 +827,6 @@ class GenericEventProtocol[ParameterT](BaseParameterDataPointProtocol[ParameterT
     @abstractmethod
     def publish_event(self, *, value: Any) -> None:
         """Publish an event."""
-
-    @abstractmethod
-    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeCallback:
-        """Subscribe to internal data point updated event."""
 
 
 @runtime_checkable
@@ -882,11 +865,6 @@ class ChannelEventGroupProtocol(Protocol):
     @abstractmethod
     def channel(self) -> ChannelProtocol:
         """Return the channel containing the events."""
-
-    @property
-    @abstractmethod
-    def custom_id(self) -> str | None:
-        """Return the custom id for external registration."""
 
     @property
     @abstractmethod
@@ -944,18 +922,12 @@ class ChannelEventGroupProtocol(Protocol):
         """Return the data point usage."""
 
     @abstractmethod
-    def subscribe_to_data_point_updated(
-        self, *, handler: DataPointUpdatedHandler, custom_id: str
-    ) -> UnsubscribeCallback:
-        """Subscribe to event group updates (standard CallbackDataPointProtocol pattern)."""
+    def register(self) -> None:
+        """Mark event group as registered by an external consumer."""
 
     @abstractmethod
-    def subscribe_to_device_removed(
-        self,
-        *,
-        handler: Callable[[], None],
-    ) -> UnsubscribeCallback:
-        """Subscribe to device removal event."""
+    def unregister(self) -> None:
+        """Mark event group as no longer registered."""
 
 
 @runtime_checkable

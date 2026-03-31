@@ -13,6 +13,7 @@ from typing import Any, Final, Unpack, override
 import weakref
 
 from aiohomematic import ccu_translations
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
@@ -240,7 +241,11 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             data_point.force_usage(forced_usage=DataPointUsage.NO_CREATE)
 
         self._unsubscribe_callbacks.append(
-            data_point.subscribe_to_internal_data_point_updated(handler=self.publish_data_point_updated_event)
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=data_point.unique_id,
+                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+            )
         )
         self._data_points[field] = data_point
 

@@ -218,9 +218,9 @@ class CcuBackend(BaseBackend):
     async def get_all_functions(self) -> dict[str, set[str]]:
         """Return all functions with their assigned channel addresses."""
         functions: dict[str, set[str]] = {}
-        rega_ids_function = await self._json_rpc.get_all_channel_rega_ids_function()
-        for address, rega_id in self._device_details_provider.items():
-            if (sections := rega_ids_function.get(rega_id)) is not None:
+        ise_ids_function = await self._json_rpc.get_all_channel_ise_ids_function()
+        for address, ise_id in self._device_details_provider.items():
+            if (sections := ise_ids_function.get(ise_id)) is not None:
                 if address not in functions:
                     functions[address] = set()
                 functions[address].update(sections)
@@ -233,9 +233,9 @@ class CcuBackend(BaseBackend):
     async def get_all_rooms(self) -> dict[str, set[str]]:
         """Return all rooms with their assigned channel addresses."""
         rooms: dict[str, set[str]] = {}
-        rega_ids_room = await self._json_rpc.get_all_channel_rega_ids_room()
-        for address, rega_id in self._device_details_provider.items():
-            if (names := rega_ids_room.get(rega_id)) is not None:
+        ise_ids_room = await self._json_rpc.get_all_channel_ise_ids_room()
+        for address, ise_id in self._device_details_provider.items():
+            if (names := ise_ids_room.get(ise_id)) is not None:
                 if address not in rooms:
                     rooms[address] = set()
                 rooms[address].update(names)
@@ -280,6 +280,10 @@ class CcuBackend(BaseBackend):
         if self._interface == Interface.HMIP_RF:
             return await self._json_rpc.get_install_mode(interface=self._interface)
         return cast(int, await self._proxy.getInstallMode())
+
+    async def get_ise_id_by_address(self, *, address: str) -> int | None:
+        """Return ReGa ID for an address."""
+        return await self._json_rpc.get_ise_id_by_address(address=address)
 
     async def get_link_info(
         self, *, interface: Interface, sender_address: str, receiver_address: str
@@ -333,10 +337,6 @@ class CcuBackend(BaseBackend):
             )
             return None
 
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Return ReGa ID for an address."""
-        return await self._json_rpc.get_rega_id_by_address(address=address)
-
     async def get_service_messages(
         self, *, message_type: ServiceMessageType | None = None
     ) -> tuple[ServiceMessageData, ...]:
@@ -361,9 +361,9 @@ class CcuBackend(BaseBackend):
         """Return a parameter value."""
         return await self._proxy_read.getValue(channel_address, parameter)
 
-    async def has_program_ids(self, *, rega_id: int) -> bool:
+    async def has_program_ids(self, *, ise_id: int) -> bool:
         """Check if channel has program IDs."""
-        return await self._json_rpc.has_program_ids(rega_id=rega_id)
+        return await self._json_rpc.has_program_ids(ise_id=ise_id)
 
     async def init_proxy(self, *, init_url: str, interface_id: str) -> None:
         """Initialize the proxy with callback URL."""
@@ -409,13 +409,13 @@ class CcuBackend(BaseBackend):
         """Remove a link."""
         await self._proxy.removeLink(sender_address, receiver_address)
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_channel(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a channel."""
-        return await self._json_rpc.rename_channel(rega_id=rega_id, new_name=new_name)
+        return await self._json_rpc.rename_channel(ise_id=ise_id, new_name=new_name)
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_device(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a device."""
-        return await self._json_rpc.rename_device(rega_id=rega_id, new_name=new_name)
+        return await self._json_rpc.rename_device(ise_id=ise_id, new_name=new_name)
 
     async def report_value_usage(self, *, channel_address: str, value_id: str, ref_counter: int) -> bool:
         """Report value usage to the backend."""

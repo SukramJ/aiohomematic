@@ -93,7 +93,7 @@ class _FakeCentral:
     def cache_coordinator(self):
         """Return a mock cache coordinator."""
         return SimpleNamespace(
-            device_details=SimpleNamespace(device_channel_rega_ids={}),
+            device_details=SimpleNamespace(device_channel_ise_ids={}),
             paramset_descriptions=SimpleNamespace(get_parameter_data=lambda **kw: None),
             data_cache=SimpleNamespace(add_data=lambda **kw: None),
             device_descriptions=SimpleNamespace(get_device_descriptions=lambda **kw: None),

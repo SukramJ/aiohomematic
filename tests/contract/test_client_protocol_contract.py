@@ -481,13 +481,13 @@ class TestMetadataOperationsProtocolContract:
         """CONTRACT: MetadataOperationsProtocol MUST have get_install_mode method."""
         assert "get_install_mode" in dir(MetadataOperationsProtocol)
 
+    def test_has_get_ise_id_by_address_method(self) -> None:
+        """CONTRACT: MetadataOperationsProtocol MUST have get_ise_id_by_address method."""
+        assert "get_ise_id_by_address" in dir(MetadataOperationsProtocol)
+
     def test_has_get_metadata_method(self) -> None:
         """CONTRACT: MetadataOperationsProtocol MUST have get_metadata method."""
         assert "get_metadata" in dir(MetadataOperationsProtocol)
-
-    def test_has_get_rega_id_by_address_method(self) -> None:
-        """CONTRACT: MetadataOperationsProtocol MUST have get_rega_id_by_address method."""
-        assert "get_rega_id_by_address" in dir(MetadataOperationsProtocol)
 
     def test_has_get_service_messages_method(self) -> None:
         """CONTRACT: MetadataOperationsProtocol MUST have get_service_messages method."""

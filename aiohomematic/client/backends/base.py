@@ -196,6 +196,10 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         """Return install mode time (unsupported by default)."""
         return 0
 
+    async def get_ise_id_by_address(self, *, address: str) -> int | None:
+        """Return ReGa ID (unsupported by default)."""
+        return None
+
     async def get_link_info(
         self, *, interface: Interface, sender_address: str, receiver_address: str
     ) -> dict[str, Any]:
@@ -226,10 +230,6 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         """Return paramset description."""
         ...
 
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Return ReGa ID (unsupported by default)."""
-        return None
-
     async def get_service_messages(
         self, *, message_type: ServiceMessageType | None = None
     ) -> tuple[ServiceMessageData, ...]:
@@ -253,7 +253,7 @@ class BaseBackend(BackendOperationsProtocol, ABC):
         """Return parameter value."""
         ...
 
-    async def has_program_ids(self, *, rega_id: int) -> bool:
+    async def has_program_ids(self, *, ise_id: int) -> bool:
         """Check program IDs (unsupported by default)."""
         return False
 
@@ -287,11 +287,11 @@ class BaseBackend(BackendOperationsProtocol, ABC):
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         """Remove link (unsupported by default)."""
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_channel(self, *, ise_id: int, new_name: str) -> bool:
         """Rename channel (unsupported by default)."""
         return False
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_device(self, *, ise_id: int, new_name: str) -> bool:
         """Rename device (unsupported by default)."""
         return False
 

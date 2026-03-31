@@ -874,9 +874,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return tuple(messages)
 
-    async def get_all_channel_rega_ids_function(self) -> Mapping[int, set[str]]:
-        """Get all rega_ids per function from the backend."""
-        rega_ids_function: dict[int, set[str]] = {}
+    async def get_all_channel_ise_ids_function(self) -> Mapping[int, set[str]]:
+        """Get all ise_ids per function from the backend."""
+        ise_ids_function: dict[int, set[str]] = {}
 
         response = await self._post(
             method=_JsonRpcMethod.SUBSECTION_GET_ALL,
@@ -887,19 +887,19 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             for function in json_result:
                 function_id = int(function[_JsonKey.ID])
                 function_name = function[_JsonKey.NAME]
-                if function_id not in rega_ids_function:
-                    rega_ids_function[function_id] = set()
-                rega_ids_function[function_id].add(function_name)
-                for rega_id in function[_JsonKey.CHANNEL_IDS]:
-                    if rega_id not in rega_ids_function:
-                        rega_ids_function[rega_id] = set()
-                    rega_ids_function[rega_id].add(function_name)
+                if function_id not in ise_ids_function:
+                    ise_ids_function[function_id] = set()
+                ise_ids_function[function_id].add(function_name)
+                for ise_id in function[_JsonKey.CHANNEL_IDS]:
+                    if ise_id not in ise_ids_function:
+                        ise_ids_function[ise_id] = set()
+                    ise_ids_function[ise_id].add(function_name)
 
-        return rega_ids_function
+        return ise_ids_function
 
-    async def get_all_channel_rega_ids_room(self) -> Mapping[int, set[str]]:
-        """Get all rega_ids per room from the backend."""
-        rega_ids_room: dict[int, set[str]] = {}
+    async def get_all_channel_ise_ids_room(self) -> Mapping[int, set[str]]:
+        """Get all ise_ids per room from the backend."""
+        ise_ids_room: dict[int, set[str]] = {}
 
         response = await self._post(
             method=_JsonRpcMethod.ROOM_GET_ALL,
@@ -910,15 +910,15 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             for room in json_result:
                 room_id = int(room[_JsonKey.ID])
                 room_name = room[_JsonKey.NAME]
-                if room_id not in rega_ids_room:
-                    rega_ids_room[room_id] = set()
-                rega_ids_room[room_id].add(room_name)
-                for rega_id in room[_JsonKey.CHANNEL_IDS]:
-                    if rega_id not in rega_ids_room:
-                        rega_ids_room[rega_id] = set()
-                    rega_ids_room[rega_id].add(room_name)
+                if room_id not in ise_ids_room:
+                    ise_ids_room[room_id] = set()
+                ise_ids_room[room_id].add(room_name)
+                for ise_id in room[_JsonKey.CHANNEL_IDS]:
+                    if ise_id not in ise_ids_room:
+                        ise_ids_room[ise_id] = set()
+                    ise_ids_room[ise_id].add(room_name)
 
-        return rega_ids_room
+        return ise_ids_room
 
     async def get_all_device_data(self, *, interface: Interface) -> Mapping[str, Any]:
         """Get the all device data of the backend."""
@@ -1168,6 +1168,31 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return 0
 
+    async def get_ise_id_by_address(self, *, address: str) -> int | None:
+        """
+        Get the ReGa ID for a device or channel address.
+
+        Args:
+            address: The address of the device or channel.
+
+        Returns:
+            The ReGa ID if found, None otherwise.
+
+        """
+        is_dev = is_device_address(address=address)
+
+        details = await self.get_device_details()
+        for detail in details:
+            if is_dev:
+                if detail["address"] == address:
+                    return detail["id"]
+            else:
+                for channel in detail["channels"]:
+                    if channel["address"] == address:
+                        return channel["id"]
+
+        return None
+
     async def get_link_info(
         self,
         *,
@@ -1226,31 +1251,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             paramset_description = {data["NAME"]: self._convert_parameter_data(json_data=data) for data in json_result}
 
         return paramset_description
-
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """
-        Get the ReGa ID for a device or channel address.
-
-        Args:
-            address: The address of the device or channel.
-
-        Returns:
-            The ReGa ID if found, None otherwise.
-
-        """
-        is_dev = is_device_address(address=address)
-
-        details = await self.get_device_details()
-        for detail in details:
-            if is_dev:
-                if detail["address"] == address:
-                    return detail["id"]
-            else:
-                for channel in detail["channels"]:
-                    if channel["address"] == address:
-                        return channel["id"]
-
-        return None
 
     async def get_service_messages(
         self,
@@ -1427,9 +1427,9 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         return value
 
-    async def has_program_ids(self, *, rega_id: int) -> bool:
+    async def has_program_ids(self, *, ise_id: int) -> bool:
         """Return if a channel has program ids."""
-        params = {_JsonKey.ID: rega_id}
+        params = {_JsonKey.ID: ise_id}
         response = await self._post(
             method=_JsonRpcMethod.CHANNEL_HAS_PROGRAM_IDS,
             extra_params=params,
@@ -1525,12 +1525,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 str(json_result),
             )
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_channel(self, *, ise_id: int, new_name: str) -> bool:
         """
         Rename a channel on the CCU.
 
         Args:
-            rega_id: The ReGa ID of the channel to rename.
+            ise_id: The ReGa ID of the channel to rename.
             new_name: The new name for the channel.
 
         Returns:
@@ -1538,21 +1538,21 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         """
         params = {
-            _JsonKey.ID: rega_id,
+            _JsonKey.ID: ise_id,
             _JsonKey.NAME: new_name,
         }
 
         response = await self._post(method=_JsonRpcMethod.CHANNEL_SET_NAME, extra_params=params)
-        _LOGGER.debug("RENAME_CHANNEL: Renaming channel with rega_id %s to %s", rega_id, new_name)
+        _LOGGER.debug("RENAME_CHANNEL: Renaming channel with ise_id %s to %s", ise_id, new_name)
 
         return response.get(_JsonKey.RESULT) is True
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_device(self, *, ise_id: int, new_name: str) -> bool:
         """
         Rename a device on the CCU.
 
         Args:
-            rega_id: The ReGa ID of the device to rename.
+            ise_id: The ReGa ID of the device to rename.
             new_name: The new name for the device.
 
         Returns:
@@ -1560,12 +1560,12 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         """
         params = {
-            _JsonKey.ID: rega_id,
+            _JsonKey.ID: ise_id,
             _JsonKey.NAME: new_name,
         }
 
         response = await self._post(method=_JsonRpcMethod.DEVICE_SET_NAME, extra_params=params)
-        _LOGGER.debug("RENAME_DEVICE: Renaming device with rega_id %s to %s", rega_id, new_name)
+        _LOGGER.debug("RENAME_DEVICE: Renaming device with ise_id %s to %s", ise_id, new_name)
 
         return response.get(_JsonKey.RESULT) is True
 

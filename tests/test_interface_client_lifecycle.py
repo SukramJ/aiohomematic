@@ -121,7 +121,7 @@ class _FakeBackend:
             ping_pong=True,
             programs=True,
             push_updates=True,
-            rega_id_lookup=True,
+            ise_id_lookup=True,
             rename=True,
             rooms=True,
             rpc_callback=True,
@@ -203,12 +203,12 @@ class _FakeBackend:
     async def remove_link(self, *, sender_address: str, receiver_address: str) -> None:
         self.calls.append(("remove_link", (sender_address, receiver_address)))
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
-        self.calls.append(("rename_channel", (rega_id, new_name)))
+    async def rename_channel(self, *, ise_id: int, new_name: str) -> bool:
+        self.calls.append(("rename_channel", (ise_id, new_name)))
         return True
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
-        self.calls.append(("rename_device", (rega_id, new_name)))
+    async def rename_device(self, *, ise_id: int, new_name: str) -> bool:
+        self.calls.append(("rename_device", (ise_id, new_name)))
         return True
 
     async def report_value_usage(self, *, address: str, value_id: str, ref_counter: int) -> bool:
@@ -296,7 +296,7 @@ class _FakeCentral:
             device_details=SimpleNamespace(
                 add_interface=lambda **kwargs: None,
                 add_name=lambda **kwargs: None,
-                add_address_rega_id=lambda **kwargs: None,
+                add_address_ise_id=lambda **kwargs: None,
             ),
             paramset_descriptions=self.paramset_descriptions,
             data_cache=SimpleNamespace(add_data=lambda **kwargs: None),
@@ -861,7 +861,7 @@ class TestInterfaceClientCapabilityGatedOperations:
         backend.capabilities.rename = False
         client = _create_interface_client(backend=backend)
 
-        result = await client.rename_channel(rega_id=123, new_name="new_name")
+        result = await client.rename_channel(ise_id=123, new_name="new_name")
         assert result is False
 
     @pytest.mark.asyncio
@@ -871,7 +871,7 @@ class TestInterfaceClientCapabilityGatedOperations:
         backend.capabilities.rename = False
         client = _create_interface_client(backend=backend)
 
-        result = await client.rename_device(rega_id=123, new_name="new_name")
+        result = await client.rename_device(ise_id=123, new_name="new_name")
         assert result is False
 
     @pytest.mark.asyncio
@@ -995,9 +995,9 @@ class _TrackingDeviceDetails:
         self.add_id_calls: list[dict[str, Any]] = []
         self.add_iface_calls: list[dict[str, Any]] = []
 
-    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
-        """Record add_address_rega_id call."""
-        self.add_id_calls.append({"address": address, "rega_id": rega_id})
+    def add_address_ise_id(self, *, address: str, ise_id: int) -> None:
+        """Record add_address_ise_id call."""
+        self.add_id_calls.append({"address": address, "ise_id": ise_id})
 
     def add_interface(self, *, address: str, interface: Interface) -> None:
         """Record add_interface call."""
@@ -1345,7 +1345,7 @@ class TestFetchDeviceDetails:
 
     @pytest.mark.asyncio
     async def test_fetch_device_details_zero_id_not_added(self) -> None:
-        """fetch_device_details should not add rega_id when it is zero (Homegear path)."""
+        """fetch_device_details should not add ise_id when it is zero (Homegear path)."""
         central = _ExtendedFakeCentral()
         backend = _ExtendedFakeBackend()
         backend._device_details = [
@@ -1361,7 +1361,7 @@ class TestFetchDeviceDetails:
 
         await client.fetch_device_details()
 
-        # id=0 means no rega_id call
+        # id=0 means no ise_id call
         assert len(central._tracking_device_details.add_id_calls) == 0
 
 

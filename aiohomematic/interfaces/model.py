@@ -11,7 +11,7 @@ Protocol Hierarchy
 ------------------
 
 Channel protocols (ChannelProtocol composed of consolidated sub-protocols):
-- ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, rega_id)
+- ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, ise_id)
 - ChannelDataPointAccessProtocol: DataPoint and event access methods
 - ChannelMetadataAndGroupingProtocol: Combined (Metadata + Grouping)
 - ChannelManagementProtocol: Combined (LinkManagement + Lifecycle)
@@ -1333,6 +1333,11 @@ class ChannelIdentityProtocol(Protocol):
 
     @property
     @abstractmethod
+    def ise_id(self) -> int:
+        """Return the id of the channel."""
+
+    @property
+    @abstractmethod
     def name(self) -> str:
         """Return the name of the channel."""
 
@@ -1340,11 +1345,6 @@ class ChannelIdentityProtocol(Protocol):
     @abstractmethod
     def no(self) -> int | None:
         """Return the channel number."""
-
-    @property
-    @abstractmethod
-    def rega_id(self) -> int:
-        """Return the id of the channel."""
 
     @property
     @abstractmethod
@@ -1667,7 +1667,7 @@ class ChannelProtocol(
     Implemented by Channel.
 
     Sub-protocols (consolidated):
-    - ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, rega_id)
+    - ChannelIdentityProtocol: Basic identification (address, name, no, type_name, unique_id, ise_id)
     - ChannelDataPointAccessProtocol: DataPoint and event access methods
     - ChannelMetadataAndGroupingProtocol: Combined (Metadata + Grouping)
     - ChannelManagementProtocol: Combined (LinkManagement + Lifecycle)
@@ -1989,13 +1989,13 @@ class DeviceConfigurationProtocol(Protocol):
 
     @property
     @abstractmethod
-    def product_group(self) -> ProductGroup:
-        """Return the product group of the device."""
+    def ise_id(self) -> int:
+        """Return the id of the device."""
 
     @property
     @abstractmethod
-    def rega_id(self) -> int:
-        """Return the id of the device."""
+    def product_group(self) -> ProductGroup:
+        """Return the product group of the device."""
 
     @property
     @abstractmethod

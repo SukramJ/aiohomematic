@@ -578,7 +578,7 @@ class TestDeviceChannelOperations:
         assert await ch._has_central_link() is True
 
         # 3) remove_central_link removes only if has central link and no program ids
-        async def has_program_ids_false(*, rega_id: int):
+        async def has_program_ids_false(*, ise_id: int):
             return False
 
         monkeypatch.setattr(client, "has_program_ids", has_program_ids_false)
@@ -593,7 +593,7 @@ class TestDeviceChannelOperations:
         assert await ch._has_central_link() is False
 
         # 5) _has_program_ids truthy path
-        async def has_program_ids_true(*, rega_id: int):
+        async def has_program_ids_true(*, ise_id: int):
             return ["1"]
 
         monkeypatch.setattr(client, "has_program_ids", has_program_ids_true)
@@ -646,10 +646,10 @@ class TestDeviceChannelOperations:
         # Identify by suffixing address
         assert central.device_coordinator.identify_channel(text=f"foo {ch.address}") is ch
         # Identify by channel id in text - ensure a channel is returned and belongs to same device
-        ch_by_id = central.device_coordinator.identify_channel(text=f"id={ch.rega_id}")
+        ch_by_id = central.device_coordinator.identify_channel(text=f"id={ch.ise_id}")
         assert ch_by_id is not None and ch_by_id.device is device
         # Identify by device id in text - first channel of device is a valid match
-        ch_by_dev_id = central.device_coordinator.identify_channel(text=f"device={ch.device.rega_id}")
+        ch_by_dev_id = central.device_coordinator.identify_channel(text=f"device={ch.device.ise_id}")
         assert ch_by_dev_id is not None and ch_by_dev_id.device is device
         # No match
         assert central.device_coordinator.identify_channel(text="no-match") is None
@@ -909,7 +909,7 @@ class TestDeviceGetterNoneChannel:
         central, _, _ = central_client_factory_with_homegear_client
         device = central.device_coordinator.get_device(address="VCU2128127")
 
-        # Text that cannot match any channel address or rega_id.
+        # Text that cannot match any channel address or ise_id.
         result = device.identify_channel(text="totally_unknown_xyz_999999")
         assert result is None
 

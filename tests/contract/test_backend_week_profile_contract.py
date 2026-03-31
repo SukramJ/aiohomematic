@@ -264,13 +264,13 @@ class TestBackendOperationsProtocolMetadataMethodsContract:
         """Contract: BackendOperationsProtocol has get_all_rooms method."""
         assert "get_all_rooms" in dir(BackendOperationsProtocol)
 
+    def test_has_get_ise_id_by_address(self) -> None:
+        """Contract: BackendOperationsProtocol has get_ise_id_by_address method."""
+        assert "get_ise_id_by_address" in dir(BackendOperationsProtocol)
+
     def test_has_get_metadata(self) -> None:
         """Contract: BackendOperationsProtocol has get_metadata method."""
         assert "get_metadata" in dir(BackendOperationsProtocol)
-
-    def test_has_get_rega_id_by_address(self) -> None:
-        """Contract: BackendOperationsProtocol has get_rega_id_by_address method."""
-        assert "get_rega_id_by_address" in dir(BackendOperationsProtocol)
 
     def test_has_set_metadata(self) -> None:
         """Contract: BackendOperationsProtocol has set_metadata method."""

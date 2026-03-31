@@ -242,7 +242,7 @@ class _FakeBackend:
             ping_pong=True,
             programs=True,
             push_updates=True,
-            rega_id_lookup=True,
+            ise_id_lookup=True,
             rename=True,
             rooms=True,
             rpc_callback=True,
@@ -317,7 +317,7 @@ class _FakeCentral:
             device_details=SimpleNamespace(
                 add_interface=lambda **kwargs: None,
                 add_name=lambda **kwargs: None,
-                add_address_rega_id=lambda **kwargs: None,
+                add_address_ise_id=lambda **kwargs: None,
             ),
             paramset_descriptions=SimpleNamespace(get_parameter_data=lambda **kwargs: None),
             data_cache=SimpleNamespace(add_data=lambda **kwargs: None),

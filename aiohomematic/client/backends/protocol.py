@@ -195,6 +195,10 @@ class BackendOperationsProtocol(Protocol):
         """Return remaining time in install mode (seconds)."""
         ...
 
+    async def get_ise_id_by_address(self, *, address: str) -> int | None:
+        """Return the ReGa ID for an address."""
+        ...
+
     async def get_link_info(
         self, *, interface: Interface, sender_address: str, receiver_address: str
     ) -> dict[str, Any]:
@@ -223,10 +227,6 @@ class BackendOperationsProtocol(Protocol):
         """Return paramset description for a channel address and paramset key."""
         ...
 
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Return the ReGa ID for an address."""
-        ...
-
     async def get_service_messages(
         self, *, message_type: ServiceMessageType | None = None
     ) -> tuple[ServiceMessageData, ...]:
@@ -249,7 +249,7 @@ class BackendOperationsProtocol(Protocol):
         """Return a single parameter value."""
         ...
 
-    async def has_program_ids(self, *, rega_id: int) -> bool:
+    async def has_program_ids(self, *, ise_id: int) -> bool:
         """Check if a channel has associated program IDs."""
         ...
 
@@ -280,11 +280,11 @@ class BackendOperationsProtocol(Protocol):
         """Remove a link between two devices."""
         ...
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_channel(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a channel."""
         ...
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_device(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a device."""
         ...
 

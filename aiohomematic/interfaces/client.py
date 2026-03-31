@@ -468,7 +468,7 @@ class ProgramOperationsProtocol(Protocol):
     async def get_all_programs(self, *, markers: tuple[Any, ...]) -> tuple[ProgramData, ...]:
         """Get all programs, if available."""
 
-    async def has_program_ids(self, *, rega_id: int) -> bool:
+    async def has_program_ids(self, *, ise_id: int) -> bool:
         """Return if a channel has program ids."""
 
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
@@ -525,11 +525,11 @@ class MetadataOperationsProtocol(Protocol):
     async def get_install_mode(self) -> int:
         """Return the remaining time in install mode."""
 
+    async def get_ise_id_by_address(self, *, address: str) -> int | None:
+        """Get the ReGa ID for a device or channel address."""
+
     async def get_metadata(self, *, address: str, data_id: str) -> dict[str, Any]:
         """Return the metadata for an object."""
-
-    async def get_rega_id_by_address(self, *, address: str) -> int | None:
-        """Get the ReGa ID for a device or channel address."""
 
     async def get_service_messages(self, *, message_type: Any | None = None) -> tuple[Any, ...]:
         """Get all active service messages from the backend."""
@@ -540,10 +540,10 @@ class MetadataOperationsProtocol(Protocol):
     async def get_system_update_info(self) -> Any | None:
         """Get system update information from the backend."""
 
-    async def rename_channel(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_channel(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a channel on the CCU."""
 
-    async def rename_device(self, *, rega_id: int, new_name: str) -> bool:
+    async def rename_device(self, *, ise_id: int, new_name: str) -> bool:
         """Rename a device on the CCU."""
 
     async def set_install_mode(
@@ -966,11 +966,11 @@ class DeviceDetailsWriterProtocol(Protocol):
 
     @property
     @abstractmethod
-    def device_channel_rega_ids(self) -> Mapping[str, int]:
+    def device_channel_ise_ids(self) -> Mapping[str, int]:
         """Return the device channel ReGa IDs."""
 
     @abstractmethod
-    def add_address_rega_id(self, *, address: str, rega_id: int) -> None:
+    def add_address_ise_id(self, *, address: str, ise_id: int) -> None:
         """Add a ReGa ID for an address."""
 
     @abstractmethod

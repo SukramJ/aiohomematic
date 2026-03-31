@@ -152,12 +152,9 @@ class TestUpdateDataPoint:
             """Execute dummy callback."""
             called["count"] += 1
 
-        # Test subscription using EventBus architecture
-        unregister = dp.subscribe_to_data_point_updated(handler=cb, custom_id="CID")
-        assert callable(unregister)
-        # With EventBus, subscriptions are managed by the event bus, not device callbacks
-        # Just verify that unregister works without error
-        unregister()
+        # Test registration/unregistration
+        dp.register()
+        dp.unregister()
 
         # refresh_firmware_data should forward to central and update modified_at
         before = dp.modified_at

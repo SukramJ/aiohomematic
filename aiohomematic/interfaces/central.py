@@ -451,10 +451,6 @@ class DeviceQueryFacadeProtocol(Protocol):
         """Return the hm custom_data_point."""
 
     @abstractmethod
-    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
-        """Return Homematic data_point by custom_id."""
-
-    @abstractmethod
     def get_data_points(
         self,
         *,
@@ -557,10 +553,6 @@ class DataPointProviderProtocol(Protocol):
 
     Implemented by CentralUnit.
     """
-
-    @abstractmethod
-    def get_data_point_by_custom_id(self, *, custom_id: str) -> CallbackDataPointProtocol | None:
-        """Return Homematic data_point by custom_id."""
 
     @abstractmethod
     def get_readable_generic_data_points(

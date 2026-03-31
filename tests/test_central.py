@@ -571,7 +571,7 @@ class TestCentralDataPointsByCategory:
         def _device_changed(self, *args: Any, **kwargs: Any) -> None:
             """Handle device state changes."""
 
-        ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
+        ebp_sensor[0].register()
         ebp_sensor2 = central.query_facade.get_data_points(category=DataPointCategory.SENSOR, registered=False)
         assert ebp_sensor2
         assert len(ebp_sensor2) == 17
@@ -604,7 +604,7 @@ class TestCentralDataPointsByCategory:
         def _device_changed(self, *args: Any, **kwargs: Any) -> None:
             """Handle device state changes."""
 
-        ebp_sensor[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
+        ebp_sensor[0].register()
         ebp_sensor2 = central.hub_coordinator.get_hub_data_points(
             category=DataPointCategory.HUB_SENSOR,
             registered=False,
@@ -615,7 +615,7 @@ class TestCentralDataPointsByCategory:
         ebp_sensor3 = central.hub_coordinator.get_hub_data_points(category=DataPointCategory.HUB_BUTTON)
         assert ebp_sensor3
         assert len(ebp_sensor3) == 2
-        ebp_sensor3[0].subscribe_to_data_point_updated(handler=_device_changed, custom_id="some_id")
+        ebp_sensor3[0].register()
         ebp_sensor4 = central.hub_coordinator.get_hub_data_points(
             category=DataPointCategory.HUB_BUTTON, registered=False
         )
@@ -1645,63 +1645,6 @@ class TestCentralCreateBackupAndDownload:
             assert result is None
         finally:
             await central.stop()
-
-
-class TestCentralGetDataPointByCustomId:
-    """Test get_data_point_by_custom_id lookups."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_get_data_point_by_custom_id_found(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """get_data_point_by_custom_id should return the data point when it exists."""
-
-        central, _, _ = central_client_factory_with_homegear_client
-        # Register a data point with a known custom_id
-        dps = central.query_facade.get_data_points()
-        assert dps
-
-        first_dp = dps[0]
-
-        def _handler(*args: Any, **kwargs: Any) -> None:
-            """Do nothing handler."""
-
-        first_dp.subscribe_to_data_point_updated(handler=_handler, custom_id="test_custom_id")
-        found = central.get_data_point_by_custom_id(custom_id="test_custom_id")
-        assert found is not None
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        (
-            "address_device_translation",
-            "do_mock_client",
-            "ignore_devices_on_create",
-            "un_ignore_list",
-        ),
-        [
-            (TEST_DEVICES, True, None, None),
-        ],
-    )
-    async def test_get_data_point_by_custom_id_not_found(
-        self,
-        central_client_factory_with_homegear_client,
-    ) -> None:
-        """get_data_point_by_custom_id should return None when custom_id does not match any data point."""
-        central, _, _ = central_client_factory_with_homegear_client
-        found = central.get_data_point_by_custom_id(custom_id="nonexistent_custom_id")
-        assert found is None
 
 
 class TestCentralStrRepresentation:

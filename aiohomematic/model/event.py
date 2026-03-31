@@ -26,12 +26,14 @@ Typical flow:
    created and registered on the channel.
 """
 
+from collections.abc import Callable
 from datetime import datetime
 import logging
 from typing import Any, Final, override
 
 from aiohomematic import ccu_translations, i18n, support as hms
 from aiohomematic.async_support import loop_check
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     CLICK_EVENTS,
     DATA_POINT_EVENTS,
@@ -58,7 +60,7 @@ from aiohomematic.model.support import (
     get_event_name,
 )
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeCallback
+from aiohomematic.type_aliases import UnsubscribeCallback
 
 __all__ = [
     "ChannelEventGroup",
@@ -298,8 +300,8 @@ class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
         """Subscribe to all events internally."""
         for event in self._events:
 
-            def make_handler(ev: GenericEventProtocolAny) -> DataPointUpdatedHandler:
-                def handler(*, data_point: Any, custom_id: str) -> None:
+            def make_handler(ev: GenericEventProtocolAny) -> Callable[..., None]:
+                def handler(*, event: DataPointStateChangedEvent) -> None:
                     self._last_triggered_event = ev
                     self._set_modified_at(modified_at=ev.modified_at)
                     self.publish_data_point_updated_event()
@@ -307,7 +309,11 @@ class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
                 return handler
 
             self._internal_unsubscribe_callbacks.append(
-                event.subscribe_to_internal_data_point_updated(handler=make_handler(event))
+                self._event_bus_provider.event_bus.subscribe(
+                    event_type=DataPointStateChangedEvent,
+                    event_key=event.unique_id,
+                    handler=make_handler(event),
+                )
             )
 
 

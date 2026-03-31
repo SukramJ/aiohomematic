@@ -10,16 +10,13 @@ from aiohomematic.const import (
     HMIP_FIRMWARE_UPDATE_READY_STATES,
     DataPointCategory,
     Interface,
-    InternalCustomID,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
 from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
 from aiohomematic.support.mixins import PayloadMixin
-from aiohomematic.type_aliases import DataPointUpdatedHandler, UnsubscribeCallback
 
 __all__ = ["DpUpdate"]
 
@@ -103,26 +100,15 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         await self._device.device_data_refresher.refresh_firmware_data(device_address=self._device.address)
         self._set_modified_at(modified_at=datetime.now())
 
-    def subscribe_to_data_point_updated(
-        self, *, handler: DataPointUpdatedHandler, custom_id: str
-    ) -> UnsubscribeCallback:
-        """Subscribe to data point updates via EventBus."""
-        if custom_id != InternalCustomID.DEFAULT:
-            if self._custom_id is not None:
-                raise AioHomematicException(  # i18n-exc: ignore
-                    f"SUBSCRIBE failed: hm_data_point: {self.full_name} is already registered by {self._custom_id}"
-                )
-            self._custom_id = custom_id
+    @override
+    def register(self) -> None:
+        """Mark update data point as registered."""
+        self._is_registered = True
 
-        unsubscribe = self._device.subscribe_to_firmware_updated(handler=handler)
-
-        # Wrap unsubscribe to also reset custom_id
-        def wrapped_unsubscribe() -> None:
-            unsubscribe()
-            if custom_id != InternalCustomID.DEFAULT:
-                self._custom_id = None
-
-        return wrapped_unsubscribe
+    @override
+    def unregister(self) -> None:
+        """Mark update data point as no longer registered."""
+        self._is_registered = False
 
     @inspector
     async def update_firmware(self, *, refresh_after_update_intervals: tuple[int, ...]) -> bool:

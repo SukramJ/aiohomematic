@@ -14,7 +14,8 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from aiohomematic.const import DP_KEY_VALUE, InternalCustomID, ParamsetKey
+from aiohomematic.central.events import DataPointStateChangedEvent
+from aiohomematic.const import DP_KEY_VALUE, ParamsetKey
 from aiohomematic.decorators import measure_execution_time
 
 if TYPE_CHECKING:
@@ -88,7 +89,11 @@ async def _track_single_data_point_state_change_or_timeout(
                 dpk,
             )
             return
-        unreg = dp.subscribe_to_data_point_updated(handler=_async_event_changed, custom_id=InternalCustomID.DEFAULT)
+        unreg = device.event_bus_provider.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=dp.unique_id,
+            handler=lambda *, event: _async_event_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+        )
 
         try:
             async with asyncio.timeout(wait_for_callback):

@@ -84,17 +84,15 @@ class TestDataPointEvents:
     """Test data point-related event types."""
 
     def test_data_point_state_changed_event(self) -> None:
-        """DataPointStateChangedEvent should contain unique_id, custom_id, old/new values."""
+        """DataPointStateChangedEvent should contain unique_id, old/new values."""
         event = DataPointStateChangedEvent(
             timestamp=datetime.now(),
             unique_id="device_001_STATE",
-            custom_id="my_custom_id",
             old_value=False,
             new_value=True,
         )
 
         assert event.unique_id == "device_001_STATE"
-        assert event.custom_id == "my_custom_id"
         assert event.old_value is False
         assert event.new_value is True
         assert event.key == "device_001_STATE"

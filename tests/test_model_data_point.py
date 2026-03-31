@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+from aiohomematic.central.events import DataPointStateChangedEvent, DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import CallSource, DataPointUsage, Interface, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters
 from aiohomematic.model.generic import DpSensor, DpSwitch
@@ -56,12 +56,12 @@ class TestDataPointCallbacks:
         assert switch.usage == DataPointUsage.CDP_PRIMARY
 
         device_updated_mock = MagicMock()
-        device_removed_mock = MagicMock()
 
-        unregister_data_point_updated_handler = switch.subscribe_to_data_point_updated(
-            handler=device_updated_mock, custom_id="some_id"
+        unregister_data_point_updated_handler = central.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=switch.unique_id,
+            handler=lambda *, event: device_updated_mock(data_point=switch),
         )
-        unregister_device_removed_handler = switch.subscribe_to_device_removed(handler=device_removed_mock)
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/SWITCH, name: HmIP-BSM_VCU2128127"
         await central.event_coordinator.data_point_event(
@@ -95,10 +95,8 @@ class TestDataPointCallbacks:
         assert event.event_type == DeviceLifecycleEventType.REMOVED
         assert "VCU2128127" in event.device_addresses
         unregister_data_point_updated_handler()
-        unregister_device_removed_handler()
 
-        device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
-        device_removed_mock.assert_called_with()
+        device_updated_mock.assert_called_with(data_point=switch)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -124,10 +122,12 @@ class TestDataPointCallbacks:
         assert switch.usage == DataPointUsage.NO_CREATE
 
         device_updated_mock = MagicMock()
-        device_removed_mock = MagicMock()
 
-        unregister_updated = switch.subscribe_to_data_point_updated(handler=device_updated_mock, custom_id="some_id")
-        unregister_removed = switch.subscribe_to_device_removed(handler=device_removed_mock)
+        unregister_updated = central.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=switch.unique_id,
+            handler=lambda *, event: device_updated_mock(data_point=switch),
+        )
         assert switch.value is None
         assert str(switch) == "path: device/status/VCU2128127/4/STATE, name: HmIP-BSM_VCU2128127 State ch4"
         await central.event_coordinator.data_point_event(
@@ -163,11 +163,8 @@ class TestDataPointCallbacks:
         # Call the unregister handler to clean up
         if unregister_updated:
             unregister_updated()
-        if unregister_removed:
-            unregister_removed()
 
-        device_updated_mock.assert_called_with(data_point=switch, custom_id="some_id")
-        device_removed_mock.assert_called_with()
+        device_updated_mock.assert_called_with(data_point=switch)
 
 
 class TestDataPointLoading:

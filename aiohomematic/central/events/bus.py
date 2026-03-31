@@ -286,7 +286,6 @@ class DataPointStateChangedEvent(Event):
     """
 
     unique_id: str
-    custom_id: str
     old_value: Any = None
     new_value: Any = None
     device_name: str | None = None
@@ -1108,11 +1107,12 @@ class SubscriptionGroup:
             handler=on_update,
         )
 
-        # DataPoint/Device-level subscriptions via add()
-        group.add(unsubscribe=data_point.subscribe_to_data_point_updated(
-            handler=on_dp_update, custom_id="my-app",
-        ))
-        group.add(unsubscribe=device.subscribe_to_device_removed(handler=on_removed))
+        # DataPoint updates via EventBus (same mechanism)
+        group.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=data_point.unique_id,
+            handler=on_dp_update,
+        )
 
         # Later: clean up all at once
         group.unsubscribe_all()
@@ -1134,21 +1134,6 @@ class SubscriptionGroup:
     def subscription_count(self) -> int:
         """Return the number of active subscriptions in this group."""
         return len(self._unsubscribe_callbacks)
-
-    def add(self, *, unsubscribe: UnsubscribeCallback) -> None:
-        """
-        Track an external unsubscribe callback in this group.
-
-        Use this to add subscriptions from data points or devices
-        that are not managed by the EventBus directly::
-
-            group.add(data_point.subscribe_to_data_point_updated(
-                handler=on_update, custom_id="my-app",
-            ))
-            group.add(device.subscribe_to_device_removed(handler=on_removed))
-
-        """
-        self._unsubscribe_callbacks.append(unsubscribe)
 
     def subscribe(
         self,

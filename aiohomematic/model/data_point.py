@@ -62,7 +62,6 @@ parameter values across all supported devices.
 """
 
 from abc import ABC, abstractmethod
-import asyncio
 from collections.abc import Callable, Mapping
 from contextvars import Token
 from datetime import datetime, timedelta
@@ -92,7 +91,6 @@ from aiohomematic.const import (
     DataPointUsage,
     EventData,
     Flag,
-    InternalCustomID,
     Operations,
     Parameter,
     ParameterData,
@@ -113,7 +111,7 @@ from aiohomematic.context import (
     set_request_context,
 )
 from aiohomematic.decorators import get_service_calls, inspector
-from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
+from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.interfaces import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
@@ -155,14 +153,7 @@ from aiohomematic.property_decorators import (
 )
 from aiohomematic.support import log_boundary_error
 from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
-from aiohomematic.type_aliases import (
-    CallableAny,
-    DataPointUpdatedHandler,
-    DeviceRemovedHandler,
-    ParamType,
-    ServiceMethodMap,
-    UnsubscribeCallback,
-)
+from aiohomematic.type_aliases import CallableAny, ParamType, ServiceMethodMap
 
 __all__ = [
     "BaseDataPoint",
@@ -228,18 +219,16 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         "_cached_service_method_names",
         "_cached_service_methods",
         "_central_info",
-        "_custom_id",
         "_published_event_at",
         "_event_bus_provider",
         "_event_publisher",
+        "_is_registered",
         "_modified_at",
         "_parameter_visibility_provider",
         "_paramset_description_provider",
         "_path_data",
         "_refreshed_at",
-        "_registered_custom_ids",
         "_signature",
-        "_subscription_counts",
         "_task_scheduler",
         "_unconfirmed_modified_at",
         "_unconfirmed_refreshed_at",
@@ -267,9 +256,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         self._paramset_description_provider: Final = paramset_description_provider
         self._parameter_visibility_provider: Final = parameter_visibility_provider
         self._unique_id: Final = unique_id
-        self._registered_custom_ids: set[str] = set()
-        self._subscription_counts: dict[str, int] = {}
-        self._custom_id: str | None = None
+        self._is_registered: bool = False
         self._path_data = self._get_path_data()
         self._published_event_at: datetime = INIT_DATETIME
         self._modified_at: datetime = INIT_DATETIME
@@ -287,7 +274,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         """Return, the default category of the data_point."""
         return cls._category
 
-    custom_id: Final = DelegatedProperty[str | None](path="_custom_id")
     published_event_at: Final = DelegatedProperty[datetime](path="_published_event_at")
     set_path: Final = DelegatedProperty[str](path="_path_data.set_path")
     signature: Final = DelegatedProperty[str](path="_signature")
@@ -322,7 +308,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     @property
     def is_registered(self) -> bool:
         """Return if data_point is registered externally."""
-        return self._custom_id is not None
+        return self._is_registered
 
     @property
     def is_status_valid(self) -> bool:
@@ -436,8 +422,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         registered with this data point's unique_id as the event_key.
         """
         self._event_bus_provider.event_bus.clear_subscriptions_by_key(event_key=self._unique_id)
-        self._registered_custom_ids.clear()
-        self._subscription_counts.clear()
 
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""
@@ -446,8 +430,6 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     def publish_data_point_updated_event(
         self,
         *,
-        data_point: CallbackDataPointProtocol | None = None,
-        custom_id: str | None = None,
         old_value: Any = None,
         new_value: Any = None,
     ) -> None:
@@ -456,48 +438,23 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             return
         self._published_event_at = datetime.now()
 
-        # Early exit if no subscribers - avoid creating unnecessary tasks
-        if not self._registered_custom_ids:
-            return
-
-        # Capture current custom_ids as tuple to prevent issues if set is modified
-        # during async iteration (e.g., if a handler unsubscribes during callback)
-        custom_ids = tuple(self._registered_custom_ids)
         # Capture values for closure
         _old_value = old_value
         _new_value = new_value
 
-        async def _publish_all_events() -> None:
-            """
-            Publish events to all registered custom_ids in a single task.
-
-            Performance optimization: Instead of creating one task per subscriber,
-            we create a single task that uses asyncio.gather() to publish all events
-            concurrently. This reduces task creation overhead when there are many
-            subscribers (common in Home Assistant with multiple data points).
-
-            The return_exceptions=True ensures one failing handler doesn't prevent
-            other handlers from receiving the event.
-            """
-            publish_tasks = [
-                self._event_bus_provider.event_bus.publish(
-                    event=DataPointStateChangedEvent(
-                        timestamp=datetime.now(),
-                        unique_id=self._unique_id,
-                        custom_id=cid,
-                        old_value=_old_value,
-                        new_value=_new_value,
-                    )
+        async def _publish_event() -> None:
+            await self._event_bus_provider.event_bus.publish(
+                event=DataPointStateChangedEvent(
+                    timestamp=datetime.now(),
+                    unique_id=self._unique_id,
+                    old_value=_old_value,
+                    new_value=_new_value,
                 )
-                for cid in custom_ids
-            ]
-            await asyncio.gather(*publish_tasks, return_exceptions=True)
+            )
 
-        # Single task for all events instead of one task per custom_id.
-        # This batching approach significantly reduces scheduler overhead.
         self._task_scheduler.create_task(
-            target=_publish_all_events,
-            name=f"publish-dp-updated-events-{self._unique_id}",
+            target=_publish_event,
+            name=f"publish-dp-updated-{self._unique_id}",
         )
 
     @loop_check
@@ -520,96 +477,13 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             name=f"publish-device-removed-{self._unique_id}",
         )
 
-    def subscribe_to_data_point_updated(
-        self, *, handler: DataPointUpdatedHandler, custom_id: str
-    ) -> UnsubscribeCallback:
-        """
-        Subscribe to data_point updated event.
+    def register(self) -> None:
+        """Mark data point as registered by an external consumer."""
+        self._is_registered = True
 
-        Subscription pattern with reference counting:
-            Multiple handlers can subscribe with the same custom_id (e.g., Home Assistant
-            data point and its device tracker). We track subscription counts per custom_id
-            so that the custom_id is only removed from _registered_custom_ids when ALL
-            subscriptions for that custom_id have been unsubscribed.
-
-        The wrapped_unsubscribe function handles the reference counting cleanup.
-        """
-        # Validate custom_id ownership - external custom_ids can only be registered once
-        # Internal custom_ids (system use) bypass this check
-        if custom_id not in InternalCustomID:
-            if self._custom_id is not None and self._custom_id != custom_id:
-                raise AioHomematicException(
-                    i18n.tr(
-                        key="exception.model.data_point.subscribe_handler.already_registered",
-                        full_name=self.full_name,
-                        custom_id=self._custom_id,
-                    )
-                )
-            self._custom_id = custom_id
-
-        # Track registration for publish method - this set drives event publishing
-        self._registered_custom_ids.add(custom_id)
-
-        # Create adapter that filters for this data point's events with matching custom_id.
-        # The EventBus receives events for ALL data points, so we filter by unique_id
-        # and custom_id to ensure only the correct handler receives each event.
-        def event_handler(*, event: DataPointStateChangedEvent) -> None:
-            if event.unique_id == self._unique_id and event.custom_id == custom_id:
-                handler(data_point=self, custom_id=custom_id)
-
-        unsubscribe = self._event_bus_provider.event_bus.subscribe(
-            event_type=DataPointStateChangedEvent,
-            event_key=self._unique_id,
-            handler=event_handler,
-        )
-
-        # Reference counting: Track how many subscriptions exist for each custom_id.
-        # This enables multiple handlers per custom_id while ensuring proper cleanup.
-        current_count = self._subscription_counts.get(custom_id, 0)
-        self._subscription_counts[custom_id] = current_count + 1
-
-        def wrapped_unsubscribe() -> None:
-            """
-            Unsubscribe and manage reference count.
-
-            Only removes custom_id from _registered_custom_ids when count reaches 0,
-            ensuring publish_data_point_updated_event still notifies other handlers
-            that share the same custom_id.
-            """
-            unsubscribe()
-            # Decrement subscription count
-            count = self._subscription_counts.get(custom_id, 1)
-            count -= 1
-            if count <= 0:
-                # Last subscription for this custom_id - safe to remove from tracking
-                self._registered_custom_ids.discard(custom_id)
-                self._subscription_counts.pop(custom_id, None)
-                # Reset ownership when the owning custom_id fully unsubscribes,
-                # allowing re-registration with a different custom_id (e.g. after entity_id rename).
-                if self._custom_id == custom_id:
-                    self._custom_id = None
-            else:
-                self._subscription_counts[custom_id] = count
-
-        return wrapped_unsubscribe
-
-    def subscribe_to_device_removed(self, *, handler: DeviceRemovedHandler) -> UnsubscribeCallback:
-        """Subscribe to the device removed event."""
-
-        # Create adapter that filters for this data point's events
-        def event_handler(*, event: DeviceRemovedEvent) -> None:
-            if event.unique_id == self._unique_id:
-                handler()
-
-        return self._event_bus_provider.event_bus.subscribe(
-            event_type=DeviceRemovedEvent,
-            event_key=self._unique_id,
-            handler=event_handler,
-        )
-
-    def subscribe_to_internal_data_point_updated(self, *, handler: DataPointUpdatedHandler) -> UnsubscribeCallback:
-        """Subscribe to internal data_point updated event."""
-        return self.subscribe_to_data_point_updated(handler=handler, custom_id=InternalCustomID.DEFAULT)
+    def unregister(self) -> None:
+        """Mark data point as no longer registered."""
+        self._is_registered = False
 
     @abstractmethod
     def _get_path_data(self) -> PathData:

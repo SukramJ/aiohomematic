@@ -92,7 +92,7 @@ def _create_mock_dp(
     dp.published_event_recently = False
     dp.send_value = AsyncMock(return_value=set())
     dp.load_data_point_value = AsyncMock()
-    dp.subscribe_to_internal_data_point_updated = MagicMock(return_value=MagicMock())
+    dp.unique_id = f"mock_dp_{id(dp)}"
     return cast(GenericDataPointProtocolAny, dp)
 
 
@@ -806,34 +806,45 @@ class TestCombinedDataPointBase:
             unit_dp=unit_dp,
         )
 
-        value_dp.subscribe_to_internal_data_point_updated.assert_called_once()
+        # EventBus subscribe is called once for value_dp (not for DpDummy)
+        channel.device.event_bus_provider.event_bus.subscribe.assert_called_once()
 
     def test_subscription_to_underlying_dps(self) -> None:
-        """Test that combined DP subscribes to underlying data point updates."""
+        """Test that combined DP subscribes to underlying data point updates via EventBus."""
+        channel = _create_mock_channel()
         value_dp = _create_mock_dp()
         unit_dp = _create_mock_dp()
 
-        _timer = self._create_timer(value_dp=value_dp, unit_dp=unit_dp)
+        _timer = CombinedDpTimerAction(
+            channel=channel,
+            value_field=Field.ON_TIME_VALUE,
+            value_dp=value_dp,
+            unit_dp=unit_dp,
+        )
 
-        value_dp.subscribe_to_internal_data_point_updated.assert_called_once()
-        unit_dp.subscribe_to_internal_data_point_updated.assert_called_once()
+        # EventBus subscribe is called twice (once per non-dummy DP)
+        assert channel.device.event_bus_provider.event_bus.subscribe.call_count == 2
 
     def test_unsubscribe_from_data_point_updated(self) -> None:
         """Test unsubscribe clears all subscriptions."""
-        unsub_1 = MagicMock()
-        unsub_2 = MagicMock()
+        channel = _create_mock_channel()
+        unsub_mock = MagicMock()
+        channel.device.event_bus_provider.event_bus.subscribe.return_value = unsub_mock
 
         value_dp = _create_mock_dp()
         unit_dp = _create_mock_dp()
-        value_dp.subscribe_to_internal_data_point_updated.return_value = unsub_1
-        unit_dp.subscribe_to_internal_data_point_updated.return_value = unsub_2
 
-        timer = self._create_timer(value_dp=value_dp, unit_dp=unit_dp)
+        timer = CombinedDpTimerAction(
+            channel=channel,
+            value_field=Field.ON_TIME_VALUE,
+            value_dp=value_dp,
+            unit_dp=unit_dp,
+        )
 
         timer.unsubscribe_from_data_point_updated()
 
-        unsub_1.assert_called_once()
-        unsub_2.assert_called_once()
+        # unsub_mock was returned twice, so it should be called twice
+        assert unsub_mock.call_count == 2
 
     def _create_timer(
         self,

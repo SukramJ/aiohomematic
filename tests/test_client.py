@@ -2,6 +2,7 @@
 # Copyright (c) 2021-2026
 """Unit tests for aiohomematic.client (__init__.py)."""
 
+from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
 
@@ -42,14 +43,29 @@ class _EventDP:
         self._handler: Any | None = None
         self.value = 0.0 if should_match else 1.0
         self.unsub_called = False
+        self.unique_id = "event_dp_test"
 
-    def subscribe_to_data_point_updated(self, *, handler, custom_id):  # type: ignore[no-untyped-def]
-        self._handler = handler
 
-        def _unsub():
+class _FakeEventBusForDP:
+    """Minimal EventBus for _EventDevice."""
+
+    def __init__(self) -> None:
+        self.unsub_called = False
+
+    def subscribe(self, *, event_type: type, event_key: Any, handler: Any) -> Callable[[], None]:
+        """Return an unsubscribe function that tracks the call."""
+
+        def _unsub() -> None:
             self.unsub_called = True
 
         return _unsub
+
+
+class _FakeEventBusProviderForDP:
+    """Minimal EventBusProvider for _EventDevice."""
+
+    def __init__(self) -> None:
+        self.event_bus = _FakeEventBusForDP()
 
 
 class _EventDevice:
@@ -57,6 +73,7 @@ class _EventDevice:
 
     def __init__(self) -> None:
         self.dp = _EventDP()
+        self.event_bus_provider = _FakeEventBusProviderForDP()
 
     def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey):
         return self.dp
@@ -132,7 +149,7 @@ class TestClientEventTracking:
         )
         dev = _EventDevice()
         await _track_single_data_point_state_change_or_timeout(device=dev, dpk_value=(dpk, 0.0), wait_for_callback=0)
-        assert dev.dp.unsub_called is True
+        assert dev.event_bus_provider.event_bus.unsub_called is True
 
     @pytest.mark.asyncio
     async def test_event_tracking_helpers_early_return(self) -> None:

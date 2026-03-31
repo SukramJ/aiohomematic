@@ -8,7 +8,7 @@ import zipfile
 
 import pytest
 
-from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+from aiohomematic.central.events import DataPointStateChangedEvent, DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import (
     CLICK_EVENTS,
     DEVICE_DESCRIPTIONS_ZIP_DIR,
@@ -389,7 +389,11 @@ class TestDeviceAvailability:
         def on_dp_update(**kwargs: Any) -> None:
             dp_update_events.append(test_dp.channel.address)
 
-        unsubscribe = test_dp.subscribe_to_data_point_updated(handler=on_dp_update, custom_id="test")
+        unsubscribe = central.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=test_dp.unique_id,
+            handler=lambda *, event: on_dp_update(),
+        )
 
         # Initially device is available
         assert device.available is True

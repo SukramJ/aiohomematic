@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import DataPointUsage, ScheduleType
 from aiohomematic.model.custom import CustomDpCover, CustomDpRfThermostat, CustomDpSwitch
 from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry, TargetChannelInfo
@@ -74,7 +75,11 @@ class TestWeekProfileDataPointDefault:
         assert data_point is not None
 
         handler = MagicMock()
-        data_point.subscribe_to_data_point_updated(handler=handler, custom_id="test")
+        central.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=data_point.unique_id,
+            handler=lambda *, event: handler(),
+        )
         data_point.fire_schedule_updated()
         await central.looper.block_till_done()
         handler.assert_called_once()

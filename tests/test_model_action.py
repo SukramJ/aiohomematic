@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpActionSelect
@@ -125,7 +126,11 @@ class TestActionSelectDataPoint:
 
         # Track event emissions
         event_handler = MagicMock()
-        unregister = action_select.subscribe_to_data_point_updated(handler=event_handler, custom_id="test_event")
+        unregister = central.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=action_select.unique_id,
+            handler=lambda *, event: event_handler(),
+        )
 
         # Set value - should emit event
         action_select.value = "UNLOCKED"

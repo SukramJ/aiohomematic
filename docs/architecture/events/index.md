@@ -54,10 +54,11 @@ unsubscribe = central.event_bus.subscribe(
 ### Via Model Classes (Convenient shortcuts)
 
 ```python
-# Subscribe to a specific data point
-unsubscribe = data_point.subscribe_to_data_point_updated(
+# Subscribe to a specific data point's state changes
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointStateChangedEvent,
+    event_key=data_point.unique_id,
     handler=my_handler,
-    custom_id="my-app",
 )
 
 # Subscribe to device updates

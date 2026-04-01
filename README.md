@@ -115,21 +115,21 @@ from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import Interface
 
 config = CentralConfig(
-    central_id="ccu-main",
+    name="ccu-main",
     host="ccu.local",
     username="admin",
     password="secret",
-    default_callback_port=43439,
+    default_callback_port_xml_rpc=43439,
     interface_configs={
         InterfaceConfig(central_name="ccu-main", interface=Interface.HMIP_RF, port=2010)
     },
 )
 
-central = config.create_central()
+central = await config.create_central()
 await central.start()
 
 for device in central.devices:
-    print(f"{device.name}: {device.device_address}")
+    print(f"{device.name}: {device.address}")
 
 await central.stop()
 ```

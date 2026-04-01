@@ -75,3 +75,55 @@ data:
 ```
 
 This creates and downloads a CCU system backup, identical to pressing the backup button.
+
+---
+
+## Restore
+
+### When to restore
+
+A CCU restore is needed when:
+
+- The CCU hardware was replaced or factory-reset
+- A firmware update caused device or configuration issues
+- Device pairings, programs, or system variables were lost
+- You are migrating to a new CCU
+
+### Restore via Home Assistant
+
+Home Assistant backups stored on the CCU include both the HA backup (`.tar`) and the CCU system backup (`.sbk`). To restore:
+
+1. Go to **Settings** -> **System** -> **Backups**
+2. Select the backup you want to restore
+3. Follow the Home Assistant restore wizard to restore the HA backup
+4. Locate the matching CCU backup (`.sbk` file) in the backup directory:
+   ```
+   <ha-config>/homematicip_local/backup/
+   ```
+5. Restore the CCU backup separately using the CCU WebUI (see below)
+
+Home Assistant restore does **not** automatically restore the CCU. The CCU must be restored independently using its `.sbk` file.
+
+### Restore via CCU WebUI
+
+1. Open the CCU WebUI in your browser (e.g., `http://<ccu-ip>`)
+2. Navigate to **Settings** -> **Security** -> **System Backup**
+3. Click **Restore** and select the `.sbk` file from the backup directory
+4. Confirm the restore and wait for the CCU to reboot
+5. After reboot, restart the Homematic(IP) Local integration in Home Assistant
+
+### Verification after restore
+
+After restoring, verify that the system is working correctly:
+
+- Check that all devices appear in Home Assistant and show current states
+- Confirm that device pairings are intact (devices respond to commands)
+- Verify that CCU programs and system variables are present in the CCU WebUI
+- Check the integration log for connection errors or missing devices
+
+### If restore fails
+
+- **CCU does not boot after restore**: Perform a factory reset on the CCU, then try the restore again with a different `.sbk` file
+- **Devices missing after restore**: Re-pair the affected devices with the CCU. Device data points will reappear in Home Assistant automatically
+- **Integration cannot connect**: Restart the integration. If the CCU IP address changed, update the integration configuration under **Settings** -> **Devices & Services**
+- **Backup file corrupted**: Use an older `.sbk` file from the backup directory. Regular backups (via the Backup Agent or automations) help ensure a recent working backup is always available

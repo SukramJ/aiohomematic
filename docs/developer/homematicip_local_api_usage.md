@@ -217,9 +217,9 @@ Device represents a physical Homematic device with its channels and properties.
 - **`device`** - Device registry entry
 - **`devices`** - All devices in registry
 
-#### Event Subscriptions
+#### Event Subscriptions (via EventBus)
 
-- **`subscribe_to_device_removed`** - Subscribe to device removal events
+- **`EventBus.subscribe(event_type=DeviceRemovedEvent, ...)`** - Subscribe to device removal events
 
 ---
 
@@ -251,7 +251,6 @@ BaseDataPoint is the core class for all device parameters and controls.
 
 - **`address`** - Data point address
 - **`unique_id`** - Unique identifier
-- **`custom_id`** - Custom identifier for grouping
 - **`name`** - Data point name
 - **`full_name`** - Full descriptive name
 - **`parameter`** - Parameter name
@@ -415,12 +414,11 @@ BaseDataPoint is the core class for all device parameters and controls.
 **Data Management:**
 
 - **`load_data_point_value`** - Load data point value
-- **`get_data_point_by_custom_id`** - Get data point by custom ID
+  **Event Subscriptions (via EventBus):**
 
-**Event Subscriptions:**
-
-- **`subscribe_to_data_point_updated`** - Subscribe to value updates
-- **`subscribe_to_device_removed`** - Subscribe to device removal
+- **`EventBus.subscribe(event_type=DataPointStateChangedEvent, ...)`** - Subscribe to value updates
+- **`EventBus.subscribe(event_type=DeviceRemovedEvent, ...)`** - Subscribe to device removal
+- **`register()` / `unregister()`** - Register/unregister data point with integration (replaces removed `custom_id`)
 
 **Cover-Specific:**
 
@@ -469,9 +467,9 @@ Event represents push notifications from devices.
 - **`usage`** - Usage information
 - **`name_data`** - Name metadata
 
-#### Event Subscriptions
+#### Event Subscriptions (via EventBus)
 
-- **`subscribe_to_data_point_updated`** - Subscribe to event updates
+- **`EventBus.subscribe(event_type=DataPointStateChangedEvent, ...)`** - Subscribe to event updates
 
 ---
 

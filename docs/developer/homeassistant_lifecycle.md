@@ -66,7 +66,7 @@ Orderly teardown at different levels:
 - Device removal:
   - `Device.remove()` initiates teardown for all channels and data structures of the device.
 - Callback de-registration:
-  - DataPoints/Updates register callbacks (e.g., `subscribe_to_data_point_updated`). On removal these are properly cleaned up via returned unsubscribe functions or explicit unsubscribe.
+  - DataPoints/Updates register event subscriptions via `EventBus.subscribe()`. On removal these are properly cleaned up via returned unsubscribe functions or explicit unsubscribe.
 - Central stop:
   - When the integration shuts down, the Central stops the RPC clients, cancels subscriptions, and closes sessions. HA does not automatically remove entities unless devices are considered permanently deleted (see next point).
 - Device mutations (delete/re-pairing):
@@ -78,9 +78,9 @@ Orderly teardown at different levels:
 
 Signals/callbacks relevant for integration developers:
 
-- Device availability: `DeviceLifecycleEvent` with `DeviceLifecycleEventType.AVAILABILITY_CHANGED` as well as `Device.subscribe_to_device_updated()` for changes to `UN_REACH`/`STICKY_UN_REACH`.
-- DataPoint updates: DataPoints publishes event after `write_value`; HA uses this to update entity state.
-- Firmware: `DpUpdate.subscribe_to_data_point_updated()` reflects firmware changes and progress.
+- Device availability: `DeviceLifecycleEvent` with `DeviceLifecycleEventType.AVAILABILITY_CHANGED` for changes to `UN_REACH`/`STICKY_UN_REACH`.
+- DataPoint updates: DataPoints publish `DataPointStateChangedEvent` via `EventBus` after `write_value`; HA subscribes via `EventBus.subscribe(event_type=DataPointStateChangedEvent, ...)` to update entity state.
+- Firmware: `DpUpdate` publishes state changes via `EventBus`; HA subscribes to reflect firmware changes and progress.
 
 ---
 

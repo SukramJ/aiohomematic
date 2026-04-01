@@ -14,5 +14,7 @@
 *[UI]: User Interface
 *[MQTT]: Message Queuing Telemetry Transport - Lightweight messaging protocol
 *[CUxD]: CUx-Daemon - Universal interface daemon for CCU
+*[TLS]: Transport Layer Security - Encryption protocol for secure communication
+*[EEPROM]: Electrically Erasable Programmable Read-Only Memory - Non-volatile storage in devices
 *[async]: Asynchronous - Non-blocking programming pattern
 *[asyncio]: Python's asynchronous I/O framework

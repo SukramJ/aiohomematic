@@ -107,11 +107,10 @@ Callback event for external integrations (e.g., Home Assistant entities).
 from aiohomematic.central.events import DataPointStateChangedEvent
 ```
 
-| Field       | Type       | Description                          |
-| ----------- | ---------- | ------------------------------------ |
-| `timestamp` | `datetime` | When the event was created           |
-| `unique_id` | `str`      | Unique identifier of the data point  |
-| `custom_id` | `str`      | Custom identifier for the subscriber |
+| Field       | Type       | Description                         |
+| ----------- | ---------- | ----------------------------------- |
+| `timestamp` | `datetime` | When the event was created          |
+| `unique_id` | `str`      | Unique identifier of the data point |
 
 **Key:** `unique_id`
 
@@ -841,16 +840,23 @@ Model classes provide convenience subscription methods:
 ### DataPoint
 
 ```python
-# Subscribe to value updates
-unsubscribe = data_point.subscribe_to_data_point_updated(
+# Subscribe to data point state changes via EventBus
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointStateChangedEvent,
+    event_key=data_point.unique_id,
     handler=my_handler,
-    custom_id="my-integration",
 )
 
-# Subscribe to device removal
-unsubscribe = data_point.subscribe_to_device_removed(
+# Subscribe to device/data point removal via EventBus
+unsubscribe = central.event_bus.subscribe(
+    event_type=DeviceRemovedEvent,
+    event_key=data_point.unique_id,
     handler=my_removal_handler,
 )
+
+# Register/unregister data point
+data_point.register()
+data_point.unregister()
 ```
 
 ### Device

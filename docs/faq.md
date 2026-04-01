@@ -187,14 +187,40 @@ Plus: CCU must be able to reach Home Assistant on the callback port.
 
 ### Docker: Events not received?
 
-For Docker installations:
+The CCU needs to reach Home Assistant on the callback port. In Docker, the container's internal IP is not reachable from the CCU by default.
 
-**Recommended:** Use `network_mode: host`
+**Option A: Host networking (simplest)**
 
-**Alternative:**
+Set `network_mode: host` in your Docker Compose file. This makes the container share the host's network stack, so the CCU can reach the callback port directly.
 
-1. Set `callback_host` to your Docker host IP in advanced options
-2. Configure port forwarding for callback port
+```yaml
+services:
+  homeassistant:
+    # ...
+    network_mode: host
+```
+
+**Option B: Configure callback_host manually**
+
+If you cannot use host networking, set `callback_host` to the Docker host's IP (not the container IP) in the integration's advanced options, and ensure the callback port is forwarded from the host to the container.
+
+1. Find your Docker host IP:
+
+   ```bash
+   ip route | grep default
+   ```
+
+   The gateway address shown is typically your host's IP on the local network.
+
+2. In Home Assistant, go to Settings → Devices & Services → Homematic(IP) Local → Configure
+3. Set **Callback Host** to the Docker host IP (e.g. `192.168.1.10`)
+4. Set **Callback Port (XML-RPC)** if the default is not forwarded
+5. Ensure the callback port is forwarded in your Docker Compose:
+
+   ```yaml
+   ports:
+     - "2010:2010" # Example for HmIP-RF callback
+   ```
 
 ### How do I enable TLS?
 

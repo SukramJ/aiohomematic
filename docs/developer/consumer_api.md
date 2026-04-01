@@ -199,24 +199,158 @@ central.event_bus.subscribe(
 
 ### Data Point Subscription Pattern
 
-For subscribing to specific data point updates:
+For subscribing to specific data point updates, use the EventBus with an event key:
 
 ```python
-# Subscribe to a specific data point
-def on_dp_updated(**kwargs):
-    print(f"Data point updated: {kwargs}")
+from aiohomematic.central.events import DataPointStateChangedEvent
 
-unsubscribe = data_point.subscribe_to_data_point_updated(
-    handler=on_dp_updated,
-    custom_id="my-integration",
+# Subscribe to a specific data point's state changes
+async def on_dp_changed(*, event: DataPointStateChangedEvent) -> None:
+    print(f"Data point {event.unique_id} changed: {event.old_value} -> {event.new_value}")
+
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointStateChangedEvent,
+    event_key=data_point.unique_id,
+    handler=on_dp_changed,
 )
 
-# Subscribe to device updates
-def on_device_updated():
-    print("Device state changed")
-
-unsubscribe = device.subscribe_to_device_updated(handler=on_device_updated)
+# Later: unsubscribe
+unsubscribe()
 ```
+
+To track entity registration with Home Assistant, use `register()` / `unregister()` on data points instead of the removed `custom_id` property.
+
+### SubscriptionGroup Pattern
+
+When a consumer manages many subscriptions (e.g., a bridge or integration), tracking individual unsubscribe callbacks becomes error-prone. `SubscriptionGroup` collects subscriptions and provides a single `unsubscribe_all()` call for cleanup.
+
+```python
+from aiohomematic.central.events import (
+    DataPointStateChangedEvent,
+    DeviceLifecycleEvent,
+    DeviceRemovedEvent,
+)
+
+# Create a named group via the EventBus factory
+group = central.event_bus.create_subscription_group(name="my-bridge")
+
+# Subscribe to a specific data point's state changes
+group.subscribe(
+    event_type=DataPointStateChangedEvent,
+    event_key=data_point.unique_id,
+    handler=on_dp_update,
+)
+
+# Subscribe to removal of a specific device
+group.subscribe(
+    event_type=DeviceRemovedEvent,
+    event_key=data_point.unique_id,
+    handler=on_removed,
+)
+
+# Subscribe to all device lifecycle events (event_key=None)
+group.subscribe(
+    event_type=DeviceLifecycleEvent,
+    event_key=None,  # all devices
+    handler=on_lifecycle,
+)
+
+# Check how many subscriptions are tracked
+print(group.subscription_count)  # 3
+
+# Cleanup: unsubscribe all at once
+group.unsubscribe_all()
+```
+
+Each `group.subscribe()` call also returns an individual `UnsubscribeCallback`, so you can remove a single subscription early if needed. The `event_key` parameter scopes the handler to a specific entity; pass `None` to receive all events of that type.
+
+---
+
+## Data Point Registration
+
+Data points support a `register()` / `unregister()` lifecycle to indicate that an external consumer (e.g., a Home Assistant entity) is actively using them. This controls the `is_registered` property, which query methods can filter on.
+
+```python
+# Claim data point for your integration
+data_point.register()
+assert data_point.is_registered is True
+
+# Release when entity is removed
+data_point.unregister()
+assert data_point.is_registered is False
+```
+
+Registration has no effect on event delivery or value updates -- it is purely a bookkeeping mechanism. Use it to track which data points have corresponding entities in your integration and to filter queries with the `registered` parameter:
+
+```python
+# Get only registered data points
+registered_dps = central.query_facade.get_data_points(registered=True)
+```
+
+---
+
+## Type-Safe Data Point Queries
+
+`get_data_points_by_type()` returns data points filtered by their concrete class with a precise return type, eliminating the need for manual `isinstance()` checks or casts.
+
+```python
+from aiohomematic.model.generic.data_point import GenericDataPoint
+
+# Get only generic data points -- the return type is tuple[GenericDataPoint, ...]
+for dp in central.query_facade.get_data_points_by_type(
+    data_point_class=GenericDataPoint,
+):
+    print(dp.unique_id, dp.value)
+```
+
+Optional filters narrow the results further:
+
+```python
+from aiohomematic.const import DataPointCategory, Interface
+
+# Generic data points on HmIP-RF, registered only
+dps = central.query_facade.get_data_points_by_type(
+    data_point_class=GenericDataPoint,
+    category=DataPointCategory.SENSOR,
+    interface=Interface.HMIP_RF,
+    registered=True,
+)
+```
+
+This method is the recommended alternative to `get_data_points()` followed by `isinstance()` filtering.
+
+---
+
+## Event Tiers
+
+The event system distinguishes between public and internal events:
+
+- **Public events** are listed in `__all__` of `aiohomematic.central.events`. They form the stable API that external consumers (integrations, bridges) can safely depend on. Examples: `DataPointStateChangedEvent`, `DeviceLifecycleEvent`, `SystemStatusChangedEvent`.
+
+- **Internal events** live in `aiohomematic.central.events.internal` and are used for coordinator-to-coordinator communication within aiohomematic itself. They are re-exported from the events package for backward compatibility, but they are **not** part of the stable public API. External consumers should not subscribe to them -- their signatures and semantics may change without notice.
+
+When writing a new integration, import only from `aiohomematic.central.events` and check `__all__` to confirm an event is public before depending on it.
+
+---
+
+## Command Throttling
+
+All commands sent through `InterfaceClient` are automatically throttled by `CommandThrottle` to protect the RF duty cycle of the Homematic wireless bus. The throttle uses three priority levels:
+
+```python
+from aiohomematic.client.command_throttle import CommandPriority
+
+# CRITICAL (priority 0) -- security and access control commands.
+#   Bypasses the throttle queue entirely for immediate execution.
+
+# HIGH (priority 1) -- interactive user commands.
+#   Queued and dispatched respecting the configured throttle interval.
+
+# LOW (priority 2) -- bulk operations and automations.
+#   Queued behind HIGH commands; dispatched when capacity allows.
+```
+
+Consumers do not need to interact with the throttle directly. Priority is determined automatically based on the command context (e.g., lock/unlock commands use `CRITICAL`). The throttle also tracks burst activity and downgrades commands when the burst threshold is exceeded within the configured time window.
 
 ---
 

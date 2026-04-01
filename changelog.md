@@ -1,3 +1,56 @@
+# Version 2026.4.0 (2026-04-01)
+
+## What's Changed
+
+### Added
+
+- **CLI tool documentation**: New `docs/developer/cli_tool.md` documents the
+  `hmcli` command-line tool with all commands, interactive mode, JSON output,
+  shell completion, and common debugging use cases.
+
+- **Restore procedures**: Added restore section to `docs/user/features/backup.md`
+  covering restore via Home Assistant and CCU WebUI, verification checklist,
+  and failure recovery.
+
+- **Consumer API documentation**: Expanded `docs/developer/consumer_api.md`
+  with sections for SubscriptionGroup pattern, DataPoint registration
+  (`register()`/`unregister()`), type-safe queries (`get_data_points_by_type()`),
+  event tiers (public vs internal), and command throttling.
+
+- **Contributor guide**: Added "Where to start" section to
+  `docs/contributor/contributing.md` with contribution tiers by experience level.
+  Added 3 missing lint scripts to `docs/contributor/dev-environment.md`
+  (`lint_event_tiers.py`, `lint_delegated_property.py`, `lint_rega_scripts.py`).
+
+- **Global abbreviations**: Added TLS and EEPROM to
+  `docs/includes/abbreviations.md` for automatic tooltip expansion.
+
+### Changed
+
+- **CLAUDE.md**: Updated version to 2026.4.0, replaced all subscription
+  examples with EventBus pattern, added `lint_event_tiers.py` to scripts table,
+  updated last-modified date.
+
+- **README.md**: Fixed 4 code bugs in Quick Start example (wrong parameter
+  names, missing `await`, incorrect property name).
+
+### Improved
+
+- **Instance name clarity**: Added concrete example to
+  `docs/user/homeassistant_integration.md` explaining why unique instance names
+  matter with multiple HA instances.
+
+- **Callback concept**: Added explanation in integration docs of how CCU pushes
+  events via XML-RPC callbacks and what breaks when the callback path fails.
+
+- **Docker networking**: Expanded Docker section in `docs/faq.md` with
+  step-by-step options (host networking vs manual callback_host) and commands
+  to find Docker host IP.
+
+- **Stale API references removed**: Updated 6 architecture and developer docs
+  to replace removed `subscribe_to_data_point_updated`, `custom_id`, and
+  `get_data_point_by_custom_id` references with current EventBus patterns.
+
 # Version 2026.3.23 (2026-03-31)
 
 ## What's Changed

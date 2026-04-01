@@ -141,7 +141,7 @@ python -c "from aiohomematic.const import *; print('JSON-RPC only:', INTERFACES_
 - **Status**: Production/Stable (Development Status 5)
 - **Type Safety**: Fully typed with mypy strict mode
 - **License**: MIT
-- **Current Version**: 2025.12.49 (defined in `aiohomematic/const.py`)
+- **Current Version**: 2026.4.0 (defined in `aiohomematic/const.py`)
 
 ### Core Dependencies
 
@@ -1432,15 +1432,16 @@ CentralUnit implements all protocols with explicit inheritance through structura
 
 ```python
 # DataPoints publish events via EventBus
-# Subscribers receive notifications through the modern subscribe_to_* API
+# Subscribers receive notifications through EventBus subscription
 
 # Subscribe to data point updates
-def on_value_changed(**kwargs):
-    print(f"Value changed: {kwargs}")
+def on_value_changed(*, event: DataPointStateChangedEvent) -> None:
+    print(f"Value changed: {event.new_value}")
 
-unsubscribe = data_point.subscribe_to_data_point_updated(
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointStateChangedEvent,
+    event_key=data_point.unique_id,
     handler=on_value_changed,
-    custom_id="my-app"
 )
 
 # Clean up subscription when done
@@ -1462,10 +1463,10 @@ class DataPoint:
 
 #### 5. EventBus Pattern
 
-The project uses a unified **EventBus** system for internal event communication. All subscription methods use the modern `subscribe_to_*` API:
+The project uses a unified **EventBus** system for internal event communication. All subscriptions go through `EventBus.subscribe()`:
 
 ```python
-# EventBus API - Direct subscription
+# EventBus API - Subscribe to a specific event type
 from aiohomematic.central.events import DataPointValueReceivedEvent
 
 async def on_datapoint_update(event: DataPointValueReceivedEvent) -> None:
@@ -1473,31 +1474,30 @@ async def on_datapoint_update(event: DataPointValueReceivedEvent) -> None:
 
 unsubscribe = central.event_bus.subscribe(
     event_type=DataPointValueReceivedEvent,
-    handler=on_datapoint_update
+    handler=on_datapoint_update,
 )
 unsubscribe()
 
-# Model API - Subscription via Device/Channel/DataPoint
-def on_device_updated():
-    print("Device state changed")
+# EventBus API - Subscribe with event_key for targeted updates
+from aiohomematic.central.events import DataPointStateChangedEvent
 
-unsubscribe = device.subscribe_to_device_updated(handler=on_device_updated)
-unsubscribe()
+def on_value_changed(*, event: DataPointStateChangedEvent) -> None:
+    print(f"Value changed: {event.new_value}")
 
-def on_value_changed(**kwargs):
-    print(f"Value changed: {kwargs}")
-
-unsubscribe = data_point.subscribe_to_data_point_updated(
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointStateChangedEvent,
+    event_key=data_point.unique_id,
     handler=on_value_changed,
-    custom_id="my-app"
 )
 unsubscribe()
 ```
 
-**Method Naming:**
+**Subscription Pattern:**
 
-- `subscribe_to_*` - All subscription methods use this modern naming
-- `handler` parameter - Use `handler=` instead of `cb=`
+- `EventBus.subscribe()` - Central subscription method for all event types
+- `event_type` parameter - The event class to subscribe to
+- `event_key` parameter - Optional key to filter events (e.g., data point unique_id)
+- `handler` parameter - Use `handler=` for the callback function
 - `unsubscribe()` - All subscriptions return an unsubscribe callable
 
 ### Concurrency Model
@@ -1965,6 +1965,7 @@ def process_devices(devices: Mapping[str, Device]) -> None:
 | `script/lint_kwonly.py`          | Enforce keyword-only arguments      |
 | `script/lint_package_imports.py` | Enforce package import conventions  |
 | `script/lint_all_exports.py`     | Validate `__all__` exports          |
+| `script/lint_event_tiers.py`     | Enforce event tier boundaries       |
 | `script/run-in-env.sh`           | Run commands in virtual environment |
 
 ---
@@ -2404,5 +2405,5 @@ Before finalizing any implementation plan, verify:
 
 ---
 
-**Last Updated**: 2026-03-08
-**Version**: 2025.12.49
+**Last Updated**: 2026-04-01
+**Version**: 2026.4.0

@@ -104,14 +104,17 @@ codespell               # Spell check
 
 ## Development Scripts
 
-| Script                           | Purpose                        |
-| -------------------------------- | ------------------------------ |
-| `script/sort_class_members.py`   | Organize class members         |
-| `script/check_i18n.py`           | Validate translation usage     |
-| `script/check_i18n_catalogs.py`  | Check translation completeness |
-| `script/lint_kwonly.py`          | Enforce keyword-only arguments |
-| `script/lint_package_imports.py` | Enforce import conventions     |
-| `script/lint_all_exports.py`     | Validate `__all__` exports     |
+| Script                              | Purpose                                                                           |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| `script/sort_class_members.py`      | Organize class members                                                            |
+| `script/check_i18n.py`              | Validate translation usage                                                        |
+| `script/check_i18n_catalogs.py`     | Check translation completeness                                                    |
+| `script/lint_kwonly.py`             | Enforce keyword-only arguments                                                    |
+| `script/lint_package_imports.py`    | Enforce import conventions                                                        |
+| `script/lint_all_exports.py`        | Validate `__all__` exports                                                        |
+| `script/lint_event_tiers.py`        | Enforce event import boundaries (no internal event imports by external consumers) |
+| `script/lint_delegated_property.py` | Validate correct usage of DelegatedProperty descriptors                           |
+| `script/lint_rega_scripts.py`       | Validate ReGa script syntax and naming conventions                                |
 
 ## Pre-commit Hooks
 

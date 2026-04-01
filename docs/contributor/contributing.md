@@ -13,6 +13,32 @@ Thank you for your interest in contributing to aiohomematic! This guide will hel
 | **Device Support**   | Add support for new device models    |
 | **Testing**          | Test PRs and provide feedback        |
 
+## Where to Start
+
+Not sure where to begin? Here are some suggestions based on experience level.
+
+### Good First Issues
+
+- **Translation updates**: Add or fix translations in `aiohomematic/translations/` (see the [add-translation workflow](../developer/extension_points.md)).
+- **Docstring fixes**: Improve or add missing docstrings following the [Docstring Standards](coding/docstring_standards.md).
+- **Test additions**: Increase test coverage for existing modules in `tests/`.
+
+### Medium Complexity
+
+- **Adding support for a new device model**: Register a new device with `DeviceProfileRegistry` and add tests. See [Extension Points](../developer/extension_points.md) for detailed instructions.
+- **Bug fixes with clear reproduction steps**: Follow the test-first approach described below.
+
+### Advanced
+
+- **Protocol or coordinator changes**: Modifications to `aiohomematic/client/` or `aiohomematic/central/coordinators/` require deep understanding of the architecture. Read [Architecture](../architecture/architecture.md) first.
+- **Event system modifications**: Changes to `aiohomematic/central/events/` affect the entire codebase. Coordinate with maintainers before starting.
+
+### Finding Issues
+
+Browse [GitHub Issues](https://github.com/sukramj/aiohomematic/issues) for open tasks. Look for issues labeled `good first issue` or `help wanted` if available.
+
+For development environment setup, see [Development Environment](dev-environment.md).
+
 ## Getting Started
 
 ### 1. Fork and Clone

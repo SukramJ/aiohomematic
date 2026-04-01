@@ -76,6 +76,9 @@ The integration starts a local XML-RPC server within Home Assistant. The CCU mus
 
     **Docker users**: Use `network_mode: host` or configure `callback_host` and `callback_port_xml_rpc` in Advanced Options.
 
+!!! info "How callbacks work"
+The CCU pushes device events (button press, temperature change, etc.) to Home Assistant via XML-RPC callbacks. This requires the CCU to reach HA on a specific port. If this connection fails (firewall, Docker network, wrong IP), commands to devices still work but state updates stop arriving.
+
 ### Authentication
 
 - Authentication is **always** passed to the Homematic hub
@@ -121,6 +124,8 @@ The instance name is a unique identifier for your HA installation when communica
     - It has **no relation** to the CCU's hostname
     - You **can change** the CCU's IP address anytime
     - You **must not change** the instance name after setup (entities will be recreated, losing history)
+
+    **Example**: You have two Home Assistant instances (production and test) connected to the same CCU. Each needs a unique instance name so the CCU can route events to the correct callback URL. If both use the same name, only one receives events -- causing the other to appear disconnected.
 
 #### Automatic Backend Detection
 

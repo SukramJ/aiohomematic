@@ -145,9 +145,7 @@ bus.subscribe(event_type=DeviceStateChangedEvent, event_key=None, handler=on_dev
 
 ## Integration with CentralUnit
 
-**Note**: This is planned for Phase 2 of the refactoring.
-
-The EventBus will be integrated into CentralUnit as follows:
+The EventBus is integrated into CentralUnit as follows:
 
 ```python
 class CentralUnit:
@@ -173,13 +171,13 @@ class CentralUnit:
 - [x] Create adapter methods for legacy callback APIs
 - [x] Migrate internal event publishing to use EventBus
 - [x] Update tests to verify both old and new APIs work
-- [x] Introduce `subscribe_to_*` API methods on DataPoint, Device, and Channel classes
 
 ### Phase 3: Modern API Adoption ✅ COMPLETED
 
-- [x] EventBus is now the primary event mechanism
-- [x] `subscribe_to_data_point_updated`, `subscribe_to_device_updated` and similar methods provide the recommended API
-- [x] Legacy callback methods remain for backward compatibility
+- [x] EventBus is now the sole event subscription mechanism
+- [x] `subscribe_to_data_point_updated` and `subscribe_to_device_removed` convenience methods removed from DataPoint; use `EventBus.subscribe()` with `DataPointStateChangedEvent` / `DeviceRemovedEvent` directly
+- [x] `data_point.register()` / `data_point.unregister()` manage data point registration
+- [x] Device/Channel convenience methods (`subscribe_to_device_updated`, `subscribe_to_firmware_updated`, `subscribe_to_link_peer_changed`) remain available
 - [x] Home Assistant integration uses EventBus-based APIs
 
 ## Performance Considerations
@@ -433,6 +431,12 @@ print(f"Failed handlers: {stats['failed_handlers']}")
 
 - Updated migration strategy to reflect completed phases
 - All phases now marked as completed
+
+### 2026-03-31 - Phase 3 Completion
+
+- Removed `subscribe_to_data_point_updated` and `subscribe_to_device_removed` from DataPoint
+- Added `data_point.register()` / `data_point.unregister()` for registration
+- EventBus.subscribe() is now the only subscription API for data point events
 
 ### 2025-11-23 - Full Integration
 

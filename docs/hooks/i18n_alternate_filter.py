@@ -1,9 +1,12 @@
 """
-MkDocs hook: hide language switcher on pages without a translation.
+MkDocs hook: hide language switcher on pages without a real translation.
 
-The mkdocs-static-i18n plugin with reconfigure_material sets the Material
-theme's language selector on every page, even those without a .de.md file.
-This hook removes the selector HTML from pages that have no translation.
+With ``fallback_to_default: true`` the i18n plugin builds every page under
+``/de/`` even when no ``.de.md`` file exists (using the English source as
+fallback).  The Material theme then shows a language selector on *all* pages.
+
+This hook removes the selector on pages that have no actual translation,
+both on the English version and on the German fallback version.
 """
 
 from __future__ import annotations
@@ -27,6 +30,18 @@ def _get_de_sources(docs_dir: str) -> set[str]:
     return _de_sources
 
 
+def _has_translation(src_path: str, docs_dir: str) -> bool:
+    """Check whether a real .de.md translation exists for this page."""
+    de_sources = _get_de_sources(docs_dir)
+
+    if src_path.endswith(".de.md"):
+        # This IS a .de.md page — translation exists by definition
+        return True
+
+    # English page: check if a .de.md sibling exists
+    return src_path.removesuffix(".md") + ".de.md" in de_sources
+
+
 # Pattern: Material theme language selector (minified HTML, attributes without quotes)
 _LANG_SELECTOR_RE = re.compile(
     r'<div class=md-header__option>\s*<div class=md-select>.*?</div>\s*</div>\s*</div>',
@@ -40,18 +55,10 @@ _HREFLANG_RE = re.compile(
 
 
 def on_post_page(output: str, page, config) -> str:
-    """Strip language selector from pages without a translation."""
+    """Strip language selector from pages without a real translation."""
     src_path = page.file.src_path
 
-    # DE pages always keep the switcher (to switch back to EN)
-    if src_path.endswith(".de.md"):
-        return output
-
-    de_src = src_path.removesuffix(".md") + ".de.md"
-    de_sources = _get_de_sources(config.docs_dir)
-
-    if de_src not in de_sources:
-        # No translation — remove language selector and hreflang links
+    if not _has_translation(src_path, config.docs_dir):
         output = _LANG_SELECTOR_RE.sub("", output)
         output = _HREFLANG_RE.sub("", output)
 

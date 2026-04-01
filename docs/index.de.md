@@ -10,20 +10,20 @@ translation_source_hash: f3d60a848470
 [![Python versions](https://img.shields.io/pypi/pyversions/aiohomematic.svg)](https://pypi.org/project/aiohomematic/)
 [![License](https://img.shields.io/github/license/sukramj/aiohomematic)](https://github.com/sukramj/aiohomematic/blob/master/LICENSE)
 
-**Moderne async Python-Bibliothek fuer Homematic- und HomematicIP-Geraete.**
+**Moderne async Python-Bibliothek für Homematic- und HomematicIP-Geräte.**
 
-aiohomematic bildet die Grundlage der [Homematic(IP) Local](https://github.com/sukramj/homematicip_local)-Integration fuer Home Assistant und ermoeglicht die lokale Steuerung von Homematic-Geraeten ohne Cloud-Abhaengigkeit.
+aiohomematic bildet die Grundlage der [Homematic(IP) Local](https://github.com/sukramj/homematicip_local)-Integration für Home Assistant und ermöglicht die lokale Steuerung von Homematic-Geräten ohne Cloud-Abhängigkeit.
 
 ---
 
 ## Funktionen
 
-- **Async-first**: Basiert auf `asyncio` fuer nicht-blockierende I/O-Operationen
-- **Typsicher**: Vollstaendig typisiert mit strikter `mypy`-Durchsetzung
-- **Automatische Erkennung**: Automatische Entity-Erstellung aus Geraete-Parametern
-- **Erweiterbar**: Benutzerdefinierte Entity-Klassen fuer geraetespezifische Funktionen
-- **Schneller Start**: Paramset-Caching fuer schnelle Initialisierung
-- **Multi-Backend**: Unterstuetzt CCU3, CCU2, Homegear und RaspberryMatic
+- **Async-first**: Basiert auf `asyncio` für nicht-blockierende I/O-Operationen
+- **Typsicher**: Vollständig typisiert mit strikter `mypy`-Durchsetzung
+- **Automatische Erkennung**: Automatische Entity-Erstellung aus Geräte-Parametern
+- **Erweiterbar**: Benutzerdefinierte Entity-Klassen für gerätespezifische Funktionen
+- **Schneller Start**: Paramset-Caching für schnelle Initialisierung
+- **Multi-Backend**: Unterstützt CCU3, CCU2, Homegear und RaspberryMatic
 
 ## Schnellstart
 
@@ -72,43 +72,43 @@ async def main():
 asyncio.run(main())
 ```
 
-## Dokumentationsuebersicht
+## Dokumentationsübersicht
 
-### Fuer Benutzer (Home Assistant)
+### Für Benutzer (Home Assistant)
 
-- [Benutzerhandbuch](user/homeassistant_integration.md) - Vollstaendige Integrationsanleitung
+- [Benutzerhandbuch](user/homeassistant_integration.md) - Vollständige Integrationsanleitung
 - **Funktionen**:
-  - [Action-Referenz](user/features/homeassistant_actions.md) - Verfuegbare Home Assistant Actions
+  - [Action-Referenz](user/features/homeassistant_actions.md) - Verfügbare Home Assistant Actions
   - [CCU-Sicherung](user/features/backup.md) - Sicherungsagent und manuelle Sicherung
   - [Berechnete Klima-Sensoren](user/features/calculated_climate_sensors.md) - Abgeleitete Klimamesswerte
   - [Klimaplan-Karte](user/features/climate_schedule_card.md) - Klimaplan-UI-Karte
-  - [Geraetekonfigurations-Panel](user/features/config_panel.md) - Geraetekonfiguration in HA
+  - [Gerätekonfigurations-Panel](user/features/config_panel.md) - Gerätekonfiguration in HA
   - [Optimistische Aktualisierungen](user/features/optimistic_updates.md) - Sofortiges UI-Feedback und Rollback
   - [Zeitplan-Karte](user/features/schedule_card.md) - Zeitplan-Verwaltungs-UI-Karte
   - [Wochenprofil](user/features/week_profile.md) - Wochenplan-Verwaltung
-- [Fehlerbehebung](troubleshooting/index.md) - Haeufige Probleme und Loesungen
-- [Haeufige Fragen](faq.md) - Haeufig gestellte Fragen
-- [Glossar](reference/glossary.md) - Begriffsuebersicht
+- [Fehlerbehebung](troubleshooting/index.md) - Häufige Probleme und Lösungen
+- [Häufige Fragen](faq.md) - Häufig gestellte Fragen
+- [Glossar](reference/glossary.md) - Begriffsübersicht
 
-### Fuer Entwickler (Bibliotheksnutzung)
+### Für Entwickler (Bibliotheksnutzung)
 
 - [Schnellstart](quickstart.md) - In 5 Minuten einsatzbereit
 - [Erste Schritte](getting_started.md) - Detaillierte Einrichtungsanleitung
-- [Consumer API](developer/consumer_api.md) - API-Muster fuer Integrationen
+- [Consumer API](developer/consumer_api.md) - API-Muster für Integrationen
 - [API-Referenz](reference/api/index.md) - Automatisch generierte API-Dokumentation
-- [Architektur](architecture.md) - Uebersicht ueber das Systemdesign
+- [Architektur](architecture.md) - Übersicht über das Systemdesign
 - [Protokoll-Auswahlleitfaden](architecture/protocol_selection_guide.md) - Auswahl der richtigen Protokoll-Schnittstelle
 
-### Fuer Mitwirkende
+### Für Mitwirkende
 
 - [Mitwirken](contributor/contributing.md) - So kann man beitragen
 - [Coding-Standards](contributor/coding/naming.md) - Namens- und Stilkonventionen
 - [ADRs](adr/index.md) - Architecture Decision Records
-- [Aenderungsprotokoll](changelog.md) - Versionshistorie
+- [Änderungsprotokoll](changelog.md) - Versionshistorie
 
-## Unterstuetzte Geraete
+## Unterstützte Geräte
 
-aiohomematic unterstuetzt eine breite Palette von Homematic- und HomematicIP-Geraeten:
+aiohomematic unterstützt eine breite Palette von Homematic- und HomematicIP-Geräten:
 
 | Kategorie     | Beispiele                         |
 | ------------- | --------------------------------- |
@@ -120,24 +120,24 @@ aiohomematic unterstuetzt eine breite Palette von Homematic- und HomematicIP-Ger
 | **Sensor**    | HmIP-SRH, HmIP-SWSD, HmIP-SMI     |
 | **Sirene**    | HmIP-ASIR, HmIP-MP3P              |
 
-Eine vollstaendige Liste ist in der Dokumentation der [Erweiterungspunkte](developer/extension_points.md) zu finden.
+Eine vollständige Liste ist in der Dokumentation der [Erweiterungspunkte](developer/extension_points.md) zu finden.
 
-## Zwei Projekte, ein Oekosystem
+## Zwei Projekte, ein Ökosystem
 
 Diese Dokumentation umfasst **zwei verwandte, aber separate Projekte**:
 
-| Projekt                 | Typ               | Zweck                                   | Repository                                                        |
-| ----------------------- | ----------------- | --------------------------------------- | ----------------------------------------------------------------- |
-| **aiohomematic**        | Python-Bibliothek | Protokollimplementierung, Geraetemodell | [aiohomematic](https://github.com/sukramj/aiohomematic)           |
-| **Homematic(IP) Local** | HA-Integration    | Home Assistant Entities, UI, Services   | [homematicip_local](https://github.com/sukramj/homematicip_local) |
+| Projekt                 | Typ               | Zweck                                  | Repository                                                        |
+| ----------------------- | ----------------- | -------------------------------------- | ----------------------------------------------------------------- |
+| **aiohomematic**        | Python-Bibliothek | Protokollimplementierung, Gerätemodell | [aiohomematic](https://github.com/sukramj/aiohomematic)           |
+| **Homematic(IP) Local** | HA-Integration    | Home Assistant Entities, UI, Services  | [homematicip_local](https://github.com/sukramj/homematicip_local) |
 
-### Welche Dokumentation wird benoetigt?
+### Welche Dokumentation wird benötigt?
 
 - **Home Assistant-Benutzer?** → Mit dem [Benutzerhandbuch](user/homeassistant_integration.md) beginnen
 - **Eine Python-Anwendung erstellen?** → Siehe [Schnellstart](quickstart.md) und [Consumer API](developer/consumer_api.md)
-- **Code beitragen?** → Den [Leitfaden fuer Mitwirkende](contributor/contributing.md) lesen
+- **Code beitragen?** → Den [Leitfaden für Mitwirkende](contributor/contributing.md) lesen
 
-### Architekturuebersicht
+### Architekturübersicht
 
 ```
 Home Assistant
@@ -146,16 +146,16 @@ Home Assistant
 Homematic(IP) Local Integration    ← HA-spezifisch: Entities, Services, UI
      │
      ▼
-aiohomematic-Bibliothek            ← Eigenstaendig: Protokoll, Geraete, Ereignisse
+aiohomematic-Bibliothek            ← Eigenständig: Protokoll, Geräte, Ereignisse
      │
      ▼
 CCU3 / OpenCCU / Homegear          ← Backend-Hardware/-Software
      │
      ▼
-Homematic-Geraete                  ← Physische Geraete
+Homematic-Geräte                  ← Physische Geräte
 ```
 
-Siehe [Home Assistant Lebenszyklus](developer/homeassistant_lifecycle.md) fuer den detaillierten Integrationsablauf.
+Siehe [Home Assistant Lebenszyklus](developer/homeassistant_lifecycle.md) für den detaillierten Integrationsablauf.
 
 ## Links
 
@@ -167,4 +167,4 @@ Siehe [Home Assistant Lebenszyklus](developer/homeassistant_lifecycle.md) fuer d
 
 ## Lizenz
 
-MIT-Lizenz - siehe [LICENSE](https://github.com/sukramj/aiohomematic/blob/master/LICENSE) fuer Details.
+MIT-Lizenz - siehe [LICENSE](https://github.com/sukramj/aiohomematic/blob/master/LICENSE) für Details.

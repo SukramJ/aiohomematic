@@ -5,8 +5,8 @@
 Documentation translation status checker and coordinator.
 
 This script manages the translation lifecycle for mkdocs documentation.
-English source files in docs/ are tracked against their German translations
-in docs/de/ using content hashes.
+English source files (docs/*.md) are tracked against their German translations
+(docs/*.de.md) using content hashes. Uses suffix-based i18n structure.
 
 Translation is done **manually** via Claude Code (local), not via API.
 This script only handles status checking, hash tracking, and file scaffolding.
@@ -23,7 +23,7 @@ Usage::
     python script/translate_docs.py --scaffold
 
     # Mark a DE file as up-to-date (after manual translation via Claude Code)
-    python script/translate_docs.py --mark-current docs/de/quickstart.md
+    python script/translate_docs.py --mark-current docs/quickstart.de.md
 
 Exit codes:
     0 - All translations are up to date (--check) or operation succeeded
@@ -36,8 +36,7 @@ from pathlib import Path
 
 # Docs root
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
-DE_DIR = DOCS_DIR / "de"
-GLOSSARY_FILE = DE_DIR / "glossary_terms.yml"
+GLOSSARY_FILE = DOCS_DIR / "glossary_terms.yml"
 
 # Phase 1 files (highest priority for translation)
 PHASE_1_FILES = [
@@ -79,17 +78,32 @@ Source: docs/{rel_path}
 
 To translate:
 1. Open this file and the English source side by side
-2. Use Claude Code: "Translate docs/{rel_path} to German, write to docs/de/{rel_path}"
-3. Run: python script/translate_docs.py --mark-current docs/de/{rel_path}
+2. Use Claude Code: "Translate docs/{rel_path} to German, write to {de_path}"
+3. Run: python script/translate_docs.py --mark-current {de_path}
 
-Translation rules are defined in docs/de/glossary_terms.yml
+Translation rules are defined in docs/glossary_terms.yml
 -->
 
-!!! warning "Diese Seite ist noch nicht uebersetzt"
+!!! warning "Diese Seite ist noch nicht übersetzt"
 
-    Diese Seite ist noch nicht auf Deutsch verfuegbar.
-    Bitte nutzen Sie die [englische Version](../{rel_path}).
+    Diese Seite ist noch nicht auf Deutsch verfügbar.
+    Bitte nutzen Sie die [englische Version]({en_name}).
 """
+
+
+def _en_to_de_path(en_path: Path) -> Path:
+    """Convert an English doc path to its German suffix-based counterpart."""
+    return en_path.with_suffix(".de.md")
+
+
+def _de_to_en_path(de_path: Path) -> Path:
+    """Convert a German suffix-based path to its English counterpart."""
+    # foo.de.md -> foo.md
+    name = de_path.name
+    if name.endswith(".de.md"):
+        en_name = name.removesuffix(".de.md") + ".md"
+        return de_path.with_name(en_name)
+    return de_path
 
 
 def compute_hash(path: Path) -> str:
@@ -125,7 +139,7 @@ def get_file_status(en_path: Path) -> tuple[str, str]:
 
     """
     rel = en_path.relative_to(DOCS_DIR)
-    de_path = DE_DIR / rel
+    de_path = _en_to_de_path(en_path)
 
     if not de_path.exists():
         return "missing", str(rel)
@@ -133,7 +147,7 @@ def get_file_status(en_path: Path) -> tuple[str, str]:
     de_content = de_path.read_text(encoding="utf-8")
 
     # Check if it's a scaffold placeholder
-    if "Diese Seite ist noch nicht uebersetzt" in de_content:
+    if "Diese Seite ist noch nicht übersetzt" in de_content:
         return "scaffold", str(rel)
 
     metadata = parse_translation_header(de_content)
@@ -150,14 +164,15 @@ def get_target_files(files: list[str] | None) -> list[Path]:
     if files:
         result = []
         for f in files:
-            # Accept both docs/foo.md and foo.md
             p = Path(f)
             if not p.is_absolute():
-                if str(p).startswith("docs/de/"):
+                name = str(p)
+                if name.endswith(".de.md"):
                     # Convert DE path to EN path
-                    p = DOCS_DIR / str(p).removeprefix("docs/de/")
-                elif str(p).startswith("docs/"):
-                    p = Path(f)
+                    en_name = name.removesuffix(".de.md") + ".md"
+                    p = DOCS_DIR.parent / en_name if en_name.startswith("docs/") else DOCS_DIR / en_name
+                elif name.startswith("docs/"):
+                    p = DOCS_DIR.parent / name
                 else:
                     p = DOCS_DIR / f
             if p.exists():
@@ -188,8 +203,8 @@ def cmd_status(files: list[str] | None) -> int:
 
     if counts["missing"] + counts["outdated"] + counts["scaffold"] > 0:
         print("\nTo translate, use Claude Code:")
-        print('  "Translate docs/<file>.md to German following docs/de/glossary_terms.yml"')
-        print("  Then run: python script/translate_docs.py --mark-current docs/de/<file>.md")
+        print('  "Translate docs/<file>.md to German following docs/glossary_terms.yml"')
+        print("  Then run: python script/translate_docs.py --mark-current docs/<file>.de.md")
     return 0
 
 
@@ -229,12 +244,16 @@ def cmd_scaffold(files: list[str] | None) -> int:
             continue
 
         rel = en_path.relative_to(DOCS_DIR)
-        de_path = DE_DIR / rel
-        de_path.parent.mkdir(parents=True, exist_ok=True)
+        de_path = _en_to_de_path(en_path)
+        de_rel = de_path.relative_to(DOCS_DIR)
 
-        content = SCAFFOLD_CONTENT.format(rel_path=rel)
+        content = SCAFFOLD_CONTENT.format(
+            rel_path=rel,
+            de_path=f"docs/{de_rel}",
+            en_name=en_path.name,
+        )
         de_path.write_text(content, encoding="utf-8")
-        print(f"  Created scaffold: docs/de/{rel}")
+        print(f"  Created scaffold: docs/{de_rel}")
         created += 1
 
     print(f"\n{created} scaffold(s) created.")
@@ -251,23 +270,23 @@ def cmd_mark_current(files: list[str]) -> int:
     for f in files:
         de_path = Path(f)
         if not de_path.is_absolute():
-            de_path = DOCS_DIR.parent / de_path if str(de_path).startswith("docs/de/") else DE_DIR / f
+            de_path = DOCS_DIR.parent / de_path if str(de_path).startswith("docs/") else DOCS_DIR / f
+
         if not de_path.exists():
             print(f"  ERROR: {de_path} does not exist")
             continue
 
-        # Derive EN source path
-        try:
-            rel = de_path.relative_to(DE_DIR)
-        except ValueError:
-            print(f"  ERROR: {de_path} is not under docs/de/")
+        if not de_path.name.endswith(".de.md"):
+            print(f"  ERROR: {de_path} is not a .de.md file")
             continue
 
-        en_path = DOCS_DIR / rel
+        # Derive EN source path
+        en_path = _de_to_en_path(de_path)
         if not en_path.exists():
             print(f"  ERROR: Source {en_path} does not exist")
             continue
 
+        rel = en_path.relative_to(DOCS_DIR)
         source_hash = compute_hash(en_path)
         today = __import__("datetime").date.today().isoformat()
 
@@ -283,7 +302,8 @@ def cmd_mark_current(files: list[str]) -> int:
             de_content = new_header + "\n" + de_content
 
         de_path.write_text(de_content, encoding="utf-8")
-        print(f"  Marked current: docs/de/{rel} (hash: {source_hash})")
+        de_rel = de_path.relative_to(DOCS_DIR)
+        print(f"  Marked current: docs/{de_rel} (hash: {source_hash})")
         updated += 1
 
     print(f"\n{updated} file(s) marked as current.")

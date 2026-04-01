@@ -207,7 +207,7 @@ plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - i18n:
-      docs_structure: folder
+      docs_structure: suffix
       reconfigure_material: true
       languages:
         - locale: en

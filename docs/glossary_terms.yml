@@ -63,15 +63,15 @@ Getting Started: Erste Schritte
 User Guide: Benutzerhandbuch
 Developer Guide: Entwicklerhandbuch
 Troubleshooting: Fehlerbehebung
-FAQ: "Haeufige Fragen"
+FAQ: "Häufige Fragen"
 Features: Funktionen
 Settings: Einstellungen
 Configuration: Konfiguration
-Overview: "Uebersicht"
+Overview: "Übersicht"
 
 # --- Common terms (translate) ---
-device: "Geraet"
-devices: "Geraete"
+device: "Gerät"
+devices: "Geräte"
 interface: Schnittstelle
 parameter: Parameter
 value: Wert
@@ -85,7 +85,7 @@ cover: Abdeckung
 thermostat: Thermostat
 firmware: Firmware
 battery: Batterie
-signal strength: "Signalstaerke"
+signal strength: "Signalstärke"
 connection: Verbindung
 subscription: Abonnement
 event: Ereignis
@@ -100,4 +100,4 @@ Examples: Beispiele
 Notes: Hinweise
 Warning: Warnung
 See also: Siehe auch
-Next steps: "Naechste Schritte"
+Next steps: "Nächste Schritte"

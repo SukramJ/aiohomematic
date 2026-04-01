@@ -10,18 +10,18 @@ Diese Seite dokumentiert alle benutzerdefinierten Actions, die von der Homematic
 
 ---
 
-## Geraetwert-Operationen
+## Gerätewert-Operationen
 
 ### homematicip_local.get_device_value
 
-Einen Geraeteparameter ueber die XML-RPC-Schnittstelle abrufen.
+Einen Geräteparameter über die XML-RPC-Schnittstelle abrufen.
 
 ### homematicip_local.set_device_value
 
-Einen Geraeteparameter ueber die XML-RPC-Schnittstelle setzen.
+Einen Geräteparameter über die XML-RPC-Schnittstelle setzen.
 
 !!! warning "Speicher-Warnung"
-Zu haeufiges Schreiben in das MASTER-Paramset des Geraets kann den Speicher des Geraets beschaedigen.
+Zu häufiges Schreiben in das MASTER-Paramset des Geräts kann den Speicher des Geräts beschädigen.
 
 **Beispiel - Einen Schalter einschalten:**
 
@@ -53,14 +53,14 @@ data:
 
 ### homematicip_local.get_paramset
 
-`getParamset` auf der XML-RPC-Schnittstelle aufrufen. Gibt ein Paramset zurueck.
+`getParamset` auf der XML-RPC-Schnittstelle aufrufen. Gibt ein Paramset zurück.
 
 ### homematicip_local.put_paramset
 
 `putParamset` auf der XML-RPC-Schnittstelle aufrufen.
 
 !!! warning "Speicher-Warnung"
-Zu haeufiges Schreiben in das MASTER-Paramset des Geraets kann den Speicher des Geraets beschaedigen.
+Zu häufiges Schreiben in das MASTER-Paramset des Geräts kann den Speicher des Geräts beschädigen.
 
 **Beispiel - Wochenprogramm setzen:**
 
@@ -85,52 +85,52 @@ data:
     WEEK_PROGRAM_POINTER: 1
 ```
 
-!!! note "rx_mode-Optionen" - `BURST` (Standard): Weckt alle Geraete sofort auf (verbraucht Batterie) - `WAKEUP`: Sendet Daten nach Geraete-Rueckmeldung (schont Batterie, ca. 3 Min. Verzoegerung)
+!!! note "rx_mode-Optionen" - `BURST` (Standard): Weckt alle Geräte sofort auf (verbraucht Batterie) - `WAKEUP`: Sendet Daten nach Geräte-Rückmeldung (schont Batterie, ca. 3 Min. Verzögerung)
 
 ### homematicip_local.get_link_paramset
 
-`getParamset` fuer Direktverknuepfungen auf der XML-RPC-Schnittstelle aufrufen.
+`getParamset` für Direktverknüpfungen auf der XML-RPC-Schnittstelle aufrufen.
 
 ### homematicip_local.put_link_paramset
 
-`putParamset` fuer Direktverknuepfungen auf der XML-RPC-Schnittstelle aufrufen.
+`putParamset` für Direktverknüpfungen auf der XML-RPC-Schnittstelle aufrufen.
 
 ---
 
-## Verknuepfungs-Operationen
+## Verknüpfungs-Operationen
 
 ### homematicip_local.add_link
 
-`addLink` auf der XML-RPC-Schnittstelle aufrufen. Erstellt eine Direktverknuepfung.
+`addLink` auf der XML-RPC-Schnittstelle aufrufen. Erstellt eine Direktverknüpfung.
 
 ### homematicip_local.remove_link
 
-`removeLink` auf der XML-RPC-Schnittstelle aufrufen. Entfernt eine Direktverknuepfung.
+`removeLink` auf der XML-RPC-Schnittstelle aufrufen. Entfernt eine Direktverknüpfung.
 
 ### homematicip_local.get_link_peers
 
-`getLinkPeers` auf der XML-RPC-Schnittstelle aufrufen. Gibt ein Dictionary der Direktverknuepfungs-Partner zurueck.
+`getLinkPeers` auf der XML-RPC-Schnittstelle aufrufen. Gibt ein Dictionary der Direktverknüpfungs-Partner zurück.
 
 ### homematicip_local.create_central_links
 
-Erstellt eine zentrale Verknuepfung von einem Geraet zum Backend. Erforderlich fuer RF-Geraete, um Tastendruck-Ereignisse zu aktivieren.
+Erstellt eine zentrale Verknüpfung von einem Gerät zum Backend. Erforderlich für RF-Geräte, um Tastendruck-Ereignisse zu aktivieren.
 
 ### homematicip_local.remove_central_links
 
-Entfernt eine zentrale Verknuepfung vom Backend. Deaktiviert Tastendruck-Ereignisse.
+Entfernt eine zentrale Verknüpfung vom Backend. Deaktiviert Tastendruck-Ereignisse.
 
 ---
 
 ## Zeitplan-Operationen
 
-Alle Zeitplan-Services sind **geraetebasiert** -- sie sprechen ein Geraet ueber `device_id` oder `device_address` an statt ueber eine Entity. Dieser einheitliche Ansatz funktioniert fuer alle Geraetetypen (Klima, Schalter, Licht, Abdeckung, Ventil).
+Alle Zeitplan-Services sind **gerätebasiert** -- sie sprechen ein Gerät über `device_id` oder `device_address` an statt über eine Entity. Dieser einheitliche Ansatz funktioniert für alle Gerätetypen (Klima, Schalter, Licht, Abdeckung, Ventil).
 
 !!! warning "Speicher-Warnung"
-Zu haeufiges Schreiben auf das Geraet kann den Speicher des Geraets beschaedigen.
+Zu häufiges Schreiben auf das Gerät kann den Speicher des Geräts beschädigen.
 
 ### homematicip_local.get_schedule
 
-Gibt den vollstaendigen Zeitplan eines Geraets zurueck. Funktioniert sowohl fuer Klima- als auch fuer Nicht-Klima-Geraete.
+Gibt den vollständigen Zeitplan eines Geräts zurück. Funktioniert sowohl für Klima- als auch für Nicht-Klima-Geräte.
 
 ```yaml
 action: homematicip_local.get_schedule
@@ -140,7 +140,7 @@ data:
 
 ### homematicip_local.set_schedule
 
-Setzt den vollstaendigen Zeitplan auf einem Geraet. Fuer Nicht-Klima-Geraete `schedule_data` mit Entry-Dict-Format verwenden.
+Setzt den vollständigen Zeitplan auf einem Gerät. Für Nicht-Klima-Geräte `schedule_data` mit Entry-Dict-Format verwenden.
 
 ```yaml
 action: homematicip_local.set_schedule
@@ -158,9 +158,9 @@ data:
 
 ### homematicip_local.get_schedule_profile
 
-Gibt ein einzelnes Klima-Zeitplanprofil in vereinfachtem Format zurueck. Nur fuer Klimageraete.
+Gibt ein einzelnes Klima-Zeitplanprofil in vereinfachtem Format zurück. Nur für Klimageräte.
 
-Der Service analysiert den Zeitplan und bestimmt `base_temperature` als die am haeufigsten verwendete Temperatur. Nur abweichende Zeitraeume werden zurueckgegeben.
+Der Service analysiert den Zeitplan und bestimmt `base_temperature` als die am häufigsten verwendete Temperatur. Nur abweichende Zeiträume werden zurückgegeben.
 
 ```yaml
 action: homematicip_local.get_schedule_profile
@@ -171,7 +171,7 @@ data:
 
 ### homematicip_local.get_schedule_weekday
 
-Gibt den Zeitplan fuer einen bestimmten Wochentag eines Klimaprofils in vereinfachtem Format zurueck.
+Gibt den Zeitplan für einen bestimmten Wochentag eines Klimaprofils in vereinfachtem Format zurück.
 
 ```yaml
 action: homematicip_local.get_schedule_weekday
@@ -183,13 +183,13 @@ data:
 
 ### homematicip_local.set_schedule_profile
 
-Sendet einen vollstaendigen Zeitplan fuer ein Klimaprofil im **vereinfachten Format**. Nur fuer Klimageraete.
+Sendet einen vollständigen Zeitplan für ein Klimaprofil im **vereinfachten Format**. Nur für Klimageräte.
 
 **Funktionsweise:**
 
 - Jeder Wochentag hat eine `base_temperature` und eine Liste von `periods`
 - Nur aktive Heizperioden mit `starttime`, `endtime` und `temperature` angeben
-- Luecken werden automatisch mit `base_temperature` gefuellt
+- Lücken werden automatisch mit `base_temperature` gefüllt
 - Das System konvertiert in das erforderliche 13-Slot-Format
 
 **Beispiel:**
@@ -226,7 +226,7 @@ data:
 
 ### homematicip_local.set_schedule_weekday
 
-Sendet den Zeitplan fuer einen einzelnen Wochentag im vereinfachten Format. Nur fuer Klimageraete.
+Sendet den Zeitplan für einen einzelnen Wochentag im vereinfachten Format. Nur für Klimageräte.
 
 **Beispiel:**
 
@@ -253,20 +253,20 @@ data:
 
 - 00:00-05:00: 16°C (base_temperature)
 - 05:00-06:00: 17°C (Zeitraum 1)
-- 06:00-09:00: 16°C (Basistemperatur fuellt Luecke)
+- 06:00-09:00: 16°C (Basistemperatur füllt Lücke)
 - 09:00-15:00: 17°C (Zeitraum 2)
-- 15:00-19:00: 16°C (Basistemperatur fuellt Luecke)
+- 15:00-19:00: 16°C (Basistemperatur füllt Lücke)
 - 19:00-22:00: 22°C (Zeitraum 3)
 - 22:00-24:00: 16°C (base_temperature)
 
 ### homematicip_local.copy_schedule
 
-Kopiert den vollstaendigen Zeitplan (alle Profile P1-P6, alle Wochentage) von einem Klimageraet auf ein anderes.
+Kopiert den vollständigen Zeitplan (alle Profile P1-P6, alle Wochentage) von einem Klimagerät auf ein anderes.
 
 **Voraussetzungen:**
 
-- Beide Geraete muessen Klima-Zeitplaene unterstuetzen
-- Beide Geraete muessen die gleiche Anzahl an Profilen unterstuetzen
+- Beide Geräte müssen Klima-Zeitpläne unterstützen
+- Beide Geräte müssen die gleiche Anzahl an Profilen unterstützen
 
 ```yaml
 action: homematicip_local.copy_schedule
@@ -277,13 +277,13 @@ data:
 
 ### homematicip_local.copy_schedule_profile
 
-Kopiert ein einzelnes Zeitplanprofil von einem Geraet auf ein anderes (oder auf ein anderes Profil desselben Geraets).
+Kopiert ein einzelnes Zeitplanprofil von einem Gerät auf ein anderes (oder auf ein anderes Profil desselben Geräts).
 
-**Anwendungsfaelle:**
+**Anwendungsfälle:**
 
-- P1 von Geraet A nach P2 auf Geraet A kopieren
-- P1 von Geraet A nach P1 auf Geraet B kopieren
-- P3 von Geraet A nach P1 auf Geraet B kopieren
+- P1 von Gerät A nach P2 auf Gerät A kopieren
+- P1 von Gerät A nach P1 auf Gerät B kopieren
+- P3 von Gerät A nach P1 auf Gerät B kopieren
 
 ```yaml
 action: homematicip_local.copy_schedule_profile
@@ -291,7 +291,7 @@ data:
   device_id: abcdefg...
   source_profile: P1
   target_profile: P2
-  target_device_id: hijklmn... # Optional: weglassen beim Kopieren innerhalb desselben Geraets
+  target_device_id: hijklmn... # Optional: weglassen beim Kopieren innerhalb desselben Geräts
 ```
 
 ---
@@ -312,7 +312,7 @@ Abwesenheitsmodus sofort mit Dauer in Stunden aktivieren.
 
 ### homematicip_local.disable_away_mode
 
-Abwesenheitsmodus fuer Klimageraete deaktivieren.
+Abwesenheitsmodus für Klimageräte deaktivieren.
 
 !!! note "Nur HomematicIP"
 
@@ -347,9 +347,9 @@ data:
 
 ### homematicip_local.fetch_system_variables
 
-Systemvariablen auf Abruf laden, unabhaengig vom standardmaessigen 30-Sekunden-Intervall.
+Systemvariablen auf Abruf laden, unabhängig vom standardmäßigen 30-Sekunden-Intervall.
 
-!!! warning "Sparsam verwenden - haeufige Aufrufe koennen die CCU-Stabilitaet beeintraechtigen"
+!!! warning "Sparsam verwenden - häufige Aufrufe können die CCU-Stabilität beeinträchtigen"
 
 ---
 
@@ -360,32 +360,32 @@ Systemvariablen auf Abruf laden, unabhaengig vom standardmaessigen 30-Sekunden-I
 Sirene einschalten. Kann mit `siren.turn_off` deaktiviert werden.
 
 !!! note "Automatische Select-Entities"
-Seit Version 2.0.0 erstellt die Integration automatisch **Select-Entities** fuer die Auswahl von Sirenenton und Lichtmuster:
+Seit Version 2.0.0 erstellt die Integration automatisch **Select-Entities** für die Auswahl von Sirenenton und Lichtmuster:
 
     - **Sirenenton** (`select.<device>_acoustic_alarm_selection`)
     - **Sirenen-Lichtmuster** (`select.<device>_optical_alarm_selection`)
 
-    Diese Auswahl bleibt ueber Neustarts erhalten und wird automatisch beim Aufruf von Sirenen-Services verwendet.
+    Diese Auswahl bleibt über Neustarts erhalten und wird automatisch beim Aufruf von Sirenen-Services verwendet.
 
 ### homematicip_local.play_sound
 
-Einen Sound auf HmIP-MP3P-Soundplayer-Geraeten abspielen.
+Einen Sound auf HmIP-MP3P-Soundplayer-Geräten abspielen.
 
 | Feld          | Erforderlich | Beschreibung                                            |
 | ------------- | ------------ | ------------------------------------------------------- |
 | `soundfile`   | Nein         | Sounddatei (z.B. `SOUNDFILE_001`, `INTERNAL_SOUNDFILE`) |
-| `volume`      | Nein         | Lautstaerke (0.0 bis 1.0)                               |
+| `volume`      | Nein         | Lautstärke (0.0 bis 1.0)                                |
 | `on_time`     | Nein         | Dauer in Sekunden                                       |
-| `ramp_time`   | Nein         | Lautstaerke-Einblendzeit in Sekunden                    |
+| `ramp_time`   | Nein         | Lautstärke-Einblendzeit in Sekunden                     |
 | `repetitions` | Nein         | Wiederholungen (0=keine, 1-18=Anzahl, -1=endlos)        |
 
 ### homematicip_local.stop_sound
 
-Soundwiedergabe auf HmIP-MP3P-Geraeten stoppen.
+Soundwiedergabe auf HmIP-MP3P-Geräten stoppen.
 
 ### homematicip_local.set_sound_led
 
-LED-Farbe und -Helligkeit auf HmIP-MP3P-Geraeten setzen.
+LED-Farbe und -Helligkeit auf HmIP-MP3P-Geräten setzen.
 
 | Feld          | Erforderlich | Beschreibung                                                                         |
 | ------------- | ------------ | ------------------------------------------------------------------------------------ |
@@ -410,15 +410,15 @@ Eine Jalousie gleichzeitig auf eine bestimmte Position und Neigungsposition fahr
 
 ### homematicip_local.light_set_on_time
 
-Einschaltzeit fuer eine Licht-Entity setzen. Muss von `light.turn_on` gefolgt werden. 0 verwenden zum Zuruecksetzen.
+Einschaltzeit für eine Licht-Entity setzen. Muss von `light.turn_on` gefolgt werden. 0 verwenden zum Zurücksetzen.
 
 ### homematicip_local.switch_set_on_time
 
-Einschaltzeit fuer eine Schalter-Entity setzen. Muss von `switch.turn_on` gefolgt werden. 0 verwenden zum Zuruecksetzen.
+Einschaltzeit für eine Schalter-Entity setzen. Muss von `switch.turn_on` gefolgt werden. 0 verwenden zum Zurücksetzen.
 
 ### homematicip_local.valve_set_on_time
 
-Einschaltzeit fuer eine Ventil-Entity setzen. Muss von `valve.open` gefolgt werden. 0 verwenden zum Zuruecksetzen.
+Einschaltzeit für eine Ventil-Entity setzen. Muss von `valve.open` gefolgt werden. 0 verwenden zum Zurücksetzen.
 
 ---
 
@@ -426,7 +426,7 @@ Einschaltzeit fuer eine Ventil-Entity setzen. Muss von `valve.open` gefolgt werd
 
 ### homematicip_local.send_text_display
 
-Text an eine Notify-Entity senden (Textanzeigegeraete wie HmIP-WRCD).
+Text an eine Notify-Entity senden (Textanzeigegeräte wie HmIP-WRCD).
 
 | Feld               | Erforderlich | Beschreibung                                                                                                                                       |
 | ------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -436,11 +436,11 @@ Text an eine Notify-Entity senden (Textanzeigegeraete wie HmIP-WRCD).
 | `background_color` | Nein         | Hintergrundfarbe: `white`, `black`                                                                                                                 |
 | `text_color`       | Nein         | Textfarbe: `white`, `black`                                                                                                                        |
 | `alignment`        | Nein         | Textausrichtung: `left`, `center`, `right`                                                                                                         |
-| `display_id`       | Nein         | Display-ID (1-5) fuer Geraete mit mehreren Anzeigen                                                                                                |
+| `display_id`       | Nein         | Display-ID (1-5) für Geräte mit mehreren Anzeigen                                                                                                  |
 | `sound`            | Nein         | Sound: `disarmed`, `externally_armed`, `internally_armed`, `delayed_externally_armed`, `delayed_internally_armed`, `event`, `error`, `low_battery` |
 | `repeat`           | Nein         | Wiederholungsanzahl (0-15)                                                                                                                         |
 
-**Verfuegbare Symbole:**
+**Verfügbare Symbole:**
 
 `no_icon`, `sun`, `moon`, `cloud`, `cloud_and_sun`, `cloud_and_mooon`, `cloud_sun_and_rain`, `rain`, `raindrop`, `drizzle`, `snow`, `snowflake`, `wind`, `thunderstorm`, `bell`, `clock`, `eco`, `flame`, `lamp_on`, `lamp_off`, `padlock_open`, `padlock_closed`, `error`, `everything_okay`, `information`, `new_message`, `service_message`, `shutters`, `window_open`, `external_protection`, `internal_protection`, `protection_deactivated`
 
@@ -461,42 +461,42 @@ data:
 
 ### homematicip_local.clear_text_display
 
-Text auf einer Notify-Entity (Textanzeige) loeschen.
+Text auf einer Notify-Entity (Textanzeige) löschen.
 
 ---
 
-## Geraeteverwaltung
+## Geräteverwaltung
 
 ### homematicip_local.export_device_definition
 
-Exportiert eine Geraetedefinition als ZIP-Datei nach:
+Exportiert eine Gerätedefinition als ZIP-Datei nach:
 `{HA_config}/homematicip_local/{device_model}.zip`
 
-Die ZIP-Datei enthaelt:
+Die ZIP-Datei enthält:
 
 - `device_descriptions/{device_model}.json`
 - `paramset_descriptions/{device_model}.json`
 
-Auf [pydevccu](https://github.com/sukramj/pydevccu) hochladen, um die Entwicklung neuer Geraete zu unterstuetzen.
+Auf [pydevccu](https://github.com/sukramj/pydevccu) hochladen, um die Entwicklung neuer Geräte zu unterstützen.
 
 ### homematicip_local.reload_device_config
 
-Geraetekonfiguration von der CCU neu laden. Aktualisiert Paramset-Beschreibungen und Werte.
+Gerätekonfiguration von der CCU neu laden. Aktualisiert Paramset-Beschreibungen und Werte.
 
 ### homematicip_local.reload_channel_config
 
-Konfiguration fuer einen bestimmten Channel von der CCU neu laden.
+Konfiguration für einen bestimmten Channel von der CCU neu laden.
 
 ### homematicip_local.force_device_availability
 
-Ein Geraet in HA reaktivieren, das durch ein UNREACH-Ereignis als nicht verfuegbar markiert wurde.
+Ein Gerät in HA reaktivieren, das durch ein UNREACH-Ereignis als nicht verfügbar markiert wurde.
 
-!!! warning "Keine Loesung fuer Kommunikationsprobleme"
-Dies ueberschreibt lediglich den Verfuegbarkeitsstatus in HA. Es findet keine Kommunikation mit dem Backend statt.
+!!! warning "Keine Lösung für Kommunikationsprobleme"
+Dies überschreibt lediglich den Verfügbarkeitsstatus in HA. Es findet keine Kommunikation mit dem Backend statt.
 
 ### homematicip_local.confirm_all_delayed_devices
 
-Bestaetigt alle verzoegerten Geraete (CCU-Posteingang) auf einmal und fuegt sie ohne benutzerdefinierte Namen zu Home Assistant hinzu.
+Bestätigt alle verzögerten Geräte (CCU-Posteingang) auf einmal und fügt sie ohne benutzerdefinierte Namen zu Home Assistant hinzu.
 
 ---
 
@@ -504,7 +504,7 @@ Bestaetigt alle verzoegerten Geraete (CCU-Posteingang) auf einmal und fuegt sie 
 
 ### homematicip_local.clear_cache
 
-Loescht den Cache einer Zentraleinheit aus Home Assistant. Erfordert einen Neustart.
+Löscht den Cache einer Zentraleinheit aus Home Assistant. Erfordert einen Neustart.
 
 ### homematicip_local.record_session
 
@@ -516,11 +516,11 @@ Zeichnet eine Sitzung zur Fehlersuche auf (maximal 10 Minuten). Ausgabe gespeich
 Eine Systemsicherung von der CCU erstellen und herunterladen.
 
 !!! note "Nur OpenCCU"
-Diese Funktion ist nur fuer OpenCCU (ehemals RaspberryMatic) verfuegbar. Nicht unterstuetzt auf CCU2, CCU3, Debmatic oder piVCCU.
+Diese Funktion ist nur für OpenCCU (ehemals RaspberryMatic) verfügbar. Nicht unterstützt auf CCU2, CCU3, Debmatic oder piVCCU.
 
 Sicherung gespeichert unter: `{HA_storage}/homematicip_local/backup/`
 
-**Rueckgabe:**
+**Rückgabe:**
 
 ```yaml
 success: true
@@ -529,7 +529,7 @@ filename: "ccu_backup_raspberrymatic_20251203_143022.sbk"
 size: 12345678
 ```
 
-**Automation-Beispiel - Woechentliche Sicherung:**
+**Automation-Beispiel - Wöchentliche Sicherung:**
 
 ```yaml
 automation:
@@ -556,14 +556,14 @@ automation:
 Entity-Wert aktualisieren (begrenzt auf einmal pro 60 Sekunden).
 
 !!! note "Sparsam verwenden"
-99,9 % der Entities aktualisieren sich automatisch. Nur fuer Ausnahmefaelle verwenden (z.B. RSSI-Werte einiger HM-Geraete).
+99,9 % der Entities aktualisieren sich automatisch. Nur für Ausnahmefälle verwenden (z.B. RSSI-Werte einiger HM-Geräte).
 
-    - Batteriegeraete: Werte aus dem Backend-Cache
-    - Nicht-Batteriegeraete: Werte vom Geraet (beeinflusst den Duty Cycle)
+    - Batteriegeräte: Werte aus dem Backend-Cache
+    - Nicht-Batteriegeräte: Werte vom Gerät (beeinflusst den Duty Cycle)
 
 ### homematicip_local.update_device_firmware_data
 
-Firmware-Daten fuer alle Geraete aktualisieren.
+Firmware-Daten für alle Geräte aktualisieren.
 
 ---
 

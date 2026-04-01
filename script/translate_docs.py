@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2021-2026
+"""
+Documentation translation status checker and coordinator.
+
+This script manages the translation lifecycle for mkdocs documentation.
+English source files in docs/ are tracked against their German translations
+in docs/de/ using content hashes.
+
+Translation is done **manually** via Claude Code (local), not via API.
+This script only handles status checking, hash tracking, and file scaffolding.
+
+Usage::
+
+    # Show status of all translatable files
+    python script/translate_docs.py
+
+    # Check which files need translation (CI-friendly, exit code 1 if outdated)
+    python script/translate_docs.py --check
+
+    # Scaffold missing DE files with placeholder
+    python script/translate_docs.py --scaffold
+
+    # Mark a DE file as up-to-date (after manual translation via Claude Code)
+    python script/translate_docs.py --mark-current docs/de/quickstart.md
+
+Exit codes:
+    0 - All translations are up to date (--check) or operation succeeded
+    1 - Translations are outdated or missing (--check)
+"""
+
+import argparse
+import hashlib
+from pathlib import Path
+
+# Docs root
+DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
+DE_DIR = DOCS_DIR / "de"
+GLOSSARY_FILE = DE_DIR / "glossary_terms.yml"
+
+# Phase 1 files (highest priority for translation)
+PHASE_1_FILES = [
+    "index.md",
+    "quickstart.md",
+    "user/homeassistant_integration.md",
+    "user/features/week_profile.md",
+    "user/features/config_panel.md",
+    "user/features/homeassistant_actions.md",
+    "user/troubleshooting/homeassistant_troubleshooting.md",
+    "user/troubleshooting/troubleshooting_flowchart.md",
+    "faq.md",
+    "user/device_support.md",
+]
+
+# Phase 2 files
+PHASE_2_FILES = [
+    "user/advanced/cuxd_ccu_jack.md",
+    "user/advanced/optional_settings.md",
+    "user/advanced/unignore.md",
+    "user/advanced/security.md",
+    "user/features/backup.md",
+    "user/features/optimistic_updates.md",
+    "troubleshooting/index.md",
+    "troubleshooting/paramset_inconsistency.md",
+]
+
+HEADER_TEMPLATE = """---
+translation_source: docs/{rel_path}
+translation_date: {date}
+translation_source_hash: {source_hash}
+---
+
+"""
+
+SCAFFOLD_CONTENT = """<!-- This file needs translation from English to German.
+
+Source: docs/{rel_path}
+
+To translate:
+1. Open this file and the English source side by side
+2. Use Claude Code: "Translate docs/{rel_path} to German, write to docs/de/{rel_path}"
+3. Run: python script/translate_docs.py --mark-current docs/de/{rel_path}
+
+Translation rules are defined in docs/de/glossary_terms.yml
+-->
+
+!!! warning "Diese Seite ist noch nicht uebersetzt"
+
+    Diese Seite ist noch nicht auf Deutsch verfuegbar.
+    Bitte nutzen Sie die [englische Version](../{rel_path}).
+"""
+
+
+def compute_hash(path: Path) -> str:
+    """Compute SHA256 hash of a file."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+
+
+def parse_translation_header(content: str) -> dict[str, str]:
+    """Extract translation metadata from frontmatter."""
+    metadata: dict[str, str] = {}
+    if not content.startswith("---\n"):
+        return metadata
+    end = content.find("\n---\n", 4)
+    if end == -1:
+        return metadata
+    for line in content[4:end].splitlines():
+        if ": " in line:
+            key, value = line.split(": ", 1)
+            metadata[key.strip()] = value.strip()
+    return metadata
+
+
+def get_file_status(en_path: Path) -> tuple[str, str]:
+    """
+    Return translation status for an EN file.
+
+    Returns:
+        Tuple of (status, detail) where status is one of:
+        - "current": DE file exists and is up to date
+        - "outdated": DE file exists but EN source changed
+        - "missing": No DE file exists
+        - "scaffold": DE file exists but is a placeholder
+
+    """
+    rel = en_path.relative_to(DOCS_DIR)
+    de_path = DE_DIR / rel
+
+    if not de_path.exists():
+        return "missing", str(rel)
+
+    de_content = de_path.read_text(encoding="utf-8")
+
+    # Check if it's a scaffold placeholder
+    if "Diese Seite ist noch nicht uebersetzt" in de_content:
+        return "scaffold", str(rel)
+
+    metadata = parse_translation_header(de_content)
+    source_hash = metadata.get("translation_source_hash", "")
+
+    current_hash = compute_hash(en_path)
+    if source_hash == current_hash:
+        return "current", str(rel)
+    return "outdated", f"{rel} (source changed)"
+
+
+def get_target_files(files: list[str] | None) -> list[Path]:
+    """Get list of EN files to process."""
+    if files:
+        result = []
+        for f in files:
+            # Accept both docs/foo.md and foo.md
+            p = Path(f)
+            if not p.is_absolute():
+                if str(p).startswith("docs/de/"):
+                    # Convert DE path to EN path
+                    p = DOCS_DIR / str(p).removeprefix("docs/de/")
+                elif str(p).startswith("docs/"):
+                    p = Path(f)
+                else:
+                    p = DOCS_DIR / f
+            if p.exists():
+                result.append(p)
+        return result
+
+    targets = PHASE_1_FILES + PHASE_2_FILES
+    return [DOCS_DIR / f for f in targets if (DOCS_DIR / f).exists()]
+
+
+def cmd_status(files: list[str] | None) -> int:
+    """Show status of all translatable files."""
+    all_files = get_target_files(files)
+    counts = {"current": 0, "outdated": 0, "missing": 0, "scaffold": 0}
+
+    for en_path in all_files:
+        status, detail = get_file_status(en_path)
+        counts[status] += 1
+        icon = {"current": "+", "outdated": "~", "missing": "-", "scaffold": "?"}[status]
+        print(f"  [{icon}] {detail}")
+
+    total = sum(counts.values())
+    print(f"\nTotal: {total} files")
+    print(f"  [+] Current:   {counts['current']}")
+    print(f"  [~] Outdated:  {counts['outdated']}")
+    print(f"  [-] Missing:   {counts['missing']}")
+    print(f"  [?] Scaffold:  {counts['scaffold']}")
+
+    if counts["missing"] + counts["outdated"] + counts["scaffold"] > 0:
+        print("\nTo translate, use Claude Code:")
+        print('  "Translate docs/<file>.md to German following docs/de/glossary_terms.yml"')
+        print("  Then run: python script/translate_docs.py --mark-current docs/de/<file>.md")
+    return 0
+
+
+def cmd_check(files: list[str] | None) -> int:
+    """Check translation status. Returns 1 if any are outdated/missing."""
+    all_files = get_target_files(files)
+    issues: list[str] = []
+
+    for en_path in all_files:
+        status, detail = get_file_status(en_path)
+        if status == "missing":
+            issues.append(f"  MISSING:  {detail}")
+        elif status == "outdated":
+            issues.append(f"  OUTDATED: {detail}")
+        elif status == "scaffold":
+            issues.append(f"  SCAFFOLD: {detail}")
+
+    if issues:
+        print(f"Found {len(issues)} translation issue(s):\n")
+        for issue in issues:
+            print(issue)
+        print("\nTranslate locally via Claude Code, then mark as current.")
+        return 1
+
+    print("All translations are up to date.")
+    return 0
+
+
+def cmd_scaffold(files: list[str] | None) -> int:
+    """Create placeholder DE files for missing translations."""
+    all_files = get_target_files(files)
+    created = 0
+
+    for en_path in all_files:
+        status, _ = get_file_status(en_path)
+        if status != "missing":
+            continue
+
+        rel = en_path.relative_to(DOCS_DIR)
+        de_path = DE_DIR / rel
+        de_path.parent.mkdir(parents=True, exist_ok=True)
+
+        content = SCAFFOLD_CONTENT.format(rel_path=rel)
+        de_path.write_text(content, encoding="utf-8")
+        print(f"  Created scaffold: docs/de/{rel}")
+        created += 1
+
+    print(f"\n{created} scaffold(s) created.")
+    return 0
+
+
+def cmd_mark_current(files: list[str]) -> int:
+    """Update the source hash in a translated DE file to mark it as current."""
+    if not files:
+        print("ERROR: Specify DE file(s) to mark as current.")
+        return 1
+
+    updated = 0
+    for f in files:
+        de_path = Path(f)
+        if not de_path.is_absolute():
+            de_path = DOCS_DIR.parent / de_path if str(de_path).startswith("docs/de/") else DE_DIR / f
+        if not de_path.exists():
+            print(f"  ERROR: {de_path} does not exist")
+            continue
+
+        # Derive EN source path
+        try:
+            rel = de_path.relative_to(DE_DIR)
+        except ValueError:
+            print(f"  ERROR: {de_path} is not under docs/de/")
+            continue
+
+        en_path = DOCS_DIR / rel
+        if not en_path.exists():
+            print(f"  ERROR: Source {en_path} does not exist")
+            continue
+
+        source_hash = compute_hash(en_path)
+        today = __import__("datetime").date.today().isoformat()
+
+        de_content = de_path.read_text(encoding="utf-8")
+
+        # Replace or add header
+        new_header = f"---\ntranslation_source: docs/{rel}\ntranslation_date: {today}\ntranslation_source_hash: {source_hash}\n---\n"
+
+        if de_content.startswith("---\n"):
+            end = de_content.find("\n---\n", 4)
+            de_content = new_header + de_content[end + 5 :] if end != -1 else new_header + "\n" + de_content
+        else:
+            de_content = new_header + "\n" + de_content
+
+        de_path.write_text(de_content, encoding="utf-8")
+        print(f"  Marked current: docs/de/{rel} (hash: {source_hash})")
+        updated += 1
+
+    print(f"\n{updated} file(s) marked as current.")
+    return 0
+
+
+def main() -> int:
+    """Entry point."""
+    parser = argparse.ArgumentParser(description="Manage documentation translations (EN -> DE).")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--check", action="store_true", help="Check if translations are up to date (CI)")
+    group.add_argument("--scaffold", action="store_true", help="Create placeholder files for missing translations")
+    group.add_argument(
+        "--mark-current", action="store_true", help="Mark DE file(s) as up-to-date with current EN source"
+    )
+    parser.add_argument("files", nargs="*", help="Specific files to process")
+    args = parser.parse_args()
+
+    if args.check:
+        return cmd_check(args.files or None)
+    if args.scaffold:
+        return cmd_scaffold(args.files or None)
+    if args.mark_current:
+        return cmd_mark_current(args.files)
+    return cmd_status(args.files or None)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -25,6 +25,15 @@
 - **Global abbreviations**: Added TLS and EEPROM to
   `docs/includes/abbreviations.md` for automatic tooltip expansion.
 
+- **German documentation (i18n)**: Added complete German translations for all
+  18 user-facing documentation pages (Phase 1 + Phase 2). Infrastructure uses
+  `mkdocs-static-i18n` plugin with language switcher. German pages live under
+  `docs/de/` with identical structure. Translation workflow managed by
+  `script/translate_docs.py` (status checking, hash tracking, scaffolding).
+  Terminology consistency enforced via `docs/de/glossary_terms.yml` (~80 terms).
+  English remains the source language; German translations are produced locally
+  via Claude Code. Existing URLs unchanged (EN at `/`, DE at `/de/`).
+
 ### Changed
 
 - **CLAUDE.md**: Updated version to 2026.4.0, replaced all subscription
@@ -69,7 +78,7 @@
   - `CentralUnit.get_data_point_by_custom_id()`
   - `DeviceQueryFacade.get_data_point_by_custom_id()`
 
-  Consumers now subscribe directly via `EventBus.subscribe(event_type=DataPointStateChangedEvent, event_key=dp.unique_id, handler=...)` and use `SubscriptionGroup` for lifecycle management. See [migration guide](docs/migrations/event_tier_enforcement_2026_03.md).
+  Consumers now subscribe directly via `EventBus.subscribe(event_type=DataPointStateChangedEvent, event_key=dp.unique_id, handler=...)` and use `SubscriptionGroup` for lifecycle management.
 
 - **DataPoint registration separated from subscription**: New `register()` /
   `unregister()` methods replace the implicit registration via
@@ -1432,8 +1441,8 @@
   - Log warnings with affected device addresses and missing parameters
   - Diagnostics data (via `IncidentStore`)
     A factory reset of the affected device on the CCU resolves the issue.
-    See [troubleshooting documentation](docs/troubleshooting/paramset_inconsistency.md)
-    and [ADR-0023](docs/adr/0023-paramset-consistency-checker.md) for details.
+    See [troubleshooting documentation](troubleshooting/paramset_inconsistency.md)
+    and [ADR-0023](adr/0023-paramset-consistency-checker.md) for details.
     Based on [Homematic forum discussion](https://homematic-forum.de/forum/viewtopic.php?t=77531).
 
 ### Changed
@@ -2541,7 +2550,7 @@ See ADR-0018 for architectural context.
 
 ### Breaking Changes
 
-- **Comprehensive Capabilities Pattern Migration**: All `supports_*` properties have been migrated to a unified Capabilities pattern. See [Migration Guide](docs/migrations/capabilities_migration_2026_01.md) for details.
+- **Comprehensive Capabilities Pattern Migration**: All `supports_*` properties have been migrated to a unified Capabilities pattern.
 
   - **Entity Capabilities** (frozen dataclasses):
 
@@ -2905,7 +2914,7 @@ See ADR-0018 for architectural context.
 
   - **Impact**: Network errors now fail immediately instead of retrying. This provides more predictable behavior and prevents retry-induced failures. The ConnectionRecoveryCoordinator handles reconnection at the appropriate connection level.
 
-  - **ADR**: See [ADR 0014](docs/adr/0014-retry-logic-removal.md) for detailed rationale
+  - **ADR**: See [ADR 0014](adr/0014-retry-logic-removal.md) for detailed rationale
 
 # Version 2026.1.13 (2026-01-06)
 

@@ -1,0 +1,103 @@
+# Glossary terms for consistent German translations.
+#
+# This file defines how technical terms should be translated (or kept)
+# in the German documentation. The translate_docs.py script uses this
+# file to ensure terminology consistency.
+#
+# Format:
+#   english_term: german_translation
+#   english_term: ""  (empty = keep English term unchanged)
+
+# --- Homematic-specific terms (NEVER translate) ---
+CCU: ""
+CCU2: ""
+CCU3: ""
+RaspberryMatic: ""
+Homematic: ""
+HomematicIP: ""
+HmIP: ""
+BidCos-RF: ""
+BidCos-Wired: ""
+CUxD: ""
+CCU-Jack: ""
+Homegear: ""
+pydevccu: ""
+ReGa: ""
+UNREACH: ""
+STICKY_UNREACH: ""
+CONFIG_PENDING: ""
+LOW_BAT: ""
+RSSI: ""
+
+# --- Home Assistant terms (NEVER translate) ---
+Home Assistant: ""
+Dashboard: ""
+Entity: ""
+Service: ""
+Action: ""
+Automation: ""
+Blueprint: ""
+Add-on: ""
+HACS: ""
+YAML: ""
+
+# --- Programming terms (NEVER translate) ---
+Python: ""
+async: ""
+asyncio: ""
+EventBus: ""
+DataPoint: ""
+Channel: ""
+Device: ""
+Paramset: ""
+callback: ""
+XML-RPC: ""
+JSON-RPC: ""
+MQTT: ""
+TLS: ""
+API: ""
+
+# --- UI elements (translate) ---
+Quick Start: Schnellstart
+Getting Started: Erste Schritte
+User Guide: Benutzerhandbuch
+Developer Guide: Entwicklerhandbuch
+Troubleshooting: Fehlerbehebung
+FAQ: "Haeufige Fragen"
+Features: Funktionen
+Settings: Einstellungen
+Configuration: Konfiguration
+Overview: "Uebersicht"
+
+# --- Common terms (translate) ---
+device: "Geraet"
+devices: "Geraete"
+interface: Schnittstelle
+parameter: Parameter
+value: Wert
+temperature: Temperatur
+switch: Schalter
+sensor: Sensor
+button: Taste
+dimmer: Dimmer
+blind: Jalousie
+cover: Abdeckung
+thermostat: Thermostat
+firmware: Firmware
+battery: Batterie
+signal strength: "Signalstaerke"
+connection: Verbindung
+subscription: Abonnement
+event: Ereignis
+backup: Sicherung
+restore: Wiederherstellung
+
+# --- Section headings (translate) ---
+Prerequisites: Voraussetzungen
+Installation: Installation
+Usage: Verwendung
+Examples: Beispiele
+Notes: Hinweise
+Warning: Warnung
+See also: Siehe auch
+Next steps: "Naechste Schritte"

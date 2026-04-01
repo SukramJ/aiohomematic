@@ -206,7 +206,7 @@ data:
 
 ---
 
-## Nicht-Klima-Zeitplan-Actions
+## Nicht-Klima-Zeitplan-Actions { #non-climate-schedule-actions }
 
 Nicht-Klimageraete (Schalter, Licht, Abdeckung, Ventil) verwenden die einheitlichen `get_schedule`- und `set_schedule`-Services.
 
@@ -712,5 +712,5 @@ Bei einer Fehlermeldung wie "level_2 not supported for switch" oder "ramp_time n
 
 ## Siehe auch
 
-- [Actions-Referenz](homeassistant_actions.md#schedule-operations)
+- [Actions-Referenz](homeassistant_actions.md#zeitplan-operationen)
 - [Klima-Entities](../homeassistant_integration.md)

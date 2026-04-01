@@ -29,7 +29,6 @@ theme:
     text: Roboto
     code: Roboto Mono
   features:
-    - navigation.instant
     - navigation.instant.prefetch
     - navigation.tracking
     - navigation.tabs
@@ -77,6 +76,7 @@ nav:
       - Error Handling: developer/error_handling.md
       - Backend Detection: developer/backend_detection.md
       - Incident System: developer/incident_system.md
+      - CLI Tool: developer/cli_tool.md
   - Contributor Guide:
       - Contributing: contributor/contributing.md
       - Development Environment: contributor/dev-environment.md
@@ -89,6 +89,7 @@ nav:
       - Testing:
           - Coverage: contributor/testing/coverage.md
           - Testing with Events: contributor/testing/testing_with_events.md
+          - Session Playback: contributor/testing/session_playback.md
           - Debug Data Importance: contributor/testing/debug_data_importance.md
       - Release Process: contributor/release_process.md
   - Architecture:
@@ -112,6 +113,7 @@ nav:
       - Common Operations: reference/common_operations.md
       - API Reference:
           - Overview: reference/api/index.md
+          - Public API: reference/api/public_api.md
           - HomematicAPI: reference/api/api.md
           - CentralUnit: reference/api/central.md
           - CentralConfig: reference/api/config.md

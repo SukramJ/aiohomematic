@@ -30,7 +30,7 @@ Not sure where to begin? Here are some suggestions based on experience level.
 
 ### Advanced
 
-- **Protocol or coordinator changes**: Modifications to `aiohomematic/client/` or `aiohomematic/central/coordinators/` require deep understanding of the architecture. Read [Architecture](../architecture/architecture.md) first.
+- **Protocol or coordinator changes**: Modifications to `aiohomematic/client/` or `aiohomematic/central/coordinators/` require deep understanding of the architecture. Read [Architecture](../architecture.md) first.
 - **Event system modifications**: Changes to `aiohomematic/central/events/` affect the entire codebase. Coordinate with maintainers before starting.
 
 ### Finding Issues

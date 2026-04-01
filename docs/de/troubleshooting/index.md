@@ -54,8 +54,8 @@ Vor der Untersuchung spezifischer Probleme diese Grundlagen überprüfen:
 
 ### Geräteprobleme
 
-- [Gerät erscheint nicht](#gerät-erscheint-nicht)
-- [Entity zeigt "nicht verfügbar"](#entity-nicht-verfügbar)
+- [Gerät erscheint nicht](#gerat-erscheint-nicht)
+- [Entity zeigt "nicht verfügbar"](#entity-nicht-verfugbar)
 - [Werte aktualisieren sich nicht](#werte-aktualisieren-sich-nicht)
 - [Tastenereignisse funktionieren nicht](#tastenereignisse-funktionieren-nicht)
 - [Fehlende Parameter nach Firmware-Update](paramset_inconsistency.md)
@@ -64,7 +64,7 @@ Vor der Untersuchung spezifischer Probleme diese Grundlagen überprüfen:
 
 - [Langsamer Start](#langsamer-start)
 - [Hohe CPU-Auslastung](#hohe-cpu-auslastung)
-- [Häufige Verbindungsabbrüche](#häufige-verbindungsabbrüche)
+- [Häufige Verbindungsabbrüche](#haufige-verbindungsabbruche)
 
 ---
 

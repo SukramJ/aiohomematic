@@ -203,11 +203,15 @@ markdown_extensions:
       custom_checkbox: true
   - pymdownx.tilde
 
+hooks:
+  - docs/hooks/i18n_alternate_filter.py
+
 plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - i18n:
       docs_structure: suffix
+      fallback_to_default: false
       reconfigure_material: true
       languages:
         - locale: en

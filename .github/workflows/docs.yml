@@ -55,6 +55,7 @@ jobs:
           pip install \
             mkdocs-material \
             mkdocs-minify-plugin \
+            mkdocs-static-i18n \
             pymdown-extensions \
             pillow \
             cairosvg \

@@ -25,6 +25,15 @@
 - **Global abbreviations**: Added TLS and EEPROM to
   `docs/includes/abbreviations.md` for automatic tooltip expansion.
 
+- **German documentation (i18n)**: Added complete German translations for all
+  18 user-facing documentation pages (Phase 1 + Phase 2). Infrastructure uses
+  `mkdocs-static-i18n` plugin with language switcher. German pages live under
+  `docs/de/` with identical structure. Translation workflow managed by
+  `script/translate_docs.py` (status checking, hash tracking, scaffolding).
+  Terminology consistency enforced via `docs/de/glossary_terms.yml` (~80 terms).
+  English remains the source language; German translations are produced locally
+  via Claude Code. Existing URLs unchanged (EN at `/`, DE at `/de/`).
+
 ### Changed
 
 - **CLAUDE.md**: Updated version to 2026.4.0, replaced all subscription

@@ -204,6 +204,17 @@ markdown_extensions:
 plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - i18n:
+      docs_structure: folder
+      reconfigure_material: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+          build: true
+        - locale: de
+          name: Deutsch
+          build: true
   - minify:
       minify_html: true
   - mkdocstrings:

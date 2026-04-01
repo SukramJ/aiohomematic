@@ -19,8 +19,8 @@ sequenceDiagram
     App->>API: connect()
     API->>CCU: Authentifizieren
     CCU-->>API: OK
-    API->>CCU: Geraete auflisten
-    CCU-->>API: Geraetebeschreibungen
+    API->>CCU: Geräte auflisten
+    CCU-->>API: Gerätebeschreibungen
     API-->>App: Bereit
 
     App->>API: read_value()
@@ -28,8 +28,8 @@ sequenceDiagram
     CCU-->>API: Wert
     API-->>App: Ergebnis
 
-    Note over CCU,API: Ereignisse per Callback uebermittelt
-    CCU->>API: Ereignis (Wert geaendert)
+    Note over CCU,API: Ereignisse per Callback übermittelt
+    CCU->>API: Ereignis (Wert geändert)
     API->>App: Handler aufgerufen
 ```
 
@@ -45,7 +45,7 @@ sequenceDiagram
 pip install aiohomematic
 ```
 
-## Verbinden und Geraete auflisten
+## Verbinden und Geräte auflisten
 
 ```python
 import asyncio
@@ -53,13 +53,13 @@ from aiohomematic.api import HomematicAPI
 
 
 async def main():
-    # Async-Kontextmanager fuer automatisches Aufraeumen verwenden
+    # Async-Kontextmanager für automatisches Aufräumen verwenden
     async with HomematicAPI.connect(
         host="192.168.1.100",     # (1)!
         username="Admin",         # (2)!
         password="your-password", # (3)!
     ) as api:
-        # Alle erkannten Geraete durchlaufen
+        # Alle erkannten Geräte durchlaufen
         for device in api.list_devices():
             print(f"{device.address}: {device.name} ({device.model})")
         # Verbindung wird beim Verlassen des Kontexts automatisch geschlossen
@@ -69,8 +69,8 @@ asyncio.run(main())
 ```
 
 1. Durch die IP-Adresse oder den Hostnamen der CCU ersetzen
-2. Gross-/Kleinschreibung beachten! Genau wie in der CCU angezeigt verwenden
-3. Siehe [Sicherheit](user/advanced/security.md) fuer Passwortanforderungen
+2. Groß-/Kleinschreibung beachten! Genau wie in der CCU angezeigt verwenden
+3. Siehe [Sicherheit](user/advanced/security.md) für Passwortanforderungen
 
 **Ausgabe:**
 
@@ -116,7 +116,7 @@ def on_update(address: str, parameter: str, value: Any) -> None:
 
 
 async with HomematicAPI.connect(...) as api:
-    # Alle Wertaenderungen abonnieren
+    # Alle Wertänderungen abonnieren
     unsubscribe = api.subscribe_to_updates(callback=on_update)
 
     # Weiterlaufen lassen, um Ereignisse zu empfangen
@@ -126,10 +126,10 @@ async with HomematicAPI.connect(...) as api:
     unsubscribe()
 ```
 
-## Vollstaendiges Beispiel
+## Vollständiges Beispiel
 
 ```python
-"""Vollstaendiges aiohomematic-Schnellstart-Beispiel."""
+"""Vollständiges aiohomematic-Schnellstart-Beispiel."""
 
 import asyncio
 from typing import Any
@@ -138,7 +138,7 @@ from aiohomematic.api import HomematicAPI
 
 
 def on_update(address: str, parameter: str, value: Any) -> None:
-    """Wertaenderungen verarbeiten."""
+    """Wertänderungen verarbeiten."""
     print(f"UPDATE: {address}.{parameter} = {value}")
 
 
@@ -149,19 +149,19 @@ async def main() -> None:
         username="Admin",
         password="your-password",
     ) as api:
-        # 1. Geraete auflisten
+        # 1. Geräte auflisten
         print("=== Devices ===")
         for device in api.list_devices():
             print(f"  {device.address}: {device.name}")
 
-        # 2. Ein bestimmtes Geraet suchen
+        # 2. Ein bestimmtes Gerät suchen
         device = api.get_device(address="VCU0000001")
         if device:
             print(f"\n=== Device Details ===")
             print(f"  Model: {device.model}")
             print(f"  Firmware: {device.firmware}")
 
-            # 3. Kanaele und Datenpunkte auflisten
+            # 3. Kanäle und Datenpunkte auflisten
             for channel_no, channel in device.channels.items():
                 print(f"\n  Channel {channel_no}:")
                 for param, dp in channel.data_points.items():
@@ -197,9 +197,9 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Naechste Schritte
+## Nächste Schritte
 
 - [Erste Schritte](getting_started.md) - Detaillierte Einrichtungsanleitung
-- [Gaengige Operationen](reference/common_operations.md) - Weitere Codebeispiele
-- [Consumer API](developer/consumer_api.md) - Vollstaendige API-Dokumentation
-- [Haeufige Fragen](faq.md) - Antworten auf gaengige Fragen
+- [Gängige Operationen](reference/common_operations.md) - Weitere Codebeispiele
+- [Consumer API](developer/consumer_api.md) - Vollständige API-Dokumentation
+- [Häufige Fragen](faq.md) - Antworten auf gängige Fragen

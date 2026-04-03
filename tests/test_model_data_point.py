@@ -248,6 +248,55 @@ class TestWrappedDataPoint:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_forced_sensor_publishes_event_with_correct_unique_id(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that forced-to-sensor data points publish events with the property unique_id."""
+        central, _, _ = central_client_factory_with_homegear_client
+        wrapped_data_point: DpSensor = cast(
+            DpSensor, central.query_facade.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL")
+        )
+        assert wrapped_data_point._is_forced_sensor is True
+
+        # The property unique_id includes the _sensor suffix
+        property_unique_id = wrapped_data_point.unique_id
+        assert property_unique_id.endswith("_sensor")
+
+        # Subscribe using the property unique_id (as HA and custom data points do)
+        received_events: list[DataPointStateChangedEvent] = []
+
+        def handler(*, event: DataPointStateChangedEvent) -> None:
+            received_events.append(event)
+
+        wrapped_data_point.register()
+        central.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=property_unique_id,
+            handler=handler,
+        )
+
+        # Simulate a value update from CCU
+        wrapped_data_point.write_value(value=0.5, write_at=datetime.now())
+        await central.looper.block_till_done()
+
+        # The event must arrive at the subscriber
+        assert len(received_events) == 1
+        assert received_events[0].unique_id == property_unique_id
+        assert received_events[0].new_value == 0.5
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_generic_wrapped_data_point(
         self,
         central_client_factory_with_homegear_client,

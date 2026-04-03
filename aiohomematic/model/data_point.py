@@ -421,7 +421,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         memory leaks from orphaned handlers. It clears all subscriptions
         registered with this data point's unique_id as the event_key.
         """
-        self._event_bus_provider.event_bus.clear_subscriptions_by_key(event_key=self._unique_id)
+        self._event_bus_provider.event_bus.clear_subscriptions_by_key(event_key=self.unique_id)
 
     async def finalize_init(self) -> None:
         """Finalize the data point init action after model setup."""
@@ -446,7 +446,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             await self._event_bus_provider.event_bus.publish(
                 event=DataPointStateChangedEvent(
                     timestamp=datetime.now(),
-                    unique_id=self._unique_id,
+                    unique_id=self.unique_id,
                     old_value=_old_value,
                     new_value=_new_value,
                 )
@@ -454,7 +454,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
 
         self._task_scheduler.create_task(
             target=_publish_event,
-            name=f"publish-dp-updated-{self._unique_id}",
+            name=f"publish-dp-updated-{self.unique_id}",
         )
 
     @loop_check
@@ -466,7 +466,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
             await self._event_bus_provider.event_bus.publish(
                 event=DeviceRemovedEvent(
                     timestamp=datetime.now(),
-                    unique_id=self._unique_id,
+                    unique_id=self.unique_id,
                 )
             )
             # Clean up subscriptions after event is published to prevent memory leaks
@@ -474,7 +474,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
 
         self._task_scheduler.create_task(
             target=_publish_device_removed_and_cleanup,
-            name=f"publish-device-removed-{self._unique_id}",
+            name=f"publish-device-removed-{self.unique_id}",
         )
 
     def register(self) -> None:

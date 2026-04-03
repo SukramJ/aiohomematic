@@ -1,4 +1,4 @@
-# Version 2026.3.24 (2026-04-03)
+# Version 2026.4.0 (2026-04-03)
 
 ## What's Changed
 
@@ -12,10 +12,6 @@
   registered with the property value never received events. Also fixed
   `cleanup_subscriptions()` using the wrong key, which caused orphaned
   subscriptions (memory leak). Regression introduced in #3081.
-
-# Version 2026.4.0 (2026-04-01)
-
-## What's Changed
 
 ### Added
 

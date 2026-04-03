@@ -1,6 +1,17 @@
-# Version 2026.4.0 (2026-04-01)
+# Version 2026.4.0 (2026-04-03)
 
 ## What's Changed
+
+### Fixed
+
+- **Fixed forced-to-sensor data points not publishing events**: Data points with
+  `force_to_sensor()` (LEVEL on HmIP-eTRV and HmIP-HEATING) were publishing
+  `DataPointStateChangedEvent` and `DeviceRemovedEvent` with the internal
+  `_unique_id` attribute instead of the `unique_id` property (which includes the
+  `_sensor` suffix). This caused a key mismatch in the EventBus — subscribers
+  registered with the property value never received events. Also fixed
+  `cleanup_subscriptions()` using the wrong key, which caused orphaned
+  subscriptions (memory leak). Regression introduced in #3081.
 
 ### Added
 

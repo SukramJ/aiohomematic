@@ -11,8 +11,8 @@ both on the English version and on the German fallback version.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
+import re
 
 # Cache: set of .de.md source files that exist in docs/
 _de_sources: set[str] | None = None

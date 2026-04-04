@@ -1219,8 +1219,8 @@ class BaseParameterDataPoint[
             self._set_unconfirmed_refreshed_at(refreshed_at=write_at)
         else:
             self._set_unconfirmed_modified_at(modified_at=write_at)
-            self._unconfirmed_value = temp_value
             self._state_uncertain = True
+        self._unconfirmed_value = temp_value
         self.publish_data_point_updated_event(old_value=old_value, new_value=temp_value)
 
     def write_value(self, *, value: Any, write_at: datetime) -> tuple[ParameterT | None, ParameterT | None]:

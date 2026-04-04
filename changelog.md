@@ -1,3 +1,19 @@
+# Version 2026.4.1 (2026-04-04)
+
+## What's Changed
+
+### Fixed
+
+- **Fixed sysvar and device data points temporarily showing unknown after setting
+  the same value**: When `send_variable()` or `send_value()` was called with a
+  value identical to the already confirmed value, the unconfirmed value was not
+  populated (remained `None`) while the unconfirmed timestamp was updated. This
+  caused `_value` to return `None` (shown as "unknown" in Home Assistant) until
+  the next polling cycle confirmed the value (~20-30 seconds). The issue was more
+  likely to occur with rapid value changes or when setting to 0. Fixed by always
+  populating `_unconfirmed_value` regardless of whether the value changed.
+  Fixes #3090.
+
 # Version 2026.4.0 (2026-04-03)
 
 ## What's Changed

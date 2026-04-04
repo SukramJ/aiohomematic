@@ -2,6 +2,7 @@
 # Copyright (c) 2021-2026
 """Tests for number data points of aiohomematic."""
 
+from datetime import datetime
 from typing import cast
 from unittest.mock import call
 
@@ -221,6 +222,82 @@ class TestSysvarNumber:
         await enumber.send_variable(value=35.0)
         # value over max won't change value
         assert enumber.value == 23.0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({}, True, None, None),
+        ],
+    )
+    async def test_sysvar_number_no_unknown_after_poll_with_old_value(
+        self,
+        central_client_factory_with_ccu_client,
+    ) -> None:
+        """Test that poll returning old value after set does not cause unknown."""
+        central, mock_client, _ = central_client_factory_with_ccu_client
+        enumber: SysvarDpNumber = cast(
+            SysvarDpNumber,
+            central.hub_coordinator.get_sysvar_data_point(legacy_name="float_ext"),
+        )
+        # Initial state from session data
+        assert enumber.value == 23.2
+
+        # User sets a new value
+        await enumber.send_variable(value=10.0)
+        assert enumber.value == 10.0
+        assert enumber.state_uncertain is True
+
+        # Poll returns old value (CCU hasn't processed the change yet)
+        enumber.write_value(value=23.2, write_at=datetime.now())
+        assert enumber.value == 23.2
+        assert enumber.state_uncertain is False
+
+        # User sets the same value again (now matches _current_value)
+        await enumber.send_variable(value=23.2)
+        # Must NOT become None/unknown
+        assert enumber.value is not None
+        assert enumber.value == 23.2
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({}, True, None, None),
+        ],
+    )
+    async def test_sysvar_number_no_unknown_on_same_value_set(
+        self,
+        central_client_factory_with_ccu_client,
+    ) -> None:
+        """Test that setting the same value does not cause unknown state."""
+        central, mock_client, _ = central_client_factory_with_ccu_client
+        enumber: SysvarDpNumber = cast(
+            SysvarDpNumber,
+            central.hub_coordinator.get_sysvar_data_point(legacy_name="float_ext"),
+        )
+        assert enumber.value == 23.2
+
+        # Simulate poll confirming the value
+        enumber.write_value(value=23.2, write_at=datetime.now())
+        assert enumber.value == 23.2
+        assert enumber.state_uncertain is False
+
+        # User sets the same value that is already confirmed
+        await enumber.send_variable(value=23.2)
+        # Value must NOT become None (which would show as "unknown" in HA)
+        assert enumber.value is not None
+        assert enumber.value == 23.2
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

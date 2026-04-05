@@ -667,8 +667,9 @@ def convert_raw_group_to_simple_entry(
     level = max(0.0, min(1.0, level))
 
     # Extract optional level_2 (for covers)
+    # Clamp to [0.0, 1.0] — some devices (e.g. HmIP-BROLL) report values like 1.01
     level_2_raw = group_data.get(ScheduleField.LEVEL_2)
-    level_2 = float(level_2_raw) if isinstance(level_2_raw, (int, float)) else None
+    level_2 = max(0.0, min(1.0, float(level_2_raw))) if isinstance(level_2_raw, (int, float)) else None
 
     # Extract optional duration
     duration: str | None = None

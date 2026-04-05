@@ -1718,6 +1718,48 @@ class TestDefaultWeekProfileAdditionalEdgeCases:
         assert result["01_WP_LEVEL"] == 0.5
         assert result["01_WP_LEVEL_2"] == 0.75
 
+    def test_convert_raw_to_dict_schedule_clamps_level_2_above_1(self):
+        """Test that LEVEL_2 values > 1.0 from CCU are clamped to 1.0."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,  # MONDAY
+            "01_WP_TARGET_CHANNELS": 1,  # CHANNEL_1_1
+            "01_WP_LEVEL": 0.5,
+            "01_WP_LEVEL_2": 1.01,  # CCU returns 101% for some cover devices
+            "01_WP_FIXED_HOUR": 8,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_CONDITION": 0,
+            "01_WP_ASTRO_TYPE": 0,
+            "01_WP_ASTRO_OFFSET": 0,
+        }
+
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+
+        assert isinstance(result, SimpleSchedule)
+        assert 1 in result.entries
+        assert result.entries[1].level == 0.5
+        assert result.entries[1].level_2 == 1.0  # clamped from 1.01
+
+    def test_convert_raw_to_dict_schedule_clamps_level_2_below_0(self):
+        """Test that LEVEL_2 values < 0.0 from CCU are clamped to 0.0."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,  # MONDAY
+            "01_WP_TARGET_CHANNELS": 1,  # CHANNEL_1_1
+            "01_WP_LEVEL": 0.5,
+            "01_WP_LEVEL_2": -0.01,  # Negative value
+            "01_WP_FIXED_HOUR": 8,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_CONDITION": 0,
+            "01_WP_ASTRO_TYPE": 0,
+            "01_WP_ASTRO_OFFSET": 0,
+        }
+
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+
+        assert isinstance(result, SimpleSchedule)
+        assert 1 in result.entries
+        assert result.entries[1].level == 0.5
+        assert result.entries[1].level_2 == 0.0  # clamped from -0.01
+
     def test_convert_raw_to_dict_schedule_filters_inactive(self):
         """Test that inactive schedules (no weekdays/channels) are filtered."""
         # Schedule with no weekdays or channels should be filtered out

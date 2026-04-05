@@ -1,4 +1,4 @@
-# Version 2026.4.1 (2026-04-04)
+# Version 2026.4.1 (2026-04-05)
 
 ## What's Changed
 
@@ -13,6 +13,14 @@
   likely to occur with rapid value changes or when setting to 0. Fixed by always
   populating `_unconfirmed_value` regardless of whether the value changed.
   Fixes #3090.
+
+- **Fixed device schedules appearing empty for cover and dimmer devices**: The CCU
+  reports `level_2` values slightly above 1.0 (e.g. 1.01) for some cover devices
+  like HmIP-BROLL. The Pydantic validation on `SimpleScheduleEntry.level_2`
+  (`le=1.0`) rejected these values, causing the entire schedule group to be
+  silently skipped. Fixed by clamping `level_2` to `[0.0, 1.0]` in
+  `convert_raw_group_to_simple_entry()`, consistent with the existing `level`
+  clamping. Fixes #3092.
 
 # Version 2026.4.0 (2026-04-03)
 

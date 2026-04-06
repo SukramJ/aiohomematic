@@ -1034,7 +1034,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                             continue
                         enabled_default = True
                     elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
-                        continue  # type: ignore[unreachable]
+                        continue
 
                 description = descriptions.get(var_id)
                 if enabled_default is False and not is_internal and markers:

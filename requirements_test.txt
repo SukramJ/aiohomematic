@@ -9,7 +9,7 @@ pip==26.0.1
 prek==0.3.8
 pur==7.3.3
 pydevccu==0.2.2
-pylint-per-file-ignores==3.2.0
+pylint-per-file-ignores==3.2.1
 pylint-strict-informational==0.1
 pylint==4.0.5
 pymdown-extensions==10.21.2

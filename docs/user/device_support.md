@@ -179,6 +179,8 @@ If a device works but lacks a proper custom entity (e.g., shows raw sensors inst
      device_id: YOUR_DEVICE_ID
    ```
 
+   The ZIP file is saved to the `/config/homematicip_local/` directory.
+
 2. **Open an issue** on [GitHub](https://github.com/sukramj/aiohomematic/issues) with:
    - Device model (e.g., HmIP-eTRV-2)
    - The exported ZIP file

@@ -166,6 +166,10 @@ class ParamsetDescriptionProviderProtocol(Protocol):
     def is_in_multiple_channels(self, *, channel_address: str, parameter: str) -> bool:
         """Check if parameter is in multiple channels per device."""
 
+    @abstractmethod
+    def register_additional_parameter(self, *, channel_address: str, parameter: str) -> None:
+        """Register a parameter for the multi-channel detection cache."""
+
 
 @runtime_checkable
 class CacheWithStatisticsProtocol(Protocol):

@@ -364,6 +364,10 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         for parameter in parameters:
             if dp := self._device.get_generic_data_point(channel_address=channel_address, parameter=parameter):
                 dp.force_usage(forced_usage=DataPointUsage.DATA_POINT)
+                self._device.paramset_description_provider.register_additional_parameter(
+                    channel_address=channel_address,
+                    parameter=parameter,
+                )
 
     def _mark_data_points(
         self, *, custom_data_point_def: Mapping[int | tuple[int, ...], tuple[Parameter, ...]]

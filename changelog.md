@@ -13,6 +13,15 @@
   `SABOTAGE_VERTICAL` to the `Parameter` enum. Added HmIP-DLP to
   `UN_IGNORE_PARAMETERS_BY_DEVICE` for `ERROR_JAMMED`.
 
+- **Registered additional data points in multi-channel detection cache**: When
+  `additional_data_points` activates a generic data point on a channel outside
+  the custom data point's own channel group, the parameter is now registered in
+  the `_address_parameter_cache` of `ParamsetDescriptionRegistry`. This ensures
+  `is_in_multiple_channels()` returns correct results for parameters that appear
+  on multiple channels via `additional_data_points`. Added
+  `register_additional_parameter()` to `ParamsetDescriptionProviderProtocol`
+  and `ParamsetDescriptionRegistry`.
+
 # Version 2026.4.1 (2026-04-05)
 
 ## What's Changed

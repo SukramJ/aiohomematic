@@ -202,6 +202,11 @@ class ParamsetDescriptionRegistry(
             return len(channels) > 1
         return False
 
+    def register_additional_parameter(self, *, channel_address: str, parameter: str) -> None:
+        """Register a parameter for the multi-channel detection cache."""
+        device_address, channel_no = get_split_channel_address(channel_address=channel_address)
+        self._address_parameter_cache.setdefault((device_address, parameter), set()).add(channel_no)
+
     def remove_device(self, *, device: DeviceRemovalInfoProtocol) -> None:
         """Remove device paramset descriptions from cache."""
         if interface := self._raw_paramset_descriptions.get(device.interface_id):

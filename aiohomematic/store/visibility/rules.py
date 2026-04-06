@@ -222,6 +222,7 @@ def parameter_is_wildcard_ignored(*, parameter: ParameterName) -> bool:
 
 UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[ModelName, frozenset[Parameter]]] = {
     "HmIP-DLD": frozenset({Parameter.ERROR_JAMMED}),
+    "HmIP-DLP": frozenset({Parameter.ERROR_JAMMED}),
     "HmIP-SWSD": frozenset({Parameter.DIRT_LEVEL, Parameter.SMOKE_LEVEL, Parameter.SMOKE_DETECTOR_ALARM_STATUS}),
     # Text display parameters for HmIP-WRCD
     "HmIP-WRCD": frozenset(

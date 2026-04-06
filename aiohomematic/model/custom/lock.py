@@ -304,7 +304,17 @@ DeviceProfileRegistry.register_multiple(
             profile_type=DeviceProfile.IP_LOCK,
             extended=ExtendedDeviceConfig(
                 additional_data_points={
-                    0: (Parameter.ERROR_JAMMED,),
+                    0: (
+                        Parameter.ERROR_JAMMED,
+                        Parameter.SABOTAGE_ACCELERATION,
+                        Parameter.SABOTAGE_BATTERY,
+                        Parameter.SABOTAGE_MAGNETIC_FIELD,
+                        Parameter.SABOTAGE_VERTICAL,
+                    ),
+                    3: (Parameter.STATE,),
+                    (4, 5, 6, 7, 8, 9, 10, 11): (Parameter.PERMISSION_STATE,),
+                    12: (Parameter.LOCK_STATE_REASON,),
+                    13: (Parameter.AUTO_RELOCK_STATE,),
                 }
             ),
             channels=(12,),

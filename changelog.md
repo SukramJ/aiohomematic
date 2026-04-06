@@ -1,3 +1,18 @@
+# Version 2026.4.2 (2026-04-06)
+
+## What's Changed
+
+### Added
+
+- **Added additional data points for HmIP-DLP (Door Lock Pro)**: Enabled
+  additional entities from channels beyond the main lock (Ch12) and button lock
+  (Ch0). New data points include door state (Ch3), permission state (Ch4-11),
+  lock state reason (Ch12), auto relock state (Ch13), and sabotage sensors (Ch0).
+  Added `LOCK_STATE_REASON`, `AUTO_RELOCK_STATE`, `PERMISSION_STATE`,
+  `SABOTAGE_ACCELERATION`, `SABOTAGE_BATTERY`, `SABOTAGE_MAGNETIC_FIELD`, and
+  `SABOTAGE_VERTICAL` to the `Parameter` enum. Added HmIP-DLP to
+  `UN_IGNORE_PARAMETERS_BY_DEVICE` for `ERROR_JAMMED`.
+
 # Version 2026.4.1 (2026-04-05)
 
 ## What's Changed

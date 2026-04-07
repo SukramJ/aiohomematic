@@ -287,6 +287,7 @@ IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, frozenset[ModelName]]] = {
             "HmIP-SFD",
             "HmIP-SMO230",
             "HmIP-WGT",
+            "HmIP-WRC6-230",
         }
     ),
     Parameter.VALVE_STATE: frozenset({"HmIP-FALMOT-C8", "HmIPW-FALMOT-C12", "HmIP-FALMOT-C12"}),

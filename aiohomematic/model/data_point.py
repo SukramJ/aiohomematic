@@ -1049,6 +1049,9 @@ class BaseParameterDataPoint[
         Skipped when the data point cannot receive CCU event confirmations:
         - Action categories (ACTION, ACTION_NUMBER, ACTION_SELECT, BUTTON)
         - VALUES parameters without event support (Operations.EVENT not set)
+        - Interfaces without RPC callback (CUxD, CCU-Jack): confirmations arrive
+          via MQTT with unpredictable latency (often >30s for slow devices like FHT80b),
+          causing spurious rollbacks and cascading write loops
         Without confirmations, the rollback timer would always fire after 30s,
         causing spurious log warnings.
 
@@ -1057,6 +1060,8 @@ class BaseParameterDataPoint[
         optimistic value but keep the original rollback target.
         """
         if self._category in ACTION_DATA_POINT_CATEGORIES or not self.has_events:
+            return
+        if not self._channel.device.client.capabilities.rpc_callback:
             return
         self._optimistic.apply(value=value, current_value=self._value)
         self.publish_data_point_updated_event()

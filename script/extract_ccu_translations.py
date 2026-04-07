@@ -750,11 +750,11 @@ def extract_device_models(raw: dict[str, str]) -> dict[str, str]:
 def resolve_parameter_translations(
     stringtable_mapping: dict[str, str],
     all_translations: dict[str, str],
-) -> tuple[dict[str, str], dict[str, str], int]:
+) -> tuple[dict[str, str], dict[str, str], int, int]:
     """
     Resolve stringtable mapping through merged translation dictionaries.
 
-    Return (parameters, parameter_values, unresolved_count).
+    Return (parameters, parameter_values, unresolved_count, synthesized_count).
     """
     parameters: dict[str, str] = {}
     parameter_values: dict[str, str] = {}
@@ -774,7 +774,38 @@ def resolve_parameter_translations(
         else:
             parameters[key] = cleaned
 
-    return parameters, parameter_values, unresolved_count
+    # Synthesize missing parameter names from value templates.
+    # When value entries like KEY=VALUE exist but no plain KEY entry,
+    # try to derive the parameter name from a common leading template variable
+    # shared across all value entries (e.g. "${paramLabel}: ${valueLabel}").
+    value_base_keys: dict[str, list[str]] = {}
+    for key in stringtable_mapping:
+        if "=" in key:
+            base_key = key.split("=", 1)[0]
+            if base_key not in parameters:
+                value_base_keys.setdefault(base_key, []).append(key)
+
+    synthesized_count = 0
+    for base_key, value_keys in value_base_keys.items():
+        # Extract leading template variable from each value template
+        leading_vars: set[str] = set()
+        for vk in value_keys:
+            template = stringtable_mapping[vk]
+            if m := _TEMPLATE_VAR_RE.match(template):
+                leading_vars.add(m.group(1))
+
+        # All value entries must share the same leading template variable
+        if len(leading_vars) != 1:
+            continue
+
+        var_name = leading_vars.pop()
+        if (label := all_translations.get(var_name)) is not None:
+            cleaned = clean_value(label)
+            if cleaned:
+                parameters[base_key] = cleaned
+                synthesized_count += 1
+
+    return parameters, parameter_values, unresolved_count, synthesized_count
 
 
 def load_local_file(occu_path: Path, relative_path: str) -> str:
@@ -1345,7 +1376,9 @@ def _process_locale(
 
     # Parameter names and values (resolved via stringtable mapping)
     all_translations = merge_translation_dicts(ld)
-    parameters, parameter_values, unresolved = resolve_parameter_translations(stringtable_mapping, all_translations)
+    parameters, parameter_values, unresolved, synthesized = resolve_parameter_translations(
+        stringtable_mapping, all_translations
+    )
 
     # Resolve options.tcl translations (option_type=value -> translated label)
     options_values, options_count = resolve_options_tcl_translations(options_tcl_data, all_translations)
@@ -1413,7 +1446,7 @@ def _process_locale(
     archive[f"parameters_{locale}"] = parameters_prepared
     print(
         f"  parameters_{locale}: {len(parameters_prepared)} entries "
-        f"(+{easymode_count} easymode, +{pname_count} PNAME, +{profile_count} profile)"
+        f"(+{synthesized} synthesized, +{easymode_count} easymode, +{pname_count} PNAME, +{profile_count} profile)"
     )
     pv_prepared = _prepare_data(parameter_values)
     archive[f"parameter_values_{locale}"] = pv_prepared

@@ -22,6 +22,14 @@
   `register_additional_parameter()` to `ParamsetDescriptionProviderProtocol`
   and `ParamsetDescriptionRegistry`.
 
+- **Synthesize missing parameter name translations from value entries**: The CCU
+  translation extraction script now derives parameter name translations from
+  value-entry templates when no explicit parameter name entry exists in the
+  stringtable. When all value entries for a parameter share the same leading
+  template variable (e.g. `${stringTableAutoRelockState}: ${lblYes}`), that
+  variable is resolved as the parameter name. This adds ~89 previously missing
+  parameter translations, including `AUTO_RELOCK_STATE` for HmIP-DLP.
+
 ### Fixed
 
 - **Fixed multi-channel postfix for data point names**: The channel postfix

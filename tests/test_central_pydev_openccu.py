@@ -88,6 +88,10 @@ class TestCentralPyDevOpenCCU:
         custom_dps = []
         channel_type_names = set()
         for device in central.device_registry.devices:
+            if device.model in ("HmIP-DLP"):
+                assert device.has_sub_devices is False
+            if device.model in ("HmIP-DRSI4", "HmIP-DRDI3", "HmIP-BSL"):
+                assert device.has_sub_devices is True
             custom_dps.extend(device.custom_data_points)
             for channel in device.channels.values():
                 channel_type_names.add(channel.type_name)

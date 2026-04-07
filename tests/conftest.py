@@ -411,6 +411,7 @@ async def central_unit_openccu(pydevccu_openccu: VirtualCCU) -> CentralUnit:  # 
         json_port=const.get_openccu_json_rpc_port(),
         program_markers=(),
         sysvar_markers=(),
+        locale="de",
         start_direct=True,
     )
 

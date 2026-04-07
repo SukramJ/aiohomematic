@@ -341,30 +341,25 @@ def get_data_point_name_data(
     """Get name for data_point."""
     if channel_name := _get_base_name_from_channel_or_device(channel=channel):
         p_name = parameter.title().replace("_", " ")
+        c_postfix = ""
+        if channel.device.paramset_description_provider.is_in_multiple_channels(
+            channel_address=channel.address, parameter=parameter
+        ):
+            c_postfix = "" if channel.no in (0, None) else f" ch{channel.no}"
 
-        if _check_channel_name_with_channel_no(name=channel_name):
-            c_name = channel_name.split(ADDRESS_SEPARATOR)[0]
-            c_postfix = ""
-            if channel.device.paramset_description_provider.is_in_multiple_channels(
-                channel_address=channel.address, parameter=parameter
-            ):
-                c_postfix = "" if channel.no in (0, None) else f" ch{channel.no}"
-            data_point_name = DataPointNameData(
-                device_name=channel.device.name,
-                channel_name=c_name,
-                parameter_name=f"{p_name}{c_postfix}",
-                parameter_translation=f"{parameter_translation}{c_postfix}".strip()
-                if parameter_translation is not None
-                else None,
-            )
-        else:
-            data_point_name = DataPointNameData(
-                device_name=channel.device.name,
-                channel_name=channel_name,
-                parameter_name=p_name,
-                parameter_translation=parameter_translation,
-            )
-        return data_point_name
+        c_name = (
+            channel_name.split(ADDRESS_SEPARATOR)[0]
+            if _check_channel_name_with_channel_no(name=channel_name)
+            else channel_name
+        )
+        return DataPointNameData(
+            device_name=channel.device.name,
+            channel_name=c_name,
+            parameter_name=f"{p_name}{c_postfix}",
+            parameter_translation=f"{parameter_translation}{c_postfix}".strip()
+            if parameter_translation is not None
+            else None,
+        )
 
     _LOGGER.debug(
         "GET_DATA_POINT_NAME: Using unique_id for %s %s %s",

@@ -22,6 +22,15 @@
   `register_additional_parameter()` to `ParamsetDescriptionProviderProtocol`
   and `ParamsetDescriptionRegistry`.
 
+### Fixed
+
+- **Fixed multi-channel postfix for data point names**: The channel postfix
+  (`ch{no}`) is now applied consistently when a parameter appears in multiple
+  channels, regardless of whether the channel name contains an address
+  separator. Previously, the postfix was only added when the channel name
+  matched the `address:channel_no` pattern, causing missing disambiguation for
+  channels with custom names.
+
 # Version 2026.4.1 (2026-04-05)
 
 ## What's Changed

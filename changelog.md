@@ -39,6 +39,14 @@
   matched the `address:channel_no` pattern, causing missing disambiguation for
   channels with custom names.
 
+- **Fixed spurious optimistic rollbacks for CUxD/CCU-Jack devices**: Disabled
+  optimistic updates for interfaces without RPC callback support (CUxD,
+  CCU-Jack). These interfaces receive event confirmations via MQTT with
+  unpredictable latency (often >30s for slow devices like FHT80b), causing the
+  30-second rollback timer to fire before the confirmation arrives. This led to
+  incorrect value reversions and cascading write loops. The value now updates
+  only when the MQTT confirmation arrives, regardless of latency. (#3103)
+
 # Version 2026.4.1 (2026-04-05)
 
 ## What's Changed

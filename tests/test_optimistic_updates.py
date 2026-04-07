@@ -1,11 +1,12 @@
 """Tests for optimistic update system."""
 
 from typing import cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from aiohomematic.client import CommandPriority
+from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.const import RollbackReason
 from aiohomematic.model.data_point import BaseParameterDataPoint
 from aiohomematic.model.generic import DpSwitch
@@ -246,6 +247,80 @@ class TestDuplicateSendOptimistic:
 
         call_count_after = len([c for c in mock_client.method_calls if c[0] == "set_value"])
         assert call_count_after == call_count_before  # No additional RPC call
+
+
+class TestNoRpcCallbackSkipsOptimistic:
+    """Test that optimistic updates are skipped for interfaces without RPC callback (issue #3103)."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_apply_optimistic_value_skipped_without_rpc_callback(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Test that apply_optimistic_value is a no-op when rpc_callback=False.
+
+        CUxD/CCU-Jack interfaces lack a reliable event confirmation path.
+        MQTT confirmations arrive with unpredictable latency (often >30s),
+        causing spurious rollbacks. Optimistic updates must be skipped.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch,
+            central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"),
+        )
+
+        # Patch capabilities to simulate CUxD/CCU-Jack (no rpc_callback)
+        no_rpc_caps = BackendCapabilities(rpc_callback=False, ping_pong=False)
+        with patch.object(
+            type(switch._channel.device.client), "capabilities", new_callable=lambda: property(lambda self: no_rpc_caps)
+        ):
+            switch.apply_optimistic_value(value=True)
+
+            # Optimistic state must NOT be active
+            assert switch.is_optimistic is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_apply_optimistic_value_works_with_rpc_callback(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that apply_optimistic_value works normally when rpc_callback=True."""
+        central, _, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch,
+            central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"),
+        )
+
+        # Homegear has rpc_callback=True by default
+        assert switch._channel.device.client.capabilities.rpc_callback is True
+
+        switch.apply_optimistic_value(value=True)
+
+        # Optimistic state should be active
+        assert switch.is_optimistic is True
 
 
 class TestPriorityAndOptimisticIntegration:

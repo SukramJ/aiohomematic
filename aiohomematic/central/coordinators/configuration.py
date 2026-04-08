@@ -115,6 +115,9 @@ class ConfigurableDeviceChannel:
     channel_type_label: str
     """Human-readable label for the channel type."""
 
+    channel_name: str
+    """User-defined name of the channel."""
+
     paramset_keys: tuple[str, ...]
     """Effective paramset keys for this channel (as string values)."""
 
@@ -383,6 +386,7 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
                     else:
                         effective_keys.append(pk.value)
 
+                channel_obj = device.get_channel(channel_address=ch.address)
                 channel_list.append(
                     ConfigurableDeviceChannel(
                         address=ch.address,
@@ -392,6 +396,7 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
                             locale=locale,
                         )
                         or ch.channel_type,
+                        channel_name=channel_obj.name if channel_obj else "",
                         paramset_keys=tuple(effective_keys),
                     )
                 )

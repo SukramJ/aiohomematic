@@ -1,3 +1,22 @@
+# Version 2026.4.3 (2026-04-08)
+
+## What's Changed
+
+### Added
+
+- **Added channel name to device link and linkable channel data**: The
+  `DeviceLink` dataclass now includes `sender_channel_name` and
+  `receiver_channel_name` fields, and `LinkableChannel` includes `channel_name`.
+  This exposes user-defined channel names in the link coordinator API for use in
+  the configuration panel.
+
+### Docs
+
+- **Documented schedule editing permissions for non-admin users**: Added
+  permissions sections to the Climate Schedule Card and Schedule Card
+  documentation. Extended the Config Panel documentation with a new section
+  explaining how to enable schedule editing for non-admin household members.
+
 # Version 2026.4.2 (2026-04-07)
 
 ## What's Changed

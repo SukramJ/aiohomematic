@@ -99,10 +99,12 @@ class TestDeviceLink:
             sender_device_model="HM-LC-Sw1",
             sender_channel_type="SWITCH",
             sender_channel_type_label="Switch",
+            sender_channel_name="Licht Küche",
             receiver_device_name="Dev2",
             receiver_device_model="HM-LC-Dim1",
             receiver_channel_type="DIMMER",
             receiver_channel_type_label="Dimmer",
+            receiver_channel_name="Dimmer Flur",
             peer_address="VCU0000002:1",
             peer_device_name="Dev2",
             peer_device_model="HM-LC-Dim1",
@@ -110,6 +112,8 @@ class TestDeviceLink:
         )
         assert link.sender_address == "VCU0000001:1"
         assert link.direction == "outgoing"
+        assert link.sender_channel_name == "Licht Küche"
+        assert link.receiver_channel_name == "Dimmer Flur"
 
     def test_frozen(self) -> None:
         """Test DeviceLink is frozen."""
@@ -123,10 +127,12 @@ class TestDeviceLink:
             sender_device_model="",
             sender_channel_type="",
             sender_channel_type_label="",
+            sender_channel_name="",
             receiver_device_name="",
             receiver_device_model="",
             receiver_channel_type="",
             receiver_channel_type_label="",
+            receiver_channel_name="",
             peer_address="",
             peer_device_name="",
             peer_device_model="",
@@ -145,12 +151,14 @@ class TestLinkableChannel:
             address="VCU0000001:1",
             channel_type="SWITCH",
             channel_type_label="Switch",
+            channel_name="Licht Küche",
             device_address="VCU0000001",
             device_name="Test Device",
             device_model="HM-LC-Sw1",
         )
         assert ch.address == "VCU0000001:1"
         assert ch.device_model == "HM-LC-Sw1"
+        assert ch.channel_name == "Licht Küche"
 
     def test_frozen(self) -> None:
         """Test LinkableChannel is frozen."""
@@ -158,6 +166,7 @@ class TestLinkableChannel:
             address="VCU0000001:1",
             channel_type="SWITCH",
             channel_type_label="Switch",
+            channel_name="",
             device_address="VCU0000001",
             device_name="Test",
             device_model="HM-LC-Sw1",

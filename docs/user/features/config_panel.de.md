@@ -9,7 +9,7 @@ translation_source_hash: dd3410609095
 Das Homematic-Konfigurationspanel für Geräte ist ein Seitenleistenpanel in Home Assistant zum Bearbeiten von Geräteparametern, Verwalten von Direktverknüpfungen zwischen Geräten und Konfigurieren von Zeitprogrammen -- direkt über die Home Assistant-Oberfläche.
 
 !!! note "Nur für Administratoren"
-Das Konfigurationspanel ist nur für Administratoren sichtbar.
+Das Konfigurationspanel ist nur für Home Assistant-Administratoren sichtbar. Nicht-Admin-Benutzer können Gerätezeitpläne über die [Klima-Zeitprogramm-Karte](climate_schedule_card.md) und [Zeitprogramm-Karte](schedule_card.md) bearbeiten, wenn dies in den Integrationsoptionen aktiviert ist (siehe [Zeitplan-Bearbeitung für Nicht-Admins](#non-admin-schedules)).
 
 ---
 
@@ -464,6 +464,30 @@ Der Anlernmodus versetzt die CCU in den **Kopplungsmodus**, damit neue Geräte d
 
 !!! tip
 Es werden nur Schnittstellen angezeigt, die tatsächlich in der Integration konfiguriert sind. Falls eine Schnittstelle nicht sichtbar ist, die Integrationskonfiguration prüfen.
+
+---
+
+## Zeitplan-Bearbeitung für Nicht-Admins {#non-admin-schedules}
+
+Standardmäßig können nur Administratoren Gerätezeitpläne bearbeiten. Nicht-Admin-Haushaltsmitgliedern kann die Zeitplan-Bearbeitung über die HACS-Zeitplan-Karten ([Klima-Zeitprogramm-Karte](climate_schedule_card.md) und [Zeitprogramm-Karte](schedule_card.md)) erlaubt werden.
+
+### Aktivierung
+
+1. Zu **Einstellungen** --> **Geräte & Dienste** navigieren
+2. **Homematic(IP) Local for OpenCCU** suchen und auf **Konfigurieren** klicken
+3. **Zeitplan-Bearbeitung** auswählen
+4. **Nicht-Admin-Benutzern erlauben, Zeitpläne zu bearbeiten** aktivieren
+5. Auf **Absenden** klicken
+
+### Funktionsweise
+
+- Nicht-Admin-Benutzer können Zeitpläne über die Lovelace-Zeitplan-Karten bearbeiten
+- Das Backend erzwingt die Berechtigungen -- wenn ein Nicht-Admin-Benutzer versucht, einen Zeitplan ohne diese Option zu bearbeiten, zeigt die Karte eine Fehlermeldung "Keine Berechtigung"
+- Alle anderen Operationen (Gerätekonfiguration, Direktverknüpfungen, Systemverwaltung) bleiben nur für Administratoren
+- Leseoperationen (Zeitpläne anzeigen, Geräteparameter einsehen) sind immer für alle authentifizierten Benutzer verfügbar
+
+!!! note
+Das Konfigurationspanel selbst bleibt nur für Administratoren zugänglich. Diese Einstellung betrifft nur die Zeitplan-Karten auf Dashboards.
 
 ---
 

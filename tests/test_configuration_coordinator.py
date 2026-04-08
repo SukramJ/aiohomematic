@@ -829,10 +829,12 @@ class TestConfigurableDeviceChannel:
             address="VCU:1",
             channel_type="SWITCH",
             channel_type_label="Switch",
+            channel_name="Licht Küche",
             paramset_keys=("MASTER", "VALUES"),
         )
         assert ch.address == "VCU:1"
         assert ch.channel_type_label == "Switch"
+        assert ch.channel_name == "Licht Küche"
         assert ch.paramset_keys == ("MASTER", "VALUES")
 
     def test_frozen(self) -> None:
@@ -841,6 +843,7 @@ class TestConfigurableDeviceChannel:
             address="VCU:1",
             channel_type="SWITCH",
             channel_type_label="Switch",
+            channel_name="",
             paramset_keys=("MASTER",),
         )
         with pytest.raises(AttributeError):

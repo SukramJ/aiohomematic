@@ -1,3 +1,14 @@
+# Version 2026.4.4 (2026-04-08)
+
+## What's Changed
+
+### Added
+
+- **Added channel name to configurable device channel data**: The
+  `ConfigurableDeviceChannel` dataclass now includes a `channel_name` field,
+  exposing user-defined channel names in the configuration coordinator API for
+  use in the configuration panel.
+
 # Version 2026.4.3 (2026-04-08)
 
 ## What's Changed

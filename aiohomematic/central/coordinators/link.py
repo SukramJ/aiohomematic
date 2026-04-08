@@ -62,6 +62,9 @@ class DeviceLink:
     sender_channel_type_label: str
     """Translated label of the sender channel type."""
 
+    sender_channel_name: str
+    """User-defined name of the sender channel."""
+
     receiver_device_name: str
     """Name of the receiver device."""
 
@@ -73,6 +76,9 @@ class DeviceLink:
 
     receiver_channel_type_label: str
     """Translated label of the receiver channel type."""
+
+    receiver_channel_name: str
+    """User-defined name of the receiver channel."""
 
     peer_address: str
     """Address of the peer channel (remote end)."""
@@ -99,6 +105,9 @@ class LinkableChannel:
 
     channel_type_label: str
     """Translated label of the channel type."""
+
+    channel_name: str
+    """User-defined name of the channel."""
 
     device_address: str
     """Address of the owning device."""
@@ -227,6 +236,7 @@ class LinkCoordinator(LinkFacadeProtocol):
                         )
                         if sender_channel
                         else "",
+                        sender_channel_name=sender_channel.name if sender_channel else "",
                         receiver_device_name=(
                             device.name if not is_sender else (peer_device.name if peer_device else peer_device_addr)
                         ),
@@ -240,6 +250,7 @@ class LinkCoordinator(LinkFacadeProtocol):
                         )
                         if receiver_channel
                         else "",
+                        receiver_channel_name=receiver_channel.name if receiver_channel else "",
                         peer_address=peer_addr,
                         peer_device_name=(peer_device.name if peer_device else peer_device_addr),
                         peer_device_model=peer_device.model if peer_device else "",
@@ -307,6 +318,7 @@ class LinkCoordinator(LinkFacadeProtocol):
                             locale=locale,
                         )
                         or channel.type_name,
+                        channel_name=channel.name,
                         device_address=device.address,
                         device_name=device.name or device.address,
                         device_model=device.model,

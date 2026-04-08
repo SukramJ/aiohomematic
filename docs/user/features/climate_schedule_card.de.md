@@ -177,6 +177,12 @@ Siehe [Wochenprofile](week_profile.md) für das vollständige Zeitplan-Datenform
 
 ---
 
+## Berechtigungen
+
+Standardmäßig können nur Administratoren Zeitpläne bearbeiten. Um Nicht-Admin-Haushaltsmitgliedern die Zeitplan-Bearbeitung zu erlauben, aktiviere dies in den Integrationsoptionen unter **Zeitplan-Bearbeitung**. Siehe [Zeitplan-Bearbeitung für Nicht-Admins](config_panel.md#non-admin-schedules) für Details.
+
+---
+
 ## Fehlerbehebung
 
 ### Karte wird nicht angezeigt

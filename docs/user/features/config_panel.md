@@ -3,7 +3,7 @@
 The Homematic Device Configuration Panel is a sidebar panel in Home Assistant for editing device parameters, managing direct links between devices, and configuring schedules — directly from the Home Assistant UI.
 
 !!! note "Admin Only"
-The configuration panel is only visible to admin users.
+The configuration panel is only visible to Home Assistant admin users. Non-admin users can edit device schedules via the [Climate Schedule Card](climate_schedule_card.md) and [Schedule Card](schedule_card.md) when enabled in the integration options (see [Schedule Editing for Non-Admin Users](#non-admin-schedules)).
 
 ---
 
@@ -458,6 +458,30 @@ Install mode puts the CCU into **pairing mode**, allowing new devices to join th
 
 !!! tip
 Only interfaces that are actually configured in the integration are shown. If you don't see an interface, check your integration configuration.
+
+---
+
+## Schedule Editing for Non-Admin Users {#non-admin-schedules}
+
+By default, only admin users can edit device schedules. You can allow non-admin household members to edit schedules via the HACS schedule cards ([Climate Schedule Card](climate_schedule_card.md) and [Schedule Card](schedule_card.md)).
+
+### Enabling
+
+1. Go to **Settings** → **Devices & Services**
+2. Find **Homematic(IP) Local for OpenCCU** and click **Configure**
+3. Select **Schedule editing**
+4. Enable **Allow non-admin users to edit schedules**
+5. Click **Submit**
+
+### How it works
+
+- Non-admin users can edit schedules through the Lovelace schedule cards
+- The backend enforces permissions — if a non-admin user tries to edit a schedule without this option enabled, the card shows an "insufficient permissions" error
+- All other operations (device configuration, direct links, system administration) remain admin-only
+- Read operations (viewing schedules, device parameters) are always available to all authenticated users
+
+!!! note
+The configuration panel itself remains admin-only. This setting only affects the schedule cards on dashboards.
 
 ---
 

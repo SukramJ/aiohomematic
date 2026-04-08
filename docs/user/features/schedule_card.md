@@ -163,6 +163,12 @@ schedule_data:
 
 ---
 
+## Permissions
+
+By default, only admin users can edit schedules. To allow non-admin household members to edit schedules, enable this in the integration options under **Schedule editing**. See [Schedule Editing for Non-Admin Users](config_panel.md#non-admin-schedules) for details.
+
+---
+
 ## Troubleshooting
 
 ### Card not appearing

@@ -469,7 +469,7 @@ Es werden nur Schnittstellen angezeigt, die tatsächlich in der Integration konf
 
 ## Zeitplan-Bearbeitung für Nicht-Admins {#non-admin-schedules}
 
-Standardmäßig können nur Administratoren Gerätezeitpläne bearbeiten. Nicht-Admin-Haushaltsmitgliedern kann die Zeitplan-Bearbeitung über die HACS-Zeitplan-Karten ([Klima-Zeitprogramm-Karte](climate_schedule_card.md) und [Zeitprogramm-Karte](schedule_card.md)) erlaubt werden.
+Standardmäßig können nur Administratoren Gerätezeitpläne bearbeiten. Nicht-Admin-Haushaltsmitgliedern kann die Zeitplan-Bearbeitung über die Zeitplan-Karten ([Klima-Zeitprogramm-Karte](climate_schedule_card.md) und [Zeitprogramm-Karte](schedule_card.md)) erlaubt werden.
 
 ### Aktivierung
 
@@ -523,5 +523,6 @@ Das Konfigurationspanel selbst bleibt nur für Administratoren zugänglich. Dies
 - [Wochenprofile](week_profile.md) -- Zeitprogramm-Datenformat und Aktionen
 - [Klima-Zeitprogramm-Karte](climate_schedule_card.md) -- Visueller Thermostat-Zeitprogrammeditor
 - [Zeitprogramm-Karte](schedule_card.md) -- Visueller Geräte-Zeitprogrammeditor
+- [Status-Karten](status_cards.md) -- Systemstatus, Gerätestatus und Meldungen
 - [Aktionsreferenz](homeassistant_actions.md) -- Alle verfügbaren Service-Aktionen
 - [Über RSSI-Werte](../troubleshooting/rssi_fix.md) -- Signalstärke verstehen

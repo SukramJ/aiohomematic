@@ -463,7 +463,7 @@ Only interfaces that are actually configured in the integration are shown. If yo
 
 ## Schedule Editing for Non-Admin Users {#non-admin-schedules}
 
-By default, only admin users can edit device schedules. You can allow non-admin household members to edit schedules via the HACS schedule cards ([Climate Schedule Card](climate_schedule_card.md) and [Schedule Card](schedule_card.md)).
+By default, only admin users can edit device schedules. You can allow non-admin household members to edit schedules via the schedule cards ([Climate Schedule Card](climate_schedule_card.md) and [Schedule Card](schedule_card.md)).
 
 ### Enabling
 
@@ -517,5 +517,6 @@ Navigate directly to a specific device, channel, or link view via URL hash param
 - [Week Profiles](week_profile.md) — Schedule data format and actions
 - [Climate Schedule Card](climate_schedule_card.md) — Visual thermostat schedule editor
 - [Schedule Card](schedule_card.md) — Visual device schedule editor
+- [Status Cards](status_cards.md) — System health, device status, and messages cards
 - [Actions Reference](homeassistant_actions.md) — All available service actions
 - [About RSSI values](../troubleshooting/rssi_fix.md) — Understanding signal strength

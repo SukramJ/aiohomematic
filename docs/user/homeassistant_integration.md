@@ -445,6 +445,10 @@ System variables are imported as disabled entities. Enable them in Settings → 
 ## See Also
 
 - [Actions Reference](features/homeassistant_actions.md)
+- [Device Configuration Panel](features/config_panel.md)
+- [Climate Schedule Card](features/climate_schedule_card.md)
+- [Schedule Card](features/schedule_card.md)
+- [Status Cards](features/status_cards.md)
+- [Calculated Climate Sensors](features/calculated_climate_sensors.md)
 - [Naming Conventions](advanced/homeassistant_naming.md)
 - [Troubleshooting Guide](troubleshooting/homeassistant_troubleshooting.md)
-- [Calculated Climate Sensors](features/calculated_climate_sensors.md)

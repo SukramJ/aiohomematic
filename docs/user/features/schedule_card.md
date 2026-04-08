@@ -29,22 +29,10 @@ The **HomematicIP Local Schedule Card** is a custom Lovelace card for displaying
 
 ## Installation
 
-### HACS (Recommended)
+The card is automatically available when the HomematicIP Local integration is loaded — no manual installation required. It appears in the Lovelace card picker under **HomematicIP Local Scheduler Card**.
 
-1. In HACS, go to **Frontend**
-2. Click the three-dot menu → **Custom repositories**
-3. Add: `https://github.com/SukramJ/homematicip_local_schedule_card`
-4. Select category **Lovelace**
-5. Click **Install**
-6. Restart Home Assistant
-
-### Manual
-
-1. Download `homematicip-local-schedule-card.js` from the [latest release](https://github.com/SukramJ/homematicip_local_schedule_card/releases)
-2. Copy to `config/www/`
-3. Add resource: **Settings** → **Dashboards** → **Resources** → **Add Resource**
-   - URL: `/local/homematicip-local-schedule-card.js`
-   - Type: JavaScript Module
+!!! note "Migrating from HACS"
+    If you previously installed this card via HACS, the integration-bundled version detects this and skips duplicate registration. You can remove the HACS card resource at your convenience: **HACS** → **Frontend** → remove the schedule card. Both versions coexist without conflicts during the transition.
 
 ---
 
@@ -174,8 +162,8 @@ By default, only admin users can edit schedules. To allow non-admin household me
 ### Card not appearing
 
 1. Clear browser cache (Ctrl+F5)
-2. Verify the resource is added: **Settings** → **Dashboards** → **Resources**
-3. Check the file is accessible at `/local/homematicip-local-schedule-card.js`
+2. Ensure the HomematicIP Local integration is loaded and running
+3. Check Home Assistant logs for frontend registration errors
 
 ### Entity not listed
 
@@ -184,7 +172,7 @@ By default, only admin users can edit schedules. To allow non-admin household me
 
 ### Changes not saving
 
-1. Check Home Assistant logs for service call errors
+1. Check Home Assistant logs for WebSocket errors
 2. Ensure the CCU and device are reachable
 3. Wait for CONFIG_PENDING to clear on the device
 
@@ -194,4 +182,5 @@ By default, only admin users can edit schedules. To allow non-admin household me
 
 - [Week Profiles](week_profile.md) — Schedule data format, actions, and examples
 - [Climate Schedule Card](climate_schedule_card.md) — Schedule card for thermostats
+- [Status Cards](status_cards.md) — System health, device status, and messages cards
 - [Device Configuration Panel](config_panel.md) — Full device configuration UI

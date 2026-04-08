@@ -451,6 +451,10 @@ Systemvariablen werden als deaktivierte Entities importiert. In Einstellungen ‚Ü
 ## Siehe auch
 
 - [Actions-Referenz](features/homeassistant_actions.md)
+- [Ger√§tekonfigurations-Panel](features/config_panel.md)
+- [Klima-Zeitprogramm-Karte](features/climate_schedule_card.md)
+- [Zeitprogramm-Karte](features/schedule_card.md)
+- [Status-Karten](features/status_cards.md)
+- [Berechnete Klimasensoren](features/calculated_climate_sensors.md)
 - [Benennungskonventionen](advanced/homeassistant_naming.md)
 - [Fehlerbehebungsleitfaden](troubleshooting/homeassistant_troubleshooting.md)
-- [Berechnete Klimasensoren](features/calculated_climate_sensors.md)

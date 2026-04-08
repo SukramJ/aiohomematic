@@ -26,22 +26,10 @@ Die **HomematicIP Local Climate Schedule Card** ist eine benutzerdefinierte Love
 
 ## Installation
 
-### HACS (empfohlen)
+Die Karte ist automatisch verfügbar, sobald die HomematicIP Local Integration geladen ist — keine manuelle Installation erforderlich. Sie erscheint im Lovelace-Karten-Picker unter **HomematicIP Local Climate Schedule Card**.
 
-1. In HACS zu **Frontend** navigieren
-2. Drei-Punkte-Menü anklicken -> **Custom repositories**
-3. Hinzufügen: `https://github.com/SukramJ/homematicip_local_climate_schedule_card`
-4. Kategorie **Lovelace** auswählen
-5. **Install** klicken
-6. Home Assistant neu starten
-
-### Manuell
-
-1. `homematicip-local-climate-schedule-card.js` vom [letzten Release](https://github.com/SukramJ/homematicip_local_climate_schedule_card/releases) herunterladen
-2. Nach `config/www/` kopieren
-3. Ressource hinzufügen: **Einstellungen** -> **Dashboards** -> **Ressourcen** -> **Ressource hinzufügen**
-   - URL: `/local/homematicip-local-climate-schedule-card.js`
-   - Typ: JavaScript Module
+!!! note "Migration von HACS"
+    Falls diese Karte zuvor über HACS installiert wurde, erkennt die integrationsgebundene Version dies und überspringt die doppelte Registrierung. Die HACS-Kartenressource kann nach Belieben entfernt werden: **HACS** → **Frontend** → Climate Schedule Card entfernen. Beide Versionen koexistieren während der Übergangsphase ohne Konflikte.
 
 ---
 
@@ -188,8 +176,8 @@ Standardmäßig können nur Administratoren Zeitpläne bearbeiten. Um Nicht-Admi
 ### Karte wird nicht angezeigt
 
 1. Browser-Cache leeren (Strg+F5)
-2. Überprüfen, ob die Ressource hinzugefügt ist: **Einstellungen** -> **Dashboards** -> **Ressourcen**
-3. Prüfen, ob die Datei unter `/local/homematicip-local-climate-schedule-card.js` erreichbar ist
+2. Sicherstellen, dass die HomematicIP Local Integration geladen und aktiv ist
+3. Home Assistant-Protokolle auf Frontend-Registrierungsfehler prüfen
 
 ### Entity nicht gefunden
 
@@ -199,7 +187,7 @@ Standardmäßig können nur Administratoren Zeitpläne bearbeiten. Um Nicht-Admi
 
 ### Änderungen werden nicht gespeichert
 
-1. Home Assistant Logs auf Service-Call-Fehler prüfen
+1. Home Assistant-Protokolle auf WebSocket-Fehler prüfen
 2. Sicherstellen, dass CCU und Thermostat erreichbar sind
 3. Warten, bis CONFIG_PENDING auf dem Gerät zurückgesetzt wird
 
@@ -209,4 +197,5 @@ Standardmäßig können nur Administratoren Zeitpläne bearbeiten. Um Nicht-Admi
 
 - [Wochenprofile](week_profile.md) - Zeitplan-Datenformat, Aktionen und Beispiele
 - [Schedule Card](schedule_card.md) - Zeitplan-Karte für Schalter, Lichter, Abdeckungen und Ventile
+- [Status-Karten](status_cards.md) - Systemstatus, Gerätestatus und Meldungen
 - [Gerätekonfigurations-Panel](config_panel.md) - Vollständige Gerätekonfigurations-UI

@@ -1,3 +1,13 @@
+# Version 2026.4.6 (2026-04-09)
+
+## What's Changed
+
+### Added
+
+- **Added `determine_parameter` to `ValueOperationsProtocol`**: The client
+  protocol interface now exposes `determine_parameter`, making it available
+  through the protocol-based DI layer.
+
 # Version 2026.4.5 (2026-04-09)
 
 ## What's Changed

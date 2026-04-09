@@ -141,6 +141,10 @@ class BackendOperationsProtocol(Protocol):
         """Delete a system variable."""
         ...
 
+    async def determine_parameter(self, *, channel_address: str, parameter: str) -> Any:
+        """Determine the value of a parameter (auto-detect)."""
+        ...
+
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program by ID."""
         ...

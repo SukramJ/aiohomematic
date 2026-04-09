@@ -203,6 +203,20 @@ class CcuBackend(BaseBackend):
         """Delete a system variable."""
         return await self._json_rpc.delete_system_variable(name=name)
 
+    async def determine_parameter(self, *, channel_address: str, parameter: str) -> Any:
+        """Determine the value of a parameter via XML-RPC."""
+        try:
+            return await self._proxy.determineParameter(channel_address, parameter)
+        except BaseHomematicException as bhexc:
+            _LOGGER.debug(
+                "DETERMINE_PARAMETER failed for %s/%s: %s [%s]",
+                channel_address,
+                parameter,
+                bhexc.name,
+                extract_exc_args(exc=bhexc),
+            )
+            raise
+
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program."""
         return await self._json_rpc.execute_program(pid=pid)

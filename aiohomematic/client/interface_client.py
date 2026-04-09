@@ -321,6 +321,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         """Delete a system variable from the backend."""
         return await self._backend.delete_system_variable(name=name)
 
+    async def determine_parameter(self, *, channel_address: str, parameter: str) -> Any:
+        """Determine the value of a parameter (auto-detect)."""
+        return await self._backend.determine_parameter(
+            channel_address=channel_address,
+            parameter=parameter,
+        )
+
     async def execute_program(self, *, pid: str) -> bool:
         """Execute a program on the backend."""
         if not self._backend.capabilities.programs:

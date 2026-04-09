@@ -1,3 +1,14 @@
+# Version 2026.4.5 (2026-04-09)
+
+## What's Changed
+
+### Added
+
+- **Added `determine_parameter` support**: New `determine_parameter` method on
+  `BackendOperationsProtocol`, `BaseBackend`, `CcuBackend`, and
+  `InterfaceClient` that wraps the XML-RPC `determineParameter` call for
+  auto-detecting parameter values on a channel.
+
 # Version 2026.4.4 (2026-04-08)
 
 ## What's Changed

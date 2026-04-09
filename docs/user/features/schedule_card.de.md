@@ -38,7 +38,7 @@ Die **HomematicIP Local Schedule Card** ist eine benutzerdefinierte Lovelace-Kar
 Die Karte ist automatisch verfügbar, sobald die HomematicIP Local Integration geladen ist — keine manuelle Installation erforderlich. Sie erscheint im Lovelace-Karten-Picker unter **HomematicIP Local Scheduler Card**.
 
 !!! note "Migration von HACS"
-    Falls diese Karte zuvor über HACS installiert wurde, erkennt die integrationsgebundene Version dies und überspringt die doppelte Registrierung. Die HACS-Kartenressource kann nach Belieben entfernt werden: **HACS** → **Frontend** → Schedule Card entfernen. Beide Versionen koexistieren während der Übergangsphase ohne Konflikte.
+Falls diese Karte zuvor über HACS installiert wurde, erkennt die integrationsgebundene Version dies und überspringt die doppelte Registrierung. Die HACS-Kartenressource kann nach Belieben entfernt werden: **HACS** → **Frontend** → Schedule Card entfernen. Beide Versionen koexistieren während der Übergangsphase ohne Konflikte.
 
 ---
 

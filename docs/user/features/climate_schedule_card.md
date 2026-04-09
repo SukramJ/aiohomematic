@@ -23,7 +23,7 @@ The **HomematicIP Local Climate Schedule Card** is a custom Lovelace card for di
 The card is automatically available when the HomematicIP Local integration is loaded — no manual installation required. It appears in the Lovelace card picker under **HomematicIP Local Climate Schedule Card**.
 
 !!! note "Migrating from HACS"
-    If you previously installed this card via HACS, the integration-bundled version detects this and skips duplicate registration. You can remove the HACS card resource at your convenience: **HACS** → **Frontend** → remove the climate schedule card. Both versions coexist without conflicts during the transition.
+If you previously installed this card via HACS, the integration-bundled version detects this and skips duplicate registration. You can remove the HACS card resource at your convenience: **HACS** → **Frontend** → remove the climate schedule card. Both versions coexist without conflicts during the transition.
 
 ---
 

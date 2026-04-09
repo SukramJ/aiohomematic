@@ -17,11 +17,11 @@ Die Karten sind automatisch verfügbar, sobald die HomematicIP Local Integration
 
 ## Kartenübersicht
 
-| Karte                               | Element-Name                        | Zweck                                                |
-| ----------------------------------- | ----------------------------------- | ---------------------------------------------------- |
-| **Systemstatus**                    | `homematicip-system-health-card`    | Integrationszustand, Gerätestatistiken, DC/CS-Werte  |
-| **Gerätestatus**                    | `homematicip-device-status-card`    | Geräte-Problemübersicht mit Filterung                |
-| **Meldungen**                       | `homematicip-messages-card`         | Servicemeldungen und Alarme mit Quittierung           |
+| Karte            | Element-Name                     | Zweck                                               |
+| ---------------- | -------------------------------- | --------------------------------------------------- |
+| **Systemstatus** | `homematicip-system-health-card` | Integrationszustand, Gerätestatistiken, DC/CS-Werte |
+| **Gerätestatus** | `homematicip-device-status-card` | Geräte-Problemübersicht mit Filterung               |
+| **Meldungen**    | `homematicip-messages-card`      | Servicemeldungen und Alarme mit Quittierung         |
 
 Alle Karten benötigen eine `entry_id`, die den HomematicIP Local Konfigurationseintrag identifiziert. Die Karten-Editoren bieten ein Dropdown zur Auswahl.
 
@@ -42,21 +42,21 @@ Zeigt den Gesamtzustand des Homematic-Systems auf einen Blick.
 
 **Duty Cycle (DC)** gibt an, wie viel der verfügbaren Funk-Sendezeit verbraucht wurde. Regulatorische Grenzwerte beschränken jedes Gerät auf 1% Sendezeit pro Stunde.
 
-| DC-Wert | Farbe  | Bedeutung                                       |
-| ------- | ------ | ----------------------------------------------- |
-| < 60%   | Normal | Ausreichend Sendekapazität vorhanden            |
-| 60–79%  | Orange | Nähert sich dem Limit                           |
-| ≥ 80%   | Rot    | Nahe der Kapazitätsgrenze — Funkverkehr senken  |
+| DC-Wert | Farbe  | Bedeutung                                      |
+| ------- | ------ | ---------------------------------------------- |
+| < 60%   | Normal | Ausreichend Sendekapazität vorhanden           |
+| 60–79%  | Orange | Nähert sich dem Limit                          |
+| ≥ 80%   | Rot    | Nahe der Kapazitätsgrenze — Funkverkehr senken |
 
 **Carrier Sense (CS)** misst, wie viel Funkaktivität auf dem Frequenzband erkannt wird — einschließlich Störungen durch andere Geräte (Nachbarn, WLAN usw.).
 
-| CS-Wert | Farbe  | Bedeutung                                              |
-| ------- | ------ | ------------------------------------------------------ |
-| < 10%   | Normal | Saubere Funkumgebung                                   |
+| CS-Wert | Farbe  | Bedeutung                                                   |
+| ------- | ------ | ----------------------------------------------------------- |
+| < 10%   | Normal | Saubere Funkumgebung                                        |
 | ≥ 10%   | Rot    | Erhebliche Störungen — kann Zuverlässigkeit beeinträchtigen |
 
 !!! tip
-    Hohe Carrier-Sense-Werte weisen auf externe Funkstörungen hin. Das Funkmodul oder den HAP von Störquellen entfernen (WLAN-Router, USB-3.0-Geräte, Mikrowellen).
+Hohe Carrier-Sense-Werte weisen auf externe Funkstörungen hin. Das Funkmodul oder den HAP von Störquellen entfernen (WLAN-Router, USB-3.0-Geräte, Mikrowellen).
 
 ### Konfiguration
 
@@ -65,13 +65,13 @@ type: custom:homematicip-system-health-card
 entry_id: <config-entry-id>
 ```
 
-| Option           | Typ     | Standard        | Beschreibung                            |
-| ---------------- | ------- | --------------- | --------------------------------------- |
+| Option           | Typ     | Standard         | Beschreibung                                |
+| ---------------- | ------- | ---------------- | ------------------------------------------- |
 | `entry_id`       | string  | — (erforderlich) | HomematicIP Local Konfigurationseintrags-ID |
-| `title`          | string  | "Systemstatus"  | Benutzerdefinierter Kartentitel         |
-| `show_incidents` | boolean | `false`         | Vorfallsliste anzeigen                  |
-| `max_incidents`  | number  | `5`             | Maximale Anzahl angezeigter Vorfälle    |
-| `poll_interval`  | number  | `30`            | Abfrageintervall in Sekunden            |
+| `title`          | string  | "Systemstatus"   | Benutzerdefinierter Kartentitel             |
+| `show_incidents` | boolean | `false`          | Vorfallsliste anzeigen                      |
+| `max_incidents`  | number  | `5`              | Maximale Anzahl angezeigter Vorfälle        |
+| `poll_interval`  | number  | `30`             | Abfrageintervall in Sekunden                |
 
 Das Abfrageintervall ist adaptiv: 5 Sekunden wenn das System nicht stabil ist, das konfigurierte Intervall (mindestens 30s) im Normalbetrieb.
 
@@ -89,13 +89,13 @@ Zeigt, welche Geräte Probleme haben — nicht erreichbar, Batterie schwach oder
 
 ### Filtermodi
 
-| Filter           | Zeigt                                                            |
-| ---------------- | ---------------------------------------------------------------- |
-| `problems`       | Nur Geräte mit Problemen (Standard)                              |
-| `all`            | Alle Geräte — Probleme zuerst, dann gesunde Geräte mit ✓        |
-| `unreachable`    | Nur nicht erreichbare Geräte                                     |
-| `low_battery`    | Nur Geräte mit schwacher Batterie                                |
-| `config_pending` | Nur Geräte mit ausstehender Konfiguration                       |
+| Filter           | Zeigt                                                    |
+| ---------------- | -------------------------------------------------------- |
+| `problems`       | Nur Geräte mit Problemen (Standard)                      |
+| `all`            | Alle Geräte — Probleme zuerst, dann gesunde Geräte mit ✓ |
+| `unreachable`    | Nur nicht erreichbare Geräte                             |
+| `low_battery`    | Nur Geräte mit schwacher Batterie                        |
+| `config_pending` | Nur Geräte mit ausstehender Konfiguration                |
 
 ### Konfiguration
 
@@ -106,15 +106,15 @@ filter: problems
 max_devices: 10
 ```
 
-| Option             | Typ     | Standard       | Beschreibung                                   |
-| ------------------ | ------- | -------------- | ---------------------------------------------- |
-| `entry_id`         | string  | — (erforderlich) | HomematicIP Local Konfigurationseintrags-ID  |
-| `title`            | string  | Automatisch    | Benutzerdefinierter Kartentitel                |
-| `filter`           | string  | `"problems"`   | Filtermodus (siehe Tabelle oben)               |
-| `show_model`       | boolean | `true`         | Gerätemodell im Sekundärtext anzeigen          |
-| `max_devices`      | number  | `10`           | Maximale angezeigte Geräte (0 = unbegrenzt)    |
-| `poll_interval`    | number  | `60`           | Abfrageintervall in Sekunden                   |
-| `interface_filter` | string  | —              | Nur Geräte dieser Schnittstelle anzeigen       |
+| Option             | Typ     | Standard         | Beschreibung                                |
+| ------------------ | ------- | ---------------- | ------------------------------------------- |
+| `entry_id`         | string  | — (erforderlich) | HomematicIP Local Konfigurationseintrags-ID |
+| `title`            | string  | Automatisch      | Benutzerdefinierter Kartentitel             |
+| `filter`           | string  | `"problems"`     | Filtermodus (siehe Tabelle oben)            |
+| `show_model`       | boolean | `true`           | Gerätemodell im Sekundärtext anzeigen       |
+| `max_devices`      | number  | `10`             | Maximale angezeigte Geräte (0 = unbegrenzt) |
+| `poll_interval`    | number  | `60`             | Abfrageintervall in Sekunden                |
+| `interface_filter` | string  | —                | Nur Geräte dieser Schnittstelle anzeigen    |
 
 ---
 
@@ -142,15 +142,15 @@ type: custom:homematicip-messages-card
 entry_id: <config-entry-id>
 ```
 
-| Option           | Typ     | Standard       | Beschreibung                               |
-| ---------------- | ------- | -------------- | ------------------------------------------ |
+| Option           | Typ     | Standard         | Beschreibung                                |
+| ---------------- | ------- | ---------------- | ------------------------------------------- |
 | `entry_id`       | string  | — (erforderlich) | HomematicIP Local Konfigurationseintrags-ID |
-| `title`          | string  | Automatisch    | Benutzerdefinierter Kartentitel            |
-| `show_alarms`    | boolean | `true`         | Alarmmeldungen-Bereich anzeigen            |
-| `show_service`   | boolean | `true`         | Servicemeldungen-Bereich anzeigen          |
-| `max_messages`   | number  | `10`           | Maximale Meldungen pro Typ                 |
-| `show_timestamp` | boolean | `true`         | Zeitstempel der Meldungen anzeigen         |
-| `poll_interval`  | number  | `30`           | Abfrageintervall in Sekunden               |
+| `title`          | string  | Automatisch      | Benutzerdefinierter Kartentitel             |
+| `show_alarms`    | boolean | `true`           | Alarmmeldungen-Bereich anzeigen             |
+| `show_service`   | boolean | `true`           | Servicemeldungen-Bereich anzeigen           |
+| `max_messages`   | number  | `10`             | Maximale Meldungen pro Typ                  |
+| `show_timestamp` | boolean | `true`           | Zeitstempel der Meldungen anzeigen          |
+| `poll_interval`  | number  | `30`             | Abfrageintervall in Sekunden                |
 
 ---
 

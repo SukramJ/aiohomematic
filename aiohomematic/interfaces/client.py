@@ -328,6 +328,9 @@ class ValueOperationsProtocol(Protocol):
 
     __slots__ = ()
 
+    async def determine_parameter(self, *, channel_address: str, parameter: str) -> Any:
+        """Determine the value of a parameter (auto-detect)."""
+
     async def get_value(
         self,
         *,

@@ -74,6 +74,11 @@ class CombinedDpTimerAction(CombinedDataPoint[float | None], CombinedDataPointPr
         return cast(float | None, default)
 
     @property
+    def has_unit(self) -> bool:
+        """Return True if the timer has a unit data point (not a dummy)."""
+        return not isinstance(self._unit_dp, DpDummy)
+
+    @property
     def is_valid(self) -> bool:
         """Return True if the value data point is not a dummy."""
         return not isinstance(self._value_dp, DpDummy)

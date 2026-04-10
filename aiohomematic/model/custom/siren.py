@@ -209,6 +209,8 @@ class CustomDpIpSiren(BaseCustomDpSiren):
             await self._dp_optical_alarm_selection.send_value(value=optical_alarm, collector=collector)
         if (duration := kwargs.get("duration") or self._dp_duration.value or self._dp_duration.default) is not None:
             await self._dp_duration.send_value(value=float(duration), collector=collector)
+        else:
+            await self._dp_duration.send_default(collector=collector)
 
     def _compute_capabilities(self) -> SirenCapabilities:
         """Compute static capabilities based on available DataPoints."""

@@ -1380,8 +1380,8 @@ class TestCustomDpIpRGBWLight:
             values={
                 "DURATION_UNIT": _TimeUnit.HOURS,
                 "DURATION_VALUE": _NOT_USED,
-                "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
-                "RAMP_TIME_VALUE": 5,
+                "RAMP_TIME_TO_OFF_UNIT": _TimeUnit.SECONDS,
+                "RAMP_TIME_TO_OFF_VALUE": 5,
                 "LEVEL": 0.0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,

@@ -11,6 +11,17 @@
   permanent marker (DV=31, DU=H) is sent as default, matching CCU expectations
   and preventing XMLRPCFault errors.
 
+- **Fixed RAMP_TIME_TO_OFF usage for RGBW and DRG-DALI lights**: The
+  `turn_off()` method of `CustomDpIpRGBWLight` and `CustomDpIpDrgDaliLight` now
+  correctly uses `RAMP_TIME_TO_OFF_UNIT`/`RAMP_TIME_TO_OFF_VALUE` instead of
+  `RAMP_TIME_UNIT`/`RAMP_TIME_VALUE` when a ramp time is provided during
+  turn-off, matching CCU WebUI behavior.
+
+- **Fixed siren duration always sent on turn_on**: `CustomDpIpSiren.turn_on()`
+  now falls back to `send_default()` when no duration value is available,
+  ensuring `DURATION_UNIT`/`DURATION_VALUE` are always included in the
+  putParamset call, consistent with CCU WebUI behavior.
+
 ### Added
 
 - **Added `has_unit` property to `CombinedDpTimerAction`**: Indicates whether

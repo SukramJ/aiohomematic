@@ -1,3 +1,26 @@
+# Version 2026.4.7 (2026-04-10)
+
+## What's Changed
+
+### Fixed
+
+- **Fixed missing DURATION_UNIT/DURATION_VALUE in putParamset for signal
+  lights**: Devices with timer unit parameters (HmIP-BSL, HmIP-RGBW,
+  HmIPW-WRC6) now always include `DURATION_UNIT` and `DURATION_VALUE` in
+  `putParamset` calls during `turn_on`. When no explicit `on_time` is set, the
+  permanent marker (DV=31, DU=H) is sent as default, matching CCU expectations
+  and preventing XMLRPCFault errors.
+
+### Added
+
+- **Added `has_unit` property to `CombinedDpTimerAction`**: Indicates whether
+  the timer has a unit data point, used to determine if duration defaults should
+  be included in putParamset calls.
+
+- **Added CodeQL workflow with Python 3.14**: Custom CodeQL analysis workflow
+  using `setup-python-dependencies: false` and explicit Python 3.14 setup to
+  avoid parse errors from new Python 3.14 syntax features.
+
 # Version 2026.4.6 (2026-04-09)
 
 ## What's Changed

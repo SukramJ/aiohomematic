@@ -502,7 +502,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.WHITE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -513,6 +519,8 @@ class TestCustomDpIpFixedColorLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
                 "LEVEL": 0.10980392156862745,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
@@ -535,7 +543,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.RED, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.RED,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -545,7 +559,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.WHITE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -555,7 +575,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.YELLOW, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.YELLOW,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -565,7 +591,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.GREEN, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.GREEN,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -575,7 +607,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.TURQUOISE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.TURQUOISE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -585,7 +623,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.BLUE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.BLUE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -595,7 +639,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.PURPLE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.PURPLE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -665,6 +715,8 @@ class TestCustomDpIpFixedColorLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
                 "RAMP_TIME_VALUE": 18,
                 "LEVEL": 1.0,
@@ -679,6 +731,8 @@ class TestCustomDpIpFixedColorLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.MINUTES,
                 "RAMP_TIME_VALUE": 283,
                 "LEVEL": 1.0,
@@ -693,6 +747,8 @@ class TestCustomDpIpFixedColorLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.HOURS,
                 "RAMP_TIME_VALUE": 277,
                 "LEVEL": 1.0,
@@ -761,7 +817,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.WHITE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -772,7 +834,12 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 0.39215686274509803},
+            values={
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 0.39215686274509803,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -797,7 +864,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.RED, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.RED,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -809,7 +882,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.WHITE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.WHITE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -821,7 +900,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.YELLOW, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.YELLOW,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -833,7 +918,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.GREEN, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.GREEN,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -845,7 +936,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.TURQUOISE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.TURQUOISE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -857,7 +954,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.BLUE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.BLUE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -869,7 +972,13 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR": FixedColor.PURPLE, "COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 1.0},
+            values={
+                "COLOR": FixedColor.PURPLE,
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -886,7 +995,12 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 0.39215686274509803},
+            values={
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 0.39215686274509803,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -898,7 +1012,12 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_BEHAVIOUR": _ColorBehaviour.ON, "LEVEL": 0.12941176470588237},
+            values={
+                "COLOR_BEHAVIOUR": _ColorBehaviour.ON,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 0.12941176470588237,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -910,7 +1029,12 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_BEHAVIOUR": "FLASH_MIDDLE", "LEVEL": 0.12941176470588237},
+            values={
+                "COLOR_BEHAVIOUR": "FLASH_MIDDLE",
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 0.12941176470588237,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -922,7 +1046,12 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_BEHAVIOUR": "FLASH_MIDDLE", "LEVEL": 0.25882352941176473},
+            values={
+                "COLOR_BEHAVIOUR": "FLASH_MIDDLE",
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 0.25882352941176473,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -984,6 +1113,8 @@ class TestCustomDpIpFixedColorLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_BEHAVIOUR": "FLASH_MIDDLE",
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
                 "RAMP_TIME_VALUE": 18,
                 "LEVEL": 1.0,
@@ -998,6 +1129,8 @@ class TestCustomDpIpFixedColorLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_BEHAVIOUR": "FLASH_MIDDLE",
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.MINUTES,
                 "RAMP_TIME_VALUE": 283,
                 "LEVEL": 1.0,
@@ -1012,6 +1145,8 @@ class TestCustomDpIpFixedColorLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_BEHAVIOUR": "FLASH_MIDDLE",
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
                 "RAMP_TIME_UNIT": _TimeUnit.HOURS,
                 "RAMP_TIME_VALUE": 277,
                 "LEVEL": 1.0,
@@ -1035,7 +1170,12 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_BEHAVIOUR": "BLINKING_SLOW", "LEVEL": 1.0},
+            values={
+                "COLOR_BEHAVIOUR": "BLINKING_SLOW",
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -1045,7 +1185,12 @@ class TestCustomDpIpFixedColorLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU4704397:8",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_BEHAVIOUR": "FLASH_MIDDLE", "LEVEL": 0.10980392156862745},
+            values={
+                "COLOR_BEHAVIOUR": "FLASH_MIDDLE",
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 0.10980392156862745,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -1110,21 +1255,19 @@ class TestCustomDpIpRGBWLight:
         assert light.brightness == 0
 
         await light.turn_on()
-        assert mock_client.method_calls[-1] == call.set_value(
+        assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU5629873:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="LEVEL",
-            value=1.0,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={"DURATION_UNIT": _TimeUnit.HOURS, "DURATION_VALUE": _NOT_USED, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
         assert light.brightness == 255
         await light.turn_on(brightness=28)
-        assert mock_client.method_calls[-1] == call.set_value(
+        assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU5629873:1",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="LEVEL",
-            value=0.10980392156862745,
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={"DURATION_UNIT": _TimeUnit.HOURS, "DURATION_VALUE": _NOT_USED, "LEVEL": 0.10980392156862745},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -1145,7 +1288,12 @@ class TestCustomDpIpRGBWLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"COLOR_TEMPERATURE": 3000, "LEVEL": 1.0},
+            values={
+                "COLOR_TEMPERATURE": 3000,
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -1166,7 +1314,13 @@ class TestCustomDpIpRGBWLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"HUE": 44, "SATURATION": 0.693, "LEVEL": 1.0},
+            values={
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "HUE": 44,
+                "SATURATION": 0.693,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -1176,7 +1330,13 @@ class TestCustomDpIpRGBWLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"HUE": 0, "SATURATION": 0.5, "LEVEL": 1.0},
+            values={
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "HUE": 0,
+                "SATURATION": 0.5,
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )
@@ -1186,7 +1346,12 @@ class TestCustomDpIpRGBWLight:
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"EFFECT": "EFFECT_01_END_CURRENT_PROFILE", "LEVEL": 1.0},
+            values={
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "EFFECT": "EFFECT_01_END_CURRENT_PROFILE",
+                "LEVEL": 1.0,
+            },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
         )

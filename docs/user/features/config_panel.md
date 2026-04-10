@@ -7,15 +7,19 @@ The configuration panel is only visible to Home Assistant admin users. Non-admin
 
 ---
 
-## Enabling the Panel
+## Panel Availability
+
+The device configuration panel is **enabled by default** and appears in the Home Assistant sidebar as **HM Device Configuration** (or **HM Gerätekonfiguration** in German) once the integration is loaded.
+
+### Disabling the Panel
+
+If you want to hide the panel from the sidebar:
 
 1. Go to **Settings** → **Devices & Services**
 2. Find **Homematic(IP) Local for OpenCCU** and click **Configure**
 3. Select **Advanced Options**
-4. Enable **Device Configuration Panel**
+4. Enable **Disable device configuration panel**
 5. Click **Submit**
-
-The panel appears in the Home Assistant sidebar as **HM Device Configuration** (or **HM Gerätekonfiguration** in German).
 
 ---
 
@@ -495,7 +499,7 @@ Navigate directly to a specific device, channel, or link view via URL hash param
 
 ### Panel not visible in sidebar
 
-1. Verify the panel is enabled in Advanced Options
+1. Verify the panel is not disabled in Advanced Options
 2. Confirm you are logged in as an admin user
 3. Reload the browser (Ctrl+F5)
 

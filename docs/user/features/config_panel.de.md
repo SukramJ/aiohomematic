@@ -13,15 +13,19 @@ Das Konfigurationspanel ist nur für Home Assistant-Administratoren sichtbar. Ni
 
 ---
 
-## Panel aktivieren
+## Panel-Verfügbarkeit
+
+Das Gerätekonfigurations-Panel ist **standardmäßig aktiviert** und erscheint in der Home Assistant-Seitenleiste als **HM Gerätekonfiguration** (bzw. **HM Device Configuration** im Englischen), sobald die Integration geladen ist.
+
+### Panel deaktivieren
+
+Wenn das Panel aus der Seitenleiste ausgeblendet werden soll:
 
 1. Zu **Einstellungen** --> **Geräte & Dienste** navigieren
 2. **Homematic(IP) Local for OpenCCU** suchen und auf **Konfigurieren** klicken
 3. **Erweiterte Optionen** auswählen
-4. **Konfigurationspanel für Geräte** aktivieren
+4. **Gerätekonfigurations-Panel deaktivieren** aktivieren
 5. Auf **Absenden** klicken
-
-Das Panel erscheint in der Home Assistant-Seitenleiste als **HM Gerätekonfiguration** (bzw. **HM Device Configuration** im Englischen).
 
 ---
 
@@ -501,7 +505,7 @@ Das Konfigurationspanel selbst bleibt nur für Administratoren zugänglich. Dies
 
 ### Panel ist in der Seitenleiste nicht sichtbar
 
-1. Sicherstellen, dass das Panel in den erweiterten Optionen aktiviert ist
+1. Sicherstellen, dass das Panel in den erweiterten Optionen nicht deaktiviert ist
 2. Bestätigen, dass die Anmeldung als Administrator erfolgt ist
 3. Den Browser neu laden (Strg+F5)
 

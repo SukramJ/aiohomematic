@@ -2366,6 +2366,11 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def schedule_enabled(self) -> bool | None:
+        """Return whether the weekly program is active, or None if not supported."""
+
+    @property
+    @abstractmethod
     def schedule_type(self) -> ScheduleType:
         """Return the schedule type identifier."""
 
@@ -2384,6 +2389,10 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
         """Write schedule data to CCU."""
+
+    @abstractmethod
+    async def set_schedule_enabled(self, *, enabled: bool) -> None:
+        """Enable or disable the weekly program on the device."""
 
 
 @runtime_checkable

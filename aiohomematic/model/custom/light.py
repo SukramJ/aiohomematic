@@ -340,6 +340,8 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         self.reset_timer_on_time()
         if not self.is_state_change(off=True, **kwargs):
             return
+        if kwargs.get("on_time") is None and kwargs.get("ramp_time") and self._dp_on_time.has_unit:
+            await self._dp_on_time.send_value(value=_NOT_USED, collector=collector)
         if ramp_time := kwargs.get("ramp_time"):
             await self._dp_ramp_time.send_value(value=ramp_time, collector=collector)
         await self._dp_level.send_value(value=_DIMMER_OFF, collector=collector)
@@ -653,6 +655,8 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOffArgs]
     ) -> None:
         """Turn the light off."""
+        if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
+            await self._dp_on_time.send_value(value=_NOT_USED, collector=collector)
         if ramp_time := kwargs.get("ramp_time"):
             await self._dp_ramp_time_to_off.send_value(value=ramp_time, collector=collector)
             kwargs.pop("ramp_time")

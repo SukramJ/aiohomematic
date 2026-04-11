@@ -539,6 +539,22 @@ class TestCustomDpIpFixedColorLight:
         assert light.brightness == 0
         assert light.color_name == FixedColor.WHITE
 
+        await light.turn_on(brightness=28)
+        await light.turn_off(ramp_time=5)
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU6985973:8",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "DURATION_UNIT": _TimeUnit.HOURS,
+                "DURATION_VALUE": _NOT_USED,
+                "RAMP_TIME_UNIT": _TimeUnit.SECONDS,
+                "RAMP_TIME_VALUE": 5,
+                "LEVEL": 0.0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+        )
+
         await light.turn_on(hs_color=(350, 50))
         assert mock_client.method_calls[-1] == call.put_paramset(
             channel_address="VCU6985973:8",

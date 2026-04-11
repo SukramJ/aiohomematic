@@ -653,7 +653,7 @@ class TestCentralDeviceManagement:
         dev_desc = load_device_description(file_name="HmIP-BSM.json")
         await central.device_coordinator.add_new_devices(interface_id=const.INTERFACE_ID, device_descriptions=dev_desc)
         assert len(central.device_registry.devices) == 2
-        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 66
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 69
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))
@@ -683,7 +683,7 @@ class TestCentralDeviceManagement:
         """Test device delete_device."""
         central, _, _ = central_client_factory_with_homegear_client
         assert len(central.device_registry.devices) == 2
-        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 66
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 69
         assert len(central.cache_coordinator.device_descriptions._raw_device_descriptions.get(const.INTERFACE_ID)) == 20
         assert (
             len(central.cache_coordinator.paramset_descriptions._raw_paramset_descriptions.get(const.INTERFACE_ID))

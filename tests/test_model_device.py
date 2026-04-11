@@ -55,7 +55,7 @@ class TestDeviceBasics:
             str(device) == "address: VCU2128127, "
             "model: HmIP-BSM, "
             "name: HmIP-BSM_VCU2128127, "
-            "generic dps: 27, "
+            "generic dps: 30, "
             "calculated dps: 0, "
             "custom dps: 3, "
             "events: 6"

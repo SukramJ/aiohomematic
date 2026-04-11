@@ -1,3 +1,17 @@
+# Version 2026.4.8 (2026-04-11)
+
+## What's Changed
+
+### Fixed
+
+- **Fixed missing DURATION_UNIT/DURATION_VALUE in turn_off for lights with
+  ramp_time**: When `turn_off(ramp_time=...)` is called on lights with timer
+  unit parameters (HmIP-BSL, HmIP-RGBW, HmIPW-WRC6, HmIP-DRG-DALI),
+  `DURATION_UNIT` and `DURATION_VALUE` are now always included in the
+  `putParamset` call, matching the behavior already implemented for `turn_on`.
+  This prevents XMLRPCFault errors and optimistic rollbacks when turning off
+  lights with a transition time.
+
 # Version 2026.4.7 (2026-04-10)
 
 ## What's Changed

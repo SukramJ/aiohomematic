@@ -73,6 +73,9 @@ def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly:
 _PARAMETER_NAME: Final = "WEEK_PROFILE"
 _SCHEDULE_MANU_MODE: Final = "MANU_MODE"
 _SCHEDULE_AUTO_MODE: Final = "AUTO_MODE_WITHOUT_RESET"
+# Numeric values for COMBINED_PARAMETER (WPTCL): 0=MANU_MODE, 2=AUTO_MODE_WITHOUT_RESET
+_WPTCL_MANU: Final = 0
+_WPTCL_AUTO: Final = 2
 _MAX_SIMPLE_ENTRIES: Final = 24
 _MAX_CLIMATE_SLOTS_PER_DAY: Final = 13
 _CLIMATE_PROFILES: Final = 6
@@ -226,25 +229,43 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             await self._week_profile.set_schedule(schedule_data=schedule_data)
 
     async def set_schedule_enabled(self, *, enabled: bool, channel_key: str | None = None) -> None:
-        """Enable or disable the weekly program on the device."""
+        """
+        Enable or disable the weekly program on the device.
+
+        Uses COMBINED_PARAMETER to atomically set target channel bitmask and
+        lock mode in a single setValue call. The CCU processes COMBINED_PARAMETER
+        values in order: WPTCLS (target channels) then WPTCL (action).
+        Format: "WPTCLS={bitmask},WPTCL={mode}" where mode 0=MANU, 2=AUTO.
+
+        After writing, explicitly reads WEEK_PROGRAM_CHANNEL_LOCKS to refresh state,
+        because write-only parameters may not trigger RPC callback events.
+        """
         if not isinstance(self._week_profile, DefaultWeekProfile):
             return
         if (sca := self._week_profile.schedule_channel_address) is None:
             return
-        mode = _SCHEDULE_AUTO_MODE if enabled else _SCHEDULE_MANU_MODE
+
+        mode = _WPTCL_AUTO if enabled else _WPTCL_MANU
+
         if channel_key is not None:
-            await self._device.client.set_value(
-                channel_address=sca,
-                paramset_key=ParamsetKey.VALUES,
-                parameter=Parameter.WEEK_PROGRAM_TARGET_CHANNEL_LOCKS,
-                value=channel_key_to_bitmask(channel_key=channel_key),
-            )
+            bitmask = channel_key_to_bitmask(channel_key=channel_key)
+        else:
+            # All available channels
+            bitmask = sum(channel_key_to_bitmask(channel_key=key) for key in self._available_target_channels)
+
         await self._device.client.set_value(
             channel_address=sca,
             paramset_key=ParamsetKey.VALUES,
-            parameter=Parameter.WEEK_PROGRAM_TARGET_CHANNEL_LOCK,
-            value=mode,
+            parameter=Parameter.COMBINED_PARAMETER,
+            value=f"WPTCLS={bitmask},WPTCL={mode}",
+            wait_for_callback=None,
         )
+
+        # Explicitly read current state (write-only params may not trigger events)
+        if self._dp_channel_locks is not None:
+            await self._dp_channel_locks.load_data_point_value(
+                call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True
+            )
 
     def _build_target_channel_map(self) -> dict[str, TargetChannelInfo]:
         """Build the actor_sub -> TargetChannelInfo mapping."""

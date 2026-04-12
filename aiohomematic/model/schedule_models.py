@@ -581,9 +581,15 @@ def channel_key_to_bitmask(*, channel_key: str) -> int:
 
 
 def parse_channel_locks(*, locks_value: int, available_channels: Mapping[str, TargetChannelInfo]) -> dict[str, bool]:
-    """Parse WEEK_PROGRAM_CHANNEL_LOCKS bitmask into per-channel enabled state."""
+    """
+    Parse WEEK_PROGRAM_CHANNEL_LOCKS bitmask into per-channel enabled state.
+
+    The bitmask uses INVERTED logic: a SET bit means the channel is LOCKED (inactive).
+    0 = all channels active, 7 = channels 1-3 locked.
+    We return True for ENABLED (active), so we invert the bit check.
+    """
     return {
-        key: bool(locks_value & _CHANNEL_STR_TO_ENUM[key].value)
+        key: not bool(locks_value & _CHANNEL_STR_TO_ENUM[key].value)
         for key in available_channels
         if key in _CHANNEL_STR_TO_ENUM
     }

@@ -1390,3 +1390,134 @@ class TestScheduleJSONSerializationContract:
         # Deserialize from JSON
         reconstructed = SimpleSchedule.model_validate_json(json_str)
         assert reconstructed == schedule
+
+
+# =============================================================================
+# Contract: Schedule Enable/Disable API
+# =============================================================================
+
+
+class TestScheduleEnableDisableAPIContract:
+    """
+    Contract: WeekProfileDataPoint must expose schedule enable/disable API.
+
+    Non-climate devices with WEEK_PROGRAM_CHANNEL_LOCKS support per-channel
+    schedule enable/disable. The API must provide:
+    - schedule_enabled property returning per-channel state
+    - set_schedule_enabled() method with optional channel_key
+    """
+
+    def test_schedule_enabled_on_implementation(self) -> None:
+        """Contract: WeekProfileDataPoint implements schedule_enabled."""
+        from aiohomematic.model.week_profile_data_point import WeekProfileDataPoint
+
+        assert hasattr(WeekProfileDataPoint, "schedule_enabled")
+        assert hasattr(WeekProfileDataPoint, "set_schedule_enabled")
+
+    def test_schedule_enabled_property_exists_on_protocol(self) -> None:
+        """Contract: WeekProfileDataPointProtocol has schedule_enabled property."""
+        from aiohomematic.interfaces import WeekProfileDataPointProtocol
+
+        assert "schedule_enabled" in dir(WeekProfileDataPointProtocol)
+
+    def test_schedule_enabled_return_type_is_mapping_or_none(self) -> None:
+        """Contract: schedule_enabled returns Mapping[str, bool] | None."""
+        import inspect
+
+        from aiohomematic.model.week_profile_data_point import WeekProfileDataPoint
+
+        # Verify it's a property
+        assert isinstance(inspect.getattr_static(WeekProfileDataPoint, "schedule_enabled"), property)
+
+    def test_set_channel_locks_data_point_exists(self) -> None:
+        """Contract: WeekProfileDataPoint has set_channel_locks_data_point for binding."""
+        from aiohomematic.model.week_profile_data_point import WeekProfileDataPoint
+
+        assert hasattr(WeekProfileDataPoint, "set_channel_locks_data_point")
+
+    def test_set_schedule_enabled_accepts_channel_key(self) -> None:
+        """Contract: set_schedule_enabled accepts optional channel_key parameter."""
+        import inspect
+
+        from aiohomematic.model.week_profile_data_point import WeekProfileDataPoint
+
+        sig = inspect.signature(WeekProfileDataPoint.set_schedule_enabled)
+        params = sig.parameters
+        assert "enabled" in params
+        assert "channel_key" in params
+        assert params["channel_key"].default is None
+
+    def test_set_schedule_enabled_method_exists_on_protocol(self) -> None:
+        """Contract: WeekProfileDataPointProtocol has set_schedule_enabled method."""
+        from aiohomematic.interfaces import WeekProfileDataPointProtocol
+
+        assert "set_schedule_enabled" in dir(WeekProfileDataPointProtocol)
+
+
+# =============================================================================
+# Contract: Channel Locks Helper Functions
+# =============================================================================
+
+
+class TestChannelLocksHelperContract:
+    """
+    Contract: Channel locks helper functions must provide stable conversion API.
+
+    These helpers convert between channel keys (e.g., '1_1') and bitmask values
+    used by WEEK_PROGRAM_CHANNEL_LOCKS / WEEK_PROGRAM_TARGET_CHANNEL_LOCKS.
+    """
+
+    def test_channel_key_to_bitmask_is_exported(self) -> None:
+        """Contract: channel_key_to_bitmask is in schedule_models __all__."""
+        from aiohomematic.model.schedule_models import __all__ as schedule_all
+
+        assert "channel_key_to_bitmask" in schedule_all
+
+    def test_channel_key_to_bitmask_raises_for_invalid_key(self) -> None:
+        """Contract: channel_key_to_bitmask raises ValueError for unknown keys."""
+        import pytest
+
+        from aiohomematic.model.schedule_models import channel_key_to_bitmask
+
+        with pytest.raises(ValueError, match="Unknown channel key"):
+            channel_key_to_bitmask(channel_key="invalid")
+
+    def test_channel_key_to_bitmask_returns_int(self) -> None:
+        """Contract: channel_key_to_bitmask returns int for valid keys."""
+        from aiohomematic.model.schedule_models import channel_key_to_bitmask
+
+        result = channel_key_to_bitmask(channel_key="1_1")
+        assert isinstance(result, int)
+        assert result > 0
+
+    def test_parse_channel_locks_bitmask_consistency(self) -> None:
+        """Contract: parse_channel_locks and channel_key_to_bitmask are consistent."""
+        from aiohomematic.model.schedule_models import TargetChannelInfo, channel_key_to_bitmask, parse_channel_locks
+
+        channels = {
+            "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
+            "1_2": TargetChannelInfo(channel_no=5, channel_address="VCU:5", name="Ch5", channel_type="secondary"),
+        }
+        # Lock channel 1_1 via its bitmask (inverted: set bit = locked/disabled)
+        bitmask = channel_key_to_bitmask(channel_key="1_1")
+        result = parse_channel_locks(locks_value=bitmask, available_channels=channels)
+        assert result["1_1"] is False  # locked (bit set)
+        assert result["1_2"] is True  # not locked (bit not set)
+
+    def test_parse_channel_locks_is_exported(self) -> None:
+        """Contract: parse_channel_locks is in schedule_models __all__."""
+        from aiohomematic.model.schedule_models import __all__ as schedule_all
+
+        assert "parse_channel_locks" in schedule_all
+
+    def test_parse_channel_locks_returns_dict(self) -> None:
+        """Contract: parse_channel_locks returns dict[str, bool]."""
+        from aiohomematic.model.schedule_models import TargetChannelInfo, parse_channel_locks
+
+        channels = {
+            "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
+        }
+        result = parse_channel_locks(locks_value=1, available_channels=channels)
+        assert isinstance(result, dict)
+        assert all(isinstance(k, str) for k in result)
+        assert all(isinstance(v, bool) for v in result.values())

@@ -190,18 +190,27 @@ class TestDataPointLoading:
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: DpSwitch = cast(DpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
-        assert mock_client.method_calls[-3] == call.get_value(
-            channel_address="VCU2128127:4",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-            call_source="hm_init",
-        )
-        assert mock_client.method_calls[-2] == call.get_value(
-            channel_address="VCU2128127:3",
-            paramset_key=ParamsetKey.VALUES,
-            parameter="STATE",
-            call_source="hm_init",
-        )
+        # Find the two STATE get_value calls (order: ch4 STATE, ch3 STATE)
+        # After these, week_profile_data_point.load_data_point_value may add more calls
+        state_calls = [
+            c
+            for c in mock_client.method_calls
+            if c
+            == call.get_value(
+                channel_address="VCU2128127:4",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STATE",
+                call_source="hm_init",
+            )
+            or c
+            == call.get_value(
+                channel_address="VCU2128127:3",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STATE",
+                call_source="hm_init",
+            )
+        ]
+        assert len(state_calls) == 2
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

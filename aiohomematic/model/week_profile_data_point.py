@@ -24,6 +24,7 @@ from aiohomematic.const import (
     DataPointCategory,
     DataPointUsage,
     Parameter,
+    ParamsetKey,
     ScheduleDict,
     ScheduleProfile,
     ScheduleType,
@@ -40,7 +41,14 @@ from aiohomematic.interfaces.model import (
     GenericDataPointProtocolAny,
 )
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.schedule_models import SCHEDULE_DOMAINS, ClimateSchedule, SimpleSchedule, TargetChannelInfo
+from aiohomematic.model.schedule_models import (
+    SCHEDULE_DOMAINS,
+    ClimateSchedule,
+    SimpleSchedule,
+    TargetChannelInfo,
+    channel_key_to_bitmask,
+    parse_channel_locks,
+)
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, generate_unique_id
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
 from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property
@@ -63,6 +71,11 @@ def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly:
 
 
 _PARAMETER_NAME: Final = "WEEK_PROFILE"
+_SCHEDULE_MANU_MODE: Final = "MANU_MODE"
+_SCHEDULE_AUTO_MODE: Final = "AUTO_MODE_WITHOUT_RESET"
+# Numeric values for COMBINED_PARAMETER (WPTCL): 0=MANU_MODE, 2=AUTO_MODE_WITHOUT_RESET
+_WPTCL_MANU: Final = 0
+_WPTCL_AUTO: Final = 2
 _MAX_SIMPLE_ENTRIES: Final = 24
 _MAX_CLIMATE_SLOTS_PER_DAY: Final = 13
 _CLIMATE_PROFILES: Final = 6
@@ -74,6 +87,8 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
 
     __slots__ = (
         "_available_target_channels",
+        "_dp_channel_locks",
+        "_unsubscribe_callbacks",
         "_week_profile",
     )
 
@@ -101,6 +116,9 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         self._available_target_channels: Final[Mapping[str, TargetChannelInfo]] = (
             self._build_target_channel_map() if isinstance(week_profile, DefaultWeekProfile) else {}
         )
+        self._dp_channel_locks: GenericDataPointProtocolAny | None = None
+        self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
+        weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
     available_target_channels: Final = DelegatedProperty[Mapping[str, TargetChannelInfo]](
         path="_available_target_channels"
@@ -144,6 +162,18 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         return None
 
     @property
+    def schedule_enabled(self) -> Mapping[str, bool] | None:
+        """Return per-channel schedule enabled state, or None if not supported."""
+        if self._dp_channel_locks is None:
+            return None
+        if (value := self._dp_channel_locks.value) is None:
+            return None
+        return parse_channel_locks(
+            locks_value=int(value),
+            available_channels=self._available_target_channels,
+        )
+
+    @property
     def schedule_type(self) -> ScheduleType:
         """Return the schedule type identifier."""
         return ScheduleType.CLIMATE if isinstance(self._week_profile, ClimateWeekProfile) else ScheduleType.DEFAULT
@@ -170,11 +200,26 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
     @override
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Load the data point value. Schedule data is loaded via WeekProfile."""
+        if self._dp_channel_locks is not None:
+            await self._dp_channel_locks.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
     async def reload_schedule(self) -> None:
         """Reload schedule from CCU and update data point state."""
         await self._week_profile.reload_and_cache_schedule(force=True)
         self.publish_data_point_updated_event()
+
+    def set_channel_locks_data_point(self, *, data_point: GenericDataPointProtocolAny) -> None:
+        """Bind the channel locks generic data point for schedule enabled state."""
+        self._dp_channel_locks = data_point
+
+        # Subscribe to events for automatic state sync
+        self._unsubscribe_callbacks.append(
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=data_point.unique_id,
+                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+            )
+        )
 
     async def set_schedule(self, *, schedule_data: ScheduleDict) -> None:
         """Write schedule data to CCU."""
@@ -182,6 +227,45 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             await self._week_profile.set_schedule(schedule_data=SimpleSchedule.model_validate(schedule_data))
         else:
             await self._week_profile.set_schedule(schedule_data=schedule_data)
+
+    async def set_schedule_enabled(self, *, enabled: bool, channel_key: str | None = None) -> None:
+        """
+        Enable or disable the weekly program on the device.
+
+        Uses COMBINED_PARAMETER to atomically set target channel bitmask and
+        lock mode in a single setValue call. The CCU processes COMBINED_PARAMETER
+        values in order: WPTCLS (target channels) then WPTCL (action).
+        Format: "WPTCLS={bitmask},WPTCL={mode}" where mode 0=MANU, 2=AUTO.
+
+        After writing, explicitly reads WEEK_PROGRAM_CHANNEL_LOCKS to refresh state,
+        because write-only parameters may not trigger RPC callback events.
+        """
+        if not isinstance(self._week_profile, DefaultWeekProfile):
+            return
+        if (sca := self._week_profile.schedule_channel_address) is None:
+            return
+
+        mode = _WPTCL_AUTO if enabled else _WPTCL_MANU
+
+        if channel_key is not None:
+            bitmask = channel_key_to_bitmask(channel_key=channel_key)
+        else:
+            # All available channels
+            bitmask = sum(channel_key_to_bitmask(channel_key=key) for key in self._available_target_channels)
+
+        await self._device.client.set_value(
+            channel_address=sca,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=Parameter.COMBINED_PARAMETER,
+            value=f"WPTCLS={bitmask},WPTCL={mode}",
+            wait_for_callback=None,
+        )
+
+        # Explicitly read current state (write-only params may not trigger events)
+        if self._dp_channel_locks is not None:
+            await self._dp_channel_locks.load_data_point_value(
+                call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True
+            )
 
     def _build_target_channel_map(self) -> dict[str, TargetChannelInfo]:
         """Build the actor_sub -> TargetChannelInfo mapping."""
@@ -275,7 +359,6 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         "_current_schedule_profile",
         "_dp_profile_pointer",
         "_schedule_profile_nos",
-        "_unsubscribe_callbacks",
     )
 
     _week_profile: ClimateWeekProfile  # type: ignore[misc]
@@ -292,8 +375,6 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         self._current_schedule_profile: ScheduleProfile = ScheduleProfile.P1
         self._dp_profile_pointer: GenericDataPointProtocolAny | None = None
         self._schedule_profile_nos: Final = schedule_profile_nos
-        self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
-        weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
     @staticmethod
     def _map_to_schedule_profile(*, value: Any) -> ScheduleProfile | None:
@@ -510,6 +591,14 @@ def create_week_profile_data_point(*, device: DeviceProtocol) -> None:
     # Bidirectional linkage
     week_profile.set_week_profile_data_point(week_profile_data_point=data_point)
 
+    # Non-climate bindings: schedule enable/disable via WEEK_PROGRAM_CHANNEL_LOCKS
+    if (
+        isinstance(data_point, WeekProfileDataPoint)
+        and not isinstance(data_point, ClimateWeekProfileDataPoint)
+        and (locks_dp := _find_channel_locks_dp(device=device)) is not None
+    ):
+        data_point.set_channel_locks_data_point(data_point=locks_dp)
+
     # Climate-specific bindings
     if isinstance(data_point, ClimateWeekProfileDataPoint):
         # Bind profile pointer Generic DP for automatic sync
@@ -546,6 +635,16 @@ def _has_schedule_channel_no(*, dp: Any) -> bool:
         and dp.device_config is not None
         and dp.device_config.schedule_channel_no is not None
     )
+
+
+def _find_channel_locks_dp(*, device: DeviceProtocol) -> GenericDataPointProtocolAny | None:
+    """Find the WEEK_PROGRAM_CHANNEL_LOCKS generic DP on the schedule channel."""
+    for channel in device.channels.values():
+        if not channel.is_schedule_channel:
+            continue
+        if (dp := channel.get_generic_data_point(parameter=Parameter.WEEK_PROGRAM_CHANNEL_LOCKS)) is not None:
+            return dp
+    return None
 
 
 def _find_profile_pointer_dp(*, device: DeviceProtocol) -> GenericDataPointProtocolAny | None:

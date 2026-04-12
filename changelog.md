@@ -1,3 +1,40 @@
+# Version 2026.4.9 (2026-04-12)
+
+## What's Changed
+
+### Added
+
+- **Added per-channel schedule enable/disable support for non-climate week
+  profiles**: The `WeekProfileDataPoint` now exposes a `schedule_enabled`
+  property (returning a `Mapping[str, bool]` of per-channel enabled states) and
+  a `set_schedule_enabled()` method with an optional `channel_key` parameter,
+  allowing users to activate or deactivate the weekly program per target channel
+  on devices that support `WEEK_PROGRAM_CHANNEL_LOCKS`. The state is derived
+  from the bound `WEEK_PROGRAM_CHANNEL_LOCKS` generic data point and
+  automatically syncs via event subscription.
+
+- **Added new parameters**: `WEEK_PROGRAM_CHANNEL_LOCKS`,
+  `WEEK_PROGRAM_TARGET_CHANNEL_LOCK`, and `WEEK_PROGRAM_TARGET_CHANNEL_LOCKS` to
+  the `Parameter` enum.
+
+- **Added schedule helper functions**: `channel_key_to_bitmask()` and
+  `parse_channel_locks()` in `schedule_models` for converting between channel
+  keys and bitmask values used by `WEEK_PROGRAM_CHANNEL_LOCKS`.
+
+- **Added channel locks data loading on init**: `WeekProfileDataPoint` now loads
+  the `WEEK_PROGRAM_CHANNEL_LOCKS` value during `load_data_point_value`, and
+  `CustomDataPoint._init_data_point_values` triggers
+  `week_profile_data_point.load_data_point_value` to ensure the schedule enabled
+  state is available after startup.
+
+### Fixed
+
+- **Fixed visibility rules for WEEK_PROGRAM parameters**: Removed the blanket
+  `WEEK_PROGRAM_` prefix pattern from `IGNORED_PARAMETERS_START_PATTERN` so that
+  `WEEK_PROGRAM_CHANNEL_LOCKS` and related parameters are no longer hidden.
+  `WEEK_PROGRAM_POINTER` is now explicitly listed in `IGNORED_PARAMETERS` to
+  preserve its previous hidden behavior.
+
 # Version 2026.4.8 (2026-04-11)
 
 ## What's Changed

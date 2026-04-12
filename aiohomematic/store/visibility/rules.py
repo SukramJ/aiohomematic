@@ -197,6 +197,7 @@ IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
         "USER_COLOR",
         "USER_PROGRAM",
         "VALVE_ADAPTION",
+        "WEEK_PROGRAM_POINTER",
         "WINDOW",
         "WIN_RELEASE",
         "WIN_RELEASE_ACT",
@@ -206,7 +207,7 @@ IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
 # Precompiled regex patterns for wildcard parameter checks
 IGNORED_PARAMETERS_END_PATTERN: Final = re.compile(r".*(_OVERFLOW|_OVERRUN|_REPORTING|_RESULT|_STATUS|_SUBMIT)$")
 IGNORED_PARAMETERS_START_PATTERN: Final = re.compile(
-    r"^(ADJUSTING_|ERR_TTM_|HANDLE_|IDENTIFY_|PARTY_START_|PARTY_STOP_|STATUS_FLAG_|WEEK_PROGRAM_)"
+    r"^(ADJUSTING_|ERR_TTM_|HANDLE_|IDENTIFY_|PARTY_START_|PARTY_STOP_|STATUS_FLAG_)"
 )
 
 

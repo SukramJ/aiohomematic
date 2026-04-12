@@ -21,6 +21,12 @@
   `parse_channel_locks()` in `schedule_models` for converting between channel
   keys and bitmask values used by `WEEK_PROGRAM_CHANNEL_LOCKS`.
 
+- **Added channel locks data loading on init**: `WeekProfileDataPoint` now loads
+  the `WEEK_PROGRAM_CHANNEL_LOCKS` value during `load_data_point_value`, and
+  `CustomDataPoint._init_data_point_values` triggers
+  `week_profile_data_point.load_data_point_value` to ensure the schedule enabled
+  state is available after startup.
+
 ### Fixed
 
 - **Fixed visibility rules for WEEK_PROGRAM parameters**: Removed the blanket

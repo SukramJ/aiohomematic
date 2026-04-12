@@ -197,6 +197,8 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
     @override
     async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
         """Load the data point value. Schedule data is loaded via WeekProfile."""
+        if self._dp_channel_locks is not None:
+            await self._dp_channel_locks.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
     async def reload_schedule(self) -> None:
         """Reload schedule from CCU and update data point state."""

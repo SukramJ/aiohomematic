@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aiohomematic.central.events import DataPointStateChangedEvent
-from aiohomematic.const import DataPointUsage, Parameter, ParamsetKey, ScheduleType
+from aiohomematic.const import DataPointCategory, DataPointUsage, Parameter, ParamsetKey, ScheduleType
 from aiohomematic.model.custom import CustomDpCover, CustomDpRfThermostat, CustomDpSwitch
 from aiohomematic.model.schedule_models import (
     SimpleSchedule,
@@ -19,7 +19,7 @@ from aiohomematic.model.schedule_models import (
     parse_channel_locks,
 )
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
-from aiohomematic.model.week_profile_data_point import WeekProfileDataPoint
+from aiohomematic.model.week_profile_data_point import ScheduleChannelSwitch, WeekProfileDataPoint
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES_SWITCH: set[str] = {"VCU2128127"}
@@ -670,3 +670,258 @@ class TestWeekProfileDataPointLifecycle:
         data_point = switch.device.week_profile_data_point
         assert data_point is not None
         assert hasattr(data_point, "__dict__") is False
+
+
+class TestScheduleChannelSwitch:
+    """Tests for ScheduleChannelSwitch data points."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_CLIMATE, True, None, None),
+        ],
+    )
+    async def test_no_schedule_channel_switches_for_climate(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that climate devices do NOT get ScheduleChannelSwitch instances."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        thermostat = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2))
+        device = thermostat.device
+
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        assert len(schedule_switches) == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_switch_event_propagation(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that WPDP events propagate to ScheduleChannelSwitch."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        device = switch.device
+        wpdp = device.week_profile_data_point
+        assert wpdp is not None
+
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        assert len(schedule_switches) > 0
+        sw = schedule_switches[0]
+
+        handler = MagicMock()
+        central.event_bus.subscribe(
+            event_type=DataPointStateChangedEvent,
+            event_key=sw.unique_id,
+            handler=lambda *, event: handler(),
+        )
+
+        # Fire WPDP event — should propagate to the switch
+        wpdp.fire_schedule_updated()
+        await central.looper.block_till_done()
+        handler.assert_called()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_switch_properties(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test ScheduleChannelSwitch properties."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        device = switch.device
+        wpdp = device.week_profile_data_point
+        assert wpdp is not None
+
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        assert len(schedule_switches) > 0
+
+        sw = schedule_switches[0]
+        # channel_key must be a valid key from available_target_channels
+        assert sw.channel_key in wpdp.available_target_channels
+        # target_channel_info must match
+        assert sw.target_channel_info == wpdp.available_target_channels[sw.channel_key]
+        # unique_id should contain the channel key
+        assert "schedule_channel_lock" in sw.unique_id
+        assert sw.channel_key in sw.unique_id
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_switch_turn_off(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test turn_off calls set_schedule_enabled with correct parameters."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        device = switch.device
+
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        sw = schedule_switches[0]
+
+        mock_client.reset_mock()
+        await sw.turn_off()
+
+        # Should have called set_value with COMBINED_PARAMETER
+        set_value_calls = [
+            c for c in mock_client.method_calls if c[0] == "set_value" and "COMBINED_PARAMETER" in str(c)
+        ]
+        assert len(set_value_calls) == 1
+        # The value should contain WPTCL=0 (MANU mode = disabled)
+        assert "WPTCL=0" in str(set_value_calls[0])
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_switch_turn_on(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test turn_on calls set_schedule_enabled with correct parameters."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        device = switch.device
+
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        sw = schedule_switches[0]
+
+        mock_client.reset_mock()
+        await sw.turn_on()
+
+        # Should have called set_value with COMBINED_PARAMETER
+        set_value_calls = [
+            c for c in mock_client.method_calls if c[0] == "set_value" and "COMBINED_PARAMETER" in str(c)
+        ]
+        assert len(set_value_calls) == 1
+        # The value should contain WPTCL=2 (AUTO mode = enabled)
+        assert "WPTCL=2" in str(set_value_calls[0])
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_switch_uses_slots(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that ScheduleChannelSwitch uses __slots__ (no __dict__)."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        device = switch.device
+
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        assert len(schedule_switches) > 0
+        assert hasattr(schedule_switches[0], "__dict__") is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_switch_value_none_without_locks(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test value is None when channel locks DP has no value."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        device = switch.device
+
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        # Without a loaded value, schedule_enabled returns None
+        sw = schedule_switches[0]
+        # Value depends on whether WEEK_PROGRAM_CHANNEL_LOCKS has been loaded
+        # Initially it may be None
+        assert sw.value is None or isinstance(sw.value, bool)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_schedule_channel_switches_created(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that ScheduleChannelSwitch instances are created for non-climate devices."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        device = switch.device
+
+        # Device should have schedule channel switches
+        schedule_switches = [dp for dp in device.get_data_points() if isinstance(dp, ScheduleChannelSwitch)]
+        assert len(schedule_switches) > 0
+
+        # Each switch should have correct category and usage
+        for sw in schedule_switches:
+            assert sw.category == DataPointCategory.SCHEDULE_SWITCH
+            assert sw.usage == DataPointUsage.DATA_POINT

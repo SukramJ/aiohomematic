@@ -2020,6 +2020,10 @@ class DeviceWeekProfileProtocol(Protocol):
         """Initialize the week profile."""
 
     @abstractmethod
+    def set_schedule_channel_switches(self, *, switches: tuple[ScheduleChannelSwitchProtocol, ...]) -> None:
+        """Set the schedule channel switch data points."""
+
+    @abstractmethod
     def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
         """Set the week profile data point reference."""
 
@@ -2393,6 +2397,41 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
     @abstractmethod
     async def set_schedule_enabled(self, *, enabled: bool, channel_key: str | None = None) -> None:
         """Enable or disable the weekly program on the device."""
+
+
+@runtime_checkable
+class ScheduleChannelSwitchProtocol(BaseDataPointProtocol, Protocol):
+    """
+    Protocol for per-channel schedule enable/disable switches.
+
+    Each instance controls one target channel's participation in the
+    weekly program via the WEEK_PROGRAM_CHANNEL_LOCKS bitmask.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abstractmethod
+    def channel_key(self) -> str:
+        """Return the target channel key (e.g. '1_1')."""
+
+    @property
+    @abstractmethod
+    def target_channel_info(self) -> TargetChannelInfo:
+        """Return the target channel metadata."""
+
+    @property
+    @abstractmethod
+    def value(self) -> bool | None:
+        """Return whether the schedule is enabled for this channel."""
+
+    @abstractmethod
+    async def turn_off(self) -> None:
+        """Disable the schedule for this channel."""
+
+    @abstractmethod
+    async def turn_on(self) -> None:
+        """Enable the schedule for this channel."""
 
 
 @runtime_checkable

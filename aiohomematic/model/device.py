@@ -126,6 +126,7 @@ from aiohomematic.interfaces import (
     GenericEventProtocolAny,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
+    ScheduleChannelSwitchProtocol,
     TaskSchedulerProtocol,
     WeekProfileDataPointProtocol,
 )
@@ -263,6 +264,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         "_product_group",
         "_rooms",
         "_rx_modes",
+        "_schedule_channel_switches",
         "_sub_model",
         "_task_scheduler",
         "_update_data_point",
@@ -366,6 +368,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
         self._week_profile: wp.ClimateWeekProfile | wp.DefaultWeekProfile | None = None
         self._week_profile_data_point: wps.WeekProfileDataPoint | None = None
+        self._schedule_channel_switches: tuple[wps.ScheduleChannelSwitch, ...] = ()
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
             self._interface_id,
@@ -676,9 +679,14 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         registered: bool | None = None,
     ) -> tuple[CallbackDataPointProtocol, ...]:
         """Get all data points of the device."""
+        device_level_dps: list[CallbackDataPointProtocol | None] = [
+            self._update_data_point,
+            self._week_profile_data_point,
+            *self._schedule_channel_switches,
+        ]
         all_data_points: list[CallbackDataPointProtocol] = [
             device_dp
-            for device_dp in (self._update_data_point, self._week_profile_data_point)
+            for device_dp in device_level_dps
             if device_dp
             and (category is None or device_dp.category == category)
             and ((exclude_no_create and device_dp.usage != DataPointUsage.NO_CREATE) or exclude_no_create is False)
@@ -899,6 +907,10 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
                 target=_publish_availability_event,
                 name=f"availability-forced-{self._address}",
             )
+
+    def set_schedule_channel_switches(self, *, switches: tuple[ScheduleChannelSwitchProtocol, ...]) -> None:
+        """Set the schedule channel switch data points."""
+        self._schedule_channel_switches = switches  # type: ignore[assignment]
 
     def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
         """Set the week profile data point reference."""

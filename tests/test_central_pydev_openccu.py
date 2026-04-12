@@ -88,7 +88,7 @@ class TestCentralPyDevOpenCCU:
         custom_dps = []
         channel_type_names = set()
         for device in central.device_registry.devices:
-            if device.model in ("HmIP-DLP"):
+            if device.model in ("HmIP-BSM"):
                 assert device.has_sub_devices is False
             if device.model in ("HmIP-DRSI4", "HmIP-DRDI3", "HmIP-BSL"):
                 assert device.has_sub_devices is True
@@ -170,7 +170,7 @@ class TestCentralPyDevOpenCCU:
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 281
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 164
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 156
-        assert usage_types[DataPointUsage.DATA_POINT] == 4110
+        assert usage_types[DataPointUsage.DATA_POINT] == 4396
         assert usage_types[DataPointUsage.NO_CREATE] == 4535
 
         assert len(ce_channels) == 136

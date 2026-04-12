@@ -33,7 +33,11 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces import ClimateWeekProfileDataPointProtocol, WeekProfileDataPointProtocol
+from aiohomematic.interfaces import (
+    ClimateWeekProfileDataPointProtocol,
+    ScheduleChannelSwitchProtocol,
+    WeekProfileDataPointProtocol,
+)
 from aiohomematic.interfaces.model import (
     CallbackDataPointProtocol,
     ChannelProtocol,
@@ -56,6 +60,7 @@ from aiohomematic.type_aliases import UnsubscribeCallback
 
 __all__ = [
     "ClimateWeekProfileDataPoint",
+    "ScheduleChannelSwitch",
     "WeekProfileDataPoint",
     "create_week_profile_data_point",
 ]
@@ -80,6 +85,113 @@ _MAX_SIMPLE_ENTRIES: Final = 24
 _MAX_CLIMATE_SLOTS_PER_DAY: Final = 13
 _CLIMATE_PROFILES: Final = 6
 _WEEKDAYS: Final = 7
+
+
+class ScheduleChannelSwitch(BaseDataPoint, ScheduleChannelSwitchProtocol):
+    """Per-channel switch to enable/disable schedule participation."""
+
+    __slots__ = (
+        "_channel_key",
+        "_target_channel_info",
+        "_unsubscribe_callbacks",
+        "_week_profile_data_point",
+    )
+
+    _category = DataPointCategory.SCHEDULE_SWITCH
+
+    def __init__(
+        self,
+        *,
+        channel: ChannelProtocol,
+        week_profile_data_point: WeekProfileDataPointProtocol,
+        channel_key: str,
+        target_channel_info: TargetChannelInfo,
+    ) -> None:
+        """Initialize the schedule channel switch."""
+        # Set attributes BEFORE super().__init__() because BaseDataPoint.__init__
+        # calls _get_data_point_name() which needs _channel_key and _target_channel_info.
+        self._week_profile_data_point: Final = week_profile_data_point
+        self._channel_key: Final = channel_key
+        self._target_channel_info: Final = target_channel_info
+        self._unsubscribe_callbacks: list[UnsubscribeCallback] = []
+
+        unique_id = generate_unique_id(
+            config_provider=channel.device.config_provider,
+            address=channel.device.address,
+            parameter=f"SCHEDULE_CHANNEL_LOCK_{channel_key}",
+            prefix="schedule_channel_switch",
+        )
+        super().__init__(
+            channel=channel,
+            unique_id=unique_id,
+            is_in_multiple_channels=False,
+        )
+
+        # Subscribe to WPDP events for automatic state sync
+        self._unsubscribe_callbacks.append(
+            self._event_bus_provider.event_bus.subscribe(
+                event_type=DataPointStateChangedEvent,
+                event_key=week_profile_data_point.unique_id,
+                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+            )
+        )
+        weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
+
+    channel_key: Final = DelegatedProperty[str](path="_channel_key", kind=Kind.CONFIG)
+    target_channel_info: Final = DelegatedProperty[TargetChannelInfo](path="_target_channel_info", kind=Kind.CONFIG)
+
+    @property
+    def usage(self) -> DataPointUsage:
+        """Return the data point usage."""
+        return DataPointUsage.DATA_POINT
+
+    @hm_property(kind=Kind.STATE)
+    def value(self) -> bool | None:
+        """Return whether the schedule is enabled for this channel."""
+        if (schedule_enabled := self._week_profile_data_point.schedule_enabled) is None:
+            return None
+        return schedule_enabled.get(self._channel_key)
+
+    @override
+    async def load_data_point_value(self, *, call_source: CallSource, direct_call: bool = False) -> None:
+        """Load the data point value. Delegated to the parent WPDP."""
+
+    async def turn_off(self) -> None:
+        """Disable the schedule for this channel."""
+        await self._week_profile_data_point.set_schedule_enabled(enabled=False, channel_key=self._channel_key)
+
+    async def turn_on(self) -> None:
+        """Enable the schedule for this channel."""
+        await self._week_profile_data_point.set_schedule_enabled(enabled=True, channel_key=self._channel_key)
+
+    @override
+    def _get_data_point_name(self) -> DataPointNameData:
+        """Create the name for the schedule channel switch."""
+        return DataPointNameData(
+            device_name=self._device.name,
+            channel_name=self._target_channel_info.name,
+            parameter_name=f"SCHEDULE_CHANNEL_LOCK_{self._channel_key}",
+        )
+
+    @override
+    def _get_data_point_usage(self) -> DataPointUsage:
+        """Generate the usage for the data point."""
+        return DataPointUsage.DATA_POINT
+
+    @override
+    def _get_path_data(self) -> PathData:
+        """Return the path data of the data point."""
+        return DataPointPathData(
+            interface=self._device.client.interface,
+            address=self._device.address,
+            channel_no=self._channel.no,
+            kind=self._category,
+        )
+
+    @override
+    def _get_signature(self) -> str:
+        """Return the signature of the data point."""
+        return f"{self._category}/{self._device.model}/SCHEDULE_CHANNEL_LOCK_{self._channel_key}"
 
 
 class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
@@ -599,6 +711,14 @@ def create_week_profile_data_point(*, device: DeviceProtocol) -> None:
     ):
         data_point.set_channel_locks_data_point(data_point=locks_dp)
 
+        # Create per-channel schedule switches
+        switches = _create_schedule_channel_switches(
+            channel=schedule_channel,
+            week_profile_data_point=data_point,
+        )
+        if switches:
+            device.set_schedule_channel_switches(switches=switches)
+
     # Climate-specific bindings
     if isinstance(data_point, ClimateWeekProfileDataPoint):
         # Bind profile pointer Generic DP for automatic sync
@@ -664,6 +784,25 @@ def _find_climate_custom_data_point(*, device: DeviceProtocol) -> CallbackDataPo
         if _has_schedule_channel_no(dp=dp):
             return dp
     return None
+
+
+def _create_schedule_channel_switches(
+    *,
+    channel: ChannelProtocol,
+    week_profile_data_point: WeekProfileDataPoint,
+) -> tuple[ScheduleChannelSwitch, ...]:
+    """Create ScheduleChannelSwitch instances for each available target channel."""
+    switches: list[ScheduleChannelSwitch] = []
+    for key, info in week_profile_data_point.available_target_channels.items():
+        switches.append(
+            ScheduleChannelSwitch(
+                channel=channel,
+                week_profile_data_point=week_profile_data_point,
+                channel_key=key,
+                target_channel_info=info,
+            )
+        )
+    return tuple(switches)
 
 
 def _get_schedule_profile_nos(*, device: DeviceProtocol) -> int:

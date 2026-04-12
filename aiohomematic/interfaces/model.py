@@ -2366,8 +2366,8 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
-    def schedule_enabled(self) -> bool | None:
-        """Return whether the weekly program is active, or None if not supported."""
+    def schedule_enabled(self) -> Mapping[str, bool] | None:
+        """Return per-channel schedule enabled state, or None if not supported."""
 
     @property
     @abstractmethod
@@ -2391,7 +2391,7 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
         """Write schedule data to CCU."""
 
     @abstractmethod
-    async def set_schedule_enabled(self, *, enabled: bool) -> None:
+    async def set_schedule_enabled(self, *, enabled: bool, channel_key: str | None = None) -> None:
         """Enable or disable the weekly program on the device."""
 
 

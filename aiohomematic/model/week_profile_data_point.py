@@ -41,7 +41,14 @@ from aiohomematic.interfaces.model import (
     GenericDataPointProtocolAny,
 )
 from aiohomematic.model.data_point import BaseDataPoint
-from aiohomematic.model.schedule_models import SCHEDULE_DOMAINS, ClimateSchedule, SimpleSchedule, TargetChannelInfo
+from aiohomematic.model.schedule_models import (
+    SCHEDULE_DOMAINS,
+    ClimateSchedule,
+    SimpleSchedule,
+    TargetChannelInfo,
+    channel_key_to_bitmask,
+    parse_channel_locks,
+)
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, generate_unique_id
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
 from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property
@@ -152,13 +159,16 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         return None
 
     @property
-    def schedule_enabled(self) -> bool | None:
-        """Return whether the weekly program is active, or None if not supported."""
+    def schedule_enabled(self) -> Mapping[str, bool] | None:
+        """Return per-channel schedule enabled state, or None if not supported."""
         if self._dp_channel_locks is None:
             return None
         if (value := self._dp_channel_locks.value) is None:
             return None
-        return int(value) > 0
+        return parse_channel_locks(
+            locks_value=int(value),
+            available_channels=self._available_target_channels,
+        )
 
     @property
     def schedule_type(self) -> ScheduleType:
@@ -213,13 +223,20 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         else:
             await self._week_profile.set_schedule(schedule_data=schedule_data)
 
-    async def set_schedule_enabled(self, *, enabled: bool) -> None:
+    async def set_schedule_enabled(self, *, enabled: bool, channel_key: str | None = None) -> None:
         """Enable or disable the weekly program on the device."""
         if not isinstance(self._week_profile, DefaultWeekProfile):
             return
         if (sca := self._week_profile.schedule_channel_address) is None:
             return
         mode = _SCHEDULE_AUTO_MODE if enabled else _SCHEDULE_MANU_MODE
+        if channel_key is not None:
+            await self._device.client.set_value(
+                channel_address=sca,
+                paramset_key=ParamsetKey.VALUES,
+                parameter=Parameter.WEEK_PROGRAM_TARGET_CHANNEL_LOCKS,
+                value=channel_key_to_bitmask(channel_key=channel_key),
+            )
         await self._device.client.set_value(
             channel_address=sca,
             paramset_key=ParamsetKey.VALUES,

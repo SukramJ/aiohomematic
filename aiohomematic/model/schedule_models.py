@@ -34,6 +34,7 @@ entry = SimpleScheduleEntry(
 
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 import re
 from typing import TYPE_CHECKING, Annotated, Any, Final, Literal, cast
@@ -112,6 +113,8 @@ __all__ = [
     "SimpleSchedule",
     "SimpleScheduleEntry",
     "TargetChannelInfo",
+    "channel_key_to_bitmask",
+    "parse_channel_locks",
 ]
 
 
@@ -567,6 +570,23 @@ def convert_weekdays_to_list(*, weekday_enums: list[WeekdayInt]) -> list[str]:
 def convert_list_to_weekdays(*, weekday_strs: list[str]) -> list[WeekdayInt]:
     """Convert list of weekday strings to list of WeekdayInt enums."""
     return [_WEEKDAY_STR_TO_INT[w] for w in weekday_strs]
+
+
+def channel_key_to_bitmask(*, channel_key: str) -> int:
+    """Convert a channel key (e.g. '1_1') to its bitmask value."""
+    if (enum_val := _CHANNEL_STR_TO_ENUM.get(channel_key)) is None:
+        msg = f"Unknown channel key: {channel_key}"
+        raise ValueError(msg)
+    return enum_val.value
+
+
+def parse_channel_locks(*, locks_value: int, available_channels: Mapping[str, TargetChannelInfo]) -> dict[str, bool]:
+    """Parse WEEK_PROGRAM_CHANNEL_LOCKS bitmask into per-channel enabled state."""
+    return {
+        key: bool(locks_value & _CHANNEL_STR_TO_ENUM[key].value)
+        for key in available_channels
+        if key in _CHANNEL_STR_TO_ENUM
+    }
 
 
 def convert_channels_to_list(*, channel_enums: list[ScheduleActorChannel]) -> list[str]:

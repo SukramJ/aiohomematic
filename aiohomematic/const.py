@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.4.9"
+VERSION: Final = "2026.4.10"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -803,6 +803,7 @@ class DataPointCategory(StrEnum):
     LIGHT = "light"
     LOCK = "lock"
     NUMBER = "number"
+    SCHEDULE_SWITCH = "schedule_switch"
     SELECT = "select"
     SENSOR = "sensor"
     SIREN = "siren"
@@ -863,6 +864,7 @@ _CATEGORY_TO_DATA_POINT_TYPE: Final[dict[DataPointCategory, DataPointType]] = {
     DataPointCategory.LIGHT: DataPointType.LIGHT,
     DataPointCategory.LOCK: DataPointType.LOCK,
     DataPointCategory.NUMBER: DataPointType.NUMBER,
+    DataPointCategory.SCHEDULE_SWITCH: DataPointType.SWITCH,
     DataPointCategory.SELECT: DataPointType.SELECT,
     DataPointCategory.SENSOR: DataPointType.SENSOR,
     DataPointCategory.SIREN: DataPointType.SIREN,
@@ -1730,6 +1732,7 @@ CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.LIGHT,
     DataPointCategory.LOCK,
     DataPointCategory.NUMBER,
+    DataPointCategory.SCHEDULE_SWITCH,
     DataPointCategory.SELECT,
     DataPointCategory.SENSOR,
     DataPointCategory.SIREN,

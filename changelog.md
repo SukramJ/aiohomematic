@@ -1,3 +1,23 @@
+# Version 2026.4.10 (2026-04-12)
+
+## What's Changed
+
+### Added
+
+- **Added `ScheduleChannelSwitch` data point**: New per-channel switch data
+  points for enabling/disabling schedule participation on non-climate devices.
+  Each target channel gets its own `ScheduleChannelSwitch` instance, registered
+  on the schedule channel with `DataPointCategory.SCHEDULE_SWITCH`. The switches
+  derive their state from the `WEEK_PROGRAM_CHANNEL_LOCKS` bitmask and write via
+  `COMBINED_PARAMETER`. They are auto-discovered by Home Assistant as standard
+  switch entities, designed to be grouped in a schedule subdevice.
+
+- **Added `ScheduleChannelSwitchProtocol`** in `interfaces/model.py` with
+  `value`, `turn_on()`, `turn_off()`, `channel_key`, and `target_channel_info`.
+
+- **Added `DataPointCategory.SCHEDULE_SWITCH`** mapped to `DataPointType.SWITCH`,
+  included in the `CATEGORIES` tuple for HA entity discovery.
+
 # Version 2026.4.9 (2026-04-12)
 
 ## What's Changed

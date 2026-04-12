@@ -1521,3 +1521,58 @@ class TestChannelLocksHelperContract:
         assert isinstance(result, dict)
         assert all(isinstance(k, str) for k in result)
         assert all(isinstance(v, bool) for v in result.values())
+
+
+# =============================================================================
+# Contract: ScheduleChannelSwitchProtocol
+# =============================================================================
+
+
+class TestScheduleChannelSwitchProtocolContract:
+    """Contract: ScheduleChannelSwitchProtocol must be stable."""
+
+    def test_category_is_schedule_switch(self) -> None:
+        """Contract: DataPointCategory.SCHEDULE_SWITCH maps to DataPointType.SWITCH."""
+        from aiohomematic.const import _CATEGORY_TO_DATA_POINT_TYPE, DataPointCategory, DataPointType
+
+        assert DataPointCategory.SCHEDULE_SWITCH in _CATEGORY_TO_DATA_POINT_TYPE
+        assert _CATEGORY_TO_DATA_POINT_TYPE[DataPointCategory.SCHEDULE_SWITCH] == DataPointType.SWITCH
+
+    def test_implementation_inherits_protocol(self) -> None:
+        """Contract: ScheduleChannelSwitch explicitly inherits ScheduleChannelSwitchProtocol."""
+        from aiohomematic.interfaces import ScheduleChannelSwitchProtocol
+        from aiohomematic.model.week_profile_data_point import ScheduleChannelSwitch
+
+        assert ScheduleChannelSwitchProtocol in ScheduleChannelSwitch.__mro__
+
+    def test_protocol_has_required_methods(self) -> None:
+        """Contract: ScheduleChannelSwitchProtocol defines required methods."""
+        from aiohomematic.interfaces import ScheduleChannelSwitchProtocol
+
+        protocol_attrs = dir(ScheduleChannelSwitchProtocol)
+        assert "turn_on" in protocol_attrs
+        assert "turn_off" in protocol_attrs
+
+    def test_protocol_has_required_properties(self) -> None:
+        """Contract: ScheduleChannelSwitchProtocol defines required properties."""
+        from aiohomematic.interfaces import ScheduleChannelSwitchProtocol
+
+        # Check that protocol defines the expected attributes
+        protocol_attrs = dir(ScheduleChannelSwitchProtocol)
+        assert "channel_key" in protocol_attrs
+        assert "target_channel_info" in protocol_attrs
+        assert "value" in protocol_attrs
+
+    def test_protocol_is_runtime_checkable(self) -> None:
+        """Contract: ScheduleChannelSwitchProtocol is runtime checkable."""
+        from aiohomematic.interfaces import ScheduleChannelSwitchProtocol
+
+        assert hasattr(ScheduleChannelSwitchProtocol, "__protocol_attrs__") or issubclass(
+            ScheduleChannelSwitchProtocol, Protocol
+        )
+
+    def test_schedule_switch_in_categories(self) -> None:
+        """Contract: SCHEDULE_SWITCH is in the CATEGORIES tuple for HA discovery."""
+        from aiohomematic.const import CATEGORIES, DataPointCategory
+
+        assert DataPointCategory.SCHEDULE_SWITCH in CATEGORIES

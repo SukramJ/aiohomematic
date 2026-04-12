@@ -251,6 +251,7 @@ from aiohomematic.interfaces.model import (
     HubBinarySensorDataPointProtocol,
     HubProtocol,
     HubSensorDataPointProtocol,
+    ScheduleChannelSwitchProtocol,
     WeekProfileDataPointProtocol,
     WeekProfileProtocol,
 )
@@ -357,6 +358,7 @@ __all__ = [
     "HubSensorDataPointProtocol",
     # Model week profile
     "ClimateWeekProfileDataPointProtocol",
+    "ScheduleChannelSwitchProtocol",
     "WeekProfileDataPointProtocol",
     "WeekProfileProtocol",
     # Payload

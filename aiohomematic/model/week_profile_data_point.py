@@ -16,7 +16,7 @@ import logging
 from typing import Any, Final, cast, override
 import weakref
 
-from aiohomematic import i18n
+from aiohomematic import ccu_translations, i18n
 from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     BIDCOS_DEVICE_CHANNEL_DUMMY,
@@ -76,6 +76,7 @@ def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly:
 
 
 _PARAMETER_NAME: Final = "WEEK_PROFILE"
+_SCHEDULE_CHANNEL_SWITCH_PARAMETER: Final = "SCHEDULE_CHANNEL_SWITCH"
 _SCHEDULE_MANU_MODE: Final = "MANU_MODE"
 _SCHEDULE_AUTO_MODE: Final = "AUTO_MODE_WITHOUT_RESET"
 # Numeric values for COMBINED_PARAMETER (WPTCL): 0=MANU_MODE, 2=AUTO_MODE_WITHOUT_RESET
@@ -171,6 +172,10 @@ class ScheduleChannelSwitch(BaseDataPoint, ScheduleChannelSwitchProtocol):
             device_name=self._device.name,
             channel_name=self._target_channel_info.name,
             parameter_name=f"SCHEDULE_CHANNEL_LOCK_{self._channel_key}",
+            parameter_translation=ccu_translations.get_parameter_translation(
+                parameter=_SCHEDULE_CHANNEL_SWITCH_PARAMETER,
+                locale=self._device.config_provider.config.locale,
+            ),
         )
 
     @override

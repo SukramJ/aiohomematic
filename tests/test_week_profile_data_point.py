@@ -330,14 +330,24 @@ class TestScheduleEnabledAndHelpers:
         handler.assert_called()
 
     def test_parse_channel_locks_all_enabled(self) -> None:
-        """Test parse_channel_locks with all channels enabled."""
+        """Test parse_channel_locks with bitmask 0 (all channels enabled, inverted logic)."""
         channels = {
             "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
             "1_2": TargetChannelInfo(channel_no=5, channel_address="VCU:5", name="Ch5", channel_type="secondary"),
         }
-        # bitmask 3 = 0b11 → channel 1_1 (bit 0) and 1_2 (bit 1) enabled
-        result = parse_channel_locks(locks_value=3, available_channels=channels)
+        # bitmask 0 = no bits set → no channels locked → all enabled
+        result = parse_channel_locks(locks_value=0, available_channels=channels)
         assert result == {"1_1": True, "1_2": True}
+
+    def test_parse_channel_locks_all_locked(self) -> None:
+        """Test parse_channel_locks with all bits set (all channels locked/disabled)."""
+        channels = {
+            "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
+            "1_2": TargetChannelInfo(channel_no=5, channel_address="VCU:5", name="Ch5", channel_type="secondary"),
+        }
+        # bitmask 3 = 0b11 → both bits set → both channels locked (disabled)
+        result = parse_channel_locks(locks_value=3, available_channels=channels)
+        assert result == {"1_1": False, "1_2": False}
 
     def test_parse_channel_locks_ignores_unknown_channels(self) -> None:
         """Test parse_channel_locks skips channels not in _CHANNEL_STR_TO_ENUM."""
@@ -345,26 +355,19 @@ class TestScheduleEnabledAndHelpers:
             "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
             "unknown": TargetChannelInfo(channel_no=99, channel_address="VCU:99", name="X", channel_type="primary"),
         }
-        result = parse_channel_locks(locks_value=1, available_channels=channels)
+        # bitmask 0 → channel 1_1 enabled, "unknown" skipped
+        result = parse_channel_locks(locks_value=0, available_channels=channels)
         assert result == {"1_1": True}
 
-    def test_parse_channel_locks_none_enabled(self) -> None:
-        """Test parse_channel_locks with bitmask 0 (all disabled)."""
-        channels = {
-            "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
-        }
-        result = parse_channel_locks(locks_value=0, available_channels=channels)
-        assert result == {"1_1": False}
-
     def test_parse_channel_locks_partial(self) -> None:
-        """Test parse_channel_locks with partial channels enabled."""
+        """Test parse_channel_locks with partial channels locked (inverted logic)."""
         channels = {
             "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
             "1_2": TargetChannelInfo(channel_no=5, channel_address="VCU:5", name="Ch5", channel_type="secondary"),
         }
-        # bitmask 1 = 0b01 → only channel 1_1 enabled
+        # bitmask 1 = 0b01 → bit 0 set → channel 1_1 locked (disabled), 1_2 enabled
         result = parse_channel_locks(locks_value=1, available_channels=channels)
-        assert result == {"1_1": True, "1_2": False}
+        assert result == {"1_1": False, "1_2": True}
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -378,23 +381,23 @@ class TestScheduleEnabledAndHelpers:
             (TEST_DEVICES_SWITCH, True, None, None),
         ],
     )
-    async def test_schedule_enabled_all_disabled(
+    async def test_schedule_enabled_all_enabled_when_zero(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test schedule_enabled with bitmask 0 returns all channels disabled."""
+        """Test schedule_enabled with bitmask 0 returns all channels enabled (inverted logic)."""
         central, _mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         data_point = switch.device.week_profile_data_point
         assert data_point is not None
 
         mock_dp = MagicMock()
-        mock_dp.value = 0
+        mock_dp.value = 0  # No bits set → no channels locked → all enabled
         data_point._dp_channel_locks = mock_dp
 
         result = data_point.schedule_enabled
         assert result is not None
-        assert all(v is False for v in result.values())
+        assert all(v is True for v in result.values())
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -497,7 +500,7 @@ class TestScheduleEnabledAndHelpers:
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test set_schedule_enabled(enabled=True) sends AUTO_MODE_WITHOUT_RESET."""
+        """Test set_schedule_enabled(enabled=True) sends COMBINED_PARAMETER with AUTO mode."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         data_point = switch.device.week_profile_data_point
@@ -507,11 +510,14 @@ class TestScheduleEnabledAndHelpers:
         mock_client.set_value = AsyncMock()
         await data_point.set_schedule_enabled(enabled=True)
 
+        # All available channels bitmask, mode 2 = AUTO
+        all_bitmask = sum(channel_key_to_bitmask(channel_key=key) for key in data_point.available_target_channels)
         mock_client.set_value.assert_called_once_with(
             channel_address=data_point.schedule_channel_address,
             paramset_key=ParamsetKey.VALUES,
-            parameter=Parameter.WEEK_PROGRAM_TARGET_CHANNEL_LOCK,
-            value="AUTO_MODE_WITHOUT_RESET",
+            parameter=Parameter.COMBINED_PARAMETER,
+            value=f"WPTCLS={all_bitmask},WPTCL=2",
+            wait_for_callback=None,
         )
 
     @pytest.mark.asyncio
@@ -530,7 +536,7 @@ class TestScheduleEnabledAndHelpers:
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test set_schedule_enabled(enabled=False) sends MANU_MODE."""
+        """Test set_schedule_enabled(enabled=False) sends COMBINED_PARAMETER with MANU mode."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         data_point = switch.device.week_profile_data_point
@@ -539,11 +545,14 @@ class TestScheduleEnabledAndHelpers:
         mock_client.set_value = AsyncMock()
         await data_point.set_schedule_enabled(enabled=False)
 
+        # All available channels bitmask, mode 0 = MANU
+        all_bitmask = sum(channel_key_to_bitmask(channel_key=key) for key in data_point.available_target_channels)
         mock_client.set_value.assert_called_once_with(
             channel_address=data_point.schedule_channel_address,
             paramset_key=ParamsetKey.VALUES,
-            parameter=Parameter.WEEK_PROGRAM_TARGET_CHANNEL_LOCK,
-            value="MANU_MODE",
+            parameter=Parameter.COMBINED_PARAMETER,
+            value=f"WPTCLS={all_bitmask},WPTCL=0",
+            wait_for_callback=None,
         )
 
     @pytest.mark.asyncio
@@ -591,7 +600,7 @@ class TestScheduleEnabledAndHelpers:
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
-        """Test set_schedule_enabled with channel_key sends bitmask first, then mode."""
+        """Test set_schedule_enabled with channel_key sends COMBINED_PARAMETER for that channel."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         switch: CustomDpSwitch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         data_point = switch.device.week_profile_data_point
@@ -600,16 +609,14 @@ class TestScheduleEnabledAndHelpers:
         mock_client.set_value = AsyncMock()
         await data_point.set_schedule_enabled(enabled=True, channel_key="1_1")
 
-        # Two calls: first sets target channel bitmask, then sends mode
-        assert mock_client.set_value.call_count == 2
-        first_call = mock_client.set_value.call_args_list[0]
-        second_call = mock_client.set_value.call_args_list[1]
-
-        assert first_call.kwargs["parameter"] == Parameter.WEEK_PROGRAM_TARGET_CHANNEL_LOCKS
-        assert first_call.kwargs["value"] == 1  # bitmask for "1_1"
-
-        assert second_call.kwargs["parameter"] == Parameter.WEEK_PROGRAM_TARGET_CHANNEL_LOCK
-        assert second_call.kwargs["value"] == "AUTO_MODE_WITHOUT_RESET"
+        # Single COMBINED_PARAMETER call with channel_key bitmask and AUTO mode
+        mock_client.set_value.assert_called_once_with(
+            channel_address=data_point.schedule_channel_address,
+            paramset_key=ParamsetKey.VALUES,
+            parameter=Parameter.COMBINED_PARAMETER,
+            value="WPTCLS=1,WPTCL=2",  # bitmask 1 for "1_1", mode 2 = AUTO
+            wait_for_callback=None,
+        )
 
 
 class TestWeekProfileDataPointLifecycle:

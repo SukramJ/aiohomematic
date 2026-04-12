@@ -1498,11 +1498,11 @@ class TestChannelLocksHelperContract:
             "1_1": TargetChannelInfo(channel_no=4, channel_address="VCU:4", name="Ch4", channel_type="primary"),
             "1_2": TargetChannelInfo(channel_no=5, channel_address="VCU:5", name="Ch5", channel_type="secondary"),
         }
-        # Enable only channel 1_1 via its bitmask
+        # Lock channel 1_1 via its bitmask (inverted: set bit = locked/disabled)
         bitmask = channel_key_to_bitmask(channel_key="1_1")
         result = parse_channel_locks(locks_value=bitmask, available_channels=channels)
-        assert result["1_1"] is True
-        assert result["1_2"] is False
+        assert result["1_1"] is False  # locked (bit set)
+        assert result["1_2"] is True  # not locked (bit not set)
 
     def test_parse_channel_locks_is_exported(self) -> None:
         """Contract: parse_channel_locks is in schedule_models __all__."""

@@ -81,7 +81,7 @@ jobs:
           sed -n '1,40p' RELEASE_NOTES.md >&2
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: ${{ env.TAG_NAME }}

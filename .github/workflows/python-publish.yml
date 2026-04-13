@@ -184,7 +184,7 @@ jobs:
           fi
 
       - name: Create/Update Support Release and upload assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: support-${{ env.TAG_NAME }}
           name: "AioHomematic Support ${{ env.TAG_NAME }}"

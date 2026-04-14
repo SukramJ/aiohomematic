@@ -55,6 +55,7 @@ class TestGenericNumber:
             parameter="SETPOINT",
             value=8.0,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert efloat.value == 8.0
 
@@ -65,6 +66,7 @@ class TestGenericNumber:
             parameter="SETPOINT",
             value=100.0,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert efloat.value == 100.0
 
@@ -101,6 +103,7 @@ class TestGenericNumber:
             parameter="LEVEL",
             value=0.3,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert efloat.value == 0.3
         await central.event_coordinator.data_point_event(
@@ -150,6 +153,7 @@ class TestGenericNumber:
             parameter="SET_POINT_MODE",
             value=3,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert einteger.value == 3
 
@@ -160,6 +164,7 @@ class TestGenericNumber:
             parameter="SET_POINT_MODE",
             value=1,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert einteger.value == 1
 
@@ -174,6 +179,7 @@ class TestGenericNumber:
             parameter="SET_POINT_MODE",
             value=6,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         # do not write. value above max
         assert einteger.value == 2

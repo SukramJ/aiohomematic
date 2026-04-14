@@ -124,6 +124,7 @@ class DpDummy(GenericDataPointAny):
         collector: CallParameterCollector | None = None,
         collector_order: int = 50,
         do_validate: bool = True,
+        retry: bool | None = None,
     ) -> set[DP_KEY_VALUE]:
         """Do not write to backend; accept but perform no operation."""
         return set()

@@ -55,6 +55,7 @@ class TestGenericButton:
             parameter="RESET_MOTION",
             value=True,
             priority=CommandPriority.HIGH,
+            retry=False,
         )
 
         call_count = len(mock_client.method_calls)

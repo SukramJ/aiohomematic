@@ -105,6 +105,7 @@ class TestDpActionFloat:
             parameter="RAMP_TIME",
             value=1.5,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
 
@@ -194,6 +195,7 @@ class TestDpActionInteger:
             parameter="ALARM_COUNT",
             value=128,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
     @pytest.mark.asyncio

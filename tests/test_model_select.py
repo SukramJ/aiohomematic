@@ -123,6 +123,7 @@ class TestGenericSelect:
             parameter="WINDOW_STATE",
             value=1,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert select.value == "OPEN"
 
@@ -153,6 +154,7 @@ class TestGenericSelect:
             parameter="WINDOW_STATE",
             value="OPEN",
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert select.value == "OPEN"
 

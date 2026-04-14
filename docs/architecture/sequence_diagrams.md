@@ -591,6 +591,7 @@ classDiagram
     -_backend: BackendOperationsProtocol
     -_state_machine: ClientStateMachine
     -_circuit_breaker: CircuitBreaker
+    -_command_retry_handler: CommandRetryHandler
     +init_client()
     +init_proxy()
     +get_value()

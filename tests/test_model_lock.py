@@ -53,6 +53,7 @@ class TestRfLock:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU0000146:1"}),
+            retry=True,
         )
         assert lock.is_locked is False
         await lock.lock()
@@ -64,6 +65,7 @@ class TestRfLock:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU0000146:1"}),
+            retry=True,
         )
         assert lock.is_locked is True
         await lock.open()
@@ -75,6 +77,7 @@ class TestRfLock:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU0000146:1"}),
+            retry=False,
         )
 
         assert lock.is_locking is None
@@ -153,6 +156,7 @@ class TestIpLock:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU9724704:0", "VCU9724704:1"}),
+            retry=True,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="LOCK_STATE", value=1
@@ -167,6 +171,7 @@ class TestIpLock:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU9724704:0", "VCU9724704:1"}),
+            retry=True,
         )
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU9724704:1", parameter="LOCK_STATE", value=2
@@ -181,6 +186,7 @@ class TestIpLock:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU9724704:0", "VCU9724704:1"}),
+            retry=True,
         )
 
         assert lock.is_locking is None

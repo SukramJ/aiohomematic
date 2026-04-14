@@ -118,6 +118,7 @@ class TestTextDisplaySendText:
             },
             wait_for_callback=None,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
     @pytest.mark.asyncio
@@ -158,6 +159,7 @@ class TestTextDisplaySendText:
             },
             wait_for_callback=None,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
     @pytest.mark.asyncio
@@ -225,6 +227,7 @@ class TestTextDisplaySendText:
             },
             wait_for_callback=None,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
     @pytest.mark.asyncio
@@ -303,6 +306,7 @@ class TestTextDisplaySendText:
             },
             wait_for_callback=None,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
 

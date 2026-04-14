@@ -204,6 +204,7 @@ python-slugify>=8.0.0   # URL-safe string conversion
 │   │   ├── _rpc_errors.py          # RPC error handling
 │   │   ├── state_machine.py        # Client state machine
 │   │   ├── circuit_breaker.py      # Connection circuit breaker
+│   │   ├── command_retry.py        # Command retry for transient failures
 │   │   ├── request_coalescer.py    # Request deduplication
 │   │   └── backends/               # Backend Strategy implementations
 │   │       ├── __init__.py         # Backend exports
@@ -1107,6 +1108,7 @@ await central.stop()
 - `CcuBackend` - Backend for CCU3/CCU2 (XML-RPC + JSON-RPC)
 - `JsonCcuBackend` - Backend for CUxD/CCU-Jack (JSON-RPC only)
 - `HomegearBackend` - Backend for Homegear/pydevccu (XML-RPC)
+- `CommandRetryHandler` - Retries transient command failures with exponential backoff
 
 #### 3. Model (aiohomematic/model/)
 

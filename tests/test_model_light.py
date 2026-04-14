@@ -85,6 +85,7 @@ class TestCustomDpDimmer:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.brightness_pct == 100
@@ -96,6 +97,7 @@ class TestCustomDpDimmer:
             value=0.10980392156862745,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 28
         assert light.brightness_pct == 10
@@ -114,6 +116,7 @@ class TestCustomDpDimmer:
             values={"LEVEL": 0.10980392156862745, "RAMP_TIME": 6.0, "ON_TIME": 5.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         await light.turn_on(on_time=5.0)
         assert mock_client.method_calls[-1] == call.put_paramset(
@@ -122,6 +125,7 @@ class TestCustomDpDimmer:
             values={"ON_TIME": 5.0, "LEVEL": 0.10980392156862745},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_off(ramp_time=6.0)
@@ -131,6 +135,7 @@ class TestCustomDpDimmer:
             values={"RAMP_TIME": 6.0, "LEVEL": 0.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 0
         await light.turn_on()
@@ -143,6 +148,7 @@ class TestCustomDpDimmer:
             value=0.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_off()
@@ -154,6 +160,7 @@ class TestCustomDpDimmer:
             values={"ON_TIME": 0.5, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         light.set_timer_on_time(on_time=1.6)
@@ -164,6 +171,7 @@ class TestCustomDpDimmer:
             values={"ON_TIME": 1.6, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on()
@@ -229,6 +237,7 @@ class TestCustomDpColorDimmerEffect:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         await light.turn_on(brightness=28)
@@ -239,6 +248,7 @@ class TestCustomDpColorDimmerEffect:
             value=0.10980392156862745,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 28
         await light.turn_off()
@@ -249,6 +259,7 @@ class TestCustomDpColorDimmerEffect:
             value=0.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 0
 
@@ -261,6 +272,7 @@ class TestCustomDpColorDimmerEffect:
             value=25,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU3747418:1",
@@ -269,6 +281,7 @@ class TestCustomDpColorDimmerEffect:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.hs_color == (45.0, 100)
 
@@ -280,6 +293,7 @@ class TestCustomDpColorDimmerEffect:
             value=0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU3747418:1",
@@ -288,6 +302,7 @@ class TestCustomDpColorDimmerEffect:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.hs_color == (0.0, 100.0)
 
@@ -300,6 +315,7 @@ class TestCustomDpColorDimmerEffect:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU3747418:3",
@@ -308,6 +324,7 @@ class TestCustomDpColorDimmerEffect:
             value=1,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         assert light.effect == "Slow color change"
@@ -339,6 +356,7 @@ class TestCustomDpColorDimmerEffect:
             value=0.10980392156862745,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU3747418:3",
@@ -347,6 +365,7 @@ class TestCustomDpColorDimmerEffect:
             value=1,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
 
@@ -393,6 +412,7 @@ class TestCustomDpColorTempDimmer:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         await light.turn_on(brightness=28)
@@ -403,6 +423,7 @@ class TestCustomDpColorTempDimmer:
             value=0.10980392156862745,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 28
         await light.turn_off()
@@ -413,6 +434,7 @@ class TestCustomDpColorTempDimmer:
             value=0.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 0
 
@@ -425,6 +447,7 @@ class TestCustomDpColorTempDimmer:
             value=0.1930835734870317,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU0000115:1",
@@ -433,6 +456,7 @@ class TestCustomDpColorTempDimmer:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_temp_kelvin == 2309
 
@@ -511,6 +535,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         await light.turn_on(brightness=28)
@@ -525,6 +550,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 28
         await light.turn_off()
@@ -535,6 +561,7 @@ class TestCustomDpIpFixedColorLight:
             value=0.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 0
         assert light.color_name == FixedColor.WHITE
@@ -553,6 +580,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(hs_color=(350, 50))
@@ -568,6 +596,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_name == FixedColor.RED
 
@@ -584,6 +613,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_name == FixedColor.WHITE
 
@@ -600,6 +630,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_name == FixedColor.YELLOW
 
@@ -616,6 +647,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_name == FixedColor.GREEN
 
@@ -632,6 +664,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_name == FixedColor.TURQUOISE
 
@@ -648,6 +681,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_name == FixedColor.BLUE
 
@@ -664,6 +698,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_name == FixedColor.PURPLE
 
@@ -692,6 +727,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_off()
@@ -708,6 +744,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_off()
@@ -724,6 +761,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         await light.turn_on(ramp_time=18)
         assert mock_client.method_calls[-1] == call.put_paramset(
@@ -739,6 +777,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(ramp_time=17000)
@@ -755,6 +794,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(ramp_time=1000000)
@@ -771,6 +811,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on()
@@ -842,6 +883,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.WHITE
@@ -858,6 +900,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 100
         assert light.color_name == FixedColor.WHITE
@@ -871,6 +914,7 @@ class TestCustomDpIpFixedColorLight:
             value=0.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 0
         assert light.color_name == FixedColor.WHITE
@@ -889,6 +933,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.RED
@@ -907,6 +952,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.WHITE
@@ -925,6 +971,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.YELLOW
@@ -943,6 +990,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.GREEN
@@ -961,6 +1009,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.TURQUOISE
@@ -979,6 +1028,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.BLUE
@@ -997,6 +1047,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         assert light.color_name == FixedColor.PURPLE
@@ -1019,6 +1070,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 100
         assert light.color_name == FixedColor.PURPLE
@@ -1036,6 +1088,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 33
         assert light.color_name == FixedColor.PURPLE
@@ -1053,6 +1106,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 33
         assert light.color_name == FixedColor.PURPLE
@@ -1070,6 +1124,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 66
         assert light.color_name == FixedColor.PURPLE
@@ -1090,6 +1145,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_off()
@@ -1106,6 +1162,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_off()
@@ -1122,6 +1179,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         await light.turn_on(ramp_time=18)
         assert mock_client.method_calls[-1] == call.put_paramset(
@@ -1137,6 +1195,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(ramp_time=17000)
@@ -1153,6 +1212,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(ramp_time=1000000)
@@ -1169,6 +1229,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on()
@@ -1194,6 +1255,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(brightness=28)
@@ -1209,6 +1271,7 @@ class TestCustomDpIpFixedColorLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
 
@@ -1277,6 +1340,7 @@ class TestCustomDpIpRGBWLight:
             values={"DURATION_UNIT": _TimeUnit.HOURS, "DURATION_VALUE": _NOT_USED, "LEVEL": 1.0},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         await light.turn_on(brightness=28)
@@ -1286,6 +1350,7 @@ class TestCustomDpIpRGBWLight:
             values={"DURATION_UNIT": _TimeUnit.HOURS, "DURATION_VALUE": _NOT_USED, "LEVEL": 0.10980392156862745},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 28
         await light.turn_off()
@@ -1296,6 +1361,7 @@ class TestCustomDpIpRGBWLight:
             value=0.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 0
 
@@ -1312,6 +1378,7 @@ class TestCustomDpIpRGBWLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.color_temp_kelvin == 3000
 
@@ -1339,6 +1406,7 @@ class TestCustomDpIpRGBWLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.hs_color == (44, 69.3)
 
@@ -1355,6 +1423,7 @@ class TestCustomDpIpRGBWLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.hs_color == (0.0, 50.0)
 
@@ -1370,6 +1439,7 @@ class TestCustomDpIpRGBWLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(hs_color=(44, 66), ramp_time=5)
@@ -1387,6 +1457,7 @@ class TestCustomDpIpRGBWLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_off(ramp_time=5)
@@ -1402,6 +1473,7 @@ class TestCustomDpIpRGBWLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await light.turn_on(hs_color=(44, 66), ramp_time=5, on_time=8760)
@@ -1419,6 +1491,7 @@ class TestCustomDpIpRGBWLight:
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
 
@@ -1466,6 +1539,7 @@ class TestCustomDpColorDimmer:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 255
         await light.turn_on(brightness=28)
@@ -1476,6 +1550,7 @@ class TestCustomDpColorDimmer:
             value=0.10980392156862745,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 28
         await light.turn_off()
@@ -1486,6 +1561,7 @@ class TestCustomDpColorDimmer:
             value=0.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.brightness == 0
 
@@ -1498,6 +1574,7 @@ class TestCustomDpColorDimmer:
             value=25,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU9973336:13",
@@ -1506,6 +1583,7 @@ class TestCustomDpColorDimmer:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.hs_color == (45.0, 100)
 
@@ -1517,6 +1595,7 @@ class TestCustomDpColorDimmer:
             value=0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU9973336:13",
@@ -1525,6 +1604,7 @@ class TestCustomDpColorDimmer:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.hs_color == (0.0, 100.0)
         await light.turn_on(hs_color=(0, 1))
@@ -1535,6 +1615,7 @@ class TestCustomDpColorDimmer:
             value=200,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU9973336:13",
@@ -1543,6 +1624,7 @@ class TestCustomDpColorDimmer:
             value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert light.hs_color == (0.0, 0.0)
         await central.event_coordinator.data_point_event(

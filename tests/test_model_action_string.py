@@ -110,6 +110,7 @@ class TestDpActionString:
             parameter="DISPLAY_DATA_STRING",
             value="L2=50,L=100",
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
     @pytest.mark.asyncio

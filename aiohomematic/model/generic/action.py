@@ -25,6 +25,7 @@ class DpAction(GenericDataPoint[None, Any]):
     __slots__ = ()
 
     _category = DataPointCategory.ACTION
+    _retryable = False
     _validate_state_change = False
 
     def _prepare_value_for_sending(self, *, value: Any, do_validate: bool = True) -> Any:

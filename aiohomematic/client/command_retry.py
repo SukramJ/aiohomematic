@@ -23,6 +23,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 import logging
+import random
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic.central.events.bus import RecoveryCompletedEvent
@@ -57,6 +58,10 @@ _RETRYABLE_FAULT_CODES: Final[frozenset[int]] = frozenset(
 
 _FAULT_CODE_DUTY_CYCLE: Final = -8
 _FAULT_CODE_TRANSMISSION_PENDING: Final = -10
+
+# Jitter range applied to standard exponential backoff delays.
+# ±20% prevents synchronized retry storms after mass failures.
+_JITTER_FACTOR: Final = 0.2
 
 # Non-retryable exceptions — permanent failures where retry cannot help
 _NON_RETRYABLE_EXCEPTIONS: Final[tuple[type[BaseHomematicException], ...]] = (
@@ -145,7 +150,7 @@ class CommandRetryHandler:
     Integrates with:
     - Circuit Breaker: Aborts retry if circuit opens
     - Connection Recovery: Waits for RecoveryCompletedEvent on NoConnectionException
-    - Command Throttle: Re-acquires throttle per attempt (via caller)
+    - Command Throttle: Throttle is acquired once by the caller before retry begins
     - Optimistic Updates: Keeps optimistic value active during retries
 
     Concurrency
@@ -321,21 +326,23 @@ class CommandRetryHandler:
                 del self._active_retries[dpk]
 
     def _calculate_delay(self, *, attempt: int, exc: BaseException) -> float:
-        """Calculate delay before next retry using exponential backoff with special cases."""
+        """Calculate delay before next retry using exponential backoff with jitter."""
         tc = self._timeout_config
         fault_code = _get_fault_code(exc=exc)
 
-        # Special delay for DutyCycle exhaustion
+        # Special delay for DutyCycle exhaustion (fixed — physically determined)
         if fault_code == _FAULT_CODE_DUTY_CYCLE:
             return tc.command_retry_duty_cycle_delay
 
-        # Special delay for transmission pending
+        # Special delay for transmission pending (fixed — short wait for CCU)
         if fault_code == _FAULT_CODE_TRANSMISSION_PENDING:
             return tc.command_retry_transmission_pending_delay
 
-        # Standard exponential backoff
+        # Standard exponential backoff with ±20% jitter
         delay = tc.command_retry_base_delay * (tc.command_retry_backoff_factor ** (attempt - 1))
-        return min(delay, tc.command_retry_max_delay)
+        delay = min(delay, tc.command_retry_max_delay)
+        jitter = delay * random.uniform(-_JITTER_FACTOR, _JITTER_FACTOR)
+        return max(0.0, delay + jitter)
 
     def _cancel_retry_for_dpk(self, *, dpk: DataPointKey) -> int:
         """Cancel active retry for a data point key. Return 1 if cancelled, 0 if none."""

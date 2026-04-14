@@ -404,15 +404,138 @@ class TestCommandRetryHandlerCancellation:
         count = retry_handler.cancel_retries_for_device(device_address="VCU0000001")
         assert count == 0
 
+    @pytest.mark.asyncio
+    async def test_cancel_retries_for_device_with_active_retry(self, retry_handler: CommandRetryHandler) -> None:
+        """Test cancelling retries for a device with an active retry."""
+        dpk = _make_dpk(parameter="LEVEL")
+        barrier = asyncio.Event()
+        call_count = 0
+
+        async def _slow_operation() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise TimeoutError
+            # Block until test cancels — should never complete
+            await barrier.wait()
+            return "should not reach"
+
+        task = asyncio.create_task(retry_handler.execute_with_retry(operation=_slow_operation, dpk=dpk))
+        # Let the retry loop reach the sleep/wait phase after first failure
+        await asyncio.sleep(0.01)
+        assert retry_handler.active_retry_count == 1
+
+        count = retry_handler.cancel_retries_for_device(device_address="VCU0000001")
+        assert count == 1
+        assert retry_handler.metrics.cancelled_retries == 1
+
+        with pytest.raises(CommandSupersededError):
+            await task
+
     def test_cancel_retries_for_dpk_empty(self, retry_handler: CommandRetryHandler) -> None:
         """Test cancelling retry for non-existent dpk."""
         count = retry_handler.cancel_retries_for_dpk(dpk=_make_dpk())
         assert count == 0
 
+    @pytest.mark.asyncio
+    async def test_cancel_retries_for_dpk_with_active_retry(self, retry_handler: CommandRetryHandler) -> None:
+        """Test cancelling retry for a specific dpk with an active retry."""
+        dpk = _make_dpk(parameter="STATE")
+        call_count = 0
+
+        async def _failing_operation() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise TimeoutError
+            await asyncio.Event().wait()
+            return "should not reach"
+
+        task = asyncio.create_task(retry_handler.execute_with_retry(operation=_failing_operation, dpk=dpk))
+        await asyncio.sleep(0.01)
+
+        count = retry_handler.cancel_retries_for_dpk(dpk=dpk)
+        assert count == 1
+        assert retry_handler.metrics.cancelled_retries == 1
+
+        with pytest.raises(CommandSupersededError):
+            await task
+
     def test_cancel_retries_for_interface_empty(self, retry_handler: CommandRetryHandler) -> None:
         """Test cancelling all retries when none exist."""
         count = retry_handler.cancel_retries_for_interface()
         assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_cancel_retries_for_interface_with_active_retries(self, retry_handler: CommandRetryHandler) -> None:
+        """Test cancelling all retries for an interface with multiple active retries."""
+        dpk1 = _make_dpk(parameter="LEVEL")
+        dpk2 = _make_dpk(parameter="STATE")
+        call_counts: dict[str, int] = {"LEVEL": 0, "STATE": 0}
+
+        async def _make_failing(param: str) -> str:
+            call_counts[param] += 1
+            if call_counts[param] == 1:
+                raise TimeoutError
+            await asyncio.Event().wait()
+            return "should not reach"
+
+        task1 = asyncio.create_task(
+            retry_handler.execute_with_retry(operation=lambda: _make_failing("LEVEL"), dpk=dpk1)
+        )
+        task2 = asyncio.create_task(
+            retry_handler.execute_with_retry(operation=lambda: _make_failing("STATE"), dpk=dpk2)
+        )
+        await asyncio.sleep(0.01)
+        assert retry_handler.active_retry_count == 2
+
+        count = retry_handler.cancel_retries_for_interface()
+        assert count == 2
+        assert retry_handler.metrics.cancelled_retries == 2
+
+        with pytest.raises(CommandSupersededError):
+            await task1
+        with pytest.raises(CommandSupersededError):
+            await task2
+
+    @pytest.mark.asyncio
+    async def test_supersede_parallel_retry_same_dpk(self, retry_handler: CommandRetryHandler) -> None:
+        """Test that a new retry for the same dpk supersedes the previous one."""
+        dpk = _make_dpk(parameter="LEVEL")
+        first_call_count = 0
+        second_call_count = 0
+
+        async def _first_operation() -> str:
+            nonlocal first_call_count
+            first_call_count += 1
+            if first_call_count == 1:
+                raise TimeoutError
+            # This attempt should never run — superseded by second operation
+            await asyncio.Event().wait()
+            return "first"
+
+        async def _second_operation() -> str:
+            nonlocal second_call_count
+            second_call_count += 1
+            return "second"
+
+        # Start first retry — it will fail and enter backoff sleep
+        task1 = asyncio.create_task(retry_handler.execute_with_retry(operation=_first_operation, dpk=dpk))
+        await asyncio.sleep(0.01)
+        assert retry_handler.active_retry_count == 1
+
+        # Start second retry for same dpk — supersedes first
+        task2 = asyncio.create_task(retry_handler.execute_with_retry(operation=_second_operation, dpk=dpk))
+
+        # First task should raise CommandSupersededError
+        with pytest.raises(CommandSupersededError):
+            await task1
+
+        # Second task should succeed
+        result = await task2
+        assert result == "second"
+        assert retry_handler.metrics.cancelled_retries >= 1
+        assert retry_handler.active_retry_count == 0
 
 
 class TestCommandRetryHandlerProperties:
@@ -465,7 +588,7 @@ class TestCommandRetryHandlerDelay:
 
     @pytest.mark.asyncio
     async def test_exponential_backoff(self) -> None:
-        """Test that delays increase with exponential backoff."""
+        """Test that delays increase with exponential backoff and ±20% jitter."""
         handler = CommandRetryHandler(
             interface_id="test",
             timeout_config=TimeoutConfig(
@@ -479,13 +602,16 @@ class TestCommandRetryHandlerDelay:
         delay1 = handler._calculate_delay(attempt=1, exc=TimeoutError())
         delay2 = handler._calculate_delay(attempt=2, exc=TimeoutError())
         delay3 = handler._calculate_delay(attempt=3, exc=TimeoutError())
-        assert delay1 == 1.0
-        assert delay2 == 2.0
-        assert delay3 == 4.0
+        # Base values: 1.0, 2.0, 4.0 — with ±20% jitter
+        assert 0.8 <= delay1 <= 1.2
+        assert 1.6 <= delay2 <= 2.4
+        assert 3.2 <= delay3 <= 4.8
+        # Delays must still increase monotonically in expectation
+        assert delay1 < delay3
 
     @pytest.mark.asyncio
     async def test_max_delay_cap(self) -> None:
-        """Test that delay is capped at max_delay."""
+        """Test that delay is capped at max_delay (before jitter)."""
         handler = CommandRetryHandler(
             interface_id="test",
             timeout_config=TimeoutConfig(
@@ -496,7 +622,8 @@ class TestCommandRetryHandlerDelay:
             event_bus=_make_event_bus(),
         )
         delay = handler._calculate_delay(attempt=3, exc=TimeoutError())
-        assert delay == 50.0
+        # Capped at 50.0 with ±20% jitter
+        assert 40.0 <= delay <= 60.0
 
     @pytest.mark.asyncio
     async def test_transmission_pending_delay(self) -> None:

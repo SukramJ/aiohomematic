@@ -63,6 +63,7 @@ class TestCustomSwitch:
             value=True,
             wait_for_callback=None,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert switch.value is True
         await switch.turn_off()
@@ -73,6 +74,7 @@ class TestCustomSwitch:
             value=False,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert switch.value is False
         await switch.turn_on(on_time=60)
@@ -82,6 +84,7 @@ class TestCustomSwitch:
             values={"ON_TIME": 60.0, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert switch.value is True
 
@@ -94,6 +97,7 @@ class TestCustomSwitch:
             values={"ON_TIME": 35.4, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await switch.turn_on()
@@ -247,6 +251,7 @@ class TestGenericSwitch:
             parameter="STATE",
             value=True,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert switch.value is True
         await switch.turn_off()
@@ -256,6 +261,7 @@ class TestGenericSwitch:
             parameter="STATE",
             value=False,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert switch.value is False
         await switch.turn_on(on_time=60)
@@ -271,6 +277,7 @@ class TestGenericSwitch:
             parameter="STATE",
             value=True,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert switch.value is True
         await switch.set_on_time(on_time=35.4)

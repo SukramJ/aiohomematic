@@ -576,7 +576,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         if not self.is_state_change(mode=mode):
             return
         if mode == ClimateMode.AUTO:
-            await self._dp_auto_mode.send_value(value=True, collector=collector)
+            await self._dp_auto_mode.send_value(value=True, collector=collector, retry=True)
         elif mode == ClimateMode.HEAT:
             await self._dp_manu_mode.send_value(value=self._temperature_for_heat_mode, collector=collector)
         elif mode == ClimateMode.OFF:
@@ -593,15 +593,15 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
         if not self.is_state_change(profile=profile):
             return
         if profile == ClimateProfile.BOOST:
-            await self._dp_boost_mode.send_value(value=True, collector=collector)
+            await self._dp_boost_mode.send_value(value=True, collector=collector, retry=True)
         elif profile == ClimateProfile.COMFORT:
-            await self._dp_comfort_mode.send_value(value=True, collector=collector)
+            await self._dp_comfort_mode.send_value(value=True, collector=collector, retry=True)
         elif profile == ClimateProfile.ECO:
-            await self._dp_lowering_mode.send_value(value=True, collector=collector)
+            await self._dp_lowering_mode.send_value(value=True, collector=collector, retry=True)
         elif profile in self._profile_names:
             if self.mode != ClimateMode.AUTO:
                 await self.set_mode(mode=ClimateMode.AUTO, collector=collector)
-                await self._dp_boost_mode.send_value(value=False, collector=collector)
+                await self._dp_boost_mode.send_value(value=False, collector=collector, retry=True)
             if (profile_idx := self._profiles.get(profile)) is not None:
                 await self._dp_week_program_pointer.send_value(
                     value=_HM_WEEK_PROFILE_POINTERS_TO_NAMES[profile_idx], collector=collector

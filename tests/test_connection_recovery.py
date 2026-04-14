@@ -2479,6 +2479,67 @@ class TestConnectionRecoveryTcpCheckPortFallback:
         coordinator.stop()
 
 
+class TestConnectionRecoveryCoordinatorConcurrencyLimit:
+    """Tests for MAX_CONCURRENT_RECOVERIES semaphore enforcement."""
+
+    def test_semaphore_initialized_with_max_concurrent(self) -> None:
+        """Test that the recovery semaphore is initialized with MAX_CONCURRENT_RECOVERIES."""
+        from aiohomematic.central.coordinators.connection_recovery import MAX_CONCURRENT_RECOVERIES
+
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        central_info = MagicMock()
+        central_info.name = "test-central"
+        config_provider = MagicMock()
+        config_provider.config.timeout_config.reconnect_initial_cooldown = 0.01
+        config_provider.config.timeout_config.reconnect_warmup_delay = 0.01
+        config_provider.config.timeout_config.reconnect_tcp_check_timeout = 0.1
+        config_provider.config.host = "127.0.0.1"
+        config_provider.config.tls = False
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=central_info,
+            config_provider=config_provider,
+            client_provider=MagicMock(),
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+        )
+
+        # Verify semaphore value matches constant
+        assert coordinator._recovery_semaphore._value == MAX_CONCURRENT_RECOVERIES
+        assert MAX_CONCURRENT_RECOVERIES == 2
+
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_semaphore_limits_concurrent_recoveries(self) -> None:
+        """Test that the semaphore limits concurrent recovery operations."""
+        from aiohomematic.central.coordinators.connection_recovery import MAX_CONCURRENT_RECOVERIES
+
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_RECOVERIES)
+        max_concurrent_seen = 0
+        current_concurrent = 0
+
+        async def mock_recovery(interface_id: str) -> bool:
+            nonlocal max_concurrent_seen, current_concurrent
+            async with semaphore:
+                current_concurrent += 1
+                max_concurrent_seen = max(max_concurrent_seen, current_concurrent)
+                await asyncio.sleep(0.05)  # Simulate work
+                current_concurrent -= 1
+            return True
+
+        # Try to run 4 recoveries simultaneously
+        tasks = [mock_recovery(f"interface-{i}") for i in range(4)]
+        await asyncio.gather(*tasks)
+
+        # Semaphore should have limited to MAX_CONCURRENT_RECOVERIES
+        assert max_concurrent_seen == MAX_CONCURRENT_RECOVERIES
+
+
 class TestConnectionRecoveryCoordinatorAdditionalCoverage:
     """Additional tests to improve coverage to 90%+."""
 

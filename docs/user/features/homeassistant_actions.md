@@ -17,6 +17,18 @@ Set a device parameter via the XML-RPC interface.
 !!! warning "Storage Warning"
 Too much writing to the device MASTER paramset could damage your device's storage.
 
+| Field               | Required | Default | Description                                                    |
+| ------------------- | -------- | ------- | -------------------------------------------------------------- |
+| `device_id`         | Yes\*    |         | Device to target (\*or `device_address`)                       |
+| `device_address`    | Yes\*    |         | Device address (\*or `device_id`)                              |
+| `channel`           | Yes      | 1       | Channel number                                                 |
+| `parameter`         | Yes      |         | Parameter name (e.g., `STATE`, `SET_TEMPERATURE`)              |
+| `value`             | Yes      |         | New value                                                      |
+| `value_type`        | No       | string  | Type: `boolean`, `int`, `double`, `string`, `dateTime.iso8601` |
+| `wait_for_callback` | No       |         | Seconds to wait for CCU confirmation                           |
+| `rx_mode`           | No       |         | `BURST` or `WAKEUP` (BidCos-RF only)                           |
+| `retry`             | No       | true    | Retry on transient failures (timeout, device unreachable)      |
+
 **Example - Turn on a switch:**
 
 ```yaml
@@ -41,6 +53,19 @@ data:
   value_type: double
 ```
 
+**Example - Set value without retry (for automations with own retry logic):**
+
+```yaml
+action: homematicip_local.set_device_value
+data:
+  device_id: abcdefg...
+  channel: 1
+  parameter: STATE
+  value: "true"
+  value_type: boolean
+  retry: false
+```
+
 ---
 
 ## Paramset Operations
@@ -55,6 +80,17 @@ Call `putParamset` on the XML-RPC interface.
 
 !!! warning "Storage Warning"
 Too much writing to the device MASTER paramset could damage your device's storage.
+
+| Field               | Required | Default | Description                                               |
+| ------------------- | -------- | ------- | --------------------------------------------------------- |
+| `device_id`         | Yes\*    |         | Device to target (\*or `device_address`)                  |
+| `device_address`    | Yes\*    |         | Device address (\*or `device_id`)                         |
+| `channel`           | No       |         | Channel number                                            |
+| `paramset_key`      | Yes      |         | `MASTER` or `VALUES`                                      |
+| `paramset`          | Yes      |         | Dictionary of parameters and values                       |
+| `wait_for_callback` | No       |         | Seconds to wait for CCU confirmation                      |
+| `rx_mode`           | No       |         | `BURST` or `WAKEUP` (BidCos-RF only)                      |
+| `retry`             | No       | true    | Retry on transient failures (timeout, device unreachable) |
 
 **Example - Set week program:**
 
@@ -88,6 +124,14 @@ Call `getParamset` for direct connections on the XML-RPC interface.
 ### homematicip_local.put_link_paramset
 
 Call `putParamset` for direct connections on the XML-RPC interface.
+
+| Field                      | Required | Default | Description                                               |
+| -------------------------- | -------- | ------- | --------------------------------------------------------- |
+| `sender_channel_address`   | Yes      |         | Channel address of the sender                             |
+| `receiver_channel_address` | Yes      |         | Channel address of the receiver                           |
+| `paramset`                 | Yes      |         | Dictionary of parameters and values                       |
+| `rx_mode`                  | No       |         | `BURST` or `WAKEUP` (BidCos-RF only)                      |
+| `retry`                    | No       | true    | Retry on transient failures (timeout, device unreachable) |
 
 ---
 

@@ -23,6 +23,7 @@ from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 from aiohomematic.client.circuit_breaker import CircuitBreaker
+from aiohomematic.client.command_retry import CommandRetryHandler
 from aiohomematic.client.command_throttle import CommandPriority, CommandThrottle
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
@@ -39,6 +40,7 @@ from aiohomematic.const import (
     CallSource,
     ClientState,
     CommandRxMode,
+    DataPointKey,
     DescriptionMarker,
     DeviceDescription,
     FailureReason,
@@ -90,6 +92,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     __slots__ = (
         "_backend",
         "_central",
+        "_command_retry_handler",
         "_command_throttle",
         "_connection_error_count",
         "_device_description_coalescer",
@@ -153,6 +156,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             event_bus=central.event_bus,
             interface_id=backend.interface_id,
         )
+        self._command_retry_handler: Final = CommandRetryHandler(
+            interface_id=backend.interface_id,
+            timeout_config=central.config.timeout_config,
+            event_bus=central.event_bus,
+        )
         self._command_throttle: Final = CommandThrottle(
             interface_id=backend.interface_id,
             interval=central.config.timeout_config.command_throttle_interval,
@@ -178,6 +186,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     capabilities: Final = DelegatedProperty[BackendCapabilities](path="_backend.capabilities")
     central: Final = DelegatedProperty[ClientDependenciesProtocol](path="_central")
     circuit_breaker: Final = DelegatedProperty[CircuitBreaker | None](path="_backend.circuit_breaker")
+    command_retry_handler: Final = DelegatedProperty[CommandRetryHandler](path="_command_retry_handler")
     command_throttle: Final = DelegatedProperty[CommandThrottle](path="_command_throttle")
     interface: Final = DelegatedProperty[Interface](path="_backend.interface")
     interface_id: Final = DelegatedProperty[str](path="_backend.interface_id")
@@ -860,11 +869,17 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
         purge_addresses: frozenset[str] = frozenset(),
+        retry: bool = True,
     ) -> set[DP_KEY_VALUE]:
         """Set paramsets manually."""
         # Default to HIGH priority if not specified
         if priority is None:
             priority = CommandPriority.HIGH
+
+        # Cancel pending retries if purge_addresses (CRITICAL command like stop())
+        if purge_addresses:
+            for addr in purge_addresses:
+                self._command_retry_handler.cancel_retries_for_device(device_address=addr)
 
         # Determine if this is a LINK call (needed for early return logic)
         is_link_call = is_channel_address(address=paramset_key_or_link_address)
@@ -898,23 +913,41 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 priority=priority, device_address=channel_address, purge_addresses=purge_addresses
             )
 
-            if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
-                if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
+            # Build representative DataPointKey for retry tracking (use first parameter)
+            first_param = next(iter(values)) if values else ""
+            dpk = DataPointKey(
+                interface_id=self._backend.interface_id,
+                channel_address=channel_address,
+                paramset_key=ParamsetKey(paramset_key_or_link_address) if not is_link_call else ParamsetKey.LINK,
+                parameter=first_param,
+            )
+
+            # Define the backend operation as a retryable callable
+            async def _do_put_paramset() -> None:
+                if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
+                    if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
+                        await self._backend.put_paramset(
+                            channel_address=channel_address,
+                            paramset_key=paramset_key_or_link_address,
+                            values=checked_values,
+                            rx_mode=rx_mode,
+                        )
+                    else:
+                        raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
+                else:
                     await self._backend.put_paramset(
                         channel_address=channel_address,
                         paramset_key=paramset_key_or_link_address,
                         values=checked_values,
                         rx_mode=rx_mode,
                     )
-                else:
-                    raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
-            else:
-                await self._backend.put_paramset(
-                    channel_address=channel_address,
-                    paramset_key=paramset_key_or_link_address,
-                    values=checked_values,
-                    rx_mode=rx_mode,
-                )
+
+            # Execute with retry (or directly if disabled)
+            await self._command_retry_handler.execute_with_retry(
+                operation=_do_put_paramset,
+                dpk=dpk,
+                retry=retry,
+            )
 
             # If a call is related to a link then no further action is needed
             if is_link_call:
@@ -1101,6 +1134,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
         purge_addresses: frozenset[str] = frozenset(),
+        retry: bool = True,
     ) -> set[DP_KEY_VALUE]:
         """Set single value on paramset VALUES."""
         # Default to HIGH priority if not specified
@@ -1117,7 +1151,13 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 check_against_pd=check_against_pd,
                 priority=priority,
                 purge_addresses=purge_addresses,
+                retry=retry,
             )
+
+        # Cancel pending retries if purge_addresses (CRITICAL command like stop())
+        if purge_addresses:
+            for addr in purge_addresses:
+                self._command_retry_handler.cancel_retries_for_device(device_address=addr)
 
         dpk_values: set[DP_KEY_VALUE] = set()
         try:
@@ -1138,15 +1178,37 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                 priority=priority, device_address=channel_address, purge_addresses=purge_addresses
             )
 
-            if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
-                if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
-                    await self._backend.set_value(
-                        channel_address=channel_address, parameter=parameter, value=checked_value, rx_mode=rx_mode
-                    )
+            # Build the DataPointKey for retry tracking
+            dpk = DataPointKey(
+                interface_id=self._backend.interface_id,
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=parameter,
+            )
+
+            # Define the backend operation as a retryable callable
+            async def _do_set_value() -> None:
+                if rx_mode and (device := self._central.device_coordinator.get_device(address=channel_address)):
+                    if supports_rx_mode(command_rx_mode=rx_mode, rx_modes=device.rx_modes):
+                        await self._backend.set_value(
+                            channel_address=channel_address,
+                            parameter=parameter,
+                            value=checked_value,
+                            rx_mode=rx_mode,
+                        )
+                    else:
+                        raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
                 else:
-                    raise ClientException(i18n.tr(key="exception.client.rx_mode.unsupported", rx_mode=rx_mode))
-            else:
-                await self._backend.set_value(channel_address=channel_address, parameter=parameter, value=checked_value)
+                    await self._backend.set_value(
+                        channel_address=channel_address, parameter=parameter, value=checked_value
+                    )
+
+            # Execute with retry (or directly if disabled)
+            await self._command_retry_handler.execute_with_retry(
+                operation=_do_set_value,
+                dpk=dpk,
+                retry=retry,
+            )
 
             # Store the sent value and write unconfirmed value for UI feedback
             dpk_values = self._last_value_send_tracker.add_set_value(
@@ -1183,6 +1245,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
 
     async def stop(self) -> None:
         """Stop depending services."""
+        self._command_retry_handler.cancel_retries_for_interface()
         self._unsubscribe_state_change()
         self._unsubscribe_system_status()
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")

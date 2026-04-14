@@ -59,6 +59,7 @@ class TestIpIrrigationValve:
             value=True,
             wait_for_callback=None,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert valve.value is True
         await valve.close()
@@ -69,6 +70,7 @@ class TestIpIrrigationValve:
             value=False,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert valve.value is False
         await valve.open(on_time=60)
@@ -78,6 +80,7 @@ class TestIpIrrigationValve:
             values={"ON_TIME": 60.0, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         assert valve.value is True
 
@@ -90,6 +93,7 @@ class TestIpIrrigationValve:
             values={"ON_TIME": 35.4, "STATE": True},
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         await valve.open()

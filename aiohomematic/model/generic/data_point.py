@@ -34,6 +34,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
 
     __slots__ = ("_cached_usage",)
 
+    _retryable: bool = True
     _validate_state_change: bool = True
     is_hmtype: bool = True
 
@@ -142,6 +143,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
         collector: hme.CallParameterCollector | None = None,
         collector_order: int = 50,
         do_validate: bool = True,
+        retry: bool | None = None,
     ) -> set[DP_KEY_VALUE]:
         """Send value to ccu, or use collector if set."""
         if not self.is_writable:
@@ -160,11 +162,16 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
 
         converted_value = self._convert_value(value=prepared_value)
 
+        # Resolve retry: explicit caller choice > class default
+        effective_retry = self._retryable if retry is None else retry
+
         # COLLECTOR PATH: Defer optimistic update to collector.send_data()
         # This prevents optimistic values from interfering with is_state_change()
         # checks in parent turn_on() methods that read from sibling data points.
         if collector:
-            collector.add_data_point(data_point=self, value=converted_value, collector_order=collector_order)
+            collector.add_data_point(
+                data_point=self, value=converted_value, collector_order=collector_order, retry=retry
+            )
             return set()
 
         # DIRECT SEND PATH: Check state change BEFORE applying optimistic update.
@@ -203,6 +210,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
                     value=converted_value,
                     priority=priority,
                     purge_addresses=purge_addresses,
+                    retry=effective_retry,
                 )
             return await self._client.set_value(
                 channel_address=self._channel.address,
@@ -210,9 +218,10 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
                 parameter=self._parameter,
                 value=converted_value,
                 priority=priority,
+                retry=effective_retry,
             )
         except Exception as err:
-            # Immediate rollback on send error
+            # Immediate rollback on send error (after ALL retries exhausted)
             self._rollback_optimistic_value(reason="send_error", error=str(err))
             raise
 

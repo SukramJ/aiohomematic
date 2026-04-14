@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.4.10"
+VERSION: Final = "2026.4.11"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -139,6 +139,44 @@ class TimeoutConfig(BaseModel):
     Determines how long to wait for CCU confirmation before rolling back the optimistic value
     to the previous confirmed state. If the CCU does not confirm the value within this timeout,
     the local value is automatically reverted and a rollback event is published.
+    """
+
+    command_retry_max_attempts: int = 3
+    """Maximum retry attempts for transient command failures (default: 3, 0 = disabled).
+
+    Controls how many times a failed set_value/put_paramset call is retried
+    before giving up. Set to 0 to disable command retry entirely.
+    """
+
+    command_retry_base_delay: float = 0.1 if _TEST_SPEEDUP else 2.0
+    """Base delay between command retries in seconds (default: 2.0s).
+
+    Used as the initial delay for exponential backoff calculation.
+    """
+
+    command_retry_max_delay: float = 0.5 if _TEST_SPEEDUP else 30.0
+    """Maximum delay between command retries after backoff (default: 30.0s).
+
+    Caps the exponential backoff to prevent excessively long waits.
+    """
+
+    command_retry_backoff_factor: float = 2.0
+    """Multiplier for exponential backoff on command retries (default: 2.0)."""
+
+    command_retry_duty_cycle_delay: float = 0.5 if _TEST_SPEEDUP else 40.0
+    """Special delay for DutyCycle exhaustion retries (default: 40.0s).
+
+    DutyCycle regenerates ~1% per 36s on 868MHz, so 40s allows one slot to free up.
+    """
+
+    command_retry_transmission_pending_delay: float = 0.1 if _TEST_SPEEDUP else 5.0
+    """Delay when CCU reports transmission already pending (default: 5.0s)."""
+
+    command_retry_recovery_wait: float = 1 if _TEST_SPEEDUP else 120.0
+    """Maximum time to wait for connection recovery before giving up retry (default: 120.0s).
+
+    When a NoConnectionException occurs during retry, the handler waits for
+    RecoveryCompletedEvent instead of blind retry. This timeout caps the wait.
     """
 
 

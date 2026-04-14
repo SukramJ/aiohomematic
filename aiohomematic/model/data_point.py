@@ -1617,8 +1617,8 @@ class CallParameterCollector:
         # {"VALUES": {50: {"00021BE9957782:3": {"STATE3": True}}}}
         self._paramsets: Final[dict[ParamsetKey, dict[int, dict[str, dict[str, Any]]]]] = {}
         self._priority: CommandPriority | None = priority
-        # Track data points for deferred optimistic updates
-        self._collected_data_points: Final[list[tuple[BaseParameterDataPointAny, Any]]] = []
+        # Track data points for deferred optimistic updates and retry overrides
+        self._collected_data_points: Final[list[tuple[BaseParameterDataPointAny, Any, bool | None]]] = []
 
     def add_data_point(
         self,
@@ -1626,9 +1626,10 @@ class CallParameterCollector:
         data_point: BaseParameterDataPointAny,
         value: Any,
         collector_order: int,
+        retry: bool | None = None,
     ) -> None:
         """Add a generic data_point."""
-        self._collected_data_points.append((data_point, value))
+        self._collected_data_points.append((data_point, value, retry))
         if data_point.paramset_key not in self._paramsets:
             self._paramsets[data_point.paramset_key] = {}
         if collector_order not in self._paramsets[data_point.paramset_key]:
@@ -1646,8 +1647,17 @@ class CallParameterCollector:
     async def send_data(self, *, wait_for_callback: int | None) -> set[DP_KEY_VALUE]:
         """Send data to the backend."""
         # Apply deferred optimistic updates before sending
-        for dp, value in self._collected_data_points:
+        for dp, value, _retry in self._collected_data_points:
             dp.apply_optimistic_value(value=value)
+
+        # Determine retry: use explicit override if any was provided, otherwise derive from _retryable.
+        # An explicit retry=True from any data point enables retry for the entire batch.
+        if explicit_retries := [r for _, _, r in self._collected_data_points if r is not None]:
+            retry = any(explicit_retries)
+        elif self._collected_data_points:
+            retry = all(getattr(dp, "_retryable", True) for dp, _, _ in self._collected_data_points)
+        else:
+            retry = True
 
         # Read purge_addresses from context if available
         ctx = get_request_context()
@@ -1668,6 +1678,7 @@ class CallParameterCollector:
                             wait_for_callback=wait_for_callback,
                             priority=priority,
                             purge_addresses=purge_addresses,
+                            retry=retry,
                         )
                     )
         return dpk_values
@@ -1681,6 +1692,7 @@ class CallParameterCollector:
         wait_for_callback: int | None,
         priority: CommandPriority,
         purge_addresses: frozenset[str],
+        retry: bool = True,
     ) -> set[DP_KEY_VALUE]:
         """Send a single paramset via set_value or put_paramset."""
         if len(paramset) == 1:
@@ -1694,6 +1706,7 @@ class CallParameterCollector:
                     wait_for_callback=wait_for_callback,
                     priority=priority,
                     purge_addresses=purge_addresses,
+                    retry=retry,
                 )
             return await self._client.set_value(
                 channel_address=channel_address,
@@ -1702,6 +1715,7 @@ class CallParameterCollector:
                 value=value,
                 wait_for_callback=wait_for_callback,
                 priority=priority,
+                retry=retry,
             )
         if purge_addresses:
             return await self._client.put_paramset(
@@ -1711,6 +1725,7 @@ class CallParameterCollector:
                 wait_for_callback=wait_for_callback,
                 priority=priority,
                 purge_addresses=purge_addresses,
+                retry=retry,
             )
         return await self._client.put_paramset(
             channel_address=channel_address,
@@ -1718,6 +1733,7 @@ class CallParameterCollector:
             values=paramset,
             wait_for_callback=wait_for_callback,
             priority=priority,
+            retry=retry,
         )
 
 

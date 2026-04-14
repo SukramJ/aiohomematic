@@ -1,3 +1,52 @@
+# Version 2026.4.11 (2026-04-14)
+
+## What's Changed
+
+### Added
+
+- **Command retry mechanism for transient failures**: Introduced
+  `CommandRetryHandler` that automatically retries `set_value` and `put_paramset`
+  operations on transient errors (network timeouts, device unreachability,
+  DutyCycle exhaustion, transmission pending) with exponential backoff.
+
+  - **Retryable errors**: `TimeoutError`, `NoConnectionException`,
+    `InternalBackendException`, XML-RPC fault codes -1 (UNREACH), -8
+    (INSUFFICIENT_DUTYCYCLE), -9 (DEVICE_OUT_OF_RANGE), -10
+    (TRANSMISSION_PENDING).
+  - **Non-retryable errors**: `AuthFailure`, `ValidationException`,
+    `UnsupportedException`, `CircuitBreakerOpenException`,
+    `CommandSupersededError`.
+  - **Special delays**: DutyCycle exhaustion uses 40s delay (regeneration
+    ~1%/36s), transmission pending uses 5s delay.
+  - **Connection recovery awareness**: On `NoConnectionException`, waits for
+    `RecoveryCompletedEvent` instead of blind retry.
+  - **Per-DataPoint supersede**: New command on the same data point cancels
+    any pending retry for that data point.
+  - **CRITICAL purge support**: CRITICAL-priority commands (e.g., cover `stop()`)
+    cancel all pending retries for the device via `purge_addresses`.
+  - **Idempotency-safe**: `DpAction` and `DpButton` have `_retryable = False`
+    by default (fire-and-forget, non-idempotent). Climate RF thermostat mode
+    DpAction calls override with explicit `retry=True` (target-state semantics).
+  - **Configurable via `TimeoutConfig`**: `command_retry_max_attempts` (default 3,
+    0 = disabled), `command_retry_base_delay`, `command_retry_max_delay`,
+    `command_retry_backoff_factor`, `command_retry_duty_cycle_delay`,
+    `command_retry_transmission_pending_delay`, `command_retry_recovery_wait`.
+  - **Per-call control**: `retry` parameter on `send_value()`, `set_value()`,
+    `put_paramset()` allows per-call enable/disable.
+  - **Metrics**: `CommandRetryMetrics` tracks total retries, successful retries,
+    exhausted retries, recovery waits, timeouts, and cancellations.
+
+### Changed
+
+- **`GenericDataPoint.send_value()`**: New `retry: bool | None = None` parameter.
+  `None` uses the class default (`_retryable`), explicit `True`/`False` overrides.
+- **`InterfaceClient.set_value()` / `put_paramset()`**: New `retry: bool = True`
+  parameter, passed through to `CommandRetryHandler.execute_with_retry()`.
+- **`CallParameterCollector`**: Derives retry from collected data points'
+  `_retryable` attributes, with explicit override support via `send_value(retry=...)`.
+- **Protocol updates**: `ValueOperationsProtocol.set_value()` and
+  `ParamsetOperationsProtocol.put_paramset()` include `retry: bool = True`.
+
 # Version 2026.4.10 (2026-04-12)
 
 ## What's Changed

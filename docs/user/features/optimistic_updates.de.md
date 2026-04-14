@@ -125,6 +125,62 @@ Rollbacks, die plötzlich nach einer Konfigurationsänderung auftreten, deuten o
 
 ---
 
+## Automatischer Befehls-Retry
+
+Wenn ein Befehl aufgrund eines **transienten Fehlers** fehlschlägt, wiederholt das System ihn automatisch, bevor ein Rollback ausgelöst wird. Dies reduziert falsche Rollbacks durch temporäre Probleme erheblich.
+
+### Was wird wiederholt?
+
+| Fehlertyp                        | Retry?         | Beispiel                                  |
+| -------------------------------- | -------------- | ----------------------------------------- |
+| Netzwerk-Timeout                 | Ja             | CCU vorübergehend überlastet              |
+| Gerät nicht erreichbar (UNREACH) | Ja             | Batteriegerät im Schlafmodus, Funkstörung |
+| DutyCycle erschöpft              | Ja (40s Delay) | Zu viele Befehle auf 868 MHz gesendet     |
+| Übertragung läuft                | Ja (5s Delay)  | CCU sendet bereits an das Gerät           |
+| Gerät außer Reichweite           | Ja             | Temporäres Funkproblem                    |
+| Authentifizierungsfehler         | Nein           | Falsche Zugangsdaten                      |
+| Ungültiger Parameter/Wert        | Nein           | Programmierfehler                         |
+| Unbekanntes Gerät                | Nein           | Gerät entfernt                            |
+
+### Retry-Verhalten
+
+- **Bis zu 3 Versuche** (konfigurierbar) mit exponentiellem Backoff (2s → 4s → 8s)
+- **Optimistischer Wert bleibt aktiv** während der Retries — die UI flackert nicht
+- **Rollback nur nach Erschöpfung aller Versuche** — ein einzelner sauberer Rollback, nicht drei
+- **Neuer Befehl bricht laufenden Retry ab** — bei erneuter Wertänderung während eines Retries wird der alte Retry abgebrochen
+
+### Was wird NICHT wiederholt?
+
+- **Tastendruck** und **Aktionen** (Fire-and-Forget-Befehle) — diese sind von Natur aus nicht idempotent
+- **Cover-Stopp-Befehle** — sicherheitskritisch, muss sofort ausgeführt werden oder gar nicht
+
+### Retry konfigurieren
+
+Die maximale Anzahl der Retry-Versuche kann in der Integration konfiguriert werden:
+
+1. Gehe zu **Einstellungen → Geräte & Dienste → Homematic(IP) Local**
+2. Klicke auf **Konfigurieren**
+3. Wähle **Erweiterte Einstellungen**
+4. Passe **Command retry attempts** an (Standard: 3, Bereich: 0–10)
+5. Setze auf **0**, um den Retry vollständig zu deaktivieren
+
+### Retry pro Aufruf deaktivieren
+
+Um den Retry für einen bestimmten Automationsaufruf zu deaktivieren, setze `retry: false` in der `set_device_value`- oder `put_paramset`-Aktion:
+
+```yaml
+action: homematicip_local.set_device_value
+data:
+  device_id: abcdefg...
+  channel: 1
+  parameter: STATE
+  value: "true"
+  value_type: boolean
+  retry: false
+```
+
+---
+
 ## Konfiguration
 
 Das Rollback-Timeout wird über `TimeoutConfig.optimistic_update_timeout` konfiguriert (Standard: **30 Sekunden**). Dies ist nicht über die Home Assistant-Oberfläche konfigurierbar — es handelt sich um eine Einstellung auf Bibliotheksebene, die für alle Geräte gilt.

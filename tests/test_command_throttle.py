@@ -1024,3 +1024,79 @@ class TestQueuePurgeIntegration:
 
         finally:
             throttle.stop()
+
+
+class TestCommandThrottleStop:
+    """Tests for CommandThrottle.stop() behavior."""
+
+    async def test_acquire_after_stop_raises(self) -> None:
+        """Test that acquire() after stop() raises CancelledError."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        throttle.stop()
+
+        with pytest.raises(asyncio.CancelledError):
+            await throttle.acquire(priority=CommandPriority.HIGH, device_address="TEST:1")
+
+    async def test_stop_cancels_worker_task(self) -> None:
+        """Test that stop() cancels the background worker task."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        assert throttle._worker_task is not None
+        assert not throttle._worker_task.done()
+
+        throttle.stop()
+        await asyncio.sleep(0.01)
+
+        assert throttle._worker_task.done()
+
+    async def test_stop_is_idempotent(self) -> None:
+        """Test that calling stop() twice does not raise."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        throttle.stop()
+        throttle.stop()  # Second call should not raise
+
+    async def test_stopped_flag_prevents_enqueue(self) -> None:
+        """Test that the _stopped flag is set after stop()."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        assert throttle._stopped is False
+        throttle.stop()
+        assert throttle._stopped is True
+
+
+class TestCommandThrottlePurge:
+    """Tests for CRITICAL command purge behavior."""
+
+    async def test_purge_increments_purged_count(self) -> None:
+        """Test that purge correctly increments purged_count."""
+        throttle = CommandThrottle(interface_id="TEST", interval=5.0)
+
+        try:
+            assert throttle.purged_count == 0
+
+            # Fill pipeline: grant first, enqueue several for same address
+            background_futures: set[asyncio.Future[None]] = set()
+            await throttle.acquire(priority=CommandPriority.HIGH, device_address="TEST:0")
+            for addr in ("TARGET:1", "TARGET:1", "OTHER:2"):
+                f = asyncio.ensure_future(throttle.acquire(priority=CommandPriority.HIGH, device_address=addr))
+                background_futures.add(f)
+                f.add_done_callback(background_futures.discard)
+            await asyncio.sleep(0.05)
+
+            # Purge TARGET:1
+            await throttle.acquire(
+                priority=CommandPriority.CRITICAL,
+                device_address="TARGET:1",
+                purge_addresses=frozenset({"TARGET:1"}),
+            )
+
+            # At least 1 purged (worker may have already dequeued one)
+            assert throttle.purged_count >= 1
+        finally:
+            throttle.stop()
+
+    async def test_queue_size_starts_at_zero(self) -> None:
+        """Test that queue_size is 0 initially."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        try:
+            assert throttle.queue_size == 0
+        finally:
+            throttle.stop()

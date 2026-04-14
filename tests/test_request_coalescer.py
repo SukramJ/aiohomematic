@@ -319,3 +319,58 @@ class TestRequestCoalescer:
         )
 
         await asyncio.gather(task1, task2)
+
+
+class TestMakeCoalesceKey:
+    """Tests for the make_coalesce_key helper function."""
+
+    def test_dict_arg_sorted(self) -> None:
+        """Test that dict arguments are sorted for consistent keys."""
+        from aiohomematic.client import make_coalesce_key
+
+        key1 = make_coalesce_key(method="putParamset", args=({"B": 2, "A": 1},))
+        key2 = make_coalesce_key(method="putParamset", args=({"A": 1, "B": 2},))
+        assert key1 == key2
+
+    def test_different_methods_produce_different_keys(self) -> None:
+        """Test that different method names produce different keys."""
+        from aiohomematic.client import make_coalesce_key
+
+        key1 = make_coalesce_key(method="getParamset", args=("VCU001:1",))
+        key2 = make_coalesce_key(method="getParamsetDescription", args=("VCU001:1",))
+        assert key1 != key2
+
+    def test_empty_args(self) -> None:
+        """Test key generation with no arguments."""
+        from aiohomematic.client import make_coalesce_key
+
+        key = make_coalesce_key(method="listDevices", args=())
+        assert key == "listDevices:"
+
+    def test_integer_arg(self) -> None:
+        """Test key generation with integer arguments."""
+        from aiohomematic.client import make_coalesce_key
+
+        key = make_coalesce_key(method="test", args=(42,))
+        assert key == "test:42"
+
+    def test_mixed_arg_types(self) -> None:
+        """Test key generation with mixed argument types."""
+        from aiohomematic.client import make_coalesce_key
+
+        key = make_coalesce_key(method="setValue", args=("VCU001:1", "LEVEL", 0.5))
+        assert key == "setValue:VCU001:1:LEVEL:0.5"
+
+    def test_simple_string_args(self) -> None:
+        """Test key generation with simple string arguments."""
+        from aiohomematic.client import make_coalesce_key
+
+        key = make_coalesce_key(method="getParamset", args=("VCU001:1", "VALUES"))
+        assert key == "getParamset:VCU001:1:VALUES"
+
+    def test_single_arg(self) -> None:
+        """Test key generation with a single argument."""
+        from aiohomematic.client import make_coalesce_key
+
+        key = make_coalesce_key(method="getVersion", args=("1.0",))
+        assert key == "getVersion:1.0"

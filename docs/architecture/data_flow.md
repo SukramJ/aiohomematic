@@ -104,7 +104,7 @@ Trigger points
 
 ### Write
 
-- DataPoint.set_value delegates to Client.set_value or Client.put_paramset. Values flow through a three-tier resolution model: Tier 1 (optimistic, set before RPC call for instant UI feedback), Tier 2 (unconfirmed, set after RPC for polling data points), and Tier 3 (confirmed, set on CCU event or polling read). See [value_resolution.md](value_resolution.md) for the full mechanism.
+- DataPoint.send_value delegates to Client.set_value or Client.put_paramset. Values flow through a three-tier resolution model: Tier 1 (optimistic, set before RPC call for instant UI feedback), Tier 2 (unconfirmed, set after RPC for polling data points), and Tier 3 (confirmed, set on CCU event or polling read). The RPC call is wrapped by `CommandRetryHandler.execute_with_retry()`, which retries transient failures (timeouts, device unreachability, DutyCycle exhaustion) with exponential backoff. Non-idempotent data points (`DpAction`, `DpButton`) have `_retryable=False` and are not retried by default. See [value_resolution.md](value_resolution.md) for the full value resolution mechanism.
 
 ---
 

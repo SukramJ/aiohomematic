@@ -110,6 +110,7 @@ class TestDpActionBoolean:
             parameter="DISPLAY_DATA_COMMIT",
             value=True,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
     @pytest.mark.asyncio

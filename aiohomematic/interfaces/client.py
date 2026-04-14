@@ -310,6 +310,7 @@ class ParamsetOperationsProtocol(Protocol):
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
         purge_addresses: frozenset[str] = frozenset(),
+        retry: bool = True,
     ) -> set[Any]:
         """Set paramsets manually."""
 
@@ -357,6 +358,7 @@ class ValueOperationsProtocol(Protocol):
         check_against_pd: bool = False,
         priority: CommandPriority | None = None,
         purge_addresses: frozenset[str] = frozenset(),
+        retry: bool = True,
     ) -> set[Any]:
         """Set single value on paramset VALUES."""
 

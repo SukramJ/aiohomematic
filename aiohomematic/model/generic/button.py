@@ -21,6 +21,7 @@ class DpButton(GenericDataPoint[None, bool]):
     __slots__ = ()
 
     _category = DataPointCategory.BUTTON
+    _retryable = False
     _validate_state_change = False
 
     @inspector

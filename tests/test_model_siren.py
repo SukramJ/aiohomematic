@@ -83,6 +83,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
         await siren.turn_on(
@@ -102,6 +103,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
         from aiohomematic.exceptions import ValidationException
@@ -133,6 +135,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
         await siren.turn_off()
@@ -181,6 +184,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
     @pytest.mark.asyncio
@@ -221,6 +225,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
         # Only override optical_alarm - acoustic_alarm should use pre-filled value
@@ -237,6 +242,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
     @pytest.mark.asyncio
@@ -276,6 +282,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
     @pytest.mark.asyncio
@@ -312,6 +319,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
         # Only optical_alarm provided
@@ -328,6 +336,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
     @pytest.mark.asyncio
@@ -363,6 +372,7 @@ class TestIpSiren:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU8249617:3"}),
+            retry=True,
         )
 
 
@@ -431,6 +441,7 @@ class TestIpSirenSmoke:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU2822385:1"}),
+            retry=True,
         )
 
         await siren.turn_off()
@@ -442,6 +453,7 @@ class TestIpSirenSmoke:
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU2822385:1"}),
+            retry=True,
         )
 
         call_count = len(mock_client.method_calls)

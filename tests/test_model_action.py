@@ -56,6 +56,7 @@ class TestActionSelectDataPoint:
             parameter="LOCK_TARGET_LEVEL",
             value="OPEN",
             priority=CommandPriority.HIGH,
+            retry=True,
         )
         await action_select.send_value(value=1)
         assert mock_client.method_calls[-1] == call.set_value(
@@ -64,6 +65,7 @@ class TestActionSelectDataPoint:
             parameter="LOCK_TARGET_LEVEL",
             value=1,
             priority=CommandPriority.HIGH,
+            retry=True,
         )
 
         call_count = len(mock_client.method_calls)

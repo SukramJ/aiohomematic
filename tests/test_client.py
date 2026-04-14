@@ -2,6 +2,7 @@
 # Copyright (c) 2021-2026
 """Unit tests for aiohomematic.client (__init__.py)."""
 
+import asyncio
 from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
@@ -79,6 +80,127 @@ class _EventDevice:
         return self.dp
 
 
+class _MatchingEventDP:
+    """Fake DataPoint that supports events and can fire a matching callback."""
+
+    def __init__(self, *, match_value: Any) -> None:
+        self.has_events = True
+        self.value = match_value
+        self.unique_id = "matching_dp_test"
+        self.resolved = False
+
+
+class _MatchingEventBus:
+    """EventBus that stores the handler and allows triggering it."""
+
+    def __init__(self) -> None:
+        self.unsub_called = False
+        self._handler: Any = None
+
+    def fire(self) -> None:
+        """Fire the stored handler."""
+        if self._handler:
+            self._handler(event=None)
+
+    def subscribe(self, *, event_type: type, event_key: Any, handler: Any) -> Callable[[], None]:
+        """Store handler and return unsub."""
+        self._handler = handler
+
+        def _unsub() -> None:
+            self.unsub_called = True
+
+        return _unsub
+
+
+class _MatchingEventBusProvider:
+    """EventBusProvider for _MatchingEventDevice."""
+
+    def __init__(self) -> None:
+        self.event_bus = _MatchingEventBus()
+
+
+class _MatchingEventDevice:
+    """Device that fires a matching event for the happy-path tracker test."""
+
+    def __init__(self, *, match_value: Any) -> None:
+        self.dp = _MatchingEventDP(match_value=match_value)
+        self.event_bus_provider = _MatchingEventBusProvider()
+
+    def fire_event(self) -> None:
+        """Fire the stored event handler."""
+        self.event_bus_provider.event_bus.fire()
+
+    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey) -> Any:
+        """Return the matching data point."""
+        return self.dp
+
+
+class _MultiDP:
+    """Fake DataPoint for multi-DP parallel test."""
+
+    def __init__(self, *, value: Any, unique_id: str) -> None:
+        self.has_events = True
+        self.value = value
+        self.unique_id = unique_id
+        self.resolved = False
+
+
+class _MultiDpEventBus:
+    """EventBus supporting multiple handlers by event_key."""
+
+    def __init__(self) -> None:
+        self._handlers: dict[str, Any] = {}
+        self.unsub_called = False
+
+    def fire(self, *, key: str) -> None:
+        """Fire handler by key."""
+        if handler := self._handlers.get(key):
+            handler(event=None)
+
+    def subscribe(self, *, event_type: type, event_key: Any, handler: Any) -> Callable[[], None]:
+        """Store handler by key."""
+        self._handlers[event_key] = handler
+
+        def _unsub() -> None:
+            self.unsub_called = True
+
+        return _unsub
+
+
+class _MultiDpEventBusProvider:
+    """EventBusProvider for _MultiDpDevice."""
+
+    def __init__(self) -> None:
+        self.event_bus = _MultiDpEventBus()
+
+
+class _MultiDpDevice:
+    """Device with multiple data points for parallel test."""
+
+    def __init__(self) -> None:
+        self._dps: dict[str, _MultiDP] = {
+            "LEVEL": _MultiDP(value=0.5, unique_id="dp_level"),
+            "STATE": _MultiDP(value=True, unique_id="dp_state"),
+        }
+        self.event_bus_provider = _MultiDpEventBusProvider()
+
+    def fire_event(self, *, parameter: str) -> None:
+        """Fire event for a specific parameter."""
+        dp = self._dps[parameter]
+        dp.resolved = True
+        self.event_bus_provider.event_bus.fire(key=dp.unique_id)
+
+    def get_dp(self, parameter: str) -> _MultiDP:
+        """Get a DP for assertion."""
+        return self._dps[parameter]
+
+    def get_generic_data_point(self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey) -> Any:
+        """Return DP by parameter name."""
+        if dp := self._dps.get(parameter):
+            return dp
+        return None
+
+
 class _FakeCentral:
     """Minimal CentralUnit-like object for testing."""
 
@@ -140,6 +262,64 @@ class _FakeCentral:
 
 class TestClientEventTracking:
     """Test client event tracking helpers and timeouts."""
+
+    @pytest.mark.asyncio
+    async def test_event_tracker_float_fuzzy_match(self) -> None:
+        """Tracker should match floats with 2-decimal fuzzy comparison."""
+        dpk = DataPointKey(
+            interface_id="i", channel_address="addr:1", paramset_key=ParamsetKey.VALUES, parameter="LEVEL"
+        )
+        # Value sent: 0.505, device reports: 0.504 — rounds to same 2-decimal value
+        dev = _MatchingEventDevice(match_value=0.504)
+
+        async def _fire_event() -> None:
+            await asyncio.sleep(0.01)
+            dev.fire_event()
+
+        asyncio.create_task(_fire_event())  # noqa: RUF006
+        await _track_single_data_point_state_change_or_timeout(device=dev, dpk_value=(dpk, 0.505), wait_for_callback=5)
+        assert dev.event_bus_provider.event_bus.unsub_called is True
+
+    @pytest.mark.asyncio
+    async def test_event_tracker_happy_path_value_match(self) -> None:
+        """Tracker should resolve immediately when event fires with matching value."""
+        dpk = DataPointKey(
+            interface_id="i", channel_address="addr:1", paramset_key=ParamsetKey.VALUES, parameter="LEVEL"
+        )
+        dev = _MatchingEventDevice(match_value=0.5)
+
+        # Fire matching event shortly after subscription
+        async def _fire_event() -> None:
+            await asyncio.sleep(0.01)
+            dev.fire_event()
+
+        asyncio.create_task(_fire_event())  # noqa: RUF006
+        await _track_single_data_point_state_change_or_timeout(device=dev, dpk_value=(dpk, 0.5), wait_for_callback=5)
+        # Should have completed well before 5s timeout
+        assert dev.event_bus_provider.event_bus.unsub_called is True
+
+    @pytest.mark.asyncio
+    async def test_event_tracker_parallel_data_points(self) -> None:
+        """wait_for_state_change_or_timeout should wait for multiple DPs in parallel."""
+        dpk1 = DataPointKey(
+            interface_id="i", channel_address="addr:1", paramset_key=ParamsetKey.VALUES, parameter="LEVEL"
+        )
+        dpk2 = DataPointKey(
+            interface_id="i", channel_address="addr:1", paramset_key=ParamsetKey.VALUES, parameter="STATE"
+        )
+        dev = _MultiDpDevice()
+
+        # Fire both events shortly
+        async def _fire_events() -> None:
+            await asyncio.sleep(0.01)
+            dev.fire_event(parameter="LEVEL")
+            dev.fire_event(parameter="STATE")
+
+        asyncio.create_task(_fire_events())  # noqa: RUF006
+        await wait_for_state_change_or_timeout(device=dev, dpk_values={(dpk1, 0.5), (dpk2, True)}, wait_for_callback=5)
+        # Both should have resolved
+        assert dev.get_dp("LEVEL").resolved
+        assert dev.get_dp("STATE").resolved
 
     @pytest.mark.asyncio
     async def test_event_tracker_timeout_and_unsubscribe(self) -> None:

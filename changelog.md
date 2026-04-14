@@ -19,11 +19,17 @@
   - **Special delays**: DutyCycle exhaustion uses 40s delay (regeneration
     ~1%/36s), transmission pending uses 5s delay.
   - **Connection recovery awareness**: On `NoConnectionException`, waits for
-    `RecoveryCompletedEvent` instead of blind retry.
+    `RecoveryCompletedEvent` instead of blind retry. Recovery wait is
+    interruptible by cancellation (via `asyncio.wait` with `FIRST_COMPLETED`).
   - **Per-DataPoint supersede**: New command on the same data point cancels
-    any pending retry for that data point.
+    any pending retry for that data point. Uses cooperative `asyncio.Event`-based
+    cancellation — the retry loop checks a cancel event before each attempt and
+    during each delay/recovery wait.
+  - **Interruptible delays**: `_interruptible_sleep()` wakes immediately on
+    cancellation instead of sleeping the full delay.
   - **CRITICAL purge support**: CRITICAL-priority commands (e.g., cover `stop()`)
-    cancel all pending retries for the device via `purge_addresses`.
+    cancel all pending retries for the device via `purge_addresses`. Device
+    address matching uses `device_address:` prefix to prevent false matches.
   - **Idempotency-safe**: `DpAction` and `DpButton` have `_retryable = False`
     by default (fire-and-forget, non-idempotent). Climate RF thermostat mode
     DpAction calls override with explicit `retry=True` (target-state semantics).

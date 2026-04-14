@@ -23,7 +23,8 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 import logging
-from typing import TYPE_CHECKING, Any, Final
+import random
+from typing import TYPE_CHECKING, Final
 
 from aiohomematic.central.events.bus import RecoveryCompletedEvent
 from aiohomematic.exceptions import (
@@ -57,6 +58,10 @@ _RETRYABLE_FAULT_CODES: Final[frozenset[int]] = frozenset(
 
 _FAULT_CODE_DUTY_CYCLE: Final = -8
 _FAULT_CODE_TRANSMISSION_PENDING: Final = -10
+
+# Jitter range applied to standard exponential backoff delays.
+# ±20% prevents synchronized retry storms after mass failures.
+_JITTER_FACTOR: Final = 0.2
 
 # Non-retryable exceptions — permanent failures where retry cannot help
 _NON_RETRYABLE_EXCEPTIONS: Final[tuple[type[BaseHomematicException], ...]] = (
@@ -145,14 +150,17 @@ class CommandRetryHandler:
     Integrates with:
     - Circuit Breaker: Aborts retry if circuit opens
     - Connection Recovery: Waits for RecoveryCompletedEvent on NoConnectionException
-    - Command Throttle: Re-acquires throttle per attempt (via caller)
+    - Command Throttle: Throttle is acquired once by the caller before retry begins
     - Optimistic Updates: Keeps optimistic value active during retries
 
     Concurrency
     -----------
     This class assumes single asyncio event-loop execution.
     One active retry per DataPointKey is enforced — a new retry for the same key
-    cancels the previous one (supersede semantics).
+    cancels the previous one (supersede semantics). Cancellation is cooperative:
+    the retry loop checks an ``asyncio.Event`` before each attempt and during
+    each delay/recovery wait. External cancellation (purge, stop, supersede) sets
+    the event, which causes the retry loop to raise ``CommandSupersededError``.
     """
 
     __slots__ = (
@@ -175,7 +183,7 @@ class CommandRetryHandler:
         self._timeout_config: Final = timeout_config
         self._event_bus: Final = event_bus
         self._metrics: Final = CommandRetryMetrics()
-        self._active_retries: Final[dict[DataPointKey, asyncio.Task[Any]]] = {}
+        self._active_retries: Final[dict[DataPointKey, asyncio.Event]] = {}
 
     @property
     def active_retry_count(self) -> int:
@@ -194,7 +202,12 @@ class CommandRetryHandler:
 
     def cancel_retries_for_device(self, *, device_address: str) -> int:
         """Cancel all pending retries for a device. Return cancelled count."""
-        to_cancel = [dpk for dpk in self._active_retries if dpk.channel_address.startswith(device_address)]
+        prefix = f"{device_address}:"
+        to_cancel = [
+            dpk
+            for dpk in self._active_retries
+            if dpk.channel_address == device_address or dpk.channel_address.startswith(prefix)
+        ]
         for dpk in to_cancel:
             self._cancel_retry_for_dpk(dpk=dpk)
         return len(to_cancel)
@@ -229,6 +242,7 @@ class CommandRetryHandler:
             The result of the operation.
 
         Raises:
+            CommandSupersededError: If a newer command supersedes this retry.
             The last exception if all retries are exhausted or error is non-retryable.
 
         """
@@ -238,98 +252,140 @@ class CommandRetryHandler:
         if not retry or max_attempts <= 0:
             return await operation()
 
-        last_exception: BaseException | None = None
+        # Register this retry — supersedes any existing retry for the same dpk
+        cancel_event = self._register_retry(dpk=dpk)
 
-        for attempt in range(1, max_attempts + 1):
-            try:
-                result = await operation()
-            except BaseException as exc:
-                last_exception = exc
+        try:
+            last_exception: BaseException | None = None
 
-                # Non-retryable — raise immediately
-                if not is_retryable(exc=exc):
-                    raise
+            for attempt in range(1, max_attempts + 1):
+                # Check for cancellation before each attempt
+                if cancel_event.is_set():
+                    raise CommandSupersededError
 
-                # Last attempt — raise
-                if attempt >= max_attempts:
-                    self._metrics.exhausted_retries += 1
-                    _LOGGER.warning(  # i18n-log: ignore
-                        "COMMAND_RETRY: Exhausted %d attempts for %s/%s — last error: %s",
+                try:
+                    result = await operation()
+                except BaseException as exc:
+                    last_exception = exc
+
+                    # Non-retryable — raise immediately
+                    if not is_retryable(exc=exc):
+                        raise
+
+                    # Last attempt — raise
+                    if attempt >= max_attempts:
+                        self._metrics.exhausted_retries += 1
+                        _LOGGER.warning(  # i18n-log: ignore
+                            "COMMAND_RETRY: Exhausted %d attempts for %s/%s — last error: %s",
+                            max_attempts,
+                            dpk.channel_address,
+                            dpk.parameter,
+                            exc,
+                        )
+                        raise
+
+                    # Calculate delay
+                    delay = self._calculate_delay(attempt=attempt, exc=exc)
+                    self._metrics.total_retries += 1
+
+                    _LOGGER.debug(  # i18n-log: ignore
+                        "COMMAND_RETRY: Attempt %d/%d for %s/%s failed (%s), retrying in %.1fs",
+                        attempt,
                         max_attempts,
                         dpk.channel_address,
                         dpk.parameter,
-                        exc,
+                        type(exc).__name__,
+                        delay,
                     )
-                    raise
 
-                # Calculate delay
-                delay = self._calculate_delay(attempt=attempt, exc=exc)
-                self._metrics.total_retries += 1
-
-                _LOGGER.debug(  # i18n-log: ignore
-                    "COMMAND_RETRY: Attempt %d/%d for %s/%s failed (%s), retrying in %.1fs",
-                    attempt,
-                    max_attempts,
-                    dpk.channel_address,
-                    dpk.parameter,
-                    type(exc).__name__,
-                    delay,
-                )
-
-                # For NoConnectionException: wait for recovery event instead of blind delay
-                if isinstance(exc, NoConnectionException):
-                    if not await self._wait_for_recovery():
-                        # Recovery timed out — raise last error
-                        raise
+                    # For NoConnectionException: wait for recovery event instead of blind delay
+                    if isinstance(exc, NoConnectionException):
+                        if not await self._wait_for_recovery(cancel_event=cancel_event):
+                            # Recovery timed out — raise last error
+                            raise
+                    else:
+                        await self._interruptible_sleep(delay=delay, cancel_event=cancel_event)
                 else:
-                    await asyncio.sleep(delay)
-            else:
-                # Success on retry — log and record
-                if attempt > 1:
-                    self._metrics.successful_retries += 1
-                    _LOGGER.info(  # i18n-log: ignore
-                        "COMMAND_RETRY: Succeeded for %s/%s after %d attempts",
-                        dpk.channel_address,
-                        dpk.parameter,
-                        attempt,
-                    )
-                return result
+                    # Success on retry — log and record
+                    if attempt > 1:
+                        self._metrics.successful_retries += 1
+                        _LOGGER.info(  # i18n-log: ignore
+                            "COMMAND_RETRY: Succeeded for %s/%s after %d attempts",
+                            dpk.channel_address,
+                            dpk.parameter,
+                            attempt,
+                        )
+                    return result
 
-        # Should not reach here, but satisfy type checker
-        assert last_exception is not None
-        raise last_exception
+            # Should not reach here, but satisfy type checker
+            assert last_exception is not None
+            raise last_exception
+        finally:
+            # Only remove if we are still the registered retry (not superseded)
+            if self._active_retries.get(dpk) is cancel_event:
+                del self._active_retries[dpk]
 
     def _calculate_delay(self, *, attempt: int, exc: BaseException) -> float:
-        """Calculate delay before next retry using exponential backoff with special cases."""
+        """Calculate delay before next retry using exponential backoff with jitter."""
         tc = self._timeout_config
         fault_code = _get_fault_code(exc=exc)
 
-        # Special delay for DutyCycle exhaustion
+        # Special delay for DutyCycle exhaustion (fixed — physically determined)
         if fault_code == _FAULT_CODE_DUTY_CYCLE:
             return tc.command_retry_duty_cycle_delay
 
-        # Special delay for transmission pending
+        # Special delay for transmission pending (fixed — short wait for CCU)
         if fault_code == _FAULT_CODE_TRANSMISSION_PENDING:
             return tc.command_retry_transmission_pending_delay
 
-        # Standard exponential backoff
+        # Standard exponential backoff with ±20% jitter
         delay = tc.command_retry_base_delay * (tc.command_retry_backoff_factor ** (attempt - 1))
-        return min(delay, tc.command_retry_max_delay)
+        delay = min(delay, tc.command_retry_max_delay)
+        jitter = delay * random.uniform(-_JITTER_FACTOR, _JITTER_FACTOR)
+        return max(0.0, delay + jitter)
 
     def _cancel_retry_for_dpk(self, *, dpk: DataPointKey) -> int:
         """Cancel active retry for a data point key. Return 1 if cancelled, 0 if none."""
-        if (task := self._active_retries.pop(dpk, None)) is not None:
-            if not task.done():
-                task.cancel()
+        if (cancel_event := self._active_retries.pop(dpk, None)) is not None:
+            cancel_event.set()
             self._metrics.cancelled_retries += 1
             return 1
         return 0
 
-    async def _wait_for_recovery(self) -> bool:
+    async def _interruptible_sleep(self, *, delay: float, cancel_event: asyncio.Event) -> None:
+        """Sleep for *delay* seconds, raising CommandSupersededError if cancelled."""
+        try:
+            async with asyncio.timeout(delay):
+                await cancel_event.wait()
+            # cancel_event was set before timeout — command superseded
+            raise CommandSupersededError
+        except TimeoutError:
+            # Normal: delay elapsed without cancellation
+            pass
+
+    def _register_retry(self, *, dpk: DataPointKey) -> asyncio.Event:
+        """Register a retry for a data point key, superseding any existing one."""
+        if (existing := self._active_retries.get(dpk)) is not None:
+            existing.set()
+            self._metrics.cancelled_retries += 1
+            _LOGGER.debug(  # i18n-log: ignore
+                "COMMAND_RETRY: Superseding active retry for %s/%s",
+                dpk.channel_address,
+                dpk.parameter,
+            )
+        cancel_event = asyncio.Event()
+        self._active_retries[dpk] = cancel_event
+        return cancel_event
+
+    async def _wait_for_recovery(self, *, cancel_event: asyncio.Event) -> bool:
         """
         Wait for connection recovery event instead of blind retry.
 
         Return True if recovery completed, False if timed out.
+
+        Raises:
+            CommandSupersededError: If the cancel_event is set during the wait.
+
         """
         self._metrics.recovery_waits += 1
         recovery_event = asyncio.Event()
@@ -344,18 +400,29 @@ class CommandRetryHandler:
             event_key=None,
             handler=_on_recovery,
         )
+        recovery_task = asyncio.create_task(recovery_event.wait())
+        cancel_task = asyncio.create_task(cancel_event.wait())
         try:
-            async with asyncio.timeout(max_wait):
-                await recovery_event.wait()
-        except TimeoutError:
-            self._metrics.recovery_wait_timeouts += 1
-            _LOGGER.debug(  # i18n-log: ignore
-                "COMMAND_RETRY: Recovery wait timed out after %.1fs for %s",
-                max_wait,
-                self._interface_id,
+            _done, _pending = await asyncio.wait(
+                {recovery_task, cancel_task},
+                timeout=max_wait,
+                return_when=asyncio.FIRST_COMPLETED,
             )
-            return False
-        else:
-            return True
         finally:
+            for t in (recovery_task, cancel_task):
+                t.cancel()
+            await asyncio.gather(recovery_task, cancel_task, return_exceptions=True)
             unsub()
+
+        if cancel_event.is_set():
+            raise CommandSupersededError
+        if recovery_event.is_set():
+            return True
+        # Timeout — neither recovery nor cancellation
+        self._metrics.recovery_wait_timeouts += 1
+        _LOGGER.debug(  # i18n-log: ignore
+            "COMMAND_RETRY: Recovery wait timed out after %.1fs for %s",
+            max_wait,
+            self._interface_id,
+        )
+        return False

@@ -119,6 +119,62 @@ Rollbacks that suddenly appear after a configuration change often point to:
 
 ---
 
+## Automatic Command Retry
+
+When a command fails due to a **transient error**, the system automatically retries it before triggering a rollback. This significantly reduces false rollbacks caused by temporary issues.
+
+### What gets retried
+
+| Error Type                   | Retried?        | Example                                       |
+| ---------------------------- | --------------- | --------------------------------------------- |
+| Network timeout              | Yes             | CCU temporarily overloaded                    |
+| Device unreachable (UNREACH) | Yes             | Battery device in deep sleep, RF interference |
+| DutyCycle exhausted          | Yes (40s delay) | Too many commands sent on 868 MHz             |
+| Transmission pending         | Yes (5s delay)  | CCU is already sending to the device          |
+| Device out of range          | Yes             | Temporary RF problem                          |
+| Authentication failure       | No              | Wrong credentials                             |
+| Invalid parameter/value      | No              | Programming error                             |
+| Unknown device               | No              | Device removed                                |
+
+### Retry behavior
+
+- **Up to 3 attempts** (configurable) with exponential backoff (2s → 4s → 8s)
+- **Optimistic value stays active** during retries — the UI does not flicker
+- **Rollback only after all retries are exhausted** — you get a single clean rollback, not three
+- **New command cancels pending retry** — if you change the value again while a retry is pending, the old retry is cancelled
+
+### What is NOT retried
+
+- **Button presses** and **actions** (fire-and-forget commands) — these are inherently non-idempotent
+- **Cover stop commands** — safety-critical, must execute immediately or not at all
+
+### Configuring retry
+
+The maximum number of retry attempts can be configured in the integration:
+
+1. Go to **Settings → Devices & Services → Homematic(IP) Local**
+2. Click **Configure**
+3. Select **Advanced Settings**
+4. Adjust **Command retry attempts** (default: 3, range: 0–10)
+5. Set to **0** to disable retry entirely
+
+### Disabling retry per call
+
+To disable retry for a specific automation call, set `retry: false` on the `set_device_value` or `put_paramset` action:
+
+```yaml
+action: homematicip_local.set_device_value
+data:
+  device_id: abcdefg...
+  channel: 1
+  parameter: STATE
+  value: "true"
+  value_type: boolean
+  retry: false
+```
+
+---
+
 ## Configuration
 
 The rollback timeout is configured via `TimeoutConfig.optimistic_update_timeout` (default: **30 seconds**). This is not configurable through the Home Assistant UI — it is a library-level setting that applies to all devices.

@@ -23,6 +23,18 @@ Einen Geräteparameter über die XML-RPC-Schnittstelle setzen.
 !!! warning "Speicher-Warnung"
 Zu häufiges Schreiben in das MASTER-Paramset des Geräts kann den Speicher des Geräts beschädigen.
 
+| Feld                | Pflicht | Standard | Beschreibung                                                          |
+| ------------------- | ------- | -------- | --------------------------------------------------------------------- |
+| `device_id`         | Ja\*    |          | Zielgerät (\*oder `device_address`)                                   |
+| `device_address`    | Ja\*    |          | Geräteadresse (\*oder `device_id`)                                    |
+| `channel`           | Ja      | 1        | Kanalnummer                                                           |
+| `parameter`         | Ja      |          | Parametername (z.B. `STATE`, `SET_TEMPERATURE`)                       |
+| `value`             | Ja      |          | Neuer Wert                                                            |
+| `value_type`        | Nein    | string   | Typ: `boolean`, `int`, `double`, `string`, `dateTime.iso8601`         |
+| `wait_for_callback` | Nein    |          | Sekunden auf CCU-Bestätigung warten                                   |
+| `rx_mode`           | Nein    |          | `BURST` oder `WAKEUP` (nur BidCos-RF)                                 |
+| `retry`             | Nein    | true     | Bei transienten Fehlern wiederholen (Timeout, Gerät nicht erreichbar) |
+
 **Beispiel - Einen Schalter einschalten:**
 
 ```yaml
@@ -47,6 +59,19 @@ data:
   value_type: double
 ```
 
+**Beispiel - Wert setzen ohne Retry (für Automationen mit eigener Retry-Logik):**
+
+```yaml
+action: homematicip_local.set_device_value
+data:
+  device_id: abcdefg...
+  channel: 1
+  parameter: STATE
+  value: "true"
+  value_type: boolean
+  retry: false
+```
+
 ---
 
 ## Paramset-Operationen
@@ -61,6 +86,17 @@ data:
 
 !!! warning "Speicher-Warnung"
 Zu häufiges Schreiben in das MASTER-Paramset des Geräts kann den Speicher des Geräts beschädigen.
+
+| Feld                | Pflicht | Standard | Beschreibung                                                          |
+| ------------------- | ------- | -------- | --------------------------------------------------------------------- |
+| `device_id`         | Ja\*    |          | Zielgerät (\*oder `device_address`)                                   |
+| `device_address`    | Ja\*    |          | Geräteadresse (\*oder `device_id`)                                    |
+| `channel`           | Nein    |          | Kanalnummer                                                           |
+| `paramset_key`      | Ja      |          | `MASTER` oder `VALUES`                                                |
+| `paramset`          | Ja      |          | Dictionary mit Parametern und Werten                                  |
+| `wait_for_callback` | Nein    |          | Sekunden auf CCU-Bestätigung warten                                   |
+| `rx_mode`           | Nein    |          | `BURST` oder `WAKEUP` (nur BidCos-RF)                                 |
+| `retry`             | Nein    | true     | Bei transienten Fehlern wiederholen (Timeout, Gerät nicht erreichbar) |
 
 **Beispiel - Wochenprogramm setzen:**
 
@@ -94,6 +130,14 @@ data:
 ### homematicip_local.put_link_paramset
 
 `putParamset` für Direktverknüpfungen auf der XML-RPC-Schnittstelle aufrufen.
+
+| Feld                       | Pflicht | Standard | Beschreibung                                                          |
+| -------------------------- | ------- | -------- | --------------------------------------------------------------------- |
+| `sender_channel_address`   | Ja      |          | Kanaladresse des Senders                                              |
+| `receiver_channel_address` | Ja      |          | Kanaladresse des Empfängers                                           |
+| `paramset`                 | Ja      |          | Dictionary mit Parametern und Werten                                  |
+| `rx_mode`                  | Nein    |          | `BURST` oder `WAKEUP` (nur BidCos-RF)                                 |
+| `retry`                    | Nein    | true     | Bei transienten Fehlern wiederholen (Timeout, Gerät nicht erreichbar) |
 
 ---
 

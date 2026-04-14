@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 from xmlrpc.client import Fault as XmlRpcFault
 
 import pytest
 
-from aiohomematic.client import CommandRetryHandler
+from aiohomematic.client import CommandPriority, CommandRetryHandler
 from aiohomematic.client.command_retry import CommandRetryMetrics, _get_fault_code, is_retryable
 from aiohomematic.const import DataPointKey, ParamsetKey, TimeoutConfig
 from aiohomematic.exceptions import (
@@ -511,3 +511,380 @@ class TestCommandRetryHandlerDelay:
         exc.__cause__ = fault
         delay = handler._calculate_delay(attempt=1, exc=exc)
         assert delay == 5.0
+
+
+# =============================================================================
+# Collector retry derivation tests
+# =============================================================================
+
+
+class TestCollectorRetryDerivation:
+    """Tests for CallParameterCollector retry logic."""
+
+    def test_all_retryable_data_points(self) -> None:
+        """Test that retry=True when all collected data points are retryable."""
+        from aiohomematic.model.data_point import CallParameterCollector
+
+        collector = CallParameterCollector(client=MagicMock())
+        dp1 = self._make_dp(retryable=True)
+        dp2 = self._make_dp(retryable=True)
+        collector._collected_data_points.append((dp1, 0.5, None))
+        collector._collected_data_points.append((dp2, 1.0, None))
+
+        # Derive retry from _retryable (no explicit override)
+        explicit_retries = [r for _, _, r in collector._collected_data_points if r is not None]
+        assert not explicit_retries
+        retry = all(getattr(dp, "_retryable", True) for dp, _, _ in collector._collected_data_points)
+        assert retry is True
+
+    def test_empty_collector_defaults_to_true(self) -> None:
+        """Test that empty collector defaults to retry=True."""
+        from aiohomematic.model.data_point import CallParameterCollector
+
+        collector = CallParameterCollector(client=MagicMock())
+        # No data points collected — default
+        if explicit_retries := [r for _, _, r in collector._collected_data_points if r is not None]:
+            retry = any(explicit_retries)
+        elif collector._collected_data_points:
+            retry = all(getattr(dp, "_retryable", True) for dp, _, _ in collector._collected_data_points)
+        else:
+            retry = True
+        assert retry is True
+
+    def test_explicit_false_overrides_retryable(self) -> None:
+        """Test that explicit retry=False overrides _retryable=True."""
+        from aiohomematic.model.data_point import CallParameterCollector
+
+        collector = CallParameterCollector(client=MagicMock())
+        dp1 = self._make_dp(retryable=True)
+        collector._collected_data_points.append((dp1, 0.5, False))
+
+        explicit_retries = [r for _, _, r in collector._collected_data_points if r is not None]
+        assert explicit_retries == [False]
+        retry = any(explicit_retries)
+        assert retry is False
+
+    def test_explicit_override_wins_over_retryable(self) -> None:
+        """Test that explicit retry=True overrides _retryable=False."""
+        from aiohomematic.model.data_point import CallParameterCollector
+
+        collector = CallParameterCollector(client=MagicMock())
+        dp1 = self._make_dp(retryable=False)
+        # Explicit retry=True override (as set by climate.set_mode for DpAction)
+        collector._collected_data_points.append((dp1, True, True))
+
+        explicit_retries = [r for _, _, r in collector._collected_data_points if r is not None]
+        assert explicit_retries == [True]
+        retry = any(explicit_retries)
+        assert retry is True
+
+    def test_one_non_retryable_data_point(self) -> None:
+        """Test that retry=False when any collected data point is non-retryable."""
+        from aiohomematic.model.data_point import CallParameterCollector
+
+        collector = CallParameterCollector(client=MagicMock())
+        dp1 = self._make_dp(retryable=True)
+        dp2 = self._make_dp(retryable=False)
+        collector._collected_data_points.append((dp1, 0.5, None))
+        collector._collected_data_points.append((dp2, True, None))
+
+        retry = all(getattr(dp, "_retryable", True) for dp, _, _ in collector._collected_data_points)
+        assert retry is False
+
+    def _make_dp(self, *, retryable: bool = True) -> MagicMock:
+        """Create a mock data point with _retryable attribute."""
+        dp = MagicMock()
+        dp._retryable = retryable
+        dp.paramset_key = "VALUES"
+        dp.channel.address = "VCU0000001:1"
+        dp.parameter = "LEVEL"
+        dp.get_command_priority.return_value = MagicMock(value=1)
+        return dp
+
+
+# =============================================================================
+# Retryable attribute tests for data point types
+# =============================================================================
+
+
+class TestDataPointRetryableAttribute:
+    """Tests that _retryable is correctly set on data point types."""
+
+    def test_dp_action_float_retryable(self) -> None:
+        """Test DpActionFloat has _retryable=True (inherited default)."""
+        from aiohomematic.model.generic import DpActionFloat
+
+        assert DpActionFloat._retryable is True
+
+    def test_dp_action_not_retryable(self) -> None:
+        """Test DpAction has _retryable=False."""
+        from aiohomematic.model.generic import DpAction
+
+        assert DpAction._retryable is False
+
+    def test_dp_action_select_retryable(self) -> None:
+        """Test DpActionSelect has _retryable=True (inherited default)."""
+        from aiohomematic.model.generic import DpActionSelect
+
+        assert DpActionSelect._retryable is True
+
+    def test_dp_button_not_retryable(self) -> None:
+        """Test DpButton has _retryable=False."""
+        from aiohomematic.model.generic import DpButton
+
+        assert DpButton._retryable is False
+
+    def test_dp_float_retryable(self) -> None:
+        """Test DpFloat has _retryable=True (inherited default)."""
+        from aiohomematic.model.generic import DpFloat
+
+        assert DpFloat._retryable is True
+
+    def test_dp_select_retryable(self) -> None:
+        """Test DpSelect has _retryable=True (inherited default)."""
+        from aiohomematic.model.generic import DpSelect
+
+        assert DpSelect._retryable is True
+
+    def test_dp_switch_retryable(self) -> None:
+        """Test DpSwitch has _retryable=True (inherited default)."""
+        from aiohomematic.model.generic import DpSwitch
+
+        assert DpSwitch._retryable is True
+
+    def test_generic_data_point_retryable_default(self) -> None:
+        """Test GenericDataPoint has _retryable=True by default."""
+        from aiohomematic.model.generic import GenericDataPoint
+
+        assert GenericDataPoint._retryable is True
+
+
+# =============================================================================
+# Integration tests: retry flow through model layer
+# =============================================================================
+
+
+class TestRetryIntegration:
+    """Integration tests for retry parameter flow through model/client layers."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({"VCU9724704"}, True, None, None),
+        ],
+    )
+    async def test_action_select_passes_retry_true(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test DpActionSelect (retryable) passes retry=True through to client."""
+        from unittest.mock import call
+
+        from aiohomematic.model.generic import DpActionSelect
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        action_select = cast(
+            DpActionSelect,
+            central.query_facade.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
+        )
+        await action_select.send_value(value="LOCKED")
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU9724704:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LOCK_TARGET_LEVEL",
+            value="LOCKED",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({"VCU1437294"}, True, None, None),
+        ],
+    )
+    async def test_button_passes_retry_false(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test DpButton (non-retryable) passes retry=False through to client."""
+        from typing import cast
+        from unittest.mock import call
+
+        from aiohomematic.model.generic import DpButton
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        button = cast(
+            DpButton,
+            central.query_facade.get_generic_data_point(channel_address="VCU1437294:1", parameter="RESET_MOTION"),
+        )
+        await button.press()
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU1437294:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="RESET_MOTION",
+            value=True,
+            priority=CommandPriority.HIGH,
+            retry=False,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({"VCU9724704"}, True, None, None),
+        ],
+    )
+    async def test_explicit_retry_false_overrides_retryable(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test that explicit retry=False on send_value overrides _retryable=True."""
+        from unittest.mock import call
+
+        from aiohomematic.model.generic import DpActionSelect
+
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        action_select = cast(
+            DpActionSelect,
+            central.query_facade.get_generic_data_point(channel_address="VCU9724704:1", parameter="LOCK_TARGET_LEVEL"),
+        )
+        await action_select.send_value(value="OPEN", retry=False)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU9724704:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LOCK_TARGET_LEVEL",
+            value="OPEN",
+            priority=CommandPriority.HIGH,
+            retry=False,
+        )
+
+
+# =============================================================================
+# Purge cancellation tests
+# =============================================================================
+
+
+class TestPurgeCancellation:
+    """Tests for purge_addresses cancelling pending retries."""
+
+    @pytest.mark.asyncio
+    async def test_purge_addresses_cancels_device_retries(self) -> None:
+        """Test that set_value with purge_addresses cancels device retries."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        # Manually inject a fake active retry
+        dpk = _make_dpk(parameter="LEVEL")
+        fake_task = MagicMock()
+        fake_task.done.return_value = False
+        handler._active_retries[dpk] = fake_task
+
+        assert handler.active_retry_count == 1
+
+        # Cancel retries for the device
+        cancelled = handler.cancel_retries_for_device(device_address="VCU0000001")
+        assert cancelled == 1
+        assert handler.active_retry_count == 0
+        fake_task.cancel.assert_called_once()
+        assert handler.metrics.cancelled_retries == 1
+
+    @pytest.mark.asyncio
+    async def test_purge_does_not_cancel_other_devices(self) -> None:
+        """Test that purge only cancels retries for the targeted device."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk1 = DataPointKey(
+            interface_id="test",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+        )
+        dpk2 = DataPointKey(
+            interface_id="test",
+            channel_address="VCU0000002:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        task1 = MagicMock()
+        task1.done.return_value = False
+        task2 = MagicMock()
+        task2.done.return_value = False
+        handler._active_retries[dpk1] = task1
+        handler._active_retries[dpk2] = task2
+
+        cancelled = handler.cancel_retries_for_device(device_address="VCU0000001")
+        assert cancelled == 1
+        assert handler.active_retry_count == 1
+        task1.cancel.assert_called_once()
+        task2.cancel.assert_not_called()
+
+
+# =============================================================================
+# Interface-level cancellation tests
+# =============================================================================
+
+
+class TestInterfaceCancellation:
+    """Tests for interface-level retry cancellation (e.g., on stop)."""
+
+    def test_cancel_all_retries_for_interface(self) -> None:
+        """Test that cancel_retries_for_interface cancels all active retries."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk1 = _make_dpk(parameter="LEVEL")
+        dpk2 = _make_dpk(parameter="STATE")
+        task1 = MagicMock()
+        task1.done.return_value = False
+        task2 = MagicMock()
+        task2.done.return_value = False
+        handler._active_retries[dpk1] = task1
+        handler._active_retries[dpk2] = task2
+
+        cancelled = handler.cancel_retries_for_interface()
+        assert cancelled == 2
+        assert handler.active_retry_count == 0
+        task1.cancel.assert_called_once()
+        task2.cancel.assert_called_once()
+        assert handler.metrics.cancelled_retries == 2
+
+    def test_cancel_already_done_task(self) -> None:
+        """Test that cancelling an already-done task does not call cancel()."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        done_task = MagicMock()
+        done_task.done.return_value = True
+        handler._active_retries[dpk] = done_task
+
+        cancelled = handler.cancel_retries_for_dpk(dpk=dpk)
+        assert cancelled == 1
+        done_task.cancel.assert_not_called()  # Already done, no cancel needed

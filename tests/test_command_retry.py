@@ -785,31 +785,26 @@ class TestRetryIntegration:
 class TestPurgeCancellation:
     """Tests for purge_addresses cancelling pending retries."""
 
-    @pytest.mark.asyncio
-    async def test_purge_addresses_cancels_device_retries(self) -> None:
-        """Test that set_value with purge_addresses cancels device retries."""
+    def test_purge_addresses_cancels_device_retries(self) -> None:
+        """Test that cancel_retries_for_device sets cancel events."""
         handler = CommandRetryHandler(
             interface_id="test",
             timeout_config=TimeoutConfig(),
             event_bus=_make_event_bus(),
         )
-        # Manually inject a fake active retry
         dpk = _make_dpk(parameter="LEVEL")
-        fake_task = MagicMock()
-        fake_task.done.return_value = False
-        handler._active_retries[dpk] = fake_task
+        cancel_event = asyncio.Event()
+        handler._active_retries[dpk] = cancel_event
 
         assert handler.active_retry_count == 1
 
-        # Cancel retries for the device
         cancelled = handler.cancel_retries_for_device(device_address="VCU0000001")
         assert cancelled == 1
         assert handler.active_retry_count == 0
-        fake_task.cancel.assert_called_once()
+        assert cancel_event.is_set()
         assert handler.metrics.cancelled_retries == 1
 
-    @pytest.mark.asyncio
-    async def test_purge_does_not_cancel_other_devices(self) -> None:
+    def test_purge_does_not_cancel_other_devices(self) -> None:
         """Test that purge only cancels retries for the targeted device."""
         handler = CommandRetryHandler(
             interface_id="test",
@@ -828,18 +823,36 @@ class TestPurgeCancellation:
             paramset_key=ParamsetKey.VALUES,
             parameter="STATE",
         )
-        task1 = MagicMock()
-        task1.done.return_value = False
-        task2 = MagicMock()
-        task2.done.return_value = False
-        handler._active_retries[dpk1] = task1
-        handler._active_retries[dpk2] = task2
+        event1 = asyncio.Event()
+        event2 = asyncio.Event()
+        handler._active_retries[dpk1] = event1
+        handler._active_retries[dpk2] = event2
 
         cancelled = handler.cancel_retries_for_device(device_address="VCU0000001")
         assert cancelled == 1
         assert handler.active_retry_count == 1
-        task1.cancel.assert_called_once()
-        task2.cancel.assert_not_called()
+        assert event1.is_set()
+        assert not event2.is_set()
+
+    def test_purge_does_not_match_prefix_of_other_device(self) -> None:
+        """Test that VCU000000 does not cancel VCU0000001:1."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk = DataPointKey(
+            interface_id="test",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+        )
+        event = asyncio.Event()
+        handler._active_retries[dpk] = event
+
+        cancelled = handler.cancel_retries_for_device(device_address="VCU000000")
+        assert cancelled == 0
+        assert not event.is_set()
 
 
 # =============================================================================
@@ -851,7 +864,7 @@ class TestInterfaceCancellation:
     """Tests for interface-level retry cancellation (e.g., on stop)."""
 
     def test_cancel_all_retries_for_interface(self) -> None:
-        """Test that cancel_retries_for_interface cancels all active retries."""
+        """Test that cancel_retries_for_interface sets all cancel events."""
         handler = CommandRetryHandler(
             interface_id="test",
             timeout_config=TimeoutConfig(),
@@ -859,32 +872,399 @@ class TestInterfaceCancellation:
         )
         dpk1 = _make_dpk(parameter="LEVEL")
         dpk2 = _make_dpk(parameter="STATE")
-        task1 = MagicMock()
-        task1.done.return_value = False
-        task2 = MagicMock()
-        task2.done.return_value = False
-        handler._active_retries[dpk1] = task1
-        handler._active_retries[dpk2] = task2
+        event1 = asyncio.Event()
+        event2 = asyncio.Event()
+        handler._active_retries[dpk1] = event1
+        handler._active_retries[dpk2] = event2
 
         cancelled = handler.cancel_retries_for_interface()
         assert cancelled == 2
         assert handler.active_retry_count == 0
-        task1.cancel.assert_called_once()
-        task2.cancel.assert_called_once()
+        assert event1.is_set()
+        assert event2.is_set()
         assert handler.metrics.cancelled_retries == 2
 
-    def test_cancel_already_done_task(self) -> None:
-        """Test that cancelling an already-done task does not call cancel()."""
+    def test_cancel_dpk_twice_counts_once(self) -> None:
+        """Test that cancelling a non-existent dpk does not increment metrics."""
         handler = CommandRetryHandler(
             interface_id="test",
             timeout_config=TimeoutConfig(),
             event_bus=_make_event_bus(),
         )
         dpk = _make_dpk()
-        done_task = MagicMock()
-        done_task.done.return_value = True
-        handler._active_retries[dpk] = done_task
+        event = asyncio.Event()
+        handler._active_retries[dpk] = event
 
-        cancelled = handler.cancel_retries_for_dpk(dpk=dpk)
-        assert cancelled == 1
-        done_task.cancel.assert_not_called()  # Already done, no cancel needed
+        assert handler.cancel_retries_for_dpk(dpk=dpk) == 1
+        assert handler.metrics.cancelled_retries == 1
+        # Second cancel for same dpk — already removed
+        assert handler.cancel_retries_for_dpk(dpk=dpk) == 0
+        assert handler.metrics.cancelled_retries == 1
+
+
+# =============================================================================
+# Supersede and interruptible sleep/recovery tests
+# =============================================================================
+
+
+class TestSupersede:
+    """Tests for supersede semantics — new command cancels old retry for same DPK."""
+
+    @pytest.mark.asyncio
+    async def test_cancel_between_attempts(self) -> None:
+        """Test that external cancellation between attempts raises CommandSupersededError."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(
+                command_retry_base_delay=10.0,
+                command_retry_max_delay=10.0,
+            ),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        operation_calls = 0
+
+        background_tasks: set[asyncio.Task[None]] = set()
+
+        async def _fail_once() -> str:
+            nonlocal operation_calls
+            operation_calls += 1
+            if operation_calls == 1:
+                # Schedule external cancellation during the sleep that follows
+                async def _external_cancel() -> None:
+                    await asyncio.sleep(0.01)
+                    handler.cancel_retries_for_dpk(dpk=dpk)
+
+                task = asyncio.create_task(_external_cancel())
+                background_tasks.add(task)
+                task.add_done_callback(background_tasks.discard)
+                raise TimeoutError
+            return "should not reach"
+
+        with pytest.raises(CommandSupersededError):
+            await handler.execute_with_retry(operation=_fail_once, dpk=dpk)
+
+        assert operation_calls == 1
+        assert handler.metrics.cancelled_retries == 1
+
+    @pytest.mark.asyncio
+    async def test_supersede_cancels_old_retry_during_recovery_wait(self) -> None:
+        """Test that a second retry supersedes the first during recovery wait."""
+        event_bus = _make_event_bus()
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(command_retry_recovery_wait=10.0),
+            event_bus=event_bus,
+        )
+        dpk = _make_dpk()
+        first_superseded = False
+
+        call_count = 0
+
+        async def _failing_then_ok() -> str:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise NoConnectionException
+            return "ok"
+
+        async def _run_first() -> None:
+            nonlocal first_superseded
+            try:
+                await handler.execute_with_retry(
+                    operation=_failing_then_ok,
+                    dpk=dpk,
+                )
+            except CommandSupersededError:
+                first_superseded = True
+
+        task1 = asyncio.create_task(_run_first())
+        await asyncio.sleep(0.02)
+
+        # First retry is in recovery wait
+        assert handler.active_retry_count == 1
+
+        # Supersede with a successful operation
+        async def _ok() -> str:
+            return "ok2"
+
+        result = await handler.execute_with_retry(operation=_ok, dpk=dpk)
+        await task1
+
+        assert result == "ok2"
+        assert first_superseded is True
+        assert handler.metrics.cancelled_retries == 1
+
+    @pytest.mark.asyncio
+    async def test_supersede_cancels_old_retry_during_sleep(self) -> None:
+        """Test that a second retry for the same DPK supersedes the first during sleep."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(
+                command_retry_base_delay=10.0,
+                command_retry_max_delay=10.0,
+            ),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        first_superseded = False
+
+        async def _failing_operation() -> str:
+            raise TimeoutError
+
+        async def _run_first() -> None:
+            nonlocal first_superseded
+            try:
+                await handler.execute_with_retry(
+                    operation=_failing_operation,
+                    dpk=dpk,
+                )
+            except CommandSupersededError:
+                first_superseded = True
+
+        # Start first retry — it will fail and enter sleep
+        task1 = asyncio.create_task(_run_first())
+        await asyncio.sleep(0.02)
+
+        # First retry should be registered
+        assert handler.active_retry_count == 1
+
+        # Start second retry — supersedes first
+        async def _succeeding_operation() -> str:
+            return "ok"
+
+        result = await handler.execute_with_retry(
+            operation=_succeeding_operation,
+            dpk=dpk,
+        )
+
+        await task1
+        assert result == "ok"
+        assert first_superseded is True
+        assert handler.metrics.cancelled_retries == 1
+        assert handler.active_retry_count == 0
+
+
+class TestInterruptibleSleep:
+    """Tests for _interruptible_sleep."""
+
+    @pytest.mark.asyncio
+    async def test_already_set_event(self) -> None:
+        """Test that an already-set cancel event raises immediately."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        cancel_event = asyncio.Event()
+        cancel_event.set()
+        with pytest.raises(CommandSupersededError):
+            await handler._interruptible_sleep(delay=10.0, cancel_event=cancel_event)
+
+    @pytest.mark.asyncio
+    async def test_cancel_during_sleep(self) -> None:
+        """Test that setting cancel event during sleep raises CommandSupersededError."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        cancel_event = asyncio.Event()
+
+        async def _cancel_soon() -> None:
+            await asyncio.sleep(0.01)
+            cancel_event.set()
+
+        task = asyncio.create_task(_cancel_soon())
+        with pytest.raises(CommandSupersededError):
+            await handler._interruptible_sleep(delay=10.0, cancel_event=cancel_event)
+        await task
+
+    @pytest.mark.asyncio
+    async def test_normal_completion(self) -> None:
+        """Test that sleep completes normally without cancellation."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        cancel_event = asyncio.Event()
+        # Should complete without raising
+        await handler._interruptible_sleep(delay=0.01, cancel_event=cancel_event)
+
+
+class TestWaitForRecoveryCancellation:
+    """Tests for cancel_event integration in _wait_for_recovery."""
+
+    @pytest.mark.asyncio
+    async def test_cancel_during_recovery_wait(self) -> None:
+        """Test that setting cancel event during recovery wait raises CommandSupersededError."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(command_retry_recovery_wait=10.0),
+            event_bus=_make_event_bus(),
+        )
+        cancel_event = asyncio.Event()
+
+        async def _cancel_soon() -> None:
+            await asyncio.sleep(0.01)
+            cancel_event.set()
+
+        task = asyncio.create_task(_cancel_soon())
+        with pytest.raises(CommandSupersededError):
+            await handler._wait_for_recovery(cancel_event=cancel_event)
+        await task
+        assert handler.metrics.recovery_waits == 1
+
+    @pytest.mark.asyncio
+    async def test_recovery_completes_normally(self) -> None:
+        """Test that recovery event completes wait successfully."""
+        from aiohomematic.central.events import RecoveryCompletedEvent
+
+        event_bus = _make_event_bus()
+        handler = CommandRetryHandler(
+            interface_id="test-interface",
+            timeout_config=TimeoutConfig(command_retry_recovery_wait=5.0),
+            event_bus=event_bus,
+        )
+
+        subscribe_call_args: list[dict[str, Any]] = []
+
+        def _capture_subscribe(**kwargs: Any) -> MagicMock:
+            subscribe_call_args.append(kwargs)
+            return MagicMock()
+
+        event_bus.subscribe = _capture_subscribe  # type: ignore[assignment]
+        cancel_event = asyncio.Event()
+
+        async def _fire_recovery() -> None:
+            await asyncio.sleep(0.01)
+            if subscribe_call_args:
+                recovery_handler = subscribe_call_args[-1]["handler"]
+                event = MagicMock(spec=RecoveryCompletedEvent)
+                event.interface_id = "test-interface"
+                recovery_handler(event=event)
+
+        task = asyncio.create_task(_fire_recovery())
+        result = await handler._wait_for_recovery(cancel_event=cancel_event)
+        await task
+
+        assert result is True
+        assert handler.metrics.recovery_waits == 1
+        assert handler.metrics.recovery_wait_timeouts == 0
+
+    @pytest.mark.asyncio
+    async def test_recovery_timeout(self) -> None:
+        """Test that recovery wait times out when no event arrives."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(command_retry_recovery_wait=0.05),
+            event_bus=_make_event_bus(),
+        )
+        cancel_event = asyncio.Event()
+        result = await handler._wait_for_recovery(cancel_event=cancel_event)
+        assert result is False
+        assert handler.metrics.recovery_wait_timeouts == 1
+
+
+class TestActiveRetryTracking:
+    """Tests for _active_retries registration and cleanup."""
+
+    @pytest.mark.asyncio
+    async def test_cleanup_after_exhaustion(self) -> None:
+        """Test that _active_retries is cleaned up after retry exhaustion."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        operation = AsyncMock(side_effect=TimeoutError())
+
+        with pytest.raises(TimeoutError):
+            await handler.execute_with_retry(operation=operation, dpk=dpk)
+        assert handler.active_retry_count == 0
+        assert dpk not in handler._active_retries
+
+    @pytest.mark.asyncio
+    async def test_cleanup_after_non_retryable_error(self) -> None:
+        """Test that _active_retries is cleaned up after non-retryable error."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        operation = AsyncMock(side_effect=AuthFailure())
+
+        with pytest.raises(AuthFailure):
+            await handler.execute_with_retry(operation=operation, dpk=dpk)
+        assert handler.active_retry_count == 0
+
+    @pytest.mark.asyncio
+    async def test_cleanup_after_success(self) -> None:
+        """Test that _active_retries is cleaned up after successful retry."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        operation = AsyncMock(side_effect=[TimeoutError(), "ok"])
+
+        result = await handler.execute_with_retry(operation=operation, dpk=dpk)
+        assert result == "ok"
+        assert handler.active_retry_count == 0
+        assert dpk not in handler._active_retries
+
+    @pytest.mark.asyncio
+    async def test_no_registration_when_retry_disabled(self) -> None:
+        """Test that retry=False does not register in _active_retries."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        operation = AsyncMock(return_value="ok")
+
+        await handler.execute_with_retry(operation=operation, dpk=dpk, retry=False)
+        assert handler.active_retry_count == 0
+
+    @pytest.mark.asyncio
+    async def test_retry_registered_during_execution(self) -> None:
+        """Test that a retry is registered in _active_retries during the sleep phase."""
+        handler = CommandRetryHandler(
+            interface_id="test",
+            timeout_config=TimeoutConfig(
+                command_retry_base_delay=10.0,
+                command_retry_max_delay=10.0,
+            ),
+            event_bus=_make_event_bus(),
+        )
+        dpk = _make_dpk()
+        registered_during_sleep = False
+
+        background_tasks: set[asyncio.Task[None]] = set()
+
+        async def _fail_then_check() -> str:
+            nonlocal registered_during_sleep
+            if not registered_during_sleep:
+                # First call: will fail and enter sleep
+                # Schedule a check + cancel for during the sleep
+                async def _check_and_cancel() -> None:
+                    nonlocal registered_during_sleep
+                    await asyncio.sleep(0.01)
+                    registered_during_sleep = handler.active_retry_count == 1
+                    handler.cancel_retries_for_dpk(dpk=dpk)
+
+                task = asyncio.create_task(_check_and_cancel())
+                background_tasks.add(task)
+                task.add_done_callback(background_tasks.discard)
+                raise TimeoutError
+            return "ok"
+
+        with pytest.raises(CommandSupersededError):
+            await handler.execute_with_retry(operation=_fail_then_check, dpk=dpk)
+
+        assert registered_during_sleep is True

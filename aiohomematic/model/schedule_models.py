@@ -45,6 +45,9 @@ from aiohomematic import i18n
 from aiohomematic.const import (
     AstroType,
     DataPointCategory,
+    LockAction,
+    LockMode,
+    LockPermission,
     ScheduleActorChannel,
     ScheduleCondition,
     ScheduleField,
@@ -64,6 +67,7 @@ SCHEDULE_DOMAINS: Final[frozenset[DataPointCategory]] = frozenset(
         DataPointCategory.LIGHT,
         DataPointCategory.COVER,
         DataPointCategory.VALVE,
+        DataPointCategory.LOCK,
     }
 )
 
@@ -108,12 +112,18 @@ __all__ = [
     "ClimateSchedule",
     "ClimateSchedulePeriod",
     "ClimateWeekdaySchedule",
+    "LockActionLiteral",
+    "LockModeLiteral",
+    "LockPermissionLiteral",
     "SCHEDULE_DOMAIN_CONTEXT_KEY",
     "SCHEDULE_DOMAINS",
     "SimpleSchedule",
     "SimpleScheduleEntry",
     "TargetChannelInfo",
     "channel_key_to_bitmask",
+    "detect_lock_action",
+    "detect_lock_mode",
+    "detect_lock_permission",
     "parse_channel_locks",
 ]
 
@@ -220,13 +230,89 @@ _CHANNEL_STR_TO_ENUM: Final[dict[str, ScheduleActorChannel]] = {
 
 _CHANNEL_ENUM_TO_STR: Final[dict[ScheduleActorChannel, str]] = {v: k for k, v in _CHANNEL_STR_TO_ENUM.items()}
 
+# Lock mode literals
+LockModeLiteral = Literal["door_lock", "user_permission"]
+
+# Lock action literals
+LockActionLiteral = Literal[
+    "lock_autorelock_end",
+    "lock_autorelock_start",
+    "unlock_autorelock_end",
+    "autorelock_end",
+]
+
+# Lock permission literals
+LockPermissionLiteral = Literal["granted", "not_granted"]
+
+# Lock action string to enum mapping
+_LOCK_ACTION_STR_TO_ENUM: Final[dict[str, LockAction]] = {
+    "lock_autorelock_end": LockAction.LOCK_AUTORELOCK_END,
+    "lock_autorelock_start": LockAction.LOCK_AUTORELOCK_START,
+    "unlock_autorelock_end": LockAction.UNLOCK_AUTORELOCK_END,
+    "autorelock_end": LockAction.AUTORELOCK_END,
+}
+
+_LOCK_ACTION_ENUM_TO_STR: Final[dict[LockAction, str]] = {v: k for k, v in _LOCK_ACTION_STR_TO_ENUM.items()}
+
+# Lock action to raw values: (LEVEL, DURATION_BASE, DURATION_FACTOR)
+_LOCK_ACTION_TO_RAW: Final[dict[LockAction, tuple[float, int, int]]] = {
+    LockAction.LOCK_AUTORELOCK_END: (0.0, 7, 31),
+    LockAction.LOCK_AUTORELOCK_START: (0.0, 0, 0),
+    LockAction.UNLOCK_AUTORELOCK_END: (1.0, 7, 31),
+    LockAction.AUTORELOCK_END: (1.01, 7, 31),
+}
+
+# Lock permission to raw LEVEL
+_LOCK_PERMISSION_TO_LEVEL: Final[dict[LockPermission, float]] = {
+    LockPermission.GRANTED: 1.0,
+    LockPermission.NOT_GRANTED: 0.0,
+}
+
+# Lock permission string to enum mapping
+_LOCK_PERMISSION_STR_TO_ENUM: Final[dict[str, LockPermission]] = {
+    "granted": LockPermission.GRANTED,
+    "not_granted": LockPermission.NOT_GRANTED,
+}
+
+_LOCK_PERMISSION_ENUM_TO_STR: Final[dict[LockPermission, str]] = {v: k for k, v in _LOCK_PERMISSION_STR_TO_ENUM.items()}
+
+# Lock mode string to enum mapping
+_LOCK_MODE_STR_TO_ENUM: Final[dict[str, LockMode]] = {
+    "door_lock": LockMode.DOOR_LOCK,
+    "user_permission": LockMode.USER_PERMISSION,
+}
+
+# Duration values for lock permission mode (always fixed)
+_LOCK_PERMISSION_DURATION_BASE: Final = 7
+_LOCK_PERMISSION_DURATION_FACTOR: Final = 31
+
+
+def detect_lock_action(*, level: float, dur_base: int, dur_factor: int) -> LockActionLiteral:
+    """Derive lock_action from raw LEVEL + DURATION values."""
+    for action_enum, (action_level, action_db, action_df) in _LOCK_ACTION_TO_RAW.items():
+        if level == action_level and dur_base == action_db and dur_factor == action_df:
+            return cast(LockActionLiteral, _LOCK_ACTION_ENUM_TO_STR[action_enum])
+    return "lock_autorelock_end"
+
+
+def detect_lock_mode(*, target_channels: list[str]) -> LockModeLiteral:
+    """Derive lock_mode from target_channels. Ch 1_x = door_lock, Ch 2_x-8_x = user_permission."""
+    if any(ch.startswith("1_") for ch in target_channels):
+        return "door_lock"
+    return "user_permission"
+
+
+def detect_lock_permission(*, level: float) -> LockPermissionLiteral:
+    """Derive lock permission from raw LEVEL value."""
+    return "granted" if level >= 0.5 else "not_granted"
+
 
 class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
     """
     Human-readable schedule entry with automatic validation.
 
     This model represents a single schedule slot for non-climate devices (switches,
-    lights, covers, valves). All fields use human-readable formats instead of
+    lights, covers, valves, locks). All fields use human-readable formats instead of
     raw CCU values.
 
     Attributes:
@@ -236,10 +322,13 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
         astro_type: Astro event type ("sunrise" or "sunset"), required for astro conditions
         astro_offset_minutes: Offset from astro event in minutes (-720 to 720)
         target_channels: Target actor channels (e.g., ["1_1", "2_1"])
-        level: Output level 0.0-1.0 (0=off, 1=on for switches, dimmer level for lights)
+        level: Output level 0.0-1.01 (0=off, 1=on for switches, 1.01=special lock value)
         level_2: Secondary level for covers (slat position), optional
         duration: On-duration in human format (e.g., "10s", "5min"), optional
         ramp_time: Ramp time for dimmers (e.g., "500ms", "2s"), optional
+        lock_mode: Lock entry mode (door_lock or user_permission), optional
+        lock_action: Lock action for door_lock mode, optional
+        permission: Permission for user_permission mode, optional
 
     Example:
         >>> entry = SimpleScheduleEntry(
@@ -289,7 +378,7 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
     ]
     level: Annotated[
         float,
-        Field(ge=0.0, le=1.0, description="Output level 0.0-1.0"),
+        Field(ge=0.0, le=1.01, description="Output level 0.0-1.01 (1.01 is a special lock value)"),
     ]
 
     # Optional category-specific fields
@@ -304,6 +393,20 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
     ramp_time: Annotated[
         str | None,
         Field(default=None, description="Ramp time like '500ms', '2s'"),
+    ]
+
+    # Lock-specific fields
+    lock_mode: Annotated[
+        LockModeLiteral | None,
+        Field(default=None, description="Lock entry mode: door_lock or user_permission"),
+    ]
+    lock_action: Annotated[
+        LockActionLiteral | None,
+        Field(default=None, description="Lock action (only for door_lock mode)"),
+    ]
+    permission: Annotated[
+        LockPermissionLiteral | None,
+        Field(default=None, description="Permission value (only for user_permission mode)"),
     ]
 
     @field_validator("target_channels")
@@ -378,6 +481,32 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
             # Valves don't support ramp_time
             if result.ramp_time is not None:
                 raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="valve"))
+
+        elif domain == DataPointCategory.LOCK:
+            # Lock mode is required
+            if result.lock_mode is None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.lock_mode_required"))
+            # door_lock mode: lock_action required, permission forbidden
+            if result.lock_mode == "door_lock":
+                if result.lock_action is None:
+                    raise ValueError(i18n.tr(key="exception.model.schedule.lock_action_required"))
+                if result.permission is not None:
+                    raise ValueError(i18n.tr(key="exception.model.schedule.permission_not_allowed_in_door_lock_mode"))
+            # user_permission mode: permission required, lock_action forbidden
+            elif result.lock_mode == "user_permission":
+                if result.permission is None:
+                    raise ValueError(i18n.tr(key="exception.model.schedule.permission_required"))
+                if result.lock_action is not None:
+                    raise ValueError(
+                        i18n.tr(key="exception.model.schedule.lock_action_not_allowed_in_user_permission_mode")
+                    )
+            # Locks don't support level_2, ramp_time, or user-set duration
+            if result.level_2 is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="lock"))
+            if result.ramp_time is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="lock"))
+            if result.duration is not None:
+                raise ValueError(i18n.tr(key="exception.model.schedule.duration_not_supported", domain="lock"))
 
         return result
 
@@ -628,12 +757,14 @@ def convert_str_to_astro(*, astro_str: str) -> AstroType:
 def convert_raw_group_to_simple_entry(
     *,
     group_data: dict[ScheduleField, object],
+    domain: DataPointCategory | None = None,
 ) -> SimpleScheduleEntry:
     """
     Convert a raw schedule group to a SimpleScheduleEntry.
 
     Args:
         group_data: Raw schedule group data from CCU
+        domain: Device domain for lock-specific mapping
 
     Returns:
         Validated SimpleScheduleEntry
@@ -686,22 +817,32 @@ def convert_raw_group_to_simple_entry(
     channel_enums: list[ScheduleActorChannel] = list(channel_enums_raw) if isinstance(channel_enums_raw, list) else []
     target_channels = convert_channels_to_list(channel_enums=channel_enums) if channel_enums else []
 
-    # Extract level
+    # Extract level — allow 1.01 for lock special value
     level_raw = group_data.get(ScheduleField.LEVEL, 0)
     level = float(level_raw) if isinstance(level_raw, (int, float)) else 0.0
-    # Clamp to valid range
-    level = max(0.0, min(1.0, level))
+    # Clamp to valid range (0.0 - 1.01)
+    level = max(0.0, min(1.01, level))
 
-    # Extract optional level_2 (for covers)
-    # Clamp to [0.0, 1.0] — some devices (e.g. HmIP-BROLL) report values like 1.01
-    level_2_raw = group_data.get(ScheduleField.LEVEL_2)
-    level_2 = max(0.0, min(1.0, float(level_2_raw))) if isinstance(level_2_raw, (int, float)) else None
-
-    # Extract optional duration
-    duration: str | None = None
+    # Extract raw duration values (needed for lock action detection)
     duration_base_raw = group_data.get(ScheduleField.DURATION_BASE)
     duration_factor_raw = group_data.get(ScheduleField.DURATION_FACTOR)
-    if duration_base_raw is not None and isinstance(duration_factor_raw, (int, float)):
+
+    # Lock-specific: derive lock_mode, lock_action, permission from raw values
+    lock_mode: LockModeLiteral | None = None
+    lock_action: LockActionLiteral | None = None
+    permission_val: LockPermissionLiteral | None = None
+    duration: str | None = None
+
+    if domain == DataPointCategory.LOCK:
+        if (lock_mode := detect_lock_mode(target_channels=target_channels)) == "door_lock":
+            dur_base = int(duration_base_raw) if isinstance(duration_base_raw, (int, float)) else 7
+            dur_factor = int(duration_factor_raw) if isinstance(duration_factor_raw, (int, float)) else 31
+            lock_action = detect_lock_action(level=level, dur_base=dur_base, dur_factor=dur_factor)
+        else:
+            permission_val = detect_lock_permission(level=level)
+        # Duration is not user-visible for locks (part of action encoding)
+    # Non-lock: extract optional duration as human-readable string
+    elif duration_base_raw is not None and isinstance(duration_factor_raw, (int, float)):
         if isinstance(duration_base_raw, int):
             duration_base = TimeBase(duration_base_raw)
         elif isinstance(duration_base_raw, TimeBase):
@@ -709,6 +850,11 @@ def convert_raw_group_to_simple_entry(
         else:
             duration_base = TimeBase.MS_100
         duration = convert_base_factor_to_duration(base=duration_base, factor=int(duration_factor_raw))
+
+    # Extract optional level_2 (for covers)
+    # Clamp to [0.0, 1.0] — some devices (e.g. HmIP-BROLL) report values like 1.01
+    level_2_raw = group_data.get(ScheduleField.LEVEL_2)
+    level_2 = max(0.0, min(1.0, float(level_2_raw))) if isinstance(level_2_raw, (int, float)) else None
 
     # Extract optional ramp_time
     ramp_time: str | None = None
@@ -734,6 +880,9 @@ def convert_raw_group_to_simple_entry(
         level_2=level_2,
         duration=duration,
         ramp_time=ramp_time,
+        lock_mode=lock_mode,
+        lock_action=lock_action,
+        permission=permission_val,
     )
 
 
@@ -766,7 +915,7 @@ def convert_simple_entry_to_raw_group(
     # Convert target channels
     channel_enums = convert_list_to_channels(channel_strs=entry.target_channels)
 
-    # Build raw group
+    # Build raw group — common fields
     raw_group: dict[ScheduleField, object] = {
         ScheduleField.WEEKDAY: weekday_enums,
         ScheduleField.FIXED_HOUR: hour,
@@ -775,17 +924,33 @@ def convert_simple_entry_to_raw_group(
         ScheduleField.ASTRO_TYPE: astro_enum,
         ScheduleField.ASTRO_OFFSET: entry.astro_offset_minutes,
         ScheduleField.TARGET_CHANNELS: channel_enums,
-        ScheduleField.LEVEL: entry.level,
     }
+
+    # Lock-specific: derive LEVEL and DURATION from lock_action/permission
+    if entry.lock_mode is not None:
+        if entry.lock_mode == "door_lock" and entry.lock_action is not None:
+            action_enum = _LOCK_ACTION_STR_TO_ENUM[entry.lock_action]
+            level_val, dur_base, dur_factor = _LOCK_ACTION_TO_RAW[action_enum]
+            raw_group[ScheduleField.LEVEL] = level_val
+            raw_group[ScheduleField.DURATION_BASE] = TimeBase(dur_base)
+            raw_group[ScheduleField.DURATION_FACTOR] = dur_factor
+        elif entry.lock_mode == "user_permission" and entry.permission is not None:
+            perm_enum = _LOCK_PERMISSION_STR_TO_ENUM[entry.permission]
+            raw_group[ScheduleField.LEVEL] = _LOCK_PERMISSION_TO_LEVEL[perm_enum]
+            raw_group[ScheduleField.DURATION_BASE] = TimeBase(_LOCK_PERMISSION_DURATION_BASE)
+            raw_group[ScheduleField.DURATION_FACTOR] = _LOCK_PERMISSION_DURATION_FACTOR
+    else:
+        # Non-lock: use level and optional duration directly
+        raw_group[ScheduleField.LEVEL] = entry.level
+
+        if entry.duration is not None:
+            base, factor = convert_duration_to_base_factor(duration_str=entry.duration)
+            raw_group[ScheduleField.DURATION_BASE] = base
+            raw_group[ScheduleField.DURATION_FACTOR] = factor
 
     # Add optional fields
     if entry.level_2 is not None:
         raw_group[ScheduleField.LEVEL_2] = entry.level_2
-
-    if entry.duration is not None:
-        base, factor = convert_duration_to_base_factor(duration_str=entry.duration)
-        raw_group[ScheduleField.DURATION_BASE] = base
-        raw_group[ScheduleField.DURATION_FACTOR] = factor
 
     if entry.ramp_time is not None:
         base, factor = convert_duration_to_base_factor(duration_str=entry.ramp_time)

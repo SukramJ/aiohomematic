@@ -3022,3 +3022,333 @@ class TestDomainSpecificScheduleValidation:
                 },
                 context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.VALVE},
             )
+
+
+class TestLockSchedule:
+    """Tests for lock-specific schedule support."""
+
+    def test_level_1_01_not_clamped(self):
+        """Test that level 1.01 is preserved for lock entries."""
+        entry = SimpleScheduleEntry(
+            weekdays=["MONDAY"],
+            time="07:00",
+            target_channels=["1_1"],
+            level=1.01,
+        )
+        assert entry.level == 1.01
+
+    def test_lock_action_roundtrip_autorelock_end(self):
+        """Test autorelock_end action roundtrip (LEVEL=1.01)."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_TARGET_CHANNELS": 1,
+            "01_WP_LEVEL": 1.01,
+            "01_WP_FIXED_HOUR": 22,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_DURATION_BASE": 7,
+            "01_WP_DURATION_FACTOR": 31,
+        }
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(
+            raw_schedule=raw_schedule, domain=DataPointCategory.LOCK
+        )
+        entry = result.entries[1]
+        assert entry.lock_action == "autorelock_end"
+        assert entry.level == 1.01
+
+        raw_result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=result)
+        assert raw_result["01_WP_LEVEL"] == 1.01
+
+    def test_lock_action_roundtrip_lock_autorelock_end(self):
+        """Test lock_autorelock_end action roundtrip (raw -> simple -> raw)."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,  # MONDAY
+            "01_WP_TARGET_CHANNELS": 1,  # CHANNEL_1_1
+            "01_WP_LEVEL": 0.0,
+            "01_WP_FIXED_HOUR": 7,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_DURATION_BASE": 7,  # HOUR_1
+            "01_WP_DURATION_FACTOR": 31,
+        }
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(
+            raw_schedule=raw_schedule, domain=DataPointCategory.LOCK
+        )
+        entry = result.entries[1]
+        assert entry.lock_mode == "door_lock"
+        assert entry.lock_action == "lock_autorelock_end"
+        assert entry.permission is None
+        assert entry.duration is None
+
+        # Roundtrip back to raw
+        raw_result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=result)
+        assert raw_result["01_WP_LEVEL"] == 0.0
+        assert raw_result["01_WP_DURATION_BASE"] == 7
+        assert raw_result["01_WP_DURATION_FACTOR"] == 31
+
+    def test_lock_action_roundtrip_lock_autorelock_start(self):
+        """Test lock_autorelock_start action roundtrip."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_TARGET_CHANNELS": 1,
+            "01_WP_LEVEL": 0.0,
+            "01_WP_FIXED_HOUR": 8,
+            "01_WP_FIXED_MINUTE": 30,
+            "01_WP_DURATION_BASE": 0,
+            "01_WP_DURATION_FACTOR": 0,
+        }
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(
+            raw_schedule=raw_schedule, domain=DataPointCategory.LOCK
+        )
+        entry = result.entries[1]
+        assert entry.lock_action == "lock_autorelock_start"
+
+        raw_result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=result)
+        assert raw_result["01_WP_LEVEL"] == 0.0
+        assert raw_result["01_WP_DURATION_BASE"] == 0
+        assert raw_result["01_WP_DURATION_FACTOR"] == 0
+
+    def test_lock_action_roundtrip_unlock_autorelock_end(self):
+        """Test unlock_autorelock_end action roundtrip."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_TARGET_CHANNELS": 1,
+            "01_WP_LEVEL": 1.0,
+            "01_WP_FIXED_HOUR": 9,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_DURATION_BASE": 7,
+            "01_WP_DURATION_FACTOR": 31,
+        }
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(
+            raw_schedule=raw_schedule, domain=DataPointCategory.LOCK
+        )
+        entry = result.entries[1]
+        assert entry.lock_action == "unlock_autorelock_end"
+
+        raw_result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=result)
+        assert raw_result["01_WP_LEVEL"] == 1.0
+        assert raw_result["01_WP_DURATION_BASE"] == 7
+        assert raw_result["01_WP_DURATION_FACTOR"] == 31
+
+    def test_lock_domain_door_lock_requires_lock_action(self):
+        """Test that door_lock mode requires lock_action."""
+        with pytest.raises(ValueError, match="lock_action.*required|lock_action_required"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.0,
+                            "lock_mode": "door_lock",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_domain_lock_action_not_allowed_in_user_permission(self):
+        """Test that lock_action is rejected in user_permission mode."""
+        with pytest.raises(ValueError, match="lock_action.*not allowed|lock_action_not_allowed"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["2_1"],
+                            "level": 0.0,
+                            "lock_mode": "user_permission",
+                            "permission": "granted",
+                            "lock_action": "lock_autorelock_end",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_domain_permission_not_allowed_in_door_lock(self):
+        """Test that permission is rejected in door_lock mode."""
+        with pytest.raises(ValueError, match="permission.*not allowed|permission_not_allowed"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.0,
+                            "lock_mode": "door_lock",
+                            "lock_action": "lock_autorelock_end",
+                            "permission": "granted",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_domain_rejects_duration(self):
+        """Test that LOCK domain rejects user-set duration."""
+        with pytest.raises(ValueError, match="duration.*not supported for lock|duration_not_supported"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.0,
+                            "lock_mode": "door_lock",
+                            "lock_action": "lock_autorelock_end",
+                            "duration": "10s",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_domain_rejects_level_2(self):
+        """Test that LOCK domain rejects level_2."""
+        with pytest.raises(ValueError, match="level_2.*not supported for lock|level_2_not_supported"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.0,
+                            "lock_mode": "door_lock",
+                            "lock_action": "lock_autorelock_end",
+                            "level_2": 0.5,
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_domain_rejects_ramp_time(self):
+        """Test that LOCK domain rejects ramp_time."""
+        with pytest.raises(ValueError, match="ramp_time.*not supported for lock|ramp_time_not_supported"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.0,
+                            "lock_mode": "door_lock",
+                            "lock_action": "lock_autorelock_end",
+                            "ramp_time": "2s",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_domain_user_permission_requires_permission(self):
+        """Test that user_permission mode requires permission."""
+        with pytest.raises(ValueError, match="permission.*required|permission_required"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["2_1"],
+                            "level": 0.0,
+                            "lock_mode": "user_permission",
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_domain_validation_requires_lock_mode(self):
+        """Test that LOCK domain requires lock_mode."""
+        with pytest.raises(ValueError, match="lock_mode.*required|lock_mode_required"):
+            SimpleSchedule.model_validate(
+                {
+                    "entries": {
+                        1: {
+                            "weekdays": ["MONDAY"],
+                            "time": "07:00",
+                            "target_channels": ["1_1"],
+                            "level": 0.0,
+                        }
+                    }
+                },
+                context={SCHEDULE_DOMAIN_CONTEXT_KEY: DataPointCategory.LOCK},
+            )
+
+    def test_lock_mode_detection_from_target_channels(self):
+        """Test that lock_mode is derived from target_channels."""
+        from aiohomematic.model.schedule_models import detect_lock_mode
+
+        assert detect_lock_mode(target_channels=["1_1"]) == "door_lock"
+        assert detect_lock_mode(target_channels=["1_2"]) == "door_lock"
+        assert detect_lock_mode(target_channels=["2_1"]) == "user_permission"
+        assert detect_lock_mode(target_channels=["2_1", "3_1"]) == "user_permission"
+        assert detect_lock_mode(target_channels=["1_1", "2_1"]) == "door_lock"
+        assert detect_lock_mode(target_channels=[]) == "user_permission"
+
+    def test_lock_permission_roundtrip_granted(self):
+        """Test user_permission mode with granted permission."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_TARGET_CHANNELS": 8,  # CHANNEL_2_1
+            "01_WP_LEVEL": 1.0,
+            "01_WP_FIXED_HOUR": 7,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_DURATION_BASE": 7,
+            "01_WP_DURATION_FACTOR": 31,
+        }
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(
+            raw_schedule=raw_schedule, domain=DataPointCategory.LOCK
+        )
+        entry = result.entries[1]
+        assert entry.lock_mode == "user_permission"
+        assert entry.permission == "granted"
+        assert entry.lock_action is None
+
+        raw_result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=result)
+        assert raw_result["01_WP_LEVEL"] == 1.0
+        assert raw_result["01_WP_DURATION_BASE"] == 7
+        assert raw_result["01_WP_DURATION_FACTOR"] == 31
+
+    def test_lock_permission_roundtrip_not_granted(self):
+        """Test user_permission mode with not_granted permission."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_TARGET_CHANNELS": 8,  # CHANNEL_2_1
+            "01_WP_LEVEL": 0.0,
+            "01_WP_FIXED_HOUR": 22,
+            "01_WP_FIXED_MINUTE": 0,
+            "01_WP_DURATION_BASE": 7,
+            "01_WP_DURATION_FACTOR": 31,
+        }
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(
+            raw_schedule=raw_schedule, domain=DataPointCategory.LOCK
+        )
+        entry = result.entries[1]
+        assert entry.lock_mode == "user_permission"
+        assert entry.permission == "not_granted"
+
+        raw_result = DefaultWeekProfile.convert_dict_to_raw_schedule(schedule_data=result)
+        assert raw_result["01_WP_LEVEL"] == 0.0
+
+    def test_non_lock_raw_conversion_unchanged(self):
+        """Test that non-lock raw conversion still works without domain parameter."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_TARGET_CHANNELS": 1,
+            "01_WP_LEVEL": 1.0,
+            "01_WP_FIXED_HOUR": 10,
+            "01_WP_FIXED_MINUTE": 30,
+            "01_WP_CONDITION": 0,
+        }
+        result = DefaultWeekProfile.convert_raw_to_dict_schedule(raw_schedule=raw_schedule)
+        entry = result.entries[1]
+        assert entry.lock_mode is None
+        assert entry.lock_action is None
+        assert entry.permission is None

@@ -486,7 +486,9 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
 
     @staticmethod
     @abstractmethod
-    def convert_raw_to_dict_schedule(*, raw_schedule: RAW_SCHEDULE_DICT) -> SCHEDULE_DICT_T:
+    def convert_raw_to_dict_schedule(
+        *, raw_schedule: RAW_SCHEDULE_DICT, domain: DataPointCategory | None = None
+    ) -> SCHEDULE_DICT_T:
         """Convert raw schedule to dictionary format."""
 
     @property
@@ -561,7 +563,7 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
 
 class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
     """
-    Handle device week profiles for switches, lights, covers, and valves.
+    Handle device week profiles for switches, lights, covers, valves, and locks.
 
     This class manages the weekly scheduling functionality for non-climate devices,
     converting between CCU raw paramset format and human-readable Pydantic models.
@@ -678,12 +680,17 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
         return raw_schedule
 
     @staticmethod
-    def convert_raw_to_dict_schedule(*, raw_schedule: RAW_SCHEDULE_DICT) -> SimpleSchedule:
+    def convert_raw_to_dict_schedule(
+        *,
+        raw_schedule: RAW_SCHEDULE_DICT,
+        domain: DataPointCategory | None = None,
+    ) -> SimpleSchedule:
         """
         Convert raw paramset schedule to SimpleSchedule.
 
         Args:
             raw_schedule: Raw schedule from CCU (e.g., {"01_WP_WEEKDAY": 127, ...})
+            domain: Device domain for lock-specific mapping
 
         Returns:
             SimpleSchedule with human-readable entries
@@ -748,7 +755,7 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
         for group_no, group_data in intermediate_data.items():
             if is_schedule_active(group_data=group_data):
                 try:
-                    entries[group_no] = convert_raw_group_to_simple_entry(group_data=group_data)
+                    entries[group_no] = convert_raw_group_to_simple_entry(group_data=group_data, domain=domain)
                 except (ValueError, KeyError) as ex:
                     _LOGGER.debug(
                         "CONVERT_RAW_TO_DICT_SCHEDULE: Failed to convert group %d: %s",
@@ -761,6 +768,22 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
 
     def empty_schedule_entry(self) -> SimpleScheduleEntry:
         """Return an empty (minimal) schedule entry."""
+        if self.category == DataPointCategory.LOCK:
+            return SimpleScheduleEntry(
+                weekdays=["MONDAY"],
+                time="00:00",
+                condition="fixed_time",
+                astro_type=None,
+                astro_offset_minutes=0,
+                target_channels=["1_1"],
+                level=0.0,
+                level_2=None,
+                duration=None,
+                ramp_time=None,
+                lock_mode="door_lock",
+                lock_action="lock_autorelock_end",
+                permission=None,
+            )
         return SimpleScheduleEntry(
             weekdays=["MONDAY"],
             time="00:00",
@@ -772,6 +795,9 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
             level_2=None,
             duration=None,
             ramp_time=None,
+            lock_mode=None,
+            lock_action=None,
+            permission=None,
         )
 
     @inspector
@@ -798,7 +824,7 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
             return
 
         old_schedule = self._schedule_cache
-        new_schedule = self.convert_raw_to_dict_schedule(raw_schedule=new_raw_schedule)
+        new_schedule = self.convert_raw_to_dict_schedule(raw_schedule=new_raw_schedule, domain=self.category)
         self._schedule_cache = new_schedule
 
         if old_schedule != new_schedule:
@@ -942,12 +968,15 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         return raw_paramset
 
     @staticmethod
-    def convert_raw_to_dict_schedule(*, raw_schedule: RAW_SCHEDULE_DICT) -> _ClimateScheduleDictInternal:  # type: ignore[override]
+    def convert_raw_to_dict_schedule(  # type: ignore[override]
+        *, raw_schedule: RAW_SCHEDULE_DICT, domain: DataPointCategory | None = None
+    ) -> _ClimateScheduleDictInternal:
         """
         Convert raw CCU schedule to structured dictionary format.
 
         Args:
             raw_schedule: Raw schedule from CCU paramset
+            domain: Device domain (unused for climate schedules)
 
         Returns:
             Structured schedule grouped by profile, weekday, and slot

@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.4.11"
+VERSION: Final = "2026.4.12"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -2369,6 +2369,32 @@ class ScheduleField(StrEnum):
     RAMP_TIME_FACTOR = "RAMP_TIME_FACTOR"
     TARGET_CHANNELS = "TARGET_CHANNELS"
     WEEKDAY = "WEEKDAY"
+
+
+@unique
+class LockAction(IntEnum):
+    """Lock schedule actions encoded as LEVEL + DURATION combinations."""
+
+    LOCK_AUTORELOCK_END = 0
+    LOCK_AUTORELOCK_START = 1
+    UNLOCK_AUTORELOCK_END = 2
+    AUTORELOCK_END = 3
+
+
+@unique
+class LockMode(StrEnum):
+    """Lock schedule entry mode."""
+
+    DOOR_LOCK = "door_lock"
+    USER_PERMISSION = "user_permission"
+
+
+@unique
+class LockPermission(StrEnum):
+    """Lock permission values."""
+
+    GRANTED = "granted"
+    NOT_GRANTED = "not_granted"
 
 
 @unique

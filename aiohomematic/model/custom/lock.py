@@ -285,6 +285,7 @@ DeviceProfileRegistry.register_multiple(
                     0: (Parameter.ERROR_JAMMED,),
                 }
             ),
+            schedule_channel_no=10,
         ),
         DeviceConfig(
             data_point_class=CustomDpButtonLock,
@@ -318,6 +319,7 @@ DeviceProfileRegistry.register_multiple(
                 }
             ),
             channels=(12,),
+            schedule_channel_no=14,
         ),
         DeviceConfig(
             data_point_class=CustomDpButtonLock,

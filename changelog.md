@@ -1,3 +1,28 @@
+# Version 2026.4.12 (2026-04-15)
+
+## What's Changed
+
+### Added
+
+- **Lock schedule support for HmIP-DLD and HmIP-DLP**: Added week profile
+  (schedule) support for door lock devices.
+
+  - **HmIP-DLD**: `schedule_channel_no=10`, **HmIP-DLP**: `schedule_channel_no=14`
+  - **Door lock mode**: 4 lock actions (lock + auto-relock end/start,
+    unlock + auto-relock end, auto-relock end) encoded as `lock_action` field
+  - **User permission mode**: Permission granted/not granted for
+    ACCESS_RECEIVER channels 2-9, encoded as `permission` field
+  - **`lock_mode` field**: Distinguishes between `door_lock` and
+    `user_permission` modes, derived from `target_channels`
+  - **Domain validation**: LOCK domain rejects `level_2`, `ramp_time`, and
+    user-set `duration`; enforces mutual exclusivity of `lock_action` and
+    `permission` based on `lock_mode`
+  - **Level range extended**: `SimpleScheduleEntry.level` now allows 0.0-1.01
+    (1.01 is a special lock value for "Auto-Relock End")
+  - New enums: `LockAction`, `LockMode`, `LockPermission`
+
+---
+
 # Version 2026.4.11 (2026-04-14)
 
 ## What's Changed

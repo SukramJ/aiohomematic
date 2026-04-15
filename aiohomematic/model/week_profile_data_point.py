@@ -44,6 +44,7 @@ from aiohomematic.interfaces.model import (
     DeviceProtocol,
     GenericDataPointProtocolAny,
 )
+from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.data_point import BaseDataPoint
 from aiohomematic.model.schedule_models import (
     SCHEDULE_DOMAINS,
@@ -389,7 +390,7 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         device = self._device
         result: dict[str, TargetChannelInfo] = {}
 
-        sorted_groups = sorted(device.channel_groups.items())
+        sorted_groups = sorted(_get_schedule_relevant_channel_groups(device=device).items())
 
         for actor_idx, (_group_no, rebased_config) in enumerate(sorted_groups, start=1):
             channels_in_group: list[tuple[int, str]] = []
@@ -760,6 +761,34 @@ def _has_schedule_channel_no(*, dp: Any) -> bool:
         and dp.device_config is not None
         and dp.device_config.schedule_channel_no is not None
     )
+
+
+def _get_schedule_relevant_channel_groups(
+    *,
+    device: DeviceProtocol,
+) -> dict[int, RebasedChannelGroupConfig]:
+    """
+    Return channel groups relevant for the schedule target channel map.
+
+    If any CDP on the device has an explicit schedule_channel_no, only groups
+    from those CDPs are included. This filters out CDPs that are not controlled
+    by the schedule (e.g. button locks on multi-config devices like HmIP-DLP).
+
+    If no CDP has schedule_channel_no, all groups are returned (devices using
+    default_schedule_channel via channel type).
+    """
+    all_groups: dict[int, RebasedChannelGroupConfig] = dict(device.channel_groups)
+    schedule_groups: dict[int, RebasedChannelGroupConfig] = {}
+
+    for channel in device.channels.values():
+        if (
+            (cdp := channel.custom_data_point) is not None
+            and cdp.group_no is not None
+            and _has_schedule_channel_no(dp=cdp)
+        ):
+            schedule_groups[cdp.group_no] = cdp.channel_group
+
+    return schedule_groups or all_groups
 
 
 def _find_channel_locks_dp(*, device: DeviceProtocol) -> GenericDataPointProtocolAny | None:

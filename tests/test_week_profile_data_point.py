@@ -19,7 +19,11 @@ from aiohomematic.model.schedule_models import (
     parse_channel_locks,
 )
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
-from aiohomematic.model.week_profile_data_point import ScheduleChannelSwitch, WeekProfileDataPoint
+from aiohomematic.model.week_profile_data_point import (
+    ScheduleChannelSwitch,
+    WeekProfileDataPoint,
+    _get_schedule_relevant_channel_groups,
+)
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES_SWITCH: set[str] = {"VCU2128127"}
@@ -925,3 +929,67 @@ class TestScheduleChannelSwitch:
         for sw in schedule_switches:
             assert sw.category == DataPointCategory.SCHEDULE_SWITCH
             assert sw.usage == DataPointUsage.DATA_POINT
+
+
+class TestGetScheduleRelevantChannelGroups:
+    """Tests for _get_schedule_relevant_channel_groups filtering."""
+
+    def test_filters_out_cdps_without_schedule_channel_no(self) -> None:
+        """Test that CDPs without schedule_channel_no are excluded when others have it."""
+        # Simulate HmIP-DLP: two CDPs, only one with schedule_channel_no
+        device_config_with_schedule = MagicMock()
+        device_config_with_schedule.schedule_channel_no = 14
+
+        device_config_without_schedule = MagicMock()
+        device_config_without_schedule.schedule_channel_no = None
+
+        cdp_lock = MagicMock()
+        cdp_lock.group_no = 12
+        cdp_lock.device_config = device_config_with_schedule
+        cdp_lock.channel_group = MagicMock(name="lock_group")
+
+        cdp_button_lock = MagicMock()
+        cdp_button_lock.group_no = 0
+        cdp_button_lock.device_config = device_config_without_schedule
+        cdp_button_lock.channel_group = MagicMock(name="button_lock_group")
+
+        channel_lock = MagicMock()
+        channel_lock.custom_data_point = cdp_lock
+
+        channel_button = MagicMock()
+        channel_button.custom_data_point = cdp_button_lock
+
+        device = MagicMock()
+        device.channels = {"addr:12": channel_lock, "addr:0": channel_button}
+        device.channel_groups = {0: cdp_button_lock.channel_group, 12: cdp_lock.channel_group}
+
+        result = _get_schedule_relevant_channel_groups(device=device)
+
+        # Only the lock group with schedule_channel_no should be included
+        assert 12 in result
+        assert 0 not in result
+        assert len(result) == 1
+
+    def test_returns_all_groups_when_no_schedule_channel_no(self) -> None:
+        """Test that all groups are returned when no CDP has schedule_channel_no."""
+        # Simulate device using default_schedule_channel via channel type
+        device_config = MagicMock()
+        device_config.schedule_channel_no = None
+
+        cdp = MagicMock()
+        cdp.group_no = 4
+        cdp.device_config = device_config
+        cdp.channel_group = MagicMock(name="switch_group")
+
+        channel = MagicMock()
+        channel.custom_data_point = cdp
+
+        device = MagicMock()
+        device.channels = {"addr:4": channel}
+        device.channel_groups = {4: cdp.channel_group}
+
+        result = _get_schedule_relevant_channel_groups(device=device)
+
+        # All groups returned (fallback)
+        assert 4 in result
+        assert len(result) == 1

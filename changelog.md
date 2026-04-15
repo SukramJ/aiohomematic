@@ -1,3 +1,17 @@
+# Version 2026.4.13 (2026-04-15)
+
+## What's Changed
+
+### Fixed
+
+- **Fixed schedule target channels for multi-config lock devices (HmIP-DLP,
+  HmIP-DLD)**: The schedule UI incorrectly showed all channel groups (e.g.
+  channels 0 and 12 for HmIP-DLP) as schedule targets, including the button
+  lock which has no schedule. Now only channel groups from CDPs with an explicit
+  `schedule_channel_no` are included in the target channel map.
+
+---
+
 # Version 2026.4.12 (2026-04-15)
 
 ## What's Changed

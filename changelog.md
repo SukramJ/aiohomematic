@@ -1,3 +1,20 @@
+# Version 2026.4.14 (2026-04-16)
+
+## What's Changed
+
+### Added
+
+- Extract MASTER paramset metadata from CCU WebUI dialog functions (parameter groups, ordering, option presets, conditional visibility)
+- Add `ui_labels` translation category for resolving JS translation keys from easymode metadata
+- Add `get_ui_label_translation()` to `ccu_translations` public API
+- Add `MASTER_SENDER_TYPE` constant and `label_key` field to `ParameterGroupDef` in `easymode_data`
+
+### Fixed
+
+- Fix duplicate conditional visibility entries in easymode extraction
+
+---
+
 # Version 2026.4.13 (2026-04-15)
 
 ## What's Changed

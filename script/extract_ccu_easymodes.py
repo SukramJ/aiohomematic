@@ -42,8 +42,13 @@ import urllib.request
 
 _EASYMODE_DIR = "config/easymodes"
 _OPTIONS_TCL_PATH = f"{_EASYMODE_DIR}/etc/options.tcl"
+_HMIP_CHANNEL_DIALOGS_PATH = f"{_EASYMODE_DIR}/etc/hmipChannelConfigDialogs.tcl"
+_HMIP_MASTER_DIR = f"{_EASYMODE_DIR}/hmip"
 
 _DEFAULT_OUTPUT_DIR = "aiohomematic/ccu_data"
+
+# Sender type key for MASTER paramset metadata
+_MASTER_SENDER_TYPE = "_MASTER"
 
 # Directories/files to skip when scanning easymode directories
 _SKIP_DIRS = frozenset(
@@ -80,6 +85,33 @@ _RE_OPTION_TYPE = re.compile(r'"([A-Z_0-9a-z]+)"\s*\{', re.MULTILINE)
 
 # Special sentinel values in option presets
 _SPECIAL_OPTION_VALUES = frozenset({99999990, 99999998, 99999999})
+
+# Patterns for parsing hmipChannelConfigDialogs.tcl proc bodies
+_RE_SET_PARAM = re.compile(r"^\s+set\s+param\s+([A-Z_0-9]+)\s*$", re.MULTILINE)
+_RE_HORIZONTAL_LINE = re.compile(r'append\s+html\s+"\[getHorizontalLine\]"', re.MULTILINE)
+_RE_INLINE_OPTION = re.compile(r'^\s+set\s+options\((\d+)\)\s+"?(.+?)"?\s*$', re.MULTILINE)
+_RE_OPTION_CALL = re.compile(r"^\s+option\s+([A-Z_0-9]+)\s*$", re.MULTILINE)
+_RE_LABEL_REF = re.compile(r"\$\{([a-zA-Z0-9_]+)\}")
+_RE_HIDDEN_CLASS = re.compile(r'class=\\"hidden\\"')
+_RE_GET_OPTION_BOX = re.compile(
+    r"getOptionBox\s+'?\$?'?param'?\s+options\s+\S+\s+\S+\s+\S+",
+    re.MULTILINE,
+)
+_RE_GET_CHECKBOX = re.compile(
+    r"getCheckBox\s+'?\$?'?param'?\s+",
+    re.MULTILINE,
+)
+_RE_GET_TEXTFIELD = re.compile(
+    r"getTextField\s+\$?param\s+",
+    re.MULTILINE,
+)
+_RE_PROC_DEF = re.compile(
+    r"^proc\s+(get[A-Za-z_]+)\s+\{([^}]*)\}\s*\{",
+    re.MULTILINE,
+)
+_RE_HMIP_FUNC_CALL = re.compile(
+    r"\[(get[A-Za-z_]+)\s+\$chn\b",
+)
 
 # Cross-validation rules (manually curated, derived from TCL logic)
 _CROSS_VALIDATION_RULES: list[dict[str, Any]] = [
@@ -406,6 +438,293 @@ def _extract_html_params_info(
 
 
 # ---------------------------------------------------------------------------
+# hmipChannelConfigDialogs.tcl parsing (MASTER paramset metadata)
+# ---------------------------------------------------------------------------
+
+
+def _split_procs(content: str) -> dict[str, str]:
+    """Split TCL file content into {proc_name: proc_body} mapping."""
+    procs: dict[str, str] = {}
+    matches = list(_RE_PROC_DEF.finditer(content))
+    for i, m in enumerate(matches):
+        name = m.group(1)
+        body_start = m.end()
+        # Body extends until the next proc definition or end of file
+        body_end = matches[i + 1].start() if i + 1 < len(matches) else len(content)
+        procs[name] = content[body_start:body_end]
+    return procs
+
+
+def _parse_dialog_proc(proc_body: str) -> dict[str, Any] | None:
+    """
+    Parse a single dialog proc body and extract MASTER metadata.
+
+    Extract parameter order, parameter groups (separated by getHorizontalLine),
+    option preset references (both from options.tcl and inline), and
+    conditional visibility hints.
+    """
+    lines = proc_body.split("\n")
+
+    # Track parameters in order, grouped by horizontal lines
+    groups: list[list[str]] = [[]]
+    group_labels: list[str] = [""]
+    current_param: str = ""
+    param_order: list[str] = []
+    seen_params: set[str] = set()
+    option_presets: dict[str, str] = {}
+    inline_options: dict[str, dict[str, Any]] = {}
+    conditional_visibility: list[dict[str, Any]] = []
+
+    # State for inline option parsing
+    current_inline_options: dict[int, str] = {}
+    pending_option_type: str = ""
+    first_label_in_group: str = ""
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        # Detect horizontal line → new group
+        if _RE_HORIZONTAL_LINE.search(line):
+            groups.append([])
+            group_labels.append("")
+            first_label_in_group = ""
+            i += 1
+            continue
+
+        # Detect set param PARAM_NAME
+        param_match = _RE_SET_PARAM.match(line)
+        if param_match:
+            current_param = param_match.group(1)
+            if current_param not in seen_params:
+                seen_params.add(current_param)
+                param_order.append(current_param)
+                groups[-1].append(current_param)
+            # Reset inline options state for new param
+            current_inline_options = {}
+            pending_option_type = ""
+            i += 1
+            continue
+
+        # Detect option PRESET_TYPE (from options.tcl)
+        option_match = _RE_OPTION_CALL.match(line)
+        if option_match:
+            pending_option_type = option_match.group(1)
+            i += 1
+            continue
+
+        # Detect inline set options(N) "label"
+        inline_match = _RE_INLINE_OPTION.match(line)
+        if inline_match and current_param:
+            key = int(inline_match.group(1))
+            raw_label = inline_match.group(2).strip().strip('"')
+            label = raw_label
+            # Extract localization key if present
+            lk_match = _RE_LABEL_REF.search(raw_label)
+            if lk_match:
+                label = lk_match.group(1)
+            current_inline_options[key] = label
+            i += 1
+            continue
+
+        # When we see getOptionBox after collecting options, finalize
+        if current_param and (_RE_GET_OPTION_BOX.search(line) or "getOptionBox" in line):
+            if pending_option_type:
+                # Link to options.tcl preset
+                option_presets[current_param] = pending_option_type
+                pending_option_type = ""
+            elif current_inline_options:
+                # Store inline options
+                inline_options[current_param] = dict(current_inline_options)
+            current_inline_options = {}
+            i += 1
+            continue
+
+        # Detect getComboBox calls (time selectors)
+        combobox_match = re.search(r'getComboBox\s+\$chn\s+\$prn\s+"?\$?specialID"?\s+"(\w+)"', line)
+        if combobox_match and current_param:
+            # The current_param's UNIT/VALUE pair is associated with this time selector
+            # We don't need to store this as a preset - the time pair handling in the
+            # frontend already deals with this
+            i += 1
+            continue
+
+        # Capture first label reference per group for group labeling
+        if not first_label_in_group and current_param and groups[-1]:
+            label_match = _RE_LABEL_REF.search(line)
+            if label_match and "td>" in line:
+                first_label_in_group = label_match.group(1)
+                if not group_labels[-1]:
+                    group_labels[-1] = first_label_in_group
+
+        # Detect conditional visibility (class="hidden" for timeFactor rows)
+        if _RE_HIDDEN_CLASS.search(line) and current_param:
+            # The VALUE parameter of a UNIT/VALUE pair is hidden by default
+            # It becomes visible when the time unit selector changes
+            value_param = current_param
+            # Try to find the associated UNIT param
+            unit_param = value_param.replace("_VALUE", "_UNIT")
+            if unit_param != value_param and unit_param in seen_params:
+                conditional_visibility.append(
+                    {
+                        "trigger": unit_param,
+                        "trigger_value": "custom",
+                        "show": [value_param],
+                    }
+                )
+
+        i += 1
+
+    # Filter out empty groups
+    non_empty_groups = [(params, label) for params, label in zip(groups, group_labels) if params]
+
+    if not param_order:
+        return None
+
+    result: dict[str, Any] = {"parameter_order": param_order}
+
+    # Build parameter_groups
+    if len(non_empty_groups) > 1:
+        param_groups: list[dict[str, Any]] = []
+        for idx, (params, label) in enumerate(non_empty_groups):
+            param_groups.append(
+                {
+                    "id": f"group_{idx}",
+                    "label_key": label,
+                    "parameters": params,
+                }
+            )
+        result["parameter_groups"] = param_groups
+
+    # Store option presets
+    if option_presets:
+        result["option_presets"] = option_presets
+
+    # Store inline options as new option preset types
+    if inline_options:
+        result["inline_options"] = inline_options
+
+    # Store conditional visibility (deduplicated)
+    if conditional_visibility:
+        seen_cv: set[str] = set()
+        deduped: list[dict[str, Any]] = []
+        for cv in conditional_visibility:
+            key = (
+                f"{cv['trigger']}:{cv.get('trigger_value')}:"
+                f"{','.join(sorted(cv.get('show', [])))}:"
+                f"{','.join(sorted(cv.get('hide', [])))}"
+            )
+            if key not in seen_cv:
+                seen_cv.add(key)
+                deduped.append(cv)
+        result["conditional_visibility"] = deduped
+
+    return result
+
+
+def parse_hmip_channel_dialogs(
+    content: str,
+) -> dict[str, dict[str, Any]]:
+    """
+    Parse hmipChannelConfigDialogs.tcl and extract metadata per dialog function.
+
+    Returns {function_name: metadata_dict}.
+    """
+    procs = _split_procs(content)
+    results: dict[str, dict[str, Any]] = {}
+
+    for proc_name, proc_body in procs.items():
+        if proc_name == "getNoParametersToSet":
+            continue
+        parsed = _parse_dialog_proc(proc_body)
+        if parsed:
+            results[proc_name] = parsed
+
+    return results
+
+
+def _map_hmip_master_files(
+    hmip_dir: Path,
+) -> dict[str, str]:
+    """
+    Map channel types to dialog function names by parsing hmip/*.tcl files.
+
+    Returns {channel_type: function_name}.
+    """
+    mapping: dict[str, str] = {}
+    for tcl_file in sorted(hmip_dir.glob("*.tcl")):
+        name = tcl_file.stem
+        # Skip device-model-specific master files (e.g., hmip-ps_1_master)
+        if name.startswith("hmip") and "_master" in name:
+            continue
+        content = _read_file(tcl_file)
+        func_match = _RE_HMIP_FUNC_CALL.search(content)
+        if func_match:
+            func_name = func_match.group(1)
+            mapping[name] = func_name
+    return mapping
+
+
+def _merge_master_metadata(
+    channel_metadata: dict[str, dict[str, Any]],
+    dialog_metadata: dict[str, dict[str, Any]],
+    channel_to_func: dict[str, str],
+    option_presets: dict[str, Any],
+) -> None:
+    """Merge MASTER dialog metadata into channel_metadata under _MASTER sender type."""
+    for channel_type, func_name in channel_to_func.items():
+        func_meta = dialog_metadata.get(func_name)
+        if not func_meta:
+            continue
+
+        # Build sender type metadata for _MASTER
+        master_meta: dict[str, Any] = {}
+
+        if "parameter_order" in func_meta:
+            master_meta["parameter_order"] = func_meta["parameter_order"]
+
+        if "parameter_groups" in func_meta:
+            master_meta["parameter_groups"] = func_meta["parameter_groups"]
+
+        if "conditional_visibility" in func_meta:
+            master_meta["conditional_visibility"] = func_meta["conditional_visibility"]
+
+        # Merge option presets from dialog function
+        merged_presets: dict[str, str] = {}
+        if "option_presets" in func_meta:
+            merged_presets.update(func_meta["option_presets"])
+
+        # Convert inline options to new option preset types
+        if "inline_options" in func_meta:
+            for param, options_dict in func_meta["inline_options"].items():
+                preset_type = f"_INLINE_{channel_type}_{param}"
+                presets_list = [{"value": k, "label_key": v} for k, v in sorted(options_dict.items())]
+                option_presets[preset_type] = {
+                    "presets": presets_list,
+                    "allow_custom": False,
+                }
+                merged_presets[param] = preset_type
+
+        if merged_presets:
+            master_meta["option_presets"] = merged_presets
+
+        if not master_meta:
+            continue
+
+        # Ensure channel_metadata entry exists
+        if channel_type not in channel_metadata:
+            channel_metadata[channel_type] = {
+                "channel_type": channel_type,
+                "sender_types": {},
+            }
+
+        channel_metadata[channel_type]["sender_types"][_MASTER_SENDER_TYPE] = master_meta
+
+    merged_count = sum(1 for ct in channel_metadata.values() if _MASTER_SENDER_TYPE in ct.get("sender_types", {}))
+    print(f"  Merged _MASTER metadata for {merged_count} channel types")
+
+
+# ---------------------------------------------------------------------------
 # Options.tcl parsing
 # ---------------------------------------------------------------------------
 
@@ -515,7 +834,7 @@ def load_local(occu_path: Path) -> tuple[dict[str, dict[str, Any]], dict[str, An
         option_presets = parse_options_tcl(_read_file(options_path))
         print(f"  Parsed options.tcl: {len(option_presets)} option types")
 
-    # Parse channel type directories
+    # Parse channel type directories (LINK easymode profiles)
     channel_metadata: dict[str, dict[str, Any]] = {}
     ct_dirs = _get_channel_type_dirs(easymode_dir)
     print(f"  Found {len(ct_dirs)} channel type directories")
@@ -541,7 +860,30 @@ def load_local(occu_path: Path) -> tuple[dict[str, dict[str, Any]], dict[str, An
         if merged["sender_types"]:
             channel_metadata[ct_name] = merged
 
-    print(f"  Parsed {len(channel_metadata)} channel types with easymode data")
+    print(f"  Parsed {len(channel_metadata)} channel types with LINK easymode data")
+
+    # Parse hmipChannelConfigDialogs.tcl for MASTER paramset metadata
+    dialogs_path = webui_www / _HMIP_CHANNEL_DIALOGS_PATH
+    hmip_dir = webui_www / _HMIP_MASTER_DIR
+
+    if dialogs_path.is_file() and hmip_dir.is_dir():
+        print(f"\n  Parsing HmIP MASTER dialogs from {dialogs_path.name} ...")
+        dialog_content = _read_file(dialogs_path)
+        dialog_metadata = parse_hmip_channel_dialogs(dialog_content)
+        print(f"  Parsed {len(dialog_metadata)} dialog functions")
+
+        channel_to_func = _map_hmip_master_files(hmip_dir)
+        print(f"  Mapped {len(channel_to_func)} channel types to dialog functions")
+
+        _merge_master_metadata(
+            channel_metadata=channel_metadata,
+            dialog_metadata=dialog_metadata,
+            channel_to_func=channel_to_func,
+            option_presets=option_presets,
+        )
+    else:
+        print("  Note: hmipChannelConfigDialogs.tcl or hmip/ directory not found, skipping MASTER metadata")
+
     return channel_metadata, option_presets
 
 

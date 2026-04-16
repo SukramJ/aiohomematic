@@ -1474,6 +1474,17 @@ def _process_locale(
         archive[f"parameter_help_{locale}"] = help_prepared
         print(f"  parameter_help_{locale}: {len(help_prepared)} entries")
 
+    # UI labels: raw JS translation keys -> cleaned text
+    # Used to resolve label_key references in easymode parameter_groups and option_presets
+    ui_labels: dict[str, str] = {}
+    for key, raw_value in all_translations.items():
+        cleaned = clean_value(raw_value)
+        if cleaned:
+            ui_labels[key] = cleaned
+    ui_labels_prepared = _prepare_data(ui_labels)
+    archive[f"ui_labels_{locale}"] = ui_labels_prepared
+    print(f"  ui_labels_{locale}: {len(ui_labels_prepared)} entries")
+
 
 def main() -> int:
     """Run the extraction pipeline."""

@@ -34,6 +34,7 @@ __all__ = [
     "get_parameter_help",
     "get_parameter_translation",
     "get_parameter_value_translation",
+    "get_ui_label_translation",
     "resolve_channel_type",
 ]
 
@@ -42,7 +43,14 @@ _PACKAGE: Final = "aiohomematic"
 
 _SUPPORTED_LOCALES: Final = frozenset({"de", "en"})
 _DEFAULT_LOCALE: Final = "en"
-_CATEGORIES: Final = ("channel_types", "device_models", "parameter_help", "parameters", "parameter_values")
+_CATEGORIES: Final = (
+    "channel_types",
+    "device_models",
+    "parameter_help",
+    "parameters",
+    "parameter_values",
+    "ui_labels",
+)
 _LOCALE_INDEPENDENT_CATEGORIES: Final = ("device_icons",)
 _EXTRACT_ARCHIVE_RESOURCE: Final = "ccu_data/translation_extract.json.gz"
 _CUSTOM_DIR: Final = "ccu_data/translation_custom"
@@ -329,6 +337,22 @@ def get_parameter_value_translation(
 
     # Fall back to value-only (generic, shortest translation)
     return _store.get_value_fallback(value=value, locale=lang)
+
+
+def get_ui_label_translation(
+    *,
+    label_key: str,
+    locale: str = "en",
+) -> str | None:
+    """
+    Return translated text for a UI label key.
+
+    UI label keys are JavaScript variable names from the CCU WebUI translation
+    files (e.g., 'stringTableAutoRelockDelay', 'optionOpenOnly', 'lblRight').
+    They are referenced by easymode parameter_groups and option_presets.
+    """
+    lang = _get_locale(locale=locale)
+    return _store.get(category="ui_labels", locale=lang).get(label_key.lower())
 
 
 def resolve_channel_type(

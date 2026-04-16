@@ -26,6 +26,7 @@ import threading
 from typing import Any, Final
 
 __all__ = [
+    "MASTER_SENDER_TYPE",
     "ChannelMetadata",
     "ConditionalVisibilityRule",
     "CrossValidationRule",
@@ -43,6 +44,11 @@ __all__ = [
 
 _LOGGER: Final = logging.getLogger(__name__)
 _PACKAGE: Final = "aiohomematic"
+
+# Sender type key for MASTER paramset metadata (as opposed to LINK easymode profiles).
+# Used by the extraction script and downstream consumers to access MASTER-specific
+# parameter groups, ordering, option presets, and conditional visibility rules.
+MASTER_SENDER_TYPE: Final = "_MASTER"
 
 
 # ---------------------------------------------------------------------------
@@ -102,6 +108,7 @@ class ParameterGroupDef:
     id: str
     label: dict[str, str]  # locale -> label
     parameters: tuple[str, ...]
+    label_key: str | None = None  # JS translation key for label resolution
 
 
 @dataclass(frozen=True, slots=True)
@@ -325,6 +332,7 @@ class _EasymodeStore:
                 id=pg["id"],
                 label=pg.get("label", {}),
                 parameters=tuple(pg["parameters"]),
+                label_key=pg.get("label_key"),
             )
             for pg in data.get("parameter_groups", [])
         )

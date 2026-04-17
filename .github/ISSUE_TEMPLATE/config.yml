@@ -2,7 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: Frontend Issues / Frontend-Probleme
     url: https://github.com/SukramJ/homematicip-local-frontend/issues
-    about: Report issues with the frontend (UI, dashboard cards, visual bugs) in the homematicip_local_frontend repository. / Melde Frontend-Probleme (Benutzeroberfläche, Dashboard-Karten, visuelle Fehler) im homematicip_local_frontend Repository.
+    about: "Issues with dashboard cards (Climate Schedule Card, Status Card) or the device configuration panel? Report them in the frontend repository. / Probleme mit Dashboard-Karten (Climate Schedule Card, Status Card) oder dem Gerätekonfigurations-Panel? Bitte im Frontend-Repository melden."
   - name: Feature Requests
     url: https://github.com/sukramj/aiohomematic/discussions
     about: Please use our Discussion Forum for making feature requests.

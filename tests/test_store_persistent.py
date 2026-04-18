@@ -246,6 +246,35 @@ class TestDeviceDescriptionRegistry:
         assert "DEV2" in descs
 
     @pytest.mark.asyncio
+    async def test_get_device_with_channels_skips_empty_child_entry(self, tmp_path) -> None:
+        """Empty CHILDREN entries (observed on HmIP-RCV-50 / OpenCCU) must not raise."""
+        central = _CentralStub("Test Central", str(tmp_path))
+        ddr = DeviceDescriptionRegistry(
+            storage=central.create_device_storage(),
+            config_provider=central,
+        )
+
+        iface = "if1"
+        dev_addr = "HmIP-RCV-1"
+        ch_addr = f"{dev_addr}{ADDRESS_SEPARATOR}1"
+
+        ddr.add_device(
+            interface_id=iface,
+            device_description={
+                "ADDRESS": dev_addr,
+                "CHILDREN": [ch_addr, ""],  # empty entry from CCU
+                "TYPE": "HmIP-RCV-50",
+            },
+        )
+        ddr.add_device(
+            interface_id=iface,
+            device_description={"ADDRESS": ch_addr, "CHILDREN": [], "TYPE": "KEY_TRANSCEIVER"},
+        )
+
+        dev_map = ddr.get_device_with_channels(interface_id=iface, device_address=dev_addr)
+        assert set(dev_map.keys()) == {dev_addr, ch_addr}
+
+    @pytest.mark.asyncio
     async def test_get_raw_device_descriptions(self, tmp_path) -> None:
         """Test getting raw device descriptions list."""
         central = _CentralStub("Test Central", str(tmp_path))

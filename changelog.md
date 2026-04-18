@@ -1,3 +1,42 @@
+# Version 2026.4.15 (2026-04-18)
+
+## What's Changed
+
+### Fixed
+
+- **Fixed `LinkCoordinator.get_linkable_channels` excluding non-CLIMATE channels**:
+  `get_link_source_categories` / `get_link_target_categories` only mapped CLIMATE
+  roles to a `DataPointCategory`, so channels with `LINK_SOURCE_ROLES` /
+  `LINK_TARGET_ROLES` such as `REMOTE_CONTROL` (HmIP-RCV-50), `SWITCH`, `KEYMATIC`,
+  `WINMATIC`, `LEVEL`, `WEATHER_*`, `WINDOW_SWITCH*`, etc. produced empty category
+  tuples and were filtered out as non-linkable. Added a `_LINK_ROLE_TO_CATEGORY`
+  mapping so all known link roles produce a non-empty category. Fixes the
+  homematicip-local-frontend "Add Direct Link" wizard not offering the HmIP-RCV-50
+  virtual remote (and other non-climate devices) as a target.
+- Downgrade log level for unsupported JSON-RPC methods from `error` to `warning`
+  in `AioJsonRpcAioHttpClient._check_supported_methods` — missing optional methods
+  do not indicate a failure and should not be reported as errors.
+- Log instead of silently swallowing `BaseHomematicException` in
+  `ConfigurationCoordinator.get_configurable_devices`. Devices whose
+  `get_configurable_channels` fails (e.g. due to a missing child description)
+  were dropped from the panel device list without any trace. They are still
+  skipped, but now emit a warning identifying interface, address, model, and
+  the underlying exception, so the root cause can be diagnosed instead of
+  hidden. A debug line also explains devices skipped because they have no
+  configurable channels.
+- **Fixed HmIP-RCV-50 (and similar devices) missing from the panel device list**:
+  `DeviceDescriptionRegistry.get_device_with_channels` iterated over every entry
+  in the parent's `CHILDREN` array and called `get_device_description` for each.
+  Some CCU firmwares (observed with OpenCCU and the virtual remote `HmIP-RCV-50`)
+  emit an empty-string entry in `CHILDREN`, causing a
+  `DescriptionNotFoundException` that propagated into
+  `ConfigurationCoordinator.get_configurable_devices` and removed the whole
+  device from the panel list. Empty entries are now skipped, consistent with
+  the existing filter in `Device.finalize_init`
+  (`aiohomematic/model/device.py:354`).
+
+---
+
 # Version 2026.4.14 (2026-04-16)
 
 ## What's Changed

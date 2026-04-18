@@ -143,6 +143,10 @@ class DeviceDescriptionRegistry(
         }
         children = device_descriptions[device_address].get("CHILDREN", [])
         for channel_address in children:
+            # Some CCU firmwares include empty entries in CHILDREN (observed on
+            # HmIP-RCV-50 with OpenCCU). Skip them instead of raising.
+            if not channel_address:
+                continue
             device_descriptions[channel_address] = self.get_device_description(
                 interface_id=interface_id, address=channel_address
             )

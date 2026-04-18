@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.4.14"
+VERSION: Final = "2026.4.15"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1912,19 +1912,47 @@ _CLIMATE_TARGET_ROLES: Final[tuple[str, ...]] = ("CLIMATE", "SWITCH", "LEVEL")
 _CLIMATE_TRANSMITTER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSMITTER|TRANSCEIVER)")
 _CLIMATE_RECEIVER_RE: Final = re.compile(r"(?:CLIMATE|HEATING).*(?:TRANSCEIVER|RECEIVER)")
 
+# Map exact LINK_*_ROLES values to a representative DataPointCategory so that
+# get_linkable_channels can recognize non-CLIMATE channels (switches, remotes,
+# locks, blinds, dimmers, sensors) as link-capable.
+_LINK_ROLE_TO_CATEGORY: Final[dict[str, DataPointCategory]] = {
+    "ALARM_MODE_CONDITIONAL_SWITCH": DataPointCategory.SWITCH,
+    "AV_CONTROL_ROOM_SENSOR": DataPointCategory.SENSOR,
+    "CONDITIONAL_SWITCH": DataPointCategory.SWITCH,
+    "KEYMATIC": DataPointCategory.LOCK,
+    "LEVEL": DataPointCategory.LIGHT,
+    "REMOTE_CONTROL": DataPointCategory.BUTTON,
+    "REMOTECONTROL_RECEIVER": DataPointCategory.BUTTON,
+    "SMOKE_DETECTOR_TEAM": DataPointCategory.BINARY_SENSOR,
+    "SMOKE_DETECTOR_TEAM_V2": DataPointCategory.BINARY_SENSOR,
+    "SWITCH": DataPointCategory.SWITCH,
+    "WCS_TIPTRONIC_SENSOR": DataPointCategory.BINARY_SENSOR,
+    "WEATHER_CS": DataPointCategory.SENSOR,
+    "WEATHER_T": DataPointCategory.SENSOR,
+    "WEATHER_TH": DataPointCategory.SENSOR,
+    "WEATHER_THP": DataPointCategory.SENSOR,
+    "WINDOW_SWITCH": DataPointCategory.BINARY_SENSOR,
+    "WINDOW_SWITCH_RECEIVER": DataPointCategory.BINARY_SENSOR,
+    "WINDOW_SWITCH_RECEIVER_V2": DataPointCategory.BINARY_SENSOR,
+    "WINMATIC": DataPointCategory.COVER,
+}
+
 
 def get_link_source_categories(
     *, source_roles: tuple[str, ...], channel_type_name: str
 ) -> tuple[DataPointCategory, ...]:
-    """Return the channel sender roles."""
+    """Return the channel sender categories."""
     result: set[DataPointCategory] = set()
     has_climate = False
     if _CLIMATE_TRANSMITTER_RE.search(channel_type_name):
         result.add(DataPointCategory.CLIMATE)
         has_climate = True
 
-    if not has_climate and source_roles and any("CLIMATE" in role for role in source_roles):
-        result.add(DataPointCategory.CLIMATE)
+    for role in source_roles:
+        if not has_climate and "CLIMATE" in role:
+            result.add(DataPointCategory.CLIMATE)
+        if (category := _LINK_ROLE_TO_CATEGORY.get(role)) is not None:
+            result.add(category)
 
     return tuple(result)
 
@@ -1932,19 +1960,18 @@ def get_link_source_categories(
 def get_link_target_categories(
     *, target_roles: tuple[str, ...], channel_type_name: str
 ) -> tuple[DataPointCategory, ...]:
-    """Return the channel receiver roles."""
+    """Return the channel receiver categories."""
     result: set[DataPointCategory] = set()
     has_climate = False
     if _CLIMATE_RECEIVER_RE.search(channel_type_name):
         result.add(DataPointCategory.CLIMATE)
         has_climate = True
 
-    if (
-        not has_climate
-        and target_roles
-        and any(cl_role in role for role in target_roles for cl_role in _CLIMATE_TARGET_ROLES)
-    ):
-        result.add(DataPointCategory.CLIMATE)
+    for role in target_roles:
+        if not has_climate and any(cl_role in role for cl_role in _CLIMATE_TARGET_ROLES):
+            result.add(DataPointCategory.CLIMATE)
+        if (category := _LINK_ROLE_TO_CATEGORY.get(role)) is not None:
+            result.add(category)
 
     return tuple(result)
 

@@ -361,9 +361,23 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
                     interface_id=device.interface_id,
                     device_address=device.address,
                 )
-            except BaseHomematicException:
+            except BaseHomematicException as exc:
+                _LOGGER.debug(  # i18n-log: ignore
+                    "GET_CONFIGURABLE_DEVICES: skipping %s/%s (%s) due to %s: %s",
+                    device.interface_id,
+                    device.address,
+                    device.model,
+                    type(exc).__name__,
+                    exc,
+                )
                 continue
             if not channels:
+                _LOGGER.debug(
+                    "GET_CONFIGURABLE_DEVICES: skipping %s/%s (%s) - no configurable channels",
+                    device.interface_id,
+                    device.address,
+                    device.model,
+                )
                 continue
 
             channel_list: list[ConfigurableDeviceChannel] = []

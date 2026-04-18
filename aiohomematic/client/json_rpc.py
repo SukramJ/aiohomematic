@@ -1778,7 +1778,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         if self._supported_methods is None:
             self._supported_methods = await self._get_supported_methods()
         if unsupported_methods := tuple(method for method in _JsonRpcMethod if method not in self._supported_methods):
-            _LOGGER.error(  # i18n-log: ignore
+            _LOGGER.warning(  # i18n-log: ignore
                 "CHECK_SUPPORTED_METHODS: methods not supported by the backend: %s",
                 ", ".join(unsupported_methods),
             )

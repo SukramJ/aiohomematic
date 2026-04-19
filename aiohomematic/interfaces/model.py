@@ -59,6 +59,7 @@ from aiohomematic.const import (
     ProgramData,
     RxMode,
     ScheduleDict,
+    ScheduleField,
     ScheduleProfile,
     ScheduleType,
     WeekdayStr,
@@ -2378,6 +2379,11 @@ class WeekProfileDataPointProtocol(BaseDataPointProtocol, Protocol):
     def schedule_type(self) -> ScheduleType:
         """Return the schedule type identifier."""
 
+    @property
+    @abstractmethod
+    def supported_schedule_fields(self) -> frozenset[ScheduleField]:
+        """Return the ScheduleFields the device advertises in its MASTER paramset description."""
+
     @abstractmethod
     def fire_schedule_updated(self) -> None:
         """Notify subscribers that the schedule has changed."""
@@ -2542,6 +2548,11 @@ class WeekProfileProtocol[SCHEDULE_DICT_T](Protocol):
     @abstractmethod
     def schedule_channel_address(self) -> str | None:
         """Return schedule channel address."""
+
+    @property
+    @abstractmethod
+    def supported_schedule_fields(self) -> frozenset[ScheduleField]:
+        """Return the ScheduleFields the device advertises in its MASTER paramset description."""
 
     @abstractmethod
     async def get_schedule(self, *, force_load: bool = False) -> SCHEDULE_DICT_T:

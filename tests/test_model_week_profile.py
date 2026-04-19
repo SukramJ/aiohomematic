@@ -30,8 +30,10 @@ from aiohomematic.model.week_profile import (
     _bitwise_to_list,
     _convert_minutes_to_time_str,
     _convert_time_str_to_minutes,
+    _extract_supported_schedule_fields,
     _fillup_weekday_data,
     _filter_profile_entries,
+    _filter_raw_schedule_by_supported_fields,
     _filter_schedule_entries,
     _filter_weekday_entries,
     _list_to_bitwise,
@@ -3352,3 +3354,135 @@ class TestLockSchedule:
         assert entry.lock_mode is None
         assert entry.lock_action is None
         assert entry.permission is None
+
+
+class TestSupportedScheduleFields:
+    """Test extraction and filtering of supported schedule fields from the MASTER paramset."""
+
+    def test_extract_supported_schedule_fields_empty(self):
+        """Empty paramset returns empty frozenset."""
+        assert _extract_supported_schedule_fields(master_paramset={}) == frozenset()
+
+    def test_extract_supported_schedule_fields_full_set(self):
+        """Extract all schedule fields present in a full MASTER paramset (e.g. HmIP-MOD-OC8)."""
+        master_paramset = {
+            "01_WP_WEEKDAY": {},
+            "01_WP_TARGET_CHANNELS": {},
+            "01_WP_CONDITION": {},
+            "01_WP_ASTRO_TYPE": {},
+            "01_WP_ASTRO_OFFSET": {},
+            "01_WP_FIXED_HOUR": {},
+            "01_WP_FIXED_MINUTE": {},
+            "01_WP_LEVEL": {},
+            "01_WP_LEVEL_2": {},
+            "01_WP_DURATION_BASE": {},
+            "01_WP_DURATION_FACTOR": {},
+            "01_WP_RAMP_TIME_BASE": {},
+            "01_WP_RAMP_TIME_FACTOR": {},
+        }
+        result = _extract_supported_schedule_fields(master_paramset=master_paramset)
+        assert ScheduleField.CONDITION in result
+        assert ScheduleField.ASTRO_TYPE in result
+        assert ScheduleField.ASTRO_OFFSET in result
+        assert ScheduleField.LEVEL_2 in result
+        assert ScheduleField.RAMP_TIME_BASE in result
+        assert ScheduleField.RAMP_TIME_FACTOR in result
+        assert ScheduleField.WEEKDAY in result
+
+    def test_extract_supported_schedule_fields_hmip_dld_subset(self):
+        """Extract a reduced set (HmIP-DLD advertises only 7 of 13 fields)."""
+        master_paramset = {
+            "01_WP_WEEKDAY": {},
+            "01_WP_TARGET_CHANNELS": {},
+            "01_WP_FIXED_HOUR": {},
+            "01_WP_FIXED_MINUTE": {},
+            "01_WP_LEVEL": {},
+            "01_WP_DURATION_BASE": {},
+            "01_WP_DURATION_FACTOR": {},
+            "SOME_OTHER_PARAM": {},  # non-schedule keys are ignored
+        }
+        result = _extract_supported_schedule_fields(master_paramset=master_paramset)
+        assert ScheduleField.WEEKDAY in result
+        assert ScheduleField.TARGET_CHANNELS in result
+        assert ScheduleField.FIXED_HOUR in result
+        assert ScheduleField.FIXED_MINUTE in result
+        assert ScheduleField.LEVEL in result
+        assert ScheduleField.DURATION_BASE in result
+        assert ScheduleField.DURATION_FACTOR in result
+        # These MUST NOT be supported by HmIP-DLD
+        assert ScheduleField.CONDITION not in result
+        assert ScheduleField.ASTRO_TYPE not in result
+        assert ScheduleField.ASTRO_OFFSET not in result
+        assert ScheduleField.LEVEL_2 not in result
+        assert ScheduleField.RAMP_TIME_BASE not in result
+        assert ScheduleField.RAMP_TIME_FACTOR not in result
+
+    def test_extract_supported_schedule_fields_skips_unknown_names(self):
+        """Unknown WP_* suffixes are silently skipped."""
+        master_paramset = {
+            "01_WP_WEEKDAY": {},
+            "01_WP_UNKNOWN_FIELD": {},
+        }
+        result = _extract_supported_schedule_fields(master_paramset=master_paramset)
+        assert result == frozenset({ScheduleField.WEEKDAY})
+
+    def test_filter_raw_schedule_by_supported_fields_drops_unsupported(self):
+        """Raw keys whose ScheduleField is not supported are dropped."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_FIXED_HOUR": 7,
+            "01_WP_FIXED_MINUTE": 30,
+            "01_WP_CONDITION": 0,
+            "01_WP_ASTRO_TYPE": 0,
+            "01_WP_ASTRO_OFFSET": 0,
+            "01_WP_LEVEL_2": 0.0,
+            "01_WP_RAMP_TIME_BASE": 0,
+            "01_WP_RAMP_TIME_FACTOR": 0,
+            "01_WP_TARGET_CHANNELS": 1,
+            "01_WP_LEVEL": 1.0,
+            "01_WP_DURATION_BASE": 0,
+            "01_WP_DURATION_FACTOR": 0,
+        }
+        supported = frozenset(
+            {
+                ScheduleField.WEEKDAY,
+                ScheduleField.TARGET_CHANNELS,
+                ScheduleField.FIXED_HOUR,
+                ScheduleField.FIXED_MINUTE,
+                ScheduleField.LEVEL,
+                ScheduleField.DURATION_BASE,
+                ScheduleField.DURATION_FACTOR,
+            }
+        )
+        result = _filter_raw_schedule_by_supported_fields(raw_schedule=raw_schedule, supported_fields=supported)
+        # These six MUST be dropped (HmIP-DLD would silently reject the whole paramset otherwise)
+        assert "01_WP_CONDITION" not in result
+        assert "01_WP_ASTRO_TYPE" not in result
+        assert "01_WP_ASTRO_OFFSET" not in result
+        assert "01_WP_LEVEL_2" not in result
+        assert "01_WP_RAMP_TIME_BASE" not in result
+        assert "01_WP_RAMP_TIME_FACTOR" not in result
+        # These must remain
+        assert result["01_WP_WEEKDAY"] == 2
+        assert result["01_WP_FIXED_HOUR"] == 7
+        assert result["01_WP_LEVEL"] == 1.0
+
+    def test_filter_raw_schedule_by_supported_fields_empty_supported_passthrough(self):
+        """An empty supported_fields set disables filtering (back-compat safety)."""
+        raw_schedule = {"01_WP_CONDITION": 0, "01_WP_WEEKDAY": 2}
+        result = _filter_raw_schedule_by_supported_fields(raw_schedule=raw_schedule, supported_fields=frozenset())
+        assert result == raw_schedule
+
+    def test_filter_raw_schedule_preserves_non_schedule_keys(self):
+        """Keys that don't match SCHEDULE_PATTERN are always preserved."""
+        raw_schedule = {
+            "01_WP_WEEKDAY": 2,
+            "01_WP_CONDITION": 0,
+            "SOME_OTHER_PARAM": 42,
+        }
+        result = _filter_raw_schedule_by_supported_fields(
+            raw_schedule=raw_schedule, supported_fields=frozenset({ScheduleField.WEEKDAY})
+        )
+        assert result["SOME_OTHER_PARAM"] == 42
+        assert result["01_WP_WEEKDAY"] == 2
+        assert "01_WP_CONDITION" not in result

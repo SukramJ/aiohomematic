@@ -26,6 +26,7 @@ from aiohomematic.const import (
     Parameter,
     ParamsetKey,
     ScheduleDict,
+    ScheduleField,
     ScheduleProfile,
     ScheduleType,
     ServiceScope,
@@ -242,6 +243,9 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         path="_available_target_channels"
     )
     schedule_channel_address: Final = DelegatedProperty[str | None](path="_week_profile.schedule_channel_address")
+    supported_schedule_fields: Final = DelegatedProperty[frozenset[ScheduleField]](
+        path="_week_profile.supported_schedule_fields"
+    )
 
     @property
     def max_entries(self) -> int:

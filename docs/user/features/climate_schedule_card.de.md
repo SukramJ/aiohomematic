@@ -147,7 +147,7 @@ Aufeinanderfolgende Zeitblöcke mit derselben Temperatur werden beim Speichern a
 Verwenden Sie das Profil-Dropdown, um zwischen P1-P6 umzuschalten. Das aktuell aktive Profil auf dem Gerät wird mit einem Sternchen (\*) markiert.
 
 !!! note "Anzeigen vs. Aktivieren"
-Das Profil-Dropdown in der Karte dient zum **Anzeigen und Bearbeiten** verschiedener Profile. Um das aktive Profil auf dem Gerät zu ändern, verwenden Sie die Aktion `homematicip_local.set_current_schedule_profile` oder das [Gerätekonfigurations-Panel](config_panel.md).
+Das Profil-Dropdown in der Karte dient zum **Anzeigen und Bearbeiten** verschiedener Profile. Um das aktive Profil auf dem Gerät zu ändern, verwenden Sie das [Gerätekonfigurations-Panel](config_panel.md).
 
 ### Zeitplanformat
 

@@ -141,7 +141,7 @@ Consecutive time blocks with the same temperature are automatically merged when 
 Use the profile dropdown to switch between P1–P6. The currently active profile on the device is marked with an asterisk (\*).
 
 !!! note "Viewing vs. Activating"
-The profile dropdown in the card is for **viewing and editing** different profiles. To change the active profile on the device, use the `homematicip_local.set_current_schedule_profile` action or the [Device Configuration Panel](config_panel.md).
+The profile dropdown in the card is for **viewing and editing** different profiles. To change the active profile on the device, use the [Device Configuration Panel](config_panel.md).
 
 ### Schedule Format
 

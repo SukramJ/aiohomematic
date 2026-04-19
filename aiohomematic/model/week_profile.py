@@ -348,6 +348,7 @@ Full → Simple Format (Reading):
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from enum import IntEnum
 import logging
 from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
@@ -519,6 +520,24 @@ class WeekProfile[SCHEDULE_DICT_T](ABC, WeekProfileProtocol[SCHEDULE_DICT_T]):
         ):
             return dsca
         return None
+
+    @property
+    def supported_schedule_fields(self) -> frozenset[ScheduleField]:
+        """
+        Return the ScheduleFields actually present in the CCU MASTER paramset description.
+
+        Some devices (e.g. HmIP-DLD) only expose a subset of the generic schedule fields —
+        writing fields that the device does not advertise causes the CCU to reject the
+        paramset silently (CONFIG_PENDING never clears). Consumers must filter outgoing
+        raw schedules to this set.
+        """
+        if (sca := self.schedule_channel_address) is None:
+            return frozenset()
+        descriptions = self._device.paramset_description_provider.get_channel_paramset_descriptions(
+            interface_id=self._device.interface_id,
+            channel_address=sca,
+        )
+        return _extract_supported_schedule_fields(master_paramset=descriptions.get(ParamsetKey.MASTER, {}))
 
     @abstractmethod
     async def get_schedule(self, *, force_load: bool = False) -> SCHEDULE_DICT_T:
@@ -864,13 +883,23 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
             context={SCHEDULE_DOMAIN_CONTEXT_KEY: self._data_point.category},
         )
 
+        # Filter raw schedule to only the fields this device actually advertises.
+        # Why: devices like HmIP-DLD omit several WP_* parameters (CONDITION, ASTRO_*,
+        # LEVEL_2, RAMP_TIME_*) from their MASTER paramset description. Sending them
+        # causes the CCU to silently reject the entire paramset — CONFIG_PENDING
+        # never clears.
+        raw_schedule = self._convert_schedule_entries(
+            values=self.convert_dict_to_raw_schedule(schedule_data=schedule_data)
+        )
+        raw_schedule = _filter_raw_schedule_by_supported_fields(
+            raw_schedule=raw_schedule, supported_fields=self.supported_schedule_fields
+        )
+
         # Write to device - cache will be updated via CONFIG_PENDING event
         await self._client.put_paramset(
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
-            values=self._convert_schedule_entries(
-                values=self.convert_dict_to_raw_schedule(schedule_data=schedule_data)
-            ),
+            values=raw_schedule,
         )
 
     async def _get_raw_schedule(self) -> RAW_SCHEDULE_DICT:
@@ -1557,6 +1586,57 @@ def _bitwise_to_list(*, value: int, enum_class: type[IntEnum]) -> list[IntEnum]:
         return []
 
     return [item for item in enum_class if value & item.value]
+
+
+def _extract_supported_schedule_fields(*, master_paramset: Mapping[str, Any]) -> frozenset[ScheduleField]:
+    """
+    Extract supported ScheduleFields from a MASTER paramset description.
+
+    Parses keys of the form ``NN_WP_FIELDNAME`` (e.g. ``01_WP_CONDITION``) and returns the set of
+    ``ScheduleField`` values that the device actually advertises. Keys that do not match the
+    schedule pattern or whose suffix is not a known ``ScheduleField`` are ignored.
+    """
+    fields: set[ScheduleField] = set()
+    for key in master_paramset:
+        if (match := SCHEDULE_PATTERN.match(key)) is None:
+            continue
+        field_name = key[match.end() :]
+        try:
+            fields.add(ScheduleField[field_name])
+        except KeyError:
+            continue
+    return frozenset(fields)
+
+
+def _filter_raw_schedule_by_supported_fields(
+    *, raw_schedule: RAW_SCHEDULE_DICT, supported_fields: frozenset[ScheduleField]
+) -> RAW_SCHEDULE_DICT:
+    """
+    Drop raw schedule keys whose ``ScheduleField`` is not in ``supported_fields``.
+
+    Non-schedule keys (not matching ``SCHEDULE_PATTERN``) and unrecognized field names
+    pass through unchanged — this helper is specifically for filtering out fields that
+    the device does not expose in its MASTER paramset description. Sending unsupported
+    fields causes the CCU to silently reject the whole paramset (CONFIG_PENDING never
+    clears).
+    """
+    if not supported_fields:
+        return raw_schedule
+
+    filtered: RAW_SCHEDULE_DICT = {}
+    for key, value in raw_schedule.items():
+        if (match := SCHEDULE_PATTERN.match(key)) is None:
+            filtered[key] = value
+            continue
+        field_name = key[match.end() :]
+        try:
+            field = ScheduleField[field_name]
+        except KeyError:
+            filtered[key] = value
+            continue
+        if field in supported_fields:
+            filtered[key] = value
+    return filtered
 
 
 def _filter_profile_entries(

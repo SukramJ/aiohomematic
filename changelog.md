@@ -1,3 +1,30 @@
+# Version 2026.4.16 (2026-04-18)
+
+## What's Changed
+
+### Fixed
+
+- **Fixed HmIP-DLD (and similar devices) silently rejecting schedule updates**:
+  `DefaultWeekProfile.set_schedule` unconditionally sent all `WP_*` schedule
+  parameters (`WP_CONDITION`, `WP_ASTRO_TYPE`, `WP_ASTRO_OFFSET`, `WP_LEVEL_2`,
+  `WP_RAMP_TIME_BASE`, `WP_RAMP_TIME_FACTOR`) to the device. Lock devices like
+  HmIP-DLD only advertise a subset of `ScheduleField` in their MASTER paramset
+  description — the CCU then silently rejected the entire `putParamset` call,
+  leaving `CONFIG_PENDING` set forever. `WeekProfile.supported_schedule_fields`
+  now introspects the MASTER paramset description and
+  `_filter_raw_schedule_by_supported_fields` drops all unsupported `NN_WP_*`
+  keys before `put_paramset`, so device schedule writes only send what the
+  device actually accepts.
+
+### Added
+
+- `WeekProfile.supported_schedule_fields` property (also exposed via
+  `WeekProfileDataPoint` and the `WeekProfileProtocol` / `WeekProfileDataPointProtocol`
+  protocols) returns the `frozenset[ScheduleField]` that the device advertises
+  in its MASTER paramset description. Frontends can inspect this capability
+  set (forwarded as `supported_schedule_fields` on the schedule entity
+  attributes) to hide non-functional inputs for devices like HmIP-DLD.
+
 # Version 2026.4.15 (2026-04-18)
 
 ## What's Changed

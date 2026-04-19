@@ -900,6 +900,7 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
             values=raw_schedule,
+            check_against_pd=True,
         )
 
     async def _get_raw_schedule(self) -> RAW_SCHEDULE_DICT:
@@ -1122,6 +1123,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
                 channel_address=sca,
                 paramset_key_or_link_address=ParamsetKey.MASTER,
                 values=raw_schedule,
+                check_against_pd=True,
             )
 
     @inspector
@@ -1227,6 +1229,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
             values=self.convert_dict_to_raw_schedule(schedule_data={profile: converted_profile_data}),
+            check_against_pd=True,
         )
 
     @inspector
@@ -1249,6 +1252,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
             channel_address=sca,
             paramset_key_or_link_address=ParamsetKey.MASTER,
             values=self.convert_dict_to_raw_schedule(schedule_data=converted_schedule_data),
+            check_against_pd=True,
         )
 
     @inspector

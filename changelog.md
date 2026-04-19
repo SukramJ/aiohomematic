@@ -15,6 +15,14 @@
   `_filter_raw_schedule_by_supported_fields` drops all unsupported `NN_WP_*`
   keys before `put_paramset`, so device schedule writes only send what the
   device actually accepts.
+- **Validate schedule writes against paramset description**: `WeekProfile` write
+  paths (`DefaultWeekProfile.set_schedule`, `ClimateWeekProfile.set_schedule`,
+  `set_profile`, `copy_schedule_to`) now pass `check_against_pd=True` to
+  `put_paramset`, matching the existing behavior of `set_weekday`. Previously,
+  unknown or unsupported `WP_*` parameters were forwarded to the CCU without
+  validation, where they were silently rejected or caused opaque errors. The
+  client now raises a clear `ClientException` listing the offending parameter
+  before the request is sent.
 
 ### Added
 

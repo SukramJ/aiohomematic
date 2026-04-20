@@ -37,7 +37,7 @@ class TestCentralPyDevOpenCCU:
         assert client is not None
         assert client.model == Backend.CCU
         assert central.client_coordinator.primary_client.model == Backend.CCU
-        assert len(central.device_registry.devices) == 398
+        assert len(central.device_registry.devices) == 399
 
         data = {}
         for device in central.device_registry.devices:
@@ -97,7 +97,7 @@ class TestCentralPyDevOpenCCU:
                 channel_type_names.add(channel.type_name)
 
         channel_type_names = sorted(channel_type_names)
-        assert len(channel_type_names) == 564
+        assert len(channel_type_names) == 565
         ce_channels = {}
         for cdp in custom_dps:
             if cdp.device.model not in ce_channels:
@@ -167,22 +167,22 @@ class TestCentralPyDevOpenCCU:
         for sv in central.hub_coordinator.sysvar_data_points:
             assert hasattr(sv, "__dict__") is False
 
-        assert usage_types[DataPointUsage.CDP_PRIMARY] == 281
-        assert usage_types[DataPointUsage.CDP_SECONDARY] == 164
-        assert usage_types[DataPointUsage.CDP_VISIBLE] == 156
-        assert usage_types[DataPointUsage.DATA_POINT] == 4387
-        assert usage_types[DataPointUsage.NO_CREATE] == 4535
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 282
+        assert usage_types[DataPointUsage.CDP_SECONDARY] == 166
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 157
+        assert usage_types[DataPointUsage.DATA_POINT] == 4401
+        assert usage_types[DataPointUsage.NO_CREATE] == 4564
 
-        assert len(ce_channels) == 136
+        assert len(ce_channels) == 137
         assert len(data_point_types) == 6
         assert len(parameters) == 269
 
-        assert len(central.device_registry.devices) == 398
+        assert len(central.device_registry.devices) == 399
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
         await central.device_coordinator.delete_devices(
             interface_id=const.OPENCCU_INTERFACE_ID, addresses=virtual_remotes
         )
-        assert len(central.device_registry.devices) == 395
+        assert len(central.device_registry.devices) == 396
         del_addresses = list(
             central.cache_coordinator.device_descriptions.get_device_descriptions(
                 interface_id=const.OPENCCU_INTERFACE_ID

@@ -1,3 +1,18 @@
+# Version 2026.4.17 (2026-04-20)
+
+## What's Changed
+
+### Added
+
+- **Add device profile for HmIP-UDI-SMI55** (Universal Dimming Interface with motion sensor):
+  Registered as IP dimmer on channel 7 (with secondary channels 8/9, state channel 6).
+  Motion sensor parameters (MOTION, ILLUMINATION, CURRENT_ILLUMINATION,
+  MOTION_DETECTION_ACTIVE, RESET_MOTION) from channel 4 are exposed via
+  additional data points. Week profile support on channel 10 is included.
+  Battery data (R03/AAA, quantity 2) added to operating voltage level calculation.
+
+---
+
 # Version 2026.4.16 (2026-04-18)
 
 ## What's Changed

@@ -1023,6 +1023,27 @@ DeviceProfileRegistry.register(
     channels=tuple(range(1, 49)),
 )
 
+# HmIP-UDI-SMI55 (Universal Dimming Interface with motion sensor)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.LIGHT,
+    models="HmIP-UDI-SMI55",
+    data_point_class=CustomDpDimmer,
+    profile_type=DeviceProfile.IP_DIMMER,
+    channels=(7,),
+    extended=ExtendedDeviceConfig(
+        additional_data_points={
+            4: (
+                Parameter.CURRENT_ILLUMINATION,
+                Parameter.ILLUMINATION,
+                Parameter.MOTION,
+                Parameter.MOTION_DETECTION_ACTIVE,
+                Parameter.RESET_MOTION,
+            ),
+        }
+    ),
+    schedule_channel_no=10,
+)
+
 # HmIP-SCTH230 (Dimmer with additional sensors)
 DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,

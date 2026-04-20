@@ -8,7 +8,7 @@ mypy==1.20.1
 pip==26.0.1
 prek==0.3.9
 pur==7.3.3
-pydevccu==0.2.3
+pydevccu==0.2.4
 pylint-per-file-ignores==3.2.1
 pylint-strict-informational==0.1
 pylint==4.0.5

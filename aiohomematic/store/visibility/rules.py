@@ -252,7 +252,7 @@ UN_IGNORE_PARAMETERS_BY_MODEL_LOWER: Final[dict[ModelName, frozenset[Parameter]]
 # Parameters to ignore for specific device models.
 
 IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[Parameter, frozenset[ModelName]]] = {
-    Parameter.CURRENT_ILLUMINATION: frozenset({"HmIP-SMI", "HmIP-SMO", "HmIP-SPI"}),
+    Parameter.CURRENT_ILLUMINATION: frozenset({"HmIP-SMI", "HmIP-SMO", "HmIP-SPI", "HmIP-UDI-SMI"}),
     Parameter.LOWBAT: frozenset(
         {
             "HM-LC-Sw1-DR",

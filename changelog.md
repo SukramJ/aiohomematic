@@ -1,3 +1,37 @@
+# Version 2026.4.17 (2026-04-20)
+
+## What's Changed
+
+### Added
+
+- **Add device profile for HmIP-UDI-SMI55** (Universal Dimming Interface with motion sensor):
+  Registered as IP dimmer on channel 7 (with secondary channels 8/9, state channel 6).
+  Motion sensor parameters (MOTION, ILLUMINATION, CURRENT_ILLUMINATION,
+  MOTION_DETECTION_ACTIVE, RESET_MOTION) from channel 4 are exposed via
+  additional data points. Week profile support on channel 10 is included.
+  Battery data (R03/AAA, quantity 2) added to operating voltage level calculation.
+- **Add `lint-translation-custom` pre-commit hook**: new
+  `script/lint_translation_custom.py` validates every override key in
+  `aiohomematic/ccu_data/translation_custom/*.json` against the extracted
+  archive, the `Parameter` enum, and known channel-type prefixes. Keys that
+  look like `channel_prefix_parameter` typos (where a pipe `|` was required)
+  are reported as errors with a concrete fix suggestion; noop overrides
+  whose value matches the extract are reported as warnings.
+
+### Fixed
+
+- **HmIP-DLD parameter label "Summer deaktivieren" replaced with
+  "Akustische Rückmeldung deaktivieren"**: the custom translation overrides
+  for `DISABLE_ACOUSTIC_CHANNELSTATE` and `HOLD_TIME` were keyed as
+  `door_lock_disable_acoustic_channelstate` and `door_lock_hold_time`.
+  Lookups use `channel_type|parameter` with a pipe separator, so the keys
+  never matched and the raw CCU firmware strings ("Summer deaktivieren",
+  "Haltezeit beim Öffnen") were forwarded unchanged. The keys are now
+  written as plain globals (`disable_acoustic_channelstate`, `hold_time`)
+  so the overrides actually apply.
+
+---
+
 # Version 2026.4.16 (2026-04-18)
 
 ## What's Changed

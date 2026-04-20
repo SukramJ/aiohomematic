@@ -170,7 +170,7 @@ class TestCentralPyDevOpenCCU:
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 282
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 166
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 157
-        assert usage_types[DataPointUsage.DATA_POINT] == 4401
+        assert usage_types[DataPointUsage.DATA_POINT] == 4400
         assert usage_types[DataPointUsage.NO_CREATE] == 4564
 
         assert len(ce_channels) == 137

@@ -37,6 +37,12 @@ repos:
         language: script
         files: ^aiohomematic/.+/__init__\.py$
         pass_filenames: false
+      - id: lint-translation-custom
+        name: lint-translation-custom
+        entry: script/run-in-env.sh python script/lint_translation_custom.py
+        language: script
+        files: ^aiohomematic/ccu_data/translation_custom/.+\.json$
+        pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.15.11
     hooks:

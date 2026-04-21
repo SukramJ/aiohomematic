@@ -232,7 +232,7 @@ def loop_check[**P, R](func: Callable[P, R]) -> Callable[P, R]:  # kwonly: disab
             try:
                 asyncio.get_running_loop()
                 loop_running = True
-            except Exception:
+            except RuntimeError:
                 loop_running = False
 
             if not loop_running and func not in _with_loop:

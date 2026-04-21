@@ -20,7 +20,7 @@ _de_sources: set[str] | None = None
 
 def _get_de_sources(docs_dir: str) -> set[str]:
     """Scan docs dir for .de.md files (cached)."""
-    global _de_sources  # noqa: PLW0603
+    global _de_sources  # noqa: PLW0603 - module-level cache is intentional for hook invocations
     if _de_sources is None:
         docs_path = Path(docs_dir)
         _de_sources = {

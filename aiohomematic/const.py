@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.4.17"
+VERSION: Final = "2026.4.18"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -269,7 +269,7 @@ RENAME_SYSVAR_BY_NAME: Final[Mapping[str, str]] = MappingProxyType(
 ADDRESS_SEPARATOR: Final = ":"
 BLOCK_LOG_TIMEOUT: Final = 60
 CONTENT_PATH: Final = "cache"
-CONF_PASSWORD: Final = "password"
+CONF_PASSWORD: Final = "password"  # noqa: S105 - config key name, not a password
 CONF_USERNAME: Final = "username"
 
 DATETIME_FORMAT: Final = "%d.%m.%Y %H:%M:%S"
@@ -286,7 +286,7 @@ SUB_DIRECTORY_SESSION: Final = "session"
 HUB_PATH: Final = "hub"
 IDENTIFIER_SEPARATOR: Final = "@"
 INIT_DATETIME: Final = datetime.strptime("01.01.1970 00:00:00", DATETIME_FORMAT)
-IP_ANY_V4: Final = "0.0.0.0"
+IP_ANY_V4: Final = "0.0.0.0"  # noqa: S104  # nosec B104 - XML-RPC callback server must accept connections from CCU on any interface
 JSON_SESSION_AGE: Final = 90
 
 # Login rate limiting constants

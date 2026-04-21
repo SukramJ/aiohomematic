@@ -113,7 +113,7 @@ def unfreeze_params(*, frozen_params: str) -> Any:
     """
     try:
         obj = ast.literal_eval(frozen_params)
-    except Exception:
+    except ValueError, SyntaxError, MemoryError, TypeError:
         # Malformed frozen string - return as-is for graceful degradation
         return frozen_params
 
@@ -128,7 +128,7 @@ def unfreeze_params(*, frozen_params: str) -> Any:
             if tag == "__datetime__" and len(o) == 2 and isinstance(o[1], str):
                 try:
                     return datetime.fromisoformat(o[1])
-                except Exception:
+                except ValueError:
                     # Invalid ISO format - return the string value
                     return o[1]
             # Generic tuple - recursively process elements

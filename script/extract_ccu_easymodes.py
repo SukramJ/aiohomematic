@@ -904,7 +904,7 @@ def load_remote(ccu_url: str) -> tuple[dict[str, dict[str, Any]], dict[str, Any]
         url = f"{base_url}/{path}"
         try:
             req = urllib.request.Request(url)
-            with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
+            with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:  # nosec B310 - dev-only CCU data extraction
                 data = resp.read()
                 try:
                     return data.decode("utf-8")

@@ -332,7 +332,7 @@ class BackgroundScheduler:
                     reason=extract_exc_args(exc=nex),
                 )
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - scheduled connection check must never kill the scheduler thread
             _LOGGER.error(
                 i18n.tr(
                     key="log.central.scheduler.check_connection.failed",

@@ -824,7 +824,7 @@ def fetch_remote_file(ccu_url: str, relative_path: str) -> str:
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(url, context=ctx) as response:
+    with urllib.request.urlopen(url, context=ctx) as response:  # nosec B310 - dev-only CCU data extraction
         raw: bytes = response.read()
         # Some CCU files use ISO-8859-1 encoding
         try:

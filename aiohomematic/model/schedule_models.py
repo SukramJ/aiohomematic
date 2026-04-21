@@ -34,10 +34,10 @@ entry = SimpleScheduleEntry(
 
 """
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 import re
-from typing import TYPE_CHECKING, Annotated, Any, Final, Literal, cast
+from typing import Annotated, Any, Final, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, ValidationInfo, field_validator, model_validator
 
@@ -54,10 +54,6 @@ from aiohomematic.const import (
     TimeBase,
     WeekdayInt,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 
 # Schedule domains for domain-specific validation
 # Maps to DataPointCategory values that support schedules
@@ -439,74 +435,12 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
         result: SimpleScheduleEntry = cast(SimpleScheduleEntry, handler(values))
 
         # Get domain from context (if provided)
-        domain = _get_schedule_domain_from_context(info=info)
-        if domain is None:
+        if (domain := _get_schedule_domain_from_context(info=info)) is None:
             # No domain context - skip domain-specific validation
             return result
 
-        # Domain-specific validation
-        if domain == DataPointCategory.SWITCH:
-            # Switches must have binary level (0.0 or 1.0)
-            if result.level not in (0.0, 1.0):
-                raise ValueError(
-                    i18n.tr(
-                        key="exception.model.schedule.switch_level_not_binary",
-                        level=result.level,
-                    )
-                )
-            # Switches don't support level_2 (slat position)
-            if result.level_2 is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="switch"))
-            # Switches don't support ramp_time (dimming)
-            if result.ramp_time is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="switch"))
-
-        elif domain == DataPointCategory.LIGHT:
-            # Lights don't support level_2 (slat position is cover-only)
-            if result.level_2 is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="light"))
-
-        elif domain == DataPointCategory.COVER:
-            # Covers don't support ramp_time
-            if result.ramp_time is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="cover"))
-            # Covers don't support duration
-            if result.duration is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.duration_not_supported", domain="cover"))
-
-        elif domain == DataPointCategory.VALVE:
-            # Valves don't support level_2 (slat position)
-            if result.level_2 is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="valve"))
-            # Valves don't support ramp_time
-            if result.ramp_time is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="valve"))
-
-        elif domain == DataPointCategory.LOCK:
-            # Lock mode is required
-            if result.lock_mode is None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.lock_mode_required"))
-            # door_lock mode: lock_action required, permission forbidden
-            if result.lock_mode == "door_lock":
-                if result.lock_action is None:
-                    raise ValueError(i18n.tr(key="exception.model.schedule.lock_action_required"))
-                if result.permission is not None:
-                    raise ValueError(i18n.tr(key="exception.model.schedule.permission_not_allowed_in_door_lock_mode"))
-            # user_permission mode: permission required, lock_action forbidden
-            elif result.lock_mode == "user_permission":
-                if result.permission is None:
-                    raise ValueError(i18n.tr(key="exception.model.schedule.permission_required"))
-                if result.lock_action is not None:
-                    raise ValueError(
-                        i18n.tr(key="exception.model.schedule.lock_action_not_allowed_in_user_permission_mode")
-                    )
-            # Locks don't support level_2, ramp_time, or user-set duration
-            if result.level_2 is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="lock"))
-            if result.ramp_time is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="lock"))
-            if result.duration is not None:
-                raise ValueError(i18n.tr(key="exception.model.schedule.duration_not_supported", domain="lock"))
+        # Dispatch to per-domain validator
+        _validate_domain_specific(domain=domain, entry=result)
 
         return result
 
@@ -534,6 +468,92 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
         if self.condition != "fixed_time" and self.astro_type is None:
             raise ValueError(i18n.tr(key="exception.model.schedule.astro_type_required", condition=self.condition))
         return self
+
+
+def _validate_switch_entry(entry: SimpleScheduleEntry) -> None:  # kwonly: disable
+    """Validate domain-specific rules for SWITCH devices."""
+    # Switches must have binary level (0.0 or 1.0)
+    if entry.level not in (0.0, 1.0):
+        raise ValueError(
+            i18n.tr(
+                key="exception.model.schedule.switch_level_not_binary",
+                level=entry.level,
+            )
+        )
+    # Switches don't support level_2 (slat position)
+    if entry.level_2 is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="switch"))
+    # Switches don't support ramp_time (dimming)
+    if entry.ramp_time is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="switch"))
+
+
+def _validate_light_entry(entry: SimpleScheduleEntry) -> None:  # kwonly: disable
+    """Validate domain-specific rules for LIGHT devices."""
+    # Lights don't support level_2 (slat position is cover-only)
+    if entry.level_2 is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="light"))
+
+
+def _validate_cover_entry(entry: SimpleScheduleEntry) -> None:  # kwonly: disable
+    """Validate domain-specific rules for COVER devices."""
+    # Covers don't support ramp_time
+    if entry.ramp_time is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="cover"))
+    # Covers don't support duration
+    if entry.duration is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.duration_not_supported", domain="cover"))
+
+
+def _validate_valve_entry(entry: SimpleScheduleEntry) -> None:  # kwonly: disable
+    """Validate domain-specific rules for VALVE devices."""
+    # Valves don't support level_2 (slat position)
+    if entry.level_2 is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="valve"))
+    # Valves don't support ramp_time
+    if entry.ramp_time is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="valve"))
+
+
+def _validate_lock_entry(entry: SimpleScheduleEntry) -> None:  # kwonly: disable
+    """Validate domain-specific rules for LOCK devices."""
+    # Lock mode is required
+    if entry.lock_mode is None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.lock_mode_required"))
+    # door_lock mode: lock_action required, permission forbidden
+    if entry.lock_mode == "door_lock":
+        if entry.lock_action is None:
+            raise ValueError(i18n.tr(key="exception.model.schedule.lock_action_required"))
+        if entry.permission is not None:
+            raise ValueError(i18n.tr(key="exception.model.schedule.permission_not_allowed_in_door_lock_mode"))
+    # user_permission mode: permission required, lock_action forbidden
+    elif entry.lock_mode == "user_permission":
+        if entry.permission is None:
+            raise ValueError(i18n.tr(key="exception.model.schedule.permission_required"))
+        if entry.lock_action is not None:
+            raise ValueError(i18n.tr(key="exception.model.schedule.lock_action_not_allowed_in_user_permission_mode"))
+    # Locks don't support level_2, ramp_time, or user-set duration
+    if entry.level_2 is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.level_2_not_supported", domain="lock"))
+    if entry.ramp_time is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.ramp_time_not_supported", domain="lock"))
+    if entry.duration is not None:
+        raise ValueError(i18n.tr(key="exception.model.schedule.duration_not_supported", domain="lock"))
+
+
+_DOMAIN_VALIDATORS: Final[dict[DataPointCategory, Callable[[SimpleScheduleEntry], None]]] = {
+    DataPointCategory.SWITCH: _validate_switch_entry,
+    DataPointCategory.LIGHT: _validate_light_entry,
+    DataPointCategory.COVER: _validate_cover_entry,
+    DataPointCategory.VALVE: _validate_valve_entry,
+    DataPointCategory.LOCK: _validate_lock_entry,
+}
+
+
+def _validate_domain_specific(*, domain: DataPointCategory, entry: SimpleScheduleEntry) -> None:
+    """Apply domain-specific validation rules if a validator is registered."""
+    if (validator := _DOMAIN_VALIDATORS.get(domain)) is not None:
+        validator(entry)
 
 
 class SimpleSchedule(_JsonSerializableMixin, BaseModel):

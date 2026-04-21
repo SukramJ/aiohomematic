@@ -7,8 +7,7 @@ Public API of this module is defined by __all__.
 """
 
 import asyncio
-import glob
-import os
+from pathlib import Path
 
 from aiohomematic import i18n
 from aiohomematic.exceptions import AioHomematicException
@@ -22,12 +21,13 @@ __all__ = [
 
 def delete_file(directory: str, file_name: str) -> None:  # kwonly: disable
     """Delete the file. File can contain a wildcard."""
-    if os.path.exists(directory):
-        real_directory = os.path.realpath(directory)
-        for file_path in glob.glob(os.path.join(directory, file_name)):
-            resolved = os.path.realpath(file_path)
-            if os.path.commonpath([resolved, real_directory]) == real_directory and os.path.isfile(resolved):
-                os.remove(resolved)
+    dir_path = Path(directory)
+    if dir_path.exists():
+        real_directory = dir_path.resolve()
+        for file_path in dir_path.glob(file_name):
+            resolved = file_path.resolve()
+            if resolved.is_relative_to(real_directory) and resolved.is_file():
+                resolved.unlink()
 
 
 def cleanup_script_for_session_recorder(*, script: str) -> str:
@@ -50,9 +50,10 @@ def _check_or_create_directory_sync(*, directory: str) -> bool:
     """Check / create directory (internal sync implementation)."""
     if not directory:
         return False
-    if not os.path.exists(directory):
+    dir_path = Path(directory)
+    if not dir_path.exists():
         try:
-            os.makedirs(directory, mode=0o700)
+            dir_path.mkdir(mode=0o700, parents=True)
         except OSError as oserr:
             raise AioHomematicException(
                 i18n.tr(

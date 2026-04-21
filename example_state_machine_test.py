@@ -81,19 +81,19 @@ def _check_env() -> bool:
         missing.append("CCU_PASSWORD")
 
     if missing:
-        print("\n" + "=" * 70)  # noqa: T201
-        print("ERROR: Missing required environment variables")  # noqa: T201
-        print("=" * 70)  # noqa: T201
-        print(f"Missing: {', '.join(missing)}")  # noqa: T201
-        print()  # noqa: T201
-        print("Set them using:")  # noqa: T201
-        print("  export CCU_HOST='192.168.178.116'")  # noqa: T201
-        print("  export CCU_USERNAME='Admin'")  # noqa: T201
-        print("  export CCU_PASSWORD='your_password'")  # noqa: T201
-        print()  # noqa: T201
-        print("Or use the helper script:")  # noqa: T201
-        print("  source script/set_ccu_env.sh")  # noqa: T201
-        print("=" * 70 + "\n")  # noqa: T201
+        print("\n" + "=" * 70)
+        print("ERROR: Missing required environment variables")
+        print("=" * 70)
+        print(f"Missing: {', '.join(missing)}")
+        print()
+        print("Set them using:")
+        print("  export CCU_HOST='192.168.178.116'")
+        print("  export CCU_USERNAME='Admin'")
+        print("  export CCU_PASSWORD='your_password'")
+        print()
+        print("Or use the helper script:")
+        print("  source script/set_ccu_env.sh")
+        print("=" * 70 + "\n")
         return False
     return True
 
@@ -243,23 +243,23 @@ class StateMachineTestMonitor:
         """Print a summary of the test session."""
         duration = (datetime.now() - self.start_time).total_seconds()
 
-        print("\n" + "=" * 70)  # noqa: T201
-        print("STATE MACHINE TEST SUMMARY")  # noqa: T201
-        print("=" * 70)  # noqa: T201
-        print(f"Duration: {duration:.1f} seconds")  # noqa: T201
-        print(f"Total events received: {self.event_count}")  # noqa: T201
-        print(f"Reconnection attempts: {self.reconnect_count}")  # noqa: T201
-        print()  # noqa: T201
+        print("\n" + "=" * 70)
+        print("STATE MACHINE TEST SUMMARY")
+        print("=" * 70)
+        print(f"Duration: {duration:.1f} seconds")
+        print(f"Total events received: {self.event_count}")
+        print(f"Reconnection attempts: {self.reconnect_count}")
+        print()
 
         # Central state transitions
-        print("Central State Transitions:")  # noqa: T201
-        print("-" * 40)  # noqa: T201
+        print("Central State Transitions:")
+        print("-" * 40)
         for ts, old_state, new_state, reason in self.central_state_history:
-            print(f"  {ts.strftime('%H:%M:%S')} {old_state.value:15} -> {new_state.value:15} {reason}")  # noqa: T201
+            print(f"  {ts.strftime('%H:%M:%S')} {old_state.value:15} -> {new_state.value:15} {reason}")
 
         # Client state transitions (grouped by interface)
-        print("\nClient State Transitions:")  # noqa: T201
-        print("-" * 40)  # noqa: T201
+        print("\nClient State Transitions:")
+        print("-" * 40)
         interfaces: dict[str, list[tuple[datetime, ClientState, ClientState]]] = {}
         for ts, iid, client_old, client_new in self.client_state_history:
             short_name = iid.split("-")[-1] if "-" in iid else iid
@@ -268,19 +268,19 @@ class StateMachineTestMonitor:
             interfaces[short_name].append((ts, client_old, client_new))
 
         for iface, transitions in interfaces.items():
-            print(f"  {iface}:")  # noqa: T201
+            print(f"  {iface}:")
             for ts, client_old, client_new in transitions:
-                print(f"    {ts.strftime('%H:%M:%S')} {client_old.value:15} -> {client_new.value}")  # noqa: T201
+                print(f"    {ts.strftime('%H:%M:%S')} {client_old.value:15} -> {client_new.value}")
 
         # Health snapshots
         if self.health_snapshots:
-            print("\nHealth Snapshots:")  # noqa: T201
-            print("-" * 40)  # noqa: T201
+            print("\nHealth Snapshots:")
+            print("-" * 40)
             for ts, overall, client_scores in self.health_snapshots:
                 client_str = " | ".join(f"{k}: {v * 100:.0f}%" for k, v in client_scores.items())
-                print(f"  {ts.strftime('%H:%M:%S')} Overall: {overall * 100:.1f}% | {client_str}")  # noqa: T201
+                print(f"  {ts.strftime('%H:%M:%S')} Overall: {overall * 100:.1f}% | {client_str}")
 
-        print("=" * 70)  # noqa: T201
+        print("=" * 70)
 
     async def run(self) -> None:
         """Run the test monitor."""
@@ -333,18 +333,18 @@ class StateMachineTestMonitor:
             handler=self._on_device_lifecycle,
         )
 
-        print("\n" + "=" * 70)  # noqa: T201
-        print("STATE MACHINE TEST - Starting")  # noqa: T201
-        print("=" * 70)  # noqa: T201
-        print(f"CCU Host: {CCU_HOST}")  # noqa: T201
-        print(f"Interfaces: HmIP-RF ({CCU_PORT_HMIP}), BidCos-RF ({CCU_PORT_BIDCOS})")  # noqa: T201
-        print()  # noqa: T201
-        print("Instructions:")  # noqa: T201
-        print("  1. Wait for RUNNING state (all clients connected)")  # noqa: T201
-        print("  2. Restart your CCU to test recovery behavior")  # noqa: T201
-        print("  3. Watch the state transitions and health scores")  # noqa: T201
-        print("  4. Press Ctrl+C to stop and see summary")  # noqa: T201
-        print("=" * 70 + "\n")  # noqa: T201
+        print("\n" + "=" * 70)
+        print("STATE MACHINE TEST - Starting")
+        print("=" * 70)
+        print(f"CCU Host: {CCU_HOST}")
+        print(f"Interfaces: HmIP-RF ({CCU_PORT_HMIP}), BidCos-RF ({CCU_PORT_BIDCOS})")
+        print()
+        print("Instructions:")
+        print("  1. Wait for RUNNING state (all clients connected)")
+        print("  2. Restart your CCU to test recovery behavior")
+        print("  3. Watch the state transitions and health scores")
+        print("  4. Press Ctrl+C to stop and see summary")
+        print("=" * 70 + "\n")
 
         try:
             # Start central
@@ -355,7 +355,7 @@ class StateMachineTestMonitor:
             self._capture_health_snapshot()
 
             # Wait until shutdown
-            print("\n--- Monitoring active. Press Ctrl+C to stop ---\n")  # noqa: T201
+            print("\n--- Monitoring active. Press Ctrl+C to stop ---\n")
 
             # Periodic health check
             while not self.shutdown_event.is_set():
@@ -368,7 +368,7 @@ class StateMachineTestMonitor:
         except asyncio.CancelledError:
             _LOGGER.info("Received shutdown signal")
         finally:
-            print("\n--- Shutting down ---\n")  # noqa: T201
+            print("\n--- Shutting down ---\n")
             await self.central.stop()
             self._print_summary()
 

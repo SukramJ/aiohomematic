@@ -18,13 +18,7 @@ from datetime import datetime
 from functools import partial
 import logging
 import time
-from typing import TYPE_CHECKING, Any, Final, TypedDict, Unpack
-
-from aiohomematic.interfaces import TaskSchedulerProtocol
-from aiohomematic.property_decorators import DelegatedProperty
-
-if TYPE_CHECKING:
-    from aiohomematic.model.data_point import BaseDataPoint  # noqa: F401
+from typing import Any, Final, TypedDict, Unpack
 
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.decorators import callback_event
@@ -54,9 +48,11 @@ from aiohomematic.interfaces import (
     GenericDataPointProtocol,
     GenericEventProtocol,
     LastEventTrackerProtocol,
+    TaskSchedulerProtocol,
 )
 from aiohomematic.interfaces.central import HealthTrackerProtocol
 from aiohomematic.interfaces.model import BaseParameterDataPointProtocolAny
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 _LOGGER_EVENT: Final = logging.getLogger(f"{__package__}.event")

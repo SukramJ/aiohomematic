@@ -276,9 +276,10 @@ class TestClientEventTracking:
             await asyncio.sleep(0.01)
             dev.fire_event()
 
-        asyncio.create_task(_fire_event())  # noqa: RUF006
+        _fire_task = asyncio.create_task(_fire_event())
         await _track_single_data_point_state_change_or_timeout(device=dev, dpk_value=(dpk, 0.505), wait_for_callback=5)
         assert dev.event_bus_provider.event_bus.unsub_called is True
+        await _fire_task
 
     @pytest.mark.asyncio
     async def test_event_tracker_happy_path_value_match(self) -> None:
@@ -293,10 +294,11 @@ class TestClientEventTracking:
             await asyncio.sleep(0.01)
             dev.fire_event()
 
-        asyncio.create_task(_fire_event())  # noqa: RUF006
+        _fire_task = asyncio.create_task(_fire_event())
         await _track_single_data_point_state_change_or_timeout(device=dev, dpk_value=(dpk, 0.5), wait_for_callback=5)
         # Should have completed well before 5s timeout
         assert dev.event_bus_provider.event_bus.unsub_called is True
+        await _fire_task
 
     @pytest.mark.asyncio
     async def test_event_tracker_parallel_data_points(self) -> None:
@@ -315,11 +317,12 @@ class TestClientEventTracking:
             dev.fire_event(parameter="LEVEL")
             dev.fire_event(parameter="STATE")
 
-        asyncio.create_task(_fire_events())  # noqa: RUF006
+        _fire_task = asyncio.create_task(_fire_events())
         await wait_for_state_change_or_timeout(device=dev, dpk_values={(dpk1, 0.5), (dpk2, True)}, wait_for_callback=5)
         # Both should have resolved
         assert dev.get_dp("LEVEL").resolved
         assert dev.get_dp("STATE").resolved
+        await _fire_task
 
     @pytest.mark.asyncio
     async def test_event_tracker_timeout_and_unsubscribe(self) -> None:

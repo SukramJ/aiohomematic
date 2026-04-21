@@ -132,18 +132,18 @@ class TestDirectoryHelpers:
         """Test _check_or_create_directory_sync."""
         assert _check_or_create_directory_sync(directory="") is False
         with patch(
-            "os.path.exists",
+            "pathlib.Path.exists",
             return_value=True,
         ):
             assert _check_or_create_directory_sync(directory="tmpdir_1") is True
 
         with (
             patch(
-                "os.path.exists",
+                "pathlib.Path.exists",
                 return_value=False,
             ),
             patch(
-                "os.makedirs",
+                "pathlib.Path.mkdir",
                 return_value=None,
             ),
         ):
@@ -151,10 +151,10 @@ class TestDirectoryHelpers:
 
         with (
             patch(
-                "os.path.exists",
+                "pathlib.Path.exists",
                 return_value=False,
             ),
-            patch("os.makedirs", side_effect=OSError("bla bla")),
+            patch("pathlib.Path.mkdir", side_effect=OSError("bla bla")),
         ):
             with pytest.raises(AioHomematicException) as exc:
                 _check_or_create_directory_sync(directory="tmpdir_ex")

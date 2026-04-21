@@ -507,7 +507,7 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         """Return the device operation mode."""
         try:
             return _DeviceOperationMode(str(self._dp_device_operation_mode.value))
-        except Exception:
+        except ValueError, AttributeError:
             # Fallback to a sensible default if the value is not set or unexpected
             return _DeviceOperationMode.RGBW
 

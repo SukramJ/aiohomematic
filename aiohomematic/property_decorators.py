@@ -677,7 +677,7 @@ def get_hm_property_by_kind(
                 result.update({f"{name[:1]}.{k}": v for k, v in value.log_context.items()})
             else:
                 result[key] = _get_text_value_with_dataclass_fallback(value=value)
-        except Exception:
+        except Exception:  # noqa: BLE001 - log context collection must never fail; getters may have arbitrary side effects
             # Avoid propagating side effects/errors from getters
             result[key] = None
     return result

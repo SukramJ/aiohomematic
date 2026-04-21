@@ -69,14 +69,14 @@ def _load_json_resource(*, package: str, resource: str, in_translations: bool = 
             return {}
         data = compat.loads(data=data_bytes)
         return {str(k): str(v) for k, v in data.items()}
-    except Exception as exc:  # pragma: no cover - defensive
+    except (OSError, compat.JSONDecodeError, AttributeError, TypeError) as exc:  # pragma: no cover - defensive
         _LOGGER.debug("Failed to load translation resource %s/%s: %s", package, resource_path, exc)
         return {}
 
 
 def _ensure_base_loaded() -> _LocaleState:
     """Ensure base catalog is loaded, return current state."""
-    global _state  # noqa: PLW0603  # pylint: disable=global-statement
+    global _state  # noqa: PLW0603 - module-level locale state is intentional singleton  # pylint: disable=global-statement
 
     current = _state
     if current.base_loaded:
@@ -101,7 +101,7 @@ def _ensure_base_loaded() -> _LocaleState:
 
 def _get_catalog(*, locale: str) -> dict[str, str]:
     """Get the catalog for a locale (cached)."""
-    global _state  # noqa: PLW0603  # pylint: disable=global-statement
+    global _state  # noqa: PLW0603 - module-level locale state is intentional singleton  # pylint: disable=global-statement
 
     state = _ensure_base_loaded()
 
@@ -140,7 +140,7 @@ def set_locale(*, locale: str | None = None) -> None:
     Idempotent: re-setting the same locale is a no-op. Setting a different locale
     after the first call logs a warning and keeps the original locale.
     """
-    global _state, _locale_locked  # noqa: PLW0603  # pylint: disable=global-statement
+    global _state, _locale_locked  # noqa: PLW0603 - module-level locale state is intentional singleton  # pylint: disable=global-statement
 
     if _locale_locked:
         if (new_locale := (locale or DEFAULT_LOCALE).strip() or DEFAULT_LOCALE) == _state.current_locale:
@@ -194,7 +194,7 @@ def tr(*, key: str, **kwargs: Any) -> str:
 
     try:
         return template.format_map(_SafeDict(kwargs))
-    except Exception:  # pragma: no cover - keep robust against bad format strings
+    except ValueError, IndexError, KeyError, TypeError:  # pragma: no cover - keep robust against bad format strings
         return template
 
 
@@ -234,7 +234,7 @@ def _reset_locale_for_testing() -> None:
     Internal API for test infrastructure only. Allows tests to call
     set_locale() freely without interference from the immutability guard.
     """
-    global _state, _locale_locked  # noqa: PLW0603  # pylint: disable=global-statement
+    global _state, _locale_locked  # noqa: PLW0603 - module-level locale state is intentional singleton  # pylint: disable=global-statement
 
     _locale_locked = False
     _state = _LocaleState()

@@ -198,10 +198,10 @@ class RequestCoalescer:
 
         try:
             result = await executor()
-            future.set_result(result)
+            future.set_result(result)  # type: ignore[possibly-undefined]  # defined in else-branch when existing_future is None
         except Exception as exc:
             self._emit_failure_counter()
-            future.set_exception(exc)
+            future.set_exception(exc)  # type: ignore[possibly-undefined]
             raise
         else:
             return result

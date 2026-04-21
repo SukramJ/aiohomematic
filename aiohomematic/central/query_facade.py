@@ -22,6 +22,7 @@ from aiohomematic.const import (
     DeviceTriggerEventType,
     Interface,
     Operations,
+    Parameter,
     ParamsetKey,
 )
 from aiohomematic.exceptions import AioHomematicException
@@ -93,6 +94,22 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
         self._cache_coordinator: Final = cache_coordinator
         self._client_coordinator: Final = client_coordinator
         self._hub_coordinator: Final = hub_coordinator
+
+    @staticmethod
+    def _resolve_channel_repr(
+        *,
+        channel_address: str,
+        use_channel_wildcard: bool,
+        channel_no_cache: dict[str, int | None],
+    ) -> int | str | None:
+        """Return cached or freshly computed channel representation for full-format output."""
+        if use_channel_wildcard:
+            return UN_IGNORE_WILDCARD
+        if channel_address in channel_no_cache:
+            return channel_no_cache[channel_address]
+        channel_repr = get_channel_no(address=channel_address)
+        channel_no_cache[channel_address] = channel_repr
+        return channel_repr
 
     def get_custom_data_point(self, *, address: str, channel_no: int) -> CustomDataPointProtocol | None:
         """Return the hm custom_data_point."""
@@ -329,29 +346,23 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
                     if (int(parameter_data["OPERATIONS"]) & op_mask) != op_mask:
                         continue
 
-                    if un_ignore_candidates_only:
-                        # Cheap check first to avoid expensive dp lookup when possible
-                        if parameter in ignore_set:
-                            continue
-                        dp = self.get_generic_data_point(
-                            channel_address=channel_address,
-                            parameter=parameter,
-                            paramset_key=paramset_key,
-                        )
-                        if dp and dp.enabled_default and not dp.is_un_ignored:
-                            continue
+                    if un_ignore_candidates_only and self._skip_un_ignore_candidate(
+                        parameter=parameter,
+                        channel_address=channel_address,
+                        paramset_key=paramset_key,
+                        ignore_set=ignore_set,
+                    ):
+                        continue
 
                     if not full_format:
                         parameters.add(parameter)
                         continue
 
-                    if use_channel_wildcard:
-                        channel_repr: int | str | None = UN_IGNORE_WILDCARD
-                    elif channel_address in channel_no_cache:
-                        channel_repr = channel_no_cache[channel_address]
-                    else:
-                        channel_repr = get_channel_no(address=channel_address)
-                        channel_no_cache[channel_address] = channel_repr
+                    channel_repr = self._resolve_channel_repr(
+                        channel_address=channel_address,
+                        use_channel_wildcard=use_channel_wildcard,
+                        channel_no_cache=channel_no_cache,
+                    )
 
                     # Build the full parameter string
                     if channel_repr is None:
@@ -438,3 +449,22 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
                 )
             )
         return candidates
+
+    def _skip_un_ignore_candidate(
+        self,
+        *,
+        parameter: str,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        ignore_set: frozenset[Parameter],
+    ) -> bool:
+        """Return True when a parameter should be skipped for un-ignore candidate filtering."""
+        # Cheap check first to avoid expensive dp lookup when possible
+        if parameter in ignore_set:
+            return True
+        dp = self.get_generic_data_point(
+            channel_address=channel_address,
+            parameter=parameter,
+            paramset_key=paramset_key,
+        )
+        return bool(dp and dp.enabled_default and not dp.is_un_ignored)

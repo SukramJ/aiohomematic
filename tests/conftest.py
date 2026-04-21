@@ -182,7 +182,7 @@ def pydevccu_mini() -> pydevccu.Server:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # If loop is running, create task and let it complete
-                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006
+                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006 - fire-and-forget during fixture teardown
             else:
                 # If loop is not running, run it synchronously
                 loop.run_until_complete(ccu.stop())
@@ -225,7 +225,7 @@ def pydevccu_full() -> pydevccu.Server:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # If loop is running, create task and let it complete
-                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006
+                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006 - fire-and-forget during fixture teardown
             else:
                 # If loop is not running, run it synchronously
                 loop.run_until_complete(ccu.stop())

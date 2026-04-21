@@ -75,7 +75,9 @@ repos:
           - --quiet
           - --format=custom
           - --configfile=tests/bandit.yaml
-        files: ^(aiohomematic|aiohomematic_test_support|script|tests)/.+\.py$
+        # Tests and test-support contain intentional fixtures (fake tokens, short test passwords)
+        # that bandit flags as B105/B106; ruff `S` rules already guard production code.
+        files: ^(aiohomematic|script)/.+\.py$
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

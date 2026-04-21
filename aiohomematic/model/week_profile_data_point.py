@@ -135,7 +135,7 @@ class ScheduleChannelSwitch(BaseDataPoint, ScheduleChannelSwitchProtocol):
             self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=week_profile_data_point.unique_id,
-                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108 - lambda discards event kwarg; publish_data_point_updated_event does not accept it  # pylint: disable=unnecessary-lambda
             )
         )
         weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
@@ -339,7 +339,7 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=data_point.unique_id,
-                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108 - lambda discards event kwarg; publish_data_point_updated_event does not accept it  # pylint: disable=unnecessary-lambda
             )
         )
 
@@ -594,7 +594,7 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
             self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=self.unique_id,
-                handler=lambda *, event: climate_data_point.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: climate_data_point.publish_data_point_updated_event(),  # noqa: PLW0108 - lambda discards event kwarg; publish_data_point_updated_event does not accept it  # pylint: disable=unnecessary-lambda
             )
         )
 
@@ -621,7 +621,7 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
             self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=data_point.unique_id,
-                handler=lambda *, event: self._on_profile_pointer_updated(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: self._on_profile_pointer_updated(),  # noqa: PLW0108 - lambda discards event kwarg; _on_profile_pointer_updated does not accept it  # pylint: disable=unnecessary-lambda
             )
         )
 

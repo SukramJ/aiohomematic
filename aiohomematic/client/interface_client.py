@@ -858,7 +858,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         return await self._backend.list_devices()
 
     @inspector(re_raise=False, no_raise_return=set())
-    async def put_paramset(
+    async def put_paramset(  # noqa: C901 - linear RPC flow: priority/validation/throttle/retry/post-callback handling cannot be meaningfully split without losing context
         self,
         *,
         channel_address: str,
@@ -1573,7 +1573,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                     interface_id=self.interface_id,
                     context=context,
                 )
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail callback monitoring
                 _LOGGER.debug("Failed to record CALLBACK_TIMEOUT incident: %s", err)
 
         self._central.looper.create_task(

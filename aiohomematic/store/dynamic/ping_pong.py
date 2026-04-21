@@ -76,7 +76,7 @@ class PingPongTracker(PingPongTrackerProtocol):
         ttl: int = PING_PONG_MISMATCH_COUNT_TTL,
     ):
         """Initialize the cache with ttl."""
-        assert ttl > 0
+        assert ttl > 0  # noqa: S101
         self._event_bus_provider: Final = event_bus_provider
         self._central_info: Final = central_info
         self._interface_id: Final = interface_id
@@ -335,7 +335,7 @@ class PingPongTracker(PingPongTrackerProtocol):
                     context=context,
                     journal=self._journal,
                 )
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail ping/pong tracking  # pragma: no cover
                 _LOGGER.debug(
                     "PING PONG CACHE: Failed to record incident %s on %s: %s",
                     incident_type.value,
@@ -410,7 +410,7 @@ class PingPongTracker(PingPongTrackerProtocol):
             try:
                 await asyncio.sleep(delay)
                 await self._retry_reconcile_pong(token=token)
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - background retry task; log and recover gracefully  # pragma: no cover
                 _LOGGER.debug(
                     "PING PONG CACHE: Retry task error for token %s on %s: %s",
                     token,

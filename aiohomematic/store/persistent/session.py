@@ -188,7 +188,7 @@ class SessionRecorder:
                 )
                 return
             self.set(rpc_type=str(RPCType.JSON_RPC), method=method, params=params, response=response)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - session recording is diagnostic; must not break the RPC call
             _LOGGER.debug("ADD_JSON_RPC_SESSION: failed with %s", extract_exc_args(exc=exc))
 
     def add_xml_rpc_session(
@@ -205,7 +205,7 @@ class SessionRecorder:
                 )
                 return
             self.set(rpc_type=str(RPCType.XML_RPC), method=method, params=params, response=response)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - session recording is diagnostic; must not break the RPC call
             _LOGGER.debug("ADD_XML_RPC_SESSION: failed with %s", extract_exc_args(exc=exc))
 
     def cleanup(self) -> None:

@@ -55,7 +55,7 @@ def inspector[**P, R](  # kwonly: disable
 ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
-def inspector[**P, R](  # noqa: C901, kwonly: disable
+def inspector[**P, R](  # noqa: C901 - decorator factory covering 3 callable shapes (bare @inspector, @inspector(...) sync, @inspector(...) async) plus context management and metrics emission
     func: Callable[P, R] | None = None,
     /,
     *,
@@ -94,7 +94,7 @@ def inspector[**P, R](  # noqa: C901, kwonly: disable
 
     """
 
-    def create_wrapped_decorator(func: Callable[P, R]) -> Callable[P, R]:  # noqa: C901
+    def create_wrapped_decorator(func: Callable[P, R]) -> Callable[P, R]:  # noqa: C901 - inner decorator factory defining both sync and async wrappers with shared exception routing, token-based context management, and metrics
         """
         Decorate function for wrapping sync or async functions.
 
@@ -158,7 +158,7 @@ def inspector[**P, R](  # noqa: C901, kwonly: disable
                     is_homematic=True,
                     context_obj=context_obj,
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - service boundary; classify non-homematic errors via handle_exception
                 had_error = True
                 if token is not None:
                     reset_request_context(token=token)
@@ -215,7 +215,7 @@ def inspector[**P, R](  # noqa: C901, kwonly: disable
                     is_homematic=True,
                     context_obj=context_obj,
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - service boundary; classify non-homematic errors via handle_exception
                 had_error = True
                 if token is not None:
                     reset_request_context(token=token)
@@ -337,7 +337,7 @@ def get_service_calls(*, obj: object) -> ServiceMethodMap:
             try:
                 # Check the attribute on the class (function/descriptor)
                 attr = getattr(cls, name)
-            except Exception:
+            except AttributeError:
                 continue
             # Only consider callables exposed on the instance and marked with lib_service on the function/wrapper
             if callable(getattr(obj, name, None)) and hasattr(attr, "lib_service"):

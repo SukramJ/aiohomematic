@@ -60,9 +60,8 @@ Using delayed save::
 import asyncio
 from collections.abc import Awaitable, Callable
 from functools import partial
-import glob
 import logging
-import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, Protocol, cast, runtime_checkable
 import zipfile
 
@@ -289,11 +288,9 @@ class Storage(StorageProtocol):
         self._pending_data_func: Callable[[], dict[str, Any]] | None = None
 
         # Build file path
-        directory = base_directory
-        if sub_directory:
-            directory = os.path.join(base_directory, sub_directory)
+        directory = str(Path(base_directory) / sub_directory) if sub_directory else base_directory
         self._base_directory: Final = directory
-        self._file_path: Final = os.path.join(directory, f"{key}.json")
+        self._file_path: Final = str(Path(directory) / f"{key}.json")
 
     file_path: Final = DelegatedProperty[str](path="_file_path")
     key: Final = DelegatedProperty[str](path="_key")
@@ -441,11 +438,12 @@ class Storage(StorageProtocol):
 
     def _load_sync(self) -> dict[str, Any] | None:
         """Load data synchronously with ZIP support."""
+        file_path = Path(self._file_path)
         # Check if file exists, try ZIP variant if not
-        if not os.path.exists(self._file_path):
-            zip_path = f"{self._file_path}.zip"
-            if os.path.exists(zip_path):
-                return self._load_from_zip(zip_path=zip_path)
+        if not file_path.exists():
+            zip_path = Path(f"{self._file_path}.zip")
+            if zip_path.exists():
+                return self._load_from_zip(zip_path=str(zip_path))
             return None
 
         # Check if file is a ZIP archive
@@ -454,7 +452,7 @@ class Storage(StorageProtocol):
 
         # Regular JSON load
         try:
-            with open(self._file_path, "rb") as f:
+            with file_path.open("rb") as f:
                 return self._parse_and_unwrap(raw_data=compat.loads(data=f.read()))
         except (compat.JSONDecodeError, OSError) as exc:
             raise StorageError(f"Failed to load storage '{self._key}': {exc}") from exc  # i18n-exc: ignore
@@ -469,8 +467,9 @@ class Storage(StorageProtocol):
 
     def _remove_sync(self) -> None:
         """Remove storage file synchronously."""
-        if os.path.exists(self._file_path):
-            os.remove(self._file_path)
+        file_path = Path(self._file_path)
+        if file_path.exists():
+            file_path.unlink()
 
     async def _save_internal(self, *, data: dict[str, Any] | list[Any]) -> None:
         """Save data internally without acquiring lock."""
@@ -482,7 +481,7 @@ class Storage(StorageProtocol):
     def _save_sync(self, *, data: dict[str, Any] | list[Any]) -> None:
         """Save data synchronously with atomic write."""
         # Ensure directory exists
-        os.makedirs(self._base_directory, mode=0o700, exist_ok=True)
+        Path(self._base_directory).mkdir(mode=0o700, exist_ok=True, parents=True)
 
         # In raw mode, save data directly; otherwise wrap with version metadata
         to_save = data if self._raw_mode else {"_version": self._version, "_key": self._key, "data": data}
@@ -495,8 +494,8 @@ class Storage(StorageProtocol):
             raise StorageError(f"Data not serializable for '{self._key}': {exc}") from exc  # i18n-exc: ignore
 
         # Determine target path and temp path
-        target_path = f"{self._file_path}.zip" if self._as_zip else self._file_path
-        temp_path = f"{target_path}.tmp"
+        target_path = Path(f"{self._file_path}.zip" if self._as_zip else self._file_path)
+        temp_path = target_path.with_name(f"{target_path.name}.tmp")
 
         try:
             if self._as_zip:
@@ -505,14 +504,14 @@ class Storage(StorageProtocol):
                     zf.writestr(f"{self._key}.json", serialized)
             else:
                 # Write as plain JSON
-                with open(temp_path, "wb") as f:
+                with temp_path.open("wb") as f:
                     f.write(serialized)
-            os.chmod(temp_path, 0o600)
-            os.replace(temp_path, target_path)
+            temp_path.chmod(0o600)
+            temp_path.replace(target_path)
         except OSError as exc:
             # Clean up temp file on failure
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            if temp_path.exists():
+                temp_path.unlink()
             raise StorageError(f"Failed to save storage '{self._key}': {exc}") from exc  # i18n-exc: ignore
 
     def _trigger_delayed_save(self) -> None:
@@ -660,20 +659,16 @@ class LocalStorageFactory(StorageFactoryProtocol):
 
     def _cleanup_files_sync(self, *, sub_directory: str | None) -> int:
         """Delete storage files synchronously."""
-        directory = self._base_directory
-        if sub_directory:
-            directory = os.path.join(self._base_directory, sub_directory)
+        dir_path = Path(self._base_directory) / sub_directory if sub_directory else Path(self._base_directory)
 
-        if not os.path.exists(directory):
+        if not dir_path.exists():
             return 0
 
         # Pattern: {central_name}*.json
-        pattern = os.path.join(directory, f"{slugify(self._central_name)}*.json")
         deleted_count = 0
-
-        for file_path in glob.glob(pattern):
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+        for file_path in dir_path.glob(f"{slugify(self._central_name)}*.json"):
+            if file_path.is_file():
+                file_path.unlink()
                 deleted_count += 1
 
         return deleted_count

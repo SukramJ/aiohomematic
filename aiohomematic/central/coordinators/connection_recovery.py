@@ -367,7 +367,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                 "CONNECTION_RECOVERY: No suitable proxy found for RPC check on %s",
                 interface_id,
             )
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001 - RPC health probe; any failure means unhealthy
             _LOGGER.debug(
                 "CONNECTION_RECOVERY: RPC check failed for %s: %s",
                 interface_id,
@@ -467,7 +467,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
         try:
             self._client_provider.get_client(interface_id=interface_id)
             client_exists = True
-        except Exception:
+        except Exception:  # noqa: BLE001 - client lookup must not abort recovery path selection; treat any failure as "no client yet"
             client_exists = False
 
         try:
@@ -543,7 +543,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
             if hasattr(client, "_config") and hasattr(client._config, "interface_config"):
                 port = client._config.interface_config.port
                 return port if isinstance(port, int) else None
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - port lookup must survive any client-structure or attribute error; return None to trigger config fallback
             pass
         return None
 
@@ -590,8 +590,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                     if not client or not client.available:
                         # Client doesn't exist (startup failure) or not available
                         failed_interfaces.append(iid)
-                except Exception:
-                    # Client lookup failed - assume needs recovery
+                except Exception:  # noqa: BLE001 - heartbeat scan must not abort on any client-lookup failure; treat as needing recovery
                     failed_interfaces.append(iid)
 
             if failed_interfaces:
@@ -759,8 +758,8 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                 if hasattr(client, "_circuit_breaker") and client._circuit_breaker:
                     circuit_breaker_state = client._circuit_breaker.state.value
                 # pylint: enable=protected-access
-        except Exception:
-            pass  # Don't fail incident recording if client info unavailable
+        except Exception:  # noqa: BLE001, S110 - incident recording must never fail on client-state probing; proceed with best-effort context
+            pass
 
         # Get recovery state if available
         recovery_attempt_count = 0
@@ -786,7 +785,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                     interface_id=interface_id,
                     context=context,
                 )
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail the recovery flow  # pragma: no cover
                 _LOGGER.debug(
                     "CONNECTION_RECOVERY: Failed to record connection lost incident for %s: %s",
                     interface_id,
@@ -822,8 +821,8 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                 if hasattr(client, "_circuit_breaker") and client._circuit_breaker:
                     circuit_breaker_state = client._circuit_breaker.state.value
                 # pylint: enable=protected-access
-        except Exception:
-            pass  # Don't fail incident recording if client info unavailable
+        except Exception:  # noqa: BLE001, S110 - incident recording must never fail on client-state probing; proceed with best-effort context
+            pass
 
         context = {
             "total_attempts": state.attempt_count,
@@ -843,7 +842,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                     interface_id=interface_id,
                     context=context,
                 )
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail the recovery flow  # pragma: no cover
                 _LOGGER.debug(
                     "CONNECTION_RECOVERY: Failed to record connection restored incident for %s: %s",
                     interface_id,
@@ -893,7 +892,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
         try:
             await self._hub_data_fetcher.fetch_system_update_data(scheduled=False)
             _LOGGER.debug("CONNECTION_RECOVERY: System update data refreshed")
-        except Exception:
+        except Exception:  # noqa: BLE001 - opportunistic hub refresh; failure must not abort recovery
             _LOGGER.debug(  # i18n-log: ignore
                 "CONNECTION_RECOVERY: Failed to refresh system update data",
                 exc_info=True,
@@ -904,7 +903,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
             try:
                 await self._hub_data_fetcher.fetch_program_data(scheduled=False)
                 _LOGGER.debug("CONNECTION_RECOVERY: Program data refreshed")
-            except Exception:
+            except Exception:  # noqa: BLE001 - opportunistic hub refresh; failure must not abort recovery
                 _LOGGER.debug(  # i18n-log: ignore
                     "CONNECTION_RECOVERY: Failed to refresh program data",
                     exc_info=True,
@@ -915,7 +914,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
             try:
                 await self._hub_data_fetcher.fetch_sysvar_data(scheduled=False)
                 _LOGGER.debug("CONNECTION_RECOVERY: Sysvar data refreshed")
-            except Exception:
+            except Exception:  # noqa: BLE001 - opportunistic hub refresh; failure must not abort recovery
                 _LOGGER.debug(  # i18n-log: ignore
                     "CONNECTION_RECOVERY: Failed to refresh sysvar data",
                     exc_info=True,
@@ -964,7 +963,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
         # Try to get existing client
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
-        except Exception:
+        except Exception:  # noqa: BLE001 - client-lookup failure means startup-failure path; any exception selects the creation branch
             # Client doesn't exist (startup failure) - try to create just this client
             _LOGGER.info(  # i18n-log: ignore
                 "CONNECTION_RECOVERY: Client %s doesn't exist, attempting to create",
@@ -1000,7 +999,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                                 interface_id,
                             )
                             return True
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110 - post-create verification is best-effort; any failure falls through to retry
                         pass
 
                 _LOGGER.warning(  # i18n-log: ignore
@@ -1106,8 +1105,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                             port,
                             interface_id,
                         )
-                except Exception:
-                    # Client doesn't exist and no config - can't determine port
+                except Exception:  # noqa: BLE001, S110 - port fallback is best-effort; any client-lookup failure means no port determinable
                     pass
 
             # Still no port found?

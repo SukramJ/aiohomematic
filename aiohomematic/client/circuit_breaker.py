@@ -331,7 +331,7 @@ class CircuitBreaker:
                         "success_threshold": success_threshold,
                     },
                 )
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail breaker transitions  # pragma: no cover
                 _LOGGER.debug(
                     "CIRCUIT_BREAKER: Failed to record recovered incident for %s: %s",
                     interface_id,
@@ -373,7 +373,7 @@ class CircuitBreaker:
                         "total_requests": total_requests,
                     },
                 )
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail breaker transitions  # pragma: no cover
                 _LOGGER.debug(
                     "CIRCUIT_BREAKER: Failed to record tripped incident for %s: %s",
                     interface_id,

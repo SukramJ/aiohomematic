@@ -1,3 +1,50 @@
+# Version 2026.4.18 (2026-04-21)
+
+## What's Changed
+
+### Changed
+
+- **Stricter linter configuration**: tightened the project's quality gates.
+  - Ruff: full `S` (flake8-bandit) suite activated, `BLE` (blind-except) and
+    `PTH` (pathlib) added, `mccabe.max-complexity` lowered from 25 to 15.
+  - mypy: enabled `possibly-undefined` and `unused-awaitable` error codes.
+  - bandit: added 16 additional checks (B104–B107, B303/B304/B310/B311,
+    B321/B324, B501–B505, B701). Tests excluded from bandit scope since
+    fixture data is intentional; ruff's `S` rules guard production.
+- **Migrate filesystem operations to `pathlib`**: `store/storage.py`,
+  `support/file_ops.py`, and `model/device.py` now use `pathlib.Path`
+  throughout instead of `os.path`/`glob` — clearer semantics for
+  glob/resolve/replace operations, no behavior change.
+- **Narrow broad exception handlers**: ~25 `except Exception:` blocks in
+  coordinators, client, model, and store replaced with concrete exception
+  types (`AioHomematicException`, `AttributeError`/`TypeError` for
+  defensive attribute access, `OSError`/`compat.JSONDecodeError` for
+  storage I/O, etc.). Remaining broad catches carry a `# noqa: BLE001`
+  with a specific reason (incident recording, callback dispatch,
+  decorator-boundary error classification).
+- **Refactor complex functions for readability**: extracted helpers in
+  `central/health.py::health_score` (circuit/activity scoring),
+  `central/query_facade.py::get_parameters` (skip/resolve helpers),
+  `client/json_rpc.py::get_all_system_variables` (inclusion and record
+  builders), `model/schedule_models.py::validate_domain_constraints`
+  (per-domain validator dispatch table),
+  `model/week_profile.py::convert_raw_to_dict_schedule`, and
+  `support/__init__.py::element_matches_key`.
+
+### Fixed
+
+- **Invalid Python 3 exception syntax**: replaced bare-comma forms like
+  `except AttributeError, TypeError:` with explicit tuple syntax
+  `except (AttributeError, TypeError):` in
+  `central/coordinators/connection_recovery.py` for clarity.
+- **`DelegatedProperty` type resolution**: using a forward-reference
+  string (`DelegatedProperty["DeviceRegistry"](...)`) caused mypy to
+  resolve the attribute type as `Any`, which silenced strict-return
+  checks downstream. `central/coordinators/device.py` now imports
+  `DeviceRegistry` directly so mypy tracks the real type.
+
+---
+
 # Version 2026.4.17 (2026-04-20)
 
 ## What's Changed

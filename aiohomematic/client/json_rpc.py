@@ -285,7 +285,7 @@ class _JsonKey(StrEnum):
     ON = "on"
     PARAMETER_ID = "parameterId"
     PARAMSET_KEY = "paramsetKey"
-    PASSWORD = "password"  # noqa: S105 - JSON-RPC field name, not a password value
+    PASSWORD = "password"  # noqa: S105  # nosec B105
     PRODUCT = "product"
     QUITTABLE = "quittable"
     RESULT = "result"

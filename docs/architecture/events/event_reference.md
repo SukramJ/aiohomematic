@@ -20,6 +20,7 @@ aiohomematic uses a type-safe, async-first EventBus for decoupled event handling
 | `DataPointValueReceivedEvent`     | Data Point      | `DataPointKey`    | Value updated from backend          |
 | `DataPointStatusReceivedEvent`    | Data Point      | `DataPointKey`    | Status parameter updated            |
 | `DataPointStateChangedEvent`      | Data Point      | `unique_id`       | External callback notification      |
+| `OptimisticRollbackEvent`         | Data Point      | `DataPointKey`    | Optimistic value rolled back        |
 | `RpcParameterReceivedEvent`       | Backend         | `DataPointKey`    | Re-published raw parameter from RPC |
 | `SysvarStateChangedEvent`         | System Variable | `state_path`      | Sysvar value changed                |
 | `DeviceStateChangedEvent`         | Device          | `device_address`  | Device state updated                |
@@ -113,6 +114,31 @@ from aiohomematic.central.events import DataPointStateChangedEvent
 | `unique_id` | `str`      | Unique identifier of the data point |
 
 **Key:** `unique_id`
+
+### OptimisticRollbackEvent
+
+Fired when an optimistic value is rolled back to the previous confirmed value, typically due to
+a CCU timeout, send error, or value mismatch. Integrations (e.g., Home Assistant) can surface
+this to the user as a persistent notification or diagnostic log entry.
+
+```python
+from aiohomematic.central.events import OptimisticRollbackEvent
+```
+
+| Field               | Type           | Description                                    |
+| ------------------- | -------------- | ---------------------------------------------- |
+| `timestamp`         | `datetime`     | When the event was created                     |
+| `dpk`               | `DataPointKey` | Affected parameter                             |
+| `reason`            | `str`          | Rollback reason (`RollbackReason` enum value)  |
+| `rolled_back_value` | `Any`          | The optimistic value that failed               |
+| `restored_value`    | `Any`          | The previous confirmed value that was restored |
+| `error`             | `str \| None`  | Error message (only set for `SEND_ERROR`)      |
+| `age_seconds`       | `float`        | Age of the optimistic value when rolled back   |
+| `device_name`       | `str \| None`  | Human-readable device name                     |
+
+**Key:** `DataPointKey`
+
+See [ADR 0020 — Command Throttling with Priority Queue and Optimistic Updates](../../adr/0020-command-throttling-priority-and-optimistic-updates.md) for the rollback design.
 
 ---
 

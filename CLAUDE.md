@@ -252,6 +252,7 @@ pylint -j 0 aiohomematic
 # Project scripts
 python script/sort_class_members.py
 python script/check_i18n.py
+python script/check_docs_references.py          # docs drift check (see docs/contributor/testing/docs_drift_check.md)
 ```
 
 ---
@@ -330,7 +331,7 @@ tests/
 **Contract tests are the primary guardrail for protocol and capability invariants** (e.g. the
 CUxD/CCU-Jack differences). New features that touch protocols, capabilities, or state machines
 MUST add or update a contract test. See `tests/contract/` and the corresponding guidance in
-`docs/adr/0018_contract_tests.md`.
+`docs/adr/0018-contract-tests.md`.
 
 Deeper guidance: `docs/contributor/testing/` (session_playback, testing_with_events, coverage,
 debug_data_importance).

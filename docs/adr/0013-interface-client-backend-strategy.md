@@ -4,7 +4,7 @@
 
 **Accepted** (2026-01-05)
 
-See [0013-implementation-status.md](0013-implementation-status.md) for current progress tracking.
+See [0013a-implementation-status.md](0013a-implementation-status.md) for current progress tracking.
 
 ---
 
@@ -290,7 +290,7 @@ Feature flag = True (default), legacy remains available as fallback, update docu
 
 Remove legacy clients, handlers package, feature flag. Rename `InterfaceClient` → `Client`.
 
-**Note:** For detailed implementation tracking, see [0013-implementation-status.md](0013-implementation-status.md).
+**Note:** For detailed implementation tracking, see [0013a-implementation-status.md](0013a-implementation-status.md).
 
 ---
 
@@ -419,7 +419,7 @@ Create new `aiohomematic2` package.
 
 - `OptionalSettings.USE_INTERFACE_CLIENT` in `aiohomematic/const.py`
 
-For detailed implementation status and task tracking, see [0013-implementation-status.md](0013-implementation-status.md).
+For detailed implementation status and task tracking, see [0013a-implementation-status.md](0013a-implementation-status.md).
 
 ---
 

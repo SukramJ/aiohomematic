@@ -15,7 +15,7 @@ Audience: Contributors and integrators who need a precise understanding of messa
 ## Key participants
 
 - CentralUnit (aiohomematic/central): orchestrates clients, runs XML-RPC callback server, stores caches, and hosts the runtime model.
-- Clients (aiohomematic/client): protocol adapters for XML-RPC (XmlRpcProxy) and JSON-RPC (AioJsonRpcAioHttpClient).
+- Clients (aiohomematic/client): protocol adapters for XML-RPC (AioXmlRpcProxy) and JSON-RPC (AioJsonRpcAioHttpClient).
 - Model (aiohomematic/model): Device, Channel, DataPoints, Events; strictly no network I/O.
 - Store (aiohomematic/store): persistent descriptions, dynamic value/state caches, and diagnostic incident storage.
 
@@ -28,9 +28,9 @@ Purpose: Event callbacks from backend; many CCU operations can also be done via 
 ### Outbound calls (read/write)
 
 1. A consumer reads a value: Central/Device/Channel delegates to Client.get_value(interface, address, paramset_key, parameter).
-2. Client (XML-RPC) calls XmlRpcProxy.<method> towards the CCU/Homegear. Arguments are sanitized by \_cleanup_args.
+2. Client (XML-RPC) calls AioXmlRpcProxy.<method> towards the CCU/Homegear. Arguments are sanitized by \_cleanup_args.
 3. The result is decoded and (if needed) converted in the model/support layer and returned to the caller. Central may store the value in the dynamic cache for the DataPointKey.
-4. A consumer writes a value: DataPoint.set_value(...) delegates to Device/Channel/Client. Client uses XmlRpcProxy to invoke setValue (or paramset writes), and may record a pending command in CommandTracker.
+4. A consumer writes a value: DataPoint.set_value(...) delegates to Device/Channel/Client. Client uses AioXmlRpcProxy to invoke setValue (or paramset writes), and may record a pending command in CommandTracker.
 
 ### Inbound events (push from backend)
 
@@ -110,7 +110,7 @@ Trigger points
 
 ## 5. Sequence diagrams (Mermaid)
 
-Additional sequence diagrams for connect, device discovery, and state change propagation are available in docs/sequence_diagrams.md.
+Additional sequence diagrams for connect, device discovery, and state change propagation are available in [architecture/sequence_diagrams.md](sequence_diagrams.md).
 
 ### Read value via XML-RPC
 
@@ -121,7 +121,7 @@ sequenceDiagram
   participant Dev as Device/Channel
   participant C as CentralUnit
   participant CX as InterfaceClient (XML-RPC)
-  participant X as XmlRpcProxy
+  participant X as AioXmlRpcProxy
   App->>DP: read()
   DP->>Dev: delegate
   Dev->>C: get_value(address, key, param)
@@ -160,7 +160,7 @@ sequenceDiagram
   participant Dev as Device/Channel
   participant C as CentralUnit
   participant CX as InterfaceClient (XML-RPC)
-  participant X as XmlRpcProxy
+  participant X as AioXmlRpcProxy
   App->>DP: set_value(v)
   DP->>Dev: delegate
   Dev->>C: set_value(...)
@@ -179,7 +179,7 @@ sequenceDiagram
 - XML-RPC server: aiohomematic/central/rpc_server.py
   - AsyncRPCFunctions.event/newDevices/... and AsyncXmlRpcServer lifecycle
 - XML-RPC client: aiohomematic/client/rpc_proxy.py
-  - AioXmlRpcProxy, supported methods, async request handling
+  - AioAioXmlRpcProxy, supported methods, async request handling
 - JSON-RPC client: aiohomematic/client/json_rpc.py
   - AioJsonRpcAioHttpClient, login/session, methods, conversions
 - Client: aiohomematic/client/interface_client.py and aiohomematic/client/backends/

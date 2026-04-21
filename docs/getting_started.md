@@ -1,8 +1,19 @@
 # Getting Started with aiohomematic
 
-This guide provides everything you need to start using aiohomematic as a standalone Python library for controlling Homematic and HomematicIP devices.
+This is the full walkthrough for using aiohomematic as a standalone Python library. It covers the
+high-level `HomematicAPI` facade, manual lifecycle management, and direct `CentralUnit` usage with
+explicit interface configuration.
 
-> **Tip:** For definitions of terms like Backend, Interface, Device, Channel, and Parameter, see the [Glossary](reference/glossary.md).
+> **Looking for the fastest path?** The [Quick Start](quickstart.md) shows the minimum working
+> example (≈ 5 minutes) with the `HomematicAPI` facade.
+>
+> **Tip:** For definitions of terms like Backend, Interface, Device, Channel, and Parameter, see
+> the [Glossary](reference/glossary.md).
+>
+> **Verified code:** a known-good, end-to-end working script lives at
+> [`example.py`](https://github.com/SukramJ/aiohomematic/blob/devel/example.py) in the repository
+> root. When the snippets below conflict with `example.py`, treat `example.py` as the source of
+> truth.
 
 ## Installation
 
@@ -150,7 +161,7 @@ async def main():
     )
 
     # Create and start central unit
-    central = config.create_central()
+    central = await config.create_central()
     await central.start()
 
     try:
@@ -215,10 +226,11 @@ for device in api.list_devices():
     print(f"  Model: {device.model}")
     print(f"  Channels: {len(device.channels)}")
 
-    # List channels and their data points
+    # Iterate channels (device.channels is Mapping[str, ChannelProtocol], keyed by channel address)
     for channel in device.channels.values():
-        print(f"  Channel {channel.channel_no}:")
-        for dp in channel.data_points.values():
+        print(f"  Channel {channel.no}: {channel.address}")
+        # Generic data points expose per-parameter values
+        for dp in channel.generic_data_points:
             print(f"    - {dp.parameter}: {dp.value}")
 ```
 
@@ -231,12 +243,17 @@ value = await api.read_value(
     parameter="STATE",
 )
 
-# Read from device data points directly
+# Read directly from a device's channel via address
 device = api.get_device(address="VCU0000001")
 if device:
-    channel = device.channels.get(1)
+    # device.channels is keyed by channel address (e.g. "VCU0000001:1"), not integer no
+    channel = device.channels.get("VCU0000001:1")
     if channel:
-        state_dp = channel.data_points.get("STATE")
+        # Look up a generic data point by parameter name
+        state_dp = next(
+            (dp for dp in channel.generic_data_points if dp.parameter == "STATE"),
+            None,
+        )
         if state_dp:
             print(f"State: {state_dp.value}")
 ```
@@ -446,31 +463,14 @@ await api.write_value(
 
 ## Programs and System Variables
 
-### Running Programs
+CCU programs and system variables are surfaced as **hub data points** created by the
+`HubCoordinator`. They behave like regular data points (value, subscribe, set) rather than
+living on a `Hub.programs` / `Hub.sysvars` collection directly.
 
-```python
-# Access programs through the hub
-for program in central.hub.programs:
-    print(f"Program: {program.name}")
-
-# Execute a program
-program = central.get_program_by_name("MyProgram")
-if program:
-    await program.execute()
-```
-
-### System Variables
-
-```python
-# Read system variable
-for sysvar in central.hub.sysvars:
-    print(f"{sysvar.name}: {sysvar.value}")
-
-# Update system variable
-sysvar = central.get_sysvar_by_name("MySysVar")
-if sysvar:
-    await sysvar.set_value(42)
-```
+See the Consumer API guide for the supported access patterns:
+[developer/consumer_api.md](developer/consumer_api.md), section "Hub data points". For the
+design rationale and lifecycle, see [architecture.md](architecture.md) and
+[ADR 0022 — Unified Schedule Access](adr/0022-week-profile-data-point.md).
 
 ## Best Practices
 

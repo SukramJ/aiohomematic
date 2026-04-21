@@ -1,6 +1,39 @@
 # Sequence diagrams: Connect, device discovery, state change propagation
 
-This document provides Mermaid sequence diagrams for key flows in aiohomematic: initial connect, device discovery, state change propagation, client state machine, and EventBus architecture.
+This document provides Mermaid sequence diagrams for key flows in aiohomematic.
+
+## Contents
+
+### Startup & discovery
+
+- [1. Connect (startup, clients, XML-RPC callback registration)](#1-connect-startup-clients-xml-rpc-callback-registration)
+- [1a. Client Creation with Retry Logic (ADR 0017)](#1a-client-creation-with-retry-logic-adr-0017)
+- [2. Device discovery (metadata fetch, model creation)](#2-device-discovery-metadata-fetch-model-creation)
+
+### Events & bus
+
+- [3. State change propagation (event → EventBus → subscribers)](#3-state-change-propagation-event--eventbus--subscribers)
+- [5. EventBus architecture (subscription and publishing)](#5-eventbus-architecture-subscription-and-publishing)
+
+### State machines & health
+
+- [4. Client state machine (lifecycle states and transitions)](#4-client-state-machine-lifecycle-states-and-transitions)
+- [4a. Central state machine (system health orchestration)](#4a-central-state-machine-system-health-orchestration)
+- [10. Connection health tracking](#10-connection-health-tracking)
+- [12. State machine integration overview](#12-state-machine-integration-overview)
+
+### Recovery, caching, backends
+
+- [6. Backend Strategy architecture (specialized client operations)](#6-backend-strategy-architecture-specialized-client-operations)
+- [7. Client reconnection flow (connection recovery)](#7-client-reconnection-flow-connection-recovery)
+- [8. Cache invalidation strategy](#8-cache-invalidation-strategy)
+- [11. Recovery coordinator (client reconnection orchestration)](#11-recovery-coordinator-client-reconnection-orchestration)
+
+### Feature flows
+
+- [9. Week profile update flow](#9-week-profile-update-flow)
+
+---
 
 ## 1. Connect (startup, clients, XML-RPC callback registration)
 

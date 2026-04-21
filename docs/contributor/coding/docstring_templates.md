@@ -621,8 +621,3 @@ def clear_cache(self) -> None:
 def clear_cache(self) -> None:
     """Clear the cache."""
 ```
-
----
-
-**Last Updated**: 2025-11-24
-**Version**: 1.0

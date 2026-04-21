@@ -688,8 +688,3 @@ Commits that fail these checks will be rejected.
 - [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 - [NumPy Docstring Guide](https://numpydoc.readthedocs.io/en/latest/format.html)
 - [aiohomematic CLAUDE.md](https://github.com/sukramj/aiohomematic/blob/devel/CLAUDE.md)
-
----
-
-**Last Updated**: 2025-11-24
-**Version**: 1.0

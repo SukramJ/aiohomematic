@@ -12,23 +12,28 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 ## Key Features
 
 - **Automatic entity discovery** from device/channel parameters
-- **Extensible** via custom entity classes for complex devices (thermostats, lights, covers, locks, sirens)
-- **Fast startups** through caching of paramsets
-- **Robust operation** with automatic reconnection after CCU restarts
-- **Fully typed** with strict mypy compliance
-- **Async/await** based on asyncio
+- **Broad backend support**: CCU3, OpenCCU, Homegear, CUxD, CCU-Jack, and [pydevccu](https://github.com/danielperna84/pydevccu) for testing
+- **Multiple transport protocols**: XML-RPC (standard interfaces) and JSON-RPC (CUxD / CCU-Jack), with MQTT event forwarding via Homematic(IP) Local
+- **Extensible** via custom entity classes for complex devices (climate, cover, light, lock, siren, valve, …)
+- **Hub entities** for CCU programs, system variables, inbox messages, install mode, and service messages
+- **Event-driven architecture** with a unified `EventBus` for lifecycle, state, and diagnostic events
+- **Fast startups** through paramset and description caching
+- **Robust operation** with circuit breaker, command retry/throttling, and automatic reconnection after CCU restarts
+- **Fully typed** (mypy strict mode) and **async/await** based on asyncio
 
 ## Documentation
 
 **Full documentation:** [sukramj.github.io/aiohomematic](https://sukramj.github.io/aiohomematic/)
 
-| Section                                                                              | Description                      |
-| ------------------------------------------------------------------------------------ | -------------------------------- |
-| [Getting Started](https://sukramj.github.io/aiohomematic/getting_started/)           | Installation and first steps     |
-| [User Guide](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/) | Home Assistant integration guide |
-| [Developer Guide](https://sukramj.github.io/aiohomematic/developer/consumer_api/)    | API reference for integrations   |
-| [Architecture](https://sukramj.github.io/aiohomematic/architecture/)                 | System design overview           |
-| [Glossary](https://sukramj.github.io/aiohomematic/reference/glossary/)               | Terminology reference            |
+| Section                                                                               | Description                                        |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [Getting Started](https://sukramj.github.io/aiohomematic/getting_started/)            | Installation and first steps                       |
+| [User Guide](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/)  | Home Assistant integration and device topics       |
+| [Developer Guide](https://sukramj.github.io/aiohomematic/developer/consumer_api/)     | API reference for library consumers                |
+| [Contributor Guide](https://sukramj.github.io/aiohomematic/contributor/contributing/) | Dev environment, coding standards, release process |
+| [Architecture & ADRs](https://sukramj.github.io/aiohomematic/architecture/)           | System design and decision records                 |
+
+Additional entry points in this repository: [`CLAUDE.md`](CLAUDE.md) (AI assistant / contributor quick-reference) and [`changelog.md`](changelog.md).
 
 ## How It Works
 
@@ -42,7 +47,7 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 │  │  • Home Assistant entities (climate, light, etc.)  │ │
 │  │  • UI configuration flows                          │ │
 │  │  • Services and automations                        │ │
-│  │  • Device/entity registry integration              │ │
+│  │  • MQTT bridge for CUxD / CCU-Jack events          │ │
 │  └────────────────────────┬───────────────────────────┘ │
 └───────────────────────────┼─────────────────────────────┘
                             │
@@ -51,19 +56,21 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 ┌───────────────────────────────────────────────────────────┐
 │                      aiohomematic                         │
 │                                                           │
-│  • Protocol implementation (XML-RPC, JSON-RPC)            │
+│  • Protocol adapters (XML-RPC, JSON-RPC)                  │
 │  • Device model and data point abstraction                │
 │  • Connection management and reconnection                 │
-│  • Event handling and callbacks                           │
-│  • Caching for fast startups                              │
+│  • EventBus for lifecycle / state / diagnostic events     │
+│  • Caching (paramset, device descriptions, sessions)      │
 └───────────────────────────────────────────────────────────┘
                             │
                             │ communicates with
                             ▼
-┌───────────────────────────────────────────────────────────┐
-│              CCU3 / OpenCCU / Homegear                    │
-└───────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│     CCU3 / OpenCCU / Homegear / CUxD / CCU-Jack            │
+└────────────────────────────────────────────────────────────┘
 ```
+
+CUxD and CCU-Jack use JSON-RPC and receive events via MQTT forwarded by the Home Assistant integration — see [CUxD and CCU-Jack](https://sukramj.github.io/aiohomematic/user/advanced/cuxd_ccu_jack/) for details.
 
 ### Why Two Projects?
 
@@ -73,7 +80,7 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 | **Scope**        | Protocol, devices, data points                          | HA entities, UI, services                                         |
 | **Dependencies** | Standalone (aiohttp, orjson)                            | Requires Home Assistant                                           |
 | **Reusability**  | Any Python project                                      | Home Assistant only                                               |
-| **Repository**   | [aiohomematic](https://github.com/sukramj/aiohomematic) | [homematicip_local](https://github.com/sukramj/homematicip_local) |
+| **Repository**   | [aiohomematic](https://github.com/SukramJ/aiohomematic) | [homematicip_local](https://github.com/SukramJ/homematicip_local) |
 
 **Benefits of this separation:**
 
@@ -88,16 +95,17 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 2. **aiohomematic** connects to the CCU/Homegear and discovers devices
 3. **aiohomematic** creates `Device`, `Channel`, and `DataPoint` objects
 4. **Homematic(IP) Local** wraps these in Home Assistant entities
-5. **aiohomematic** receives events from the CCU and notifies subscribers
+5. **aiohomematic** receives events from the CCU (XML-RPC callbacks or MQTT bridge for CUxD/CCU-Jack) and notifies subscribers via the `EventBus`
 6. **Homematic(IP) Local** translates events into Home Assistant state updates
 
 ## For Home Assistant Users
 
 Use the Home Assistant custom integration **Homematic(IP) Local**:
 
-1. Add the custom repository: https://github.com/sukramj/homematicip_local
-2. Install via HACS
-3. Configure via **Settings** → **Devices & Services** → **Add Integration**
+1. Install **HACS** in your Home Assistant instance (see [HACS documentation](https://hacs.xyz/)).
+2. In HACS, add `https://github.com/SukramJ/homematicip_local` as a **custom repository** (category: Integration).
+3. Install **Homematic(IP) Local** via HACS and restart Home Assistant.
+4. Configure the integration under **Settings** → **Devices & Services** → **Add Integration**.
 
 See the [Integration Guide](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/) for detailed instructions.
 
@@ -110,63 +118,80 @@ pip install aiohomematic
 ### Quick Start
 
 ```python
+import asyncio
+
 from aiohomematic.central import CentralConfig
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import Interface
 
-config = CentralConfig(
-    name="ccu-main",
-    host="ccu.local",
-    username="admin",
-    password="secret",
-    default_callback_port_xml_rpc=43439,
-    interface_configs={
-        InterfaceConfig(central_name="ccu-main", interface=Interface.HMIP_RF, port=2010)
-    },
-)
 
-central = await config.create_central()
-await central.start()
+async def main() -> None:
+    config = CentralConfig(
+        central_id="ccu-main",
+        name="ccu-main",
+        host="ccu.local",
+        username="admin",
+        password="secret",
+        interface_configs={
+            InterfaceConfig(central_name="ccu-main", interface=Interface.HMIP_RF, port=2010),
+        },
+    )
 
-for device in central.devices:
-    print(f"{device.name}: {device.address}")
+    central = await config.create_central()
+    await central.start()
 
-await central.stop()
+    for device in central.devices:
+        print(f"{device.name}: {device.address}")
+
+    await central.stop()
+
+
+asyncio.run(main())
 ```
 
-See [Getting Started](https://sukramj.github.io/aiohomematic/getting_started/) for more examples.
+For a more complete example (multiple interfaces, event subscriptions, `.env` loading) see [`example.py`](example.py). For API usage patterns see the [Consumer API guide](https://sukramj.github.io/aiohomematic/developer/consumer_api/).
+
+### Contributing
+
+- **Development environment**: [`docs/contributor/dev-environment.md`](https://sukramj.github.io/aiohomematic/contributor/dev-environment/)
+- **Contract tests** (protocol / capability invariants, incl. CUxD / CCU-Jack): [`tests/contract/`](tests/contract/)
+- **Benchmarks**: [`tests/benchmarks/`](tests/benchmarks/)
+- **AI assistant / contributor quick-reference**: [`CLAUDE.md`](CLAUDE.md)
 
 ## Requirements
 
 - **Python**: 3.14+
-- **CCU Firmware**: CCU2 ≥2.61.x, CCU3 ≥3.61.x
-- There is not active testing to identify the minimum required firmware versions.
+- **CCU firmware**: CCU3 ≥ 3.61.x recommended; CCU2 ≥ 2.61.x is best-effort (see backend support below)
+- No active testing is performed to identify the minimum required firmware versions — stay on a current release.
 
-### Important Notes on Backend Support
+### Backend Support
 
-**Actively tested backends:**
+- **Primary test targets** (continuously tested in CI):
+  - OpenCCU with current firmware
+  - `pydevccu` (virtual CCU used in the automated test suite)
+- **Supported, best-effort** (expected to work, not continuously tested):
+  - CCU3 with current firmware
+  - CUxD (via JSON-RPC)
+  - CCU-Jack (via JSON-RPC)
+- **Legacy / unsupported**:
+  - CCU2 — works with recent firmware but is not actively tested
+  - Homegear — not actively tested
 
-- OpenCCU with current firmware
+Running outdated firmware or untested backends (CCU2, Homegear) is at your own risk.
 
-**Not actively tested:**
-
-- CCU2
-- Homegear
-
-Running outdated firmware versions or using untested backends (CCU2, Homegear) is at your own risk.
-
-**Recommendation:** Keep your CCU firmware up to date. Outdated versions may lack bug fixes, security patches, and compatibility improvements that this library depends on.
+**Recommendation:** keep your CCU firmware up to date. Outdated versions may lack bug fixes, security patches, and compatibility improvements that this library relies on.
 
 ## Related Projects
 
-| Project                                                               | Description                |
-| --------------------------------------------------------------------- | -------------------------- |
-| [Homematic(IP) Local](https://github.com/sukramj/homematicip_local)   | Home Assistant integration |
-| [aiohomematic Documentation](https://sukramj.github.io/aiohomematic/) | Full documentation         |
+| Project                                                             | Description                                        |
+| ------------------------------------------------------------------- | -------------------------------------------------- |
+| [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local) | Home Assistant integration built on aiohomematic   |
+| [pydevccu](https://github.com/danielperna84/pydevccu)               | Virtual CCU used as a test target                  |
+| [pyhomematic](https://github.com/danielperna84/pyhomematic)         | Predecessor project (no longer actively developed) |
 
 ## Contributing
 
-Contributions are welcome! See the [Contributing Guide](https://sukramj.github.io/aiohomematic/contributor/contributing/) for details.
+Contributions are welcome! See the [Contributing Guide](https://sukramj.github.io/aiohomematic/contributor/contributing/) and the in-repo [`CLAUDE.md`](CLAUDE.md) for coding standards and the refactoring checklist.
 
 ## License
 

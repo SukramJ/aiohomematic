@@ -379,7 +379,7 @@ class Hub(HubProtocol):
                 client = self._client_provider.get_client(interface=interface)
                 remaining_seconds = await client.get_install_mode()
                 install_mode_dp.sensor.sync_from_backend(remaining_seconds=remaining_seconds)
-            except Exception:
+            except Exception:  # noqa: BLE001 - per-interface fetch; failure must not abort hub refresh
                 _LOGGER.debug(
                     "FETCH_INSTALL_MODE_DATA: No client available for interface %s",
                     interface,

@@ -47,7 +47,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from functools import partial
 import logging
-import os
+from pathlib import Path
 import secrets
 from typing import Any, Final, cast
 import zipfile
@@ -2129,10 +2129,10 @@ class _DefinitionExporter:
     ) -> None:
         """Write export data to a ZIP file with subdirectories."""
         # Ensure directory exists
-        os.makedirs(self._storage_directory, mode=0o700, exist_ok=True)
+        Path(self._storage_directory).mkdir(mode=0o700, exist_ok=True, parents=True)
 
-        zip_path = os.path.join(self._storage_directory, f"{model}.zip")
-        temp_path = f"{zip_path}.tmp"
+        zip_path = Path(self._storage_directory) / f"{model}.zip"
+        temp_path = zip_path.with_name(f"{zip_path.name}.tmp")
 
         # Serialize JSON with formatting
         opts = compat.OPT_INDENT_2 | compat.OPT_NON_STR_KEYS
@@ -2144,4 +2144,4 @@ class _DefinitionExporter:
             zf.writestr(f"{DEVICE_DESCRIPTIONS_ZIP_DIR}/{model}.json", device_json)
             zf.writestr(f"{PARAMSET_DESCRIPTIONS_ZIP_DIR}/{model}.json", paramset_json)
 
-        os.replace(temp_path, zip_path)
+        temp_path.replace(zip_path)

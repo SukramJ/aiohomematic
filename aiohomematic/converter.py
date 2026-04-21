@@ -251,7 +251,8 @@ def convert_combined_parameter_to_paramset(*, parameter: str, value: str) -> dic
         if converter := _COMBINED_PARAMETER_TO_PARAMSET_CONVERTER.get(parameter):  # type: ignore[call-overload]
             return cast(dict[str, Any], converter(value=value))
         _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: No converter found for %s: %s", parameter, value)
-    except Exception as exc:
+    except (ValueError, TypeError, SyntaxError) as exc:
+        # Parsing/conversion errors from literal_eval, int/format, split
         _LOGGER.debug("CONVERT_COMBINED_PARAMETER_TO_PARAMSET: Convert failed %s", extract_exc_args(exc=exc))
     return {}
 

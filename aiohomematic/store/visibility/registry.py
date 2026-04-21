@@ -34,7 +34,6 @@ from aiohomematic.store.visibility.parameter_decider import ParameterVisibilityD
 from aiohomematic.store.visibility.parser_handler import UnIgnoreRuleParser
 
 # Re-export rule containers for backward compatibility
-from aiohomematic.store.visibility.rule_containers import ChannelParamsetRules, ModelRules  # noqa: F401
 from aiohomematic.store.visibility.rules import (
     IGNORED_PARAMETERS,
     UN_IGNORE_PARAMETERS_BY_MODEL_LOWER,
@@ -42,7 +41,7 @@ from aiohomematic.store.visibility.rules import (
 )
 
 # Re-export for backward compatibility and use by other modules
-from aiohomematic.store.visibility.types import ChannelNo, ModelName, ParameterName  # noqa: F401
+from aiohomematic.store.visibility.types import ModelName, ParameterName
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import ChannelProtocol, ConfigProviderProtocol, EventBusProviderProtocol

@@ -136,7 +136,7 @@ class ValidationResult:
     reason: str = ""
 
 
-def validate_value(*, parameter_data: ParameterData, value: Any) -> ValidationResult:
+def validate_value(*, parameter_data: ParameterData, value: Any) -> ValidationResult:  # noqa: C901 - type-dispatch validator covering 7 ParameterType variants (ACTION, BOOL, INTEGER/FLOAT, STRING, ENUM, DUMMY/EMPTY) with per-type range and VALUE_LIST checks
     """
     Validate a value against its parameter description.
 

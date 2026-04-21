@@ -38,7 +38,7 @@ from aiohomematic.central.events.integration import (
     IntegrationIssue,
     SystemStatusChangedEvent,
 )
-from aiohomematic.central.events.internal import (  # noqa: F401
+from aiohomematic.central.events.internal import (
     CacheInvalidatedEvent,
     ConnectionHealthChangedEvent,
     ConnectionLostEvent,
@@ -57,14 +57,14 @@ from aiohomematic.central.events.internal import (  # noqa: F401
 )
 from aiohomematic.central.events.types import (
     CentralStateChangedEvent,
-    CircuitBreakerStateChangedEvent,  # noqa: F401
-    CircuitBreakerTrippedEvent,  # noqa: F401
+    CircuitBreakerStateChangedEvent,
+    CircuitBreakerTrippedEvent,
     ClientStateChangedEvent,
-    DataFetchCompletedEvent,  # noqa: F401
-    DataFetchOperation,  # noqa: F401
+    DataFetchCompletedEvent,
+    DataFetchOperation,
     Event,
     EventPriority,
-    HealthRecordedEvent,  # noqa: F401
+    HealthRecordedEvent,
 )
 
 # Only public events and EventBus infrastructure are part of the stable API.
@@ -97,6 +97,26 @@ __all__ = [
     "RecoveryFailedEvent",
     "RecoveryStageChangedEvent",
     # State machine events
+    "CacheInvalidatedEvent",
     "CentralStateChangedEvent",
+    "CircuitBreakerStateChangedEvent",
+    "CircuitBreakerTrippedEvent",
     "ClientStateChangedEvent",
+    "ConnectionHealthChangedEvent",
+    "ConnectionLostEvent",
+    "ConnectionStageChangedEvent",
+    "DataFetchCompletedEvent",
+    "DataFetchOperation",
+    "DataPointStatusReceivedEvent",
+    "DataPointValueReceivedEvent",
+    "DataRefreshCompletedEvent",
+    "DataRefreshTriggeredEvent",
+    "DeviceStateChangedEvent",
+    "FirmwareStateChangedEvent",
+    "HealthRecordedEvent",
+    "HeartbeatTimerFiredEvent",
+    "LinkPeerChangedEvent",
+    "ProgramExecutedEvent",
+    "RecoveryAttemptedEvent",
+    "RequestCoalescedEvent",
 ]

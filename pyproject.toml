@@ -479,23 +479,9 @@ lint.select = [
     "RUF013", # PEP 484 prohibits implicit Optional
     "RUF018", # Avoid assignment expressions in assert statements
     "RUF100", # Unused `noqa` directive
-    "S102", # Use of exec detected
-    "S103", # bad-file-permissions
-    "S108", # hardcoded-temp-file
-    "S306", # suspicious-mktemp-usage
-    "S307", # suspicious-eval-usage
-    "S313", # suspicious-xmlc-element-tree-usage
-    "S314", # suspicious-xml-element-tree-usage
-    "S315", # suspicious-xml-expat-reader-usage
-    "S316", # suspicious-xml-expat-builder-usage
-    "S317", # suspicious-xml-sax-usage
-    "S318", # suspicious-xml-mini-dom-usage
-    "S319", # suspicious-xml-pull-dom-usage
-    "S601", # paramiko-call
-    "S602", # subprocess-popen-with-shell-equals-true
-    "S604", # call-with-shell-equals-true
-    "S608", # hardcoded-sql-expression
-    "S609", # unix-command-wildcard-injection
+    "S", # flake8-bandit (full suite; supersedes prior S1xx/S3xx/S6xx selection)
+    "BLE", # flake8-blind-except - forbids bare `except Exception:` without context
+    "PTH", # flake8-use-pathlib - prefer pathlib over os.path
     "SIM", # flake8-simplify
     "SLOT", # flake8-slots
     "T100", # Trace found: {name} used
@@ -582,9 +568,35 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
 "aiohomematic.support" = "hms"
 
 [tool.ruff.lint.per-file-ignores]
-"script/*" = ["T20"] # Allow print/debug statements in scripts
-"aiohomematic/hmcli.py" = ["T20"] # Allow print/debug statements in CLI entrypoint
-"tests/*.py" = ["D100", "D101", "D102", "D103", "D107", "TRY002"] # Ignore docstring requirements and too-broad exception guidance in tests
+"script/*" = [
+    "T20", # Allow print/debug statements in scripts
+    "S101", # assert usage is fine in dev scripts
+    "S110", "S112", # try-except-pass/continue in dev scripts
+    "S310", # urllib.urlopen is acceptable for dev-only CCU data extraction
+    "S603", # subprocess calls in dev scripts
+    "BLE001", # broad except in dev scripts
+    "PTH", # os.path usage in scripts is not worth refactoring
+    "C901", # complexity limits relaxed in dev scripts
+]
+"aiohomematic/hmcli.py" = [
+    "T20", # Allow print/debug statements in CLI entrypoint
+    "BLE001", # CLI must catch all errors to surface user-friendly messages
+]
+".github/scripts/*" = ["T20", "BLE001", "S110", "C901"] # CI utility scripts; not production code
+"example*.py" = ["T20", "BLE001"] # top-level usage examples
+"tests/*.py" = [
+    "D100", "D101", "D102", "D103", "D107", # docstring requirements
+    "TRY002", # too-broad exception guidance
+    "S101", # assert usage is expected in tests
+    "S105", "S106", # hardcoded passwords in test fixtures
+    "S110", "S112", # try-except-pass/continue in fixture teardown
+    "S311", # non-cryptographic random in tests
+    "BLE001", # broad `except Exception` in tests (fixture cleanup)
+    "PLR2004", # magic values in assertions
+    "C901", # complex test scenarios
+    "PTH", # os.path in tests is not worth refactoring
+]
+"aiohomematic_test_support/*.py" = ["S101", "S105", "S106", "BLE001", "C901", "PTH"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true # Keep imports sorted even within sections
@@ -595,7 +607,7 @@ combine-as-imports = true # Combine multiple as-imports from the same module
 split-on-trailing-comma = false # Don't split imports solely due to trailing commas
 
 [tool.ruff.lint.mccabe]
-max-complexity = 25 # Allow up to 25 McCabe complexity per function
+max-complexity = 15 # Allow up to 15 McCabe complexity per function
 
 
 [tool.coverage.run]
@@ -688,6 +700,10 @@ enable_error_code = [
     "ignore-without-code",
     "redundant-self",
     "truthy-iterable",
+    "possibly-undefined",
+    "unused-awaitable",
+    # "explicit-override" intentionally excluded: enabling it reveals ~887 missing @override decorators
+    # across Protocol implementations. Enable after a dedicated cleanup PR adds the decorators.
 ]
 # Silence noisy/third-party related errors
 disable_error_code = [

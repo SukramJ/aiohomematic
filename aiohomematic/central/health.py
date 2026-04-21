@@ -127,6 +127,32 @@ _WEIGHT_CIRCUIT_BREAKERS: Final = 0.3
 _WEIGHT_RECENT_ACTIVITY: Final = 0.3
 
 
+def _circuit_score(*, circuit: CircuitState | None, weight: float) -> float:
+    """Return the weighted contribution for a circuit breaker state."""
+    if circuit is None:
+        # No circuit - give full credit
+        return weight
+    if circuit == CircuitState.CLOSED:
+        return weight
+    if circuit == CircuitState.HALF_OPEN:
+        return weight * 0.33
+    return 0.0
+
+
+def _activity_score(*, last_monotonic: float, weight: float) -> float:
+    """Return the weighted contribution for a recent-activity timestamp."""
+    if last_monotonic <= 0.0:
+        return 0.0
+    age = time.monotonic() - last_monotonic
+    if age < 60:
+        return weight
+    if age < 300:
+        return weight * 0.66
+    if age < 600:
+        return weight * 0.33
+    return 0.0
+
+
 @dataclass(slots=True)
 class ConnectionHealth(ConnectionHealthProtocol):
     """
@@ -224,40 +250,13 @@ class ConnectionHealth(ConnectionHealthProtocol):
         # Circuit Breakers (30% total - 15% each)
         xml_weight = _WEIGHT_CIRCUIT_BREAKERS / 2
         json_weight = _WEIGHT_CIRCUIT_BREAKERS / 2
-
-        if self.xml_rpc_circuit == CircuitState.CLOSED:
-            score += xml_weight
-        elif self.xml_rpc_circuit == CircuitState.HALF_OPEN:
-            score += xml_weight * 0.33
-
-        if self.json_rpc_circuit is None:
-            # No JSON-RPC circuit - give full credit
-            score += json_weight
-        elif self.json_rpc_circuit == CircuitState.CLOSED:
-            score += json_weight
-        elif self.json_rpc_circuit == CircuitState.HALF_OPEN:
-            score += json_weight * 0.33
+        score += _circuit_score(circuit=self.xml_rpc_circuit, weight=xml_weight)
+        score += _circuit_score(circuit=self.json_rpc_circuit, weight=json_weight)
 
         # Recent Activity (30% total - 15% each for request and event)
         activity_weight = _WEIGHT_RECENT_ACTIVITY / 2
-
-        if self.last_successful_request_monotonic > 0.0:
-            age = time.monotonic() - self.last_successful_request_monotonic
-            if age < 60:
-                score += activity_weight
-            elif age < 300:
-                score += activity_weight * 0.66
-            elif age < 600:
-                score += activity_weight * 0.33
-
-        if self.last_event_received_monotonic > 0.0:
-            age = time.monotonic() - self.last_event_received_monotonic
-            if age < 60:
-                score += activity_weight
-            elif age < 300:
-                score += activity_weight * 0.66
-            elif age < 600:
-                score += activity_weight * 0.33
+        score += _activity_score(last_monotonic=self.last_successful_request_monotonic, weight=activity_weight)
+        score += _activity_score(last_monotonic=self.last_event_received_monotonic, weight=activity_weight)
 
         return min(score, 1.0)
 

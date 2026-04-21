@@ -1760,7 +1760,7 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
 ) -> Callable[[CallableBC], CallableBC]: ...
 
 
-def bind_collector[CallableBC: CallableAny](  # kwonly: disable
+def bind_collector[CallableBC: CallableAny](  # noqa: C901 - decorator factory with both @bind_collector and @bind_collector(...) shapes, sync+async wrappers, and priority/throttle handling; splitting harms locality  # kwonly: disable
     func: CallableBC | None = None,
     *,
     wait_for_callback: int | None = WAIT_FOR_CALLBACK,
@@ -1794,7 +1794,7 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
 
     """
 
-    def bind_decorator(func: CallableBC) -> CallableBC:
+    def bind_decorator(func: CallableBC) -> CallableBC:  # noqa: C901 - inner decorator defines an async wrapper covering enabled/disabled paths, caller-provided vs auto-created collector, and exception routing at the service boundary
         """Decorate function to automatically add collector if not set."""
         # Inspect the function signature to find where 'collector' parameter is located.
         # It can be either a positional argument (in spec.args) or keyword-only.
@@ -1850,7 +1850,7 @@ def bind_collector[CallableBC: CallableAny](  # kwonly: disable
                     collector_exists = (
                         argument_index is not None and len(args) > argument_index and args[argument_index] is not None
                     ) or kwargs.get(_COLLECTOR_ARGUMENT_NAME) is not None
-                except Exception:
+                except IndexError, TypeError:
                     # Fallback: only check kwargs if positional check fails
                     collector_exists = kwargs.get(_COLLECTOR_ARGUMENT_NAME) is not None
 

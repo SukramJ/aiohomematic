@@ -2,9 +2,25 @@
 
 tests:
   - B103
+  # hardcoded bind all interfaces
+  - B104
+  # hardcoded password string
+  - B105
+  # hardcoded password function argument
+  - B106
+  # hardcoded password default
+  - B107
   - B108
+  # use of insecure MD2, MD4, MD5, SHA1 hash
+  - B303
+  # use of insecure ciphers
+  - B304
   - B306
   - B307
+  # urllib urlopen with schema-controlled URLs
+  - B310
+  # random for security-sensitive purposes
+  - B311
   - B313
   - B314
   - B315
@@ -12,8 +28,24 @@ tests:
   - B317
   - B318
   - B319
+  # FTP
+  - B321
+  # insecure hashlib use
+  - B324
+  # request without cert verification
+  - B501
+  # SSL with bad version
+  - B502
+  # SSL with bad defaults
+  - B503
+  # SSL without version
+  - B504
+  # weak cryptographic key
+  - B505
   - B601
   - B602
   - B604
   - B608
   - B609
+  # jinja2 autoescape false
+  - B701

@@ -19,10 +19,11 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
+from aiohomematic.central.device_registry import DeviceRegistry
 from aiohomematic.central.events import DeviceRemovedEvent, IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.central.events.internal import DataFetchCompletedEvent, DataFetchOperation
 from aiohomematic.const import (
@@ -71,9 +72,6 @@ from aiohomematic.model.week_profile_data_point import create_week_profile_data_
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import extract_exc_args
-
-if TYPE_CHECKING:
-    from aiohomematic.central import DeviceRegistry  # noqa: F401
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -166,7 +164,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         )
         self._device_add_semaphore: Final = asyncio.Semaphore()
 
-    device_registry: Final = DelegatedProperty["DeviceRegistry"](path="_coordinator_provider.device_registry")
+    device_registry: Final = DelegatedProperty[DeviceRegistry](path="_coordinator_provider.device_registry")
 
     @property
     def devices(self) -> tuple[DeviceProtocol, ...]:
@@ -400,7 +398,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                         channel_lookup=self,
                     )
                     device = Device(context=context)
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - device creation must not abort bulk device processing
                     _LOGGER.error(  # i18n-log: ignore
                         "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",
                         type(exc).__name__,
@@ -415,7 +413,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                         create_week_profile_data_point(device=device)
                         new_devices.add(device)
                         await self.device_registry.add_device(device=device)
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - data point creation must not abort bulk device processing
                     _LOGGER.error(  # i18n-log: ignore
                         "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
                         type(exc).__name__,
@@ -1052,7 +1050,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                     if source != SourceOfDeviceCreation.REFRESH or dev_desc in new_device_descriptions:
                         await client.fetch_paramset_descriptions(device_description=dev_desc)
                     save_descriptions = True
-                except Exception as exc:  # pragma: no cover
+                except Exception as exc:  # noqa: BLE001 - per-device update; skip this device and continue batch  # pragma: no cover
                     save_descriptions = False
                     _LOGGER.error(  # i18n-log: ignore
                         "UPDATE_CACHES_WITH_NEW_DEVICES failed: %s [%s]",
@@ -1152,8 +1150,8 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                         channel_address=channel_address,
                         paramset_key=ParamsetKey.MASTER,
                     )
-                except Exception:
-                    continue  # Device unavailable, skip
+                except Exception:  # noqa: BLE001, S112 - consistency scan must not abort on any client/transport failure; skip channel and continue
+                    continue
 
                 actual_params = set(actual_paramset.keys())
                 if missing := expected_params - actual_params:

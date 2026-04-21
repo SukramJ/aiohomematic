@@ -56,7 +56,7 @@ def callback_backend_system(system_event: SystemEventType) -> Callable[[Callable
                         target=partial(_exec_backend_system_callback, *args, **kwargs),
                         name="wrapper_backend_system_callback",
                     )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - XML-RPC callback must never propagate to backend
                 _LOGGER.warning(
                     i18n.tr(
                         key="exception.central.decorators.backend_system_handler.identify_central_failed",
@@ -148,7 +148,7 @@ def callback_event[**P, R](func: Callable[P, R]) -> Callable[P, R | Awaitable[R]
                     name="wrapper_event_callback",
                 )
                 return
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - must not break event delivery; any scheduler fault falls back to inline execution
             # Fall through to inline execution on any error
             pass
         _exec_event_callback(*args, **kwargs)

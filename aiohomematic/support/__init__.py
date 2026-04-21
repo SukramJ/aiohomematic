@@ -353,21 +353,13 @@ def element_matches_key(
         search_elements_hashable = search_elements
     else:
         # Fall back to non-cached version for other collection types
-        compare_with_processed = compare_with.lower() if ignore_case else compare_with
-        for item in search_elements:
-            element = item.lower() if ignore_case else item
-            if do_left_wildcard_search is True and do_right_wildcard_search is True:
-                if element in compare_with_processed:
-                    return True
-            elif do_left_wildcard_search:
-                if compare_with_processed.endswith(element):
-                    return True
-            elif do_right_wildcard_search:
-                if compare_with_processed.startswith(element):
-                    return True
-            elif compare_with_processed == element:
-                return True
-        return False
+        return _element_matches_key_uncached(
+            search_elements=search_elements,
+            compare_with=compare_with,
+            ignore_case=ignore_case,
+            do_left_wildcard_search=do_left_wildcard_search,
+            do_right_wildcard_search=do_right_wildcard_search,
+        )
 
     return _element_matches_key_cached(
         search_elements=search_elements_hashable,
@@ -376,6 +368,32 @@ def element_matches_key(
         do_left_wildcard_search=do_left_wildcard_search,
         do_right_wildcard_search=do_right_wildcard_search,
     )
+
+
+def _element_matches_key_uncached(
+    *,
+    search_elements: Collection[str],
+    compare_with: str,
+    ignore_case: bool,
+    do_left_wildcard_search: bool,
+    do_right_wildcard_search: bool,
+) -> bool:
+    """Non-cached fallback for arbitrary (non-hashable) collection types."""
+    compare_with_processed = compare_with.lower() if ignore_case else compare_with
+    for item in search_elements:
+        element = item.lower() if ignore_case else item
+        if do_left_wildcard_search is True and do_right_wildcard_search is True:
+            if element in compare_with_processed:
+                return True
+        elif do_left_wildcard_search:
+            if compare_with_processed.endswith(element):
+                return True
+        elif do_right_wildcard_search:
+            if compare_with_processed.startswith(element):
+                return True
+        elif compare_with_processed == element:
+            return True
+    return False
 
 
 def _get_search_key(*, search_elements: Collection[str], search_key: str) -> str | None:
@@ -434,7 +452,7 @@ def hash_sha256(*, value: Any) -> str:
     hasher = hashlib.sha256()
     try:
         data = compat.dumps(obj=value, option=compat.OPT_SORT_KEYS | compat.OPT_NON_STR_KEYS)
-    except Exception:
+    except TypeError, ValueError:
         # Fallback: convert to a hashable representation and use repr()
         data = repr(_make_value_hashable(value=value)).encode(encoding=UTF_8)
     hasher.update(data)
@@ -514,7 +532,7 @@ def _safe_log_context(*, context: Mapping[str, Any] | None) -> dict[str, Any]:
             try:
                 str(v)
                 ctx[k] = v
-            except Exception:
+            except Exception:  # noqa: BLE001 - user-provided context values may have arbitrary __str__ failures; log safely
                 ctx[k] = repr(v)
     return ctx
 

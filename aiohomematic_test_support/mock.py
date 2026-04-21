@@ -88,7 +88,7 @@ def _get_properties(*, data_object: Any, decorator: Any) -> set[str]:
     return {y for y in dir(cls) if isinstance(getattr(cls, y), resolved_decorator)}
 
 
-def get_client_session(  # noqa: C901
+def get_client_session(
     *,
     player: SessionPlayer,
     address_device_translation: set[str] | None = None,
@@ -131,7 +131,7 @@ def get_client_session(  # noqa: C901
             url: str,
             data: bytes | bytearray | str | None = None,
             headers: Any = None,
-            timeout: Any = None,  # noqa: ASYNC109
+            timeout: Any = None,  # noqa: ASYNC109 - signature mirrors aiohttp.ClientSession.post for mock compatibility
             ssl: Any = None,
         ) -> _MockResponse:
             # Payload is produced by AioJsonRpcAioHttpClient via compat.dumps
@@ -251,7 +251,7 @@ def get_client_session(  # noqa: C901
     return cast(ClientSession, _MockClientSession())
 
 
-def get_xml_rpc_proxy(  # noqa: C901
+def get_xml_rpc_proxy(
     *,
     player: SessionPlayer,
     address_device_translation: set[str] | None = None,
@@ -729,7 +729,7 @@ class SessionPlayer:
         if self.supports_file_id(file_id=file_id):
             return DataOperationResult.NO_LOAD
 
-        if not os.path.exists(file_path):  # noqa: ASYNC240
+        if not await asyncio.to_thread(os.path.exists, file_path):
             return DataOperationResult.NO_LOAD
 
         def _perform_load() -> DataOperationResult:

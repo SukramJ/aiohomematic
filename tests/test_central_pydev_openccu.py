@@ -26,7 +26,7 @@ class TestCentralPyDevOpenCCU:
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    async def test_central_full(self, central_unit_openccu) -> None:  # noqa: C901
+    async def test_central_full(self, central_unit_openccu) -> None:
         """Test the central."""
         central = central_unit_openccu
         assert central

@@ -367,7 +367,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=self._dp_setpoint.unique_id,
-                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108 - lambda discards event kwarg; _manu_temp_changed does not accept it  # pylint: disable=unnecessary-lambda
             )
         )
 
@@ -415,7 +415,7 @@ class BaseCustomDpClimate(CustomDataPoint):
                     if state_dp := link_channel.get_generic_data_point(parameter=Parameter.STATE):
                         self._peer_state_dp = cast(DpBinarySensor, state_dp)
                         break
-        except Exception:  # pragma: no cover - defensive
+        except AttributeError, KeyError, TypeError:  # pragma: no cover - defensive
             self._peer_level_dp = None
             self._peer_state_dp = None
             return
@@ -427,7 +427,7 @@ class BaseCustomDpClimate(CustomDataPoint):
             unreg = self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=dp.unique_id,
-                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108 - lambda discards event kwarg; publish_data_point_updated_event does not accept it  # pylint: disable=unnecessary-lambda
             )
             if unreg is not None:
                 # Track for both refresh-time cleanup and object removal cleanup
@@ -626,7 +626,7 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
             self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=self._dp_control_mode.unique_id,
-                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108 - lambda discards event kwarg; _manu_temp_changed does not accept it  # pylint: disable=unnecessary-lambda
             )
         )
 
@@ -867,7 +867,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
             self._event_bus_provider.event_bus.subscribe(
                 event_type=DataPointStateChangedEvent,
                 event_key=self._dp_set_point_mode.unique_id,
-                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                handler=lambda *, event: self._manu_temp_changed(),  # noqa: PLW0108 - lambda discards event kwarg; _manu_temp_changed does not accept it  # pylint: disable=unnecessary-lambda
             )
         )
 

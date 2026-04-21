@@ -739,35 +739,7 @@ class DefaultWeekProfile(WeekProfile[SimpleSchedule]):
             if group_no not in intermediate_data:
                 intermediate_data[group_no] = {}
 
-            # Convert value based on field type
-            int_value = int(value)
-
-            if field == ScheduleField.ASTRO_TYPE:
-                try:
-                    intermediate_data[group_no][field] = AstroType(int_value)
-                except ValueError:
-                    intermediate_data[group_no][field] = int_value
-            elif field == ScheduleField.CONDITION:
-                try:
-                    intermediate_data[group_no][field] = ScheduleCondition(int_value)
-                except ValueError:
-                    intermediate_data[group_no][field] = int_value
-            elif field in (ScheduleField.DURATION_BASE, ScheduleField.RAMP_TIME_BASE):
-                try:
-                    intermediate_data[group_no][field] = TimeBase(int_value)
-                except ValueError:
-                    intermediate_data[group_no][field] = int_value
-            elif field == ScheduleField.LEVEL:
-                intermediate_data[group_no][field] = int_value if isinstance(value, int) else float(value)
-            elif field == ScheduleField.LEVEL_2:
-                intermediate_data[group_no][field] = float(value)
-            elif field == ScheduleField.WEEKDAY:
-                intermediate_data[group_no][field] = _bitwise_to_list(value=int_value, enum_class=WeekdayInt)
-            elif field == ScheduleField.TARGET_CHANNELS:
-                intermediate_data[group_no][field] = _bitwise_to_list(value=int_value, enum_class=ScheduleActorChannel)
-            else:
-                # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE, RAMP_TIME_FACTOR
-                intermediate_data[group_no][field] = int_value
+            intermediate_data[group_no][field] = _convert_raw_schedule_value(field=field, value=value)
 
         # Convert intermediate format to SimpleSchedule
         entries: dict[int, SimpleScheduleEntry] = {}
@@ -1590,6 +1562,42 @@ def _bitwise_to_list(*, value: int, enum_class: type[IntEnum]) -> list[IntEnum]:
         return []
 
     return [item for item in enum_class if value & item.value]
+
+
+def _convert_raw_schedule_value(*, field: ScheduleField, value: Any) -> Any:
+    """
+    Convert a raw schedule field value to its typed intermediate representation.
+
+    Dispatches on field type to produce the right value type for the intermediate
+    dict consumed by ``convert_raw_group_to_simple_entry``.
+    """
+    int_value = int(value)
+
+    if field == ScheduleField.ASTRO_TYPE:
+        try:
+            return AstroType(int_value)
+        except ValueError:
+            return int_value
+    if field == ScheduleField.CONDITION:
+        try:
+            return ScheduleCondition(int_value)
+        except ValueError:
+            return int_value
+    if field in (ScheduleField.DURATION_BASE, ScheduleField.RAMP_TIME_BASE):
+        try:
+            return TimeBase(int_value)
+        except ValueError:
+            return int_value
+    if field == ScheduleField.LEVEL:
+        return int_value if isinstance(value, int) else float(value)
+    if field == ScheduleField.LEVEL_2:
+        return float(value)
+    if field == ScheduleField.WEEKDAY:
+        return _bitwise_to_list(value=int_value, enum_class=WeekdayInt)
+    if field == ScheduleField.TARGET_CHANNELS:
+        return _bitwise_to_list(value=int_value, enum_class=ScheduleActorChannel)
+    # ASTRO_OFFSET, DURATION_FACTOR, FIXED_HOUR, FIXED_MINUTE, RAMP_TIME_FACTOR
+    return int_value
 
 
 def _extract_supported_schedule_fields(*, master_paramset: Mapping[str, Any]) -> frozenset[ScheduleField]:

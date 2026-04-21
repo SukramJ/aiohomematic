@@ -1012,13 +1012,11 @@ def _get_new_data_points(
 
 def _get_new_channel_events(*, new_devices: set[DeviceProtocol]) -> tuple[tuple[GenericEventProtocolAny, ...], ...]:
     """Return new channel events by category."""
-    channel_events: list[tuple[GenericEventProtocolAny, ...]] = []
-
-    for device in new_devices:
-        for event_type in DATA_POINT_EVENTS:
-            if (hm_channel_events := list(device.get_events(event_type=event_type, registered=False).values())) and len(
-                hm_channel_events
-            ) > 0:
-                channel_events.append(hm_channel_events)  # type: ignore[arg-type] # noqa:PERF401
+    channel_events: list[tuple[GenericEventProtocolAny, ...]] = [
+        hm_channel_events  # type: ignore[misc]
+        for device in new_devices
+        for event_type in DATA_POINT_EVENTS
+        if (hm_channel_events := list(device.get_events(event_type=event_type, registered=False).values()))
+    ]
 
     return tuple(channel_events)

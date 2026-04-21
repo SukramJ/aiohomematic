@@ -286,6 +286,6 @@ class CombinedDataPoint[ParameterT](BaseDataPoint, CallbackDataPointProtocol):
                 self._event_bus_provider.event_bus.subscribe(
                     event_type=DataPointStateChangedEvent,
                     event_key=data_point.unique_id,
-                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108 - lambda discards event kwarg; publish_data_point_updated_event does not accept it  # pylint: disable=unnecessary-lambda
                 )
             )

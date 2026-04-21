@@ -318,7 +318,7 @@ class CommandRetryHandler:
                     return result
 
             # Should not reach here, but satisfy type checker
-            assert last_exception is not None
+            assert last_exception is not None  # noqa: S101
             raise last_exception
         finally:
             # Only remove if we are still the registered retry (not superseded)
@@ -341,7 +341,7 @@ class CommandRetryHandler:
         # Standard exponential backoff with ±20% jitter
         delay = tc.command_retry_base_delay * (tc.command_retry_backoff_factor ** (attempt - 1))
         delay = min(delay, tc.command_retry_max_delay)
-        jitter = delay * random.uniform(-_JITTER_FACTOR, _JITTER_FACTOR)
+        jitter = delay * random.uniform(-_JITTER_FACTOR, _JITTER_FACTOR)  # noqa: S311  # nosec B311 - backoff jitter, not security-sensitive
         return max(0.0, delay + jitter)
 
     def _cancel_retry_for_dpk(self, *, dpk: DataPointKey) -> int:

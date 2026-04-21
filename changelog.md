@@ -1,3 +1,65 @@
+# Version 2026.4.18 (2026-04-21)
+
+## What's Changed
+
+### Changed
+
+- **Stricter linter configuration**: tightened the project's quality gates.
+  - Ruff: full `S` (flake8-bandit) suite activated, `BLE` (blind-except) and
+    `PTH` (pathlib) added, `mccabe.max-complexity` lowered from 25 to 15.
+    Per-file-ignores extended for tests, `script/`, `.github/scripts/`, and
+    top-level examples so only library code is held to the strict bar.
+  - mypy: enabled `possibly-undefined` and `unused-awaitable` error codes.
+    `explicit-override` intentionally left off — enabling it surfaces ~890
+    missing `@override` decorators across protocol implementations and
+    belongs in its own dedicated PR.
+  - bandit: added 16 additional checks (B104–B107, B303/B304/B310/B311,
+    B321/B324, B501–B505, B701). Tests excluded from bandit scope since
+    fixture data is intentional; ruff's `S` rules guard production.
+- **Migrate filesystem operations to `pathlib`**: `store/storage.py`,
+  `support/file_ops.py`, and `model/device.py` now use `pathlib.Path`
+  throughout instead of `os.path` / `glob` — clearer semantics for
+  `glob` / `resolve` / `replace` operations, no behavior change.
+- **Narrow broad exception handlers where the type was obvious**:
+  ~25 `except Exception:` blocks in coordinators, client, model, and
+  store replaced with concrete exception types (e.g.
+  `except (OSError, compat.JSONDecodeError)` for storage I/O,
+  `except (ValueError, SyntaxError, MemoryError, TypeError)` for JSON
+  parsing, `except AioHomematicException` for project-level RPC calls).
+  Intentionally broad catches — incident recording, recovery stages,
+  decorator boundaries, calculated data points, service-boundary
+  callbacks — now carry a `# noqa: BLE001` with a specific reason
+  documenting why narrowing would break the defensive contract.
+- **Refactor complex functions for readability**: extracted helpers in
+  `central/health.py::health_score` (circuit / activity scoring),
+  `central/query_facade.py::get_parameters` (skip / resolve helpers),
+  `client/json_rpc.py::get_all_system_variables` (inclusion and record
+  builders), `model/schedule_models.py::validate_domain_constraints`
+  (per-domain validator dispatch table),
+  `model/week_profile.py::convert_raw_to_dict_schedule`, and
+  `support/__init__.py::element_matches_key`. Remaining complex
+  functions (decorator factories, RPC fault translators, pydantic
+  TypedDict serializers) keep a `# noqa: C901` with a concrete reason.
+
+### Fixed
+
+- **`DelegatedProperty` forward-reference type resolution**: using a
+  string form (`DelegatedProperty["DeviceRegistry"](...)`) in
+  `central/coordinators/device.py::device_registry` caused mypy to
+  resolve the attribute as `Any`, which silently masked `no-any-return`
+  errors in `devices`, `get_channel`, `get_device`,
+  `get_virtual_remotes`, and `identify_channel`. Importing
+  `DeviceRegistry` directly and dropping the quotes restores strict
+  return-type checking.
+- **`Path.mkdir` vs. `os.makedirs` in tests**: after the `pathlib`
+  migration, `tests/test_support.py::test_check_or_create_directory_sync`
+  still patched `os.path.exists` / `os.makedirs` and no longer intercepted
+  calls. Updated to patch `pathlib.Path.exists` / `pathlib.Path.mkdir`.
+- **`__new__` return type in `central/rpc_server.py`**: annotated with
+  `Self` instead of the concrete class so the `PYI034` contract holds.
+
+---
+
 # Version 2026.4.17 (2026-04-20)
 
 ## What's Changed

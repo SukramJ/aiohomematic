@@ -122,7 +122,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT],
                 low_bat_limit=self._low_bat_limit,
                 voltage_max=self._voltage_max,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - calculated data point must return None on any failure; logging suffices
             _LOGGER.debug(
                 "OperatingVoltageLevel: Failed to calculate sensor for %s: %s",
                 self._channel.name,

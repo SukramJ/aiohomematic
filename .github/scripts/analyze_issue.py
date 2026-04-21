@@ -211,7 +211,7 @@ def fetch_latest_versions(gh: Github) -> tuple[str | None, str | None]:
         _cached_versions["prerelease"] = prerelease_version
 
     except GithubException as e:
-        print(f"Warning: Could not fetch versions from GitHub: {e}")  # noqa: T201
+        print(f"Warning: Could not fetch versions from GitHub: {e}")
         # Fallback to None - validation will still work but without version comparison
         _cached_versions["stable"] = None
         _cached_versions["prerelease"] = None
@@ -392,7 +392,7 @@ def download_attachment(url: str, *, max_size: int = MAX_ATTACHMENT_SIZE) -> str
             # Check content length if available
             content_length = response.headers.get("content-length")
             if content_length and int(content_length) > max_size:
-                print(f"Attachment too large: {content_length} bytes")  # noqa: T201
+                print(f"Attachment too large: {content_length} bytes")
                 return None
 
             # Download with size limit
@@ -401,7 +401,7 @@ def download_attachment(url: str, *, max_size: int = MAX_ATTACHMENT_SIZE) -> str
             for chunk in response.iter_content(chunk_size=8192):
                 total_size += len(chunk)
                 if total_size > max_size:
-                    print("Attachment exceeded size limit during download")  # noqa: T201
+                    print("Attachment exceeded size limit during download")
                     return None
                 content_chunks.append(chunk)
 
@@ -414,7 +414,7 @@ def download_attachment(url: str, *, max_size: int = MAX_ATTACHMENT_SIZE) -> str
                 return content.decode("latin-1")
 
     except requests.RequestException as e:
-        print(f"Failed to download attachment from {url}: {e}")  # noqa: T201
+        print(f"Failed to download attachment from {url}: {e}")
         return None
 
 
@@ -471,7 +471,7 @@ def analyze_diagnostics_json(content: str) -> dict[str, Any]:
                     result["device_addresses"].add(addr)
 
     except json.JSONDecodeError as e:
-        print(f"Failed to parse diagnostics JSON: {e}")  # noqa: T201
+        print(f"Failed to parse diagnostics JSON: {e}")
 
     return result
 
@@ -710,7 +710,7 @@ def perform_deep_analysis(issue_body: str) -> AttachmentAnalysis:
     # Extract attachment URLs
     json_urls, log_urls = extract_attachment_urls(issue_body)
 
-    print(f"Found {len(json_urls)} JSON URLs and {len(log_urls)} log URLs")  # noqa: T201
+    print(f"Found {len(json_urls)} JSON URLs and {len(log_urls)} log URLs")
 
     # Analyze diagnostics JSON
     if json_urls:
@@ -725,7 +725,7 @@ def perform_deep_analysis(issue_body: str) -> AttachmentAnalysis:
             analysis.interface_health = diag_data.get("client_health", {})
             analysis.incident_store = diag_data.get("incident_store", {})
             analysis.metrics = diag_data.get("metrics", {})
-            print(f"Parsed diagnostics: {len(analysis.registered_models)} models")  # noqa: T201
+            print(f"Parsed diagnostics: {len(analysis.registered_models)} models")
 
     # Analyze log file
     if log_urls:
@@ -739,7 +739,7 @@ def perform_deep_analysis(issue_body: str) -> AttachmentAnalysis:
             analysis.log_pattern_matches = {
                 k: log_data.get("sample_matches", {}).get(k, []) for k in log_data.get("pattern_matches", {})
             }
-            print(f"Analyzed log: {len(analysis.no_subscriber_addresses)} no-subscriber addresses")  # noqa: T201
+            print(f"Analyzed log: {len(analysis.no_subscriber_addresses)} no-subscriber addresses")
 
     # Cross-reference devices
     cross_ref = cross_reference_devices(
@@ -967,7 +967,7 @@ def get_claude_analysis(
 
     # Detect template language from issue body
     template_language = detect_template_language(body or "")
-    print(f"Detected template language: {template_language}")  # noqa: T201
+    print(f"Detected template language: {template_language}")
 
     # Fetch current versions from GitHub Releases
     current_stable, current_prerelease = fetch_latest_versions(gh)
@@ -1414,7 +1414,7 @@ def main() -> None:
     repo_name = os.getenv("REPO_NAME", "")
 
     if not all([github_token, anthropic_api_key, issue_number, repo_name]):
-        print("Error: Missing required environment variables")  # noqa: T201
+        print("Error: Missing required environment variables")
         sys.exit(1)
 
     # Initialize GitHub client
@@ -1426,24 +1426,24 @@ def main() -> None:
     issue_title = os.getenv("ISSUE_TITLE") or issue.title
     issue_body = os.getenv("ISSUE_BODY") or issue.body or ""
 
-    print(f"Analyzing issue #{issue_number}: {issue_title}")  # noqa: T201
+    print(f"Analyzing issue #{issue_number}: {issue_title}")
 
     # Fetch latest versions from GitHub Releases
     current_stable, current_prerelease = fetch_latest_versions(gh)
-    print(f"Current versions - stable: {current_stable}, prerelease: {current_prerelease}")  # noqa: T201
+    print(f"Current versions - stable: {current_stable}, prerelease: {current_prerelease}")
 
     # Perform deep analysis of attachments BEFORE Claude analysis
     deep_analysis: AttachmentAnalysis | None = None
     try:
-        print("Performing deep analysis of attachments...")  # noqa: T201
+        print("Performing deep analysis of attachments...")
         deep_analysis = perform_deep_analysis(issue_body)
-        print(f"Deep analysis complete: diagnostics={deep_analysis.has_diagnostics}, logs={deep_analysis.has_logs}")  # noqa: T201
+        print(f"Deep analysis complete: diagnostics={deep_analysis.has_diagnostics}, logs={deep_analysis.has_logs}")
         if deep_analysis.no_subscriber_addresses:
-            print(f"Found {len(deep_analysis.no_subscriber_addresses)} devices with no subscribers")  # noqa: T201
+            print(f"Found {len(deep_analysis.no_subscriber_addresses)} devices with no subscribers")
         if deep_analysis.unregistered_devices:
-            print(f"Found {len(deep_analysis.unregistered_devices)} unregistered devices sending events")  # noqa: T201
+            print(f"Found {len(deep_analysis.unregistered_devices)} unregistered devices sending events")
     except Exception as e:
-        print(f"Warning: Deep analysis failed (continuing with basic analysis): {e}")  # noqa: T201
+        print(f"Warning: Deep analysis failed (continuing with basic analysis): {e}")
         deep_analysis = None
 
     # Get Claude's analysis with deep analysis results
@@ -1455,9 +1455,9 @@ def main() -> None:
             gh=gh,
             deep_analysis=deep_analysis,
         )
-        print(f"Analysis complete: {json.dumps(analysis, indent=2)}")  # noqa: T201
+        print(f"Analysis complete: {json.dumps(analysis, indent=2)}")
     except Exception as e:
-        print(f"Error getting Claude analysis: {e}")  # noqa: T201
+        print(f"Error getting Claude analysis: {e}")
         sys.exit(1)
 
     # Search for similar issues
@@ -1466,16 +1466,16 @@ def main() -> None:
     if search_terms:
         try:
             similar_items = search_similar_issues(repo, search_terms, issue_number)
-            print(f"Found {len(similar_items)} similar items")  # noqa: T201
+            print(f"Found {len(similar_items)} similar items")
         except Exception as e:
-            print(f"Error searching for similar issues: {e}")  # noqa: T201
+            print(f"Error searching for similar issues: {e}")
 
     # Check if bot has already commented (to avoid duplicates on edit)
     is_manual_trigger = not os.getenv("ISSUE_TITLE")  # Manual trigger doesn't have ISSUE_TITLE in env
     already_commented = has_bot_comment(issue)
 
     if already_commented and not is_manual_trigger:
-        print("Bot has already commented on this issue, skipping to avoid duplicates")  # noqa: T201
+        print("Bot has already commented on this issue, skipping to avoid duplicates")
         return
 
     # Format and post comment
@@ -1507,12 +1507,12 @@ def main() -> None:
     if has_useful_feedback:
         try:
             issue.create_comment(comment_body)
-            print("Comment posted successfully")  # noqa: T201
+            print("Comment posted successfully")
         except Exception as e:
-            print(f"Error posting comment: {e}")  # noqa: T201
+            print(f"Error posting comment: {e}")
             sys.exit(1)
     else:
-        print("No actionable feedback to provide, skipping comment")  # noqa: T201
+        print("No actionable feedback to provide, skipping comment")
 
 
 if __name__ == "__main__":

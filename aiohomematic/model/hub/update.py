@@ -204,8 +204,7 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
                             # to allow immediate data refresh
                             client.reset_circuit_breakers()
                             break
-                    except Exception as err:
-                        # CCU may be offline during reboot - continue polling
+                    except Exception as err:  # noqa: BLE001 - CCU may be offline during reboot; continue polling until timeout
                         _LOGGER.debug(
                             i18n.tr(
                                 key="log.model.hub.update.progress_poll_error",

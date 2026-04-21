@@ -13,7 +13,7 @@ import asyncio
 import contextlib
 import logging
 import time
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Self, cast
 from xml.parsers.expat import ExpatError
 import xmlrpc.client
 
@@ -186,7 +186,7 @@ class AsyncXmlRpcDispatcher:
                 result = await handler(*params)
                 # XML-RPC multicall wraps each result in a list
                 results.append([result if result is not None else True])
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001 - multicall must convert any handler failure to XML-RPC fault
                 _LOGGER.debug("Multicall method %s failed: %s", method_name, err)
                 results.append({"faultCode": -32603, "faultString": str(err)})
 
@@ -544,18 +544,18 @@ class AsyncXmlRpcServer:
 
         self._initialized = True
 
-    def __new__(  # noqa: PYI034
+    def __new__(
         cls,
         *,
         ip_addr: str = IP_ANY_V4,
         port: int = PORT_ANY,
-    ) -> AsyncXmlRpcServer:
+    ) -> Self:
         """Return existing instance or create new one."""
         if (key := (ip_addr, port)) not in cls._instances:
             _LOGGER.debug("Creating AsyncXmlRpcServer")
             instance = super().__new__(cls)
             cls._instances[key] = instance
-        return cls._instances[key]
+        return cast(Self, cls._instances[key])
 
     listen_ip_addr: Final = DelegatedProperty[str](path="_ip_addr")
     listen_port: Final = DelegatedProperty[int](path="_actual_port")

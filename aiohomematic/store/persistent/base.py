@@ -168,7 +168,7 @@ class BasePersistentCache(ABC):
             )
             try:
                 data = self._migrate_schema(data=data, from_version=loaded_version)
-            except Exception:
+            except Exception:  # noqa: BLE001 - migration of user data may fail for any reason; fall back to cache clear
                 _LOGGER.warning(  # i18n-log: ignore
                     "CACHE_LOAD: Migration failed for %s, clearing cache",
                     self.storage_key,

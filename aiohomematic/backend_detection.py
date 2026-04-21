@@ -191,7 +191,7 @@ async def _do_detect_backend(
             continue
 
         # Type narrowing: version is now str (not _ABORT_DETECTION or None)
-        assert isinstance(version, str)
+        assert isinstance(version, str)  # noqa: S101
 
         _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.found_version", version=version, port=port))
 
@@ -302,7 +302,7 @@ async def _probe_xml_rpc_port(
             version = await asyncio.wait_for(proxy.getVersion(), timeout=request_timeout)
             return str(version) if version else ""
         # If getVersion not available, return empty string to indicate connection worked
-        return ""  # noqa: TRY300
+        return ""  # noqa: TRY300 - keep with try for consistent exception handling
 
     except AuthFailure:
         # Re-raise authentication failures - wrong credentials should not try other ports
@@ -365,7 +365,7 @@ async def _probe_xml_rpc_port(
             )
         )
         return None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - probe must not propagate; any failure = not this backend
         _LOGGER.info(
             i18n.tr(
                 key="log.backend_detection.xml_rpc.probe_error",
@@ -489,7 +489,7 @@ async def _query_json_rpc_interfaces(
                             interface=interface.value,
                         )
                     )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - per-interface probe; log and continue checking others
                 _LOGGER.warning(
                     i18n.tr(
                         key="log.backend_detection.json_rpc.is_present_failed",
@@ -508,7 +508,7 @@ async def _query_json_rpc_interfaces(
         # Connection failed on this port - log and try next port
         _LOGGER.info(i18n.tr(key="log.backend_detection.json_rpc.connection_failed", url=device_url))
         return None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - query must not propagate; any failure = not this backend
         _LOGGER.info(
             i18n.tr(
                 key="log.backend_detection.json_rpc.query_failed",

@@ -448,7 +448,7 @@ class TestEventDrivenMockServer:
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         results: list[CircuitBreakerTrippedEvent] = []
-        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=lambda event: results.append(event))
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=results.append)
 
         event = CircuitBreakerTrippedEvent(
             timestamp=datetime.now(),
@@ -472,7 +472,7 @@ class TestEventDrivenMockServer:
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         results: list[CircuitBreakerTrippedEvent] = []
-        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=lambda event: results.append(event))
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).then_call(handler=results.append)
 
         await event_bus.publish(
             event=CircuitBreakerTrippedEvent(
@@ -536,7 +536,7 @@ class TestEventDrivenMockServer:
         results: list[CircuitBreakerTrippedEvent] = []
         mock_server.when(event_type=CircuitBreakerTrippedEvent).matching(
             filter_fn=lambda e: e.interface_id == "rf"
-        ).then_call(handler=lambda event: results.append(event))
+        ).then_call(handler=results.append)
 
         # Should match
         await event_bus.publish(
@@ -573,9 +573,7 @@ class TestEventDrivenMockServer:
         mock_server = EventDrivenMockServer(_event_bus=event_bus)
 
         results: list[CircuitBreakerTrippedEvent] = []
-        mock_server.when(event_type=CircuitBreakerTrippedEvent).once().then_call(
-            handler=lambda event: results.append(event)
-        )
+        mock_server.when(event_type=CircuitBreakerTrippedEvent).once().then_call(handler=results.append)
 
         # First event should be handled
         await event_bus.publish(

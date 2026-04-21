@@ -11,6 +11,7 @@ from slugify import slugify
 
 from aiohomematic.const import INIT_DATETIME, INSTALL_MODE_ADDRESS, DataPointCategory, HubValueType, InstallModeData
 from aiohomematic.decorators import inspector
+from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
     ChannelLookupProtocol,
@@ -124,7 +125,7 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         """Return the availability of the device."""
         try:
             client = self._client_provider.get_client(interface=self._interface)
-        except Exception:
+        except AioHomematicException:
             return False
         else:
             return client.capabilities.install_mode and self._central_info.available

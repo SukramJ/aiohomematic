@@ -176,7 +176,7 @@ class DeviceDescriptionModel(BaseModel):
         """Return True if this is a device (not a channel)."""
         return self.parent is None
 
-    def to_dict(self) -> DeviceDescription:
+    def to_dict(self) -> DeviceDescription:  # noqa: C901 - serializes 21 independent optional fields to their uppercase CCU-API keys; splitting would force dict mutation across helpers and obscure the 1:1 field mapping
         """
         Convert to DeviceDescription TypedDict format.
 

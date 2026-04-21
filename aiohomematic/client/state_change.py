@@ -92,7 +92,7 @@ async def _track_single_data_point_state_change_or_timeout(
         unreg = device.event_bus_provider.event_bus.subscribe(
             event_type=DataPointStateChangedEvent,
             event_key=dp.unique_id,
-            handler=lambda *, event: _async_event_changed(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+            handler=_async_event_changed,
         )
 
         try:

@@ -321,7 +321,7 @@ class BaseRpcProxy(ABC):
                     interface_id=self._interface_id,
                     context=context,
                 )
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail RPC error handling  # pragma: no cover
                 _LOGGER.debug(
                     "RPC_PROXY: Failed to record RPC error incident for %s: %s",
                     self._interface_id,
@@ -423,7 +423,7 @@ class AioXmlRpcProxy(BaseRpcProxy, xmlrpc.client.ServerProxy):
             supported_methods.append(_RpcMethod.PING)
             self._supported_methods = tuple(supported_methods)
 
-    async def _async_request(self, *args: Any, **kwargs: Any) -> Any:
+    async def _async_request(self, *args: Any, **kwargs: Any) -> Any:  # noqa: C901 - XML-RPC boundary: each except branch translates a distinct protocol/transport fault (SSL, OS, Fault, Protocol, ImproperConnectionState, Expat) with bespoke diagnostics
         """Call method on server side."""
         parent = xmlrpc.client.ServerProxy
         try:

@@ -20,7 +20,7 @@ class TestCentralPyDevCCU:
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    async def test_central_full(self, central_unit_pydevccu_full) -> None:  # noqa: C901
+    async def test_central_full(self, central_unit_pydevccu_full) -> None:
         """Test the central."""
         central = central_unit_pydevccu_full
         assert central
@@ -32,6 +32,8 @@ class TestCentralPyDevCCU:
 
         data = {}
         for device in central.device_registry.devices:
+            if device.model in ("HmIP-UDI-SMI55"):
+                assert device.has_sub_devices is False
             if device.model in ("HmIP-BSM", "HmIP-BDT", "HmIP-PSM", "HmIP-FSM", "HmIP-WSM", "HmIP-SMO230-A"):
                 assert device.has_sub_devices is False
             if device.model in ("HmIP-DRSI4", "HmIP-DRDI3", "HmIP-BSL"):

@@ -285,7 +285,7 @@ class _JsonKey(StrEnum):
     ON = "on"
     PARAMETER_ID = "parameterId"
     PARAMSET_KEY = "paramsetKey"
-    PASSWORD = "password"
+    PASSWORD = "password"  # noqa: S105  # nosec B105
     PRODUCT = "product"
     QUITTABLE = "quittable"
     RESULT = "result"
@@ -1015,85 +1015,28 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         if json_result := response[_JsonKey.RESULT]:
             descriptions = await self._get_system_variable_descriptions()
             for var in json_result:
-                enabled_default = False
-                extended_sysvar = False
                 if (var_id := var[_JsonKey.ID]) in IGNORE_SYSVARS_BY_ID:
                     continue
-                legacy_name = var[_JsonKey.NAME]
-                is_internal = var[_JsonKey.IS_INTERNAL]
-                if new_name := RENAME_SYSVAR_BY_NAME.get(legacy_name):
-                    legacy_name = new_name
-                if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
-                    enabled_default = True
+                enabled_default, include = _resolve_sysvar_enabled_default(
+                    var_id=var_id,
+                    is_internal=var[_JsonKey.IS_INTERNAL],
+                    description=descriptions.get(var_id),
+                    markers=markers,
+                )
+                if not include:
+                    continue
 
-                if enabled_default is False and is_internal is True:
-                    if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
-                        enabled_default = True
-                    elif markers:
-                        if DescriptionMarker.INTERNAL not in markers:
-                            continue
-                        enabled_default = True
-                    elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
-                        continue
-
-                description = descriptions.get(var_id)
-                if enabled_default is False and not is_internal and markers:
-                    if not element_matches_key(
-                        search_elements=markers,
-                        compare_with=description,
-                        ignore_case=False,
-                        do_left_wildcard_search=True,
-                    ):
-                        continue
-                    enabled_default = True
-
-                org_data_type = var[_JsonKey.TYPE]
-                raw_value = var[_JsonKey.VALUE]
-                if org_data_type == HubValueType.NUMBER:
-                    data_type = HubValueType.FLOAT if "." in raw_value else HubValueType.INTEGER
-                else:
-                    data_type = org_data_type
-
-                if description:
-                    extended_sysvar = DescriptionMarker.HAHM in description
-                    # Remove default markers from description
-                    description = _DESCRIPTION_MARKER_PATTERN.sub("", description).strip()
-                unit = var[_JsonKey.UNIT]
-                values: tuple[str, ...] | None = None
-                if val_list := var.get(_JsonKey.VALUE_LIST):
-                    values = tuple(val_list.split(";"))
-                try:
-                    value = parse_sys_var(data_type=data_type, raw_value=raw_value)
-                    max_value = None
-                    if raw_max_value := var.get(_JsonKey.MAX_VALUE):
-                        max_value = parse_sys_var(data_type=data_type, raw_value=raw_max_value)
-                    min_value = None
-                    if raw_min_value := var.get(_JsonKey.MIN_VALUE):
-                        min_value = parse_sys_var(data_type=data_type, raw_value=raw_min_value)
-                    variables.append(
-                        SystemVariableData(
-                            vid=var_id,
-                            legacy_name=legacy_name,
-                            data_type=data_type,
-                            description=description,
-                            unit=unit,
-                            value=value,
-                            values=values,
-                            max_value=max_value,
-                            min_value=min_value,
-                            extended_sysvar=extended_sysvar,
-                            enabled_default=enabled_default,
-                        )
+                legacy_name = RENAME_SYSVAR_BY_NAME.get(var[_JsonKey.NAME], var[_JsonKey.NAME])
+                if (
+                    variable := _build_sysvar_record(
+                        var=var,
+                        var_id=var_id,
+                        legacy_name=legacy_name,
+                        description=descriptions.get(var_id),
+                        enabled_default=enabled_default,
                     )
-                except (ValueError, TypeError) as vterr:
-                    _LOGGER.error(
-                        i18n.tr(
-                            key="log.client.json_rpc.get_all_system_variables.parse_failed",
-                            exc_type=vterr.__class__.__name__,
-                            reason=extract_exc_args(exc=vterr),
-                            legacy_name=legacy_name,
-                        )
-                    )
+                ) is not None:
+                    variables.append(variable)
 
         return tuple(variables)
 
@@ -1866,7 +1809,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         finally:
             self.clear_session()
 
-    async def _do_post(
+    async def _do_post(  # noqa: C901 - JSON-RPC boundary translates 6 distinct exception types (homematic, cert, connector, OS, generic) with bespoke logging and circuit-breaker handling per type
         self,
         *,
         session_id: bool | str,
@@ -2182,7 +2125,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     try:
                         # Sanitize control characters before parsing (defense in depth)
                         json_result = compat.loads(data=_sanitize_json_control_chars(data=json_result))
-                    except Exception:
+                    except JSONDecodeError:
                         # Fall back to plain string handling; return last 10 chars
                         serial_exc = str(json_result)
                         return serial_exc[-10:] if len(serial_exc) > 10 else serial_exc
@@ -2399,7 +2342,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     interface_id=interface_id,
                     context=context,
                 )
-            except Exception as err:  # pragma: no cover
+            except Exception as err:  # noqa: BLE001 - incident recording must never fail RPC error handling  # pragma: no cover
                 _LOGGER.debug(
                     "JSON_RPC: Failed to record RPC error incident for %s: %s",
                     interface_id,
@@ -2470,3 +2413,105 @@ def _get_params(
         params.update(extra_params)
 
     return {str(key): str(value) for key, value in params.items()}
+
+
+def _resolve_sysvar_enabled_default(
+    *,
+    var_id: str,
+    is_internal: bool,
+    description: str | None,
+    markers: tuple[DescriptionMarker | str, ...],
+) -> tuple[bool, bool]:
+    """
+    Resolve the enabled_default flag and filter inclusion for a system variable.
+
+    Returns (enabled_default, include) where include is False if the variable
+    should be skipped from the result list.
+    """
+    enabled_default = False
+
+    if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
+        enabled_default = True
+
+    if enabled_default is False and is_internal is True:
+        if var_id in ALWAYS_ENABLE_SYSVARS_BY_ID:
+            enabled_default = True
+        elif markers:
+            if DescriptionMarker.INTERNAL not in markers:
+                return enabled_default, False
+            enabled_default = True
+        elif DEFAULT_INCLUDE_INTERNAL_SYSVARS is False:
+            return enabled_default, False
+
+    if enabled_default is False and not is_internal and markers:
+        if not element_matches_key(
+            search_elements=markers,
+            compare_with=description,
+            ignore_case=False,
+            do_left_wildcard_search=True,
+        ):
+            return enabled_default, False
+        enabled_default = True
+
+    return enabled_default, True
+
+
+def _build_sysvar_record(
+    *,
+    var: dict[str, Any],
+    var_id: str,
+    legacy_name: str,
+    description: str | None,
+    enabled_default: bool,
+) -> SystemVariableData | None:
+    """Build a ``SystemVariableData`` record from the raw JSON response entry."""
+    org_data_type = var[_JsonKey.TYPE]
+    raw_value = var[_JsonKey.VALUE]
+    if org_data_type == HubValueType.NUMBER:
+        data_type = HubValueType.FLOAT if "." in raw_value else HubValueType.INTEGER
+    else:
+        data_type = org_data_type
+
+    extended_sysvar = False
+    if description:
+        extended_sysvar = DescriptionMarker.HAHM in description
+        # Remove default markers from description
+        description = _DESCRIPTION_MARKER_PATTERN.sub("", description).strip()
+
+    unit = var[_JsonKey.UNIT]
+    values: tuple[str, ...] | None = None
+    if val_list := var.get(_JsonKey.VALUE_LIST):
+        values = tuple(val_list.split(";"))
+
+    try:
+        value = parse_sys_var(data_type=data_type, raw_value=raw_value)
+        max_value = None
+        if raw_max_value := var.get(_JsonKey.MAX_VALUE):
+            max_value = parse_sys_var(data_type=data_type, raw_value=raw_max_value)
+        min_value = None
+        if raw_min_value := var.get(_JsonKey.MIN_VALUE):
+            min_value = parse_sys_var(data_type=data_type, raw_value=raw_min_value)
+    except (ValueError, TypeError) as vterr:
+        _LOGGER.error(
+            i18n.tr(
+                key="log.client.json_rpc.get_all_system_variables.parse_failed",
+                exc_type=vterr.__class__.__name__,
+                reason=extract_exc_args(exc=vterr),
+                legacy_name=legacy_name,
+            )
+        )
+        return None
+
+    return SystemVariableData(
+        vid=var_id,
+        legacy_name=legacy_name,
+        data_type=data_type,
+        description=description,
+        unit=unit,
+        value=value,
+        values=values,
+        max_value=max_value,
+        min_value=min_value,
+        extended_sysvar=extended_sysvar,
+        enabled_default=enabled_default,
+    )

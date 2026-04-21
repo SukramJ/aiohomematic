@@ -144,7 +144,7 @@ class UnIgnoreRuleParser:
                 custom_values_params.add(parsed.simple_parameter)  # type: ignore[arg-type]
             elif parsed.is_complex:
                 entry = parsed.entry
-                assert entry is not None
+                assert entry is not None  # noqa: S101
 
                 # Track MASTER channels for paramset fetching
                 if entry.paramset_key == ParamsetKey.MASTER and (

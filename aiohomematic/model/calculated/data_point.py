@@ -290,7 +290,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
                 self._event_bus_provider.event_bus.subscribe(
                     event_type=DataPointStateChangedEvent,
                     event_key=generic_data_point.unique_id,
-                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108 - lambda discards event kwarg; publish_data_point_updated_event does not accept it  # pylint: disable=unnecessary-lambda
                 )
             )
             return cast(dpt, generic_data_point)  # type: ignore[valid-type]
@@ -345,7 +345,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
                 self._event_bus_provider.event_bus.subscribe(
                     event_type=DataPointStateChangedEvent,
                     event_key=generic_data_point.unique_id,
-                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108  # pylint: disable=unnecessary-lambda
+                    handler=lambda *, event: self.publish_data_point_updated_event(),  # noqa: PLW0108 - lambda discards event kwarg; publish_data_point_updated_event does not accept it  # pylint: disable=unnecessary-lambda
                 )
             )
             return generic_data_point

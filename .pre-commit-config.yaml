@@ -43,6 +43,12 @@ repos:
         language: script
         files: ^aiohomematic/ccu_data/translation_custom/.+\.json$
         pass_filenames: false
+      - id: check-docs-references
+        name: check-docs-references
+        entry: script/run-in-env.sh python script/check_docs_references.py
+        language: script
+        files: ^(docs/.+\.md|aiohomematic/central/events/.+\.py)$
+        pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.15.11
     hooks:

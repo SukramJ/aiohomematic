@@ -354,9 +354,7 @@ gzip-compressed archives in version 2026.3.15 because:
 
 ## References
 
-- [Concept document](../concepts/ccu_translation_extraction.md) - detailed analysis of
-  CCU WebUI translation files and extraction strategy
-- [OCCU repository](https://github.com/jens-maus/occu) - source of translation files
+- [OCCU repository](https://github.com/jens-maus/occu) - source of translation files (analysis and extraction rationale documented above in this ADR)
 - `script/extract_ccu_translations.py` - extraction script
 - `aiohomematic/ccu_translations.py` - loader module
 - `aiohomematic/model/device.py` - Device and Channel `label` properties

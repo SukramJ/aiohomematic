@@ -1,6 +1,9 @@
 # Quick Start
 
-Get aiohomematic running in 5 minutes.
+Get aiohomematic running in 5 minutes using the high-level `HomematicAPI` facade.
+
+> **When to use this page:** you want a working connection with the fewest lines of code.
+> **Going deeper?** [Getting Started](getting_started.md) walks through the same facade plus lifecycle management, interface configuration, and direct `CentralUnit` usage.
 
 ## How It Works
 
@@ -155,11 +158,11 @@ async def main() -> None:
             print(f"  Model: {device.model}")
             print(f"  Firmware: {device.firmware}")
 
-            # 3. List channels and data points
-            for channel_no, channel in device.channels.items():
-                print(f"\n  Channel {channel_no}:")
-                for param, dp in channel.data_points.items():
-                    print(f"    {param}: {dp.value}")
+            # 3. List channels and data points (channels is keyed by channel address)
+            for channel_address, channel in device.channels.items():
+                print(f"\n  Channel {channel.no} ({channel_address}):")
+                for dp in channel.generic_data_points:
+                    print(f"    {dp.parameter}: {dp.value}")
 
         # 4. Subscribe to updates
         unsubscribe = api.subscribe_to_updates(callback=on_update)

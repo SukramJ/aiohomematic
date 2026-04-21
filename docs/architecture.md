@@ -89,119 +89,24 @@ graph TB
 
 ## Dependency Injection Architecture
 
-aiohomematic uses a **protocol-based dependency injection** pattern to reduce coupling and improve testability. The architecture follows a three-tier strategy:
+aiohomematic uses **protocol-based dependency injection** to reduce coupling and improve testability. The architecture follows a three-tier strategy — components at every layer receive only the protocol interfaces they actually need, never the whole `CentralUnit`:
 
-### Tier 1: Full Dependency Injection (Infrastructure Layer)
+- **Tier 1 — Infrastructure layer**: coordinators (`CacheCoordinator`, `DeviceRegistry`, `EventCoordinator`, `BackgroundScheduler`, …) receive a small set of protocol interfaces via constructor injection.
+- **Tier 2 — Coordinator layer**: higher-level coordinators (`ClientCoordinator`, `HubCoordinator`, `Hub`) compose other coordinators, again using only protocols (e.g. `ClientFactoryProtocol` for client creation).
+- **Tier 3 — Model layer**: `Device`, `Channel` and the `DataPoint` hierarchy are constructed with protocol interfaces; channels access them through their parent device.
 
-Components receive only protocol interfaces via constructor injection, with **zero references** to CentralUnit:
+**Benefits**: complete decoupling from `CentralUnit`, protocol-based mocking in tests, and a clear dependency contract at every level.
 
-- **CacheCoordinator**: Receives 8 protocol interfaces (CentralInfo, DeviceProvider, ClientProvider, etc.)
-- **DeviceRegistry**: Receives CentralInfo + ClientProvider
-- **ParameterVisibilityRegistry**: Receives ConfigProvider
-- **EventCoordinator**: Receives ClientProvider + TaskScheduler
-- **DeviceCoordinator**: Receives 3 protocol interfaces
-- **BackgroundScheduler**: Receives 7 protocol interfaces
+### Source of truth for protocols
 
-**Benefits**: Complete decoupling from CentralUnit, protocol-based mocking for tests, clear dependency contracts.
+All protocol interfaces — with full categorisation, member signatures, and sub-protocol composition — live in the module docstring of [`aiohomematic/interfaces/__init__.py`](https://github.com/SukramJ/aiohomematic/blob/devel/aiohomematic/interfaces/__init__.py). That module is the authoritative reference; this page deliberately does not duplicate the list so the two cannot drift.
 
-### Tier 2: Full Protocol-Based Dependency Injection (Coordinator Layer)
+Further reading:
 
-Components use protocol interfaces exclusively with zero CentralUnit references:
-
-- **ClientCoordinator**: Uses ClientFactoryProtocol protocol for client creation, plus 4 protocol interfaces (CentralInfo, ConfigProvider, CoordinatorProviderProtocol, SystemInfoProvider)
-- **HubCoordinator**: Constructs Hub with protocol interfaces only (CentralInfo, ChannelLookup, ClientProvider, ConfigProvider, EventBusProvider, EventPublisher, ParameterVisibilityProviderProtocol, ParamsetDescriptionProviderProtocol, PrimaryClientProvider, TaskScheduler)
-- **Hub**: Uses 11+ protocol interfaces for all operations, no CentralUnit reference
-
-**Note**: As of 2025-11-23, Tier 2 coordinators no longer use hybrid DI patterns. The ClientFactoryProtocol protocol was introduced to enable client creation without requiring the full CentralUnit, and Hub construction was refactored to use only protocol interfaces.
-
-### Tier 3: Full Dependency Injection (Model Layer)
-
-Model classes now use full dependency injection with protocol interfaces:
-
-- **Device**: Receives 16 protocol interfaces (DeviceDetailsProviderProtocol, DeviceDescriptionProviderProtocol, ParamsetDescriptionProviderProtocol, ParameterVisibilityProviderProtocol, ClientProvider, ConfigProvider, CentralInfo, EventBusProvider, TaskScheduler, FileOperations, DeviceDataRefresher, DataCacheProvider, ChannelLookup, EventSubscriptionManager) via constructor injection
-- **Channel**: Accesses protocol interfaces through its parent Device instance (self.\_device.\_xxx_provider)
-- **CallbackDataPoint**: Receives 5 protocol interfaces (CentralInfo, EventBusProvider, TaskScheduler, ParamsetDescriptionProviderProtocol, ParameterVisibilityProviderProtocol)
-- **BaseDataPoint**: Extracts protocol interfaces from channel.device and passes them to CallbackDataPoint
-- **BaseParameterDataPoint**: Uses device protocol interfaces for initialization
-
-**Benefits**: Complete decoupling from CentralUnit throughout the entire model layer, improved testability, clear dependency contracts at all levels.
-
-### Protocol Interfaces
-
-Key protocol interfaces defined in `aiohomematic/interfaces/`:
-
-**Central Protocols** (`interfaces/central.py`):
-
-- **CentralInfo**: System identification (name, model, version)
-- **ConfigProvider**: Configuration access (config property)
-- **DeviceProvider**: Device registry access
-- **DataPointProvider**: Data point lookup
-- **EventBusProvider**: Event system access (event_bus property)
-- **EventPublisher**: Event emission via EventCoordinator (publish_system_event, publish_device_trigger_event)
-- **DataCacheProvider**: Data cache access (get_data method)
-- **ChannelLookup**: Channel lookup by address
-- **EventSubscriptionManager**: Event subscription management
-- **DeviceDataRefresher**: Device data refresh operations
-- **FileOperations**: File I/O operations
-- **SystemInfoProvider**: System information access
-- **HubDataFetcher**: Hub data fetching operations
-- **HubDataPointManager**: Hub data point management (programs and sysvars)
-- **ConfigurationFacadeProtocol**: Device configuration operations (get/put paramset, configurable devices, paramset copy)
-- **LinkFacadeProtocol**: Device link management operations (add_link, remove_link, get_device_links, get_linkable_channels)
-
-**Client Protocols** (`interfaces/client.py`):
-
-- **ClientFactoryProtocol**: Client instance creation (create_client_instance method)
-- **ClientProvider**: Client lookup by interface_id
-- **ClientProtocol**: Client interface for RPC operations
-- **PrimaryClientProvider**: Primary client access
-
-**Operations Protocols** (`interfaces/operations.py`):
-
-- **TaskScheduler**: Background task scheduling (create_task method)
-- **DeviceDetailsProviderProtocol**: Device metadata (address_id, rooms, interface, name)
-- **DeviceDescriptionProviderProtocol**: Device descriptions lookup
-- **ParamsetDescriptionProviderProtocol**: Paramset descriptions and multi-channel checks
-- **ParameterVisibilityProviderProtocol**: Parameter visibility rules
-- **IncidentRecorderProtocol**: Incident recording for diagnostics (record_incident method)
-
-**Model Protocols** (`interfaces/model.py`):
-
-- **ChannelProtocol**: Composite channel interface, composed of sub-protocols:
-
-  - `ChannelIdentityProtocol`: Basic identification (address, name, no, type_name, unique_id)
-  - `ChannelDataPointAccessProtocol`: DataPoint and event access methods
-  - `ChannelGroupingProtocol`: Channel group and link management (group_master, link_peer_channels, link_peer_source_categories, link_peer_target_categories)
-  - `ChannelMetadataProtocol`: Additional metadata (device, function, room, paramset_descriptions)
-  - `ChannelLinkManagementProtocol`: Central link operations
-  - `ChannelLifecycleProtocol`: Lifecycle methods (finalize_init, on_config_changed, remove)
-
-- **DeviceProtocol**: Composite device interface, composed of sub-protocols:
-
-  - `DeviceIdentityProtocol`: Basic identification (address, name, model, manufacturer)
-  - `DeviceChannelAccessProtocol`: Channel and DataPoint access methods
-  - `DeviceAvailabilityProtocol`: Availability state management
-  - `DeviceFirmwareProtocol`: Firmware information and update operations
-  - `DeviceLinkManagementProtocol`: Central link operations
-  - `DeviceGroupManagementProtocol`: Channel group management
-  - `DeviceConfigurationProtocol`: Device configuration and metadata
-  - `DeviceWeekProfileProtocol`: Week profile support
-  - `DeviceProvidersProtocol`: Protocol interface providers
-  - `DeviceLifecycleProtocol`: Lifecycle methods
-
-- **HubProtocol**: Hub-level operations (inbox*dp, update_dp, fetch*\*\_data methods)
-- **WeekProfileProtocol**: Week profile operations (schedule, get_schedule, set_schedule)
-- Various DataPoint protocols (GenericDataPointProtocol, CustomDataPointProtocol, etc.)
-
-Consumers can depend on specific sub-protocols for narrower interface contracts, improving testability and reducing coupling.
-
-**Coordinator Protocols** (`interfaces/coordinators.py`):
-
-- **CoordinatorProviderProtocol**: Access to coordinator instances
-
-These protocols use `@runtime_checkable` and structural subtyping, allowing CentralUnit to satisfy all interfaces without explicit inheritance.
-
-For a comprehensive guide on choosing the right protocol for your use case, including decision trees, hierarchy diagrams, and common patterns, see the [Protocol Selection Guide](architecture/protocol_selection_guide.md).
+- [ADR 0002 — Protocol-Based Dependency Injection](adr/0002-protocol-based-dependency-injection.md)
+- [ADR 0003 — Explicit over Composite Protocol Injection](adr/0003-explicit-over-composite-protocol-injection.md)
+- [ADR 0010 — Protocol Combination Analysis](adr/0010-protocol-combination-analysis.md)
+- [Protocol Selection Guide](architecture/protocol_selection_guide.md) — decision trees, hierarchy diagrams, common patterns
 
 ## Responsibilities and boundaries
 
@@ -289,7 +194,7 @@ Legend: `x` = depends on (reads from or delegates to), `-` = no dependency.
 ## JSON-RPC vs XML-RPC data flow
 
 - XML-RPC
-  - Used primarily for event callbacks and many CCU operations. Client uses XmlRpcProxy to issue method calls to the backend. The local xml_rpc_server exposes endpoints for the backend’s event callbacks.
+  - Used primarily for event callbacks and many CCU operations. Client uses AioXmlRpcProxy to issue method calls to the backend. The local rpc_server exposes endpoints for the backend’s event callbacks.
 - JSON-RPC
   - Optional, when the backend provides a JSON API. InterfaceClient with CcuBackend or JsonCcuBackend routes some operations through JsonRpcAioHttpClient. Choice of backend per interface is encapsulated by the Backend Strategy.
 
@@ -355,13 +260,13 @@ All architectural decisions are documented as formal ADRs in the `adr/` director
 | [0010](adr/0010-protocol-combination-analysis.md)                      | Protocol Combination Analysis                                 | Accepted    |
 | [0011](adr/0011-storage-abstraction.md)                                | Storage Abstraction                                           | Accepted    |
 | [0012](adr/0012-async-xml-rpc-server-poc.md)                           | Async XML-RPC Server POC                                      | Accepted    |
-| [0013a](adr/0013-implementation-status.md)                             | Implementation Status                                         | Accepted    |
-| [0013b](adr/0013-interface-client-backend-strategy.md)                 | Interface Client Backend Strategy                             | Accepted    |
+| [0013](adr/0013-interface-client-backend-strategy.md)                  | Interface Client Backend Strategy                             | Accepted    |
+| [0013a](adr/0013a-implementation-status.md)                            | Implementation Status (satellite)                             | Accepted    |
 | [0014](adr/0014-retry-logic-removal.md)                                | Retry Logic Removal                                           | Accepted    |
 | [0015](adr/0015-description-normalization-concept.md)                  | Description Normalization Concept                             | Accepted    |
 | [0016](adr/0016-paramset-description-patching.md)                      | Paramset Description Patching                                 | Accepted    |
 | [0017](adr/0017-startup-auth-error-handling.md)                        | Startup Auth Error Handling                                   | Accepted    |
-| [0018](adr/0018_contract_tests.md)                                     | Contract Tests                                                | Accepted    |
+| [0018](adr/0018-contract-tests.md)                                     | Contract Tests                                                | Accepted    |
 | [0019](adr/0019-derived-binary-sensors.md)                             | Derived Binary Sensors                                        | Accepted    |
 | [0020](adr/0020-command-throttling-priority-and-optimistic-updates.md) | Command Throttling with Priority Queue and Optimistic Updates | Accepted    |
 | [0021](adr/0021-blind-command-processing-lock.md)                      | Blind Command Processing Lock and Target Preservation         | Accepted    |

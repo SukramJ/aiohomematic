@@ -455,6 +455,46 @@ def _split_procs(content: str) -> dict[str, str]:
     return procs
 
 
+def _merge_unlabeled_groups(
+    groups: list[tuple[list[str], str]],
+) -> list[tuple[list[str], str]]:
+    """
+    Merge parameter groups without a label into the next labeled group.
+
+    A CCU easymode TCL dialog may split semantically related parameters with
+    decorative ``getHorizontalLine`` calls that don't carry their own label
+    reference. The extractor sees these as separate groups with an empty
+    ``label_key``, which would leak as raw ``group_N`` titles in the UI.
+
+    Strategy: attach any unlabeled group to the next labeled group (preserving
+    parameter order). Unlabeled groups at the tail are attached to the last
+    labeled group; if there is no labeled group at all, the input is returned
+    unchanged so callers can decide how to handle the fully-anonymous case.
+    """
+    if not groups:
+        return groups
+
+    has_any_label = any(label for _, label in groups)
+    if not has_any_label:
+        return groups
+
+    merged: list[tuple[list[str], str]] = []
+    pending: list[str] = []
+    for params, label in groups:
+        if not label:
+            pending.extend(params)
+            continue
+        merged.append((pending + list(params), label))
+        pending = []
+
+    # Attach any trailing unlabeled params to the last labeled group
+    if pending:
+        last_params, last_label = merged[-1]
+        merged[-1] = (last_params + pending, last_label)
+
+    return merged
+
+
 def _parse_dialog_proc(proc_body: str) -> dict[str, Any] | None:
     """
     Parse a single dialog proc body and extract MASTER metadata.
@@ -577,14 +617,30 @@ def _parse_dialog_proc(proc_body: str) -> dict[str, Any] | None:
 
     # Filter out empty groups
     non_empty_groups = [(params, label) for params, label in zip(groups, group_labels) if params]
+    pre_merge_count = len(non_empty_groups)
+
+    # Merge groups without a label into the next labeled group. A group without
+    # a label_key typically means the CCU TCL split a semantic section with a
+    # decorative getHorizontalLine that has no lblXYZ reference — the resulting
+    # sub-group is not a standalone section and belongs with the next labeled
+    # one (e.g. HmIP-PSM-CO's "Wohnort": LONGITUDE has no label, LATITUDE has
+    # lblLocation → merge so both land under "Wohnort").
+    non_empty_groups = _merge_unlabeled_groups(non_empty_groups)
 
     if not param_order:
         return None
 
     result: dict[str, Any] = {"parameter_order": param_order}
 
-    # Build parameter_groups
-    if len(non_empty_groups) > 1:
+    # Build parameter_groups. The original rule is "emit only when we have more
+    # than one non-empty group" — a single TCL sub-group carries no extra
+    # structure worth persisting. We also emit when the merge collapsed a
+    # multi-group dialog down to a single *labeled* group, so its label isn't
+    # lost (e.g. OPTICAL_SIGNAL_RECEIVER).
+    should_emit = len(non_empty_groups) > 1 or (
+        len(non_empty_groups) == 1 and pre_merge_count > 1 and non_empty_groups[0][1]
+    )
+    if should_emit:
         param_groups: list[dict[str, Any]] = []
         for idx, (params, label) in enumerate(non_empty_groups):
             param_groups.append(

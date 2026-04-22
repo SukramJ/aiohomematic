@@ -200,11 +200,11 @@ class ChannelEventGroup(CallbackDataPoint, ChannelEventGroupProtocol):
     __slots__ = (
         "_channel",
         "_device_trigger_event_type",
-        "_events",
         "_event_types",
+        "_events",
+        "_internal_unsubscribe_callbacks",
         "_last_triggered_event",
         "_name_data",
-        "_internal_unsubscribe_callbacks",
     )
 
     _category = DataPointCategory.EVENT_GROUP

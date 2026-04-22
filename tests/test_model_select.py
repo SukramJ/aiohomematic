@@ -35,7 +35,7 @@ class TestGenericSelect:
     )
     async def test_hmselect_basic_operations(self, central_client_factory_with_homegear_client) -> None:
         """Test basic HmSelect operations."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
             central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
@@ -61,7 +61,7 @@ class TestGenericSelect:
     )
     async def test_hmselect_invalid_value(self, central_client_factory_with_homegear_client) -> None:
         """Test sending invalid value."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
             central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
@@ -177,7 +177,7 @@ class TestGenericSelect:
     )
     async def test_hmselect_un_ignore_creates_data_point(self, central_client_factory_with_homegear_client) -> None:
         """Test that un_ignore makes WINDOW_STATE data point usage DATA_POINT."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         select: DpSelect = cast(
             DpSelect,
             central.query_facade.get_generic_data_point(channel_address="VCU6354483:1", parameter="WINDOW_STATE"),
@@ -204,7 +204,7 @@ class TestSysvarSelect:
     )
     async def test_hmsysvarselect_basic_operations(self, central_client_factory_with_ccu_client) -> None:
         """Test basic HmSysvarSelect operations."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
         select: SysvarDpSelect = cast(
             SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
         )
@@ -229,7 +229,7 @@ class TestSysvarSelect:
     )
     async def test_hmsysvarselect_invalid_int_value(self, central_client_factory_with_ccu_client) -> None:
         """Test sending invalid int value (out of range)."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
         select: SysvarDpSelect = cast(
             SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
         )
@@ -253,7 +253,7 @@ class TestSysvarSelect:
     )
     async def test_hmsysvarselect_invalid_string_value(self, central_client_factory_with_ccu_client) -> None:
         """Test sending invalid string value (not in values list)."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
         select: SysvarDpSelect = cast(
             SysvarDpSelect, central.hub_coordinator.get_sysvar_data_point(legacy_name="list_ext")
         )

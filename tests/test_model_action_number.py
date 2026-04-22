@@ -38,7 +38,7 @@ class TestDpActionFloat:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test DpActionFloat basic functionality."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         action_float: DpActionFloat = cast(
             DpActionFloat,
             central.query_facade.get_generic_data_point(channel_address="VCU0000121:1", parameter="RAMP_TIME"),
@@ -129,7 +129,7 @@ class TestDpActionInteger:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test DpActionInteger basic functionality."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         action_int: DpActionInteger = cast(
             DpActionInteger,
             central.query_facade.get_generic_data_point(channel_address="VCU0000198:18", parameter="ALARM_COUNT"),

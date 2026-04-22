@@ -62,10 +62,10 @@ class ParameterVisibilityDecider:
         "_custom_un_ignore_rules",
         "_custom_un_ignore_values_parameters",
         "_device_un_ignore_rules",
-        "_required_parameters",
-        "_un_ignore_prefix_cache",
         "_param_ignored_cache",
         "_param_un_ignored_cache",
+        "_required_parameters",
+        "_un_ignore_prefix_cache",
     )
 
     def __init__(

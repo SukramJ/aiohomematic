@@ -44,7 +44,7 @@ class DataPointField[DataPointT: GenericDataPointProtocolAny]:
     - Provides correct type information to mypy
     """
 
-    __slots__ = ("_field", "_data_point_type")
+    __slots__ = ("_data_point_type", "_field")
 
     def __init__(self, *, field: Field, dpt: type[DataPointT]) -> None:
         """

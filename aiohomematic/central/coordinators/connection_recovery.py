@@ -236,8 +236,8 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
         "_event_bus",
         "_heartbeat_task",
         "_hub_data_fetcher",
-        "_incident_recorder",
         "_in_failed_state",
+        "_incident_recorder",
         "_recovery_semaphore",
         "_recovery_states",
         "_shutdown",
@@ -378,7 +378,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
     async def _check_tcp_port_available(self, *, host: str, port: int) -> bool:
         """Check if a TCP port is available (non-invasive connectivity check)."""
         try:
-            reader, writer = await asyncio.wait_for(
+            _reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(host, port),
                 timeout=2.0,
             )

@@ -104,6 +104,7 @@ extension-pkg-allow-list = [
     "orjson",
     "cv2",
 ]
+fail-on = ["I"]
 
 [tool.pylint.BASIC]
 class-const-naming-style = "any"
@@ -379,6 +380,11 @@ enable = [
     "useless-suppression",
     "use-symbolic-message-instead",
 ]
+per-file-ignores = [
+    # redefined-outer-name: Tests reference fixtures in the test function signature
+    # use-implicit-booleaness-not-comparison: Tests validate that a list/dict is returned
+    "/tests/:redefined-outer-name,use-implicit-booleaness-not-comparison",
+]
 
 [tool.pylint.REPORTS]
 score = false
@@ -417,6 +423,7 @@ norecursedirs = [
 ]
 log_format = "%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)s %(name)s:%(filename)s:%(lineno)s %(message)s"
 log_date_format = "%Y-%m-%d %H:%M:%S"
+asyncio_debug = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-n auto --dist loadscope"
@@ -442,13 +449,19 @@ lint.select = [
     "B002", # Python does not support the unary prefix increment
     "B005", # Using .strip() with multi-character strings is misleading
     "B007", # Loop control variable {name} not used within loop body
+    "B009", # Do not call getattr with a constant attribute value
     "B014", # Exception handler with duplicate exception
     "B015", # Pointless comparison. Did you mean to assign a value? Otherwise, prepend assert or remove it.
+    "B017", # pytest.raises(BaseException) should be considered evil
     "B018", # Found useless attribute access. Either assign it to a variable or remove it.
     "B023", # Function definition does not bind loop variable {name}
+    "B024", # `{name}` is an abstract base class, but it has no abstract methods or properties
+    "B025", # try-except* block with duplicate exception {name}
     "B026", # Star-arg unpacking after a keyword argument is strongly discouraged
     "B032", # Possible unintentional type annotation (using :). Did you mean to assign (using =)?
+    "B035", # Dictionary comprehension uses static key
     "B904", # Use raise from to specify exception cause
+    "B905", # zip() without an explicit strict= parameter
     "C", # complexity
     "COM818", # Trailing comma on bare tuple prohibited
     "D", # docstrings
@@ -456,6 +469,7 @@ lint.select = [
     "DTZ004", # Use datetime.fromtimestamp(ts, tz=) instead of datetime.utcfromtimestamp(ts)
     "E", # pycodestyle
     "F", # pyflakes/autoflake
+    "F541", # f-string without any placeholders
     "FLY", # flynt
     "G", # flake8-logging-format
     "I", # isort
@@ -476,13 +490,32 @@ lint.select = [
     "RSE", # flake8-raise
     "RUF005", # Consider iterable unpacking instead of concatenation
     "RUF006", # Store a reference to the return value of asyncio.create_task
+    "RUF007", # Prefer itertools.pairwise() over zip() when iterating over successive pairs
+    "RUF008", # Do not use mutable default values for dataclass attributes
+    "RUF010", # Use explicit conversion flag
     "RUF013", # PEP 484 prohibits implicit Optional
+    "RUF016", # Slice in indexed access uses non-integer type
+    "RUF017", # Avoid quadratic list summation
     "RUF018", # Avoid assignment expressions in assert statements
+    "RUF019", # Unnecessary key check before dictionary access
+    "RUF020", # {never_like} | T is equivalent to T
+    "RUF021", # Parenthesize a and b expressions when chaining and and or together
+    "RUF022", # Sort __all__
+    "RUF023", # Sort __slots__
+    "RUF024", # Do not pass mutable objects as values to dict.fromkeys
+    "RUF026", # default_factory is a positional-only argument to defaultdict
+    "RUF030", # print() call in assert statement is likely unintentional
+    "RUF032", # Decimal() called with float literal argument
+    "RUF033", # __post_init__ method with argument defaults
+    "RUF034", # Useless if-else condition
+    "RUF059", # unused-unpacked-variable
     "RUF100", # Unused `noqa` directive
+    "RUF101", # noqa directives that use redirected rule codes
     "S", # flake8-bandit (full suite; supersedes prior S1xx/S3xx/S6xx selection)
     "BLE", # flake8-blind-except - forbids bare `except Exception:` without context
     "PTH", # flake8-use-pathlib - prefer pathlib over os.path
     "SIM", # flake8-simplify
+    "SLF", # flake8-self - flag private member access across object boundaries
     "SLOT", # flake8-slots
     "T100", # Trace found: {name} used
     "T20", # flake8-print
@@ -558,6 +591,11 @@ lint.ignore = [
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false # Don't require parentheses for fixtures without parameters
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"async_timeout".msg = "use asyncio.timeout instead"
+"pytz".msg = "use zoneinfo instead"
+"tests".msg = "Production code must not import from tests"
+
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
 "aiohomematic.central" = "hmcu"
 "aiohomematic.central.rpc_server" = "rpc"
@@ -577,11 +615,35 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
     "BLE001", # broad except in dev scripts
     "PTH", # os.path usage in scripts is not worth refactoring
     "C901", # complexity limits relaxed in dev scripts
+    "SLF001", # private access allowed in dev scripts
 ]
 "aiohomematic/hmcli.py" = [
     "T20", # Allow print/debug statements in CLI entrypoint
     "BLE001", # CLI must catch all errors to surface user-friendly messages
 ]
+# Descriptors in model/*/field.py are intentionally tightly coupled to the host
+# class's private state — that is their purpose.
+"aiohomematic/model/calculated/field.py" = ["SLF001"]
+"aiohomematic/model/combined/field.py" = ["SLF001"]
+"aiohomematic/model/custom/field.py" = ["SLF001"]
+# Accessor helper that by design unwraps the private schedule cache.
+"aiohomematic/model/week_profile_data_point.py" = ["SLF001"]
+# Defensive hasattr()-based introspection across heterogeneous client impls.
+"aiohomematic/central/coordinators/connection_recovery.py" = ["SLF001"]
+"aiohomematic/central/decorators.py" = ["SLF001"]
+# Accesses aiohttp's private TCPSite._server to read the bound socket port.
+"aiohomematic/central/rpc_server.py" = ["SLF001"]
+# Extends xmlrpc.client.ServerProxy; must reach its private _Method / __request.
+"aiohomematic/client/rpc_proxy.py" = ["SLF001"]
+# sys._is_gil_enabled() is the only CPython API to detect the free-threaded build.
+"aiohomematic/compat.py" = ["SLF001"]
+# The project's own `lint-all-exports` hook enforces grouped, header-commented
+# __all__ lists in every public package __init__.py (group + alphabetical-within-
+# group). RUF022 (global alphabetical sort) would destroy that group structure.
+# `central/events/internal.py` follows the same grouped style even though it is
+# not an __init__.py, so it needs its own entry. RUF022 still runs everywhere else.
+"aiohomematic/**/__init__.py" = ["RUF022"]
+"aiohomematic/central/events/internal.py" = ["RUF022"]
 ".github/scripts/*" = ["T20", "BLE001", "S110", "C901"] # CI utility scripts; not production code
 "example*.py" = ["T20", "BLE001"] # top-level usage examples
 "tests/*.py" = [
@@ -595,8 +657,10 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
     "PLR2004", # magic values in assertions
     "C901", # complex test scenarios
     "PTH", # os.path in tests is not worth refactoring
+    "SLF001", # tests frequently inspect private state
+    "TID251", # tests may import from other test modules (conftest, helpers)
 ]
-"aiohomematic_test_support/*.py" = ["S101", "S105", "S106", "BLE001", "C901", "PTH"]
+"aiohomematic_test_support/*.py" = ["S101", "S105", "S106", "BLE001", "C901", "PTH", "SLF001"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true # Keep imports sorted even within sections
@@ -688,6 +752,7 @@ show_error_codes = true  # Include error codes in messages
 follow_imports = "normal"  # Follow imports normally (type-check imported modules as needed)
 local_partial_types = true  # Allow partial type inference for local variables (e.g., None placeholders)
 strict_equality = true  # Enforce precise equality checks (no implicit coercions)
+strict_bytes = true  # Disallow implicit mixing of bytes and str (mypy 1.15+)
 no_implicit_optional = true  # Require explicit Optional[...] (no implicit None in unions)
 warn_incomplete_stub = true  # Warn about incomplete type stubs (.pyi)
 warn_redundant_casts = true  # Flag unnecessary type casts
@@ -697,6 +762,7 @@ warn_unused_ignores = true  # Warn when a `# type: ignore` is unnecessary
 exclude = "(?x)(^build/|^dist/|^htmlcov/|^.*\\.egg-info/|^venv/|^script/)"
 # Turn on specific extra checks
 enable_error_code = [
+    "deprecated",  # Flag calls to APIs marked with typing_extensions.deprecated
     "ignore-without-code",
     "redundant-self",
     "truthy-iterable",

@@ -19,8 +19,8 @@ from typing import Final
 __all__ = [
     "BUTTON_LOCK_CAPABILITIES",
     "IP_LOCK_CAPABILITIES",
-    "LockCapabilities",
     "SMART_DOOR_LOCK_CAPABILITIES",
+    "LockCapabilities",
 ]
 
 

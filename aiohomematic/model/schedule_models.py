@@ -104,6 +104,8 @@ class _JsonSerializableMixin:
 
 
 __all__ = [
+    "SCHEDULE_DOMAINS",
+    "SCHEDULE_DOMAIN_CONTEXT_KEY",
     "ClimateProfileSchedule",
     "ClimateSchedule",
     "ClimateSchedulePeriod",
@@ -111,8 +113,6 @@ __all__ = [
     "LockActionLiteral",
     "LockModeLiteral",
     "LockPermissionLiteral",
-    "SCHEDULE_DOMAIN_CONTEXT_KEY",
-    "SCHEDULE_DOMAINS",
     "SimpleSchedule",
     "SimpleScheduleEntry",
     "TargetChannelInfo",

@@ -308,7 +308,7 @@ class TestGetDeviceLinks:
     @pytest.mark.asyncio
     async def test_unknown_device_returns_empty(self) -> None:
         """Test return empty for unknown device."""
-        coordinator, registry = _make_coordinator(device_map={})
+        coordinator, _registry = _make_coordinator(device_map={})
         result = await coordinator.get_device_links(device_address="UNKNOWN")
         assert result == ()
 

@@ -165,7 +165,7 @@ class TestHmcliSetCommand:
             argv += ["--type", typ]
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, _out, _err = run_cli(capsys)
         assert code == 0
         assert fake.set_calls == [("X:1", "FOO", parsed)]
 
@@ -188,7 +188,7 @@ class TestHmcliListDevicesCommand:
         argv = base_argv("-H", "192.168.1.100", "-p", "2010", "--json", "list-devices")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, out, _err = run_cli(capsys)
         assert code == 0
         data = json.loads(out)
         assert len(data) == 1
@@ -238,7 +238,7 @@ class TestHmcliListChannelsCommand:
         argv = base_argv("-H", "192.168.1.100", "-p", "2010", "list-channels", "NONEXISTENT")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, out, _err = run_cli(capsys)
         assert code == 1
         assert "No channels found" in out
 
@@ -327,7 +327,7 @@ class TestHmcliDeviceInfoCommand:
         argv = base_argv("-H", "192.168.1.100", "-p", "2010", "device-info", "NONEXISTENT")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, out, _err = run_cli(capsys)
         assert code == 1
         assert "Device not found" in out
 
@@ -367,7 +367,7 @@ class TestHmcliShellCompletion:
         argv = base_argv("--generate-completion", "bash")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, out, _err = run_cli(capsys)
         assert code == 0
         assert "_hmcli_completion" in out
         assert "complete -F" in out
@@ -377,7 +377,7 @@ class TestHmcliShellCompletion:
         argv = base_argv("--generate-completion", "fish")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, out, _err = run_cli(capsys)
         assert code == 0
         assert "complete -c hmcli" in out
         assert "list-devices" in out
@@ -387,7 +387,7 @@ class TestHmcliShellCompletion:
         argv = base_argv("--generate-completion", "zsh")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, out, _err = run_cli(capsys)
         assert code == 0
         assert "#compdef hmcli" in out
         assert "_hmcli" in out
@@ -401,7 +401,7 @@ class TestHmcliConnectionSettings:
         argv = base_argv("-H", "host", "-p", "2001", "get", "-a", "D:1", "-n", "STATE")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        _code, _out, _err = run_cli(capsys)
         init = FakeServerProxy.last_init
         assert init is not None
         assert init["uri"].startswith("http://")
@@ -430,7 +430,7 @@ class TestHmcliConnectionSettings:
         )
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        _code, _out, _err = run_cli(capsys)
         init = FakeServerProxy.last_init
         assert init is not None
         assert init["uri"].startswith("https://host:2001")
@@ -455,7 +455,7 @@ class TestHmcliErrorHandling:
         argv = base_argv("-H", "h", "-p", "2001", "get", "-a", "A:1", "-n", "X")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, _out, err = run_cli(capsys)
         assert code == 1
         assert "boom" in err
 
@@ -464,7 +464,7 @@ class TestHmcliErrorHandling:
         argv = base_argv("-p", "2001", "get", "-a", "A:1", "-n", "X")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, _out, err = run_cli(capsys)
         assert code == 1
         assert "--host" in err or "required" in err.lower()
 
@@ -473,7 +473,7 @@ class TestHmcliErrorHandling:
         argv = base_argv("-H", "host", "get", "-a", "A:1", "-n", "X")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, _out, err = run_cli(capsys)
         assert code == 1
         assert "--port" in err or "required" in err.lower()
 
@@ -482,7 +482,7 @@ class TestHmcliErrorHandling:
         argv = base_argv()
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, _out, _err = run_cli(capsys)
         assert code == 1
         # Help or usage should be shown
 
@@ -503,7 +503,7 @@ class TestHmcliMasterParamset:
         argv = base_argv("-H", "h", "-p", "2001", "get", "-a", "DEV:0", "-n", "PROFILE", "-k", "MASTER")
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, out, _err = run_cli(capsys)
         assert code == 0
         assert out.strip() == "2"
 
@@ -521,7 +521,7 @@ class TestHmcliMasterParamset:
         )
         monkeypatch.setattr(sys, "argv", argv)
 
-        code, out, err = run_cli(capsys)
+        code, _out, _err = run_cli(capsys)
         assert code == 0
         assert fake.put_calls == [("DEV:0", "MASTER", {"PROFILE": 7})]
 

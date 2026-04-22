@@ -958,7 +958,7 @@ class TestGetConfigurableDevices:
     def test_device_with_channels(self) -> None:
         """Test device with configurable channels is returned."""
         device = _make_mock_device()
-        coordinator, _, device_desc_prov, paramset_desc_prov = _make_coordinator(
+        coordinator, _, _device_desc_prov, _paramset_desc_prov = _make_coordinator(
             devices=(device,),
             device_with_channels={
                 "VCU0000001": {"TYPE": "DEVICE"},
@@ -1012,7 +1012,7 @@ class TestGetConfigurableDevices:
             address="VCU",
             generic_data_points=(dp_unreach, dp_low_bat, dp_state),
         )
-        coordinator, _, device_desc_prov, _ = _make_coordinator(
+        coordinator, _, _device_desc_prov, _ = _make_coordinator(
             devices=(device,),
             device_with_channels={
                 "VCU": {"TYPE": "DEVICE"},

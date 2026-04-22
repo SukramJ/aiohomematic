@@ -37,7 +37,7 @@ class TestDpActionBoolean:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test DpActionBoolean basic functionality."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
         action_bool: DpActionBoolean = cast(
             DpActionBoolean,
             central.query_facade.get_generic_data_point(

@@ -159,7 +159,7 @@ class TestCustomDpSimpleRfThermostat:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test CustomDpSimpleRfThermostat."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpSimpleRfThermostat = cast(
             CustomDpSimpleRfThermostat, get_prepared_custom_data_point(central, "INT0000001", 1)
         )
@@ -1858,7 +1858,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test available_profiles property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1895,7 +1895,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test is_state_change method for mode changes."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1925,7 +1925,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test is_state_change method for profile changes."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1955,7 +1955,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test is_state_change method for temperature changes."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1986,7 +1986,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test optimum_start_stop property for IP thermostat."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpIpThermostat = cast(
             CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1)
         )
@@ -2036,7 +2036,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test schedule_profile_nos property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate_rf: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2068,7 +2068,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test _temperature_for_heat_mode property for IP thermostat."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpIpThermostat = cast(
             CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1)
         )
@@ -2100,7 +2100,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test _temperature_for_heat_mode property for RF thermostat."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2133,7 +2133,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test temperature_offset property for IP thermostat."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpIpThermostat = cast(
             CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1)
         )
@@ -2159,7 +2159,7 @@ class TestClimateHelperMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test temperature_offset property for RF thermostat."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2189,7 +2189,7 @@ class TestClimateSimpleScheduleMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test get_schedule method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2236,7 +2236,7 @@ class TestClimateSimpleScheduleMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test get_schedule_profile method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2279,7 +2279,7 @@ class TestClimateSimpleScheduleMethods:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test get_schedule_weekday method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )

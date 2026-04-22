@@ -955,7 +955,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
                 for slot_no, slot in weekday_data.items():
                     for slot_type, slot_value in slot.items():
                         # Convert lowercase slot_type to uppercase for CCU format
-                        raw_profile_name = f"{str(profile)}_{str(slot_type).upper()}_{str(weekday)}_{slot_no}"
+                        raw_profile_name = f"{profile!s}_{str(slot_type).upper()}_{weekday!s}_{slot_no}"
                         if SCHEDULER_PROFILE_PATTERN.match(raw_profile_name) is None:
                             raise ValidationException(
                                 i18n.tr(

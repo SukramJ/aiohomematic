@@ -45,7 +45,7 @@ class TestParamsetCacheOnReconnect:
         This test verifies that the cache remains available in memory during
         reconnects and prevents unnecessary paramset fetches.
         """
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
 
         # Get initial device count and verify paramsets are loaded
         initial_devices = list(central.device_registry.devices)
@@ -152,7 +152,7 @@ class TestParamsetCacheInterfaceId:
         This is the likely root cause of the production issue where 164 devices
         are identified as "missing paramsets" on every reconnect.
         """
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
 
         paramset_cache = central.cache_coordinator.paramset_descriptions
 

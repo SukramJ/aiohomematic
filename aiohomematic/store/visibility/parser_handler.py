@@ -35,7 +35,7 @@ class UnIgnoreRuleParser:
     - Creating the rule structures used by other visibility components
     """
 
-    __slots__ = ("_raw_un_ignores", "_config_provider")
+    __slots__ = ("_config_provider", "_raw_un_ignores")
 
     def __init__(
         self,

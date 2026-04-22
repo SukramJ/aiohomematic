@@ -281,7 +281,7 @@ class TestAltName:
         """Test that alt_name is preserved when using setter/getter/deleter."""
         obj = AltNameTestClazz()
         # Verify alt_name survives setter chain
-        descriptor = type(obj).__class__.__dict__.get("address") or getattr(type(obj), "address")
+        descriptor = type(obj).__class__.__dict__.get("address") or type(obj).address
         assert descriptor.alt_name == "serial_number"
 
     def test_alt_name_with_use_alt_names_false(self) -> None:
@@ -439,7 +439,7 @@ class CachedPropertyTestClazz:
 class SlotsClassWithCachedProperty:
     """Test class with __slots__ and cached property."""
 
-    __slots__ = ("_storage", "call_count", "_cached_cached_value")
+    __slots__ = ("_cached_cached_value", "_storage", "call_count")
 
     def __init__(self):
         """Init SlotsClassWithCachedProperty."""

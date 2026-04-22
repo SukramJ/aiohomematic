@@ -42,7 +42,7 @@ class TestDeviceDiscoveryWorkflow:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test that device channels have data points after discovery."""
-        central, client, factory = central_client_factory_with_homegear_client
+        central, _client, _factory = central_client_factory_with_homegear_client
 
         devices = list(central.device_registry.devices)
         assert len(devices) > 0
@@ -77,7 +77,7 @@ class TestDeviceDiscoveryWorkflow:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test that device discovery finds all devices in the session."""
-        central, client, factory = central_client_factory_with_homegear_client
+        central, _client, _factory = central_client_factory_with_homegear_client
 
         # Verify devices were discovered
         devices = list(central.device_registry.devices)
@@ -107,7 +107,7 @@ class TestDeviceDiscoveryWorkflow:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test retrieving a specific device by address."""
-        central, client, factory = central_client_factory_with_homegear_client
+        central, _client, _factory = central_client_factory_with_homegear_client
 
         devices = list(central.device_registry.devices)
         assert len(devices) > 0
@@ -139,7 +139,7 @@ class TestDeviceDiscoveryWorkflow:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test that getting unknown device returns None."""
-        central, client, factory = central_client_factory_with_homegear_client
+        central, _client, _factory = central_client_factory_with_homegear_client
 
         # Try to get non-existent device
         result = central.device_coordinator.get_device(address="NONEXISTENT123")

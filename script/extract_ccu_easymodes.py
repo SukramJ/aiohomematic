@@ -616,7 +616,7 @@ def _parse_dialog_proc(proc_body: str) -> dict[str, Any] | None:
         i += 1
 
     # Filter out empty groups
-    non_empty_groups = [(params, label) for params, label in zip(groups, group_labels) if params]
+    non_empty_groups = [(params, label) for params, label in zip(groups, group_labels, strict=False) if params]
     pre_merge_count = len(non_empty_groups)
 
     # Merge groups without a label into the next labeled group. A group without

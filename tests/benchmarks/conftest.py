@@ -2,12 +2,31 @@
 # Copyright (c) 2021-2026
 """Benchmark test infrastructure."""
 
-from collections.abc import Generator
+import asyncio
+from collections.abc import AsyncGenerator, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 import time
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+async def _disable_asyncio_debug() -> AsyncGenerator[None]:
+    """
+    Disable asyncio debug mode for the benchmark suite.
+
+    The global `asyncio_debug = true` in pyproject.toml adds slow-callback
+    logging that roughly halves throughput. Benchmarks measure performance,
+    not correctness, so they opt out and restore the prior setting on exit.
+    """
+    loop = asyncio.get_running_loop()
+    previous = loop.get_debug()
+    loop.set_debug(False)
+    try:
+        yield
+    finally:
+        loop.set_debug(previous)
 
 
 @dataclass

@@ -154,15 +154,13 @@ def _convert_non_str_keys(*, obj: Any) -> Any:
 # =============================================================================
 
 __all__ = [
-    # Detection
     "FREE_THREADED_BUILD",
-    "is_free_threaded_build",
-    "is_gil_enabled",
-    # JSON API
-    "JSONDecodeError",
     "OPT_INDENT_2",
     "OPT_NON_STR_KEYS",
     "OPT_SORT_KEYS",
+    "JSONDecodeError",
     "dumps",
+    "is_free_threaded_build",
+    "is_gil_enabled",
     "loads",
 ]

@@ -17,8 +17,8 @@ from typing import Final
 
 __all__ = [
     "BASIC_CLIMATE_CAPABILITIES",
-    "ClimateCapabilities",
     "IP_THERMOSTAT_CAPABILITIES",
+    "ClimateCapabilities",
 ]
 
 

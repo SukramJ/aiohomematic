@@ -81,5 +81,5 @@ class TestProfileConfigsVisibility:
             group = config.channel_group
             for field, fv in group.fields.items():
                 if isinstance(fv, FieldMapping) and fv.is_visible is True:
-                    param, vis = resolve_field_value(field_value=fv)
+                    _param, vis = resolve_field_value(field_value=fv)
                     assert vis is True, f"{profile_type}: fields[{field}] expected visible but got {vis}"

@@ -98,7 +98,7 @@ class TestCentralBasics:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test central basics."""
-        central, client, _ = central_client_factory_with_homegear_client
+        central, _client, _ = central_client_factory_with_homegear_client
         assert central.url == f"http://{LOCAL_HOST}"
         assert central.client_coordinator.is_alive is True
         assert central.listen_ip_addr == LOCAL_HOST
@@ -944,7 +944,7 @@ class TestCentralPingPong:
         """Test central other methods."""
         import asyncio
 
-        central, client, factory = central_client_factory_with_ccu_client
+        _central, client, factory = central_client_factory_with_ccu_client
         assert client.is_initialized
         count = 0
         max_count = PING_PONG_MISMATCH_COUNT + 1

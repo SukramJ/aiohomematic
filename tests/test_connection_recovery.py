@@ -284,7 +284,7 @@ class TestConnectionRecoveryCoordinatorEventHandlers:
     @pytest.mark.asyncio
     async def test_on_circuit_breaker_state_changed_triggers_refresh(self) -> None:
         """Test circuit breaker recovery triggers data refresh."""
-        coordinator, event_bus, _ = self._create_coordinator()
+        coordinator, _event_bus, _ = self._create_coordinator()
 
         event = CircuitBreakerStateChangedEvent(
             timestamp=datetime.now(),
@@ -616,7 +616,7 @@ class TestConnectionRecoveryCoordinatorStages:
     @pytest.mark.asyncio
     async def test_stage_data_load_success(self) -> None:
         """Test _stage_data_load returns True on success."""
-        coordinator, mock_client, _ = self._create_coordinator()
+        coordinator, _mock_client, _ = self._create_coordinator()
 
         result = await coordinator._stage_data_load(interface_id="test")
 
@@ -2566,7 +2566,7 @@ class TestConnectionRecoveryCoordinatorAdditionalCoverage:
     @pytest.mark.asyncio
     async def test_execute_recovery_stages_failure_at_data_load(self) -> None:
         """Test _execute_recovery_stages fails at data load stage."""
-        coordinator, mock_client, _ = self._create_coordinator()
+        coordinator, _mock_client, _ = self._create_coordinator()
 
         state = InterfaceRecoveryState(interface_id="test")
         coordinator._recovery_states["test"] = state
@@ -3030,7 +3030,7 @@ class TestConnectionRecoveryCoordinatorAdditionalCoverage:
         incident_recorder = MagicMock()
         incident_recorder.record_incident = AsyncMock()
 
-        coordinator, mock_client, event_bus = self._create_coordinator(
+        coordinator, _mock_client, event_bus = self._create_coordinator(
             state_machine=state_machine,
             incident_recorder=incident_recorder,
         )

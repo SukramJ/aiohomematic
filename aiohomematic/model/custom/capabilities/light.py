@@ -25,8 +25,8 @@ __all__ = [
     "COLOR_TEMP_DIMMER_CAPABILITIES",
     "DIMMER_CAPABILITIES",
     "FIXED_COLOR_LIGHT_CAPABILITIES",
-    "LightCapabilities",
     "RGBW_LIGHT_CAPABILITIES",
+    "LightCapabilities",
 ]
 
 

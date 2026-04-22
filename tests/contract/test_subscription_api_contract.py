@@ -61,22 +61,22 @@ class TestEventBusSubscriptionApiContract:
     def test_eventbus_has_publish_batch_method(self) -> None:
         """Contract: EventBus has publish_batch method."""
         assert hasattr(EventBus, "publish_batch")
-        assert callable(getattr(EventBus, "publish_batch"))
+        assert callable(EventBus.publish_batch)
 
     def test_eventbus_has_publish_method(self) -> None:
         """Contract: EventBus has publish (async) method."""
         assert hasattr(EventBus, "publish")
-        assert callable(getattr(EventBus, "publish"))
+        assert callable(EventBus.publish)
 
     def test_eventbus_has_publish_sync_method(self) -> None:
         """Contract: EventBus has publish_sync method."""
         assert hasattr(EventBus, "publish_sync")
-        assert callable(getattr(EventBus, "publish_sync"))
+        assert callable(EventBus.publish_sync)
 
     def test_eventbus_has_subscribe_method(self) -> None:
         """Contract: EventBus has subscribe method."""
         assert hasattr(EventBus, "subscribe")
-        assert callable(getattr(EventBus, "subscribe"))
+        assert callable(EventBus.subscribe)
 
     def test_eventbus_multiple_subscriptions_same_type(self) -> None:
         """Contract: Multiple handlers can subscribe to same event type with different keys."""

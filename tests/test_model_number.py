@@ -246,7 +246,7 @@ class TestSysvarNumber:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test that poll returning old value after set does not cause unknown."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
         enumber: SysvarDpNumber = cast(
             SysvarDpNumber,
             central.hub_coordinator.get_sysvar_data_point(legacy_name="float_ext"),
@@ -287,7 +287,7 @@ class TestSysvarNumber:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test that setting the same value does not cause unknown state."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
         enumber: SysvarDpNumber = cast(
             SysvarDpNumber,
             central.hub_coordinator.get_sysvar_data_point(legacy_name="float_ext"),

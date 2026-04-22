@@ -22,10 +22,9 @@ if TYPE_CHECKING:
     from aiohomematic.interfaces.model import DeviceProtocol
 
 __all__ = [
-    "wait_for_state_change_or_timeout",
-    # Private but exported for testing
     "_isclose",
     "_track_single_data_point_state_change_or_timeout",
+    "wait_for_state_change_or_timeout",
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)

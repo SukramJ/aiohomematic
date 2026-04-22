@@ -937,7 +937,7 @@ class TestQueuePurgeIntegration:
         after the worker pops one, 1 from group 1 and 1 from group 2
         remain in the queue.
         """
-        client, backend = _create_throttled_client(throttle_interval=5.0, burst_threshold=0)
+        client, _backend = _create_throttled_client(throttle_interval=5.0, burst_threshold=0)
         throttle = client.command_throttle
 
         # Two independent channel groups on the same device

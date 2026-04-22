@@ -61,12 +61,12 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     __slots__ = (
         "_data_points",
         "_default",
-        "_translation",
         "_max",
         "_min",
         "_multiplier",
         "_operations",
         "_service",
+        "_translation",
         "_type",
         "_unit",
         "_unsubscribe_callbacks",

@@ -67,7 +67,7 @@ class CalculatedDataPointField[DataPointT: GenericDataPointProtocolAny]:
     - Provides correct type information to mypy
     """
 
-    __slots__ = ("_parameter", "_paramset_key", "_data_point_type", "_fallback_parameters", "_use_device_fallback")
+    __slots__ = ("_data_point_type", "_fallback_parameters", "_parameter", "_paramset_key", "_use_device_fallback")
 
     def __init__(
         self,

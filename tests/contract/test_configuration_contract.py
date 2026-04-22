@@ -277,12 +277,12 @@ class TestCentralConfigMethodsContract:
     def test_centralconfig_has_check_config_method(self) -> None:
         """Contract: CentralConfig has check_config async method."""
         assert hasattr(CentralConfig, "check_config")
-        assert callable(getattr(CentralConfig, "check_config"))
+        assert callable(CentralConfig.check_config)
 
     def test_centralconfig_has_create_central_method(self) -> None:
         """Contract: CentralConfig has create_central async method."""
         assert hasattr(CentralConfig, "create_central")
-        assert callable(getattr(CentralConfig, "create_central"))
+        assert callable(CentralConfig.create_central)
 
     def test_centralconfig_has_create_central_url_method(self) -> None:
         """Contract: CentralConfig has create_central_url method."""
@@ -312,12 +312,12 @@ class TestCentralConfigFactoryMethodsContract:
     def test_centralconfig_has_for_ccu_factory(self) -> None:
         """Contract: CentralConfig.for_ccu factory method exists."""
         assert hasattr(CentralConfig, "for_ccu")
-        assert callable(getattr(CentralConfig, "for_ccu"))
+        assert callable(CentralConfig.for_ccu)
 
     def test_centralconfig_has_for_homegear_factory(self) -> None:
         """Contract: CentralConfig.for_homegear factory method exists."""
         assert hasattr(CentralConfig, "for_homegear")
-        assert callable(getattr(CentralConfig, "for_homegear"))
+        assert callable(CentralConfig.for_homegear)
 
 
 # =============================================================================
@@ -407,7 +407,7 @@ class TestInterfaceConfigMethodsContract:
             port=2010,
         )
         assert hasattr(config, "disable")
-        assert callable(getattr(config, "disable"))
+        assert callable(config.disable)
 
         # Test that disable works
         assert config.enabled is True

@@ -481,7 +481,7 @@ class TestWeekProfileCreation:
     )
     async def test_create_week_profile_climate(self, central_client_factory_with_homegear_client):
         """Test creating climate week profile."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -515,7 +515,7 @@ class TestScheduleOperations:
     )
     async def test_copy_schedule_profile_same_device_validation(self, central_client_factory_with_homegear_client):
         """Test that copying same profile to itself on same device raises error."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -545,7 +545,7 @@ class TestScheduleOperations:
     )
     async def test_simple_schedule_validation_base_temp_out_of_range(self, central_client_factory_with_homegear_client):
         """Test that simple schedule validates base temperature range."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -587,7 +587,7 @@ class TestScheduleOperations:
     )
     async def test_simple_schedule_validation_missing_endtime(self, central_client_factory_with_homegear_client):
         """Test that simple schedule validates required ENDTIME."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -628,7 +628,7 @@ class TestScheduleOperations:
     )
     async def test_simple_schedule_validation_missing_starttime(self, central_client_factory_with_homegear_client):
         """Test that simple schedule validates required fields."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -669,7 +669,7 @@ class TestScheduleOperations:
     )
     async def test_simple_schedule_validation_missing_temperature(self, central_client_factory_with_homegear_client):
         """Test that simple schedule validates required TEMPERATURE."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -710,7 +710,7 @@ class TestScheduleOperations:
     )
     async def test_simple_schedule_validation_overlapping_periods(self, central_client_factory_with_homegear_client):
         """Test that simple schedule validates non-overlapping periods."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -756,7 +756,7 @@ class TestScheduleOperations:
     )
     async def test_simple_schedule_validation_start_after_end(self, central_client_factory_with_homegear_client):
         """Test that simple schedule validates start before end."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -797,7 +797,7 @@ class TestScheduleOperations:
     )
     async def test_simple_schedule_validation_temp_out_of_range(self, central_client_factory_with_homegear_client):
         """Test that simple schedule validates temperature range."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -888,7 +888,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_available_profiles_property(self, central_client_factory_with_homegear_client):
         """Test available_profiles property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -919,7 +919,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_copy_schedule(self, central_client_factory_with_homegear_client):
         """Test copying schedule between devices."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -942,7 +942,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_copy_schedule_profile_different_profiles(self, central_client_factory_with_homegear_client):
         """Test copying schedule profile to different profile on same device."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -965,7 +965,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_get_schedule(self, central_client_factory_with_homegear_client):
         """Test getting complete schedule."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -994,7 +994,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_get_schedule_profile(self, central_client_factory_with_homegear_client):
         """Test getting schedule profile."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1023,7 +1023,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_get_schedule_weekday(self, central_client_factory_with_homegear_client):
         """Test getting schedule profile weekday."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1055,7 +1055,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_schedule_property(self, central_client_factory_with_homegear_client):
         """Test schedule property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1079,7 +1079,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_set_schedule(self, central_client_factory_with_homegear_client):
         """Test setting complete schedule."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1105,7 +1105,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_set_schedule_profile(self, central_client_factory_with_homegear_client):
         """Test setting schedule profile."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1131,7 +1131,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_set_simple_schedule_profile(self, central_client_factory_with_homegear_client):
         """Test setting simple schedule profile."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1178,7 +1178,7 @@ class TestClimateWeekProfileIntegration:
     )
     async def test_set_simple_schedule_weekday(self, central_client_factory_with_homegear_client):
         """Test setting simple schedule profile weekday."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1520,7 +1520,7 @@ class TestErrorPaths:
     )
     async def test_get_schedule_force_load_empty_cache(self, central_client_factory_with_homegear_client):
         """Test get_schedule when cache is empty and force_load is False."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1548,7 +1548,7 @@ class TestErrorPaths:
     )
     async def test_get_schedule_profile_empty_cache(self, central_client_factory_with_homegear_client):
         """Test get_schedule_profile when cache is empty."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1576,7 +1576,7 @@ class TestErrorPaths:
     )
     async def test_get_schedule_weekday_empty_cache(self, central_client_factory_with_homegear_client):
         """Test get_schedule_weekday when cache is empty."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1644,7 +1644,7 @@ class TestErrorPaths:
     )
     async def test_set_schedule_weekday_no_validation(self, central_client_factory_with_homegear_client):
         """Test set_schedule_weekday with validation disabled."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1858,7 +1858,7 @@ class TestClimateWeekProfileAdditionalEdgeCases:
     )
     async def test_set_schedule_cache_no_change(self, central_client_factory_with_homegear_client):
         """Test set_schedule when cache doesn't change."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1888,7 +1888,7 @@ class TestPropertyAccessAndValidation:
     )
     async def test_has_schedule_property(self, central_client_factory_with_homegear_client):
         """Test has_schedule property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1912,7 +1912,7 @@ class TestPropertyAccessAndValidation:
     )
     async def test_schedule_channel_address_property(self, central_client_factory_with_homegear_client):
         """Test schedule_channel_address property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1937,7 +1937,7 @@ class TestPropertyAccessAndValidation:
     )
     async def test_schedule_property_returns_filtered_data(self, central_client_factory_with_homegear_client):
         """Test that schedule property returns filtered data."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -1975,7 +1975,7 @@ class TestSimpleScheduleConversionMethods:
     )
     async def test_convert_simple_to_profile_multiple_weekdays(self, central_client_factory_with_homegear_client):
         """Test converting simple schedule for multiple weekdays."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2032,7 +2032,7 @@ class TestSimpleScheduleConversionMethods:
     )
     async def test_convert_simple_to_weekday_with_gap(self, central_client_factory_with_homegear_client):
         """Test converting simple schedule with gap between periods."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2080,7 +2080,7 @@ class TestWeekProfileProperties:
     )
     async def test_base_schedule_property(self, central_client_factory_with_homegear_client):
         """Test base schedule property access."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2103,7 +2103,7 @@ class TestWeekProfileProperties:
     )
     async def test_reload_schedule_updates_cache(self, central_client_factory_with_homegear_client):
         """Test that reload_and_cache_schedule updates the cache."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2343,7 +2343,7 @@ class TestEdgeCasesAndErrorPaths:
     )
     async def test_get_schedule_profile_missing_profile(self, central_client_factory_with_homegear_client):
         """Test getting a profile that doesn't exist returns empty data."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2371,7 +2371,7 @@ class TestEdgeCasesAndErrorPaths:
     )
     async def test_get_schedule_weekday_missing_data(self, central_client_factory_with_homegear_client):
         """Test getting weekday data that doesn't exist."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2446,7 +2446,7 @@ class TestWeekProfileHelperMethods:
         central_client_factory_with_homegear_client,
     ):
         """Test convert_raw_to_dict_schedule handles invalid entries gracefully."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        _central, _mock_client, _ = central_client_factory_with_homegear_client
 
         # Raw schedule with some invalid entries
         raw_schedule = {
@@ -2486,7 +2486,7 @@ class TestWeekProfileHelperMethods:
         central_client_factory_with_homegear_client,
     ):
         """Test _convert_schedule_entries filters week profile entries correctly."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        _central, _mock_client, _ = central_client_factory_with_homegear_client
 
         # Mock raw paramset with mixed entries
         raw_values = {
@@ -2606,7 +2606,7 @@ class TestWeekProfileHelperMethods:
         central_client_factory_with_homegear_client,
     ):
         """Test has_schedule property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2711,7 +2711,7 @@ class TestWeekProfileHelperMethods:
         central_client_factory_with_homegear_client,
     ):
         """Test schedule_channel_address property."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2738,7 +2738,7 @@ class TestWeekProfileHelperMethods:
         central_client_factory_with_homegear_client,
     ):
         """Test that schedule property returns filtered data."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )
@@ -2785,7 +2785,7 @@ class TestWeekProfileHelperMethods:
         central_client_factory_with_homegear_client,
     ):
         """Test _validate_and_get_schedule_channel_address method."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         climate: CustomDpRfThermostat = cast(
             CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000341", 2)
         )

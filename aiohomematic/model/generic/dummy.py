@@ -62,7 +62,7 @@ class DpDummy(GenericDataPointAny):
         super().__init__(
             channel=channel,
             paramset_key=ParamsetKey.DUMMY,
-            parameter=f"DUMMY-{str(param_field)}",
+            parameter=f"DUMMY-{param_field!s}",
             parameter_data=ParameterData(
                 DEFAULT=None,
                 FLAGS=0,

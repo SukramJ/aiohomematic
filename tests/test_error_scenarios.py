@@ -258,7 +258,7 @@ class TestClientErrorScenarios:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test client ping pong support check."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
 
         for client in central.client_coordinator.clients:
             # Check if client supports ping pong
@@ -372,7 +372,7 @@ class TestDeviceUtilities:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test refreshing device firmware data."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
 
         device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
@@ -401,7 +401,7 @@ class TestEventSubscriptions:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test that device removed events are published for data points."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
 
         device = central.device_coordinator.get_device(address="VCU6354483")
         if device:
@@ -431,7 +431,7 @@ class TestCentralCollections:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test accessing clients collection."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
 
         # Access clients collection
         clients = central.client_coordinator.clients

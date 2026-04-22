@@ -19,10 +19,10 @@ from typing import Final
 from pydantic import BaseModel, ConfigDict
 
 __all__ = [
-    "BackendCapabilities",
     "CCU_CAPABILITIES",
     "HOMEGEAR_CAPABILITIES",
     "JSON_CCU_CAPABILITIES",
+    "BackendCapabilities",
 ]
 
 

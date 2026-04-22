@@ -111,42 +111,42 @@ class TestDeviceChannelAccessProtocolContract:
     def test_has_get_channel_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has get_channel method."""
         assert hasattr(DeviceChannelAccessProtocol, "get_channel")
-        assert callable(getattr(DeviceChannelAccessProtocol, "get_channel"))
+        assert callable(DeviceChannelAccessProtocol.get_channel)
 
     def test_has_get_custom_data_point_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has get_custom_data_point method."""
         assert hasattr(DeviceChannelAccessProtocol, "get_custom_data_point")
-        assert callable(getattr(DeviceChannelAccessProtocol, "get_custom_data_point"))
+        assert callable(DeviceChannelAccessProtocol.get_custom_data_point)
 
     def test_has_get_data_points_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has get_data_points method."""
         assert hasattr(DeviceChannelAccessProtocol, "get_data_points")
-        assert callable(getattr(DeviceChannelAccessProtocol, "get_data_points"))
+        assert callable(DeviceChannelAccessProtocol.get_data_points)
 
     def test_has_get_events_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has get_events method."""
         assert hasattr(DeviceChannelAccessProtocol, "get_events")
-        assert callable(getattr(DeviceChannelAccessProtocol, "get_events"))
+        assert callable(DeviceChannelAccessProtocol.get_events)
 
     def test_has_get_generic_data_point_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has get_generic_data_point method."""
         assert hasattr(DeviceChannelAccessProtocol, "get_generic_data_point")
-        assert callable(getattr(DeviceChannelAccessProtocol, "get_generic_data_point"))
+        assert callable(DeviceChannelAccessProtocol.get_generic_data_point)
 
     def test_has_get_generic_event_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has get_generic_event method."""
         assert hasattr(DeviceChannelAccessProtocol, "get_generic_event")
-        assert callable(getattr(DeviceChannelAccessProtocol, "get_generic_event"))
+        assert callable(DeviceChannelAccessProtocol.get_generic_event)
 
     def test_has_get_readable_data_points_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has get_readable_data_points method."""
         assert hasattr(DeviceChannelAccessProtocol, "get_readable_data_points")
-        assert callable(getattr(DeviceChannelAccessProtocol, "get_readable_data_points"))
+        assert callable(DeviceChannelAccessProtocol.get_readable_data_points)
 
     def test_has_identify_channel_method(self) -> None:
         """Verify DeviceChannelAccessProtocol has identify_channel method."""
         assert hasattr(DeviceChannelAccessProtocol, "identify_channel")
-        assert callable(getattr(DeviceChannelAccessProtocol, "identify_channel"))
+        assert callable(DeviceChannelAccessProtocol.identify_channel)
 
 
 # =============================================================================
@@ -172,7 +172,7 @@ class TestDeviceAvailabilityProtocolContract:
     def test_has_set_forced_availability_method(self) -> None:
         """Verify DeviceAvailabilityProtocol has set_forced_availability method."""
         assert hasattr(DeviceAvailabilityProtocol, "set_forced_availability")
-        assert callable(getattr(DeviceAvailabilityProtocol, "set_forced_availability"))
+        assert callable(DeviceAvailabilityProtocol.set_forced_availability)
 
 
 # =============================================================================
@@ -206,17 +206,17 @@ class TestDeviceFirmwareProtocolContract:
     def test_has_refresh_firmware_data_method(self) -> None:
         """Verify DeviceFirmwareProtocol has refresh_firmware_data method."""
         assert hasattr(DeviceFirmwareProtocol, "refresh_firmware_data")
-        assert callable(getattr(DeviceFirmwareProtocol, "refresh_firmware_data"))
+        assert callable(DeviceFirmwareProtocol.refresh_firmware_data)
 
     def test_has_subscribe_to_firmware_updated_method(self) -> None:
         """Verify DeviceFirmwareProtocol has subscribe_to_firmware_updated method."""
         assert hasattr(DeviceFirmwareProtocol, "subscribe_to_firmware_updated")
-        assert callable(getattr(DeviceFirmwareProtocol, "subscribe_to_firmware_updated"))
+        assert callable(DeviceFirmwareProtocol.subscribe_to_firmware_updated)
 
     def test_has_update_firmware_method(self) -> None:
         """Verify DeviceFirmwareProtocol has update_firmware method."""
         assert hasattr(DeviceFirmwareProtocol, "update_firmware")
-        assert callable(getattr(DeviceFirmwareProtocol, "update_firmware"))
+        assert callable(DeviceFirmwareProtocol.update_firmware)
 
 
 # =============================================================================
@@ -230,7 +230,7 @@ class TestDeviceLinkManagementProtocolContract:
     def test_has_create_central_links_method(self) -> None:
         """Verify DeviceLinkManagementProtocol has create_central_links method."""
         assert hasattr(DeviceLinkManagementProtocol, "create_central_links")
-        assert callable(getattr(DeviceLinkManagementProtocol, "create_central_links"))
+        assert callable(DeviceLinkManagementProtocol.create_central_links)
 
     def test_has_link_peer_channels_property(self) -> None:
         """Verify DeviceLinkManagementProtocol has link_peer_channels property."""
@@ -239,7 +239,7 @@ class TestDeviceLinkManagementProtocolContract:
     def test_has_remove_central_links_method(self) -> None:
         """Verify DeviceLinkManagementProtocol has remove_central_links method."""
         assert hasattr(DeviceLinkManagementProtocol, "remove_central_links")
-        assert callable(getattr(DeviceLinkManagementProtocol, "remove_central_links"))
+        assert callable(DeviceLinkManagementProtocol.remove_central_links)
 
 
 # =============================================================================
@@ -253,17 +253,17 @@ class TestDeviceGroupManagementProtocolContract:
     def test_has_add_channel_to_group_method(self) -> None:
         """Verify DeviceGroupManagementProtocol has add_channel_to_group method."""
         assert hasattr(DeviceGroupManagementProtocol, "add_channel_to_group")
-        assert callable(getattr(DeviceGroupManagementProtocol, "add_channel_to_group"))
+        assert callable(DeviceGroupManagementProtocol.add_channel_to_group)
 
     def test_has_get_channel_group_no_method(self) -> None:
         """Verify DeviceGroupManagementProtocol has get_channel_group_no method."""
         assert hasattr(DeviceGroupManagementProtocol, "get_channel_group_no")
-        assert callable(getattr(DeviceGroupManagementProtocol, "get_channel_group_no"))
+        assert callable(DeviceGroupManagementProtocol.get_channel_group_no)
 
     def test_has_is_in_multi_channel_group_method(self) -> None:
         """Verify DeviceGroupManagementProtocol has is_in_multi_channel_group method."""
         assert hasattr(DeviceGroupManagementProtocol, "is_in_multi_channel_group")
-        assert callable(getattr(DeviceGroupManagementProtocol, "is_in_multi_channel_group"))
+        assert callable(DeviceGroupManagementProtocol.is_in_multi_channel_group)
 
 
 # =============================================================================
@@ -334,7 +334,7 @@ class TestDeviceWeekProfileProtocolContract:
     def test_has_init_week_profile_method(self) -> None:
         """Verify DeviceWeekProfileProtocol has init_week_profile method."""
         assert hasattr(DeviceWeekProfileProtocol, "init_week_profile")
-        assert callable(getattr(DeviceWeekProfileProtocol, "init_week_profile"))
+        assert callable(DeviceWeekProfileProtocol.init_week_profile)
 
     def test_has_week_profile_property(self) -> None:
         """Verify DeviceWeekProfileProtocol has week_profile property."""
@@ -425,32 +425,32 @@ class TestDeviceLifecycleProtocolContract:
     def test_has_export_device_definition_method(self) -> None:
         """Verify DeviceLifecycleProtocol has export_device_definition method."""
         assert hasattr(DeviceLifecycleProtocol, "export_device_definition")
-        assert callable(getattr(DeviceLifecycleProtocol, "export_device_definition"))
+        assert callable(DeviceLifecycleProtocol.export_device_definition)
 
     def test_has_finalize_init_method(self) -> None:
         """Verify DeviceLifecycleProtocol has finalize_init method."""
         assert hasattr(DeviceLifecycleProtocol, "finalize_init")
-        assert callable(getattr(DeviceLifecycleProtocol, "finalize_init"))
+        assert callable(DeviceLifecycleProtocol.finalize_init)
 
     def test_has_on_config_changed_method(self) -> None:
         """Verify DeviceLifecycleProtocol has on_config_changed method."""
         assert hasattr(DeviceLifecycleProtocol, "on_config_changed")
-        assert callable(getattr(DeviceLifecycleProtocol, "on_config_changed"))
+        assert callable(DeviceLifecycleProtocol.on_config_changed)
 
     def test_has_publish_device_updated_event_method(self) -> None:
         """Verify DeviceLifecycleProtocol has publish_device_updated_event method."""
         assert hasattr(DeviceLifecycleProtocol, "publish_device_updated_event")
-        assert callable(getattr(DeviceLifecycleProtocol, "publish_device_updated_event"))
+        assert callable(DeviceLifecycleProtocol.publish_device_updated_event)
 
     def test_has_reload_device_config_method(self) -> None:
         """Verify DeviceLifecycleProtocol has reload_device_config method."""
         assert hasattr(DeviceLifecycleProtocol, "reload_device_config")
-        assert callable(getattr(DeviceLifecycleProtocol, "reload_device_config"))
+        assert callable(DeviceLifecycleProtocol.reload_device_config)
 
     def test_has_remove_method(self) -> None:
         """Verify DeviceLifecycleProtocol has remove method."""
         assert hasattr(DeviceLifecycleProtocol, "remove")
-        assert callable(getattr(DeviceLifecycleProtocol, "remove"))
+        assert callable(DeviceLifecycleProtocol.remove)
 
 
 # =============================================================================
@@ -631,7 +631,7 @@ class TestChannelDataPointAccessProtocolContract:
     def test_has_add_data_point_method(self) -> None:
         """Verify ChannelDataPointAccessProtocol has add_data_point method."""
         assert hasattr(ChannelDataPointAccessProtocol, "add_data_point")
-        assert callable(getattr(ChannelDataPointAccessProtocol, "add_data_point"))
+        assert callable(ChannelDataPointAccessProtocol.add_data_point)
 
     def test_has_calculated_data_points_property(self) -> None:
         """Verify ChannelDataPointAccessProtocol has calculated_data_points property."""
@@ -660,32 +660,32 @@ class TestChannelDataPointAccessProtocolContract:
     def test_has_get_calculated_data_point_method(self) -> None:
         """Verify ChannelDataPointAccessProtocol has get_calculated_data_point method."""
         assert hasattr(ChannelDataPointAccessProtocol, "get_calculated_data_point")
-        assert callable(getattr(ChannelDataPointAccessProtocol, "get_calculated_data_point"))
+        assert callable(ChannelDataPointAccessProtocol.get_calculated_data_point)
 
     def test_has_get_data_points_method(self) -> None:
         """Verify ChannelDataPointAccessProtocol has get_data_points method."""
         assert hasattr(ChannelDataPointAccessProtocol, "get_data_points")
-        assert callable(getattr(ChannelDataPointAccessProtocol, "get_data_points"))
+        assert callable(ChannelDataPointAccessProtocol.get_data_points)
 
     def test_has_get_events_method(self) -> None:
         """Verify ChannelDataPointAccessProtocol has get_events method."""
         assert hasattr(ChannelDataPointAccessProtocol, "get_events")
-        assert callable(getattr(ChannelDataPointAccessProtocol, "get_events"))
+        assert callable(ChannelDataPointAccessProtocol.get_events)
 
     def test_has_get_generic_data_point_method(self) -> None:
         """Verify ChannelDataPointAccessProtocol has get_generic_data_point method."""
         assert hasattr(ChannelDataPointAccessProtocol, "get_generic_data_point")
-        assert callable(getattr(ChannelDataPointAccessProtocol, "get_generic_data_point"))
+        assert callable(ChannelDataPointAccessProtocol.get_generic_data_point)
 
     def test_has_get_generic_event_method(self) -> None:
         """Verify ChannelDataPointAccessProtocol has get_generic_event method."""
         assert hasattr(ChannelDataPointAccessProtocol, "get_generic_event")
-        assert callable(getattr(ChannelDataPointAccessProtocol, "get_generic_event"))
+        assert callable(ChannelDataPointAccessProtocol.get_generic_event)
 
     def test_has_get_readable_data_points_method(self) -> None:
         """Verify ChannelDataPointAccessProtocol has get_readable_data_points method."""
         assert hasattr(ChannelDataPointAccessProtocol, "get_readable_data_points")
-        assert callable(getattr(ChannelDataPointAccessProtocol, "get_readable_data_points"))
+        assert callable(ChannelDataPointAccessProtocol.get_readable_data_points)
 
 
 # =============================================================================
@@ -769,22 +769,22 @@ class TestChannelLinkManagementProtocolContract:
     def test_has_create_central_link_method(self) -> None:
         """Verify ChannelLinkManagementProtocol has create_central_link method."""
         assert hasattr(ChannelLinkManagementProtocol, "create_central_link")
-        assert callable(getattr(ChannelLinkManagementProtocol, "create_central_link"))
+        assert callable(ChannelLinkManagementProtocol.create_central_link)
 
     def test_has_has_link_target_category_method(self) -> None:
         """Verify ChannelLinkManagementProtocol has has_link_target_category method."""
         assert hasattr(ChannelLinkManagementProtocol, "has_link_target_category")
-        assert callable(getattr(ChannelLinkManagementProtocol, "has_link_target_category"))
+        assert callable(ChannelLinkManagementProtocol.has_link_target_category)
 
     def test_has_remove_central_link_method(self) -> None:
         """Verify ChannelLinkManagementProtocol has remove_central_link method."""
         assert hasattr(ChannelLinkManagementProtocol, "remove_central_link")
-        assert callable(getattr(ChannelLinkManagementProtocol, "remove_central_link"))
+        assert callable(ChannelLinkManagementProtocol.remove_central_link)
 
     def test_has_subscribe_to_link_peer_changed_method(self) -> None:
         """Verify ChannelLinkManagementProtocol has subscribe_to_link_peer_changed method."""
         assert hasattr(ChannelLinkManagementProtocol, "subscribe_to_link_peer_changed")
-        assert callable(getattr(ChannelLinkManagementProtocol, "subscribe_to_link_peer_changed"))
+        assert callable(ChannelLinkManagementProtocol.subscribe_to_link_peer_changed)
 
 
 # =============================================================================
@@ -798,27 +798,27 @@ class TestChannelLifecycleProtocolContract:
     def test_has_finalize_init_method(self) -> None:
         """Verify ChannelLifecycleProtocol has finalize_init method."""
         assert hasattr(ChannelLifecycleProtocol, "finalize_init")
-        assert callable(getattr(ChannelLifecycleProtocol, "finalize_init"))
+        assert callable(ChannelLifecycleProtocol.finalize_init)
 
     def test_has_init_link_peer_method(self) -> None:
         """Verify ChannelLifecycleProtocol has init_link_peer method."""
         assert hasattr(ChannelLifecycleProtocol, "init_link_peer")
-        assert callable(getattr(ChannelLifecycleProtocol, "init_link_peer"))
+        assert callable(ChannelLifecycleProtocol.init_link_peer)
 
     def test_has_on_config_changed_method(self) -> None:
         """Verify ChannelLifecycleProtocol has on_config_changed method."""
         assert hasattr(ChannelLifecycleProtocol, "on_config_changed")
-        assert callable(getattr(ChannelLifecycleProtocol, "on_config_changed"))
+        assert callable(ChannelLifecycleProtocol.on_config_changed)
 
     def test_has_reload_channel_config_method(self) -> None:
         """Verify ChannelLifecycleProtocol has reload_channel_config method."""
         assert hasattr(ChannelLifecycleProtocol, "reload_channel_config")
-        assert callable(getattr(ChannelLifecycleProtocol, "reload_channel_config"))
+        assert callable(ChannelLifecycleProtocol.reload_channel_config)
 
     def test_has_remove_method(self) -> None:
         """Verify ChannelLifecycleProtocol has remove method."""
         assert hasattr(ChannelLifecycleProtocol, "remove")
-        assert callable(getattr(ChannelLifecycleProtocol, "remove"))
+        assert callable(ChannelLifecycleProtocol.remove)
 
 
 # =============================================================================

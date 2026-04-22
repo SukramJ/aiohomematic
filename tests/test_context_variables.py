@@ -226,7 +226,7 @@ class TestContextualLoggerAdapter:
         adapter = get_contextual_logger(name=__name__)
 
         with request_context(operation="test_op") as ctx:
-            msg, kwargs = adapter.process("Test message", {})
+            msg, _kwargs = adapter.process("Test message", {})
 
             assert f"[{ctx.request_id}:test_op]" in msg
             assert "Test message" in msg

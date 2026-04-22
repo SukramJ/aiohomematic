@@ -16,7 +16,7 @@ from aiohomematic.model.generic import GenericDataPoint
 class _FakeDataPoint(GenericDataPoint):  # type: ignore[type-arg]
     """Minimal fake DataPoint for testing."""
 
-    __slots__ = ("_dpk", "_is_readable", "_has_events", "state_path", "channel", "event_calls")
+    __slots__ = ("_dpk", "_has_events", "_is_readable", "channel", "event_calls", "state_path")
 
     def __init__(
         self,

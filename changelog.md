@@ -1,3 +1,62 @@
+# Version 2026.4.19 (2026-04-22)
+
+## What's Changed
+
+### Changed
+
+- **Further linter tightening** — second pass cross-referenced against the
+  Home Assistant core project's `pyproject.toml`:
+  - Ruff: added `B009, B017, B024, B025, B035, B905, F541, SLF`, and the
+    `RUF007, RUF008, RUF010, RUF016, RUF017, RUF019, RUF020, RUF021,
+RUF022, RUF023, RUF024, RUF026, RUF030, RUF032, RUF033, RUF034,
+RUF059, RUF101` rules. `B905` now forces `zip(..., strict=...)`,
+    `RUF008` catches mutable dataclass defaults, `RUF024` catches mutable
+    `dict.fromkeys` values, `RUF022/RUF023` keep `__all__` / `__slots__`
+    sorted alphabetically.
+  - Ruff: added `flake8-tidy-imports.banned-api` entries for `async_timeout`,
+    `pytz`, and `tests`, preventing production code from importing test
+    modules.
+  - Ruff: files that are intentionally coupled to private state of adjacent
+    classes (model `*/field.py` descriptors, `compat.py`'s
+    `sys._is_gil_enabled`, `rpc_proxy.py` extending `xmlrpc.client`,
+    `rpc_server.py` reading `aiohttp.web.TCPSite._server`, and the
+    `connection_recovery` duck-typed introspection paths) are exempted
+    from `SLF001` per-file, with the rationale documented in the config.
+  - mypy: enabled the `deprecated` error code so calls into APIs annotated
+    with `typing_extensions.deprecated` fail type-checking, and turned on
+    `strict_bytes` to disallow implicit `bytes` / `str` mixing.
+  - pylint: set `fail-on = ["I"]` so informational messages
+    (`useless-suppression`, `use-symbolic-message-instead`) now fail the
+    check instead of being silently informational. Added a tests
+    per-file-ignore pair (`redefined-outer-name`,
+    `use-implicit-booleaness-not-comparison`) matching the core config.
+  - pytest: enabled `asyncio_debug = true` to surface scheduler hazards
+    and un-awaited coroutines during the test run.
+- **Reconcile `RUF022` with the project's `lint-all-exports` convention**:
+  The project's custom `lint-all-exports` hook requires every public
+  package `__init__.py` to keep grouped, header-commented `__all__`
+  lists (`# GroupName` then alphabetical within each group). Ruff's
+  new `RUF022` would sort the whole list alphabetically and break the
+  groups, so `RUF022` is disabled for `aiohomematic/**/__init__.py`
+  (glob, so future packages are covered automatically) and for
+  `central/events/internal.py` which follows the same style. `RUF022`
+  still enforces sorting on every other `__all__` in the codebase.
+- **Disable `asyncio_debug` for the RPC stress tests**: `asyncio_debug`
+  catches scheduler and awaitable hazards across the rest of the suite,
+  but its slow-callback logging adds ~2× overhead — enough to break the
+  hard-coded timing thresholds in `TestStress::test_concurrent_events`
+  / `test_sustained_load` / `test_multicall_batch_performance` (those
+  tests measure throughput, not correctness). A class-scoped autouse
+  fixture toggles debug mode off for their duration and restores the
+  previous setting afterwards.
+
+### Fixed
+
+- **Dead branch in `.github/scripts/analyze_issue.py::_analyze_logs`**:
+  both arms of the `len(matches) if isinstance(matches[0], str) else
+len(matches)` ternary computed the same value (`RUF034`). Simplified
+  to a single `len(matches)` call.
+
 # Version 2026.4.18 (2026-04-21)
 
 ## What's Changed

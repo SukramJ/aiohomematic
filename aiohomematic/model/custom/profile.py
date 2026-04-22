@@ -33,13 +33,13 @@ from pydantic import BaseModel, ConfigDict, Field as PydanticField
 from aiohomematic.const import ChannelOffset, DeviceProfile, Field, Parameter
 
 __all__ = [
-    "ChannelGroupConfig",
     "DEFAULT_DATA_POINTS",
+    "PROFILE_CONFIGS",
+    "ChannelGroupConfig",
     "FieldMapping",
     "FieldValue",
     "ProfileConfig",
     "ProfileRegistry",
-    "PROFILE_CONFIGS",
     "RebasedChannelGroupConfig",
     "get_profile_config",
     "rebase_channel_group",

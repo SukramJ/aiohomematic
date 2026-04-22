@@ -184,7 +184,7 @@ class Looper(TaskSchedulerProtocol):
                 if (timeout := min(BLOCK_LOG_TIMEOUT, remaining)) == 0.0:
                     # Deadline reached; return current pending to caller for warning log
                     return pending_set
-            done, still_pending = await asyncio.wait(pending_set, timeout=timeout)
+            _done, still_pending = await asyncio.wait(pending_set, timeout=timeout)
             if not (pending_set := set(still_pending)):
                 return set()
             wait_time += timeout

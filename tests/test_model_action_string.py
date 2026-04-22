@@ -37,7 +37,7 @@ class TestDpActionString:
         central_client_factory_with_ccu_client,
     ) -> None:
         """Test DpActionString basic functionality."""
-        central, mock_client, _ = central_client_factory_with_ccu_client
+        central, _mock_client, _ = central_client_factory_with_ccu_client
         action_str: DpActionString = cast(
             DpActionString,
             central.query_facade.get_generic_data_point(

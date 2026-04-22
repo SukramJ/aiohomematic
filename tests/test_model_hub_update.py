@@ -222,7 +222,7 @@ class TestHmUpdateProgressTracking:
     @pytest.mark.asyncio
     async def test_install_sets_in_progress(self) -> None:
         """Test that install() sets in_progress to True."""
-        hm_update, primary_client_provider, task_scheduler = _create_hm_update()
+        hm_update, _primary_client_provider, _task_scheduler = _create_hm_update()
 
         # Set initial firmware version
         hm_update.update_data(

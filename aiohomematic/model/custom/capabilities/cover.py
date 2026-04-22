@@ -19,8 +19,8 @@ from typing import Final
 __all__ = [
     "BLIND_CAPABILITIES",
     "COVER_CAPABILITIES",
-    "CoverCapabilities",
     "GARAGE_CAPABILITIES",
+    "CoverCapabilities",
 ]
 
 

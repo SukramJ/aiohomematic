@@ -1386,3 +1386,20 @@ class TestStress:
 
         finally:
             await server.stop()
+
+    @pytest.fixture(autouse=True)
+    async def _disable_asyncio_debug(self):
+        """
+        Disable asyncio debug mode for stress tests.
+
+        asyncio_debug adds ~2x overhead from slow-callback logging, which
+        breaks the timing thresholds these performance tests rely on.
+        Stress tests measure throughput, not correctness, so they opt out.
+        """
+        loop = asyncio.get_running_loop()
+        previous = loop.get_debug()
+        loop.set_debug(False)
+        try:
+            yield
+        finally:
+            loop.set_debug(previous)

@@ -61,7 +61,7 @@ class TestSysvarText:
         central_client_factory_with_homegear_client,
     ) -> None:
         """Test SysvarDpText with very long string values (>255 chars)."""
-        central, mock_client, _ = central_client_factory_with_homegear_client
+        central, _mock_client, _ = central_client_factory_with_homegear_client
         text: SysvarDpText = cast(SysvarDpText, central.hub_coordinator.get_sysvar_data_point(legacy_name="string_ext"))
         assert text.usage == DataPointUsage.DATA_POINT
 

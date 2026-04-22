@@ -114,45 +114,38 @@ class CentralConfigBuilder:
     """
 
     __slots__ = (
-        # Required
-        "_name",
-        "_host",
-        "_username",
-        "_password",
-        # Interfaces
-        "_interfaces",
-        # Connection
-        "_tls",
-        "_verify_tls",
-        "_json_port",
-        "_client_session",
-        # Callback server
         "_callback_host",
         "_callback_port_xml_rpc",
+        "_central_id",
+        "_client_session",
         "_default_callback_port_xml_rpc",
-        "_listen_ip_addr",
-        "_listen_port_xml_rpc",
-        # Features
+        "_delay_new_device_creation",
+        "_enable_device_firmware_check",
         "_enable_program_scan",
         "_enable_sysvar_scan",
-        "_enable_device_firmware_check",
-        "_program_markers",
-        "_sysvar_markers",
-        # Storage
-        "_storage_directory",
-        # Advanced
-        "_central_id",
-        "_delay_new_device_creation",
+        "_host",
         "_ignore_custom_device_definition_models",
+        "_interfaces",
         "_interfaces_requiring_periodic_refresh",
+        "_json_port",
+        "_listen_ip_addr",
+        "_listen_port_xml_rpc",
+        "_locale",
         "_max_read_workers",
+        "_name",
         "_optional_settings",
+        "_password",
+        "_program_markers",
         "_schedule_timer_config",
         "_start_direct",
+        "_storage_directory",
+        "_sysvar_markers",
         "_timeout_config",
+        "_tls",
         "_un_ignore_list",
         "_use_group_channel_for_cover_state",
-        "_locale",
+        "_username",
+        "_verify_tls",
     )
 
     def __init__(self) -> None:

@@ -499,7 +499,7 @@ def analyze_log_file(content: str, *, max_lines: int = 50000) -> dict[str, Any]:
         matches = re.findall(pattern, content_limited, re.IGNORECASE)
 
         if matches:
-            result["pattern_matches"][pattern_name] = len(matches) if isinstance(matches[0], str) else len(matches)
+            result["pattern_matches"][pattern_name] = len(matches)
 
             # Store sample matches (up to 5)
             if isinstance(matches[0], str):

@@ -303,7 +303,7 @@ def validate_package(package: str, base_path: Path) -> list[ValidationError]:
     )
 
     # Check 3: No ungrouped symbols (all should have a group comment)
-    if "_ungrouped" in grouped_all.groups and grouped_all.groups["_ungrouped"]:
+    if grouped_all.groups.get("_ungrouped"):
         ungrouped = grouped_all.groups["_ungrouped"]
         errors.append(
             ValidationError(

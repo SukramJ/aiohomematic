@@ -576,7 +576,7 @@ class TestCCUBackendBehavior:
 
     def test_ccu_capabilities(self) -> None:
         """CCU should have all standard capabilities enabled."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         assert client.capabilities.backup is True
         assert client.capabilities.programs is True
@@ -587,7 +587,7 @@ class TestCCUBackendBehavior:
 
     def test_ccu_model_property(self) -> None:
         """CCU model should be reported correctly."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         assert client.model == "CCU"
 
@@ -597,7 +597,7 @@ class TestHomegearBackendBehavior:
 
     def test_homegear_capabilities(self) -> None:
         """Homegear should have limited capabilities."""
-        client, backend, _ = _create_client_with_capabilities(HOMEGEAR_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(HOMEGEAR_CAPABILITIES)
 
         assert client.capabilities.backup is False
         assert client.capabilities.programs is False
@@ -626,20 +626,20 @@ class TestJsonCCUBackendBehavior:
 
     def test_json_ccu_is_callback_alive_always_true(self) -> None:
         """JSON CCU is_callback_alive should always return True (no ping_pong)."""
-        client, backend, _ = _create_client_with_capabilities(JSON_CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(JSON_CCU_CAPABILITIES)
 
         # Without ping_pong, is_callback_alive always returns True
         assert client.is_callback_alive() is True
 
     def test_json_ccu_no_ping_pong(self) -> None:
         """JSON CCU should not support ping_pong."""
-        client, backend, _ = _create_client_with_capabilities(JSON_CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(JSON_CCU_CAPABILITIES)
 
         assert client.capabilities.ping_pong is False
 
     def test_json_ccu_no_rpc_callback(self) -> None:
         """JSON CCU should not support RPC callback."""
-        client, backend, _ = _create_client_with_capabilities(JSON_CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(JSON_CCU_CAPABILITIES)
 
         assert client.capabilities.rpc_callback is False
 
@@ -649,7 +649,7 @@ class TestProductGroupDetection:
 
     def test_product_group_case_insensitive(self) -> None:
         """Product group detection should be case-insensitive."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         from aiohomematic.const import ProductGroup
 
@@ -659,7 +659,7 @@ class TestProductGroupDetection:
 
     def test_product_group_from_interface_bidcos_wired(self) -> None:
         """Unknown model on BidCos-Wired should return HMW."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES, interface=Interface.BIDCOS_WIRED)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES, interface=Interface.BIDCOS_WIRED)
 
         from aiohomematic.const import ProductGroup
 
@@ -668,7 +668,7 @@ class TestProductGroupDetection:
 
     def test_product_group_from_interface_hmip(self) -> None:
         """Unknown model on HMIP interface should return HMIP."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES, interface=Interface.HMIP_RF)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES, interface=Interface.HMIP_RF)
 
         from aiohomematic.const import ProductGroup
 
@@ -677,7 +677,7 @@ class TestProductGroupDetection:
 
     def test_product_group_hm(self) -> None:
         """HM model should return HM product group."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         from aiohomematic.const import ProductGroup
 
@@ -686,7 +686,7 @@ class TestProductGroupDetection:
 
     def test_product_group_hmip(self) -> None:
         """HmIP model should return HMIP product group."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         from aiohomematic.const import ProductGroup
 
@@ -695,7 +695,7 @@ class TestProductGroupDetection:
 
     def test_product_group_hmipw(self) -> None:
         """HmIPW model should return HMIPW product group."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         from aiohomematic.const import ProductGroup
 
@@ -704,7 +704,7 @@ class TestProductGroupDetection:
 
     def test_product_group_hmw(self) -> None:
         """HMW model should return HMW product group."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         from aiohomematic.const import ProductGroup
 
@@ -729,7 +729,7 @@ class TestInterfaceClientSystemInformation:
 
     def test_system_information_property(self) -> None:
         """system_information should return backend's system information."""
-        client, backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
+        client, _backend, _ = _create_client_with_capabilities(CCU_CAPABILITIES)
 
         assert client.system_information.serial == "TEST1234"
         assert client.system_information.has_backup is True

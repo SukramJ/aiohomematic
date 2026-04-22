@@ -47,7 +47,7 @@ from aiohomematic.exceptions import CommandSupersededError
 from aiohomematic.interfaces.client import CommandThrottleProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
-__all__ = ["CommandThrottle", "CommandPriority", "PrioritizedCommand"]
+__all__ = ["CommandPriority", "CommandThrottle", "PrioritizedCommand"]
 
 _LOGGER: Final = logging.getLogger(__name__)
 

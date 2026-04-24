@@ -1,3 +1,35 @@
+# Version 2026.4.20 (2026-04-24)
+
+## What's Changed
+
+### Changed
+
+- Adopt the new [openccu-data](https://github.com/sukramj/openccu-data) package
+  (`>=2026.4.1`) as the source-of-truth for CCU translation and easymode
+  metadata. Both `ccu_translations.py` and `easymode_data.py` now resolve
+  their data files via `importlib.resources` from `openccu_data.data`
+  (extract archives) and `openccu_data.data.translation_custom`
+  (curated overrides), replacing the previous `pkgutil.get_data` lookups.
+
+### Removed
+
+- Drop the vendored `aiohomematic/ccu_data/` tree (translation extract,
+  easymode extract, and all `translation_custom/*.json` overrides) — these
+  are now distributed by `openccu-data`.
+- Drop `script/lint_translation_custom.py` and the corresponding
+  `lint-translation-custom` prek hook; the lint logic moved to
+  `openccu-data` together with the custom override files.
+- Drop the `ccu_data/*` entries from `package-data` in `pyproject.toml`.
+
+### Migration
+
+Downstream consumers do **not** need to change anything: the public API of
+`ccu_translations` and `easymode_data` is unchanged. New dependency
+`openccu-data` is pulled in transitively when upgrading. To regenerate the
+underlying CCU artifacts, work in the
+[openccu-data](https://github.com/sukramj/openccu-data) repository and
+publish a new release; aiohomematic picks it up via its version constraint.
+
 # Version 2026.4.19 (2026-04-22)
 
 ## What's Changed

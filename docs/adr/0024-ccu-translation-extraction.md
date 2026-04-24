@@ -2,7 +2,9 @@
 
 ## Status
 
-Implemented
+Implemented (both extractor and runtime archive now live in
+[openccu-data](https://github.com/sukramj/openccu-data); aiohomematic loads
+them via `importlib.resources` from the `openccu_data.data` package).
 
 ## Date
 

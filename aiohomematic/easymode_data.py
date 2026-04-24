@@ -6,9 +6,10 @@ Loader for CCU easymode metadata.
 Provide access to extracted easymode data (parameter groups, profiles, presets,
 subsets, cross-validations) from CCU WebUI TCL configuration files.
 
-The data is stored as a single gzip-compressed JSON archive in
-``ccu_data/easymode_extract.json.gz``, produced by
-``script/extract_ccu_easymodes.py``.
+The data is shipped by the
+`openccu-data <https://github.com/sukramj/openccu-data>`_ package
+(``openccu_data/data/easymode_extract.json.gz``) and accessed here via
+``importlib.resources``.
 
 All public functions are pure dict lookups after first access (no I/O),
 making them safe to call from the asyncio event loop. Thread safety is
@@ -19,9 +20,9 @@ Public API of this module is defined by __all__.
 
 from dataclasses import dataclass, field
 import gzip
+from importlib.resources import files
 import json
 import logging
-import pkgutil
 import threading
 from typing import Any, Final
 
@@ -43,7 +44,8 @@ __all__ = [
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
-_PACKAGE: Final = "aiohomematic"
+_DATA_PACKAGE: Final = "openccu_data.data"
+_ARCHIVE_FILENAME: Final = "easymode_extract.json.gz"
 
 # Sender type key for MASTER paramset metadata (as opposed to LINK easymode profiles).
 # Used by the extraction script and downstream consumers to access MASTER-specific
@@ -180,8 +182,6 @@ class _EasymodeStore:
         "_option_presets",
     )
 
-    _ARCHIVE_RESOURCE: Final = "ccu_data/easymode_extract.json.gz"
-
     def __init__(self) -> None:
         self._channel_metadata: Final[dict[str, ChannelMetadata]] = {}
         self._option_presets: Final[dict[str, OptionPresetDef]] = {}
@@ -191,14 +191,13 @@ class _EasymodeStore:
 
     @staticmethod
     def _load_archive() -> dict[str, Any] | None:
-        """Load the gzip-compressed JSON archive from the package."""
+        """Load the gzip-compressed JSON archive from the openccu-data package."""
         try:
-            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=_EasymodeStore._ARCHIVE_RESOURCE)):
-                return None
+            data_bytes = files(_DATA_PACKAGE).joinpath(_ARCHIVE_FILENAME).read_bytes()
             raw_json = gzip.decompress(data_bytes)
             result: dict[str, Any] = json.loads(raw_json)
-        except (FileNotFoundError, json.JSONDecodeError, OSError) as err:
-            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, _EasymodeStore._ARCHIVE_RESOURCE, err)
+        except (FileNotFoundError, ModuleNotFoundError, json.JSONDecodeError, OSError) as err:
+            _LOGGER.debug("Failed to load %s/%s: %s", _DATA_PACKAGE, _ARCHIVE_FILENAME, err)
             return None
         else:
             return result

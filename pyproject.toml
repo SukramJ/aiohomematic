@@ -36,6 +36,7 @@ classifiers = [
 requires-python = ">=3.14"
 dependencies = [
     "aiohttp>=3.12.0",
+    "openccu-data>=2026.4.1",
     "pydantic>=2.10.0",
     "python-slugify>=8.0.0",
 ]
@@ -67,7 +68,7 @@ include = ["aiohomematic", "aiohomematic.*"]
 exclude = ["aiohomematic_test_support", "aiohomematic_test_support.*", "tests", "tests.*", "dist", "build"]
 
 [tool.setuptools.package-data]
-aiohomematic = ["py.typed", "rega_scripts/*.fn", "translations/*.json", "ccu_data/*.json.gz", "ccu_data/translation_custom/*.json"]
+aiohomematic = ["py.typed", "rega_scripts/*.fn", "translations/*.json"]
 
 [tool.pylint.MAIN]
 py-version = "3.14"

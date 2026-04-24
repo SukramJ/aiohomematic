@@ -6,11 +6,12 @@ Loader for CCU-sourced translation data.
 Provide access to human-readable translations for channel types, device models,
 parameter names, and parameter enum values extracted from the OpenCCU WebUI.
 
-Extracted translations are stored as a single gzip-compressed JSON archive in
-``ccu_data/translation_extract.json.gz``, produced by
-``script/extract_ccu_translations.py``.  Hand-maintained overrides live in
-``ccu_data/translation_custom/`` as individual JSON files.  At load time the
-two layers are merged: custom keys override or supplement extracted keys.
+Both the extracted archive and the curated custom overrides ship with the
+`openccu-data <https://github.com/sukramj/openccu-data>`_ package
+(``openccu_data/data/translation_extract.json.gz`` and
+``openccu_data/data/translation_custom/*.json``) and are accessed here via
+``importlib.resources``.  At load time the two layers are merged: custom keys
+override or supplement extracted keys.
 
 All public functions are pure dict lookups after first access (no I/O),
 making them safe to call from the asyncio event loop. Thread safety is
@@ -21,9 +22,9 @@ Public API of this module is defined by __all__.
 
 import contextlib
 import gzip
+from importlib.resources import files
 import json
 import logging
-import pkgutil
 import threading
 from typing import Any, Final
 
@@ -39,7 +40,8 @@ __all__ = [
 ]
 
 _LOGGER: Final = logging.getLogger(__name__)
-_PACKAGE: Final = "aiohomematic"
+_DATA_PACKAGE: Final = "openccu_data.data"
+_CUSTOM_PACKAGE: Final = "openccu_data.data.translation_custom"
 
 _SUPPORTED_LOCALES: Final = frozenset({"de", "en"})
 _DEFAULT_LOCALE: Final = "en"
@@ -52,8 +54,7 @@ _CATEGORIES: Final = (
     "ui_labels",
 )
 _LOCALE_INDEPENDENT_CATEGORIES: Final = ("device_icons",)
-_EXTRACT_ARCHIVE_RESOURCE: Final = "ccu_data/translation_extract.json.gz"
-_CUSTOM_DIR: Final = "ccu_data/translation_custom"
+_EXTRACT_ARCHIVE_FILENAME: Final = "translation_extract.json.gz"
 
 # Prefixes used in LINK paramset parameter names (e.g. SHORT_ON_LEVEL, LONG_RAMPON_TIME).
 # The CCU WebUI strips these when looking up translations; we do the same as fallback
@@ -83,29 +84,26 @@ class _TranslationStore:
 
     @staticmethod
     def _load_extract_archive() -> dict[str, Any]:
-        """Load the gzip-compressed translation extract archive."""
+        """Load the gzip-compressed translation extract archive from openccu-data."""
         try:
-            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=_EXTRACT_ARCHIVE_RESOURCE)):
-                return {}
+            data_bytes = files(_DATA_PACKAGE).joinpath(_EXTRACT_ARCHIVE_FILENAME).read_bytes()
             raw_json = gzip.decompress(data_bytes)
             result: dict[str, Any] = json.loads(raw_json)
-        except (FileNotFoundError, json.JSONDecodeError, OSError) as err:
-            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, _EXTRACT_ARCHIVE_RESOURCE, err)
+        except (FileNotFoundError, ModuleNotFoundError, json.JSONDecodeError, OSError) as err:
+            _LOGGER.debug("Failed to load %s/%s: %s", _DATA_PACKAGE, _EXTRACT_ARCHIVE_FILENAME, err)
             return {}
         else:
             return result
 
     @staticmethod
     def _merge_custom_file(*, target: dict[str, str], filename: str) -> None:
-        """Merge a custom override JSON file into the target dict."""
-        resource = f"{_CUSTOM_DIR}/{filename}"
+        """Merge a custom override JSON file from openccu-data into the target dict."""
         try:
-            if not (data_bytes := pkgutil.get_data(package=_PACKAGE, resource=resource)):
-                return
+            data_bytes = files(_CUSTOM_PACKAGE).joinpath(filename).read_bytes()
             raw: dict[str, str] = json.loads(data_bytes)
             target.update({k.lower(): v for k, v in raw.items()})
-        except (FileNotFoundError, json.JSONDecodeError) as err:
-            _LOGGER.debug("Failed to load %s/%s: %s", _PACKAGE, resource, err)
+        except (FileNotFoundError, ModuleNotFoundError, json.JSONDecodeError) as err:
+            _LOGGER.debug("Failed to load %s/%s: %s", _CUSTOM_PACKAGE, filename, err)
 
     def get(self, *, category: str, locale: str) -> dict[str, str]:
         """Return translation dict for category and locale."""

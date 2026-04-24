@@ -123,10 +123,17 @@ devices. It powers the Home Assistant integration "Homematic(IP) Local".
 
 ```python
 aiohttp>=3.12.0         # Async HTTP client
-orjson>=3.11.0          # Fast JSON serialization
+openccu-data>=2026.4.1  # CCU translation/easymode data (extract + custom overrides)
+orjson>=3.11.0          # Fast JSON serialization (optional fast extra)
 pydantic>=2.10.0        # Data validation using Python type hints
 python-slugify>=8.0.0   # URL-safe string conversion
 ```
+
+CCU-derived translation and easymode metadata is no longer vendored in this
+repo; it is loaded at runtime via `importlib.resources` from the
+`openccu_data.data` package. Regenerate the artifacts in the
+[openccu-data](https://github.com/sukramj/openccu-data) repository and
+release a new version when the underlying CCU data changes.
 
 ### Project Goals
 
@@ -183,7 +190,6 @@ aiohomematic/
 ├── support/         Cross-cutting utilities (address, file_ops, mixins, text_utils)
 ├── schemas/         Pydantic schemas (device_description, parameter_description)
 ├── metrics/         Performance/telemetry emitters, aggregator, stats
-├── ccu_data/        Static CCU reference data (translations, easymodes)
 ├── translations/    Runtime i18n catalogs (en.json, de.json)
 ├── rega_scripts/    ReGa scripts run on the CCU
 └── (top-level modules: api, const, async_support, backend_detection, ccu_translations,

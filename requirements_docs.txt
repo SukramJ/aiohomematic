@@ -4,4 +4,4 @@ mkdocs-minify-plugin>=0.8.0
 mkdocs-static-i18n>=1.2.0
 pymdown-extensions>=10.7
 pillow>=10.0.0
-cairosvg>=2.7.0
+cairosvg>=2.9.0

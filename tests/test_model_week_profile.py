@@ -13,6 +13,7 @@ from aiohomematic.const import (
     ScheduleActorChannel,
     ScheduleField,
     ScheduleProfile,
+    TimeBase,
     WeekdayInt,
     WeekdayStr,
 )
@@ -23,6 +24,7 @@ from aiohomematic.model.schedule_models import (
     ClimateSchedule,
     SimpleSchedule,
     SimpleScheduleEntry,
+    convert_duration_to_base_factor,
 )
 from aiohomematic.model.week_profile import (
     ClimateWeekProfile,
@@ -1232,6 +1234,40 @@ class TestDefaultWeekProfileConversion:
         assert result["01_WP_FIXED_HOUR"] == 10
         assert result["01_WP_FIXED_MINUTE"] == 30
 
+    def test_convert_duration_promotes_base_when_factor_exceeds_30(self):
+        """Values that exceed factor=30 in the natural unit promote to a larger TimeBase."""
+        # 45s: SEC_1 would give factor=45 (>30); SEC_5 fits with factor=9.
+        assert convert_duration_to_base_factor(duration_str="45s") == (TimeBase.SEC_5, 9)
+        # 40min: MIN_1 would give factor=40 (>30); MIN_5 fits with factor=8.
+        assert convert_duration_to_base_factor(duration_str="40min") == (TimeBase.MIN_5, 8)
+        # 90min: MIN_1=90, MIN_5=18 -> use MIN_5.
+        assert convert_duration_to_base_factor(duration_str="90min") == (TimeBase.MIN_5, 18)
+        # 300s == 5min: SEC_1=300, SEC_5=60, SEC_10=30 -> use SEC_10.
+        assert convert_duration_to_base_factor(duration_str="300s") == (TimeBase.SEC_10, 30)
+
+    def test_convert_duration_rejects_unrepresentable_values(self):
+        """Values that exceed factor=30 in every TimeBase are rejected."""
+        # 31h is the CCU "permanent" sentinel and must not be encoded as duration.
+        with pytest.raises(ValueError, match="not representable|out_of_range"):
+            convert_duration_to_base_factor(duration_str="31h")
+        # 301s is not divisible by any TimeBase that fits within factor=30.
+        with pytest.raises(ValueError, match="not representable|out_of_range"):
+            convert_duration_to_base_factor(duration_str="301s")
+        # Sub-100ms granularity is not representable.
+        with pytest.raises(ValueError, match="not representable|out_of_range"):
+            convert_duration_to_base_factor(duration_str="50ms")
+
+    def test_convert_duration_to_base_factor_simple(self):
+        """Each unit is encoded with the natural TimeBase when factor <= 30."""
+        assert convert_duration_to_base_factor(duration_str="100ms") == (TimeBase.MS_100, 1)
+        assert convert_duration_to_base_factor(duration_str="500ms") == (TimeBase.MS_100, 5)
+        assert convert_duration_to_base_factor(duration_str="10s") == (TimeBase.SEC_1, 10)
+        assert convert_duration_to_base_factor(duration_str="30s") == (TimeBase.SEC_1, 30)
+        assert convert_duration_to_base_factor(duration_str="5min") == (TimeBase.MIN_1, 5)
+        assert convert_duration_to_base_factor(duration_str="30min") == (TimeBase.MIN_1, 30)
+        assert convert_duration_to_base_factor(duration_str="1h") == (TimeBase.HOUR_1, 1)
+        assert convert_duration_to_base_factor(duration_str="30h") == (TimeBase.HOUR_1, 30)
+
     def test_convert_raw_to_dict_schedule(self):
         """Test converting raw schedule to SimpleSchedule format."""
         raw_schedule = {
@@ -1375,6 +1411,17 @@ class TestDefaultWeekProfileConversion:
                 target_channels=["1_1"],
                 level=0.5,
                 condition="astro",
+            )
+
+    def test_simple_schedule_entry_rejects_unrepresentable_duration(self):
+        """The SimpleScheduleEntry validator rejects durations > factor=30 per unit."""
+        with pytest.raises(ValueError):
+            SimpleScheduleEntry(
+                weekdays=["MONDAY"],
+                time="07:30",
+                target_channels=["1_1"],
+                level=0.5,
+                duration="31h",
             )
 
     def test_simple_schedule_entry_validation(self):

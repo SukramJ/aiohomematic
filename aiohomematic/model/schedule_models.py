@@ -196,6 +196,45 @@ _TIME_PATTERN: Final = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)$")
 # Duration pattern: number + unit (ms, s, min, h)
 _DURATION_PATTERN: Final = re.compile(r"^(\d+)\s*(ms|s|min|h)$")
 
+# Maximum DURATION_FACTOR / RAMP_TIME_FACTOR accepted by the CCU firmware.
+# Values above this are silently clamped by the device (factor=31 is reserved
+# as a "permanent" sentinel for lock channels), so the encoder must keep
+# factor <= 30 by selecting the appropriate TimeBase.
+_MAX_DURATION_FACTOR: Final[int] = 30
+
+# TimeBase ordered by ascending granularity, with each base expressed in
+# 100ms units. Used by the encoder when promoting to a larger base because the
+# natural base would overflow factor=30.
+_TIME_BASE_IN_100MS: Final[tuple[tuple[TimeBase, int], ...]] = (
+    (TimeBase.MS_100, 1),  # 100ms
+    (TimeBase.SEC_1, 10),  # 1s = 10 * 100ms
+    (TimeBase.SEC_5, 50),  # 5s
+    (TimeBase.SEC_10, 100),  # 10s
+    (TimeBase.MIN_1, 600),  # 1min
+    (TimeBase.MIN_5, 3000),  # 5min
+    (TimeBase.MIN_10, 6000),  # 10min
+    (TimeBase.HOUR_1, 36000),  # 1h
+)
+
+# Index of the "natural" TimeBase for each duration suffix in
+# `_TIME_BASE_IN_100MS`. The encoder starts the search at this index so a
+# duration like "5min" yields (MIN_1, 5) instead of being needlessly promoted
+# to a finer-grained base with factor=30.
+_NATURAL_BASE_INDEX: Final[Mapping[str, int]] = {
+    "ms": 0,  # MS_100
+    "s": 1,  # SEC_1
+    "min": 4,  # MIN_1
+    "h": 7,  # HOUR_1
+}
+
+# Conversion of duration units to 100ms steps.
+_DURATION_UNIT_IN_100MS: Final[Mapping[str, int]] = {
+    "ms": 1,  # special-cased: value is divided by 100 below
+    "s": 10,
+    "min": 600,
+    "h": 36000,
+}
+
 # Channel string to enum mapping
 _CHANNEL_STR_TO_ENUM: Final[dict[str, ScheduleActorChannel]] = {
     "1_1": ScheduleActorChannel.CHANNEL_1_1,
@@ -447,11 +486,20 @@ class SimpleScheduleEntry(_JsonSerializableMixin, BaseModel):
     @field_validator("duration", "ramp_time")
     @classmethod
     def validate_duration_format(cls, v: str | None) -> str | None:  # kwonly: disable
-        """Validate duration format like '10s', '5min', '1h'."""
+        """
+        Validate duration format like '10s', '5min', '1h'.
+
+        Also verifies that the value is encodable as ``(TimeBase, factor)`` with
+        ``factor <= 30``. Values that exceed the CCU max factor for every base
+        (e.g., "31h") are rejected here rather than silently clamped on the
+        device. Use ``duration=None`` to express "permanent" / no duration.
+        """
         if v is None:
             return None
         if not _DURATION_PATTERN.match(v):
             raise ValueError(i18n.tr(key="exception.model.schedule.invalid_duration_format", duration=v))
+        # Probe the encoder so unencodable values fail at validation time.
+        convert_duration_to_base_factor(duration_str=v)
         return v
 
     @field_validator("time")
@@ -646,8 +694,13 @@ def convert_duration_to_base_factor(*, duration_str: str) -> tuple[TimeBase, int
     """
     Convert human-readable duration to TimeBase enum and factor.
 
+    Picks the smallest TimeBase where ``factor <= 30`` and the value divides
+    evenly. The CCU firmware caps DURATION_FACTOR at 30 (factor=31 is reserved
+    as a "permanent" sentinel for lock channels), so values that don't fit
+    within a base unit must be promoted to the next-larger base.
+
     Args:
-        duration_str: Duration like "10s", "5min", "1h", "500ms"
+        duration_str: Duration like "10s", "5min", "1h", "500ms", "45s", "40min"
 
     Returns:
         Tuple of (TimeBase, factor)
@@ -655,8 +708,10 @@ def convert_duration_to_base_factor(*, duration_str: str) -> tuple[TimeBase, int
     Example:
         >>> convert_duration_to_base_factor(duration_str="10s")
         (TimeBase.SEC_1, 10)
-        >>> convert_duration_to_base_factor(duration_str="5min")
-        (TimeBase.MIN_1, 5)
+        >>> convert_duration_to_base_factor(duration_str="45s")
+        (TimeBase.SEC_5, 9)
+        >>> convert_duration_to_base_factor(duration_str="40min")
+        (TimeBase.MIN_5, 8)
 
     """
     if not (match := _DURATION_PATTERN.match(duration_str)):
@@ -665,21 +720,37 @@ def convert_duration_to_base_factor(*, duration_str: str) -> tuple[TimeBase, int
     value = int(match.group(1))
     unit = match.group(2)
 
-    # Map unit to appropriate TimeBase
-    unit_to_base: dict[str, TimeBase] = {
-        "ms": TimeBase.MS_100,
-        "s": TimeBase.SEC_1,
-        "min": TimeBase.MIN_1,
-        "h": TimeBase.HOUR_1,
-    }
+    total_100ms = value * _DURATION_UNIT_IN_100MS[unit]
 
-    base = unit_to_base[unit]
-
-    # For milliseconds, factor needs adjustment (base is 100ms)
     if unit == "ms":
-        value = value // 100
+        # ms is special: pattern matched a literal millisecond value, so
+        # collapse to 100ms steps. Sub-100ms granularity is not representable.
+        if total_100ms % 100 != 0:
+            raise ValueError(
+                i18n.tr(
+                    key="exception.model.schedule.duration_factor_out_of_range",
+                    duration=duration_str,
+                    max_factor=_MAX_DURATION_FACTOR,
+                )
+            )
+        total_100ms //= 100
 
-    return base, value
+    # Start at the natural base for the input unit and promote to larger
+    # bases only if factor exceeds the CCU max.
+    start_index = _NATURAL_BASE_INDEX[unit]
+    for base, base_in_100ms in _TIME_BASE_IN_100MS[start_index:]:
+        if total_100ms % base_in_100ms != 0:
+            continue
+        if (factor := total_100ms // base_in_100ms) <= _MAX_DURATION_FACTOR:
+            return base, factor
+
+    raise ValueError(
+        i18n.tr(
+            key="exception.model.schedule.duration_factor_out_of_range",
+            duration=duration_str,
+            max_factor=_MAX_DURATION_FACTOR,
+        )
+    )
 
 
 def convert_base_factor_to_duration(*, base: TimeBase, factor: int) -> str:

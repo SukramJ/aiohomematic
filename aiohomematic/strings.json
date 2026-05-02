@@ -77,6 +77,7 @@
   "exception.model.hub.number.invalid_value": "SYSVAR.NUMBER failed: Invalid value: {value} (min: {min}, max: {max})",
   "exception.model.number.invalid_value": "NUMBER failed: Invalid value: {value} (min: {min}, max: {max}, special:{special})",
   "exception.model.schedule.astro_type_required": "astro_type is required when condition is '{condition}'",
+  "exception.model.schedule.duration_factor_out_of_range": "Duration '{duration}' is not representable: the CCU caps DURATION_FACTOR at {max_factor} for every TimeBase. Use a smaller value or pass duration=None for 'permanent'.",
   "exception.model.schedule.duration_not_supported": "duration is not supported for {domain} schedules",
   "exception.model.schedule.group_number_out_of_range": "Group number {group} out of range (1-24)",
   "exception.model.schedule.invalid_channel_format": "Invalid channel format: '{channel}', expected 'X_Y' (X=1-8, Y=1-3)",

@@ -1,4 +1,29 @@
-# Version 2026.4.20 (2026-04-24)
+# Version 2026.5.0 (2026-05-02)
+
+## What's Changed
+
+### Fixed
+
+- **Schedule duration encoding silently clamped on the device**: durations like
+  `"40min"` or `"45s"` were encoded with the smallest matching unit
+  (`DURATION_BASE=MIN_1`/`SEC_1`) plus a raw factor that exceeded the CCU's
+  hard cap of `30`. The firmware then clamped the factor to 31, so a user
+  request for "40 minutes" silently became "31 minutes" on the device. The
+  encoder now picks the natural `TimeBase` for the input unit and promotes
+  to a coarser base only when the factor would overflow, e.g.
+  `"40min"` → `(MIN_5, 8)`, `"45s"` → `(SEC_5, 9)`. Existing values whose
+  factor already fit (e.g. `"10s"`, `"5min"`, `"1h"`) keep their previous
+  encoding.
+
+### Changed
+
+- **`SimpleScheduleEntry` rejects unrepresentable durations at validation
+  time** rather than silently clamping on the CCU. Values that exceed
+  `factor=30` in every available `TimeBase` (e.g. `"31h"`, `"301s"`) and
+  sub-`100ms` granularity (e.g. `"50ms"`) now raise `ValueError` with a
+  new i18n key `exception.model.schedule.duration_factor_out_of_range`.
+  Use `duration=None` to express "permanent" (no DURATION_BASE/FACTOR
+  written to the device).
 
 ## What's Changed
 

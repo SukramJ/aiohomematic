@@ -77,6 +77,7 @@
   "exception.model.hub.number.invalid_value": "SYSVAR.NUMBER fehlgeschlagen: Ungültiger Wert: {value} (min: {min}, max: {max})",
   "exception.model.number.invalid_value": "NUMBER fehlgeschlagen: Ungültiger Wert: {value} (min: {min}, max: {max}, special:{special})",
   "exception.model.schedule.astro_type_required": "astro_type ist erforderlich wenn Bedingung '{condition}' ist",
+  "exception.model.schedule.duration_factor_out_of_range": "Dauer '{duration}' nicht darstellbar: die CCU begrenzt DURATION_FACTOR auf {max_factor} pro TimeBase. Bitte einen kleineren Wert wählen oder duration=None für 'dauerhaft' setzen.",
   "exception.model.schedule.duration_not_supported": "duration wird für {domain}-Zeitpläne nicht unterstützt",
   "exception.model.schedule.group_number_out_of_range": "Gruppennummer {group} außerhalb des Bereichs (1-24)",
   "exception.model.schedule.invalid_channel_format": "Ungültiges Kanalformat: '{channel}', erwartet 'X_Y' (X=1-8, Y=1-3)",

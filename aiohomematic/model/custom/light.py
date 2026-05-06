@@ -230,6 +230,34 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE)
 
     @property
+    def _commanded_brightness(self) -> int | None:
+        """Return brightness based on the last commanded LEVEL (action channel)."""
+        return self.level_to_brightness(self._dp_level.value or _MIN_BRIGHTNESS)
+
+    @property
+    def _commanded_is_on(self) -> bool | None:
+        """Return on/off based on the last commanded LEVEL (action channel)."""
+        return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
+
+    @property
+    def _effective_level(self) -> float | None:
+        """
+        Return the level used for state readings.
+
+        While an optimistic command is pending on LEVEL, return the optimistic
+        target. Otherwise prefer the stable status source (LEVEL_REAL on RF
+        dimmers, the state-channel LEVEL on HmIP dimmers — both surfaced as
+        ``_dp_group_level``) to avoid showing intermediate values that the
+        device emits during a ramp transition. Fall back to ``_dp_level`` when
+        no group-level source is available.
+        """
+        if self._dp_level.is_optimistic:
+            return self._dp_level.value
+        if (group_level := self._dp_group_level.value) is not None:
+            return group_level
+        return self._dp_level.value
+
+    @property
     def last_level(self) -> float | None:
         """Return the last non-default level value."""
         return self._dp_level.last_non_default_value
@@ -242,12 +270,12 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     @state_property
     def brightness(self) -> int | None:
         """Return the brightness of this light between min/max brightness."""
-        return self.level_to_brightness(self._dp_level.value or _MIN_BRIGHTNESS)
+        return self.level_to_brightness(self._effective_level or _MIN_BRIGHTNESS)
 
     @state_property
     def brightness_pct(self) -> int | None:
         """Return the brightness in percent of this light."""
-        return self.level_to_brightness_pct(self._dp_level.value or _MIN_BRIGHTNESS)
+        return self.level_to_brightness_pct(self._effective_level or _MIN_BRIGHTNESS)
 
     @state_property
     def color_temp_kelvin(self) -> int | None:
@@ -301,7 +329,8 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     @state_property
     def is_on(self) -> bool | None:
         """Return true if dimmer is on."""
-        return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
+        level = self._effective_level
+        return level is not None and level > _DIMMER_OFF
 
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
@@ -312,11 +341,13 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
             return True
         if kwargs.get(_StateChangeArg.RAMP_TIME) is not None:
             return True
-        if kwargs.get(_StateChangeArg.ON) is not None and self.is_on is not True and len(kwargs) == 1:
+        if kwargs.get(_StateChangeArg.ON) is not None and self._commanded_is_on is not True and len(kwargs) == 1:
             return True
-        if kwargs.get(_StateChangeArg.OFF) is not None and self.is_on is not False and len(kwargs) == 1:
+        if kwargs.get(_StateChangeArg.OFF) is not None and self._commanded_is_on is not False and len(kwargs) == 1:
             return True
-        if (brightness := kwargs.get(_StateChangeArg.BRIGHTNESS)) is not None and brightness != self.brightness:
+        if (
+            brightness := kwargs.get(_StateChangeArg.BRIGHTNESS)
+        ) is not None and brightness != self._commanded_brightness:
             return True
         if (hs_color := kwargs.get(_StateChangeArg.HS_COLOR)) is not None and hs_color != self.hs_color:
             return True
@@ -360,7 +391,7 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
             await self._dp_on_time.send_value(value=_NOT_USED, collector=collector)
         if ramp_time := kwargs.get("ramp_time"):
             await self._dp_ramp_time.send_value(value=ramp_time, collector=collector)
-        if not (brightness := kwargs.get("brightness", self.brightness)):
+        if not (brightness := kwargs.get("brightness", self._commanded_brightness)):
             brightness = int(_MAX_BRIGHTNESS)
         level = self.brightness_to_level(brightness)
         await self._dp_level.send_value(value=level, collector=collector)

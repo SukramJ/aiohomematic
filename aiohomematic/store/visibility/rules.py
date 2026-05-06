@@ -168,7 +168,6 @@ IGNORED_PARAMETERS: Final[frozenset[ParameterName]] = frozenset(
         "INCLUSION_UNSUPPORTED_DEVICE",
         "INHIBIT",
         "INSTALL_MODE",
-        "LEVEL_REAL",
         "OLD_LEVEL",
         "OVERFLOW",
         "OVERRUN",

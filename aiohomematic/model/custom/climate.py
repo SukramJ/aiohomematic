@@ -727,7 +727,7 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
         if self.mode == ClimateMode.OFF:
             return ClimateActivity.OFF
         if eff_level is not None and eff_level > _CLOSED_LEVEL:
-            return ClimateActivity.HEAT
+            return ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL
         valve = self._dp_heating_valve_type.value
         # Determine heating/cooling based on valve type and state
         is_active = False

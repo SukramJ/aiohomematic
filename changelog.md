@@ -12,6 +12,31 @@
   `ClimateActivity.HEAT` unconditionally on the `LEVEL > 0` branch, ignoring
   `_is_heating_mode`. The branch now mirrors the STATE branch and returns
   `ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL`.
+- **Dimmer light briefly reports intermediate `LEVEL` values during ramps**
+  ([#3165](https://github.com/SukramJ/aiohomematic/issues/3165)). Homematic
+  RF dimmers (e.g. `HM-LC-Dim1PWM-CV`) emit transient `LEVEL` events while
+  the device is ramping up or down — for example a turn-off from 70 % first
+  reports `LEVEL=0.69`, then `WORKING=True`, and only at the end of the ramp
+  `LEVEL=0.0`. This caused Home Assistant entities (and downstream
+  automations) to flicker between target, intermediate, and final values.
+
+  The dimmer custom data point now treats the per-channel `LEVEL_REAL`
+  parameter as the authoritative status source for `is_on`, `brightness`,
+  and `brightness_pct`, mirroring how HmIP dimmers already use the
+  state-channel `LEVEL` (`Field.GROUP_LEVEL`). While an optimistic command
+  is pending, the optimistic target on `LEVEL` still takes precedence —
+  so the immediate UI feedback after a turn-on/turn-off is unaffected.
+  `is_state_change` and the implicit brightness fallback in `turn_on()` keep
+  using the commanded `LEVEL`, so redundant commands and brightness
+  restoration continue to work as before.
+
+### Changed
+
+- All RF dimmer profiles (`RF_DIMMER`, `RF_DIMMER_COLOR`,
+  `RF_DIMMER_COLOR_FIXED`, `RF_DIMMER_COLOR_TEMP`,
+  `RF_DIMMER_WITH_VIRT_CHANNEL`) now map `Field.GROUP_LEVEL` to
+  `Parameter.LEVEL_REAL` via `visible(...)`, exposing it as a stable group
+  status data point analogous to the HmIP-Dimmer state channel.
 
 # Version 2026.5.0 (2026-05-02)
 

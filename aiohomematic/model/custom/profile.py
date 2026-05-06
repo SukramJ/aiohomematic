@@ -382,6 +382,7 @@ RF_DIMMER_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER,
     channel_group=ChannelGroupConfig(
         fields={
+            Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL_REAL),
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -393,6 +394,7 @@ RF_DIMMER_COLOR_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER_COLOR,
     channel_group=ChannelGroupConfig(
         fields={
+            Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL_REAL),
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -408,6 +410,7 @@ RF_DIMMER_COLOR_FIXED_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER_COLOR_FIXED,
     channel_group=ChannelGroupConfig(
         fields={
+            Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL_REAL),
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -419,6 +422,7 @@ RF_DIMMER_COLOR_TEMP_CONFIG: Final = ProfileConfig(
     profile_type=DeviceProfile.RF_DIMMER_COLOR_TEMP,
     channel_group=ChannelGroupConfig(
         fields={
+            Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL_REAL),
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,
@@ -434,6 +438,7 @@ RF_DIMMER_WITH_VIRT_CHANNEL_CONFIG: Final = ProfileConfig(
     channel_group=ChannelGroupConfig(
         secondary_channels=(1, 2),
         fields={
+            Field.GROUP_LEVEL: visible(parameter=Parameter.LEVEL_REAL),
             Field.LEVEL: Parameter.LEVEL,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
             Field.RAMP_TIME_VALUE: Parameter.RAMP_TIME,

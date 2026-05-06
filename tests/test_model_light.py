@@ -137,8 +137,16 @@ class TestCustomDpDimmer:
             priority=CommandPriority.HIGH,
             retry=True,
         )
+        # Simulate the state-channel event so that group_level (which is the
+        # authoritative status source for is_on / brightness) is in sync.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.0
+        )
         assert light.brightness == 0
         await light.turn_on()
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=1.0
+        )
         assert light.brightness == 255
         await light.turn_off()
         assert mock_client.method_calls[-1] == call.set_value(

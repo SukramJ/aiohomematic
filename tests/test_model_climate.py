@@ -3,6 +3,7 @@
 """Tests for climate data points of aiohomematic."""
 
 from datetime import datetime
+from types import SimpleNamespace
 from typing import cast
 from unittest.mock import call
 
@@ -31,7 +32,7 @@ from aiohomematic.model.custom import (
     CustomDpSimpleRfThermostat,
 )
 from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
-from aiohomematic.model.generic import DpDummy
+from aiohomematic.model.generic import DpDummy, DpFloat
 from aiohomematic.model.schedule_models import ClimateSchedulePeriod, ClimateWeekdaySchedule
 from aiohomematic.model.week_profile import _convert_time_str_to_minutes
 from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
@@ -927,6 +928,79 @@ class TestCustomDpIpThermostat:
         # Now set mode OFF (via dedicated method) and ensure OFF overrides peer state
         await climate.set_mode(mode=ClimateMode.OFF)
         assert climate.activity == ClimateActivity.OFF
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ceipthermostat_activity_reports_cool_in_cooling_mode(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Activity reports COOL (not HEAT) when HEATING_COOLING is COOLING.
+
+        Regression test for #3164: with HmIP-FALMOT-C12 + HmIP-WTH-1 in cooling
+        mode, the climate entity wrongly reported HEAT because both branches in
+        ``activity`` used to return ``ClimateActivity.HEAT`` unconditionally.
+        Both the STATE branch and the LEVEL branch must honour
+        ``_is_heating_mode``.
+        """
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+
+        climate: CustomDpIpThermostat = cast(
+            CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU1769958", 1)
+        )
+        assert climate.mode in (ClimateMode.AUTO, ClimateMode.HEAT)
+
+        # Switch the thermostat into COOLING mode.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address="VCU1769958:1",
+            parameter=Parameter.HEATING_COOLING,
+            value="COOLING",
+        )
+        await central.looper.block_till_done()
+        assert climate._is_heating_mode is False
+
+        # STATE branch: own STATE on channel 9 reports valve open → COOL.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address="VCU1769958:9",
+            parameter=Parameter.STATE,
+            value=1,
+        )
+        await central.looper.block_till_done()
+        assert climate.activity == ClimateActivity.COOL
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address="VCU1769958:9",
+            parameter=Parameter.STATE,
+            value=0,
+        )
+        await central.looper.block_till_done()
+        assert climate.activity == ClimateActivity.IDLE
+
+        # LEVEL branch (the path that was buggy in #3164): a peer LEVEL > 0 must
+        # also map to COOL in cooling mode. We synthesise a peer-provided LEVEL
+        # signal because no test fixture exposes both LEVEL and HEATING_COOLING
+        # on the same channel group.
+        fake_level_dp = SimpleNamespace(value=0.5)
+        previous_peer_level_dp = climate._peer_level_dp
+        try:
+            climate._peer_level_dp = cast(DpFloat, fake_level_dp)
+            assert climate.activity == ClimateActivity.COOL
+        finally:
+            climate._peer_level_dp = previous_peer_level_dp
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

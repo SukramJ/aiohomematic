@@ -1,3 +1,18 @@
+# Version 2026.5.1 (2026-05-06)
+
+## What's Changed
+
+### Fixed
+
+- **Climate `activity` reports `HEAT` in cooling mode**
+  ([#3164](https://github.com/SukramJ/aiohomematic/issues/3164)). With an
+  HmIP-WTH-1 wall thermostat linked to an HmIP-FALMOT-C12 valve actuator and
+  the operation mode set to cooling, the climate entity wrongly reported
+  `heating` as the current activity. `CustomDpIpThermostat.activity` returned
+  `ClimateActivity.HEAT` unconditionally on the `LEVEL > 0` branch, ignoring
+  `_is_heating_mode`. The branch now mirrors the STATE branch and returns
+  `ClimateActivity.HEAT if self._is_heating_mode else ClimateActivity.COOL`.
+
 # Version 2026.5.0 (2026-05-02)
 
 ## What's Changed

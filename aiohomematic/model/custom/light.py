@@ -528,9 +528,6 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
-    _dp_ramp_time_to_off: Final = CombinedTimerField(
-        value_field=Field.RAMP_TIME_TO_OFF_VALUE, unit_field=Field.RAMP_TIME_TO_OFF_UNIT
-    )
     _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
     @property
@@ -612,18 +609,6 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         return self._dp_hs_color.value
 
     @bind_collector
-    async def turn_off(
-        self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOffArgs]
-    ) -> None:
-        """Turn the light off."""
-        if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
-            await self._dp_on_time.send_value(value=_NOT_USED, collector=collector)
-        if ramp_time := kwargs.get("ramp_time"):
-            await self._dp_ramp_time_to_off.send_value(value=ramp_time, collector=collector)
-            kwargs.pop("ramp_time")
-        await super().turn_off(collector=collector, **kwargs)
-
-    @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
         """Turn the light on."""
         if on_time := (kwargs.get("on_time") or self.get_and_start_timer()):
@@ -654,9 +639,6 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     _dp_hue: Final = DataPointField(field=Field.HUE, dpt=DpInteger)
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
-    _dp_ramp_time_to_off: Final = CombinedTimerField(
-        value_field=Field.RAMP_TIME_TO_OFF_VALUE, unit_field=Field.RAMP_TIME_TO_OFF_UNIT
-    )
     _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
 
     @property
@@ -680,18 +662,6 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         return self._dp_hs_color.value
-
-    @bind_collector
-    async def turn_off(
-        self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOffArgs]
-    ) -> None:
-        """Turn the light off."""
-        if kwargs.get("on_time") is None and kwargs.get("ramp_time"):
-            await self._dp_on_time.send_value(value=_NOT_USED, collector=collector)
-        if ramp_time := kwargs.get("ramp_time"):
-            await self._dp_ramp_time_to_off.send_value(value=ramp_time, collector=collector)
-            kwargs.pop("ramp_time")
-        await super().turn_off(collector=collector, **kwargs)
 
     @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:

@@ -1032,6 +1032,29 @@ class TestGetConfigurableDevices:
         # STATE from channel :1 should NOT be in maintenance
         assert maint.rssi_device is None
 
+    def test_maintenance_data_hmip_lowbat_mapped_to_low_bat(self) -> None:
+        """HmIP devices report LOWBAT (no underscore); must map to low_bat field."""
+        dp_lowbat = _make_mock_data_point(channel_address="VCU:0", parameter="LOWBAT", value=True)
+        device = _make_mock_device(
+            address="VCU",
+            generic_data_points=(dp_lowbat,),
+        )
+        coordinator, _, _device_desc_prov, _ = _make_coordinator(
+            devices=(device,),
+            device_with_channels={
+                "VCU": {"TYPE": "DEVICE"},
+                "VCU:1": {
+                    "TYPE": "SWITCH",
+                    "FLAGS": Flag.VISIBLE,
+                    "PARAMSETS": ["VALUES"],
+                },
+            },
+        )
+
+        result = coordinator.get_configurable_devices()
+        assert len(result) == 1
+        assert result[0].maintenance.low_bat is True
+
     def test_master_with_readonly_visible_params_included(self) -> None:
         """Test MASTER paramset included when it has visible (even read-only) params."""
         device = _make_mock_device()

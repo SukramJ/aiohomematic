@@ -1,3 +1,19 @@
+# Version 2026.5.2 (2026-05-10)
+
+## What's Changed
+
+### Fixed
+
+- **HmIP `LOWBAT` not reflected in `MaintenanceData.low_bat`**. The
+  `ConfigurationCoordinator.get_configurable_devices` channel-0 sweep only
+  recognised `LOW_BAT` (HM/BidCos) and lower-cased the parameter name to
+  derive the `MaintenanceData` field, so HmIP devices — which report the
+  low-battery indicator as `LOWBAT` (no underscore) — were silently dropped
+  and `maintenance.low_bat` stayed `None`. Both `LOW_BAT` and `LOWBAT` now
+  map explicitly to the `low_bat` field via a dedicated
+  `_MAINTENANCE_PARAM_TO_FIELD` table, so HmIP devices report low-battery
+  state to consumers (e.g. the homematicip_local config panel) correctly.
+
 # Version 2026.5.1 (2026-05-06)
 
 ## What's Changed

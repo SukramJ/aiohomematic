@@ -42,16 +42,17 @@ if TYPE_CHECKING:
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-_MAINTENANCE_PARAMS: Final[frozenset[str]] = frozenset(
-    {
-        "UNREACH",
-        "LOW_BAT",
-        "RSSI_DEVICE",
-        "RSSI_PEER",
-        "DUTYCYCLE",
-        "CONFIG_PENDING",
-    }
-)
+# Maps maintenance parameter names (as reported by the CCU) to MaintenanceData
+# field names. Both LOW_BAT (HM/BidCos) and LOWBAT (HmIP) map to ``low_bat``.
+_MAINTENANCE_PARAM_TO_FIELD: Final[Mapping[str, str]] = {
+    "UNREACH": "unreach",
+    "LOW_BAT": "low_bat",
+    "LOWBAT": "low_bat",
+    "RSSI_DEVICE": "rssi_device",
+    "RSSI_PEER": "rssi_peer",
+    "DUTYCYCLE": "dutycycle",
+    "CONFIG_PENDING": "config_pending",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -418,8 +419,10 @@ class ConfigurationCoordinator(ConfigurationFacadeProtocol):
             # Collect maintenance data from channel 0
             maintenance_data: dict[str, Any] = {}
             for dp in device.generic_data_points:
-                if dp.channel.address.endswith(":0") and dp.parameter in _MAINTENANCE_PARAMS:
-                    maintenance_data[dp.parameter.lower()] = dp.value
+                if not dp.channel.address.endswith(":0"):
+                    continue
+                if (field := _MAINTENANCE_PARAM_TO_FIELD.get(dp.parameter)) is not None:
+                    maintenance_data[field] = dp.value
 
             devices.append(
                 ConfigurableDevice(

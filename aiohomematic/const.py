@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.5.2"
+VERSION: Final = "2026.5.3"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1151,8 +1151,6 @@ class Field(Enum):
     PARTY_MODE = "party_mode"
     POWER = "power"
     PROGRAM = "program"
-    RAMP_TIME_TO_OFF_UNIT = "ramp_time_to_off_unit"
-    RAMP_TIME_TO_OFF_VALUE = "ramp_time_to_off_value"
     RAMP_TIME_UNIT = "ramp_time_unit"
     RAMP_TIME_VALUE = "ramp_time_value"
     REPETITIONS = "repetitions"

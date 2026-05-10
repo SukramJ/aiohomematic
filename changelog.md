@@ -1,3 +1,26 @@
+# Version 2026.5.3 (2026-05-10)
+
+## What's Changed
+
+### Fixed
+
+- **`HmIP-RGBW`/`HmIP-DRG-DALI` `turn_off` with `transition` rejected by CCU**
+  ([#3172](https://github.com/SukramJ/aiohomematic/issues/3172)). Since
+  `2026.4.7` (#3112) `CustomDpIpRGBWLight.turn_off` and
+  `CustomDpIpDrgDaliLight.turn_off` overrode the base implementation to send
+  `RAMP_TIME_TO_OFF_VALUE`/`RAMP_TIME_TO_OFF_UNIT` instead of
+  `RAMP_TIME_VALUE`/`RAMP_TIME_UNIT` in the off `putParamset`. The CCU rejects
+  this combination with a generic `MISSING_NON_OPTIONAL_PARAMETER` XMLRPC
+  fault, so the call was retried three times and the light never actually
+  turned off. The optimistic `LEVEL=0.0` written before the retries also
+  caused the next `turn_off` (without `transition`) to be skipped by
+  `is_state_change`, requiring a second click. The `RAMP_TIME_TO_OFF_*`
+  overrides and the unused `_dp_ramp_time_to_off` combined timer field have
+  been removed; the inherited `CustomDpDimmer` implementation now handles
+  `turn_off(ramp_time=…)` with the CCU-accepted
+  `RAMP_TIME_VALUE`/`RAMP_TIME_UNIT` parameters again (the `2026.4.6`
+  behavior).
+
 # Version 2026.5.2 (2026-05-10)
 
 ## What's Changed

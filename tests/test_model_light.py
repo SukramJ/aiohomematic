@@ -192,6 +192,91 @@ class TestCustomDpDimmer:
         await light.turn_off()
         assert call_count == len(mock_client.method_calls)
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cedimmer_intermediate_level_during_ramp(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Intermediate LEVEL echo during a ramp must not flip is_on back.
+
+        Regression test for #3177: when the CCU echoes an intermediate LEVEL
+        value before finishing the ramp, ``_values_mismatch`` clears the
+        optimistic state. Without the unconfirmed-last-value fallback the
+        next read would surface the stale pre-command ``_dp_group_level``
+        and ``is_on`` would briefly flip back to the previous state.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
+
+        # Bring the light to a confirmed on-state at 75 % on both action and
+        # state channel.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+        )
+        assert light.is_on is True
+        assert light.brightness == 191
+
+        # User turns the light off — optimistic path reports AUS immediately.
+        await light.turn_off()
+        assert light.is_on is False
+        assert light.brightness == 0
+        # The sent target must be tracked while still unconfirmed.
+        assert light._dp_level.unconfirmed_last_value_send == 0.0
+
+        # CCU echoes an intermediate ramp value on the action channel.
+        # group_level (state channel) still reports 0.75 — this is the
+        # window where the bug used to fire.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.745
+        )
+        assert light.is_on is False
+        assert light.brightness == 0
+
+        # Final echo: action and state channel converge to 0.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.0
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.0
+        )
+        assert light.is_on is False
+        assert light.brightness == 0
+
+        # Spiegelfall: Einschalten auf 75 %. Action-Channel sendet zuerst
+        # einen Ramp-Anfangswert (LEVEL=0.005), während group_level noch
+        # auf dem alten 0 steht — is_on muss konsistent True bleiben.
+        await light.turn_on(brightness=191)
+        assert light.is_on is True
+        assert light._dp_level.unconfirmed_last_value_send is not None
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.005
+        )
+        assert light.is_on is True
+        assert light.brightness > 0
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+        )
+        assert light.is_on is True
+        assert light.brightness == 191
+
 
 class TestCustomDpColorDimmerEffect:
     """Tests for CustomDpColorDimmerEffect data points."""

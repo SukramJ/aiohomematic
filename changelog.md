@@ -1,3 +1,27 @@
+# Version 2026.5.4 (2026-05-11)
+
+## What's Changed
+
+### Fixed
+
+- **Dimmer `is_on` briefly flips back to the previous state during a ramp**
+  ([#3177](https://github.com/SukramJ/aiohomematic/issues/3177)). The fix for
+  #3165 (#3166) routed dimmer reads through `_effective_level`, which prefers
+  `_dp_group_level` (LEVEL_REAL on RF dimmers, the state-channel LEVEL on HmIP
+  dimmers) as the stable status source. On RF dimmers (e.g.
+  `HM-LC-Dim1PWM-CV`) LEVEL_REAL only updates **after** the ramp finishes,
+  while the action-channel LEVEL receives an intermediate value almost
+  immediately. That intermediate echo cleared the optimistic state via
+  `_values_mismatch`, after which the fallback returned the stale pre-command
+  LEVEL_REAL — flipping `is_on`/`brightness` back to the previous state until
+  the final echo arrived (visible as `off → on → off` when turning the light
+  off, and `on → off → on` when turning it on). `_effective_level` now
+  consults `_dp_level.unconfirmed_last_value_send` between the optimistic
+  state and the group-level fallback, so the sent target stays authoritative
+  until the CCU echoes a matching value. `_commanded_brightness` and
+  `_commanded_is_on` share the same source for consistency between
+  `state_property` reads and `is_state_change` checks.
+
 # Version 2026.5.3 (2026-05-10)
 
 ## What's Changed

@@ -232,27 +232,36 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     @property
     def _commanded_brightness(self) -> int | None:
         """Return brightness based on the last commanded LEVEL (action channel)."""
-        return self.level_to_brightness(self._dp_level.value or _MIN_BRIGHTNESS)
+        return self.level_to_brightness(self._effective_level or _MIN_BRIGHTNESS)
 
     @property
     def _commanded_is_on(self) -> bool | None:
         """Return on/off based on the last commanded LEVEL (action channel)."""
-        return self._dp_level.value is not None and self._dp_level.value > _DIMMER_OFF
+        level = self._effective_level
+        return level is not None and level > _DIMMER_OFF
 
     @property
     def _effective_level(self) -> float | None:
         """
         Return the level used for state readings.
 
-        While an optimistic command is pending on LEVEL, return the optimistic
-        target. Otherwise prefer the stable status source (LEVEL_REAL on RF
-        dimmers, the state-channel LEVEL on HmIP dimmers — both surfaced as
-        ``_dp_group_level``) to avoid showing intermediate values that the
-        device emits during a ramp transition. Fall back to ``_dp_level`` when
-        no group-level source is available.
+        Priority order:
+        1. Optimistic value while a fresh command is pending confirmation.
+        2. Last sent-but-unconfirmed value while the CCU is still streaming
+           intermediate LEVEL values (e.g. during a ramp on RF dimmers, where
+           LEVEL_REAL only updates AFTER the ramp finishes). Without this
+           fallback an intermediate LEVEL echo would clear the optimistic
+           state via ``_values_mismatch`` and the next read would surface
+           the stale pre-command LEVEL_REAL — flipping ``is_on`` back to the
+           previous state until the final echo arrives.
+        3. The stable status source (``_dp_group_level``: LEVEL_REAL on RF
+           dimmers, the state-channel LEVEL on HmIP dimmers). Fall back to
+           ``_dp_level`` when no group-level source is available.
         """
         if self._dp_level.is_optimistic:
             return self._dp_level.value
+        if (pending := self._dp_level.unconfirmed_last_value_send) is not None:
+            return pending
         if (group_level := self._dp_group_level.value) is not None:
             return group_level
         return self._dp_level.value

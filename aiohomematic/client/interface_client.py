@@ -12,6 +12,7 @@ Public API
 """
 
 import asyncio
+from collections.abc import Mapping
 from datetime import datetime
 import logging
 import time
@@ -96,6 +97,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         "_command_throttle",
         "_connection_error_count",
         "_device_description_coalescer",
+        "_in_flight_commands",
         "_interface_config",
         "_is_callback_alive",
         "_last_value_send_tracker",
@@ -126,6 +128,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
         self._last_value_send_tracker: Final = CommandTracker(
             interface_id=backend.interface_id,
         )
+        # Values currently being sent (staged before the backend call,
+        # cleared when the backend returns). Used by readers as a race-free
+        # fallback for unconfirmed_last_value_send so that an echo dispatched
+        # during the await sees the target value (see #3177).
+        self._in_flight_commands: Final[dict[DataPointKey, Any]] = {}
         self._state_machine: Final = ClientStateMachine(
             interface_id=backend.interface_id,
             event_bus=central.event_bus,
@@ -198,6 +205,11 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     state_machine: Final = DelegatedProperty[ClientStateMachine](path="_state_machine")
     system_information: Final = DelegatedProperty[SystemInformation](path="_backend.system_information")
     version: Final = DelegatedProperty[str](path="_version")
+
+    @property
+    def in_flight_commands(self) -> Mapping[DataPointKey, Any]:
+        """Return the dict of values currently in flight (send started, backend not yet returned)."""
+        return self._in_flight_commands
 
     @property
     def is_initialized(self) -> bool:
@@ -942,12 +954,32 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                         rx_mode=rx_mode,
                     )
 
-            # Execute with retry (or directly if disabled)
-            await self._command_retry_handler.execute_with_retry(
-                operation=_do_put_paramset,
-                dpk=dpk,
-                retry=retry,
-            )
+            # Stage the in-flight values BEFORE the backend call so that an
+            # echo dispatched during the await still has a reader fallback
+            # via unconfirmed_last_value_send (see #3177). The in-flight set
+            # is separate from the regular tracker so that a matching echo
+            # cannot clear it mid-send; it is dropped in the `finally` below.
+            if not is_link_call:
+                self._stage_in_flight_paramset(
+                    channel_address=channel_address,
+                    paramset_key=ParamsetKey(paramset_key_or_link_address),
+                    values=checked_values,
+                )
+
+            try:
+                # Execute with retry (or directly if disabled)
+                await self._command_retry_handler.execute_with_retry(
+                    operation=_do_put_paramset,
+                    dpk=dpk,
+                    retry=retry,
+                )
+            finally:
+                if not is_link_call:
+                    self._clear_in_flight_paramset(
+                        channel_address=channel_address,
+                        paramset_key=ParamsetKey(paramset_key_or_link_address),
+                        values=checked_values,
+                    )
 
             # If a call is related to a link then no further action is needed
             if is_link_call:
@@ -1203,12 +1235,22 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
                         channel_address=channel_address, parameter=parameter, value=checked_value
                     )
 
-            # Execute with retry (or directly if disabled)
-            await self._command_retry_handler.execute_with_retry(
-                operation=_do_set_value,
-                dpk=dpk,
-                retry=retry,
-            )
+            # Stage the in-flight value BEFORE the backend call so that an
+            # echo dispatched during the await still has a reader fallback
+            # via unconfirmed_last_value_send (see #3177). The in-flight set
+            # is separate from the regular tracker so that a matching echo
+            # cannot clear it mid-send; it is dropped in the `finally` below.
+            self._stage_in_flight_value(dpk=dpk, value=checked_value)
+
+            try:
+                # Execute with retry (or directly if disabled)
+                await self._command_retry_handler.execute_with_retry(
+                    operation=_do_set_value,
+                    dpk=dpk,
+                    retry=retry,
+                )
+            finally:
+                self._clear_in_flight_value(dpk=dpk, value=checked_value)
 
             # Store the sent value and write unconfirmed value for UI feedback
             dpk_values = self._last_value_send_tracker.add_set_value(
@@ -1344,6 +1386,25 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             value=value,
             operation=Operations.WRITE,
         )
+
+    def _clear_in_flight_paramset(
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+    ) -> None:
+        """Drop in-flight markers for a put_paramset call."""
+        for parameter, value in values.items():
+            dpk = DataPointKey(
+                interface_id=self._backend.interface_id,
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=parameter,
+            )
+            if self._in_flight_commands.get(dpk) == value:
+                self._in_flight_commands.pop(dpk, None)
+
+    def _clear_in_flight_value(self, *, dpk: DataPointKey, value: Any) -> None:
+        """Drop an in-flight marker. Only clears if the staged value still matches."""
+        if self._in_flight_commands.get(dpk) == value:
+            self._in_flight_commands.pop(dpk, None)
 
     def _convert_read_value(
         self,
@@ -1580,6 +1641,23 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
             target=_record(),
             name=f"record_callback_timeout_incident_{self.interface_id}",
         )
+
+    def _stage_in_flight_paramset(
+        self, *, channel_address: str, paramset_key: ParamsetKey, values: dict[str, Any]
+    ) -> None:
+        """Stage all parameters of a put_paramset call as in flight."""
+        for parameter, value in values.items():
+            dpk = DataPointKey(
+                interface_id=self._backend.interface_id,
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                parameter=parameter,
+            )
+            self._in_flight_commands[dpk] = value
+
+    def _stage_in_flight_value(self, *, dpk: DataPointKey, value: Any) -> None:
+        """Mark a value as in flight for the duration of the backend call."""
+        self._in_flight_commands[dpk] = value
 
     async def _wait_for_state_change(
         self, *, device: DeviceProtocol, dpk_values: set[DP_KEY_VALUE], wait_for_callback: int

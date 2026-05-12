@@ -950,7 +950,21 @@ class BaseParameterDataPoint[
 
     @property
     def unconfirmed_last_value_send(self) -> ParameterT:
-        """Return the unconfirmed value send for the data_point."""
+        """
+        Return the unconfirmed value send for the data_point.
+
+        Reads from the in-flight store first (a value is being sent right
+        now, before the backend has returned). The in-flight store is
+        race-free: it is set synchronously before the first suspend point
+        and cleared in a ``finally`` after the backend call, so an echo
+        dispatched mid-send sees the target value regardless of timing
+        (see #3177).
+
+        Falls back to the regular command tracker, which records confirmed
+        sends and is cleared when the CCU echoes a matching value.
+        """
+        if (in_flight := self._client.in_flight_commands.get(self.dpk)) is not None:
+            return cast(ParameterT, in_flight)
         return cast(
             ParameterT,
             self._client.last_value_send_tracker.get_last_value_send(dpk=self.dpk),

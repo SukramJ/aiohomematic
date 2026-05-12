@@ -2,7 +2,7 @@
 # Copyright (c) 2021-2026
 """Tests for light data points of aiohomematic."""
 
-from typing import cast
+from typing import Any, cast
 from unittest.mock import call
 
 import pytest
@@ -191,6 +191,68 @@ class TestCustomDpDimmer:
         call_count = len(mock_client.method_calls)
         await light.turn_off()
         assert call_count == len(mock_client.method_calls)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cedimmer_intermediate_echo_during_backend_call(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Echo arriving during the backend call must see the in-flight value.
+
+        Regression test for the #3177 follow-up: previously the tracker was
+        only populated AFTER the backend call returned. An echo dispatched
+        during the await would clear the optimistic state via
+        ``_values_mismatch`` while ``unconfirmed_last_value_send`` was still
+        None, so ``_effective_level`` fell back to the stale group_level —
+        producing a brief ``ausgeschaltet -> einschalten`` flicker in the
+        HA history.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
+
+        # Confirmed on-state at 75 % on both action and state channel.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+        )
+        assert light.is_on is True
+
+        captured: list[tuple[bool, int | None, float | None]] = []
+
+        async def fake_set_value(*, channel_address: str, parameter: str, value: float, **_: Any) -> None:
+            # Inject an intermediate ramp echo BEFORE returning. This mirrors
+            # the production sequence where the CCU streams LEVEL echoes
+            # before our setValue HTTP response is awaited.
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID,
+                channel_address=channel_address,
+                parameter=parameter,
+                value=0.745,
+            )
+            captured.append((light.is_on, light.brightness, light._dp_level.unconfirmed_last_value_send))
+
+        mock_client._backend.set_value = fake_set_value
+
+        await light.turn_off()
+
+        # During the race window: tracker reserved 0.0 before the backend call,
+        # so the echo handler observes is_on=False even though the optimistic
+        # state was cleared by the mismatching echo.
+        assert captured == [(False, 0, 0.0)]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

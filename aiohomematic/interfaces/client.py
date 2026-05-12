@@ -591,6 +591,10 @@ class ClientSupportProtocol(Protocol):
         """Return the command throttle."""
 
     @property
+    def in_flight_commands(self) -> Mapping[DataPointKey, Any]:
+        """Return values whose send started but whose backend call has not yet returned."""
+
+    @property
     def last_value_send_tracker(self) -> CommandTrackerProtocol:
         """Return the last value send tracker."""
 

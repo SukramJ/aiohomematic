@@ -1,3 +1,27 @@
+# Version 2026.5.5 (2026-05-12)
+
+## What's Changed
+
+### Fixed
+
+- **Dimmer flicker during ramp not fully fixed by 2026.5.4**
+  ([#3177](https://github.com/SukramJ/aiohomematic/issues/3177) follow-up).
+  The 2026.5.4 fix relied on `unconfirmed_last_value_send` as a fallback for
+  `_effective_level`, but the underlying tracker was only populated AFTER
+  the backend call returned. An echo dispatched while we were still
+  awaiting `throttle.acquire()` or the backend `setValue` response would
+  clear the optimistic state via `_values_mismatch()` while the tracker
+  was still empty — `_effective_level()` then fell back to the stale
+  `_dp_group_level` (`LEVEL_REAL` on RF dimmers), reproducing the brief
+  flicker the user kept reporting after 2026.5.4. The fix introduces a
+  small `_in_flight_commands` map on the `InterfaceClient` that is
+  populated synchronously BEFORE the first suspend point in `set_value` /
+  `put_paramset` and dropped in a `finally` once the backend returns or
+  raises. `unconfirmed_last_value_send` now consults this map first and
+  falls back to the regular `CommandTracker` afterwards. The in-flight
+  store is intentionally separate from the tracker so that a matching
+  echo cannot clear it mid-send.
+
 # Version 2026.5.4 (2026-05-11)
 
 ## What's Changed

@@ -44,7 +44,9 @@ from aiohomematic.interfaces.central import HealthTrackerProtocol
 from aiohomematic.model.hub import (
     ConnectivityDpType,
     HmAlarmMessagesSensor,
+    HmInboxSensor,
     HmServiceMessagesSensor,
+    HmUpdate,
     Hub,
     InstallModeDpType,
     MetricsDpType,
@@ -137,9 +139,11 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
 
     alarm_messages_dp: Final = DelegatedProperty[HmAlarmMessagesSensor | None](path="_hub.alarm_messages_dp")
     connectivity_dps: Final = DelegatedProperty[Mapping[str, ConnectivityDpType]](path="_hub.connectivity_dps")
+    inbox_dp: Final = DelegatedProperty[HmInboxSensor | None](path="_hub.inbox_dp")
     install_mode_dps: Final = DelegatedProperty[Mapping[Interface, InstallModeDpType]](path="_hub.install_mode_dps")
     metrics_dps: Final = DelegatedProperty[MetricsDpType | None](path="_hub.metrics_dps")
     service_messages_dp: Final = DelegatedProperty[HmServiceMessagesSensor | None](path="_hub.service_messages_dp")
+    update_dp: Final = DelegatedProperty[HmUpdate | None](path="_hub.update_dp")
 
     @property
     def data_point_paths(self) -> tuple[str, ...]:

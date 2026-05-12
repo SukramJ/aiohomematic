@@ -1,3 +1,33 @@
+# Version 2026.5.6 (2026-05-12)
+
+## What's Changed
+
+### Added
+
+- Expose `inbox_dp` and `update_dp` as `DelegatedProperty` on `HubCoordinator`
+  (parallel to existing `alarm_messages_dp`/`service_messages_dp` etc.). Lets
+  external consumers enumerate the full set of hub-backed singleton data
+  points without reaching into the private `_hub` attribute. Required by the
+  homematicip_local orphan-cleanup sweep so that hub-only entities (inbox,
+  system update, …) are no longer wrongly classified as orphans on every
+  restart.
+
+### Fixed
+
+- **Brief dimmer flicker between action-channel and state-channel final
+  echoes** ([#3177](https://github.com/SukramJ/aiohomematic/issues/3177)
+  third follow-up). After the CCU finished a ramp, the action channel
+  echoed the final LEVEL value a few milliseconds before the state channel
+  caught up with LEVEL_REAL. In that small window the regular tracker had
+  already been cleared by the matching action-channel echo, and
+  `_effective_level` fell back to the still-stale `_dp_group_level`, briefly
+  flipping `is_on` back to the previous state and producing a spurious
+  `ausgeschaltet -> eingeschaltet -> ausgeschaltet` entry in HA's history.
+  `_effective_level` now picks whichever of `_dp_level` and
+  `_dp_group_level` was modified more recently, so the fresh action-channel
+  echo wins until the state channel catches up. Equally fresh values still
+  prefer the state channel, preserving the #3166 behaviour during a ramp.
+
 # Version 2026.5.5 (2026-05-12)
 
 ## What's Changed

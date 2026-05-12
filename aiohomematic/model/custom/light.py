@@ -254,17 +254,29 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
            state via ``_values_mismatch`` and the next read would surface
            the stale pre-command LEVEL_REAL — flipping ``is_on`` back to the
            previous state until the final echo arrives.
-        3. The stable status source (``_dp_group_level``: LEVEL_REAL on RF
-           dimmers, the state-channel LEVEL on HmIP dimmers). Fall back to
-           ``_dp_level`` when no group-level source is available.
+        3. Whichever of the action channel (``_dp_level``) or state channel
+           (``_dp_group_level``: LEVEL_REAL on RF dimmers, state-channel
+           LEVEL on HmIP dimmers) was modified more recently. State channel
+           remains preferred when both are equally fresh (preserves the
+           #3166 ramp behaviour where LEVEL_REAL is the authoritative
+           stable source). When the action channel echoes its final value
+           a few milliseconds before the state channel catches up, this
+           prevents a brief flicker via the otherwise stale group_level
+           (see #3177 follow-up).
         """
         if self._dp_level.is_optimistic:
             return self._dp_level.value
         if (pending := self._dp_level.unconfirmed_last_value_send) is not None:
             return pending
-        if (group_level := self._dp_group_level.value) is not None:
-            return group_level
-        return self._dp_level.value
+        level_value = self._dp_level.value
+        group_level_value = self._dp_group_level.value
+        if level_value is not None and group_level_value is not None:
+            if self._dp_level.modified_at > self._dp_group_level.modified_at:
+                return level_value
+            return group_level_value
+        if group_level_value is not None:
+            return group_level_value
+        return level_value
 
     @property
     def last_level(self) -> float | None:

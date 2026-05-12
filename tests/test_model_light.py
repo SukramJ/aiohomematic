@@ -204,6 +204,69 @@ class TestCustomDpDimmer:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_cedimmer_action_channel_final_echo_before_state_channel(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Final action-channel echo must not flicker is_on via stale group_level.
+
+        Regression test for the #3177 follow-up: when the action channel
+        (LEVEL) echoes its final value a few milliseconds before the state
+        channel (LEVEL_REAL) catches up, the previous ``_effective_level``
+        priority order returned the stale ``_dp_group_level`` and produced a
+        4 ms ``ausgeschaltet -> eingeschaltet -> ausgeschaltet`` flicker in
+        HA's history. ``_effective_level`` now picks whichever channel was
+        modified more recently, so the action channel wins until the state
+        channel catches up.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
+
+        # Confirmed on-state at 75 % on both channels.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+        )
+        assert light.is_on is True
+
+        # User turns off (optimistic AUS).
+        await light.turn_off()
+        assert light.is_on is False
+
+        # CCU finishes ramp: action channel echoes final 0.0 first. State
+        # channel echo lags by ~4 ms in production traces.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.0
+        )
+        # Group level is still 0.75 here — without the modified_at-based
+        # fallback _effective_level would surface that stale value and
+        # flip is_on back to True for the few milliseconds between echoes.
+        assert light._dp_group_level.value == 0.75
+        assert light.is_on is False
+        assert light.brightness == 0
+
+        # State channel catches up.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.0
+        )
+        assert light.is_on is False
+        assert light.brightness == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_cedimmer_intermediate_echo_during_backend_call(
         self,
         central_client_factory_with_homegear_client,

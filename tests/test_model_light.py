@@ -23,6 +23,7 @@ from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
 TEST_DEVICES: set[str] = {
+    "VCU0000079",
     "VCU0000098",
     "VCU0000115",
     "VCU0000122",
@@ -204,54 +205,55 @@ class TestCustomDpDimmer:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_cedimmer_action_channel_final_echo_before_state_channel(
+    async def test_cedimmer_hmip_uses_action_channel_for_state(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
         """
-        Final action-channel echo must not flicker is_on via stale group_level.
+        HmIP dimmers must derive state from the action channel only.
 
-        Regression test for the #3177 follow-up: when the action channel
-        (LEVEL) echoes its final value a few milliseconds before the state
-        channel (LEVEL_REAL) catches up, the previous ``_effective_level``
-        priority order returned the stale ``_dp_group_level`` and produced a
-        4 ms ``ausgeschaltet -> eingeschaltet -> ausgeschaltet`` flicker in
-        HA's history. ``_effective_level`` now picks whichever channel was
-        modified more recently, so the action channel wins until the state
-        channel catches up.
+        Regression test for #3181: the state channel (primary-1) on HmIP
+        devices carries device-specific semantics — e.g. HmIP-FDT echoes a
+        section summary on channel 1 instead of a 1:1 mirror of the action
+        channel. The 2.7.0 behaviour read ``_dp_level`` directly; the
+        #3166/#3177 work introduced a ``_dp_group_level`` priority that
+        accidentally surfaced the divergent state-channel value for HmIP
+        and produced the user-visible regression (all dimmer channels
+        appearing to take the value of channel 1). ``_effective_level`` now
+        distinguishes by parameter: ``LEVEL_REAL`` (RF) keeps the stable
+        mirror, ``LEVEL`` (HmIP, on a different channel) falls back to the
+        action channel.
         """
         central, _, _ = central_client_factory_with_homegear_client
         light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
 
-        # Confirmed on-state at 75 % on both channels.
+        # Action channel reaches 100 % (e.g. user set brightness=255).
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=1.0
         )
+        # State channel reports a divergent value — simulates the HmIP-FDT
+        # case where channel 1 LEVEL is a section summary rather than a
+        # mirror.
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.4
         )
+        # _effective_level uses the action channel — brightness reflects
+        # what the user commanded, not the divergent group_level.
         assert light.is_on is True
+        assert light.brightness == 255
+        # group_brightness still exposes the state-channel value as a
+        # distinct metric (no regression for consumers that need it).
+        assert light.group_brightness == 102
 
-        # User turns off (optimistic AUS).
+        # 4 ms-gap variant from the #3177 follow-up log: action channel
+        # echoes its final value before the state channel catches up. For
+        # HmIP this scenario is now trivially handled (action channel wins
+        # regardless of modified_at).
         await light.turn_off()
-        assert light.is_on is False
-
-        # CCU finishes ramp: action channel echoes final 0.0 first. State
-        # channel echo lags by ~4 ms in production traces.
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.0
         )
-        # Group level is still 0.75 here — without the modified_at-based
-        # fallback _effective_level would surface that stale value and
-        # flip is_on back to True for the few milliseconds between echoes.
-        assert light._dp_group_level.value == 0.75
-        assert light.is_on is False
-        assert light.brightness == 0
-
-        # State channel catches up.
-        await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.0
-        )
+        assert light._dp_group_level.value == 0.4  # state channel still stale
         assert light.is_on is False
         assert light.brightness == 0
 
@@ -267,39 +269,39 @@ class TestCustomDpDimmer:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_cedimmer_intermediate_echo_during_backend_call(
+    async def test_cedimmer_rf_intermediate_echo_during_backend_call(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
         """
         Echo arriving during the backend call must see the in-flight value.
 
-        Regression test for the #3177 follow-up: previously the tracker was
-        only populated AFTER the backend call returned. An echo dispatched
-        during the await would clear the optimistic state via
-        ``_values_mismatch`` while ``unconfirmed_last_value_send`` was still
-        None, so ``_effective_level`` fell back to the stale group_level —
-        producing a brief ``ausgeschaltet -> einschalten`` flicker in the
-        HA history.
+        Regression test for #3177/#3179 on RF dimmers: previously the
+        tracker was only populated AFTER the backend call returned. An
+        echo dispatched during the await would clear the optimistic state
+        via ``_values_mismatch`` while ``unconfirmed_last_value_send`` was
+        still None, so ``_effective_level`` fell back to the stale
+        group_level (LEVEL_REAL) — producing a brief flicker.
         """
         central, mock_client, _ = central_client_factory_with_homegear_client
-        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
+        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU0000079", 1))
 
-        # Confirmed on-state at 75 % on both action and state channel.
+        # Confirmed on-state at 75 % — for RF dimmers LEVEL and LEVEL_REAL
+        # share the same channel.
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL", value=0.75
         )
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL_REAL", value=0.75
         )
         assert light.is_on is True
 
         captured: list[tuple[bool, int | None, float | None]] = []
 
         async def fake_set_value(*, channel_address: str, parameter: str, value: float, **_: Any) -> None:
-            # Inject an intermediate ramp echo BEFORE returning. This mirrors
-            # the production sequence where the CCU streams LEVEL echoes
-            # before our setValue HTTP response is awaited.
+            # Inject an intermediate ramp echo BEFORE returning. Mirrors the
+            # production CCU sequence where LEVEL echoes start streaming
+            # before the setValue HTTP response is awaited.
             await central.event_coordinator.data_point_event(
                 interface_id=const.INTERFACE_ID,
                 channel_address=channel_address,
@@ -312,9 +314,9 @@ class TestCustomDpDimmer:
 
         await light.turn_off()
 
-        # During the race window: tracker reserved 0.0 before the backend call,
-        # so the echo handler observes is_on=False even though the optimistic
-        # state was cleared by the mismatching echo.
+        # During the race window the in-flight store has the target value,
+        # so the echo handler observes is_on=False even though the
+        # optimistic state was cleared by the mismatching echo.
         assert captured == [(False, 0, 0.0)]
 
     @pytest.mark.asyncio
@@ -329,29 +331,28 @@ class TestCustomDpDimmer:
             (TEST_DEVICES, True, None, None),
         ],
     )
-    async def test_cedimmer_intermediate_level_during_ramp(
+    async def test_cedimmer_rf_intermediate_level_during_ramp(
         self,
         central_client_factory_with_homegear_client,
     ) -> None:
         """
-        Intermediate LEVEL echo during a ramp must not flip is_on back.
+        Intermediate LEVEL echo during an RF ramp must not flip is_on back.
 
-        Regression test for #3177: when the CCU echoes an intermediate LEVEL
-        value before finishing the ramp, ``_values_mismatch`` clears the
-        optimistic state. Without the unconfirmed-last-value fallback the
-        next read would surface the stale pre-command ``_dp_group_level``
-        and ``is_on`` would briefly flip back to the previous state.
+        Regression test for #3177 on RF dimmers: when the CCU echoes an
+        intermediate LEVEL value before finishing the ramp,
+        ``_values_mismatch`` clears the optimistic state. Without the
+        unconfirmed-last-value fallback the next read would surface the
+        stale pre-command LEVEL_REAL and ``is_on`` would briefly flip back.
         """
         central, _, _ = central_client_factory_with_homegear_client
-        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU1399816", 4))
+        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU0000079", 1))
 
-        # Bring the light to a confirmed on-state at 75 % on both action and
-        # state channel.
+        # Confirmed on-state at 75 % (LEVEL and LEVEL_REAL share channel 1).
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL", value=0.75
         )
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL_REAL", value=0.75
         )
         assert light.is_on is True
         assert light.brightness == 191
@@ -360,44 +361,43 @@ class TestCustomDpDimmer:
         await light.turn_off()
         assert light.is_on is False
         assert light.brightness == 0
-        # The sent target must be tracked while still unconfirmed.
         assert light._dp_level.unconfirmed_last_value_send == 0.0
 
         # CCU echoes an intermediate ramp value on the action channel.
-        # group_level (state channel) still reports 0.75 — this is the
-        # window where the bug used to fire.
+        # LEVEL_REAL still reports 0.75 — this is the window where the bug
+        # used to fire.
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.745
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL", value=0.745
         )
         assert light.is_on is False
         assert light.brightness == 0
 
-        # Final echo: action and state channel converge to 0.
+        # Final echo: action and state value converge to 0.
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.0
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL", value=0.0
         )
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.0
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL_REAL", value=0.0
         )
         assert light.is_on is False
         assert light.brightness == 0
 
-        # Spiegelfall: Einschalten auf 75 %. Action-Channel sendet zuerst
-        # einen Ramp-Anfangswert (LEVEL=0.005), während group_level noch
-        # auf dem alten 0 steht — is_on muss konsistent True bleiben.
+        # Mirror case: turning on to 75 %. Action channel sends a ramp-
+        # start value (LEVEL=0.005) while LEVEL_REAL still reports 0 —
+        # is_on must stay True (covered by unconfirmed_last_value_send).
         await light.turn_on(brightness=191)
         assert light.is_on is True
         assert light._dp_level.unconfirmed_last_value_send is not None
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.005
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL", value=0.005
         )
         assert light.is_on is True
         assert light.brightness > 0
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:4", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL", value=0.75
         )
         await central.event_coordinator.data_point_event(
-            interface_id=const.INTERFACE_ID, channel_address="VCU1399816:3", parameter="LEVEL", value=0.75
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL_REAL", value=0.75
         )
         assert light.is_on is True
         assert light.brightness == 191

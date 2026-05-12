@@ -1,3 +1,24 @@
+# Version 2026.5.7 (2026-05-12)
+
+## What's Changed
+
+### Fixed
+
+- **HmIP dimmer brightness reflects the state channel instead of the
+  commanded value** ([#3181](https://github.com/SukramJ/aiohomematic/issues/3181)).
+  The #3166 work routed dimmer reads through `_effective_level`, which
+  prefers `_dp_group_level` as the stable status source. For RF dimmers
+  that channel carries `LEVEL_REAL`, a 1:1 mirror of the action channel.
+  For HmIP dimmers it carries `LEVEL` on the primary-1 channel — and that
+  value's semantics are device-specific. On HmIP-FDT for example channel 1
+  echoes a section summary instead of a mirror, so HA briefly showed the
+  summary value instead of what the user commanded (all dimmer channels
+  appearing to take the value of channel 1). `_effective_level` now keeps
+  the #3166 mirror logic only for RF dimmers
+  (`group_level.parameter == LEVEL_REAL`) and falls back to the action
+  channel directly for HmIP, restoring the 2.7.0 behaviour for those
+  devices.
+
 # Version 2026.5.6 (2026-05-12)
 
 ## What's Changed

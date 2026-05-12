@@ -245,25 +245,29 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         """
         Return the level used for state readings.
 
-        Priority order:
-        1. Optimistic value while a fresh command is pending confirmation.
-        2. Last sent-but-unconfirmed value while the CCU is still streaming
-           intermediate LEVEL values (e.g. during a ramp on RF dimmers, where
-           LEVEL_REAL only updates AFTER the ramp finishes). Without this
-           fallback an intermediate LEVEL echo would clear the optimistic
-           state via ``_values_mismatch`` and the next read would surface
-           the stale pre-command LEVEL_REAL — flipping ``is_on`` back to the
-           previous state until the final echo arrives.
-        3. Whichever of the action channel (``_dp_level``) or state channel
-           (``_dp_group_level``: LEVEL_REAL on RF dimmers, state-channel
-           LEVEL on HmIP dimmers) was modified more recently. State channel
-           remains preferred when both are equally fresh (preserves the
-           #3166 ramp behaviour where LEVEL_REAL is the authoritative
-           stable source). When the action channel echoes its final value
-           a few milliseconds before the state channel catches up, this
-           prevents a brief flicker via the otherwise stale group_level
-           (see #3177 follow-up).
+        For HmIP dimmers (``_dp_group_level`` parameter is ``LEVEL`` on the
+        primary-1 channel) the action channel is the authoritative source;
+        the state channel's semantics are device-specific (e.g. HmIP-FDT
+        echoes a section summary on channel 1, not a 1:1 mirror). The HmIP
+        path is therefore identical to the 2.7.0 lookup: ``_dp_level.value``,
+        which already applies the optimistic value while a command is
+        pending via ``_get_value`` (#3181).
+
+        For RF dimmers (``_dp_group_level`` parameter is ``LEVEL_REAL``) the
+        action channel streams intermediate ramp values, so the state
+        channel is the stable mirror (#3166). The ramp window is bridged
+        by the optimistic value and ``unconfirmed_last_value_send`` (#3177,
+        #3178, #3179). When the action channel was modified more recently
+        than the state channel, use it instead — the state channel is about
+        to catch up and the 4 ms gap would otherwise cause a flicker
+        (#3177 follow-up).
         """
+        # HmIP dimmers: 2.7.0 behaviour — read the action channel directly
+        # (optimistic priority is already applied inside _dp_level.value).
+        if self._dp_group_level.parameter != Parameter.LEVEL_REAL:
+            return self._dp_level.value
+
+        # RF dimmer path below.
         if self._dp_level.is_optimistic:
             return self._dp_level.value
         if (pending := self._dp_level.unconfirmed_last_value_send) is not None:

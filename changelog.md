@@ -1,3 +1,23 @@
+# Version 2026.5.9 (2026-05-13)
+
+## What's Changed
+
+### Fixed
+
+- **Central stuck in `FAILED` after a startup-failure recovery succeeds**
+  ([#3183](https://github.com/SukramJ/aiohomematic/discussions/3183)).
+  Follow-up to 2026.5.8: the heartbeat-driven recovery path
+  (`_recover_all_interfaces`) reconnected every interface, but the central
+  state never left `FAILED`. The central state machine only allows
+  `FAILED → RECOVERING` (not `FAILED → RUNNING` / `FAILED → DEGRADED`), so
+  the final `_transition_to_running()` / `_transition_to_degraded()`
+  silently no-op'd. The heartbeat path now hops through `RECOVERING`
+  before running the stages and keeps `_active_recoveries` populated
+  while the stages run, matching the proactive `_start_recovery()` path.
+  Symptom: even after the CCU came up and the reconnect log lines all
+  succeeded, every entity stayed unavailable until the integration was
+  reloaded.
+
 # Version 2026.5.8 (2026-05-13)
 
 ## What's Changed

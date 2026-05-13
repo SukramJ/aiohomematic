@@ -337,9 +337,9 @@ sequenceDiagram
 
     EC->>EB: publish(DataPointValueReceivedEvent)
 
-    Note over EB: Dual-key handler lookup
+    Note over EB: Dual-key handler union
     EB->>EB: lookup handlers by event.key (dpk)
-    EB->>EB: fallback to handlers with key=None
+    EB->>EB: union with handlers subscribed with key=None
 
     par Concurrent handler invocation
       EB->>DP: event_handler(event)
@@ -363,7 +363,7 @@ sequenceDiagram
 
 - AsyncRPCFunctions schedules async tasks via looper to avoid blocking the XML-RPC callback thread.
 - EventCoordinator creates typed events (DataPointValueReceivedEvent) with DataPointKey for filtering.
-- EventBus uses dual-key lookup: specific key (dpk) first, then wildcard (None) fallback.
+- EventBus uses dual-key union: handlers subscribed for the specific key (dpk) AND wildcard subscribers (key=None) both receive the event, merged in priority order.
 - Handlers run concurrently via asyncio.gather with error isolation (one failure doesn't affect others).
 - Both async and sync handlers are supported transparently.
 
@@ -607,7 +607,7 @@ sequenceDiagram
 ### Notes
 
 - EventBus is async-first but supports both sync and async handlers transparently.
-- Dual-key lookup: specific event.key first, then None (wildcard) fallback.
+- Dual-key union: handlers for the specific event.key AND wildcard subscribers (key=None) are merged and both invoked, in priority order.
 - Error isolation via return_exceptions=True in asyncio.gather.
 - Memory management: clear_subscriptions_by_key() for cleanup when devices are removed.
 - Event statistics tracked for debugging via get_event_stats().

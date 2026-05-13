@@ -29,8 +29,9 @@ from aiohomematic.central.events import (
     RecoveryStageChangedEvent,
     SystemStatusChangedEvent,
 )
+from aiohomematic.central.state_machine import CentralStateMachine
 from aiohomematic.client import CircuitState
-from aiohomematic.const import CentralState, Interface, RecoveryStage
+from aiohomematic.const import CentralState, FailureReason, Interface, RecoveryStage
 
 # pylint: disable=protected-access
 
@@ -1547,7 +1548,7 @@ class TestConnectionRecoveryCoordinatorRecoverAll:
 
     @pytest.mark.asyncio
     async def test_recover_all_interfaces_all_fail(self) -> None:
-        """Test _recover_all_interfaces does not transition when all fail."""
+        """Test _recover_all_interfaces does not transition to RUNNING/DEGRADED when all fail."""
         coordinator, state_machine, _ = self._create_coordinator()
         coordinator._in_failed_state = True
 
@@ -1561,8 +1562,44 @@ class TestConnectionRecoveryCoordinatorRecoverAll:
         ):
             await coordinator._recover_all_interfaces(interface_ids=["iface-1", "iface-2"])
 
-        state_machine.transition_to.assert_not_called()
+        # _transition_to_recovering() must run before stages so that successful
+        # recoveries can later transition out of FAILED. When every stage
+        # fails, we still hop through RECOVERING but neither RUNNING nor
+        # DEGRADED must be entered.
+        transition_targets = [call.kwargs.get("target") for call in state_machine.transition_to.call_args_list]
+        assert CentralState.RUNNING not in transition_targets
+        assert CentralState.DEGRADED not in transition_targets
         assert coordinator._in_failed_state is True
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_all_fail_stays_failed(self) -> None:
+        """Total recovery failure from FAILED keeps the central in FAILED."""
+        coordinator, state_machine, _ = self._create_coordinator_with_real_state_machine()
+
+        state_machine.transition_to(target=CentralState.INITIALIZING, reason="start() called")
+        state_machine.transition_to(
+            target=CentralState.FAILED,
+            reason="no clients connected",
+            failure_reason=FailureReason.NETWORK,
+        )
+
+        coordinator._in_failed_state = True
+        coordinator._recovery_states["iface-1"] = InterfaceRecoveryState(interface_id="iface-1")
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_execute_recovery_stages",
+            new=AsyncMock(return_value=False),
+        ):
+            await coordinator._recover_all_interfaces(interface_ids=["iface-1"])
+
+        # We hop through RECOVERING but no transition back to RUNNING/DEGRADED
+        # when every interface failed. The central stays in RECOVERING; the
+        # next heartbeat will try again.
+        assert state_machine.state == CentralState.RECOVERING
+        assert coordinator._in_failed_state is True
+        assert not coordinator._active_recoveries
         coordinator.stop()
 
     @pytest.mark.asyncio
@@ -1583,6 +1620,45 @@ class TestConnectionRecoveryCoordinatorRecoverAll:
 
         assert coordinator._in_failed_state is False
         state_machine.transition_to.assert_called()
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_drives_failed_to_running(self) -> None:
+        """
+        Regression: heartbeat-driven recovery must hop FAILED -> RECOVERING -> RUNNING.
+
+        The central state machine only allows FAILED -> RECOVERING (not
+        FAILED -> RUNNING). Without the RECOVERING hop, _transition_to_running()
+        would silently no-op on startup-failure recoveries and the central
+        would stay FAILED forever even though every interface successfully
+        reconnected.
+        """
+        coordinator, state_machine, _ = self._create_coordinator_with_real_state_machine()
+
+        # Drive state machine to FAILED, as it happens on a startup failure.
+        state_machine.transition_to(target=CentralState.INITIALIZING, reason="start() called")
+        state_machine.transition_to(
+            target=CentralState.FAILED,
+            reason="no clients connected",
+            failure_reason=FailureReason.NETWORK,
+            failure_interface_id="iface-1",
+        )
+        assert state_machine.state == CentralState.FAILED
+
+        coordinator._in_failed_state = True
+        coordinator._recovery_states["iface-1"] = InterfaceRecoveryState(interface_id="iface-1")
+        coordinator._recovery_states["iface-2"] = InterfaceRecoveryState(interface_id="iface-2")
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_execute_recovery_stages",
+            new=AsyncMock(return_value=True),
+        ):
+            await coordinator._recover_all_interfaces(interface_ids=["iface-1", "iface-2"])
+
+        assert state_machine.state == CentralState.RUNNING
+        assert coordinator._in_failed_state is False
+        assert not coordinator._active_recoveries
         coordinator.stop()
 
     @pytest.mark.asyncio
@@ -1612,6 +1688,38 @@ class TestConnectionRecoveryCoordinatorRecoverAll:
         assert any(
             call.kwargs.get("target") == CentralState.DEGRADED for call in state_machine.transition_to.call_args_list
         )
+        coordinator.stop()
+
+    @pytest.mark.asyncio
+    async def test_recover_all_interfaces_partial_drives_failed_to_degraded(self) -> None:
+        """Partial recovery from FAILED must reach DEGRADED via RECOVERING."""
+        coordinator, state_machine, _ = self._create_coordinator_with_real_state_machine()
+
+        state_machine.transition_to(target=CentralState.INITIALIZING, reason="start() called")
+        state_machine.transition_to(
+            target=CentralState.FAILED,
+            reason="no clients connected",
+            failure_reason=FailureReason.NETWORK,
+        )
+
+        coordinator._in_failed_state = True
+        coordinator._recovery_states["iface-1"] = InterfaceRecoveryState(interface_id="iface-1")
+        coordinator._recovery_states["iface-2"] = InterfaceRecoveryState(interface_id="iface-2")
+
+        results_iter = iter([True, False])
+
+        async def mixed_results(self_inner, *, interface_id: str) -> bool:
+            return next(results_iter)
+
+        with patch.object(
+            ConnectionRecoveryCoordinator,
+            "_execute_recovery_stages",
+            new=mixed_results,
+        ):
+            await coordinator._recover_all_interfaces(interface_ids=["iface-1", "iface-2"])
+
+        assert state_machine.state == CentralState.DEGRADED
+        assert not coordinator._active_recoveries
         coordinator.stop()
 
     @pytest.mark.asyncio
@@ -1659,6 +1767,28 @@ class TestConnectionRecoveryCoordinatorRecoverAll:
 
         state_machine = MagicMock()
         state_machine.can_transition_to.return_value = True
+
+        coordinator = ConnectionRecoveryCoordinator(
+            central_info=MagicMock(name="test-central"),
+            config_provider=MagicMock(),
+            client_provider=MagicMock(),
+            coordinator_provider=MagicMock(),
+            device_data_refresher=MagicMock(),
+            event_bus=event_bus,
+            task_scheduler=task_scheduler,
+            state_machine=state_machine,
+        )
+
+        return coordinator, state_machine, event_bus
+
+    def _create_coordinator_with_real_state_machine(
+        self,
+    ) -> tuple[ConnectionRecoveryCoordinator, CentralStateMachine, EventBus]:
+        """Create coordinator with a real CentralStateMachine."""
+        task_scheduler = Looper()
+        event_bus = EventBus(task_scheduler=task_scheduler)
+
+        state_machine = CentralStateMachine(central_name="test-central", event_bus=event_bus)
 
         coordinator = ConnectionRecoveryCoordinator(
             central_info=MagicMock(name="test-central"),

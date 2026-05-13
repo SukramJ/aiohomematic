@@ -860,17 +860,30 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
         if self._shutdown:
             return
 
-        async def throttled_recovery(interface_id: str) -> bool:
-            async with self._recovery_semaphore:
-                return await self._execute_recovery_stages(interface_id=interface_id)
+        # Drive the central state machine through RECOVERING before running the
+        # stages. VALID_CENTRAL_TRANSITIONS forbids FAILED -> RUNNING and
+        # FAILED -> DEGRADED, so without this hop the final transitions below
+        # would silently no-op on startup-failure recoveries triggered by the
+        # heartbeat loop (central stays FAILED forever, entities stay
+        # unavailable until the integration is reloaded).
+        self._active_recoveries.update(interface_ids)
+        try:
+            self._transition_to_recovering()
 
-        # Run recoveries in parallel with throttling
-        tasks = [throttled_recovery(iid) for iid in interface_ids]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+            async def throttled_recovery(interface_id: str) -> bool:
+                async with self._recovery_semaphore:
+                    return await self._execute_recovery_stages(interface_id=interface_id)
 
-        # Process results
-        success_count = sum(1 for r in results if r is True)
-        failed_count = len(interface_ids) - success_count
+            # Run recoveries in parallel with throttling
+            tasks = [throttled_recovery(iid) for iid in interface_ids]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Process results
+            success_count = sum(1 for r in results if r is True)
+            failed_count = len(interface_ids) - success_count
+        finally:
+            for iid in interface_ids:
+                self._active_recoveries.discard(iid)
 
         if success_count == len(interface_ids):
             self._in_failed_state = False

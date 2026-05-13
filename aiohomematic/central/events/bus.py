@@ -671,18 +671,16 @@ class EventBus:
         """
         Publish an event to all subscribed handlers.
 
-        Handler lookup strategy (dual-key fallback):
-            1. First try: Look up handlers by specific event.key
-               (e.g., unique_id for DataPointValueReceivedEvent)
-            2. Fallback: Look up handlers subscribed with key=None
-               (wildcard subscribers that receive all events of this type)
-
-            This allows both targeted subscriptions (only events for specific
-            data point) and global subscriptions (all events of a type).
+        Handler lookup strategy (dual-key union):
+            Handlers subscribed for the specific ``event.key`` AND handlers
+            subscribed with ``event_key=None`` (wildcards) both receive the
+            event. Wildcards observe every event of the type, regardless of
+            which key-specific subscribers exist.
 
         Priority-based ordering:
             Handlers are sorted by priority (CRITICAL > HIGH > NORMAL > LOW).
             Within the same priority, handlers are called in subscription order.
+            Ordering applies across the merged set, not per bucket.
 
         Concurrent execution:
             All matching handlers are called concurrently via asyncio.gather().
@@ -696,16 +694,11 @@ class EventBus:
         """
         event_type = type(event)
 
-        # Dual-key lookup: specific key first, then wildcard (None) fallback.
-        # The `or` chain short-circuits: if specific key has handlers, use them;
-        # otherwise fall back to None-key handlers; otherwise empty list.
-        if not (
-            prioritized_handlers := (
-                self._subscriptions.get(event_type, {}).get(event.key)
-                or self._subscriptions.get(event_type, {}).get(None)
-                or []
-            )
-        ):
+        # Dual-key union: a specific-key subscriber must not silently suppress
+        # wildcard subscribers (regression #3183 — ConnectionRecoveryCoordinator
+        # subscribes with key=None and was shadowed by the HA-integration
+        # subscriber that uses central_name as key).
+        if not (event_subs := self._subscriptions.get(event_type)):
             if self._enable_event_logging:
                 if isinstance(event, RpcParameterReceivedEvent):
                     _LOGGER.debug(
@@ -716,7 +709,34 @@ class EventBus:
                     )
                 else:
                     _LOGGER.debug("PUBLISH: No subscribers for %s", event_type.__name__)
+            return
 
+        wildcard_handlers = event_subs.get(None)
+        # Avoid a duplicate lookup (and double-invocation) when event.key is None.
+        specific_handlers = event_subs.get(event.key) if event.key is not None else None
+
+        if specific_handlers and wildcard_handlers:
+            # Both buckets are individually presorted by sort_key (bisect.insort);
+            # rebuild a merged sorted view so cross-bucket priority is respected.
+            prioritized_handlers = sorted(
+                (*specific_handlers, *wildcard_handlers),
+                key=lambda ph: ph.sort_key,
+            )
+        elif specific_handlers:
+            prioritized_handlers = specific_handlers
+        elif wildcard_handlers:
+            prioritized_handlers = wildcard_handlers
+        else:
+            if self._enable_event_logging:
+                if isinstance(event, RpcParameterReceivedEvent):
+                    _LOGGER.debug(
+                        "PUBLISH: No subscribers for %s: %s [%s]",
+                        event_type.__name__,
+                        event.parameter,
+                        event.channel_address,
+                    )
+                else:
+                    _LOGGER.debug("PUBLISH: No subscribers for %s", event_type.__name__)
             return
 
         # Track event statistics for debugging
@@ -784,20 +804,27 @@ class EventBus:
         all_tasks: list[Coroutine[Any, Any, None]] = []
 
         for (event_type, event_key), grouped_events in grouped.items():
-            # Look up handlers once per group
-            prioritized_handlers = (
-                self._subscriptions.get(event_type, {}).get(event_key)
-                or self._subscriptions.get(event_type, {}).get(None)
-                or []
-            )
-
-            if not prioritized_handlers:
+            # Dual-key union: same semantics as publish() — wildcard subscribers
+            # must observe every event of the type, not be shadowed by a
+            # key-specific subscriber.
+            if not (event_subs := self._subscriptions.get(event_type)):
+                continue
+            wildcard_handlers = event_subs.get(None)
+            specific_handlers = event_subs.get(event_key) if event_key is not None else None
+            if specific_handlers and wildcard_handlers:
+                prioritized_handlers = sorted(
+                    (*specific_handlers, *wildcard_handlers),
+                    key=lambda ph: ph.sort_key,
+                )
+            elif specific_handlers:
+                prioritized_handlers = specific_handlers
+            elif wildcard_handlers:
+                prioritized_handlers = wildcard_handlers
+            else:
                 continue
 
             # Track event statistics
             self._event_count[event_type] += len(grouped_events)
-
-            # Handlers are pre-sorted via bisect.insort during subscribe().
 
             # Create tasks for all event-handler combinations
             all_tasks.extend(

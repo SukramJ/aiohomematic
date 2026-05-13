@@ -766,6 +766,167 @@ class TestEventBusConcurrency:
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == subscriber_count
 
 
+class TestEventBusKeyWildcardCoexistence:
+    """Wildcard (key=None) and key-specific subscribers must coexist on the same event type."""
+
+    @pytest.mark.asyncio
+    async def test_priority_order_respected_across_wildcard_and_specific(self) -> None:
+        """Priority ordering must hold across both subscriber buckets, not per bucket."""
+        from aiohomematic.central.events import EventPriority
+
+        bus = EventBus(task_scheduler=Looper())
+        execution_order: list[str] = []
+
+        def make_handler(name: str) -> Callable[[DataPointValueReceivedEvent], None]:
+            def handler(event: DataPointValueReceivedEvent) -> None:
+                execution_order.append(name)
+
+            return handler
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        # Specific NORMAL must run after wildcard CRITICAL, and before wildcard LOW.
+        bus.subscribe(
+            event_type=DataPointValueReceivedEvent,
+            event_key=dpk,
+            handler=make_handler("specific_normal"),
+            priority=EventPriority.NORMAL,
+        )
+        bus.subscribe(
+            event_type=DataPointValueReceivedEvent,
+            event_key=None,
+            handler=make_handler("wildcard_critical"),
+            priority=EventPriority.CRITICAL,
+        )
+        bus.subscribe(
+            event_type=DataPointValueReceivedEvent,
+            event_key=None,
+            handler=make_handler("wildcard_low"),
+            priority=EventPriority.LOW,
+        )
+
+        event = DataPointValueReceivedEvent(
+            timestamp=datetime.now(),
+            dpk=dpk,
+            value=1,
+            received_at=datetime.now(),
+        )
+        await bus.publish(event=event)
+
+        assert execution_order == ["wildcard_critical", "specific_normal", "wildcard_low"]
+
+    @pytest.mark.asyncio
+    async def test_wildcard_also_receives_event_when_specific_subscriber_exists(self) -> None:
+        """
+        Wildcard subscribers receive the event even when a key-specific subscriber is registered.
+
+        Regression for discussion #3183: publish() used to short-circuit with `or`,
+        so wildcard subscribers (event_key=None) were silently skipped as soon as a
+        key-specific subscriber existed for the same event type. The
+        ConnectionRecoveryCoordinator then never observed CentralStateChangedEvent
+        once the HA integration had subscribed for `central_name`, leaving the
+        heartbeat retry inactive on startup failures.
+        """
+        bus = EventBus(task_scheduler=Looper())
+        received_specific: list[int] = []
+        received_wildcard: list[int] = []
+
+        def specific_handler(event: DataPointValueReceivedEvent) -> None:
+            received_specific.append(int(event.value))
+
+        def wildcard_handler(event: DataPointValueReceivedEvent) -> None:
+            received_wildcard.append(int(event.value))
+
+        dpk = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk, handler=specific_handler)
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=wildcard_handler)
+
+        event = DataPointValueReceivedEvent(
+            timestamp=datetime.now(),
+            dpk=dpk,
+            value=42,
+            received_at=datetime.now(),
+        )
+        await bus.publish(event=event)
+
+        assert received_specific == [42]
+        assert received_wildcard == [42]
+
+    @pytest.mark.asyncio
+    async def test_wildcard_handler_not_called_twice_when_event_key_is_none(self) -> None:
+        """If event.key is None, wildcard handlers must not be invoked twice."""
+        bus = EventBus(task_scheduler=Looper())
+        call_count = 0
+
+        def wildcard_handler(event: DeviceLifecycleEvent) -> None:
+            nonlocal call_count
+            call_count += 1
+
+        bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=wildcard_handler)
+
+        event = DeviceLifecycleEvent(
+            timestamp=datetime.now(),
+            event_type=DeviceLifecycleEventType.CREATED,
+            device_addresses=("VCU0000001",),
+        )
+        # DeviceLifecycleEvent.key is None (no per-event keying).
+        assert event.key is None
+        await bus.publish(event=event)
+
+        assert call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_wildcard_not_called_for_non_matching_event_key(self) -> None:
+        """A wildcard subscriber still receives events with keys it never explicitly registered for."""
+        bus = EventBus(task_scheduler=Looper())
+        received_wildcard: list[int] = []
+
+        def wildcard_handler(event: DataPointValueReceivedEvent) -> None:
+            received_wildcard.append(int(event.value))
+
+        dpk_subscribed = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+        dpk_other = DataPointKey(
+            interface_id="BidCos-RF",
+            channel_address="VCU0000002:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="STATE",
+        )
+
+        # Specific subscriber on dpk_subscribed, wildcard listens to everything.
+        bus.subscribe(
+            event_type=DataPointValueReceivedEvent,
+            event_key=dpk_subscribed,
+            handler=lambda event: None,
+        )
+        bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=wildcard_handler)
+
+        event_other = DataPointValueReceivedEvent(
+            timestamp=datetime.now(),
+            dpk=dpk_other,
+            value=7,
+            received_at=datetime.now(),
+        )
+        await bus.publish(event=event_other)
+
+        assert received_wildcard == [7]
+
+
 class TestEventBusPriority:
     """Test handler priority ordering in EventBus."""
 

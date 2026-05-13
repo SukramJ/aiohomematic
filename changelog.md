@@ -1,3 +1,27 @@
+# Version 2026.5.8 (2026-05-13)
+
+## What's Changed
+
+### Fixed
+
+- **Automatic reconnect after startup failure when the CCU is not yet
+  reachable** ([#3183](https://github.com/SukramJ/aiohomematic/discussions/3183)).
+  When `start_clients()` fails because no interface is reachable, the
+  central transitions `INITIALIZING → FAILED` and the
+  `ConnectionRecoveryCoordinator` is supposed to enter the heartbeat-retry
+  loop that re-attempts client creation every 60 s. In practice the
+  heartbeat never started, because `EventBus.publish()` used an `or`
+  short-circuit between key-specific and wildcard subscribers: as soon as
+  the Home Assistant integration registered a key-specific subscriber for
+  `CentralStateChangedEvent` (keyed by `central_name`), wildcard
+  subscribers — including the recovery coordinator's — were silently
+  skipped. Both `publish()` and `publish_batch()` now invoke the **union**
+  of specific-key and wildcard subscribers, merged in priority order, so
+  wildcard subscribers genuinely observe every event of the type. This
+  was visible whenever Home Assistant started before the CCU was ready:
+  all entities stayed unavailable until the integration was manually
+  reloaded.
+
 # Version 2026.5.7 (2026-05-12)
 
 ## What's Changed

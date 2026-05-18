@@ -6,7 +6,7 @@ coverage==7.14.0
 freezegun==1.5.5
 mypy==2.0.0
 pip==26.1.1
-prek==0.3.13
+prek==0.4.0
 pur==7.4.0
 pydevccu==0.2.4
 pylint-per-file-ignores==3.2.1

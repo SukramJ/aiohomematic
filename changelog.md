@@ -1,3 +1,23 @@
+# Version 2026.5.10 (2026-05-24)
+
+## What's Changed
+
+### Fixed
+
+- **Switch/cover/valve schedule round-trip fails when the CCU paramset
+  includes fields the device category doesn't support.** Reading a schedule
+  for a switch (e.g. HmIP-PSMCO) populated `ramp_time` whenever the MASTER
+  paramset advertised `RAMP_TIME_BASE` / `RAMP_TIME_FACTOR`, even though the
+  field has no semantic effect for switches. The subsequent
+  `set_schedule()` then re-validated the same payload with a SWITCH domain
+  context and rejected the very entries the read path had just emitted —
+  breaking the schedule editor as soon as the user added or modified an
+  entry. `convert_raw_group_to_simple_entry` now clears
+  `ramp_time` / `level_2` / `duration` for the categories whose validators
+  forbid them (SWITCH, LIGHT, COVER, VALVE, LOCK), mirroring
+  `_validate_*_entry`. Covered by a new
+  `tests/contract/test_schedule_round_trip_contract.py`.
+
 # Version 2026.5.9 (2026-05-13)
 
 ## What's Changed

@@ -597,6 +597,19 @@ _DOMAIN_VALIDATORS: Final[dict[DataPointCategory, Callable[[SimpleScheduleEntry]
     DataPointCategory.LOCK: _validate_lock_entry,
 }
 
+# Fields per domain that the domain validators reject (must be None on a
+# domain-validated entry). Mirrors `_validate_*_entry`. Used by
+# `convert_raw_group_to_simple_entry` to drop CCU paramset fields that don't
+# apply to the device category — without this, a get/set round-trip fails
+# whenever the CCU surfaces e.g. RAMP_TIME_BASE/FACTOR on a switch paramset.
+_DOMAIN_UNSUPPORTED_FIELDS: Final[dict[DataPointCategory, frozenset[str]]] = {
+    DataPointCategory.SWITCH: frozenset({"level_2", "ramp_time"}),
+    DataPointCategory.LIGHT: frozenset({"level_2"}),
+    DataPointCategory.COVER: frozenset({"ramp_time", "duration"}),
+    DataPointCategory.VALVE: frozenset({"level_2", "ramp_time"}),
+    DataPointCategory.LOCK: frozenset({"level_2", "ramp_time", "duration"}),
+}
+
 
 def _validate_domain_specific(*, domain: DataPointCategory, entry: SimpleScheduleEntry) -> None:
     """Apply domain-specific validation rules if a validator is registered."""
@@ -845,6 +858,21 @@ def convert_str_to_astro(*, astro_str: str) -> AstroType:
     return _ASTRO_STR_TO_ENUM.get(astro_str, AstroType.SUNRISE)
 
 
+def _extract_ramp_time(*, group_data: dict[ScheduleField, object]) -> str | None:
+    """Extract ramp_time from raw group data, or None if unset/invalid."""
+    ramp_base_raw = group_data.get(ScheduleField.RAMP_TIME_BASE)
+    ramp_factor_raw = group_data.get(ScheduleField.RAMP_TIME_FACTOR)
+    if ramp_base_raw is None or not isinstance(ramp_factor_raw, (int, float)):
+        return None
+    if isinstance(ramp_base_raw, int):
+        ramp_base = TimeBase(ramp_base_raw)
+    elif isinstance(ramp_base_raw, TimeBase):
+        ramp_base = ramp_base_raw
+    else:
+        ramp_base = TimeBase.MS_100
+    return convert_base_factor_to_duration(base=ramp_base, factor=int(ramp_factor_raw))
+
+
 def convert_raw_group_to_simple_entry(
     *,
     group_data: dict[ScheduleField, object],
@@ -948,17 +976,19 @@ def convert_raw_group_to_simple_entry(
     level_2 = max(0.0, min(1.0, float(level_2_raw))) if isinstance(level_2_raw, (int, float)) else None
 
     # Extract optional ramp_time
-    ramp_time: str | None = None
-    ramp_base_raw = group_data.get(ScheduleField.RAMP_TIME_BASE)
-    ramp_factor_raw = group_data.get(ScheduleField.RAMP_TIME_FACTOR)
-    if ramp_base_raw is not None and isinstance(ramp_factor_raw, (int, float)):
-        if isinstance(ramp_base_raw, int):
-            ramp_base = TimeBase(ramp_base_raw)
-        elif isinstance(ramp_base_raw, TimeBase):
-            ramp_base = ramp_base_raw
-        else:
-            ramp_base = TimeBase.MS_100
-        ramp_time = convert_base_factor_to_duration(base=ramp_base, factor=int(ramp_factor_raw))
+    ramp_time = _extract_ramp_time(group_data=group_data)
+
+    # Drop fields the domain doesn't support so the resulting entry survives a
+    # round-trip through `SimpleSchedule.model_validate(..., context={domain})`.
+    # The CCU MASTER paramset can include fields (e.g. RAMP_TIME_BASE/FACTOR on
+    # HmIP-PSMCO) that have no semantic effect for the device category.
+    if domain is not None and (unsupported := _DOMAIN_UNSUPPORTED_FIELDS.get(domain)):
+        if "level_2" in unsupported:
+            level_2 = None
+        if "ramp_time" in unsupported:
+            ramp_time = None
+        if "duration" in unsupported:
+            duration = None
 
     return SimpleScheduleEntry(
         weekdays=weekdays,

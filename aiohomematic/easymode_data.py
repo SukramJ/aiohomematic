@@ -18,6 +18,7 @@ ensured via double-checked locking during lazy initialization.
 Public API of this module is defined by __all__.
 """
 
+import contextlib
 from dataclasses import dataclass, field
 import gzip
 from importlib.resources import files
@@ -202,27 +203,7 @@ class _EasymodeStore:
         else:
             return result
 
-    def get_channel_metadata(self, *, channel_type: str) -> ChannelMetadata | None:
-        """Return metadata for a channel type."""
-        self._ensure_loaded()
-        return self._channel_metadata.get(channel_type)
-
-    def get_cross_validation_rules(self) -> list[CrossValidationRule]:
-        """Return all cross-validation rules."""
-        self._ensure_loaded()
-        return list(self._cross_validation_rules)
-
-    def get_option_preset(self, *, preset_type: str) -> OptionPresetDef | None:
-        """Return a single option preset definition by type."""
-        self._ensure_loaded()
-        return self._option_presets.get(preset_type)
-
-    def get_option_presets(self) -> dict[str, OptionPresetDef]:
-        """Return all option preset definitions."""
-        self._ensure_loaded()
-        return dict(self._option_presets)
-
-    def _ensure_loaded(self) -> None:
+    def ensure_loaded(self) -> None:
         """Load all data from archive if not yet loaded (double-checked locking)."""
         if self._loaded:
             return
@@ -234,6 +215,26 @@ class _EasymodeStore:
                 self._parse_option_presets(raw=archive.get("option_presets", {}))
                 self._parse_cross_validations(raw=archive.get("cross_validations", {}))
             self._loaded = True
+
+    def get_channel_metadata(self, *, channel_type: str) -> ChannelMetadata | None:
+        """Return metadata for a channel type."""
+        self.ensure_loaded()
+        return self._channel_metadata.get(channel_type)
+
+    def get_cross_validation_rules(self) -> list[CrossValidationRule]:
+        """Return all cross-validation rules."""
+        self.ensure_loaded()
+        return list(self._cross_validation_rules)
+
+    def get_option_preset(self, *, preset_type: str) -> OptionPresetDef | None:
+        """Return a single option preset definition by type."""
+        self.ensure_loaded()
+        return self._option_presets.get(preset_type)
+
+    def get_option_presets(self) -> dict[str, OptionPresetDef]:
+        """Return all option preset definitions."""
+        self.ensure_loaded()
+        return dict(self._option_presets)
 
     def _parse_channel_metadata(self, *, raw: dict[str, Any]) -> None:
         """Parse all channel metadata from the archive."""
@@ -348,6 +349,14 @@ class _EasymodeStore:
 
 # Module-level singleton
 _store: Final = _EasymodeStore()
+
+# Eager initialization at import time to avoid any later I/O on first use.
+# The first public access can happen inside the asyncio event loop (e.g. Home
+# Assistant's ``ws_get_form_schema``); loading the archive here keeps the
+# blocking file read off the loop. Imports run during integration setup, not
+# inside a running coroutine.
+with contextlib.suppress(Exception):
+    _store.ensure_loaded()
 
 
 # ---------------------------------------------------------------------------

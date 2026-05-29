@@ -1,3 +1,18 @@
+# Version 2026.5.11 (2026-05-29)
+
+## What's Changed
+
+### Fixed
+
+- **Blocking file I/O in the event loop on first easymode access.** The
+  easymode metadata store (`aiohomematic/easymode_data.py`) loaded its
+  gzip-compressed archive lazily on the first `get_*()` call. When that first
+  access happened inside the asyncio event loop (e.g. Home Assistant's
+  `ws_get_form_schema` → schema generation), the `read_bytes()` archive read
+  blocked the loop and triggered Home Assistant's blocking-call warning. The
+  archive is now loaded eagerly at import time — mirroring `ccu_translations` —
+  so all later lookups are pure dict reads with no I/O.
+
 # Version 2026.5.10 (2026-05-24)
 
 ## What's Changed

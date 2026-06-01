@@ -55,6 +55,22 @@ SKIP_DIRS: frozenset[str] = frozenset({"__pycache__", ".git", "build", "dist", "
 # Files to skip (package facades that legitimately import from submodules)
 SKIP_FILES: frozenset[str] = frozenset({"__init__.py"})
 
+# Contract surface that must stay liftable into the standalone
+# `aiohomematic-contract` package (see docs/drop-in-optimizations.md). These
+# modules may NOT import the RPC-coupled layers at runtime; TYPE_CHECKING-only
+# imports are allowed. Enforced on every run, independent of the paths passed.
+CONTRACT_SURFACE_MODULES: tuple[str, ...] = (
+    "aiohomematic/const.py",
+    "aiohomematic/interfaces/model.py",
+    "aiohomematic/model/support.py",
+)
+
+# Runtime imports forbidden inside the contract surface.
+CONTRACT_FORBIDDEN_PREFIXES: tuple[str, ...] = (
+    "aiohomematic.client",
+    "aiohomematic.central",
+)
+
 
 class ImportViolation(NamedTuple):
     """Represents an import rule violation."""
@@ -202,6 +218,78 @@ def iter_python_files(paths: list[Path], base_path: Path) -> Iterator[Path]:
                 yield py_file
 
 
+def _type_checking_line_ranges(tree: ast.Module) -> list[tuple[int, int]]:
+    """Return the (start, end) line ranges of every ``if TYPE_CHECKING:`` block."""
+    ranges: list[tuple[int, int]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If):
+            test = node.test
+            is_type_checking = (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+                isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+            )
+            if is_type_checking and node.body:
+                start = node.body[0].lineno
+                line_numbers = [
+                    line
+                    for inner in ast.walk(node)
+                    if (line := getattr(inner, "end_lineno", None) or getattr(inner, "lineno", None)) is not None
+                ]
+                ranges.append((start, max(line_numbers)))
+    return ranges
+
+
+def check_contract_boundary(file_path: Path, base_path: Path) -> list[ImportViolation]:
+    """Assert a contract-surface module imports no ``client/`` or ``central/`` at runtime."""
+    violations: list[ImportViolation] = []
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            tree = ast.parse(f.read())
+    except SyntaxError, OSError:
+        return violations
+
+    type_checking_ranges = _type_checking_line_ranges(tree)
+
+    def is_type_checking_only(lineno: int) -> bool:
+        return any(start <= lineno <= end for start, end in type_checking_ranges)
+
+    def forbidden(module: str) -> bool:
+        return any(module == prefix or module.startswith(prefix + ".") for prefix in CONTRACT_FORBIDDEN_PREFIXES)
+
+    for node in ast.walk(tree):
+        modules: list[str] = []
+        if isinstance(node, ast.ImportFrom) and node.module:
+            modules.append(node.module)
+        elif isinstance(node, ast.Import):
+            modules.extend(alias.name for alias in node.names)
+        else:
+            continue
+
+        for module in modules:
+            if not forbidden(module) or is_type_checking_only(node.lineno):
+                continue
+            try:
+                rel = file_path.relative_to(base_path)
+            except ValueError:
+                rel = file_path
+            violations.append(
+                ImportViolation(
+                    file_path=file_path,
+                    line_number=node.lineno,
+                    symbol=module,
+                    submodule=module,
+                    package=module,
+                    message=(
+                        f"contract surface must stay client/central-free: "
+                        f"'{rel}' imports '{module}' at runtime. Keep it liftable into "
+                        f"aiohomematic-contract (TYPE_CHECKING imports are allowed; "
+                        f"see docs/drop-in-optimizations.md)."
+                    ),
+                )
+            )
+
+    return violations
+
+
 def main() -> int:
     """Run the import linter."""
     parser = argparse.ArgumentParser(
@@ -252,6 +340,13 @@ def main() -> int:
         violations = check_file(py_file, base_path, package_exports, check_internal=args.check_all)
         all_violations.extend(violations)
         files_checked += 1
+
+    # Contract-surface boundary — always enforced, independent of the paths
+    # passed, so the lift into aiohomematic-contract stays viable.
+    for rel_module in CONTRACT_SURFACE_MODULES:
+        contract_file = base_path / rel_module
+        if contract_file.exists():
+            all_violations.extend(check_contract_boundary(contract_file, base_path))
 
     # Report results
     print(f"\nChecked {files_checked} files")

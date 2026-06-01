@@ -65,6 +65,14 @@ CONTRACT_SURFACE_MODULES: tuple[str, ...] = (
     "aiohomematic/model/support.py",
 )
 
+# Whole packages that must stay client/central-free at runtime, so they remain
+# backend-agnostic (consumable by a daemon-backed client without the RPC layers).
+# Every .py file under these is checked with the same rule as the modules above.
+CONTRACT_SURFACE_PACKAGES: tuple[str, ...] = (
+    "aiohomematic/model",
+    "aiohomematic/event_types",
+)
+
 # Runtime imports forbidden inside the contract surface.
 CONTRACT_FORBIDDEN_PREFIXES: tuple[str, ...] = (
     "aiohomematic.client",
@@ -347,6 +355,12 @@ def main() -> int:
         contract_file = base_path / rel_module
         if contract_file.exists():
             all_violations.extend(check_contract_boundary(contract_file, base_path))
+
+    for rel_package in CONTRACT_SURFACE_PACKAGES:
+        package_dir = base_path / rel_package
+        if package_dir.is_dir():
+            for contract_file in sorted(package_dir.rglob("*.py")):
+                all_violations.extend(check_contract_boundary(contract_file, base_path))
 
     # Report results
     print(f"\nChecked {files_checked} files")

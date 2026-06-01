@@ -223,6 +223,13 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
 
     _category = DataPointCategory.LIGHT
 
+    # Whether a plain ``turn_on`` (no explicit ``on_time``/timer) must reset the
+    # device-side ON_TIME duration to the ``_NOT_USED`` sentinel. Only signal
+    # lights (``CustomDpIpFixedColorLight``) require this. For HmIP-RGBW /
+    # HmIP-DRG-DALI sending the sentinel on a plain turn_on makes the device
+    # switch off again immediately (#3210), so the default is False.
+    _resets_on_time_on_turn_on: bool = False
+
     # Declarative data point field definitions
     _dp_group_level: Final = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
@@ -412,7 +419,7 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
 
         if (timer := self.get_and_start_timer()) is not None:
             await self._dp_on_time.send_value(value=timer, collector=collector)
-        elif self._dp_on_time.has_unit:
+        elif self._resets_on_time_on_turn_on and self._dp_on_time.has_unit:
             await self._dp_on_time.send_value(value=_NOT_USED, collector=collector)
         if ramp_time := kwargs.get("ramp_time"):
             await self._dp_ramp_time.send_value(value=ramp_time, collector=collector)
@@ -709,6 +716,10 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-BSL light data point."""
 
     __slots__ = ("_effect_list",)  # Keep instance variable, descriptors are class-level
+
+    # Signal lights must reset the device-side ON_TIME duration on every plain
+    # turn_on (#3111); RGBW/DRG-DALI must not (#3210).
+    _resets_on_time_on_turn_on = True
 
     # Declarative data point field definitions
     _dp_channel_color: Final = DataPointField(field=Field.CHANNEL_COLOR, dpt=DpSensor[str | None])

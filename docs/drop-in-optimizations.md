@@ -76,12 +76,26 @@ P1 extraction below before treating the whole contract as a clean lift.
 
 ## P1 — Extract a small shared contract package
 
-_Effort: M · Risk: low · Blocks: nothing_
+_Effort: M–L (revised up) · Risk: medium · **Status: deferred**_
 
-Pull the static, dispatch-relevant surface into a tiny package (e.g.
-`aiohomematic-contract`) that both aiohomematic and the daemon client can
-depend on — so the three parties (HA filter, daemon wire, client router)
-share one definition instead of drifting copies:
+> **Deferred — not blocking the drop-in.** Drift between the three parties is
+> already guarded without a physical split: #1 (the `generate_unique_id`
+> golden fixture) pins the routing-key format and #2 (the loom wire-enum drift
+> guard) pins the `DataPointCategory` / `DataPointType` value sets across both
+> repos. The full physical extraction is also larger and riskier than first
+> rated: the "clean subset" has a sprawling transitive closure —
+> `interfaces/model.py` pulls in `decorators`, `property_decorators`,
+> `interfaces/operations`, `type_aliases`, `_payload_protocol`;
+> `generate_unique_id` needs `ConfigProviderProtocol` from the heavily-coupled
+> `interfaces/central.py`; and lifting two enums means splitting the large
+> `const.py`. The hub-marker portion is independently blocked on the Option-A
+> filter change in `homematicip_local`. Revisit once Option A has landed and a
+> physically shared package is actually needed (the empty `../aiohomematic-contract`
+> repo is reserved for it).
+
+When picked up, pull the static, dispatch-relevant surface into the package so
+the three parties (HA filter, daemon wire, client router) share one definition
+instead of drifting copies:
 
 - [ ] `const.py` enums HA filters on — `DataPointCategory`, `DataPointType`.
       (Note: `default_category()` is **not** on the enum; it is a classmethod
@@ -209,19 +223,20 @@ The real consumption surface (from `homematicip_local`):
 
 1. ✅ **P1 unique_id fixture** — golden cross-impl test
    (`tests/test_unique_id_golden.py`). _(S, low)_
-2. ⬜ **P1 enum alignment** — match daemon wire values + drift test. Infra
-   already present (`tests/contract/loom_wire_enums.json`). _(S, low)_
-3. ⬜ **P1 contract extraction** — enums + Protocols + `generate_unique_id`
-   into the (currently empty) `../aiohomematic-contract` package (clean lift);
-   hub markers after the **Option A** filter change lands in `homematicip_local`.
-   _(M, low; hub markers M after Option A)_
+2. ✅ **P1 enum alignment** — daemon wire-value drift guard
+   (`tests/contract/test_loom_wire_enum_drift_contract.py` + vendored
+   `loom_wire_enums.json` + `refresh_loom_wire_enums.py`). _(S, low)_
+3. ⏸ **P1 contract extraction** — **deferred** (see the extraction section
+   above): drift is already guarded by 1 + 2, the closure is larger than
+   rated, and hub markers are blocked on the `homematicip_local` Option-A
+   change. _(M–L, medium)_
 4. ✅ **P1 lint boundary** — contract surface kept client/central-free
    (`script/lint_package_imports.py`). _(S, low)_
 5. ✅ **P2 coordinator conformance** — Protocols + conformance test
    (`tests/contract/test_consumed_surface_contract.py`). _(M, low)_
 
-Done now: 1, 4, 5. Open: 2 (enum drift test) and 3 (package extraction +
-the `homematicip_local` Option-A change — a second-repo edit).
+Done: 1, 2, 4, 5. Deferred: 3 (package extraction + the `homematicip_local`
+Option-A change — revisit once Option A has landed).
 
 ---
 

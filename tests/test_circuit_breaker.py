@@ -9,8 +9,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.events import CircuitBreakerStateChangedEvent, CircuitBreakerTrippedEvent, EventBus
+from aiohomematic.central.events import EventBus
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState
+from aiohomematic.event_types import CircuitBreakerStateChangedEvent, CircuitBreakerTrippedEvent
 from aiohomematic.metrics import MetricKeys, MetricsObserver
 from aiohomematic_test_support.event_capture import EventCapture
 

@@ -14,7 +14,6 @@ import logging
 from typing import Final, Unpack, cast, override
 
 from aiohomematic import i18n
-from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     BIDCOS_DEVICE_CHANNEL_DUMMY,
     DataPointCategory,
@@ -24,6 +23,7 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.event_types import DataPointStateChangedEvent
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom.capabilities.climate import (

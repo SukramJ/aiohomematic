@@ -336,7 +336,7 @@ class TestBackgroundSchedulerEventHandling:
         """BackgroundScheduler should track DeviceLifecycleEvent with CREATED type."""
         from datetime import datetime
 
-        from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+        from aiohomematic.event_types import DeviceLifecycleEvent, DeviceLifecycleEventType
 
         central = MagicMock()
         central.event_bus = MagicMock()
@@ -376,7 +376,7 @@ class TestBackgroundSchedulerEventHandling:
         """BackgroundScheduler should ignore non-CREATED DeviceLifecycleEvent types."""
         from datetime import datetime
 
-        from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+        from aiohomematic.event_types import DeviceLifecycleEvent, DeviceLifecycleEventType
 
         central = MagicMock()
         central.event_bus = MagicMock()

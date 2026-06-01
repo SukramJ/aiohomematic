@@ -9,16 +9,16 @@ from datetime import datetime
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.events import (
+from aiohomematic.central.events import EventBus
+from aiohomematic.const import DataPointKey, DeviceTriggerEventType, ParamsetKey
+from aiohomematic.event_types import (
     DataPointValueReceivedEvent,
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
     DeviceTriggerEvent,
-    EventBus,
     RpcParameterReceivedEvent,
     SysvarStateChangedEvent,
 )
-from aiohomematic.const import DataPointKey, DeviceTriggerEventType, ParamsetKey
 
 from tests.conftest import NoOpTaskScheduler
 
@@ -772,7 +772,7 @@ class TestEventBusKeyWildcardCoexistence:
     @pytest.mark.asyncio
     async def test_priority_order_respected_across_wildcard_and_specific(self) -> None:
         """Priority ordering must hold across both subscriber buckets, not per bucket."""
-        from aiohomematic.central.events import EventPriority
+        from aiohomematic.event_types import EventPriority
 
         bus = EventBus(task_scheduler=Looper())
         execution_order: list[str] = []
@@ -933,7 +933,7 @@ class TestEventBusPriority:
     @pytest.mark.asyncio
     async def test_priority_critical_runs_first(self) -> None:
         """CRITICAL priority handlers should run before all others."""
-        from aiohomematic.central.events import EventPriority
+        from aiohomematic.event_types import EventPriority
 
         bus = EventBus(task_scheduler=Looper())
         execution_order: list[str] = []
@@ -971,7 +971,7 @@ class TestEventBusPriority:
     @pytest.mark.asyncio
     async def test_priority_full_ordering(self) -> None:
         """All priority levels should be correctly ordered."""
-        from aiohomematic.central.events import EventPriority
+        from aiohomematic.event_types import EventPriority
 
         bus = EventBus(task_scheduler=Looper())
         execution_order: list[str] = []
@@ -1021,7 +1021,7 @@ class TestEventBusPriority:
     @pytest.mark.asyncio
     async def test_priority_high_runs_before_normal(self) -> None:
         """HIGH priority handlers should run before NORMAL."""
-        from aiohomematic.central.events import EventPriority
+        from aiohomematic.event_types import EventPriority
 
         bus = EventBus(task_scheduler=Looper())
         execution_order: list[str] = []
@@ -1057,7 +1057,7 @@ class TestEventBusPriority:
     @pytest.mark.asyncio
     async def test_priority_low_runs_last(self) -> None:
         """LOW priority handlers should run after all others."""
-        from aiohomematic.central.events import EventPriority
+        from aiohomematic.event_types import EventPriority
 
         bus = EventBus(task_scheduler=Looper())
         execution_order: list[str] = []
@@ -1495,7 +1495,7 @@ class TestEventBusAdditionalMethods:
 
     def test_clear_external_subscriptions(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """clear_external_subscriptions should clear external event types."""
-        from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent
+        from aiohomematic.event_types import DataPointStateChangedEvent, DeviceRemovedEvent
 
         bus = EventBus(task_scheduler=no_op_task_scheduler)
 

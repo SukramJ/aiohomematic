@@ -7,7 +7,21 @@ from typing import Any
 
 import pytest
 
-from aiohomematic.central.events import (
+from aiohomematic.const import (
+    CacheInvalidationReason,
+    CacheType,
+    CentralState,
+    ClientState,
+    ConnectionStage,
+    DataPointCategory,
+    DataPointKey,
+    DataRefreshType,
+    DeviceTriggerEventType,
+    FailureReason,
+    ParamsetKey,
+    RecoveryStage,
+)
+from aiohomematic.event_types import (
     CacheInvalidatedEvent,
     CentralStateChangedEvent,
     ClientStateChangedEvent,
@@ -31,20 +45,6 @@ from aiohomematic.central.events import (
     RpcParameterReceivedEvent,
     SystemStatusChangedEvent,
     SysvarStateChangedEvent,
-)
-from aiohomematic.const import (
-    CacheInvalidationReason,
-    CacheType,
-    CentralState,
-    ClientState,
-    ConnectionStage,
-    DataPointCategory,
-    DataPointKey,
-    DataRefreshType,
-    DeviceTriggerEventType,
-    FailureReason,
-    ParamsetKey,
-    RecoveryStage,
 )
 
 

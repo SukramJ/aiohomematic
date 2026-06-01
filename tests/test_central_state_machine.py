@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from aiohomematic.central import CentralHealth, ConnectionHealth, HealthTracker
-from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
+from aiohomematic.central.events import EventBus
 from aiohomematic.central.state_machine import (
     VALID_CENTRAL_TRANSITIONS,
     CentralStateMachine,
@@ -18,6 +18,7 @@ from aiohomematic.central.state_machine import (
 )
 from aiohomematic.client import CircuitState
 from aiohomematic.const import CentralState, ClientState, Interface
+from aiohomematic.event_types import SystemStatusChangedEvent
 
 
 class TestCentralStateMachine:
@@ -59,7 +60,7 @@ class TestCentralStateMachine:
         assert first_event.central_state == CentralState.INITIALIZING
 
         # Second call is CentralStateChangedEvent
-        from aiohomematic.central.events import CentralStateChangedEvent
+        from aiohomematic.event_types import CentralStateChangedEvent
 
         second_event = event_bus.publish_sync.call_args_list[1].kwargs["event"]
         assert isinstance(second_event, CentralStateChangedEvent)

@@ -642,10 +642,7 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
 # The project's own `lint-all-exports` hook enforces grouped, header-commented
 # __all__ lists in every public package __init__.py (group + alphabetical-within-
 # group). RUF022 (global alphabetical sort) would destroy that group structure.
-# `central/events/internal.py` follows the same grouped style even though it is
-# not an __init__.py, so it needs its own entry. RUF022 still runs everywhere else.
 "aiohomematic/**/__init__.py" = ["RUF022"]
-"aiohomematic/central/events/internal.py" = ["RUF022"]
 ".github/scripts/*" = ["T20", "BLE001", "S110", "C901"] # CI utility scripts; not production code
 "example*.py" = ["T20", "BLE001"] # top-level usage examples
 "tests/*.py" = [

@@ -72,7 +72,6 @@ from typing import Any, Final, TypeAlias, TypeVar, cast, overload, override
 
 from aiohomematic import ccu_translations, i18n, support as hms
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent, OptimisticRollbackEvent
 from aiohomematic.const import (
     _CATEGORY_TO_DATA_POINT_TYPE,
     _OPTIONAL_PARAMETERS,
@@ -110,6 +109,7 @@ from aiohomematic.context import (
     set_request_context,
 )
 from aiohomematic.decorators import get_service_calls, inspector
+from aiohomematic.event_types import DataPointStateChangedEvent, DeviceRemovedEvent, OptimisticRollbackEvent
 from aiohomematic.exceptions import BaseHomematicException
 from aiohomematic.interfaces import (
     BaseDataPointProtocol,

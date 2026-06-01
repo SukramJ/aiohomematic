@@ -8,7 +8,6 @@ import zipfile
 
 import pytest
 
-from aiohomematic.central.events import DataPointStateChangedEvent, DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import (
     CLICK_EVENTS,
     DEVICE_DESCRIPTIONS_ZIP_DIR,
@@ -19,6 +18,7 @@ from aiohomematic.const import (
     ForcedDeviceAvailability,
     ParamsetKey,
 )
+from aiohomematic.event_types import DataPointStateChangedEvent, DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
 from aiohomematic_test_support import const
 

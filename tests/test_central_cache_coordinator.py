@@ -8,8 +8,9 @@ import pytest
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central.coordinators import CacheCoordinator
-from aiohomematic.central.events import CacheInvalidatedEvent, EventBus
+from aiohomematic.central.events import EventBus
 from aiohomematic.const import CacheInvalidationReason, CacheType
+from aiohomematic.event_types import CacheInvalidatedEvent
 from aiohomematic.store import LocalStorageFactory
 from aiohomematic.store.dynamic import CentralDataCache, DeviceDetailsCache
 from aiohomematic.store.persistent import DeviceDescriptionRegistry, ParamsetDescriptionRegistry, SessionRecorder

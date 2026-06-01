@@ -11,8 +11,8 @@ from datetime import datetime
 import logging
 from typing import Final
 
-from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
+from aiohomematic.event_types import SystemStatusChangedEvent
 from aiohomematic.interfaces.central import EventBusProviderProtocol
 from aiohomematic.support import extract_exc_args
 

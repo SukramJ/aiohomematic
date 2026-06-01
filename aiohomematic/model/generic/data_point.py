@@ -11,10 +11,10 @@ import logging
 from typing import Any, Final, TypeAlias
 
 from aiohomematic import ccu_translations, i18n
-from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
 from aiohomematic.context import get_request_context
 from aiohomematic.decorators import inspector
+from aiohomematic.event_types import DeviceLifecycleEvent, DeviceLifecycleEventType
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocol
 from aiohomematic.model import data_point as hme

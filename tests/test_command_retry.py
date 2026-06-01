@@ -314,7 +314,7 @@ class TestCommandRetryHandler:
     @pytest.mark.asyncio
     async def test_retry_on_no_connection_with_recovery(self) -> None:
         """Test retry on NoConnectionException when recovery succeeds."""
-        from aiohomematic.central.events import RecoveryCompletedEvent
+        from aiohomematic.event_types import RecoveryCompletedEvent
 
         event_bus = _make_event_bus()
         handler = CommandRetryHandler(
@@ -1247,7 +1247,7 @@ class TestWaitForRecoveryCancellation:
     @pytest.mark.asyncio
     async def test_recovery_completes_normally(self) -> None:
         """Test that recovery event completes wait successfully."""
-        from aiohomematic.central.events import RecoveryCompletedEvent
+        from aiohomematic.event_types import RecoveryCompletedEvent
 
         event_bus = _make_event_bus()
         handler = CommandRetryHandler(

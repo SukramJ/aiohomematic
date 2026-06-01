@@ -288,7 +288,7 @@ class TestEventBusHandlerStats:
     @pytest.mark.asyncio
     async def test_handler_error_tracking(self) -> None:
         """Test that handler errors are tracked."""
-        from aiohomematic.central.events import DeviceStateChangedEvent
+        from aiohomematic.event_types import DeviceStateChangedEvent
 
         bus = EventBus(task_scheduler=Looper())
 
@@ -311,7 +311,7 @@ class TestEventBusHandlerStats:
     @pytest.mark.asyncio
     async def test_handler_stats_tracking(self) -> None:
         """Test that handler stats are tracked during event publishing."""
-        from aiohomematic.central.events import DeviceStateChangedEvent
+        from aiohomematic.event_types import DeviceStateChangedEvent
 
         bus = EventBus(task_scheduler=Looper())
 

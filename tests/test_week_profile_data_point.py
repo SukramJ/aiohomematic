@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import DataPointCategory, DataPointUsage, Parameter, ParamsetKey, ScheduleType
+from aiohomematic.event_types import DataPointStateChangedEvent
 from aiohomematic.model.custom import CustomDpCover, CustomDpRfThermostat, CustomDpSwitch
 from aiohomematic.model.schedule_models import (
     SimpleSchedule,

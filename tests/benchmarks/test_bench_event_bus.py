@@ -7,7 +7,8 @@ from datetime import datetime
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.events import DeviceStateChangedEvent, EventBus
+from aiohomematic.central.events import EventBus
+from aiohomematic.event_types import DeviceStateChangedEvent
 
 from .conftest import BenchmarkTimer
 

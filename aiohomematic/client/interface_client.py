@@ -19,7 +19,6 @@ import time
 from typing import TYPE_CHECKING, Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.events import ClientStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
@@ -62,6 +61,7 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.event_types import ClientStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.exceptions import BaseHomematicException, ClientException, CommandSupersededError, ValidationException
 from aiohomematic.interfaces.client import ClientDependenciesProtocol, ClientProtocol
 from aiohomematic.model.support import convert_value

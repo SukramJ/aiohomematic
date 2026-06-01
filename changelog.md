@@ -1,3 +1,21 @@
+# Version 2026.6.0 (2026-06-01)
+
+## What's Changed
+
+### Fixed
+
+- **HmIP-RGBW / HmIP-DRG-DALI cannot be switched on (briefly flashes, then
+  turns off again).** Since #3111 the base `CustomDpDimmer.turn_on` sent the
+  `ON_TIME` "not used" sentinel (`DURATION_VALUE=111600`, `DURATION_UNIT=H`) on
+  every plain turn_on for any light whose `ON_TIME` field carries a unit. That
+  reset is only required for signal lights (`CustomDpIpFixedColorLight`); for
+  HmIP-RGBW / HmIP-DRG-DALI the device interprets the sentinel duration on a
+  plain turn_on and switches off again immediately. The reset is now gated by a
+  `_resets_on_time_on_turn_on` class flag that is only enabled for signal
+  lights, restoring the pre-#3111 behaviour for RGBW/DRG-DALI (a lone `LEVEL`
+  is sent again). Turn_on with an explicit `on_time`/`ramp_time` is unaffected
+  (#3210).
+
 # Version 2026.5.11 (2026-05-29)
 
 ## What's Changed

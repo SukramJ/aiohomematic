@@ -1551,21 +1551,25 @@ class TestCustomDpIpRGBWLight:
 
         assert light.brightness == 0
 
+        # Plain turn_on (no on_time/timer) must not reset the device-side
+        # ON_TIME duration on RGBW; a lone LEVEL is sent via set_value (#3210).
         await light.turn_on()
-        assert mock_client.method_calls[-1] == call.put_paramset(
+        assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU5629873:1",
-            paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"DURATION_UNIT": _TimeUnit.HOURS, "DURATION_VALUE": _NOT_USED, "LEVEL": 1.0},
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=1.0,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
         )
         assert light.brightness == 255
         await light.turn_on(brightness=28)
-        assert mock_client.method_calls[-1] == call.put_paramset(
+        assert mock_client.method_calls[-1] == call.set_value(
             channel_address="VCU5629873:1",
-            paramset_key_or_link_address=ParamsetKey.VALUES,
-            values={"DURATION_UNIT": _TimeUnit.HOURS, "DURATION_VALUE": _NOT_USED, "LEVEL": 0.10980392156862745},
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=0.10980392156862745,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1590,8 +1594,6 @@ class TestCustomDpIpRGBWLight:
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
                 "COLOR_TEMPERATURE": 3000,
-                "DURATION_UNIT": _TimeUnit.HOURS,
-                "DURATION_VALUE": _NOT_USED,
                 "LEVEL": 1.0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,
@@ -1616,8 +1618,6 @@ class TestCustomDpIpRGBWLight:
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "DURATION_UNIT": _TimeUnit.HOURS,
-                "DURATION_VALUE": _NOT_USED,
                 "HUE": 44,
                 "SATURATION": 0.693,
                 "LEVEL": 1.0,
@@ -1633,8 +1633,6 @@ class TestCustomDpIpRGBWLight:
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "DURATION_UNIT": _TimeUnit.HOURS,
-                "DURATION_VALUE": _NOT_USED,
                 "HUE": 0,
                 "SATURATION": 0.5,
                 "LEVEL": 1.0,
@@ -1650,8 +1648,6 @@ class TestCustomDpIpRGBWLight:
             channel_address="VCU5629873:1",
             paramset_key_or_link_address=ParamsetKey.VALUES,
             values={
-                "DURATION_UNIT": _TimeUnit.HOURS,
-                "DURATION_VALUE": _NOT_USED,
                 "EFFECT": "EFFECT_01_END_CURRENT_PROFILE",
                 "LEVEL": 1.0,
             },

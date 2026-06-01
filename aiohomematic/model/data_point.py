@@ -73,7 +73,6 @@ from typing import Any, Final, TypeAlias, TypeVar, cast, overload, override
 from aiohomematic import ccu_translations, i18n, support as hms
 from aiohomematic.async_support import loop_check
 from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent, OptimisticRollbackEvent
-from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.const import (
     _CATEGORY_TO_DATA_POINT_TYPE,
     _OPTIONAL_PARAMETERS,
@@ -154,6 +153,7 @@ from aiohomematic.property_decorators import (
 from aiohomematic.support import log_boundary_error
 from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
 from aiohomematic.type_aliases import CallableAny, ParamType, ServiceMethodMap
+from aiohomematic_contract import CommandPriority
 
 __all__ = [
     "BaseDataPoint",

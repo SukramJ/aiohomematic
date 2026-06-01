@@ -139,9 +139,14 @@ The client rebuilds it independently
 must produce **bit-identical** output (`addr_channel_param`, lowercased,
 `:` and `-` folded to `_`, hub addresses prefixed with `central_id`).
 
-- [x] **Done (aiohomematic side).** Golden fixture at
+- [x] **Done.** Canonical fixture + a dependency-free reference
+      implementation now live in the standalone
+      [`aiohomematic-contract`](https://github.com/sukramj/aiohomematic-contract)
+      package (`aiohomematic_contract/data/unique_id_golden.json`,
+      `aiohomematic_contract.generate_unique_id`), self-validated by that
+      repo's tests. aiohomematic vendors a byte-identical copy at
       `tests/fixtures/unique_id_golden.json`, exercised by
-      `tests/test_unique_id_golden.py`. The client repo vendors the same
+      `tests/test_unique_id_golden.py`; the client repo vendors the same
       fixture and runs the equivalent assertion so the format can't drift.
 
 ## P1 — Align the enum catalogue with the daemon wire values + drift test

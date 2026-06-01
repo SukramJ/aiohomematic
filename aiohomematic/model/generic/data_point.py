@@ -12,7 +12,6 @@ from typing import Any, Final, TypeAlias
 
 from aiohomematic import ccu_translations, i18n
 from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
-from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.const import DP_KEY_VALUE, DataPointUsage, Parameter, ParameterData, ParamsetKey
 from aiohomematic.context import get_request_context
 from aiohomematic.decorators import inspector
@@ -22,6 +21,7 @@ from aiohomematic.model import data_point as hme
 from aiohomematic.model.support import DataPointNameData, get_data_point_name_data
 from aiohomematic.property_decorators import hm_property
 from aiohomematic.type_aliases import ParamType
+from aiohomematic_contract import CommandPriority
 
 _LOGGER: Final = logging.getLogger(__name__)
 

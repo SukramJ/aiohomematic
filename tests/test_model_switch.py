@@ -5,9 +5,9 @@
 from typing import cast
 from unittest.mock import AsyncMock, call
 
+from aiohomematic_contract import CommandPriority
 import pytest
 
-from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.custom import CustomDpSwitch

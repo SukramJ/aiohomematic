@@ -11,7 +11,6 @@ from enum import StrEnum, unique
 from typing import Final, TypedDict, Unpack
 
 from aiohomematic import i18n
-from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.model.combined.field import CombinedTimerField
@@ -22,6 +21,7 @@ from aiohomematic.model.custom.registry import DeviceProfileRegistry
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpActionFloat, DpActionSelect, DpBinarySensor, DpSelect, DpSensor
 from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
+from aiohomematic_contract import CommandPriority
 
 _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF: Final = "IDLE_OFF"
 

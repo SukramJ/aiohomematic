@@ -36,7 +36,6 @@ Public API of this module is defined by __all__.
 import asyncio
 from collections import deque
 from dataclasses import dataclass, field
-from enum import IntEnum
 import heapq
 import logging
 import time
@@ -46,22 +45,11 @@ from aiohomematic import i18n
 from aiohomematic.exceptions import CommandSupersededError
 from aiohomematic.interfaces.client import CommandThrottleProtocol
 from aiohomematic.property_decorators import DelegatedProperty
+from aiohomematic_contract import CommandPriority
 
-__all__ = ["CommandPriority", "CommandThrottle", "PrioritizedCommand"]
+__all__ = ["CommandThrottle", "PrioritizedCommand"]
 
 _LOGGER: Final = logging.getLogger(__name__)
-
-
-class CommandPriority(IntEnum):
-    """
-    Command priority levels.
-
-    Lower numeric value = higher priority in queue.
-    """
-
-    CRITICAL = 0  # Security, access control - bypass throttle
-    HIGH = 1  # Interactive user commands - normal throttle
-    LOW = 2  # Bulk operations, automations - normal throttle
 
 
 @dataclass(frozen=True, order=True)

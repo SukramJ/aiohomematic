@@ -10,7 +10,6 @@ from abc import abstractmethod
 from enum import StrEnum, unique
 from typing import Final
 
-from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.model.custom.capabilities.lock import BUTTON_LOCK_CAPABILITIES, IP_LOCK_CAPABILITIES, LockCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
@@ -19,6 +18,7 @@ from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegist
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpSensor, DpSwitch
 from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic_contract import CommandPriority
 
 
 @unique

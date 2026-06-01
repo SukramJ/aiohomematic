@@ -5,9 +5,9 @@
 from typing import cast
 from unittest.mock import call
 
+from aiohomematic_contract import CommandPriority
 import pytest
 
-from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import CustomDpIpSiren, CustomDpIpSirenSmoke
 from aiohomematic.model.custom.siren import _SirenCommand

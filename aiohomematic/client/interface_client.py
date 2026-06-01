@@ -25,7 +25,7 @@ from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.client.backends.protocol import BackendOperationsProtocol
 from aiohomematic.client.circuit_breaker import CircuitBreaker
 from aiohomematic.client.command_retry import CommandRetryHandler
-from aiohomematic.client.command_throttle import CommandPriority, CommandThrottle
+from aiohomematic.client.command_throttle import CommandThrottle
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.request_coalescer import RequestCoalescer, make_coalesce_key
 from aiohomematic.client.state_change import wait_for_state_change_or_timeout
@@ -71,6 +71,7 @@ from aiohomematic.store.types import IncidentSeverity, IncidentType
 from aiohomematic.support import extract_exc_args, supports_rx_mode
 from aiohomematic.support.address import get_device_address, is_channel_address, is_paramset_key
 from aiohomematic.support.mixins import LogContextMixin
+from aiohomematic_contract import CommandPriority
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.model import ChannelProtocol, DeviceProtocol

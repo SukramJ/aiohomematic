@@ -3,9 +3,9 @@
 from typing import cast
 from unittest.mock import MagicMock, patch
 
+from aiohomematic_contract import CommandPriority
 import pytest
 
-from aiohomematic.client import CommandPriority
 from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.const import RollbackReason
 from aiohomematic.model.data_point import BaseParameterDataPoint

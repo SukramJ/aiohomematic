@@ -10,6 +10,11 @@ format against a shared fixture (``tests/fixtures/unique_id_golden.json``); the
 client repo vendors the same fixture and runs the equivalent assertion, so the
 format cannot silently drift across the two repos.
 
+The canonical home of this fixture (and a dependency-free reference
+implementation) is the ``aiohomematic-contract`` package
+(``aiohomematic_contract/data/unique_id_golden.json``). The copy here is
+vendored from there and must stay byte-identical to it.
+
 See ``aiohomematic/model/support.py:generate_unique_id`` and
 ``docs/drop-in-optimizations.md``.
 """

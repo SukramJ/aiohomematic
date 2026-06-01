@@ -7,9 +7,10 @@ from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 from xmlrpc.client import Fault as XmlRpcFault
 
+from aiohomematic_contract import CommandPriority
 import pytest
 
-from aiohomematic.client import CommandPriority, CommandRetryHandler
+from aiohomematic.client import CommandRetryHandler
 from aiohomematic.client.command_retry import CommandRetryMetrics, _get_fault_code, is_retryable
 from aiohomematic.const import DataPointKey, ParamsetKey, TimeoutConfig
 from aiohomematic.exceptions import (

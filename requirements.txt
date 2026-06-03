@@ -1,4 +1,5 @@
 aiohttp>=3.13.5
+aiohomematic-contract==2026.6.1
 openccu-data>=2026.5.0
 pydantic>=2.13.4
 python-slugify>=8.0.4

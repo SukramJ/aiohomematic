@@ -435,8 +435,10 @@ markers = [
 ]
 
 filterwarnings = [
-    # pydevccu's _askDevices thread may try to contact central after it's stopped
-    # This is a known race condition in pydevccu that doesn't affect test results
+    # pydevccu's _ask_devices thread (formerly _askDevices) may try to contact the
+    # central after it's stopped. This is a known race condition in pydevccu that
+    # doesn't affect test results.
+    "ignore:Exception in thread _ask_devices:pytest.PytestUnhandledThreadExceptionWarning",
     "ignore:Exception in thread _askDevices:pytest.PytestUnhandledThreadExceptionWarning",
 ]
 

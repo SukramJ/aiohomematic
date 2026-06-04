@@ -16,9 +16,10 @@ import pytest
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralConnectionState
-from aiohomematic.central.events import DataPointValueReceivedEvent, EventBus, SystemStatusChangedEvent
+from aiohomematic.central.events import EventBus
 from aiohomematic.client import AioJsonRpcAioHttpClient, BaseRpcProxy
 from aiohomematic.const import DataPointKey, ParamsetKey
+from aiohomematic.event_types import DataPointValueReceivedEvent, SystemStatusChangedEvent
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
 

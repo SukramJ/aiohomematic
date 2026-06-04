@@ -7,10 +7,10 @@ from types import SimpleNamespace
 from typing import cast
 from unittest.mock import call
 
+from aiohomematic_contract import CommandPriority
 from freezegun import freeze_time
 import pytest
 
-from aiohomematic.client import CommandPriority
 from aiohomematic.const import (  # local import to keep test header minimal
     WAIT_FOR_CALLBACK,
     DataPointCategory,

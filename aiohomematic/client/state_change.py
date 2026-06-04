@@ -14,9 +14,9 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import DP_KEY_VALUE, ParamsetKey
 from aiohomematic.decorators import measure_execution_time
+from aiohomematic.event_types import DataPointStateChangedEvent
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces.model import DeviceProtocol

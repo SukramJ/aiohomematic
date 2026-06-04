@@ -5,11 +5,11 @@
 from typing import cast
 from unittest.mock import MagicMock, call
 
+from aiohomematic_contract import CommandPriority
 import pytest
 
-from aiohomematic.central.events import DataPointStateChangedEvent
-from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, ParamsetKey
+from aiohomematic.event_types import DataPointStateChangedEvent
 from aiohomematic.model.generic import DpActionSelect
 
 TEST_DEVICES: set[str] = {"VCU9724704"}

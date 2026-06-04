@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Final
 
-from aiohomematic.central.events.types import Event
+from aiohomematic.event_types import Event
 
 
 @unique

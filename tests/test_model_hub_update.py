@@ -104,14 +104,16 @@ class _FakeTaskScheduler:
     def create_task(self, *, target: Coroutine[Any, Any, None] | Callable[[], None], name: str) -> None:
         """Create and track a task."""
         if callable(target) and not asyncio.iscoroutine(target):
-            try:
-                result = target()
-                if asyncio.iscoroutine(result):
+            result = target()
+            if asyncio.iscoroutine(result):
+                try:
                     task = asyncio.create_task(result, name=name)
-                    self._tasks.append(task)
+                except RuntimeError:
+                    # No running event loop (synchronous test): close the coroutine
+                    # to avoid a "coroutine was never awaited" RuntimeWarning.
+                    result.close()
                     return
-            except RuntimeError:
-                return
+                self._tasks.append(task)
             return
         task = asyncio.create_task(target, name=name)
         self._tasks.append(task)

@@ -16,8 +16,8 @@ from unittest.mock import Mock
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.events import DataPointValueReceivedEvent
 from aiohomematic.const import DataPointKey, ParamsetKey
+from aiohomematic.event_types import DataPointValueReceivedEvent
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU6354483"}
 
@@ -262,8 +262,9 @@ class TestConnectionStateWorkflow:
     async def test_connection_state_event_on_issue(self) -> None:
         """Test that SystemStatusChangedEvent with connection_state is published on issues."""
         from aiohomematic.central import CentralConnectionState
-        from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
+        from aiohomematic.central.events import EventBus
         from aiohomematic.client import AioJsonRpcAioHttpClient
+        from aiohomematic.event_types import SystemStatusChangedEvent
 
         # Create event bus and mock provider
         event_bus = EventBus(task_scheduler=Looper())

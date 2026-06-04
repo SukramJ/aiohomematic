@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from aiohomematic.central.coordinators import DeviceCoordinator
-from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.const import IntegrationIssueSeverity, IntegrationIssueType, ParamsetKey, ProductGroup
+from aiohomematic.event_types import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.store import IncidentSeverity, IncidentType
 
 

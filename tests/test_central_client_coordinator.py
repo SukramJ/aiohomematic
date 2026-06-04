@@ -904,7 +904,7 @@ class TestClientCoordinatorEdgeCases:
         """_on_health_record_event should record failed request."""
         from datetime import datetime
 
-        from aiohomematic.central.events import HealthRecordedEvent
+        from aiohomematic.event_types import HealthRecordedEvent
 
         central = _FakeCentral()
         central.health_tracker = MagicMock()
@@ -932,7 +932,7 @@ class TestClientCoordinatorEdgeCases:
         """_on_health_record_event should record successful request."""
         from datetime import datetime
 
-        from aiohomematic.central.events import HealthRecordedEvent
+        from aiohomematic.event_types import HealthRecordedEvent
 
         central = _FakeCentral()
         central.health_tracker = MagicMock()

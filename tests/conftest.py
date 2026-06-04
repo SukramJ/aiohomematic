@@ -28,8 +28,9 @@ except ImportError:
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralUnit
-from aiohomematic.central.events import DeviceLifecycleEvent, DeviceTriggerEvent, EventBus
+from aiohomematic.central.events import EventBus
 from aiohomematic.client import CircuitBreaker
+from aiohomematic.event_types import DeviceLifecycleEvent, DeviceTriggerEvent
 from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import (
@@ -380,9 +381,9 @@ async def central_unit_openccu(pydevccu_openccu: VirtualCCU) -> CentralUnit:  # 
     import contextlib
 
     from aiohomematic.central import CentralConfig
-    from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
     from aiohomematic.client import InterfaceConfig
     from aiohomematic.const import Interface
+    from aiohomematic.event_types import DeviceLifecycleEvent, DeviceLifecycleEventType
 
     if not PYDEVCCU_HAS_OPENCCU_SUPPORT:
         pytest.skip("Requires pydevccu 0.2.0+ with VirtualCCU/BackendMode support")

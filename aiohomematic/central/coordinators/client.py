@@ -19,9 +19,9 @@ import logging
 from typing import Final
 
 from aiohomematic import client as hmcl, i18n
-from aiohomematic.central.events.internal import HealthRecordedEvent
 from aiohomematic.client._rpc_errors import exception_to_failure_reason
 from aiohomematic.const import PRIMARY_CLIENT_CANDIDATE_INTERFACES, FailureReason, Interface, ProxyInitState
+from aiohomematic.event_types import HealthRecordedEvent
 from aiohomematic.exceptions import AioHomematicException, AuthFailure, BaseHomematicException
 from aiohomematic.interfaces import (
     CentralInfoProtocol,

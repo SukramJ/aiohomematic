@@ -1,0 +1,19 @@
+{
+  "description": "Golden cross-implementation fixture for generate_unique_id(). The unique_id is the routing key for every Home Assistant value-change subscription; aiohomematic and py-openccu-loom-client MUST produce bit-identical output. Both repos run this same fixture so the format cannot silently drift. Rules: ':' and '-' fold to '_', the whole result is lowercased, an optional prefix is prepended, and hub / install_mode / program / sysvar / INT000* / virtual-remote addresses are prefixed with the central_id. See aiohomematic/model/support.py:generate_unique_id and docs/drop-in-optimizations.md.",
+  "cases": [
+    {"central_id": "1234", "address": "VCU1234567:1", "parameter": "STATE", "prefix": null, "expected": "vcu1234567_1_state"},
+    {"central_id": "1234", "address": "VCU1234567:1", "parameter": null, "prefix": null, "expected": "vcu1234567_1"},
+    {"central_id": "1234", "address": "VCU1234567:0", "parameter": null, "prefix": null, "expected": "vcu1234567_0"},
+    {"central_id": "1234", "address": "ABC-DEF:2", "parameter": "LEVEL", "prefix": null, "expected": "abc_def_2_level"},
+    {"central_id": "1234", "address": "INT0001234:1", "parameter": "LEVEL", "prefix": null, "expected": "1234_int0001234_1_level"},
+    {"central_id": "ccu3", "address": "hub", "parameter": "STATUS", "prefix": null, "expected": "ccu3_hub_status"},
+    {"central_id": "ccu3", "address": "program", "parameter": "RUN", "prefix": null, "expected": "ccu3_program_run"},
+    {"central_id": "ccu3", "address": "sysvar", "parameter": "VALUE", "prefix": null, "expected": "ccu3_sysvar_value"},
+    {"central_id": "ccu3", "address": "install_mode", "parameter": "ACTIVE", "prefix": null, "expected": "ccu3_install_mode_active"},
+    {"central_id": "1234", "address": "VCU1234567:1", "parameter": "PRESS_SHORT", "prefix": "event", "expected": "event_vcu1234567_1_press_short"},
+    {"central_id": "1234", "address": "VCU1234567:0", "parameter": "BUTTON", "prefix": "btn", "expected": "btn_vcu1234567_0_button"},
+    {"central_id": "ccu3", "address": "BidCoS-RF:1", "parameter": "PRESS_SHORT", "prefix": null, "expected": "ccu3_bidcos_rf_1_press_short"},
+    {"central_id": "ccu3", "address": "HmIP-RCV-1:2", "parameter": "PRESS_LONG", "prefix": null, "expected": "ccu3_hmip_rcv_1_2_press_long"},
+    {"central_id": "1234", "address": "INT0001234:1", "parameter": "X", "prefix": "event", "expected": "1234_event_int0001234_1_x"}
+  ]
+}

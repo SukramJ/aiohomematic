@@ -14,7 +14,6 @@ import time
 from typing import TYPE_CHECKING, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.const import (
     PING_PONG_CACHE_MAX_SIZE,
     PING_PONG_MISMATCH_COUNT,
@@ -23,6 +22,7 @@ from aiohomematic.const import (
     IntegrationIssueType,
     PingPongMismatchType,
 )
+from aiohomematic.event_types import IntegrationIssue, SystemStatusChangedEvent
 from aiohomematic.interfaces import CentralInfoProtocol, EventBusProviderProtocol, IncidentRecorderProtocol
 from aiohomematic.interfaces.client import PingPongTrackerProtocol
 from aiohomematic.metrics import MetricKeys, emit_latency

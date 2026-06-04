@@ -6,8 +6,8 @@ from typing import cast
 
 import pytest
 
-from aiohomematic.central.events import DeviceTriggerEvent
 from aiohomematic.const import DataPointUsage, DeviceTriggerEventType
+from aiohomematic.event_types import DeviceTriggerEvent
 from aiohomematic.model.event import ClickEvent, DeviceErrorEvent, ImpulseEvent
 from aiohomematic_test_support import const
 

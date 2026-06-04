@@ -575,7 +575,7 @@ class TestEventEmissionContract:
 
     def test_event_includes_trigger_reason(self) -> None:
         """Contract: Event includes trigger reason when provided."""
-        from aiohomematic.central.events import ClientStateChangedEvent
+        from aiohomematic.event_types import ClientStateChangedEvent
 
         sm, event_bus = _create_state_machine(with_event_bus=True)
         assert event_bus is not None
@@ -588,7 +588,7 @@ class TestEventEmissionContract:
 
     def test_multiple_transitions_emit_multiple_events(self) -> None:
         """Contract: Multiple transitions emit multiple events."""
-        from aiohomematic.central.events import ClientStateChangedEvent
+        from aiohomematic.event_types import ClientStateChangedEvent
 
         sm, event_bus = _create_state_machine(with_event_bus=True)
         assert event_bus is not None
@@ -625,7 +625,7 @@ class TestEventEmissionContract:
 
     def test_transition_emits_client_state_changed_event(self) -> None:
         """Contract: Every transition emits ClientStateChangedEvent."""
-        from aiohomematic.central.events import ClientStateChangedEvent
+        from aiohomematic.event_types import ClientStateChangedEvent
 
         sm, event_bus = _create_state_machine(with_event_bus=True)
         assert event_bus is not None

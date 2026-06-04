@@ -54,12 +54,6 @@ import zipfile
 
 from aiohomematic import ccu_translations, compat, i18n
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
-from aiohomematic.central.events.internal import (
-    DeviceStateChangedEvent,
-    FirmwareStateChangedEvent,
-    LinkPeerChangedEvent,
-)
 from aiohomematic.const import (
     ADDRESS_SEPARATOR,
     CLICK_EVENTS,
@@ -95,6 +89,13 @@ from aiohomematic.const import (
     get_link_target_categories,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.event_types import (
+    DeviceLifecycleEvent,
+    DeviceLifecycleEventType,
+    DeviceStateChangedEvent,
+    FirmwareStateChangedEvent,
+    LinkPeerChangedEvent,
+)
 from aiohomematic.exceptions import (
     AioHomematicException,
     BaseHomematicException,

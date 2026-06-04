@@ -12,7 +12,7 @@ All event types in this module:
 - Inherit from the Event base class
 - Have a `key` property for event routing
 
-These events are re-exported from `central.events` for backward compatibility.
+These types live in `aiohomematic.event_types` and are consumed across the codebase.
 """
 
 from abc import ABC, abstractmethod

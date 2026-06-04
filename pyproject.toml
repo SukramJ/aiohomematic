@@ -35,6 +35,7 @@ classifiers = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "aiohomematic-contract==2026.6.1",
     "aiohttp>=3.12.0",
     "openccu-data>=2026.5.0",
     "pydantic>=2.10.0",
@@ -434,8 +435,10 @@ markers = [
 ]
 
 filterwarnings = [
-    # pydevccu's _askDevices thread may try to contact central after it's stopped
-    # This is a known race condition in pydevccu that doesn't affect test results
+    # pydevccu's _ask_devices thread (formerly _askDevices) may try to contact the
+    # central after it's stopped. This is a known race condition in pydevccu that
+    # doesn't affect test results.
+    "ignore:Exception in thread _ask_devices:pytest.PytestUnhandledThreadExceptionWarning",
     "ignore:Exception in thread _askDevices:pytest.PytestUnhandledThreadExceptionWarning",
 ]
 
@@ -641,10 +644,7 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
 # The project's own `lint-all-exports` hook enforces grouped, header-commented
 # __all__ lists in every public package __init__.py (group + alphabetical-within-
 # group). RUF022 (global alphabetical sort) would destroy that group structure.
-# `central/events/internal.py` follows the same grouped style even though it is
-# not an __init__.py, so it needs its own entry. RUF022 still runs everywhere else.
 "aiohomematic/**/__init__.py" = ["RUF022"]
-"aiohomematic/central/events/internal.py" = ["RUF022"]
 ".github/scripts/*" = ["T20", "BLE001", "S110", "C901"] # CI utility scripts; not production code
 "example*.py" = ["T20", "BLE001"] # top-level usage examples
 "tests/*.py" = [
@@ -666,7 +666,7 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
 [tool.ruff.lint.isort]
 force-sort-within-sections = true # Keep imports sorted even within sections
 required-imports = []
-known-first-party = ["aiohomematic",] # Treat these as first-party for import sorting
+known-first-party = ["aiohomematic", "aiohomematic_contract",] # Treat these as first-party for import sorting
 known-third-party = ["orjson", "pydantic"] # Treat these as third-party packages
 combine-as-imports = true # Combine multiple as-imports from the same module
 split-on-trailing-comma = false # Don't split imports solely due to trailing commas

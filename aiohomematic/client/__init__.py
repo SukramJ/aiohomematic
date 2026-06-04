@@ -50,7 +50,7 @@ from aiohomematic.client.backends import create_backend
 from aiohomematic.client.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from aiohomematic.client.client_factory import ClientConfig
 from aiohomematic.client.command_retry import CommandRetryHandler
-from aiohomematic.client.command_throttle import CommandPriority, CommandThrottle
+from aiohomematic.client.command_throttle import CommandThrottle
 from aiohomematic.client.config import InterfaceConfig
 from aiohomematic.client.interface_client import InterfaceClient
 from aiohomematic.client.json_rpc import AioJsonRpcAioHttpClient
@@ -73,7 +73,6 @@ __all__ = [
     # Command retry
     "CommandRetryHandler",
     # Command throttle
-    "CommandPriority",
     "CommandThrottle",
     # Config
     "ClientConfig",

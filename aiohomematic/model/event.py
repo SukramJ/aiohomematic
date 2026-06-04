@@ -33,7 +33,6 @@ from typing import Any, Final, override
 
 from aiohomematic import ccu_translations, i18n, support as hms
 from aiohomematic.async_support import loop_check
-from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     CLICK_EVENTS,
     DATA_POINT_EVENTS,
@@ -48,6 +47,7 @@ from aiohomematic.const import (
     ServiceScope,
 )
 from aiohomematic.decorators import inspector
+from aiohomematic.event_types import DataPointStateChangedEvent
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import ChannelProtocol, DeviceProtocol, GenericEventProtocolAny
 from aiohomematic.interfaces.model import ChannelEventGroupProtocol

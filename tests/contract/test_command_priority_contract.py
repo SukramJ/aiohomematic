@@ -22,9 +22,10 @@ See docs/adr/0020-command-throttling-priority-and-optimistic-updates.md for deta
 
 from unittest.mock import MagicMock
 
+from aiohomematic_contract import CommandPriority
 import pytest
 
-from aiohomematic.client import CommandPriority, CommandThrottle
+from aiohomematic.client import CommandThrottle
 from aiohomematic.const import Parameter
 from aiohomematic.model.data_point import BaseParameterDataPoint, CallParameterCollector
 

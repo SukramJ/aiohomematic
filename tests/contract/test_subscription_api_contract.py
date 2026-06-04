@@ -21,7 +21,8 @@ import asyncio
 from collections.abc import Callable
 from typing import Any
 
-from aiohomematic.central.events import ClientStateChangedEvent, DataPointValueReceivedEvent, Event, EventBus
+from aiohomematic.central.events import EventBus
+from aiohomematic.event_types import ClientStateChangedEvent, DataPointValueReceivedEvent, Event
 from aiohomematic.type_aliases import AsyncTaskFactoryAny, CoroutineAny
 
 
@@ -283,7 +284,7 @@ class TestEventImportsContract:
 
     def test_eventpriority_importable(self) -> None:
         """Contract: EventPriority importable from central.events."""
-        from aiohomematic.central.events import EventPriority
+        from aiohomematic.event_types import EventPriority
 
         assert hasattr(EventPriority, "LOW")
         assert hasattr(EventPriority, "NORMAL")
@@ -292,21 +293,21 @@ class TestEventImportsContract:
 
     def test_eventpriority_ordering(self) -> None:
         """Contract: EventPriority values have correct ordering."""
-        from aiohomematic.central.events import EventPriority
+        from aiohomematic.event_types import EventPriority
 
         assert EventPriority.LOW < EventPriority.NORMAL
         assert EventPriority.NORMAL < EventPriority.HIGH
         assert EventPriority.HIGH < EventPriority.CRITICAL
 
     def test_events_importable_from_central_events(self) -> None:
-        """Contract: Events importable from aiohomematic.central.events."""
-        from aiohomematic.central.events import (
+        """Contract: EventBus from aiohomematic.central.events; event types from aiohomematic.event_types."""
+        from aiohomematic.central.events import EventBus
+        from aiohomematic.event_types import (
             CentralStateChangedEvent,
             ClientStateChangedEvent,
             DataPointValueReceivedEvent,
             DeviceStateChangedEvent,
             Event,
-            EventBus,
         )
 
         assert Event is not None

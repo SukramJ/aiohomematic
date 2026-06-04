@@ -20,9 +20,10 @@ import pytest
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central.coordinators import ConnectionRecoveryCoordinator
-from aiohomematic.central.events import CircuitBreakerTrippedEvent, ConnectionLostEvent, EventBus
+from aiohomematic.central.events import EventBus
 from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState, RequestCoalescer
 from aiohomematic.const import INIT_DATETIME, NO_CACHE_ENTRY, Interface
+from aiohomematic.event_types import CircuitBreakerTrippedEvent, ConnectionLostEvent
 from aiohomematic.store.dynamic import CentralDataCache
 from aiohomematic_test_support.event_capture import EventCapture
 

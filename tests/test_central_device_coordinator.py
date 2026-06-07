@@ -2,12 +2,14 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.central.device_coordinator."""
 
+import asyncio
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from aiohomematic.central.coordinators import DeviceCoordinator
-from aiohomematic.const import DeviceDescription
+from aiohomematic.const import DeviceDescription, SourceOfDeviceCreation
 
 
 class _FakeChannel:
@@ -1567,3 +1569,130 @@ class TestIdentifyMissingDeviceDescriptions:
             paramset_description_provider=central.cache_coordinator.paramset_descriptions,
             task_scheduler=central.looper,
         )  # type: ignore[arg-type]
+
+
+class _BuildableDevice:
+    """Fake device returned by a patched ``Device`` constructor during create_devices tests."""
+
+    def __init__(self, *, address: str, interface_id: str) -> None:
+        """Initialize a buildable fake device."""
+        self.address = address
+        self.interface_id = interface_id
+        self.finalize_init_called = False
+
+    async def finalize_init(self) -> None:
+        """Record that finalize_init was awaited."""
+        self.finalize_init_called = True
+
+
+def _make_create_devices_coordinator() -> tuple[DeviceCoordinator, _FakeCentral]:
+    """Create a DeviceCoordinator wired with the prerequisites of ``create_devices``."""
+    central = _FakeCentral()
+    # create_devices guards on has_clients and dispatches via event_coordinator.
+    central.client_coordinator.has_clients = True  # type: ignore[attr-defined]
+    central.event_coordinator = MagicMock()  # type: ignore[attr-defined]
+
+    coordinator = DeviceCoordinator(
+        central_info=central,
+        client_provider=central,
+        config_provider=central,
+        coordinator_provider=central,
+        data_cache_provider=central.cache_coordinator.data_cache,
+        data_point_provider=central,
+        device_description_provider=central.cache_coordinator.device_descriptions,
+        device_details_provider=central.cache_coordinator.device_details,
+        event_bus_provider=central,
+        event_publisher=central,
+        event_subscription_manager=central,
+        file_operations=central,
+        parameter_visibility_provider=central.cache_coordinator.parameter_visibility,
+        paramset_description_provider=central.cache_coordinator.paramset_descriptions,
+        task_scheduler=central.looper,
+    )  # type: ignore[arg-type]
+    return coordinator, central
+
+
+class TestDeviceCoordinatorCreateDevicesInterruption:
+    """
+    Cover interruption handling of ``DeviceCoordinator.create_devices``.
+
+    Regression guard for issue #3213: when device creation is interrupted by a
+    ``CancelledError`` (e.g. Home Assistant cancelling a slow config-entry setup, or the
+    event loop being blocked past its timeout), creation must not fail silently. The
+    interruption is logged and propagates; already-built devices are not dispatched.
+    """
+
+    @pytest.mark.asyncio
+    async def test_create_devices_completes_without_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        """An uninterrupted run dispatches devices and emits no interruption warning."""
+        coordinator, central = _make_create_devices_coordinator()
+
+        with (
+            patch(
+                "aiohomematic.central.coordinators.device.Device",
+                side_effect=lambda *, context: _BuildableDevice(
+                    address=context.device_address, interface_id=context.interface_id
+                ),
+            ),
+            patch("aiohomematic.central.coordinators.device.create_data_points_and_events"),
+            patch("aiohomematic.central.coordinators.device.create_custom_data_points"),
+            patch("aiohomematic.central.coordinators.device.create_week_profile_data_point"),
+            patch("aiohomematic.central.coordinators.device._get_new_data_points", return_value={}),
+            patch("aiohomematic.central.coordinators.device._get_new_event_groups", return_value=()),
+            caplog.at_level(logging.WARNING, logger="aiohomematic.central.coordinators.device"),
+        ):
+            await coordinator.create_devices(
+                new_device_addresses={"test-interface": {"VCU0000001", "VCU0000002"}},
+                source=SourceOfDeviceCreation.CACHE,
+            )
+
+        assert not any("CREATE_DEVICES interrupted" in r.getMessage() for r in caplog.records)
+        # All devices dispatched and registered.
+        central.event_coordinator.publish_system_event.assert_called_once()  # type: ignore[attr-defined]
+        assert len(central.device_registry.get_device_addresses()) == 2
+
+    @pytest.mark.asyncio
+    async def test_create_devices_logs_warning_when_cancelled_mid_loop(self, caplog: pytest.LogCaptureFixture) -> None:
+        """A CancelledError mid-loop must surface a warning and propagate (not vanish silently)."""
+        coordinator, central = _make_create_devices_coordinator()
+
+        # add_device succeeds for the first device, then a CancelledError interrupts the run
+        # (mirrors the production log where the loop died at ``await add_device`` of device 40/88).
+        add_calls = {"count": 0}
+        real_add = central.device_registry.add_device
+
+        async def _add_device_then_cancel(*, device: object) -> None:
+            add_calls["count"] += 1
+            if add_calls["count"] == 2:
+                raise asyncio.CancelledError
+            await real_add(device=device)  # type: ignore[arg-type]
+
+        central.device_registry.add_device = _add_device_then_cancel  # type: ignore[assignment]
+
+        with (
+            patch(
+                "aiohomematic.central.coordinators.device.Device",
+                side_effect=lambda *, context: _BuildableDevice(
+                    address=context.device_address, interface_id=context.interface_id
+                ),
+            ),
+            patch("aiohomematic.central.coordinators.device.create_data_points_and_events"),
+            patch("aiohomematic.central.coordinators.device.create_custom_data_points"),
+            patch("aiohomematic.central.coordinators.device.create_week_profile_data_point"),
+            caplog.at_level(logging.WARNING, logger="aiohomematic.central.coordinators.device"),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await coordinator.create_devices(
+                new_device_addresses={"test-interface": {"VCU0000001", "VCU0000002", "VCU0000003"}},
+                source=SourceOfDeviceCreation.CACHE,
+            )
+
+        # The interruption is observable instead of silent.
+        warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("CREATE_DEVICES interrupted" in msg and "of 3" in msg for msg in warnings), warnings
+
+        # Already-built devices were NOT dispatched to consumers (no DEVICES_CREATED event).
+        central.event_coordinator.publish_system_event.assert_not_called()  # type: ignore[attr-defined]
+
+        # Exactly one device made it into the registry before the interruption (stranded).
+        assert len(central.device_registry.get_device_addresses()) == 1

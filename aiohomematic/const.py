@@ -21,7 +21,7 @@ from pydantic import BaseModel, ConfigDict
 
 from aiohomematic_contract import DataPointCategory, DataPointType
 
-VERSION: Final = "2026.6.0"
+VERSION: Final = "2026.6.1"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (

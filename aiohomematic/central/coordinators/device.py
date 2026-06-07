@@ -373,59 +373,82 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             )
         _LOGGER.debug("CREATE_DEVICES: Starting to create devices for %s", self._central_info.name)
 
+        expected_device_count = sum(len(addresses) for addresses in new_device_addresses.values())
         new_devices = set[DeviceProtocol]()
 
-        for interface_id, device_addresses in new_device_addresses.items():
-            for device_address in device_addresses:
-                # Do we check for duplicates here? For now, we do.
-                if self.device_registry.has_device(address=device_address):
-                    continue
-                device: DeviceProtocol | None = None
-                try:
-                    context = DeviceContext(
-                        interface_id=interface_id,
-                        device_address=device_address,
-                        central_info=self._central_info,
-                        config_provider=self._config_provider,
-                        file_operations=self._file_operations,
-                        device_data_refresher=self,
-                        device_description_provider=self._device_description_provider,
-                        device_details_provider=self._device_details_provider,
-                        paramset_description_provider=self._paramset_description_provider,
-                        parameter_visibility_provider=self._parameter_visibility_provider,
-                        event_bus_provider=self._event_bus_provider,
-                        event_publisher=self._event_publisher,
-                        event_subscription_manager=self._event_subscription_manager,
-                        task_scheduler=self._task_scheduler,
-                        client_provider=self._client_provider,
-                        data_cache_provider=self._data_cache_provider,
-                        data_point_provider=self._data_point_provider,
-                        channel_lookup=self,
-                    )
-                    device = Device(context=context)
-                except Exception as exc:  # noqa: BLE001 - device creation must not abort bulk device processing
-                    _LOGGER.error(  # i18n-log: ignore
-                        "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",
-                        type(exc).__name__,
-                        extract_exc_args(exc=exc),
-                        interface_id,
-                        device_address,
-                    )
-                try:
-                    if device:
-                        create_data_points_and_events(device=device)
-                        create_custom_data_points(device=device)
-                        create_week_profile_data_point(device=device)
-                        new_devices.add(device)
-                        await self.device_registry.add_device(device=device)
-                except Exception as exc:  # noqa: BLE001 - data point creation must not abort bulk device processing
-                    _LOGGER.error(  # i18n-log: ignore
-                        "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
-                        type(exc).__name__,
-                        extract_exc_args(exc=exc),
-                        interface_id,
-                        device_address,
-                    )
+        # The per-device ``except Exception`` blocks below deliberately swallow recoverable errors
+        # so a single broken device does not abort bulk processing. They do NOT catch
+        # ``BaseException`` (e.g. ``asyncio.CancelledError`` raised when Home Assistant cancels a
+        # slow config-entry setup, or when the event loop is blocked past its timeout). Such an
+        # interruption would otherwise abandon device creation silently: already-built devices stay
+        # in the registry but are never dispatched (no ``DEVICES_CREATED`` event), leaving the
+        # integration with zero entities and no diagnostic in the log. The ``try/finally`` makes the
+        # interruption observable without altering its propagation.
+        devices_created = False
+        try:
+            for interface_id, device_addresses in new_device_addresses.items():
+                for device_address in device_addresses:
+                    # Do we check for duplicates here? For now, we do.
+                    if self.device_registry.has_device(address=device_address):
+                        continue
+                    device: DeviceProtocol | None = None
+                    try:
+                        context = DeviceContext(
+                            interface_id=interface_id,
+                            device_address=device_address,
+                            central_info=self._central_info,
+                            config_provider=self._config_provider,
+                            file_operations=self._file_operations,
+                            device_data_refresher=self,
+                            device_description_provider=self._device_description_provider,
+                            device_details_provider=self._device_details_provider,
+                            paramset_description_provider=self._paramset_description_provider,
+                            parameter_visibility_provider=self._parameter_visibility_provider,
+                            event_bus_provider=self._event_bus_provider,
+                            event_publisher=self._event_publisher,
+                            event_subscription_manager=self._event_subscription_manager,
+                            task_scheduler=self._task_scheduler,
+                            client_provider=self._client_provider,
+                            data_cache_provider=self._data_cache_provider,
+                            data_point_provider=self._data_point_provider,
+                            channel_lookup=self,
+                        )
+                        device = Device(context=context)
+                    except Exception as exc:  # noqa: BLE001 - device creation must not abort bulk device processing
+                        _LOGGER.error(  # i18n-log: ignore
+                            "CREATE_DEVICES failed: %s [%s] Unable to create device: %s, %s",
+                            type(exc).__name__,
+                            extract_exc_args(exc=exc),
+                            interface_id,
+                            device_address,
+                        )
+                    try:
+                        if device:
+                            create_data_points_and_events(device=device)
+                            create_custom_data_points(device=device)
+                            create_week_profile_data_point(device=device)
+                            new_devices.add(device)
+                            await self.device_registry.add_device(device=device)
+                    except Exception as exc:  # noqa: BLE001 - data point creation must not abort bulk device processing
+                        _LOGGER.error(  # i18n-log: ignore
+                            "CREATE_DEVICES failed: %s [%s] Unable to create data points: %s, %s",
+                            type(exc).__name__,
+                            extract_exc_args(exc=exc),
+                            interface_id,
+                            device_address,
+                        )
+            devices_created = True
+        finally:
+            if not devices_created:
+                _LOGGER.warning(  # i18n-log: ignore
+                    "CREATE_DEVICES interrupted: built %d of %d device(s) for %s before the run was "
+                    "aborted (cancelled setup or unexpected error); already-built devices were not "
+                    "dispatched and will be retried on the next connection",
+                    len(new_devices),
+                    expected_device_count,
+                    self._central_info.name,
+                )
+
         _LOGGER.debug("CREATE_DEVICES: Finished creating devices for %s", self._central_info.name)
 
         if new_devices:

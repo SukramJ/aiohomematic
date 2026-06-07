@@ -1,3 +1,23 @@
+# Version 2026.6.1 (2026-06-04)
+
+## What's Changed
+
+### Fixed
+
+- **Device creation could be abandoned silently when interrupted.**
+  `DeviceCoordinator.create_devices()` builds devices in a loop and only
+  dispatches them (via the `DEVICES_CREATED` system event) after the loop
+  finishes. The per-device error handling caught `Exception` but not
+  `BaseException`, so a `CancelledError` mid-loop — e.g. when Home Assistant
+  cancels a slow config-entry setup, or when the event loop is blocked past its
+  timeout — abandoned the run with **no log entry**: already-built devices
+  stayed in the registry but were never dispatched, leaving the integration
+  with zero entities and no diagnostic. The loop is now wrapped in a
+  `try/finally` that logs a clear warning (with build progress) when the run is
+  interrupted, without altering exception propagation. This makes the failure
+  observable; the underlying interruption still needs to be addressed at its
+  source (#3213).
+
 # Version 2026.6.0 (2026-06-01)
 
 ## What's Changed

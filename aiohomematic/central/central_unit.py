@@ -27,7 +27,7 @@ from aiohomematic.central.coordinators import (
     LinkCoordinator,
 )
 from aiohomematic.central.device_registry import DeviceRegistry
-from aiohomematic.central.events import EventBus
+from aiohomematic.central.events import CentralStateChangedEvent, EventBus, SystemStatusChangedEvent
 from aiohomematic.central.health import CentralHealth, HealthTracker
 from aiohomematic.central.query_facade import DeviceQueryFacade
 from aiohomematic.central.registry import CENTRAL_REGISTRY
@@ -52,7 +52,6 @@ from aiohomematic.const import (
     SystemInformation,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.event_types import CentralStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException, NoClientsException
 from aiohomematic.interfaces.central import CentralConfigProtocol, CentralProtocol
 from aiohomematic.interfaces.client import ClientProtocol

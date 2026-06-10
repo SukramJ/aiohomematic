@@ -6,10 +6,9 @@ import time
 from types import SimpleNamespace
 from typing import Any
 
-from aiohomematic_contract import CommandPriority
 import pytest
 
-from aiohomematic.client import CommandThrottle, InterfaceClient, InterfaceConfig
+from aiohomematic.client import CommandPriority, CommandThrottle, InterfaceClient, InterfaceConfig
 from aiohomematic.const import Interface, ParamsetKey, TimeoutConfig
 from aiohomematic.exceptions import CommandSupersededError
 

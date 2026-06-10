@@ -41,15 +41,15 @@ from unittest.mock import MagicMock, Mock, patch
 from aiohttp import ClientSession
 
 from aiohomematic.central import CentralConfig, CentralUnit
-from aiohomematic.client import InterfaceConfig, create_client as create_client_func
-from aiohomematic.const import LOCAL_HOST, Interface
-from aiohomematic.event_types import (
+from aiohomematic.central.events import (
     DataPointsCreatedEvent,
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
     DeviceTriggerEvent,
     SystemStatusChangedEvent,
 )
+from aiohomematic.client import InterfaceConfig, create_client as create_client_func
+from aiohomematic.const import LOCAL_HOST, Interface
 from aiohomematic.interfaces import ClientProtocol
 from aiohomematic_test_support import const
 from aiohomematic_test_support.mock import SessionPlayer, get_client_session, get_mock, get_xml_rpc_proxy

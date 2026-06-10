@@ -556,7 +556,7 @@ class TestHubCoordinatorSysvarOperations:
         assert coordinator._sysvar_data_points["123"] == sysvar_dp
 
         # Should have subscribed via EventBus (using the new pattern)
-        from aiohomematic.event_types import SysvarStateChangedEvent
+        from aiohomematic.central.events import SysvarStateChangedEvent
 
         central.event_bus.subscribe.assert_called_once()
         call_args = central.event_bus.subscribe.call_args

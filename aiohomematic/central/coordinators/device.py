@@ -24,6 +24,8 @@ from typing import Any, Final
 from aiohomematic import i18n
 from aiohomematic.central.decorators import callback_backend_system
 from aiohomematic.central.device_registry import DeviceRegistry
+from aiohomematic.central.events import DeviceRemovedEvent, IntegrationIssue, SystemStatusChangedEvent
+from aiohomematic.central.events.internal import DataFetchCompletedEvent, DataFetchOperation
 from aiohomematic.const import (
     CATEGORIES,
     DataPointCategory,
@@ -37,13 +39,6 @@ from aiohomematic.const import (
     SystemEventType,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.event_types import (
-    DataFetchCompletedEvent,
-    DataFetchOperation,
-    DeviceRemovedEvent,
-    IntegrationIssue,
-    SystemStatusChangedEvent,
-)
 from aiohomematic.exceptions import AioHomematicException
 from aiohomematic.interfaces import (
     CallbackDataPointProtocol,

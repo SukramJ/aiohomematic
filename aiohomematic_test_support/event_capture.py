@@ -17,8 +17,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
-    from aiohomematic.central.events import EventBus
-    from aiohomematic.event_types import Event
+    from aiohomematic.central.events import Event, EventBus
 
 T = TypeVar("T", bound="Event")
 

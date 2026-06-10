@@ -15,16 +15,16 @@ from datetime import datetime, timedelta
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.events import EventBus
-from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState, RequestCoalescer
-from aiohomematic.const import DataRefreshType
-from aiohomematic.event_types import (
+from aiohomematic.central.events import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     DataRefreshCompletedEvent,
     DataRefreshTriggeredEvent,
+    EventBus,
     RequestCoalescedEvent,
 )
+from aiohomematic.client import CircuitBreaker, CircuitBreakerConfig, CircuitState, RequestCoalescer
+from aiohomematic.const import DataRefreshType
 from aiohomematic_test_support.event_capture import EventCapture, EventSequenceAssertion
 
 # =============================================================================
@@ -443,7 +443,7 @@ class TestEventCaptureUtilities:
         """Test clear method removes captured events."""
         capture = EventCapture()
         # Manually add some events for testing
-        from aiohomematic.event_types import Event
+        from aiohomematic.central.events import Event
 
         class DummyEvent(Event):
             @property

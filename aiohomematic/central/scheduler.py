@@ -27,19 +27,18 @@ from typing import Final
 
 from aiohomematic import i18n
 from aiohomematic.central.coordinators import ClientCoordinator, EventCoordinator
+from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
+from aiohomematic.central.events.internal import (
+    ConnectionLostEvent,
+    DataRefreshCompletedEvent,
+    DataRefreshTriggeredEvent,
+)
 from aiohomematic.const import (
     SCHEDULER_LOOP_SLEEP,
     SCHEDULER_NOT_STARTED_SLEEP,
     CentralState,
     DataRefreshType,
     DeviceFirmwareState,
-)
-from aiohomematic.event_types import (
-    ConnectionLostEvent,
-    DataRefreshCompletedEvent,
-    DataRefreshTriggeredEvent,
-    DeviceLifecycleEvent,
-    DeviceLifecycleEventType,
 )
 from aiohomematic.exceptions import NoConnectionException
 from aiohomematic.interfaces import (

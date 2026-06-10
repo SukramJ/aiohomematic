@@ -32,7 +32,7 @@ Design Philosophy
 
 Example Usage
 -------------
-    from aiohomematic.event_types import (
+    from aiohomematic.central.events import (
         SystemStatusChangedEvent,
         DeviceLifecycleEvent,
         DataPointsCreatedEvent,
@@ -59,6 +59,7 @@ from dataclasses import dataclass
 from enum import StrEnum, unique
 from typing import TYPE_CHECKING, Any
 
+from aiohomematic.central.events.types import Event
 from aiohomematic.const import (
     CentralState,
     ClientState,
@@ -69,7 +70,6 @@ from aiohomematic.const import (
     IntegrationIssueType,
     PingPongMismatchType,
 )
-from aiohomematic.event_types.base import Event
 
 if TYPE_CHECKING:
     from aiohomematic.interfaces import CallbackDataPointProtocol

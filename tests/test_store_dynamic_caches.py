@@ -18,9 +18,8 @@ from freezegun import freeze_time
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.events import EventBus
+from aiohomematic.central.events import EventBus, SystemStatusChangedEvent
 from aiohomematic.const import IntegrationIssueSeverity, IntegrationIssueType, ParamsetKey, PingPongMismatchType
-from aiohomematic.event_types import SystemStatusChangedEvent
 from aiohomematic.store.dynamic import CommandTracker, PingPongTracker
 
 

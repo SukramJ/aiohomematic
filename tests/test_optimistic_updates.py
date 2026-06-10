@@ -3,9 +3,9 @@
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-from aiohomematic_contract import CommandPriority
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.const import RollbackReason
 from aiohomematic.model.data_point import BaseParameterDataPoint
@@ -144,7 +144,7 @@ class TestOptimisticUpdateEvents:
 
     def test_rollback_event_class_exists(self) -> None:
         """Test that OptimisticRollbackEvent exists."""
-        from aiohomematic.event_types import OptimisticRollbackEvent
+        from aiohomematic.central.events import OptimisticRollbackEvent
 
         assert OptimisticRollbackEvent is not None
 
@@ -152,7 +152,7 @@ class TestOptimisticUpdateEvents:
         """Test that rollback event has required fields."""
         import inspect
 
-        from aiohomematic.event_types import OptimisticRollbackEvent
+        from aiohomematic.central.events import OptimisticRollbackEvent
 
         # Check if it's a dataclass or has expected attributes
         sig = inspect.signature(OptimisticRollbackEvent.__init__)

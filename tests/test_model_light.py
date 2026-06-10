@@ -5,9 +5,9 @@
 from typing import Any, cast
 from unittest.mock import call
 
-from aiohomematic_contract import CommandPriority
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import (
     CustomDpColorDimmer,

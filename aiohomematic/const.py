@@ -19,9 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-from aiohomematic_contract import DataPointCategory, DataPointType
-
-VERSION: Final = "2026.6.1"
+VERSION: Final = "2026.6.2"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -819,10 +817,68 @@ class DataOperationResult(Enum):
     NO_SAVE = 21
 
 
-# DataPointCategory and DataPointType are defined canonically in the shared
-# aiohomematic-contract package and re-exported here (imported at module top),
-# so existing `from aiohomematic.const import DataPointCategory` keeps working
-# while the daemon-backed client shares the exact same enum values.
+@unique
+class DataPointCategory(StrEnum):
+    """Enum with data point types."""
+
+    ACTION = "action"
+    ACTION_NUMBER = "action_number"
+    ACTION_SELECT = "action_select"
+    BINARY_SENSOR = "binary_sensor"
+    BUTTON = "button"
+    CLIMATE = "climate"
+    COVER = "cover"
+    EVENT = "event"
+    EVENT_GROUP = "event_group"
+    HUB_BINARY_SENSOR = "hub_binary_sensor"
+    HUB_BUTTON = "hub_button"
+    HUB_NUMBER = "hub_number"
+    HUB_SELECT = "hub_select"
+    HUB_SENSOR = "hub_sensor"
+    HUB_SWITCH = "hub_switch"
+    HUB_TEXT = "hub_text"
+    HUB_UPDATE = "hub_update"
+    LIGHT = "light"
+    LOCK = "lock"
+    NUMBER = "number"
+    SCHEDULE_SWITCH = "schedule_switch"
+    SELECT = "select"
+    SENSOR = "sensor"
+    SIREN = "siren"
+    SWITCH = "switch"
+    TEXT = "text"
+    TEXT_DISPLAY = "text_display"
+    UNDEFINED = "undefined"
+    UPDATE = "update"
+    VALVE = "valve"
+    WEEK_PROFILE = "week_profile"
+
+
+@unique
+class DataPointType(StrEnum):
+    """
+    Canonical data point type for downstream consumers.
+
+    Maps each data point to a functional type (sensor, switch, climate, etc.)
+    that downstream projects can use for entity/device routing without
+    isinstance checks or custom mapping logic.
+    """
+
+    BINARY_SENSOR = "binary_sensor"
+    BUTTON = "button"
+    CLIMATE = "climate"
+    COVER = "cover"
+    EVENT = "event"
+    LIGHT = "light"
+    LOCK = "lock"
+    NUMBER = "number"
+    SELECT = "select"
+    SENSOR = "sensor"
+    SIREN = "siren"
+    SWITCH = "switch"
+    TEXT = "text"
+    UPDATE = "update"
+    VALVE = "valve"
 
 
 _CATEGORY_TO_DATA_POINT_TYPE: Final[dict[DataPointCategory, DataPointType]] = {
@@ -2515,19 +2571,11 @@ class ValueBehavior(StrEnum):
 
 
 # Define public API for this module
-# DataPointCategory / DataPointType are re-exported from aiohomematic-contract.
-# Listed in a static __all__ so they count as explicit public re-exports
-# (mypy no_implicit_reexport); the generated names are appended afterwards.
-__all__: tuple[str, ...] = (
-    "DataPointCategory",
-    "DataPointType",
-)
-__all__ += tuple(
+__all__ = tuple(
     sorted(
         name
         for name, obj in globals().items()
         if not name.startswith("_")
-        and name not in ("DataPointCategory", "DataPointType")
         and (
             name.isupper()  # constants like VERSION, patterns, defaults
             or inspect.isclass(obj)  # Enums, dataclasses, TypedDicts, NamedTuple classes

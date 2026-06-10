@@ -46,8 +46,9 @@ import logging
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
+from aiohomematic.central.events import SystemStatusChangedEvent
+from aiohomematic.central.events.types import CentralStateChangedEvent
 from aiohomematic.const import CentralState, FailureReason
-from aiohomematic.event_types import CentralStateChangedEvent, SystemStatusChangedEvent
 from aiohomematic.interfaces.central import CentralStateMachineProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
@@ -140,8 +141,7 @@ class CentralStateMachine(CentralStateMachineProtocol):
     event loop/thread.
 
     Example:
-        from aiohomematic.central.events import EventBus
-        from aiohomematic.event_types import CentralStateChangedEvent
+        from aiohomematic.central.events import CentralStateChangedEvent, EventBus
 
         def on_state_changed(*, event: CentralStateChangedEvent) -> None:
             print(f"Central state: {event.old_state} -> {event.new_state}")

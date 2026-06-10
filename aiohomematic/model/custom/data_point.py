@@ -13,9 +13,9 @@ from typing import Any, Final, Unpack, override
 import weakref
 
 from aiohomematic import ccu_translations
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import INIT_DATETIME, CallSource, DataPointKey, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.decorators import inspector
-from aiohomematic.event_types import DataPointStateChangedEvent
 from aiohomematic.interfaces import ChannelProtocol, CustomDataPointProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.combined.data_point import CombinedDataPoint
 from aiohomematic.model.combined.field import COMBINED_FIELD_MARKER, CombinedFieldProtocol

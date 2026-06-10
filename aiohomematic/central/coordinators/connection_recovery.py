@@ -54,6 +54,20 @@ import logging
 import time
 from typing import TYPE_CHECKING, Final
 
+from aiohomematic.central.events import (
+    CentralStateChangedEvent,
+    RecoveryCompletedEvent,
+    RecoveryFailedEvent,
+    RecoveryStageChangedEvent,
+    SystemStatusChangedEvent,
+)
+from aiohomematic.central.events.internal import (
+    CircuitBreakerStateChangedEvent,
+    CircuitBreakerTrippedEvent,
+    ConnectionLostEvent,
+    HeartbeatTimerFiredEvent,
+    RecoveryAttemptedEvent,
+)
 from aiohomematic.client import CircuitState
 from aiohomematic.const import (
     INTERFACES_REQUIRING_JSON_RPC_CLIENT,
@@ -62,18 +76,6 @@ from aiohomematic.const import (
     FailureReason,
     RecoveryStage,
     get_json_rpc_default_port,
-)
-from aiohomematic.event_types import (
-    CentralStateChangedEvent,
-    CircuitBreakerStateChangedEvent,
-    CircuitBreakerTrippedEvent,
-    ConnectionLostEvent,
-    HeartbeatTimerFiredEvent,
-    RecoveryAttemptedEvent,
-    RecoveryCompletedEvent,
-    RecoveryFailedEvent,
-    RecoveryStageChangedEvent,
-    SystemStatusChangedEvent,
 )
 from aiohomematic.metrics._protocols import RecoveryProviderForMetricsProtocol
 from aiohomematic.store.types import IncidentSeverity, IncidentType

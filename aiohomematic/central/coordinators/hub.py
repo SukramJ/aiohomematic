@@ -19,9 +19,10 @@ import logging
 from typing import Any, Final
 
 from aiohomematic import i18n
+from aiohomematic.central.events import SysvarStateChangedEvent
+from aiohomematic.central.events.internal import ProgramExecutedEvent
 from aiohomematic.const import DataPointCategory, Interface, ProgramTrigger
 from aiohomematic.decorators import inspector
-from aiohomematic.event_types import ProgramExecutedEvent, SysvarStateChangedEvent
 from aiohomematic.interfaces import (
     CentralInfoProtocol,
     ChannelLookupProtocol,

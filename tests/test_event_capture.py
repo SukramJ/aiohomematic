@@ -7,15 +7,15 @@ from datetime import datetime
 import pytest
 
 from aiohomematic.async_support import Looper
-from aiohomematic.central.events import EventBus
-from aiohomematic.client import CircuitState
-from aiohomematic.const import ConnectionStage
-from aiohomematic.event_types import (
+from aiohomematic.central.events import (
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     ConnectionStageChangedEvent,
     DataRefreshCompletedEvent,
+    EventBus,
 )
+from aiohomematic.client import CircuitState
+from aiohomematic.const import ConnectionStage
 from aiohomematic_test_support.event_capture import EventCapture, EventSequenceAssertion
 
 

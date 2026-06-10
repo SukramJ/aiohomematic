@@ -1,3 +1,12 @@
+# Version 2026.6.2 (2026-06-10)
+
+## What's Changed
+
+### Reverted
+
+- PR #3214: Feature/contract extraction 
+
+
 # Version 2026.6.1 (2026-06-04)
 
 ## What's Changed

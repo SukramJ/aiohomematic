@@ -54,8 +54,8 @@ from types import TracebackType
 from typing import Any, Final, Self
 
 from aiohomematic.central import CentralConfig, CentralUnit
+from aiohomematic.central.events.internal import DataPointValueReceivedEvent
 from aiohomematic.const import ParamsetKey
-from aiohomematic.event_types import DataPointValueReceivedEvent
 from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support.address import get_device_address

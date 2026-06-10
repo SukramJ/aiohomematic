@@ -90,7 +90,7 @@ class TestOptimisticRollbackEventContract:
 
         This event is published when optimistic values are rolled back.
         """
-        from aiohomematic.event_types import OptimisticRollbackEvent
+        from aiohomematic.central.events import OptimisticRollbackEvent
 
         assert OptimisticRollbackEvent is not None
 
@@ -102,7 +102,7 @@ class TestOptimisticRollbackEventContract:
         """
         import inspect
 
-        from aiohomematic.event_types import OptimisticRollbackEvent
+        from aiohomematic.central.events import OptimisticRollbackEvent
 
         sig = inspect.signature(OptimisticRollbackEvent.__init__)
         params = list(sig.parameters.keys())

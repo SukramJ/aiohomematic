@@ -2,8 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from aiohomematic_contract import CommandPriority
-
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import Parameter
 from aiohomematic.model.data_point import BaseParameterDataPoint
 

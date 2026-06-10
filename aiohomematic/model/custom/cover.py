@@ -11,6 +11,7 @@ from enum import IntEnum, StrEnum, unique
 import logging
 from typing import Final, Unpack, override
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
 from aiohomematic.interfaces import GenericDataPointProtocolAny
@@ -27,7 +28,6 @@ from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDe
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpActionString, DpFloat, DpSelect, DpSensor
 from aiohomematic.property_decorators import config_property, state_property
-from aiohomematic_contract import CommandPriority
 
 _LOGGER: Final = logging.getLogger(__name__)
 

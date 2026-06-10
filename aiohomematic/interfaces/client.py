@@ -54,9 +54,11 @@ from aiohomematic.const import (
     ProxyInitState,
     SystemInformation,
 )
+
+if TYPE_CHECKING:
+    from aiohomematic.client.command_throttle import CommandPriority
 from aiohomematic.interfaces.operations import TaskSchedulerProtocol
 from aiohomematic.metrics._protocols import ClientProviderForMetricsProtocol
-from aiohomematic_contract import CommandPriority
 
 if TYPE_CHECKING:
     from aiohomematic.central import CentralConnectionState, DeviceRegistry
@@ -1294,3 +1296,11 @@ class ClientDependenciesProtocol(Protocol):
         save_paramset_descriptions: bool = False,
     ) -> None:
         """Save persistent files to disk."""
+
+
+# Deferred import: CommandPriority is used in protocol annotations above but lives in
+# aiohomematic.client.command_throttle, which imports from this module (circular).
+# By the time this line executes the module is fully initialized, so the circular
+# import resolves cleanly. Python 3.14 (PEP 649) evaluates annotations lazily in
+# the module globals, so the name must be present here at annotation-resolution time.
+from aiohomematic.client.command_throttle import CommandPriority  # noqa: E402

@@ -41,6 +41,7 @@ from datetime import datetime
 import logging
 from typing import Final, NamedTuple
 
+from aiohomematic.central.events.types import ClientStateChangedEvent
 from aiohomematic.const import (
     HUB_CATEGORIES,
     Backend,
@@ -54,7 +55,6 @@ from aiohomematic.const import (
     SystemVariableData,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.event_types import ClientStateChangedEvent
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
     ChannelLookupProtocol,

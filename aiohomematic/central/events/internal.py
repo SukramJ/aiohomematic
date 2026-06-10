@@ -6,7 +6,7 @@ Internal event types for coordinator communication within aiohomematic.
 These events are **not part of the public API**. External consumers
 (Home Assistant integration, MQTT bridge, Matter bridge) must not
 subscribe to or import these events. Use the public events from
-``aiohomematic.event_types`` instead.
+``aiohomematic.central.events`` instead.
 
 Internal events are used for:
 
@@ -24,6 +24,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from aiohomematic.central.events.types import (
+    CircuitBreakerStateChangedEvent,
+    CircuitBreakerTrippedEvent,
+    DataFetchCompletedEvent,
+    DataFetchOperation,
+    Event,
+    HealthRecordedEvent,
+)
 from aiohomematic.const import (
     CacheInvalidationReason,
     CacheType,
@@ -34,45 +42,37 @@ from aiohomematic.const import (
     ProgramTrigger,
     RecoveryStage,
 )
-from aiohomematic.event_types.base import (
-    CircuitBreakerStateChangedEvent,
-    CircuitBreakerTrippedEvent,
-    DataFetchCompletedEvent,
-    DataFetchOperation,
-    Event,
-    HealthRecordedEvent,
-)
 
 __all__ = [
-    # Cache
-    "CacheInvalidatedEvent",
     # Re-exported from types.py (canonical location for internal use)
     "CircuitBreakerStateChangedEvent",
     "CircuitBreakerTrippedEvent",
+    "DataFetchCompletedEvent",
+    "DataFetchOperation",
+    "HealthRecordedEvent",
+    # Data point value routing
+    "DataPointStatusReceivedEvent",
+    "DataPointValueReceivedEvent",
+    # Device/channel state
+    "DeviceStateChangedEvent",
+    "FirmwareStateChangedEvent",
+    "LinkPeerChangedEvent",
     # Connection health
     "ConnectionHealthChangedEvent",
     "ConnectionLostEvent",
     "ConnectionStageChangedEvent",
-    "DataFetchCompletedEvent",
-    "DataFetchOperation",
-    # Data point value routing
-    "DataPointStatusReceivedEvent",
-    "DataPointValueReceivedEvent",
+    # Cache
+    "CacheInvalidatedEvent",
     # Data refresh
     "DataRefreshCompletedEvent",
     "DataRefreshTriggeredEvent",
-    # Device/channel state
-    "DeviceStateChangedEvent",
-    "FirmwareStateChangedEvent",
-    "HealthRecordedEvent",
-    # Recovery (internal-only)
-    "HeartbeatTimerFiredEvent",
-    "LinkPeerChangedEvent",
     # Program execution
     "ProgramExecutedEvent",
-    "RecoveryAttemptedEvent",
     # Request coalescing
     "RequestCoalescedEvent",
+    # Recovery (internal-only)
+    "HeartbeatTimerFiredEvent",
+    "RecoveryAttemptedEvent",
 ]
 
 

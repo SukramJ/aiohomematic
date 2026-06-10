@@ -6,9 +6,9 @@ from datetime import datetime
 from typing import cast
 from unittest.mock import call
 
-from aiohomematic_contract import CommandPriority
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpFloat, DpInteger
 from aiohomematic.model.hub import SysvarDpNumber

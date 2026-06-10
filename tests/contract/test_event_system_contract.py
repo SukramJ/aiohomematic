@@ -23,16 +23,7 @@ from datetime import datetime
 
 import pytest
 
-from aiohomematic.const import (
-    CentralState,
-    CircuitState,
-    ClientState,
-    DeviceTriggerEventType,
-    FailureReason,
-    IntegrationIssueSeverity,
-    IntegrationIssueType,
-)
-from aiohomematic.event_types import (
+from aiohomematic.central.events import (
     CentralStateChangedEvent,
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
@@ -48,6 +39,15 @@ from aiohomematic.event_types import (
     HealthRecordedEvent,
     IntegrationIssue,
     SystemStatusChangedEvent,
+)
+from aiohomematic.const import (
+    CentralState,
+    CircuitState,
+    ClientState,
+    DeviceTriggerEventType,
+    FailureReason,
+    IntegrationIssueSeverity,
+    IntegrationIssueType,
 )
 
 # =============================================================================

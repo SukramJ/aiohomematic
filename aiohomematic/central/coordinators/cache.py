@@ -19,6 +19,8 @@ from datetime import datetime
 import logging
 from typing import Final
 
+from aiohomematic.central.events import DeviceRemovedEvent
+from aiohomematic.central.events.internal import CacheInvalidatedEvent, DataFetchCompletedEvent, DataFetchOperation
 from aiohomematic.const import (
     FILE_DEVICES,
     FILE_INCIDENTS,
@@ -28,12 +30,6 @@ from aiohomematic.const import (
     CacheType,
     DataOperationResult,
     Interface,
-)
-from aiohomematic.event_types import (
-    CacheInvalidatedEvent,
-    DataFetchCompletedEvent,
-    DataFetchOperation,
-    DeviceRemovedEvent,
 )
 from aiohomematic.interfaces import (
     CentralInfoProtocol,

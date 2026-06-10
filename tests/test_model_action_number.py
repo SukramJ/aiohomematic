@@ -5,9 +5,9 @@
 from typing import cast
 from unittest.mock import call
 
-from aiohomematic_contract import CommandPriority
 import pytest
 
+from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, ParamsetKey
 from aiohomematic.model.generic import DpActionFloat, DpActionInteger
 

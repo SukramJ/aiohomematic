@@ -12,6 +12,7 @@ from typing import Final, Unpack, override
 import weakref
 
 from aiohomematic import ccu_translations
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     INIT_DATETIME,
     CallSource,
@@ -23,7 +24,6 @@ from aiohomematic.const import (
     ParamsetKey,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.event_types import DataPointStateChangedEvent
 from aiohomematic.interfaces import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.data_point import BaseDataPoint

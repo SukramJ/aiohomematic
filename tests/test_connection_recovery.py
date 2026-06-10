@@ -16,15 +16,12 @@ from aiohomematic.central.coordinators.connection_recovery import (
     MAX_RETRY_DELAY,
     InterfaceRecoveryState,
 )
-from aiohomematic.central.events import EventBus
-from aiohomematic.central.state_machine import CentralStateMachine
-from aiohomematic.client import CircuitState
-from aiohomematic.const import CentralState, FailureReason, Interface, RecoveryStage
-from aiohomematic.event_types import (
+from aiohomematic.central.events import (
     CentralStateChangedEvent,
     CircuitBreakerStateChangedEvent,
     CircuitBreakerTrippedEvent,
     ConnectionLostEvent,
+    EventBus,
     HeartbeatTimerFiredEvent,
     RecoveryAttemptedEvent,
     RecoveryCompletedEvent,
@@ -32,6 +29,9 @@ from aiohomematic.event_types import (
     RecoveryStageChangedEvent,
     SystemStatusChangedEvent,
 )
+from aiohomematic.central.state_machine import CentralStateMachine
+from aiohomematic.client import CircuitState
+from aiohomematic.const import CentralState, FailureReason, Interface, RecoveryStage
 
 # pylint: disable=protected-access
 

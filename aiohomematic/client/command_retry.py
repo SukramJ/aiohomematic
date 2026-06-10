@@ -26,7 +26,7 @@ import logging
 import random
 from typing import TYPE_CHECKING, Final
 
-from aiohomematic.event_types import RecoveryCompletedEvent
+from aiohomematic.central.events.bus import RecoveryCompletedEvent
 from aiohomematic.exceptions import (
     AuthFailure,
     BaseHomematicException,
@@ -41,7 +41,7 @@ from aiohomematic.exceptions import (
 if TYPE_CHECKING:
     from xmlrpc.client import Fault as XmlRpcFault
 
-    from aiohomematic.central.events import EventBus
+    from aiohomematic.central.events.bus import EventBus
     from aiohomematic.const import DataPointKey, TimeoutConfig
 
 _LOGGER: Final = logging.getLogger(__name__)

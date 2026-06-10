@@ -12,6 +12,7 @@ import pytest
 
 from aiohomematic import central as hmcu, client as hmcl
 from aiohomematic.central import CentralConfig, SchedulerJob, check_config as central_check_config
+from aiohomematic.central.events import SystemStatusChangedEvent
 from aiohomematic.client import InterfaceConfig
 from aiohomematic.const import (
     DATETIME_FORMAT_MILLIS,
@@ -28,7 +29,6 @@ from aiohomematic.const import (
     ParamsetKey,
     SourceOfDeviceCreation,
 )
-from aiohomematic.event_types import SystemStatusChangedEvent
 from aiohomematic.exceptions import (
     AioHomematicConfigException,
     AioHomematicException,
@@ -773,8 +773,8 @@ class TestCentralCallbacksAndServices:
         import asyncio
         from datetime import datetime
 
+        from aiohomematic.central.events import IntegrationIssue, SystemStatusChangedEvent
         from aiohomematic.const import IntegrationIssueSeverity, IntegrationIssueType
-        from aiohomematic.event_types import IntegrationIssue, SystemStatusChangedEvent
 
         central, _, factory = central_client_factory_with_homegear_client
         issue = IntegrationIssue(
@@ -1821,7 +1821,7 @@ class TestCentralOnSystemStatusEvent:
         """_on_system_status_event should return early when event.client_state is None."""
         from datetime import datetime
 
-        from aiohomematic.event_types import SystemStatusChangedEvent
+        from aiohomematic.central.events import SystemStatusChangedEvent
 
         central, _, _ = central_client_factory_with_homegear_client
         state_before = central.state
@@ -1852,8 +1852,8 @@ class TestCentralOnSystemStatusEvent:
         """_on_system_status_event should update health tracker when client_state is present."""
         from datetime import datetime
 
+        from aiohomematic.central.events import SystemStatusChangedEvent
         from aiohomematic.const import ClientState
-        from aiohomematic.event_types import SystemStatusChangedEvent
         from aiohomematic_test_support import const
 
         central, _, _ = central_client_factory_with_homegear_client
@@ -2317,8 +2317,8 @@ class TestCentralSystemStatusEventDeviceAvailability:
         """_on_system_status_event should reset device availability when client reconnects."""
         from datetime import datetime
 
+        from aiohomematic.central.events import SystemStatusChangedEvent
         from aiohomematic.const import ClientState, ForcedDeviceAvailability
-        from aiohomematic.event_types import SystemStatusChangedEvent
         from aiohomematic_test_support import const
 
         central, _, _ = central_client_factory_with_homegear_client
@@ -2359,8 +2359,8 @@ class TestCentralSystemStatusEventDeviceAvailability:
         """_on_system_status_event should mark devices unavailable when client disconnects."""
         from datetime import datetime
 
+        from aiohomematic.central.events import SystemStatusChangedEvent
         from aiohomematic.const import ClientState, ForcedDeviceAvailability
-        from aiohomematic.event_types import SystemStatusChangedEvent
         from aiohomematic_test_support import const
 
         central, _, _ = central_client_factory_with_homegear_client

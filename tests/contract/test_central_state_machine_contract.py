@@ -612,7 +612,7 @@ class TestCentralEventEmissionContract:
 
     def test_central_state_changed_event_has_correct_fields(self) -> None:
         """Contract: CentralStateChangedEvent has required fields."""
-        from aiohomematic.event_types import CentralStateChangedEvent
+        from aiohomematic.central.events import CentralStateChangedEvent
 
         sm, event_bus = _create_central_state_machine(with_event_bus=True)
         assert event_bus is not None
@@ -637,7 +637,7 @@ class TestCentralEventEmissionContract:
 
     def test_system_status_event_includes_central_state(self) -> None:
         """Contract: SystemStatusChangedEvent includes central_state."""
-        from aiohomematic.event_types import SystemStatusChangedEvent
+        from aiohomematic.central.events import SystemStatusChangedEvent
 
         sm, event_bus = _create_central_state_machine(with_event_bus=True)
         assert event_bus is not None
@@ -650,7 +650,7 @@ class TestCentralEventEmissionContract:
 
     def test_transition_emits_both_events(self) -> None:
         """Contract: Transition emits SystemStatusChangedEvent and CentralStateChangedEvent."""
-        from aiohomematic.event_types import CentralStateChangedEvent, SystemStatusChangedEvent
+        from aiohomematic.central.events import CentralStateChangedEvent, SystemStatusChangedEvent
 
         sm, event_bus = _create_central_state_machine(with_event_bus=True)
         assert event_bus is not None

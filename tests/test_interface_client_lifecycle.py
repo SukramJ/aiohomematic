@@ -692,7 +692,7 @@ class TestInterfaceClientIsCallbackAlive:
         client.is_callback_alive()
 
         # Should have published SystemStatusChangedEvent with callback_state
-        from aiohomematic.event_types import SystemStatusChangedEvent
+        from aiohomematic.central.events import SystemStatusChangedEvent
 
         callback_events = [e for e in central._event_bus.published_events if isinstance(e, SystemStatusChangedEvent)]
         assert len(callback_events) == 1
@@ -1614,7 +1614,7 @@ class TestIsCallbackAliveStateTransition:
 
     def test_is_callback_alive_transitions_false_to_true(self) -> None:
         """is_callback_alive should publish recovered event when state goes false->true."""
-        from aiohomematic.event_types import SystemStatusChangedEvent
+        from aiohomematic.central.events import SystemStatusChangedEvent
 
         central = _FakeCentral()
         backend = _FakeBackend()

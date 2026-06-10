@@ -17,6 +17,7 @@ from typing import Any, Final, cast, override
 import weakref
 
 from aiohomematic import ccu_translations, i18n
+from aiohomematic.central.events import DataPointStateChangedEvent
 from aiohomematic.const import (
     BIDCOS_DEVICE_CHANNEL_DUMMY,
     CallSource,
@@ -32,7 +33,6 @@ from aiohomematic.const import (
     WeekdayStr,
 )
 from aiohomematic.decorators import inspector
-from aiohomematic.event_types import DataPointStateChangedEvent
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import (
     ClimateWeekProfileDataPointProtocol,

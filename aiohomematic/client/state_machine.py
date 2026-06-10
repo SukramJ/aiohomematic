@@ -16,8 +16,8 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
+from aiohomematic.central.events.types import ClientStateChangedEvent
 from aiohomematic.const import ClientState, FailureReason
-from aiohomematic.event_types import ClientStateChangedEvent
 from aiohomematic.interfaces.client import ClientStateMachineProtocol
 from aiohomematic.property_decorators import DelegatedProperty
 
@@ -124,8 +124,7 @@ class ClientStateMachine(ClientStateMachineProtocol):
 
     Example:
     -------
-        from aiohomematic.central.events import EventBus
-        from aiohomematic.event_types import ClientStateChangedEvent
+        from aiohomematic.central.events import ClientStateChangedEvent, EventBus
 
         def on_state_changed(*, event: ClientStateChangedEvent) -> None:
             print(f"State changed: {event.old_state} -> {event.new_state}")

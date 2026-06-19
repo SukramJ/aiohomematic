@@ -60,12 +60,18 @@ if (oInterface) {
                                             }
                                             bHasValue = true;
                                         } else {
+                                            !# Empty value = not measured yet (e.g. ACTUAL_TEMPERATURE right
+                                            !# after a CCU restart). Skip the data point instead of coercing
+                                            !# to "0": emitting 0 wrote an implausible placeholder into the
+                                            !# cache that the integration could not tell apart from a real
+                                            !# reading. Leaving it out yields a cache miss, so the value stays
+                                            !# unset (is_valid stays False) until a real measurement arrives.
                                             if (vDPValue == "") {
-                                                sValue = "0";
+                                                bHasValue = false;
                                             } else {
                                                 sValue = vDPValue;
+                                                bHasValue = true;
                                             }
-                                            bHasValue = true;
                                         }
                                     }
                                     if (bHasValue) {

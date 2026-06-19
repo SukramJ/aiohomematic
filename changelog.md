@@ -1,11 +1,27 @@
+# Version 2026.6.3 (2026-06-18)
+
+## What's Changed
+
+### Fixed
+
+- **Sensors no longer report a spurious `0` after a CCU restart** (#3228): the
+  `fetch_all_device_data.fn` ReGa bulk-load script coerced an **empty**
+  (not-yet-measured) numeric value into `"0"`. After a restart a data point
+  such as `ACTUAL_TEMPERATURE` can already carry a timestamp but no real reading
+  yet; the script then emitted `0`, which was cached and shown as a confirmed
+  value (e.g. `0 °C`, or `0`/closed for a cover's `LEVEL`). The script now
+  **skips** empty values instead of coercing them to `0`, so the data point
+  stays unset (`is_valid` stays `False`) and Home Assistant keeps the restored
+  last value until the device delivers a real measurement. A real `0` reading is
+  unaffected (it is numeric `0`, not an empty value).
+
 # Version 2026.6.2 (2026-06-10)
 
 ## What's Changed
 
 ### Reverted
 
-- PR #3214: Feature/contract extraction 
-
+- PR #3214: Feature/contract extraction
 
 # Version 2026.6.1 (2026-06-04)
 

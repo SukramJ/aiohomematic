@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import importlib.util
 from pathlib import Path
 import sys
@@ -12,19 +13,36 @@ import pytest
 _SCRIPT_PATH = Path(__file__).resolve().parents[2] / ".github" / "scripts" / "analyze_issue.py"
 
 
+def _ensure_module(name: str, **attrs: object) -> None:
+    """
+    Make ``name`` importable, preferring the real package and stubbing only if absent.
+
+    The analyzer script imports ``requests``, ``anthropic`` and ``github`` at module
+    scope; the test environment does not install them, so a minimal stub is injected
+    when the real package is unavailable (e.g. on CI).
+    """
+    if name in sys.modules:
+        return
+    try:
+        importlib.import_module(name)
+    except ModuleNotFoundError:
+        stub = types.ModuleType(name)
+        for attr, value in attrs.items():
+            setattr(stub, attr, value)
+        sys.modules[name] = stub
+
+
 def _load_analyze_issue() -> types.ModuleType:
     """Load the standalone analyzer script with its heavy third-party deps stubbed out."""
-    if "anthropic" not in sys.modules:
-        anthropic_stub = types.ModuleType("anthropic")
-        anthropic_stub.Anthropic = object  # type: ignore[attr-defined]
-        sys.modules["anthropic"] = anthropic_stub
-    if "github" not in sys.modules:
-        github_stub = types.ModuleType("github")
-        github_stub.Auth = object  # type: ignore[attr-defined]
-        github_stub.Github = object  # type: ignore[attr-defined]
-        github_stub.GithubException = type("GithubException", (Exception,), {})  # type: ignore[attr-defined]
-        github_stub.Repository = object  # type: ignore[attr-defined]
-        sys.modules["github"] = github_stub
+    _ensure_module("requests", RequestException=type("RequestException", (Exception,), {}))
+    _ensure_module("anthropic", Anthropic=object)
+    _ensure_module(
+        "github",
+        Auth=object,
+        Github=object,
+        GithubException=type("GithubException", (Exception,), {}),
+        Repository=object,
+    )
 
     spec = importlib.util.spec_from_file_location("analyze_issue_under_test", _SCRIPT_PATH)
     if spec is None or spec.loader is None:

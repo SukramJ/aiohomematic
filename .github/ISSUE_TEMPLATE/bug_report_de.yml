@@ -17,6 +17,8 @@ body:
 
         📖 **[Warum sind Diagnosedaten und Logs so wichtig?](https://sukramj.github.io/aiohomematic/contributor/testing/debug_data_importance/)** - Bitte lies dies, um zu verstehen, was wir benötigen und warum.
 
+        🤖 **KI-generierte Analysen helfen hier nicht weiter.** Bitte hänge die rohen **Diagnosedaten (.json)** und die **Protokolldatei** an — keine von ChatGPT/Claude/Copilot o. Ä. erstellte Zusammenfassung oder Diagnose. Wir analysieren die Rohdaten selbst; eingefügte KI-Interpretationen sind häufig falsch und nicht verwertbar. (Dass Du KI zur eigenen Fehlersuche nutzt, ist völlig in Ordnung — gib uns aber die zugrunde liegenden Dateien, nicht deren Schlussfolgerungen.)
+
         Bitte vermeide unnötigen Aufwand, indem die folgenden Punkte aufmerksam gelesen werden.
   - type: checkboxes
     attributes:
@@ -37,6 +39,8 @@ body:
         - label: Ich verwende die neueste Version der Integration (und von Home Assistant).
           required: true
         - label: Dies ist KEIN Frontend-/UI-Problem (diese gehören in das [homematicip_local_frontend](https://github.com/sukramj/homematicip_local_frontend/issues) Repo)
+          required: true
+        - label: Ich habe die rohen Diagnosedaten (.json) und Logdateien angehängt und sie NICHT durch eine KI-generierte Analyse ersetzt (wir analysieren die Rohdaten selbst; eingefügte KI-Schlussfolgerungen werden ggf. nicht berücksichtigt)
           required: true
   - type: textarea
     validations:

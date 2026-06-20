@@ -805,6 +805,102 @@ def detect_template_language(issue_body: str) -> str:
     return "en"
 
 
+# Markers that strongly indicate pasted AI/LLM output - any single match triggers detection.
+STRONG_AI_MARKERS: Final[tuple[str, ...]] = (
+    "as an ai",
+    "as a large language model",
+    "as an llm",
+    "i am an ai",
+    "i'm an ai",
+    "language model",
+    "als ki",
+    "als ein ki",
+    "ich bin eine ki",
+    "ich bin ein ki",
+    "sprachmodell",
+)
+
+# Stylistic markers typical of AI analyses - need at least MIN_WEAK_AI_MARKERS distinct matches.
+WEAK_AI_MARKERS: Final[tuple[str, ...]] = (
+    "based on the logs",
+    "based on the provided",
+    "based on the diagnostics",
+    "it appears that",
+    "it seems that",
+    "here's a summary",
+    "here is a summary",
+    "here's a breakdown",
+    "here is a breakdown",
+    "here's an analysis",
+    "here is an analysis",
+    "root cause analysis",
+    "probable cause",
+    "likely cause",
+    "possible cause",
+    "possible root cause",
+    "in summary,",
+    "to summarize",
+    "let me analyze",
+    "i'll analyze",
+    "recommended steps",
+    "recommended actions",
+    "step-by-step",
+    "auf grundlage der logs",
+    "auf basis der logs",
+    "es scheint, dass",
+    "es sieht so aus",
+    "wahrscheinliche ursache",
+    "mögliche ursache",
+    "wahrscheinliche ursachen",
+    "mögliche ursachen",
+    "zusammenfassend",
+    "hier ist eine analyse",
+    "hier ist eine zusammenfassung",
+    "lösungsvorschlag",
+    "empfohlene schritte",
+    "schritt für schritt",
+    "schritt-für-schritt",
+)
+
+# Minimum number of distinct weak markers required to flag a body as AI-generated.
+MIN_WEAK_AI_MARKERS: Final = 2
+
+
+def detect_ai_generated_analysis(issue_body: str) -> dict[str, Any]:
+    """
+    Detect whether the issue body contains a pasted AI/LLM-generated analysis.
+
+    Reporters increasingly paste an AI tool's interpretation instead of the raw
+    diagnostics/log file. Such interpretations are frequently wrong and cannot replace
+    the raw data. This heuristic flags likely AI prose so the bot can gently redirect
+    the reporter to attach the underlying files.
+
+    A single strong marker (explicit self-identification) triggers detection; weak
+    stylistic markers require at least MIN_WEAK_AI_MARKERS distinct matches to reduce
+    false positives.
+
+    Returns a dict with "detected" (bool), "strong" (bool) and "markers" (list of str).
+    """
+    result: dict[str, Any] = {"detected": False, "strong": False, "markers": []}
+    if not issue_body:
+        return result
+
+    lowered = issue_body.lower()
+
+    strong_hits = [marker for marker in STRONG_AI_MARKERS if marker in lowered]
+    weak_hits = [marker for marker in WEAK_AI_MARKERS if marker in lowered]
+
+    if strong_hits:
+        result["detected"] = True
+        result["strong"] = True
+        result["markers"] = strong_hits + weak_hits
+    elif len(weak_hits) >= MIN_WEAK_AI_MARKERS:
+        result["detected"] = True
+        result["markers"] = weak_hits
+
+    return result
+
+
 CLAUDE_ANALYSIS_PROMPT = """You are an AI assistant helping to analyze GitHub issues for the AioHomematic and Homematic(IP) Local projects.
 
 **CRITICAL - Response Language:**
@@ -1237,6 +1333,36 @@ def _format_screenshot_hint(
     )
 
 
+def _format_ai_analysis_hint(
+    ai_detection: dict[str, Any],
+    is_german: bool,
+) -> str:
+    """Format a gentle redirect hint when a pasted AI-generated analysis is detected."""
+    if not ai_detection.get("detected"):
+        return ""
+
+    if is_german:
+        return (
+            "### 🤖 Bitte Rohdaten statt KI-Analyse\n\n"
+            "Diese Meldung scheint eine KI-generierte Analyse (ChatGPT/Claude/Copilot o. Ä.) zu enthalten.\n\n"
+            "Solche Interpretationen helfen uns leider nicht weiter — sie sind häufig falsch und "
+            "ersetzen nicht die **Rohdaten**, die wir für die Analyse benötigen:\n\n"
+            "- 📄 **Integrationsdiagnose (.json-Datei)**\n"
+            "- 📄 **Debug-Protokolldatei**\n\n"
+            "Wir führen unsere eigene, datenbasierte Analyse durch. Bitte hänge die zugrunde liegenden "
+            "Dateien an (nicht deren KI-Zusammenfassung).\n\n"
+        )
+    return (
+        "### 🤖 Please provide raw data instead of an AI analysis\n\n"
+        "This report appears to contain an AI-generated analysis (ChatGPT/Claude/Copilot or similar).\n\n"
+        "Such interpretations unfortunately don't help us — they are frequently wrong and do not replace "
+        "the **raw data** we need for analysis:\n\n"
+        "- 📄 **Integration diagnostics (.json file)**\n"
+        "- 📄 **Debug log file**\n\n"
+        "We run our own data-driven analysis. Please attach the underlying files (not their AI summary).\n\n"
+    )
+
+
 def format_comment(
     analysis: dict[str, Any],
     similar_items: list[dict[str, Any]],
@@ -1288,6 +1414,9 @@ def format_comment(
     has_diagnostics = attachment_analysis.get("has_diagnostics", False)
     has_logs = attachment_analysis.get("has_logs", False)
     comment += _format_missing_required_info(has_diagnostics, has_logs, is_german)
+
+    # Redirect hint when the report contains a pasted AI-generated analysis
+    comment += _format_ai_analysis_hint(analysis.get("ai_analysis_detection", {}), is_german)
 
     # Screenshot hint for device-related issues
     is_device_related = analysis.get("is_device_related", False)
@@ -1405,6 +1534,66 @@ def format_comment(
     return comment
 
 
+# Triage label applied when an issue lacks the raw data required for analysis.
+NEEDS_RAW_DATA_LABEL: Final = "needs-raw-data"
+NEEDS_RAW_DATA_LABEL_COLOR: Final = "d93f0b"
+NEEDS_RAW_DATA_LABEL_DESCRIPTION: Final = "Issue lacks the raw diagnostics/log data required for analysis"
+
+
+def ensure_label(repo: Repository.Repository, name: str, *, color: str, description: str) -> bool:
+    """
+    Ensure a label exists in the repository, creating it on demand.
+
+    Returns True if the label exists (or was created), False if it could not be created.
+    """
+    try:
+        repo.get_label(name)
+    except GithubException:
+        pass
+    else:
+        return True
+
+    try:
+        repo.create_label(name=name, color=color, description=description)
+    except GithubException as e:
+        print(f"Warning: could not create label '{name}': {e}")
+        return False
+    else:
+        print(f"Created label '{name}'")
+        return True
+
+
+def apply_needs_raw_data_label(issue: Any, repo: Repository.Repository) -> None:
+    """Add the needs-raw-data triage label to the issue (idempotent)."""
+    if not ensure_label(
+        repo,
+        NEEDS_RAW_DATA_LABEL,
+        color=NEEDS_RAW_DATA_LABEL_COLOR,
+        description=NEEDS_RAW_DATA_LABEL_DESCRIPTION,
+    ):
+        return
+
+    try:
+        if NEEDS_RAW_DATA_LABEL in {label.name for label in issue.labels}:
+            print(f"Label '{NEEDS_RAW_DATA_LABEL}' already present")
+            return
+        issue.add_to_labels(NEEDS_RAW_DATA_LABEL)
+        print(f"Added label '{NEEDS_RAW_DATA_LABEL}'")
+    except GithubException as e:
+        print(f"Warning: could not add label '{NEEDS_RAW_DATA_LABEL}': {e}")
+
+
+def remove_needs_raw_data_label(issue: Any) -> None:
+    """Remove the needs-raw-data triage label if present (e.g. data added in a later edit)."""
+    try:
+        if NEEDS_RAW_DATA_LABEL not in {label.name for label in issue.labels}:
+            return
+        issue.remove_from_labels(NEEDS_RAW_DATA_LABEL)
+        print(f"Removed label '{NEEDS_RAW_DATA_LABEL}'")
+    except GithubException as e:
+        print(f"Warning: could not remove label '{NEEDS_RAW_DATA_LABEL}': {e}")
+
+
 def main() -> None:
     """Analyze issue and post comment."""
     # Get environment variables
@@ -1460,6 +1649,22 @@ def main() -> None:
         print(f"Error getting Claude analysis: {e}")
         sys.exit(1)
 
+    # Detect a pasted AI-generated analysis and flag it for a redirect hint
+    ai_detection = detect_ai_generated_analysis(issue_body)
+    analysis["ai_analysis_detection"] = ai_detection
+    if ai_detection["detected"]:
+        print(f"Detected likely AI-generated analysis (strong={ai_detection['strong']}, markers={ai_detection['markers']})")
+
+    # Maintain the needs-raw-data triage label: add it when the raw diagnostics/log data
+    # is missing or a pasted AI analysis was detected, and remove it once the required
+    # data has been provided (e.g. on a later edit).
+    attachment_info = analysis.get("attachment_analysis", {})
+    missing_required_info = not attachment_info.get("has_diagnostics") or not attachment_info.get("has_logs")
+    if missing_required_info or ai_detection["detected"]:
+        apply_needs_raw_data_label(issue, repo)
+    else:
+        remove_needs_raw_data_label(issue)
+
     # Search for similar issues
     search_terms = analysis.get("search_terms", [])
     similar_items = []
@@ -1492,8 +1697,7 @@ def main() -> None:
         "critical",
         "warning",
     )
-    attachment_info = analysis.get("attachment_analysis", {})
-    missing_required_info = not attachment_info.get("has_diagnostics") or not attachment_info.get("has_logs")
+    # attachment_info / missing_required_info were computed earlier for label maintenance.
     has_useful_feedback = (
         has_version_issue
         or missing_required_info
@@ -1502,6 +1706,7 @@ def main() -> None:
         or attachment_info.get("findings")
         or analysis.get("suggested_docs")
         or similar_items
+        or ai_detection["detected"]
     )
 
     if has_useful_feedback:

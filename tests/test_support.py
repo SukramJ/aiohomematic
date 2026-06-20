@@ -460,6 +460,24 @@ class TestValueConversion:
         assert convert_value(value="1", target_type=ParameterType.STRING, value_list=None) == "1"
         assert convert_value(value=True, target_type=ParameterType.ACTION, value_list=None) is True
 
+    @pytest.mark.asyncio
+    async def test_convert_value_strips_ccu_type_prefix(self) -> None:
+        """Type-prefixed strings from CCU3 VirtualDevices must convert without error.
+
+        Reproduces the failure mode where reading week-profile paramsets from
+        HmIP-HEATING virtual devices yields ``'INTEGER 0'`` or ``'FLOAT 1.5'``
+        instead of the bare value. Without prefix-stripping, ``int(float(value))``
+        raises ``ValueError`` and downstream ``on_config_changed`` handlers abort.
+        """
+        assert convert_value(value="INTEGER 0", target_type=ParameterType.INTEGER, value_list=None) == 0
+        assert convert_value(value="INTEGER 1440", target_type=ParameterType.INTEGER, value_list=None) == 1440
+        assert convert_value(value="FLOAT 1.5", target_type=ParameterType.FLOAT, value_list=None) == 1.5
+        assert convert_value(value="STRING foo", target_type=ParameterType.STRING, value_list=None) == "foo"
+        assert convert_value(value="BOOL true", target_type=ParameterType.BOOL, value_list=None) is True
+        # Bare values without a prefix continue to convert as before
+        assert convert_value(value="42", target_type=ParameterType.INTEGER, value_list=None) == 42
+        assert convert_value(value="INTEGERish", target_type=ParameterType.STRING, value_list=None) == "INTEGERish"
+
 
 class TestElementMatching:
     """Tests for element matching."""

@@ -562,9 +562,32 @@ def _convert_value_cached(*, value: Any, target_type: ParameterType, value_list:
     return _convert_value_noncached(value=value, target_type=target_type, value_list=value_list)
 
 
+_TYPE_PREFIXES: Final = ("INTEGER ", "FLOAT ", "STRING ", "BOOL ", "ENUM ")
+
+
+def _strip_type_prefix(*, value: Any) -> Any:
+    """Strip a CCU type prefix (e.g. 'INTEGER 0') from a string value.
+
+    The OpenCCU/CCU3 ``VirtualDevices`` interface occasionally returns
+    paramset values as type-prefixed strings such as ``'INTEGER 0'``,
+    ``'FLOAT 1.5'`` or ``'STRING foo'`` — most reliably reproduced when
+    reading week-profile entries from HmIP-HEATING virtual devices
+    (``INT0000xxx``). When such a value reaches a numeric conversion the
+    library raises ``ValueError: could not convert string to float`` and
+    the device's ``on_config_changed`` handler aborts, leaving downstream
+    entities permanently ``unavailable``.
+    """
+    if isinstance(value, str):
+        for prefix in _TYPE_PREFIXES:
+            if value.startswith(prefix):
+                return value[len(prefix):]
+    return value
+
+
 def _convert_value_noncached(*, value: Any, target_type: ParameterType, value_list: tuple[str, ...] | None) -> Any:
     if value is None:
         return None
+    value = _strip_type_prefix(value=value)
     if target_type == ParameterType.BOOL:
         if value_list:
             # relevant for ENUMs retyped to a BOOL

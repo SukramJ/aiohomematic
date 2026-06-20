@@ -1,3 +1,19 @@
+# Version 2026.6.4 (2026-06-20)
+
+## What's Changed
+
+### Changed
+
+- **Issue reports now ask for raw data, not pasted AI analyses.** The bug-report
+  issue templates (English and German) and `CONTRIBUTING.md` now state that
+  meaningful support requires the raw integration diagnostics (`.json`) and debug
+  log — **not** a summary or diagnosis produced by an AI tool
+  (ChatGPT/Claude/Copilot/…) — and add a required checkbox confirming the raw
+  files were attached instead of an AI analysis. The automated issue-analyzer bot
+  additionally detects a pasted AI analysis, posts a gentle redirect hint, and
+  maintains a `needs-raw-data` triage label (added when the diagnostics/log are
+  missing or an AI analysis is detected, removed once the data is provided).
+
 # Version 2026.6.3 (2026-06-18)
 
 ## What's Changed

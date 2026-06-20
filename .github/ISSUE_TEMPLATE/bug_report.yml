@@ -17,6 +17,8 @@ body:
 
         📖 **[Why are diagnostics and logs so important?](https://sukramj.github.io/aiohomematic/contributor/testing/debug_data_importance/)** - Please read this to understand what we need and why.
 
+        🤖 **AI-generated analyses do not help here.** Please attach the raw **diagnostics (.json)** and **log file** — not a summary or diagnosis produced by ChatGPT/Claude/Copilot or similar tools. We run our own analysis on the raw data; pasted AI interpretations are frequently wrong and cannot be acted on. (Using AI to help *you* debug is fine — just give us the underlying files, not its conclusions.)
+
         Please avoid unnecessary effort by reading the points below.
   - type: checkboxes
     attributes:
@@ -37,6 +39,8 @@ body:
         - label: I am running the latest version of the custom_component (and Home Assistant)
           required: true
         - label: This is NOT a frontend/UI issue (those belong in the [homematicip_local_frontend](https://github.com/sukramj/homematicip_local_frontend/issues) repo)
+          required: true
+        - label: I have attached the raw diagnostics (.json) and log files and have NOT replaced them with an AI-generated analysis (we analyze the raw data ourselves; pasted AI conclusions may be disregarded)
           required: true
   - type: textarea
     validations:

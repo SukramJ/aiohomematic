@@ -1167,14 +1167,27 @@ class BaseParameterDataPoint[
         if not self.is_readable:
             return
 
-        self.write_value(
-            value=await self._device.value_cache.get_value(
-                dpk=self.dpk,
-                call_source=call_source,
-                direct_call=direct_call,
-            ),
-            write_at=datetime.now(),
+        value = await self._device.value_cache.get_value(
+            dpk=self.dpk,
+            call_source=call_source,
+            direct_call=direct_call,
         )
+        # Load the paired *_STATUS first so the freshly loaded value can be judged
+        # before it is written (#3228). Without the status, the getValue fallback's
+        # default 0 (e.g. ACTUAL_TEMPERATURE after a CCU restart) is treated as a
+        # confirmed reading.
+        if (status_dpk := self._status_dpk) is not None:
+            await self._load_status_value(status_dpk=status_dpk, call_source=call_source, direct_call=direct_call)
+            # After a CCU restart getValue returns the default (e.g. 0 for a
+            # not-yet-measured ACTUAL_TEMPERATURE) with status UNKNOWN. Don't
+            # overwrite an already known value with that placeholder; keep the last
+            # value instead (#3228). Restoring a real value (cover/dimmer LEVEL,
+            # #2630) is unaffected: its status stays valid (is_status_valid keeps
+            # UNKNOWN valid) and the value is simply retained until a confirmed
+            # reading arrives.
+            if self._status_value == ParameterStatus.UNKNOWN and self.is_refreshed:
+                return
+        self.write_value(value=value, write_at=datetime.now())
 
     async def on_config_changed(self) -> None:
         """Do what is needed on device config change."""
@@ -1468,6 +1481,16 @@ class BaseParameterDataPoint[
         if self._optimistic.is_active:
             return self._optimistic.value
         return self._value
+
+    async def _load_status_value(self, *, status_dpk: DataPointKey, call_source: CallSource, direct_call: bool) -> None:
+        """Load the paired ``*_STATUS`` value so the value's validity can be judged on init (#3228)."""
+        status_value = await self._device.value_cache.get_value(
+            dpk=status_dpk,
+            call_source=call_source,
+            direct_call=direct_call,
+        )
+        if status_value is not None and status_value != NO_CACHE_ENTRY:
+            self.update_status(status_value=status_value)
 
     def _publish_rollback_event(
         self,

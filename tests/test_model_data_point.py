@@ -4,12 +4,12 @@
 
 from datetime import datetime
 from typing import cast
-from unittest.mock import MagicMock, call
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
 from aiohomematic.central.events import DataPointStateChangedEvent, DeviceLifecycleEvent, DeviceLifecycleEventType
-from aiohomematic.const import CallSource, DataPointUsage, Interface, ParamsetKey
+from aiohomematic.const import CallSource, DataPointUsage, Interface, ParameterStatus, ParamsetKey
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters
 from aiohomematic.model.generic import DpSensor, DpSwitch
 from aiohomematic.store.visibility import check_ignore_parameters_is_clean
@@ -182,6 +182,46 @@ class TestDataPointLoading:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_init_keeps_known_value_when_status_unknown(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        A not-yet-measured default (status UNKNOWN) must not overwrite a known value on init (#3228).
+
+        After a CCU restart the getValue fallback returns the default (e.g. 0) with
+        status UNKNOWN. The last known value must be retained instead of being
+        replaced by the placeholder.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        level: DpSensor = cast(
+            DpSensor,
+            central.query_facade.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL"),
+        )
+        # Establish a known, refreshed value.
+        level.write_value(value=0.5, write_at=datetime.now())
+        known_value = level.value
+        assert level.is_refreshed is True
+
+        # Simulate the init load: value comes back as the default 0, status as UNKNOWN.
+        with patch.object(type(level._device.value_cache), "get_value", new=AsyncMock(side_effect=[0.0, "UNKNOWN"])):
+            await level.load_data_point_value(call_source=CallSource.HM_INIT, direct_call=True)
+
+        assert level.status == ParameterStatus.UNKNOWN
+        assert level.value == known_value
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_load_custom_data_point(
         self,
         central_client_factory_with_homegear_client,
@@ -240,6 +280,52 @@ class TestDataPointLoading:
             parameter="STATE",
             call_source="hm_init",
         )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_load_generic_data_point_also_loads_status(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Loading a data point with a paired ``*_STATUS`` must also load that status (#3228).
+
+        After a CCU restart the ``getValue`` fallback returns the default ``0`` for a
+        not-yet-measured value, while the paired ``*_STATUS`` is never queried. The
+        status must be loaded on init so the value's validity can be judged.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        level: DpSensor = cast(
+            DpSensor,
+            central.query_facade.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL"),
+        )
+        assert level.has_status_parameter is True
+        assert level.status_parameter == "LEVEL_STATUS"
+
+        await level.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
+
+        status_calls = [
+            c
+            for c in mock_client.method_calls
+            if c
+            == call.get_value(
+                channel_address="VCU3609622:1",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="LEVEL_STATUS",
+                call_source="hm_init",
+            )
+        ]
+        assert len(status_calls) == 1
 
 
 class TestWrappedDataPoint:

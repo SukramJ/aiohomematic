@@ -14,6 +14,20 @@
   maintains a `needs-raw-data` triage label (added when the diagnostics/log are
   missing or an AI analysis is detected, removed once the data is provided).
 
+### Fixed
+
+- **Fix sensors still showing an implausible `0` after a CCU restart via the
+  `getValue` path (#3228).** The `2026.6.3` ReGa-script fix only covered the
+  bulk-load path; the placeholder actually arrives through the per-parameter
+  `getValue` fallback (e.g. for virtual heating groups), which returns the
+  parameter default (`0`) with `*_STATUS = UNKNOWN` while the CCU has no measured
+  value yet. The paired `*_STATUS` parameter is now loaded on init (previously it
+  was only updated via later events), and a freshly loaded default whose status is
+  `UNKNOWN` no longer overwrites an already known value — the last value is kept
+  until a confirmed reading arrives. Restoring a real value after restart
+  (cover/dimmer `LEVEL`, #2630) is unaffected: `UNKNOWN` stays valid and the value
+  is simply retained.
+
 # Version 2026.6.3 (2026-06-18)
 
 ## What's Changed

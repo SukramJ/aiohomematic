@@ -130,3 +130,18 @@ class TestDataPointValidity:
 
         result = BaseParameterDataPoint.is_status_valid.__get__(mock)
         assert result is False
+
+    def test_status_unknown_valid(self) -> None:
+        """
+        Test that UNKNOWN status keeps DP valid (#2630).
+
+        UNKNOWN means "not yet confirmed" after a restart; the entity must stay
+        valid so cover/dimmer restore their last value instead of going
+        unavailable. The placeholder-overwrite guard for #3228 lives in the load
+        path, not here, so this invariant must hold.
+        """
+        mock = Mock()
+        mock._status_value = ParameterStatus.UNKNOWN
+
+        result = BaseParameterDataPoint.is_status_valid.__get__(mock)
+        assert result is True

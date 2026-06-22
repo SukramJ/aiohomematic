@@ -1,4 +1,21 @@
-# Version 2026.6.4 (2026-06-20)
+# Version 2026.6.5 (2026-06-22)
+
+## What's Changed
+
+### Fixed
+
+- **Bulk-load ReGa script reworked (v2.5) to stop emitting a `0` placeholder at
+  the source (#3228).** The `2026.6.3` change (#3229) had replaced the empty-value
+  coercion with a skip via `if (vDPValue == "") { bHasValue = false }`. In ReGa an
+  operation's type is determined by the left operand, and an empty string coerces
+  to `0` — so `vDPValue == ""` is also true for every numeric `0`/`0.0`. That skip
+  therefore dropped _all_ legitimate zero readings from the bulk result (not just
+  not-yet-measured ones), forcing a `getValue` fallback per zero. The script now
+  (a) gates `VirtualDevices` data points on a valid `LastTimestamp()` so heating
+  groups that carry a `Timestamp()` but no real reading after a CCU restart stay
+  out of the bulk result entirely, and (b) coerces an empty value to `0` only when
+  it is a genuine _string_ script variable (`VarType() == 4`), preserving real
+  numeric zeros. This pairs with the `2026.6.4` `*_STATUS` load-path fix (#3233).
 
 ## What's Changed
 

@@ -10,7 +10,7 @@
 !# Dieses Homematic-Script gibt eine Liste aller Datenpunkte, die zur Laufzeit einen validen Zeitstempel haben, als JSON String aus.
 !#
 !# modified by: SukramJ https://github.com/SukramJ && Baxxy13 https://github.com/Baxxy13
-!# v2.2 - 09/2023
+!# v2.5 - 06/2026
 !#
 !# Das Interface wird durch die Integration an 'sUse_Interface' übergeben.
 !# Nutzbare Interfaces: BidCos-RF, BidCos-Wired, HmIP-RF, VirtualDevices, CUxD, CCU-Jack
@@ -20,84 +20,85 @@
 !#
 
 string sUse_Interface = "##interface##";
-string sDevId;
-string sChnId;
-string sDPId;
-var vDPValue;
-boolean bDPFirst = true;
+string sDevId; string sChnId; string sDPId; string sAllDevices; string sDP_Namestring;
+object oDevice; object oChannel; object oDP;
+integer iInterface_ID; integer iDP_Value_Type; integer iDP_Value_VarType;
+idarray iChnDPs_Array;
+var vDP_Value;
+boolean bDPFirst = true; boolean bDPisValid;
 object oInterface = interfaces.Get(sUse_Interface);
 
 Write('{');
 if (oInterface) {
-    integer iInterface_ID = interfaces.Get(sUse_Interface).ID();
-    string sAllDevices = dom.GetObject(ID_DEVICES).EnumUsedIDs();
-    foreach (sDevId, sAllDevices) {
-        object oDevice = dom.GetObject(sDevId);
-        if ((oDevice) && (oDevice.ReadyConfig()) && (oDevice.Interface() == iInterface_ID)) {
-            foreach (sChnId, oDevice.Channels()) {
-                object oChannel = dom.GetObject(sChnId);
-                if (oChannel) {
-                    var oDPs = oChannel.DPs();
-                    if (oDPs) {
-                        foreach(sDPId, oDPs.EnumUsedIDs()) {
-                            object oDP = dom.GetObject(sDPId);
-                            if (oDP && oDP.Timestamp()) {
-                                if (oDP.TypeName() != "VARDP") {
-                                    integer sValueType = oDP.ValueType();
-                                    boolean bHasValue = false;
-                                    string sValue;
-                                    string sID = oDP.Name().UriEncode();
-                                    if (sValueType == 20) {
-                                        sValue = oDP.Value().UriEncode();
-                                        bHasValue = true;
-                                    } else {
-                                        vDPValue = oDP.Value();
-                                        if (sValueType == 2) {
-                                            if (vDPValue) {
-                                                sValue = "true";
-                                            } else {
-                                                sValue = "false";
-                                            }
-                                            bHasValue = true;
-                                        } else {
-                                            !# Empty value = not measured yet (e.g. ACTUAL_TEMPERATURE right
-                                            !# after a CCU restart). Skip the data point instead of coercing
-                                            !# to "0": emitting 0 wrote an implausible placeholder into the
-                                            !# cache that the integration could not tell apart from a real
-                                            !# reading. Leaving it out yields a cache miss, so the value stays
-                                            !# unset (is_valid stays False) until a real measurement arrives.
-                                            if (vDPValue == "") {
-                                                bHasValue = false;
-                                            } else {
-                                                sValue = vDPValue;
-                                                bHasValue = true;
-                                            }
-                                        }
-                                    }
-                                    if (bHasValue) {
-                                        if (bDPFirst) {
-                                            bDPFirst = false;
-                                        } else {
-                                            WriteLine(',');
-                                        }
-                                        Write('"');
-                                        Write(sID);
-                                        Write('":');
-                                        if (sValueType == 20) {
-                                            Write('"');
-                                            Write(sValue);
-                                            Write('"');
-                                        } else {
-                                            Write(sValue);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+  iInterface_ID = interfaces.Get(sUse_Interface).ID();
+  sAllDevices = dom.GetObject(ID_DEVICES).EnumUsedIDs();
+  foreach (sDevId, sAllDevices) {
+    oDevice = dom.GetObject(sDevId);
+    if ((oDevice) && (oDevice.ReadyConfig()) && (oDevice.Interface() == iInterface_ID)) {
+      foreach (sChnId, oDevice.Channels()) {
+        oChannel = dom.GetObject(sChnId);
+        if (oChannel) {
+          iChnDPs_Array = oChannel.DPs();
+          if (iChnDPs_Array) {
+            foreach(sDPId, iChnDPs_Array) {
+              oDP = dom.GetObject(sDPId);
+              bDPisValid = false;
+              if (oDP && oDP.Timestamp()) {
+                !# DP muss validen Timestamp() haben
+                bDPisValid = true;
+                if ((!oDP.LastTimestamp()) && (sUse_Interface == "VirtualDevices")) {
+                  !# Sonderbehandlung VirtualDevices, DP muss validen LastTimestamp() haben
+                  bDPisValid = false;
                 }
+              }
+              if (bDPisValid) {
+                if (oDP.TypeName() != "VARDP") {
+                  !# keine Systemvariablen
+                  iDP_Value_Type = oDP.ValueType();
+                  vDP_Value = "";
+                  sDP_Namestring = oDP.Name().UriEncode();
+                  if (iDP_Value_Type == 20) {
+                    !# String-Datenpunkte
+                    vDP_Value = '"'# oDP.Value().UriEncode() #'"';
+                  }
+                  else {
+                    !# alle Datenpunkte außer String
+                    iDP_Value_VarType = 20;
+                    vDP_Value = oDP.Value();
+                    iDP_Value_VarType = vDP_Value.VarType();
+                    if (iDP_Value_Type == 2) {
+                      !# Boolean-Datenpunkte
+                      if (vDP_Value) {
+                        vDP_Value = "true";
+                      }
+                      else {
+                        vDP_Value = "false";
+                      }
+                    }
+                    if ((iDP_Value_VarType == 4) && (vDP_Value == "")) {
+                      !# Sonderpruefung auf String Scriptvariable und Leerstring
+                      vDP_Value = 0;
+                    }
+                  }
+                  if (bDPFirst) {
+                    bDPFirst = false;
+                  }
+                  else {
+                    WriteLine(',');
+                  }
+                  !# altes Verhalten: setze 0.00000 auf 0
+                  if (vDP_Value == "") { vDP_Value = 0; }
+                  Write('"');
+                  Write(sDP_Namestring);
+                  Write('":');
+                  Write(vDP_Value);
+                }
+              }
             }
+          }
         }
+      }
     }
+  }
 }
 Write('}');

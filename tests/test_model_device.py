@@ -1307,6 +1307,56 @@ class TestValueCachePaths:
         # Restore availability.
         device.set_forced_availability(forced_availability=ForcedDeviceAvailability.NOT_SET)
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU2128127"}, True, None, None)],
+    )
+    async def test_get_values_for_cache_skips_getvalue_for_virtual_devices(
+        self, central_client_factory_with_homegear_client, monkeypatch
+    ) -> None:
+        """
+        Skip the VALUES getValue fallback for VirtualDevices (#3228).
+
+        VirtualDevices (e.g. heating groups) have no physical device behind them, so a
+        getValue can only return the CCU-internal default (e.g. 0 for a not-yet-measured
+        ACTUAL_TEMPERATURE after a CCU restart) instead of a real reading. The bulk ReGa
+        fetch already filters such placeholders via LastTimestamp, so the getValue
+        fallback must not run for this interface.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+
+        from aiohomematic.const import Interface, ParamsetKey
+
+        # Pretend this device lives on the VirtualDevices interface.
+        monkeypatch.setattr(device, "_interface", Interface.VIRTUAL_DEVICES)
+
+        values_dps = [dp for dp in device.generic_data_points if dp.paramset_key == ParamsetKey.VALUES]
+        assert values_dps
+        dpk = values_dps[0].dpk
+
+        backend_calls: list[int] = []
+        original_get_value = device.client.get_value
+
+        async def counting_get_value(**kw: Any) -> Any:
+            backend_calls.append(1)
+            return await original_get_value(**kw)
+
+        monkeypatch.setattr(device.client, "get_value", counting_get_value)
+
+        result = await device.value_cache._get_values_for_cache(dpk=dpk)  # type: ignore[attr-defined]
+
+        # No getValue fallback for VirtualDevices VALUES ...
+        assert backend_calls == []
+        # ... and a NO_VALUE marker is returned so the data point stays unavailable.
+        assert result == {dpk.parameter: device.value_cache._NO_VALUE_CACHE_ENTRY}  # type: ignore[attr-defined]
+
 
 class TestChannelRemoveAndLifecycle:
     """Tests for Channel.remove, _has_central_link exception, and on_config_changed notifications."""

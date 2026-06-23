@@ -2012,6 +2012,15 @@ class _ValueCache:
             )
             return {}
         if dpk.paramset_key == ParamsetKey.VALUES:
+            # VirtualDevices (e.g. heating groups) have no physical device behind them;
+            # their VALUES are aggregated by the CCU. A getValue therefore cannot return
+            # device-fresh data, only the CCU-internal default (e.g. 0 for a not-yet-measured
+            # ACTUAL_TEMPERATURE right after a CCU restart). The bulk ReGa fetch already
+            # filters such placeholders via LastTimestamp and is the only trustworthy source
+            # for this interface, so skip the per-parameter getValue fallback. The data point
+            # keeps its (unset) state until a real value arrives via event (#3228).
+            if self._device.interface == Interface.VIRTUAL_DEVICES:
+                return {dpk.parameter: self._NO_VALUE_CACHE_ENTRY}
             return {
                 dpk.parameter: await self._device.client.get_value(
                     channel_address=dpk.channel_address,

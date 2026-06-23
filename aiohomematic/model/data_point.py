@@ -1199,6 +1199,59 @@ class BaseParameterDataPoint[
         if self.is_readable and self._paramset_key == ParamsetKey.MASTER:
             await self.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED, direct_call=True)
 
+    def rollback_optimistic_value(self, *, reason: str, error: str | None = None) -> None:
+        """
+        Rollback optimistic value to previous confirmed value.
+
+        Args:
+            reason: Reason for rollback (e.g., "timeout", "send_error", "mismatch")
+            error: Error message (if reason is send_error)
+
+        This method:
+        1. Logs the rollback with details
+        2. Clears optimistic state
+        3. Restores previous confirmed value
+        4. Publishes data_point_updated event (UI reverts)
+        5. Publishes rollback event for user notification (Step 1.7)
+
+        """
+        if not self._optimistic.is_active:
+            return  # Already rolled back or confirmed
+
+        # Log rollback with age
+        age = self._optimistic.age or 0.0
+        _LOGGER.warning(
+            i18n.tr(
+                key="log.model.data_point.optimistic_rollback",
+                full_name=self.full_name,
+                optimistic_value=self._optimistic.value,
+                previous_value=self._optimistic.previous_value,
+                reason=reason,
+                age=age,
+            )
+        )
+
+        # Rollback optimistic state
+        rolled_back_value, restored_value = self._optimistic.rollback()
+
+        # Clear unconfirmed value so it cannot override the restored value
+        self._reset_unconfirmed_value()
+
+        # Restore previous value
+        self._current_value = restored_value
+
+        # Publish event (Home Assistant UI reverts)
+        self.publish_data_point_updated_event()
+
+        # Publish rollback event for user notification
+        self._publish_rollback_event(
+            reason=reason,
+            rolled_back_value=rolled_back_value,
+            restored_value=restored_value,
+            error=error,
+            age_seconds=age,
+        )
+
     def set_last_non_default_value(self, *, value: ParameterT | None) -> None:
         """Set the last non default value."""
         self._last_non_default_value = value
@@ -1539,59 +1592,6 @@ class BaseParameterDataPoint[
         self._unconfirmed_value = None
         self._reset_unconfirmed_timestamps()
 
-    def _rollback_optimistic_value(self, *, reason: str, error: str | None = None) -> None:
-        """
-        Rollback optimistic value to previous confirmed value.
-
-        Args:
-            reason: Reason for rollback (e.g., "timeout", "send_error", "mismatch")
-            error: Error message (if reason is send_error)
-
-        This method:
-        1. Logs the rollback with details
-        2. Clears optimistic state
-        3. Restores previous confirmed value
-        4. Publishes data_point_updated event (UI reverts)
-        5. Publishes rollback event for user notification (Step 1.7)
-
-        """
-        if not self._optimistic.is_active:
-            return  # Already rolled back or confirmed
-
-        # Log rollback with age
-        age = self._optimistic.age or 0.0
-        _LOGGER.warning(
-            i18n.tr(
-                key="log.model.data_point.optimistic_rollback",
-                full_name=self.full_name,
-                optimistic_value=self._optimistic.value,
-                previous_value=self._optimistic.previous_value,
-                reason=reason,
-                age=age,
-            )
-        )
-
-        # Rollback optimistic state
-        rolled_back_value, restored_value = self._optimistic.rollback()
-
-        # Clear unconfirmed value so it cannot override the restored value
-        self._reset_unconfirmed_value()
-
-        # Restore previous value
-        self._current_value = restored_value
-
-        # Publish event (Home Assistant UI reverts)
-        self.publish_data_point_updated_event()
-
-        # Publish rollback event for user notification
-        self._publish_rollback_event(
-            reason=reason,
-            rolled_back_value=rolled_back_value,
-            restored_value=restored_value,
-            error=error,
-            age_seconds=age,
-        )
-
     def _schedule_optimistic_rollback(self, *, timeout: float) -> None:
         """
         Schedule rollback if CCU confirmation doesn't arrive.
@@ -1607,7 +1607,7 @@ class BaseParameterDataPoint[
         """
         self._optimistic.schedule_rollback(
             timeout=timeout,
-            callback=partial(self._rollback_optimistic_value, reason="timeout", error=None),
+            callback=partial(self.rollback_optimistic_value, reason="timeout", error=None),
         )
 
     def _set_value(self, value: ParameterT) -> None:  # kwonly: disable
@@ -1720,6 +1720,19 @@ class CallParameterCollector:
                     )
         return dpk_values
 
+    def _rollback_optimistic_for_paramset(
+        self,
+        *,
+        channel_address: str,
+        paramset_key: ParamsetKey,
+        paramset: dict[str, Any],
+        error: str,
+    ) -> None:
+        """Roll back optimistic values for the data points contained in a failed paramset send."""
+        for dp, _value, _retry in self._collected_data_points:
+            if dp.channel.address == channel_address and dp.paramset_key == paramset_key and dp.parameter in paramset:
+                dp.rollback_optimistic_value(reason="send_error", error=error)
+
     async def _send_paramset(
         self,
         *,
@@ -1732,9 +1745,20 @@ class CallParameterCollector:
         retry: bool = True,
     ) -> set[DP_KEY_VALUE]:
         """Send a single paramset via set_value or put_paramset."""
-        if len(paramset) == 1:
-            parameter, value = next(iter(paramset.items()))
-            if purge_addresses:
+        try:
+            if len(paramset) == 1:
+                parameter, value = next(iter(paramset.items()))
+                if purge_addresses:
+                    return await self._client.set_value(
+                        channel_address=channel_address,
+                        paramset_key=paramset_key,
+                        parameter=parameter,
+                        value=value,
+                        wait_for_callback=wait_for_callback,
+                        priority=priority,
+                        purge_addresses=purge_addresses,
+                        retry=retry,
+                    )
                 return await self._client.set_value(
                     channel_address=channel_address,
                     paramset_key=paramset_key,
@@ -1742,36 +1766,37 @@ class CallParameterCollector:
                     value=value,
                     wait_for_callback=wait_for_callback,
                     priority=priority,
+                    retry=retry,
+                )
+            if purge_addresses:
+                return await self._client.put_paramset(
+                    channel_address=channel_address,
+                    paramset_key_or_link_address=paramset_key,
+                    values=paramset,
+                    wait_for_callback=wait_for_callback,
+                    priority=priority,
                     purge_addresses=purge_addresses,
                     retry=retry,
                 )
-            return await self._client.set_value(
-                channel_address=channel_address,
-                paramset_key=paramset_key,
-                parameter=parameter,
-                value=value,
-                wait_for_callback=wait_for_callback,
-                priority=priority,
-                retry=retry,
-            )
-        if purge_addresses:
             return await self._client.put_paramset(
                 channel_address=channel_address,
                 paramset_key_or_link_address=paramset_key,
                 values=paramset,
                 wait_for_callback=wait_for_callback,
                 priority=priority,
-                purge_addresses=purge_addresses,
                 retry=retry,
             )
-        return await self._client.put_paramset(
-            channel_address=channel_address,
-            paramset_key_or_link_address=paramset_key,
-            values=paramset,
-            wait_for_callback=wait_for_callback,
-            priority=priority,
-            retry=retry,
-        )
+        except Exception as err:
+            # Roll back optimistic values immediately on send error (after all retries
+            # are exhausted). Mirrors the direct-send path in GenericDataPoint.send_value;
+            # without this the optimistic value would linger until the 30s timeout (#3238).
+            self._rollback_optimistic_for_paramset(
+                channel_address=channel_address,
+                paramset_key=paramset_key,
+                paramset=paramset,
+                error=str(err),
+            )
+            raise
 
 
 @overload

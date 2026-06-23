@@ -222,7 +222,7 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             )
         except Exception as err:
             # Immediate rollback on send error (after ALL retries exhausted)
-            self._rollback_optimistic_value(reason="send_error", error=str(err))
+            self.rollback_optimistic_value(reason="send_error", error=str(err))
             raise
 
     def _get_data_point_name(self) -> DataPointNameData:

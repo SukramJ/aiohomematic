@@ -165,7 +165,7 @@ def test_device_found():
 Coverage is automatically checked on:
 
 - Pull requests
-- Pushes to `master` and `devel`
+- Pushes to `main`
 
 Codecov comments on PRs with:
 
@@ -270,4 +270,4 @@ Coverage data is automatically combined.
 
 - [pytest-cov documentation](https://pytest-cov.readthedocs.io/)
 - [Codecov documentation](https://docs.codecov.com/)
-- [CLAUDE.md](https://github.com/sukramj/aiohomematic/blob/devel/CLAUDE.md#testing-guidelines) - Testing guidelines
+- [CLAUDE.md](https://github.com/sukramj/aiohomematic/blob/main/CLAUDE.md#testing-guidelines) - Testing guidelines

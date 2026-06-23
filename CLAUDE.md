@@ -506,7 +506,7 @@ Release process (tagging, changelog rules): **`docs/contributor/release_process.
 
 ### Essentials
 
-- Main branch: `master` (protected). Development branch: `devel` (protected).
+- Default branch: `main` (protected). All PRs target `main`.
 - Feature branches: `feature/<desc>`; fixes: `fix/<desc>`; AI sessions: `claude/claude-md-<session>`.
 - Conventional-commit style: `<type>(<scope>): <subject>`.
 - Pre-commit hooks (prek): sort-class-members, check-i18n, lint-package-imports,
@@ -676,7 +676,7 @@ Non-negotiable rules for how the assistant works with the user:
 ### Don'ts
 
 - ❌ No untyped code or skipped hooks.
-- ❌ No direct commits to `master` or `devel`.
+- ❌ No direct commits to `main`.
 - ❌ No `Any` without justification.
 - ❌ No I/O in the model layer.
 - ❌ No bare `except:`.

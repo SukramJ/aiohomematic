@@ -687,4 +687,4 @@ Commits that fail these checks will be rejected.
 - [PEP 257 – Docstring Conventions](https://peps.python.org/pep-0257/)
 - [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 - [NumPy Docstring Guide](https://numpydoc.readthedocs.io/en/latest/format.html)
-- [aiohomematic CLAUDE.md](https://github.com/sukramj/aiohomematic/blob/devel/CLAUDE.md)
+- [aiohomematic CLAUDE.md](https://github.com/sukramj/aiohomematic/blob/main/CLAUDE.md)

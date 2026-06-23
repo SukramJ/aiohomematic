@@ -95,4 +95,4 @@ docs/
 3. Test locally with `mkdocs serve`
 4. Submit a pull request
 
-Documentation is automatically deployed when changes are pushed to `devel` or `master`.
+Documentation is automatically deployed when changes are pushed to `main`.

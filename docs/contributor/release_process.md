@@ -103,7 +103,7 @@ git commit -m "Release version 2025.12.43"
 git tag -a "2025.12.43" -m "Release 2025.12.43"
 
 # Push with tags
-git push origin devel --tags
+git push origin main --tags
 ```
 
 ## Changelog Format

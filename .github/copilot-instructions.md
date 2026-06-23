@@ -120,8 +120,8 @@ raise ClientException(f"Failed to connect to {host}:{port}")
 
 ### Branch Target
 
-- Create feature branches from `devel`
-- Submit PRs to the `devel` branch (NOT `master`)
+- Create feature branches from `main`
+- Submit PRs to the `main` branch
 
 ### Quality Checks
 
@@ -199,4 +199,4 @@ unsubscribe = data_point.subscribe_to_data_point_updated(
 - Don't perform I/O in model classes
 - Don't use bare `except:` clauses
 - Don't skip prek hooks
-- Don't commit directly to `master` or `devel`
+- Don't commit directly to `main`

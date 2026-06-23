@@ -451,10 +451,10 @@ To add support for a new device/parameter combination:
 
 ## References
 
-- [CalculatedDataPoint Implementation](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/calculated/data_point.py) - Base class for calculated data points
-- [OperatingVoltageLevel](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/calculated/operating_voltage_level.py) - Example calculated data point
-- [DeviceProfileRegistry](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/custom/registry.py) - Similar registry pattern
-- [CustomDpIpSirenSmoke](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/model/custom/siren.py) - Current workaround with `is_on` property
+- [CalculatedDataPoint Implementation](https://github.com/sukramj/aiohomematic/blob/main/aiohomematic/model/calculated/data_point.py) - Base class for calculated data points
+- [OperatingVoltageLevel](https://github.com/sukramj/aiohomematic/blob/main/aiohomematic/model/calculated/operating_voltage_level.py) - Example calculated data point
+- [DeviceProfileRegistry](https://github.com/sukramj/aiohomematic/blob/main/aiohomematic/model/custom/registry.py) - Similar registry pattern
+- [CustomDpIpSirenSmoke](https://github.com/sukramj/aiohomematic/blob/main/aiohomematic/model/custom/siren.py) - Current workaround with `is_on` property
 
 ---
 

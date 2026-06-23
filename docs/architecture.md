@@ -99,7 +99,7 @@ aiohomematic uses **protocol-based dependency injection** to reduce coupling and
 
 ### Source of truth for protocols
 
-All protocol interfaces — with full categorisation, member signatures, and sub-protocol composition — live in the module docstring of [`aiohomematic/interfaces/__init__.py`](https://github.com/SukramJ/aiohomematic/blob/devel/aiohomematic/interfaces/__init__.py). That module is the authoritative reference; this page deliberately does not duplicate the list so the two cannot drift.
+All protocol interfaces — with full categorisation, member signatures, and sub-protocol composition — live in the module docstring of [`aiohomematic/interfaces/__init__.py`](https://github.com/SukramJ/aiohomematic/blob/main/aiohomematic/interfaces/__init__.py). That module is the authoritative reference; this page deliberately does not duplicate the list so the two cannot drift.
 
 Further reading:
 

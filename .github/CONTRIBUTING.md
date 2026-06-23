@@ -68,16 +68,16 @@ def fetch_data(self) -> dict[str, Any]:
 
 ### Branch Strategy
 
-1. Create your feature branch from `devel`:
+1. Create your feature branch from `main`:
    ```bash
-   git checkout devel
-   git pull origin devel
+   git checkout main
+   git pull origin main
    git checkout -b feature/your-feature-name
    ```
 
 2. Make your changes
 
-3. Submit your PR against the `devel` branch (not `master`)
+3. Submit your PR against the `main` branch
 
 ### Quality Checks
 

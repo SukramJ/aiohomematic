@@ -33,8 +33,8 @@
 
 ## Commit & Pull Request Guidelines
 
-- Branch from `devel` using `feature/<slug>` or `fix/<slug>`; AI sessions use `claude/claude-md-<session-id>`.
+- Branch from `main` using `feature/<slug>` or `fix/<slug>`; AI sessions use `claude/claude-md-<session-id>`.
 - Adopt the conventional commit format `type(scope): subject`; supported types are `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 - Describe intent in the body and reference issues when applicable (e.g., `Closes #123`).
-- Target PRs at `devel`, include a brief summary plus test/type results, and supply evidence for behavioral changes.
+- Target PRs at `main`, include a brief summary plus test/type results, and supply evidence for behavioral changes.
 - Update `changelog.md` for user-visible impact and call out configuration or migration notes in the PR description.

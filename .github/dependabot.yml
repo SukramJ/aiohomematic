@@ -6,6 +6,8 @@ updates:
   # Update Python dependencies
   - package-ecosystem: "pip"
     directory: "/"
+    cooldown:
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -47,6 +49,8 @@ updates:
   # Update GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
+    cooldown:
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"

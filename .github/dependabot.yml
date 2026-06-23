@@ -39,9 +39,10 @@ updates:
       prod-dependencies:
         patterns:
           - "aiohttp"
+          - "openccu-data"
           - "orjson"
+          - "pydantic"
           - "python-slugify"
-          - "voluptuous"
 
   # Update GitHub Actions
   - package-ecosystem: "github-actions"

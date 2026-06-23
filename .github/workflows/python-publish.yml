@@ -93,7 +93,7 @@ jobs:
           name: release-dists
           path: dist/
       - name: Publish to PyPI (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
         with:
           packages-dir: dist/
 
@@ -184,7 +184,7 @@ jobs:
           fi
 
       - name: Create/Update Support Release and upload assets
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3
         with:
           tag_name: support-${{ env.TAG_NAME }}
           name: "AioHomematic Support ${{ env.TAG_NAME }}"
@@ -199,7 +199,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish support package to PyPI (OIDC Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
         with:
           packages-dir: aiohomematic_test_support/dist/
           skip-existing: true

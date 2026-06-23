@@ -517,7 +517,7 @@ The integration uses optimized REGA scripts to fetch device data in bulk. If thi
 
 **Diagnostic steps:**
 
-1. Get the [REGA script](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/rega_scripts/fetch_all_device_data.fn)
+1. Get the [REGA script](https://github.com/sukramj/aiohomematic/blob/main/aiohomematic/rega_scripts/fetch_all_device_data.fn)
 2. Replace `##interface##` (line 17) with the interface from the error message (e.g., `HmIP-RF`)
 3. Run the script in CCU web interface: **Settings** → **Control panel** → **Execute script**
 4. Check if the output is valid JSON

@@ -50,7 +50,7 @@ fast = ["orjson>=3.11.0"]
 "Homepage" = "https://github.com/sukramj/aiohomematic"
 "Source Code" = "https://github.com/sukramj/aiohomematic"
 "Bug Reports" = "https://github.com/sukramj/aiohomematic/issues"
-"Changelog" = "https://github.com/sukramj/aiohomematic/blob/devel/changelog.md"
+"Changelog" = "https://github.com/sukramj/aiohomematic/blob/main/changelog.md"
 "Documentation" = "https://sukramj.github.io/aiohomematic"
 "Forum" = "https://github.com/sukramj/aiohomematic/discussions"
 

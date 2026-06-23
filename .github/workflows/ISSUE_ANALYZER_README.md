@@ -103,7 +103,7 @@ _This analysis was generated automatically. For questions or problems, please us
 
 The available documentation links are defined in `.github/scripts/analyze_issue.py`.
 
-> **Note:** These links point to the deployed documentation site at `sukramj.github.io/aiohomematic/` which is built from the `devel` branch.
+> **Note:** These links point to the deployed documentation site at `sukramj.github.io/aiohomematic/` which is built from the `main` branch.
 
 ```python
 DOCS_LINKS = {

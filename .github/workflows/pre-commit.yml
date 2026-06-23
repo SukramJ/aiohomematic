@@ -4,11 +4,10 @@ name: Pre-commit checks
 on:
   pull_request:
     branches:
-      - devel
+      - main
   push:
     branches-ignore:
-      - master
-      - devel
+      - main
     tags-ignore:
       - "**"
 

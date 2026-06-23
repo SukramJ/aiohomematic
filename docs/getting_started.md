@@ -11,7 +11,7 @@ explicit interface configuration.
 > the [Glossary](reference/glossary.md).
 >
 > **Verified code:** a known-good, end-to-end working script lives at
-> [`example.py`](https://github.com/SukramJ/aiohomematic/blob/devel/example.py) in the repository
+> [`example.py`](https://github.com/SukramJ/aiohomematic/blob/main/example.py) in the repository
 > root. When the snippets below conflict with `example.py`, treat `example.py` as the source of
 > truth.
 

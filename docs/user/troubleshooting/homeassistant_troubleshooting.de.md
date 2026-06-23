@@ -523,7 +523,7 @@ Die Integration verwendet optimierte REGA-Skripte, um Gerätedaten gebündelt ab
 
 **Diagnoseschritte:**
 
-1. Das [REGA-Skript](https://github.com/sukramj/aiohomematic/blob/devel/aiohomematic/rega_scripts/fetch_all_device_data.fn) herunterladen
+1. Das [REGA-Skript](https://github.com/sukramj/aiohomematic/blob/main/aiohomematic/rega_scripts/fetch_all_device_data.fn) herunterladen
 2. `##interface##` (Zeile 17) durch die Schnittstelle aus der Fehlermeldung ersetzen (z.B. `HmIP-RF`)
 3. Das Skript in der CCU-Weboberfläche ausführen: **Settings** → **Control panel** → **Execute script**
 4. Prüfen, ob die Ausgabe gültiges JSON ist

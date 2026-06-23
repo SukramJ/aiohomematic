@@ -4,31 +4,30 @@ This guide covers the git workflow for contributing to aiohomematic.
 
 ## Branch Structure
 
-| Branch      | Purpose                 | Protection |
-| ----------- | ----------------------- | ---------- |
-| `master`    | Stable releases         | Protected  |
-| `devel`     | Development integration | Protected  |
-| `feature/*` | New features            | -          |
-| `fix/*`     | Bug fixes               | -          |
+| Branch      | Purpose              | Protection |
+| ----------- | -------------------- | ---------- |
+| `main`      | Stable / integration | Protected  |
+| `feature/*` | New features         | -          |
+| `fix/*`     | Bug fixes            | -          |
 
 ## Workflow Overview
 
 ```
 1. Fork repository
-2. Create feature branch from devel
+2. Create feature branch from main
 3. Make changes with tests
 4. Run pre-commit hooks
 5. Commit with descriptive message
 6. Push to your fork
-7. Create Pull Request to devel
+7. Create Pull Request to main
 ```
 
 ## Creating a Feature Branch
 
 ```bash
-# Ensure you're on devel and up to date
-git checkout devel
-git pull origin devel
+# Ensure you're on main and up to date
+git checkout main
+git pull origin main
 
 # Create feature branch
 git checkout -b feature/my-feature
@@ -103,7 +102,7 @@ git push -u origin feature/my-feature
 
 ### 2. Create PR on GitHub
 
-- **Target branch**: `devel`
+- **Target branch**: `main`
 - **Title**: Clear, concise description
 - **Description**: Explain what and why
 
@@ -150,7 +149,7 @@ git push
 
 ### Never Do
 
-- Push directly to `master` or `devel`
+- Push directly to `main`
 - Force push to shared branches
 - Use `git reset --hard` on shared branches
 - Skip hooks with `--no-verify` without good reason
@@ -170,10 +169,10 @@ git push
 
 ```bash
 git fetch origin
-git checkout devel
-git merge origin/devel
+git checkout main
+git merge origin/main
 git checkout feature/my-feature
-git rebase devel
+git rebase main
 ```
 
 ### Fix Last Commit Message

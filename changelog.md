@@ -1,4 +1,23 @@
-# Version 2026.6.5 (2026-06-22)
+# Version 2026.6.6 (2026-06-23)
+
+## What's Changed
+
+### Fixed
+
+- **`VirtualDevices` no longer report an implausible `0` after a CCU restart via
+  the `getValue` fallback (#3228).** The previous attempts (`*_STATUS` load-path,
+  ReGa script v2.5) could not fix this case: a virtual heating group's
+  `ACTUAL_TEMPERATURE` is aggregated by the CCU and has **no physical device**
+  behind it, so the per-parameter `getValue` fallback can only ever return the
+  CCU-internal default (`0`) — and the CCU reports it with `*_STATUS = NORMAL`
+  (the status default), not `UNKNOWN`, so the status check never rejected it.
+  Because `getValue` cannot deliver a device-fresh value for an interface without
+  a backing device, the `VALUES` `getValue` fallback is now **skipped entirely for
+  `VirtualDevices`**. The bulk ReGa fetch — which already gates these data points
+  on a valid `LastTimestamp()` (v2.5) — becomes the single source of truth, and the
+  data point stays unavailable until a real reading arrives via event. Physical
+  interfaces are unaffected: there `getValue` can read the device, so the fallback
+  is retained.
 
 ## What's Changed
 

@@ -1,14 +1,17 @@
 """Tests for optimistic update system."""
 
+import asyncio
 from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from aiohomematic.central.events import OptimisticRollbackEvent
 from aiohomematic.client import CommandPriority
 from aiohomematic.client.backends.capabilities import BackendCapabilities
 from aiohomematic.const import RollbackReason
-from aiohomematic.model.data_point import BaseParameterDataPoint
+from aiohomematic.exceptions import ClientException
+from aiohomematic.model.data_point import BaseParameterDataPoint, CallParameterCollector
 from aiohomematic.model.generic import DpSwitch
 
 TEST_DEVICES: set[str] = {"VCU2128127", "VCU3609622"}
@@ -94,7 +97,7 @@ class TestOptimisticRollback:
 
     def test_rollback_method_exists(self) -> None:
         """Test that rollback method exists."""
-        assert hasattr(BaseParameterDataPoint, "_rollback_optimistic_value")
+        assert hasattr(BaseParameterDataPoint, "rollback_optimistic_value")
 
     def test_schedule_rollback_method_exists(self) -> None:
         """Test that schedule rollback method exists."""
@@ -321,6 +324,68 @@ class TestNoRpcCallbackSkipsOptimistic:
 
         # Optimistic state should be active
         assert switch.is_optimistic is True
+
+
+class TestCollectorSendErrorRollback:
+    """Test that a failed collector send rolls back optimistic values immediately (issue #3238)."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_collector_send_error_rolls_back_optimistic_immediately(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        A failing set_value during collector.send_data() must roll back immediately.
+
+        The direct-send path in send_value() already rolls back on send error, but the
+        collector path (CallParameterCollector.send_data) did not. Without rollback the
+        optimistic value stayed active until the 30s timeout fired (issue #3238).
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        switch: DpSwitch = cast(
+            DpSwitch,
+            central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE"),
+        )
+
+        rollback_events: list[OptimisticRollbackEvent] = []
+
+        def _on_rollback(*, event: OptimisticRollbackEvent) -> None:
+            rollback_events.append(event)
+
+        unsub = central.event_bus.subscribe(event_type=OptimisticRollbackEvent, event_key=None, handler=_on_rollback)
+
+        # Make the backend set_value fail (simulates RESPONSE_NAK after retries).
+        mock_client.set_value.side_effect = ClientException("RESPONSE_NAK")
+
+        collector = CallParameterCollector(client=switch.channel.device.client)
+        collector.add_data_point(data_point=switch, value=True, collector_order=50)
+
+        try:
+            with pytest.raises(ClientException):
+                await collector.send_data(wait_for_callback=None)
+
+            # Optimistic value must be rolled back immediately (not waiting for the 30s timeout).
+            assert switch.is_optimistic is False
+
+            # Allow the fire-and-forget OptimisticRollbackEvent publish task to run.
+            await asyncio.sleep(0.05)
+            assert any(str(event.reason) == str(RollbackReason.SEND_ERROR) for event in rollback_events), (
+                f"expected a send_error rollback event, got {[str(e.reason) for e in rollback_events]}"
+            )
+        finally:
+            unsub()
+            mock_client.set_value.side_effect = None
 
 
 class TestPriorityAndOptimisticIntegration:

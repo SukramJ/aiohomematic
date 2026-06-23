@@ -1,3 +1,22 @@
+# Version 2026.6.7 (2026-06-23)
+
+## What's Changed
+
+### Fixed
+
+- **A failed collector send now rolls back optimistic values immediately instead of
+  after the 30 s timeout (#3238).** The direct-send path in
+  `GenericDataPoint.send_value()` already rolled back the optimistic value when the
+  backend `set_value` raised (e.g. an XML-RPC `RESPONSE_NAK` after all retries were
+  exhausted), but the collector path (`CallParameterCollector.send_data()`) did not.
+  As a result, a write the CCU rejected left the optimistic value active for the full
+  `optimistic_update_timeout` (30 s), so the entity kept displaying the value that
+  never reached the device until the timeout rollback fired. `_send_paramset` now
+  mirrors the direct-send path: on a send error it immediately rolls back the
+  optimistic values of the data points contained in the failed paramset
+  (`reason=send_error`). The rollback entry point `_rollback_optimistic_value` was
+  promoted to the public `rollback_optimistic_value` so the collector can invoke it.
+
 # Version 2026.6.6 (2026-06-23)
 
 ## What's Changed

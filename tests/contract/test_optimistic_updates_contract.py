@@ -165,8 +165,8 @@ class TestDataPointOptimisticAPIContract:
 
         Used to clear optimistic state.
         """
-        assert hasattr(BaseParameterDataPoint, "_rollback_optimistic_value"), (
-            "BaseParameterDataPoint must have _rollback_optimistic_value method"
+        assert hasattr(BaseParameterDataPoint, "rollback_optimistic_value"), (
+            "BaseParameterDataPoint must have rollback_optimistic_value method"
         )
 
     def test_data_point_has_schedule_rollback_method(self) -> None:

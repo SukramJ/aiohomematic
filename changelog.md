@@ -1,3 +1,19 @@
+# Version 2026.6.8 (2026-06-24)
+
+## What's Changed
+
+### Fixed
+
+- **`HmIP-FWI` `CODE_ID` no longer drops the idle value 31 (#3238).** The CCU declares
+  `MAX=21` for the fingerprint reader's `CODE_ID`, but the device reports `CODE_ID=31`
+  in idle/standby. The too-low maximum dropped the idle value at the Home Assistant
+  `number` entity, so `number.*_code_id` kept the last recognized code (e.g. 21) and
+  never returned to 31, while the sibling `sensor.*_code_state` updated correctly.
+  A paramset patch now widens `CODE_ID` `MAX` to 31 for `HmIP-FWI`. This fixes the
+  event-driven flow (device-reported codes); it is unrelated to the optimistic
+  send/rollback path addressed in 2026.6.7. The paramset cache schema version was
+  bumped to 4 so the corrected bounds are rebuilt from the CCU.
+
 # Version 2026.6.7 (2026-06-23)
 
 ## What's Changed

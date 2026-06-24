@@ -53,7 +53,8 @@ class ParamsetDescriptionRegistry(
     #   1: Initial schema
     #   2: Normalized OPERATIONS and FLAGS to integers
     #   3: Added paramset patching system for device-specific corrections
-    SCHEMA_VERSION: int = 3
+    #   4: Added HmIP-FWI CODE_ID MAX patch (#3238)
+    SCHEMA_VERSION: int = 4
 
     __slots__ = ("_address_parameter_cache",)
 

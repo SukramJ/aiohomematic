@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.6.7"
+VERSION: Final = "2026.6.8"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1268,6 +1268,7 @@ class Parameter(StrEnum):
     CHANNEL_COLOR = "CHANNEL_COLOR"
     CHANNEL_LOCK = "CHANNEL_LOCK"
     CHANNEL_OPERATION_MODE = "CHANNEL_OPERATION_MODE"
+    CODE_ID = "CODE_ID"
     COLOR = "COLOR"
     COLOR_BEHAVIOUR = "COLOR_BEHAVIOUR"
     COLOR_TEMPERATURE = "COLOR_TEMPERATURE"

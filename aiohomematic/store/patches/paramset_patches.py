@@ -84,6 +84,22 @@ PARAMSET_PATCHES: Final[tuple[ParamsetPatch, ...]] = (
         ticket=None,
     ),
     # -------------------------------------------------------------------------
+    # HmIP-FWI: Fingerprint reader
+    # -------------------------------------------------------------------------
+    # The CCU declares MAX=21 for CODE_ID, but the device reports CODE_ID=31 in
+    # idle/standby (5-bit field, 31 = no active code). The too-low MAX dropped
+    # the idle value at the HA number entity, so number.*_code_id never returned
+    # to 31 after a recognized code. Widen MAX to 31; MIN stays at 1.
+    ParamsetPatch(
+        device_type="HmIP-FWI",
+        channel_no=0,
+        paramset_key=ParamsetKey.VALUES,
+        parameter=Parameter.CODE_ID,
+        patches={"MAX": 31},
+        reason="CCU declares MAX=21 but device reports idle CODE_ID=31",
+        ticket="#3238",
+    ),
+    # -------------------------------------------------------------------------
     # Add more patches below as needed
     # -------------------------------------------------------------------------
 )

@@ -2608,3 +2608,79 @@ class TestClimateSimpleScheduleMethods:
             )
             assert isinstance(checked_values["P1_TEMPERATURE_MONDAY_2"], float)
             assert checked_values["P1_TEMPERATURE_MONDAY_2"] == 21.0
+
+
+class TestClimateValidityIrrelevantDataPoints:
+    """
+    #3255: actuator/activity data points must not block climate validity.
+
+    Heating groups (``HmIP-HEATING`` on the VirtualDevices interface) never receive
+    events for actuator values like ``LEVEL``/``STATE``/``VALVE_STATE``, and since the
+    #3228 fixes the ``getValue`` fallback returns ``NO_VALUE`` for VirtualDevices. Those
+    data points would otherwise stay unrefreshed forever and invalidate the whole climate
+    (frozen ``current_temperature``, ``value_state=restored``), while the sibling sensors
+    keep updating. They are therefore excluded from the validity-relevant data points.
+    """
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ip_thermostat_level_excluded_from_validity(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """LEVEL/STATE must not block is_valid for an IP thermostat (#3255)."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        climate = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU3609622", 1))
+        # Precondition: LEVEL is a real, readable data point on this device.
+        assert climate._dp_level.is_readable
+        # LEVEL/STATE must be excluded from the validity-relevant data points.
+        assert climate._dp_level not in climate._relevant_data_points
+        assert climate._dp_state not in climate._relevant_data_points
+        # Simulate a heating group: every value arrives via event EXCEPT the actuator
+        # values LEVEL/STATE, which the CCU never reports for groups.
+        excluded = (climate._dp_level, climate._dp_state)
+        for dp in climate._readable_data_points:
+            if dp not in excluded:
+                dp._set_refreshed_at(refreshed_at=datetime.now())
+        assert climate._dp_level.is_refreshed is False
+        # The climate must be valid even though LEVEL/STATE never refreshed.
+        assert climate.is_valid is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_rf_thermostat_valve_state_excluded_from_validity(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """VALVE_STATE must not block is_valid for an RF thermostat (#3255)."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        climate = cast(CustomDpRfThermostat, get_prepared_custom_data_point(central, "VCU0000050", 4))
+        # Precondition: VALVE_STATE is a real, readable data point on this device.
+        assert climate._dp_valve_state.is_readable
+        assert climate._dp_valve_state not in climate._relevant_data_points
+        excluded = (climate._dp_valve_state,)
+        for dp in climate._readable_data_points:
+            if dp not in excluded:
+                dp._set_refreshed_at(refreshed_at=datetime.now())
+        assert climate._dp_valve_state.is_refreshed is False
+        assert climate.is_valid is True

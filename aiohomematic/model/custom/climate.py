@@ -25,7 +25,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.custom.capabilities.climate import (
     BASIC_CLIMATE_CAPABILITIES,
     IP_THERMOSTAT_CAPABILITIES,
@@ -207,6 +207,28 @@ class BaseCustomDpClimate(CustomDataPoint):
     current_humidity: Final = DelegatedProperty[int | None](path="_dp_humidity.value", kind=Kind.STATE)
     current_temperature: Final = DelegatedProperty[float | None](path="_dp_temperature.value", kind=Kind.STATE)
     target_temperature: Final = DelegatedProperty[float | None](path="_dp_setpoint.value", kind=Kind.STATE)
+
+    @property
+    def _validity_irrelevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
+        """
+        Return readable data points that must not affect climate validity (#3255).
+
+        Actuator/activity values (``LEVEL``, ``STATE``, ``VALVE_STATE``) are not reported by
+        the CCU for heating groups (``HmIP-HEATING`` on the VirtualDevices interface), and since
+        the #3228 fixes the ``getValue`` fallback no longer fills them with a placeholder. Left
+        in the validity set they would keep ``is_refreshed``/``is_valid`` false forever, freezing
+        ``current_temperature``/``current_humidity`` (``value_state=restored``) while the sibling
+        sensors keep updating. Subclasses list their actuator data points here.
+        """
+        return ()
+
+    @property
+    @override
+    def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
+        """Return readable data points relevant for validity, excluding actuator values (#3255)."""
+        if not (irrelevant := self._validity_irrelevant_data_points):
+            return self._readable_data_points
+        return tuple(dp for dp in self._readable_data_points if dp not in irrelevant)
 
     @property
     def _temperature_for_heat_mode(self) -> float:
@@ -483,6 +505,12 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
 
         return profiles
 
+    @property
+    @override
+    def _validity_irrelevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
+        """Exclude the VALVE_STATE actuator readback from validity checks (#3255)."""
+        return (self._dp_valve_state,)
+
     @config_property
     def schedule_profile_nos(self) -> int:
         """Return the number of supported profiles."""
@@ -690,6 +718,12 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                 profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i
 
         return profiles
+
+    @property
+    @override
+    def _validity_irrelevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
+        """Exclude the LEVEL/STATE actuator values from validity checks (#3255)."""
+        return (self._dp_level, self._dp_state)
 
     @config_property
     def schedule_profile_nos(self) -> int:

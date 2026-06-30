@@ -1,3 +1,23 @@
+# Version 2026.6.9 (2026-06-30)
+
+## What's Changed
+
+### Fixed
+
+- **Heating-group `climate` no longer freezes `current_temperature`/`current_humidity`
+  (#3255).** For `HmIP-HEATING` groups (VirtualDevices interface) the CCU never sends
+  events for the actuator values `LEVEL`/`STATE`/`VALVE_STATE`, and since the #3228
+  fixes the `getValue` fallback returns `NO_VALUE` for VirtualDevices. Those readable
+  data points therefore stayed unrefreshed forever and dragged the whole custom climate
+  data point to `is_valid=False`, so Home Assistant kept the climate entity in
+  `value_state=restored` and froze `current_temperature`/`current_humidity` at the value
+  loaded on the last (re)start — while the sibling `sensor.*` entities (gated on their own
+  data point) kept updating. The climate validity check now ignores these actuator/activity
+  data points: `BaseCustomDpClimate` exposes a `_validity_irrelevant_data_points` hook,
+  with `CustomDpIpThermostat` excluding `LEVEL`/`STATE` and `CustomDpRfThermostat`
+  excluding `VALVE_STATE`. The values themselves are unaffected (they still arrive via
+  events when the CCU sends them); only the validity/`value_state` gating changes.
+
 # Version 2026.6.8 (2026-06-24)
 
 ## What's Changed

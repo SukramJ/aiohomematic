@@ -193,6 +193,10 @@ Running outdated firmware or untested backends (CCU2, Homegear) is at your own r
 
 Contributions are welcome! See the [Contributing Guide](https://sukramj.github.io/aiohomematic/contributor/contributing/) and the in-repo [`CLAUDE.md`](CLAUDE.md) for coding standards and the refactoring checklist.
 
+## Development
+
+Parts of aiohomematic are developed with agentic AI assistance, primarily [Claude Code](https://www.anthropic.com/claude-code). Submitted issues are also triaged and analyzed with agentic help. Every change is still reviewed by a human maintainer and must pass the project's test suite before it lands — AI accelerates the work, it does not replace the review gate.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.

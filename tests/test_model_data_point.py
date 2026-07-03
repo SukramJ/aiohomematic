@@ -225,9 +225,14 @@ class TestDataPointLoading:
     async def test_load_custom_data_point(
         self,
         central_client_factory_with_homegear_client,
+        monkeypatch,
     ) -> None:
         """Test custom data point value loading."""
         central, mock_client, _ = central_client_factory_with_homegear_client
+        # VCU2128127 is a HmIP-BSM; pin it to HMIP_RF so the per-parameter getValue
+        # fallback runs. BidCos-RF (the test factory default) skips it (#3260).
+        device = central.device_coordinator.get_device(address="VCU2128127")
+        monkeypatch.setattr(device, "_interface", Interface.HMIP_RF)
         switch: DpSwitch = cast(DpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
         await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
         # Find the two STATE get_value calls (order: ch4 STATE, ch3 STATE)
@@ -267,9 +272,14 @@ class TestDataPointLoading:
     async def test_load_generic_data_point(
         self,
         central_client_factory_with_homegear_client,
+        monkeypatch,
     ) -> None:
         """Test generic data point value loading."""
         central, mock_client, _ = central_client_factory_with_homegear_client
+        # VCU2128127 is a HmIP-BSM; pin it to HMIP_RF so the per-parameter getValue
+        # fallback runs. BidCos-RF (the test factory default) skips it (#3260).
+        device = central.device_coordinator.get_device(address="VCU2128127")
+        monkeypatch.setattr(device, "_interface", Interface.HMIP_RF)
         switch: DpSwitch = cast(
             DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
         )
@@ -296,6 +306,7 @@ class TestDataPointLoading:
     async def test_load_generic_data_point_also_loads_status(
         self,
         central_client_factory_with_homegear_client,
+        monkeypatch,
     ) -> None:
         """
         Loading a data point with a paired ``*_STATUS`` must also load that status (#3228).
@@ -305,6 +316,10 @@ class TestDataPointLoading:
         status must be loaded on init so the value's validity can be judged.
         """
         central, mock_client, _ = central_client_factory_with_homegear_client
+        # VCU3609622 is a HmIP-eTRV-E; pin it to HMIP_RF so the per-parameter getValue
+        # fallback runs. BidCos-RF (the test factory default) skips it (#3260).
+        device = central.device_coordinator.get_device(address="VCU3609622")
+        monkeypatch.setattr(device, "_interface", Interface.HMIP_RF)
         level: DpSensor = cast(
             DpSensor,
             central.query_facade.get_generic_data_point(channel_address="VCU3609622:1", parameter="LEVEL"),

@@ -17,6 +17,7 @@ from aiohomematic.const import (
     VIRTUAL_REMOTE_MODELS,
     DeviceTriggerEventType,
     ForcedDeviceAvailability,
+    Interface,
     ParamsetKey,
 )
 from aiohomematic.exceptions import AioHomematicException, BaseHomematicException
@@ -1317,25 +1318,28 @@ class TestValueCachePaths:
         ),
         [({"VCU2128127"}, True, None, None)],
     )
-    async def test_get_values_for_cache_skips_getvalue_for_virtual_devices(
-        self, central_client_factory_with_homegear_client, monkeypatch
+    @pytest.mark.parametrize(
+        "skip_interface",
+        [Interface.VIRTUAL_DEVICES, Interface.BIDCOS_RF],
+    )
+    async def test_get_values_for_cache_skips_getvalue_for_interface(
+        self, central_client_factory_with_homegear_client, monkeypatch, skip_interface
     ) -> None:
         """
-        Skip the VALUES getValue fallback for VirtualDevices (#3228).
+        Skip the VALUES getValue fallback for VirtualDevices and BidCos-RF (#3228, #3260).
 
-        VirtualDevices (e.g. heating groups) have no physical device behind them, so a
-        getValue can only return the CCU-internal default (e.g. 0 for a not-yet-measured
-        ACTUAL_TEMPERATURE after a CCU restart) instead of a real reading. The bulk ReGa
-        fetch already filters such placeholders via LastTimestamp, so the getValue
-        fallback must not run for this interface.
+        VirtualDevices (e.g. heating groups) have no physical device behind them, and
+        BidCos-RF hosts passive/battery devices that cannot be actively queried. In both
+        cases a getValue can only return the CCU-internal default (e.g. 0 for a
+        not-yet-measured ACTUAL_TEMPERATURE after a CCU restart) instead of a real reading.
+        The bulk ReGa fetch already filters such placeholders via LastTimestamp, so the
+        getValue fallback must not run for these interfaces.
         """
         central, _, _ = central_client_factory_with_homegear_client
         device = central.device_coordinator.get_device(address="VCU2128127")
 
-        from aiohomematic.const import Interface, ParamsetKey
-
-        # Pretend this device lives on the VirtualDevices interface.
-        monkeypatch.setattr(device, "_interface", Interface.VIRTUAL_DEVICES)
+        # Pretend this device lives on the interface under test.
+        monkeypatch.setattr(device, "_interface", skip_interface)
 
         values_dps = [dp for dp in device.generic_data_points if dp.paramset_key == ParamsetKey.VALUES]
         assert values_dps
@@ -1352,7 +1356,7 @@ class TestValueCachePaths:
 
         result = await device.value_cache._get_values_for_cache(dpk=dpk)  # type: ignore[attr-defined]
 
-        # No getValue fallback for VirtualDevices VALUES ...
+        # No getValue fallback for these interfaces' VALUES ...
         assert backend_calls == []
         # ... and a NO_VALUE marker is returned so the data point stays unavailable.
         assert result == {dpk.parameter: device.value_cache._NO_VALUE_CACHE_ENTRY}  # type: ignore[attr-defined]

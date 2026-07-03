@@ -2012,14 +2012,19 @@ class _ValueCache:
             )
             return {}
         if dpk.paramset_key == ParamsetKey.VALUES:
-            # VirtualDevices (e.g. heating groups) have no physical device behind them;
-            # their VALUES are aggregated by the CCU. A getValue therefore cannot return
-            # device-fresh data, only the CCU-internal default (e.g. 0 for a not-yet-measured
-            # ACTUAL_TEMPERATURE right after a CCU restart). The bulk ReGa fetch already
-            # filters such placeholders via LastTimestamp and is the only trustworthy source
-            # for this interface, so skip the per-parameter getValue fallback. The data point
-            # keeps its (unset) state until a real value arrives via event (#3228).
-            if self._device.interface == Interface.VIRTUAL_DEVICES:
+            # For some interfaces a per-parameter getValue during init cannot return
+            # device-fresh data, only a CCU-internal placeholder that would be marked as
+            # valid and thereby mask an actually uncertain state:
+            #   - VirtualDevices (e.g. heating groups) have no physical device behind them;
+            #     their VALUES are aggregated by the CCU (e.g. 0 for a not-yet-measured
+            #     ACTUAL_TEMPERATURE right after a CCU restart).
+            #   - BidCos-RF hosts passive/battery devices that cannot be actively queried;
+            #     getValue then returns the paramset default instead of a real reading.
+            # The bulk ReGa fetch already filters such placeholders via LastTimestamp and is
+            # the only trustworthy source for these interfaces, so skip the per-parameter
+            # getValue fallback. The data point keeps its (unset) state until a real value
+            # arrives via event (#3228, #3260).
+            if self._device.interface in (Interface.VIRTUAL_DEVICES, Interface.BIDCOS_RF):
                 return {dpk.parameter: self._NO_VALUE_CACHE_ENTRY}
             return {
                 dpk.parameter: await self._device.client.get_value(

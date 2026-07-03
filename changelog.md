@@ -1,3 +1,18 @@
+# Version 2026.7.1 (2026-07-03)
+
+## What's Changed
+
+### Fixed
+
+- **BidCos-RF no longer fills not-yet-refreshed VALUES with getValue defaults
+  (#3260).** Passive/battery BidCos-RF devices cannot be actively queried, so the
+  per-parameter `getValue` fallback during init returned the paramset default (marked
+  as valid) instead of a real reading — masking an actually uncertain state for devices
+  that had not reported yet. As already done for VirtualDevices (#3228), the `getValue`
+  fallback is now skipped for the BidCos-RF interface: readable VALUES keep their
+  (unset) `NO_VALUE` state until a real value arrives via event. The bulk ReGa fetch
+  (which filters placeholders via `LastTimestamp`) remains the trustworthy init source.
+
 # Version 2026.6.9 (2026-06-30)
 
 ## What's Changed

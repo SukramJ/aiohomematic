@@ -174,15 +174,15 @@ class TestCentralFullSession:
             if dev.model == "HM-CC-VG-1":
                 pass
 
-        assert usage_types[DataPointUsage.CDP_PRIMARY] == 277
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 293
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 215
-        assert usage_types[DataPointUsage.DATA_POINT] == 4339
-        assert usage_types[DataPointUsage.NO_CREATE] == 4495
+        assert usage_types[DataPointUsage.DATA_POINT] == 4340
+        assert usage_types[DataPointUsage.NO_CREATE] == 4519
 
-        assert len(ce_channels) == 133
+        assert len(ce_channels) == 134
         assert len(data_point_types) == 6
-        assert len(parameters) == 257
+        assert len(parameters) == 258
 
         assert len(central.device_registry.devices) == 395
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

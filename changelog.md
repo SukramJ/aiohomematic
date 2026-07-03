@@ -2,6 +2,21 @@
 
 ## What's Changed
 
+### Added
+
+- **User access permission switches for HmIP-DLD and HmIP-FWI (#3262).** These
+  access-control devices now expose their per-user access channels (HmIP-DLD
+  `:2`–`:9`, HmIP-FWI `:1`–`:8`) as switch data points, mirroring the
+  `PERMISSION_STATE` switches added for the newer HmIP-DLP. Unlike the DLP — which
+  has a single read/write `PERMISSION_STATE` parameter — these devices split the
+  permission into a read-only `STATE` and a write-only `ACCESS_AUTHORIZATION` (ENUM
+  `DISABLE`/`ENABLE`). The new `CustomDpIpAccessPermission` custom data point
+  combines both into one switch: `value` reflects `STATE`, `turn_on`/`turn_off`
+  write `ACCESS_AUTHORIZATION`. Added the `IP_ACCESS_PERMISSION` device profile and
+  the `ACCESS_AUTHORIZATION` `Parameter`/`Field`. The profile keeps the devices'
+  unrelated data points (HmIP-FWI access codes, output switches, week program) via
+  `allow_undefined_generic_data_points`.
+
 ### Fixed
 
 - **BidCos-RF no longer fills not-yet-refreshed VALUES with getValue defaults

@@ -42,6 +42,7 @@ from typing import Final
 from aiohomematic.const import ServiceScope
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces.model import DeviceProtocol
+from aiohomematic.model.custom.access_permission import CustomDpIpAccessPermission
 from aiohomematic.model.custom.climate import (
     PROFILE_PREFIX,
     BaseCustomDpClimate,
@@ -153,6 +154,7 @@ __all__ = [
     # Lock
     "BaseCustomDpLock",
     "CustomDpButtonLock",
+    "CustomDpIpAccessPermission",
     "CustomDpIpLock",
     "CustomDpRfLock",
     "LockState",

@@ -221,8 +221,9 @@ def parameter_is_wildcard_ignored(*, parameter: ParameterName) -> bool:
 # Parameters that are normally ignored but should be created for specific devices.
 
 UN_IGNORE_PARAMETERS_BY_DEVICE: Final[Mapping[ModelName, frozenset[Parameter]]] = {
-    "HmIP-DLD": frozenset({Parameter.ERROR_JAMMED}),
+    "HmIP-DLD": frozenset({Parameter.ERROR_JAMMED, Parameter.ACCESS_AUTHORIZATION}),
     "HmIP-DLP": frozenset({Parameter.ERROR_JAMMED}),
+    "HmIP-FWI": frozenset({Parameter.ACCESS_AUTHORIZATION}),
     "HmIP-SWSD": frozenset({Parameter.DIRT_LEVEL, Parameter.SMOKE_LEVEL, Parameter.SMOKE_DETECTOR_ALARM_STATUS}),
     # Text display parameters for HmIP-WRCD
     "HmIP-WRCD": frozenset(

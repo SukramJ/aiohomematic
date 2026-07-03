@@ -644,6 +644,33 @@ RF_LOCK_CONFIG: Final = ProfileConfig(
 )
 
 
+# --- Access Permission Profiles ---
+
+# User access permission on a single ACCESS_RECEIVER channel (e.g. HmIP-DLD user
+# channels 2-9). STATE is the read-only current permission (mapped here). The
+# write-only ACCESS_AUTHORIZATION control is deliberately NOT a profile field: it
+# is globally ignored, and mapping it here would make it a globally-required
+# parameter that gets exposed on unrelated devices (HmIP-WKP, HmIP-FWI). Instead it
+# is un-ignored only for HmIP-DLD and resolved inside CustomDpIpAccessPermission.
+IP_ACCESS_PERMISSION_CONFIG: Final = ProfileConfig(
+    profile_type=DeviceProfile.IP_ACCESS_PERMISSION,
+    channel_group=ChannelGroupConfig(
+        # Keep all other generic data points of the device. Devices whose ONLY custom
+        # data points are these permission switches (e.g. HmIP-FWI) would otherwise
+        # have their unrelated generic data points (access codes, output switches,
+        # week program) suppressed. On devices that also have other custom profiles
+        # (e.g. HmIP-DLD lock/button-lock) the device-level flag stays False via
+        # all(...), so their behaviour is unchanged.
+        allow_undefined_generic_data_points=True,
+        fields={
+            # Hidden: consumed by the switch as its read value; allow_undefined above
+            # would otherwise keep STATE visible as a separate generic sensor.
+            Field.STATE: _hidden(parameter=Parameter.STATE),
+        },
+    ),
+)
+
+
 # --- Siren Profiles ---
 
 IP_SIREN_CONFIG: Final = ProfileConfig(
@@ -933,6 +960,8 @@ PROFILE_CONFIGS: Final[ProfileRegistry] = {
     # Lock
     DeviceProfile.IP_LOCK: IP_LOCK_CONFIG,
     DeviceProfile.RF_LOCK: RF_LOCK_CONFIG,
+    # Access Permission
+    DeviceProfile.IP_ACCESS_PERMISSION: IP_ACCESS_PERMISSION_CONFIG,
     # Siren
     DeviceProfile.IP_SIREN: IP_SIREN_CONFIG,
     DeviceProfile.IP_SIREN_SMOKE: IP_SIREN_SMOKE_CONFIG,

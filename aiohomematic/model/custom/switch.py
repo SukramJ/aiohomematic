@@ -11,6 +11,7 @@ from typing import Final, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
 from aiohomematic.model.combined.field import CombinedTimerField
+from aiohomematic.model.custom.access_permission import CustomDpIpAccessPermission
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import GroupStateMixin, StateChangeArgs, StateChangeTimerMixin
@@ -128,3 +129,23 @@ DeviceProfileRegistry.register(
         }
     ),
 )
+
+# User access permission switches for access-control devices that split the per-user
+# permission into read-only STATE + write-only ACCESS_AUTHORIZATION (e.g. HmIP-DLD
+# channels 2-9, HmIP-FWI channels 1-8). Registered here (not in access_permission.py)
+# so the SWITCH category keeps its usual insertion order in the registry; registering
+# from access_permission.py would make SWITCH the first category and reorder
+# channel-conflict resolution for unrelated devices.
+_IP_ACCESS_PERMISSION_REGISTRATIONS: Final[tuple[tuple[str, tuple[int, ...]], ...]] = (
+    ("HmIP-DLD", (2, 3, 4, 5, 6, 7, 8, 9)),
+    ("HmIP-FWI", (1, 2, 3, 4, 5, 6, 7, 8)),
+)
+
+for _model, _channels in _IP_ACCESS_PERMISSION_REGISTRATIONS:
+    DeviceProfileRegistry.register(
+        category=DataPointCategory.SWITCH,
+        models=_model,
+        data_point_class=CustomDpIpAccessPermission,
+        profile_type=DeviceProfile.IP_ACCESS_PERMISSION,
+        channels=_channels,
+    )

@@ -1015,6 +1015,7 @@ class DeviceFirmwareState(StrEnum):
 class DeviceProfile(StrEnum):
     """Enum for device profiles."""
 
+    IP_ACCESS_PERMISSION = "IPAccessPermission"
     IP_BUTTON_LOCK = "IPButtonLock"
     IP_COVER = "IPCover"
     IP_DIMMER = "IPDimmer"
@@ -1080,6 +1081,7 @@ class EventData:
 class Field(Enum):
     """Enum for fields."""
 
+    ACCESS_AUTHORIZATION = "access_authorization"
     ACOUSTIC_ALARM_ACTIVE = "acoustic_alarm_active"
     ACOUSTIC_ALARM_SELECTION = "acoustic_alarm_selection"
     ACOUSTIC_NOTIFICATION_SELECTION = "acoustic_notification_selection"
@@ -1252,6 +1254,7 @@ class OptionalSettings(StrEnum):
 class Parameter(StrEnum):
     """Enum with Homematic parameters."""
 
+    ACCESS_AUTHORIZATION = "ACCESS_AUTHORIZATION"
     ACOUSTIC_ALARM_ACTIVE = "ACOUSTIC_ALARM_ACTIVE"
     ACOUSTIC_ALARM_SELECTION = "ACOUSTIC_ALARM_SELECTION"
     ACOUSTIC_NOTIFICATION_SELECTION = "ACOUSTIC_NOTIFICATION_SELECTION"

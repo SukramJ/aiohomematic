@@ -66,6 +66,7 @@ from aiohomematic.const import (
     DEVICE_DESCRIPTIONS_ZIP_DIR,
     IDENTIFIER_SEPARATOR,
     INIT_DATETIME,
+    INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK,
     NO_CACHE_ENTRY,
     PARAMSET_DESCRIPTIONS_ZIP_DIR,
     RELEVANT_INIT_PARAMETERS,
@@ -2013,18 +2014,15 @@ class _ValueCache:
             return {}
         if dpk.paramset_key == ParamsetKey.VALUES:
             # For some interfaces a per-parameter getValue during init cannot return
-            # device-fresh data, only a CCU-internal placeholder that would be marked as
-            # valid and thereby mask an actually uncertain state:
-            #   - VirtualDevices (e.g. heating groups) have no physical device behind them;
-            #     their VALUES are aggregated by the CCU (e.g. 0 for a not-yet-measured
-            #     ACTUAL_TEMPERATURE right after a CCU restart).
-            #   - BidCos-RF hosts passive/battery devices that cannot be actively queried;
-            #     getValue then returns the paramset default instead of a real reading.
-            # The bulk ReGa fetch already filters such placeholders via LastTimestamp and is
-            # the only trustworthy source for these interfaces, so skip the per-parameter
-            # getValue fallback. The data point keeps its (unset) state until a real value
-            # arrives via event (#3228, #3260).
-            if self._device.interface in (Interface.VIRTUAL_DEVICES, Interface.BIDCOS_RF):
+            # trustworthy device-fresh data (only a CCU-internal placeholder that would be
+            # marked valid), or is actively harmful. The bulk fetch (ReGa /
+            # get_all_device_data) plus later events are the reliable sources, so the
+            # per-parameter getValue fallback is skipped and the data point keeps its (unset)
+            # state until a real value arrives via event. See
+            # INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK for the per-interface rationale
+            # (VirtualDevices/BidCos-RF placeholders #3228/#3260; CUxD/CCU-Jack JSON-RPC
+            # session flood).
+            if self._device.interface in INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK:
                 return {dpk.parameter: self._NO_VALUE_CACHE_ENTRY}
             return {
                 dpk.parameter: await self._device.client.get_value(

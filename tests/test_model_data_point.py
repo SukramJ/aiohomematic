@@ -342,6 +342,53 @@ class TestDataPointLoading:
         ]
         assert len(status_calls) == 1
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_load_generic_data_point_skips_getvalue_for_cuxd(
+        self,
+        central_client_factory_with_homegear_client,
+        monkeypatch,
+    ) -> None:
+        """
+        CUxD (and CCU-Jack) must NOT run the per-parameter ``getValue`` fallback on init.
+
+        These JSON-RPC interfaces perform a ``Session.login`` per ``getValue`` call; running the
+        fallback for every readable data point (and its paired ``*_STATUS``, #3228) floods the CCU's
+        JSON-RPC session pool ("too many sessions") and marks CUxD devices unavailable. Their values
+        arrive via the bulk ``get_all_device_data`` fetch and MQTT events, so the fallback is skipped.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        # VCU2128127 is a HmIP-BSM; pin it to CUxD so the getValue fallback would run were it not
+        # skipped for JSON-RPC interfaces.
+        device = central.device_coordinator.get_device(address="VCU2128127")
+        monkeypatch.setattr(device, "_interface", Interface.CUXD)
+        switch: DpSwitch = cast(
+            DpSwitch, central.query_facade.get_generic_data_point(channel_address="VCU2128127:4", parameter="STATE")
+        )
+        await switch.load_data_point_value(call_source=CallSource.MANUAL_OR_SCHEDULED)
+        state_calls = [
+            c
+            for c in mock_client.method_calls
+            if c
+            == call.get_value(
+                channel_address="VCU2128127:4",
+                paramset_key=ParamsetKey.VALUES,
+                parameter="STATE",
+                call_source="hm_init",
+            )
+        ]
+        assert len(state_calls) == 0
+
 
 class TestWrappedDataPoint:
     """Tests for wrapped data point functionality."""

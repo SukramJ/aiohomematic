@@ -413,6 +413,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         self._session_recorder: Final = session_recorder
         self._supported_methods: tuple[str, ...] | None = None
         self._http_session_semaphore: Final = Semaphore(value=MAX_CONCURRENT_HTTP_SESSIONS)
+        self._session_lock: Final = asyncio.Lock()
 
         # Login rate limiting state
         self._failed_login_attempts: int = 0
@@ -2194,13 +2195,24 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
     async def _login_or_renew(self) -> bool:
         """Renew JSON-RPC session or perform login."""
-        if not self.is_activated:
-            self._session_id = await self._do_login()
-            self._last_session_id_refresh = datetime.now()
+        # Fast path: a valid, recently refreshed session needs neither network nor lock.
+        if self.is_activated and self._has_session_recently_refreshed:
+            return True
+        # Serialize login/renew so a burst of concurrent callers at cold start does not
+        # race into multiple parallel Session.login calls, which would create several CCU
+        # sessions at once and trip the CCU's "too many sessions" limit.
+        async with self._session_lock:
+            # Re-check under the lock: another coroutine may have logged in or renewed
+            # the session while we were waiting for it.
+            if self.is_activated and self._has_session_recently_refreshed:
+                return True
+            if not self.is_activated:
+                self._session_id = await self._do_login()
+                self._last_session_id_refresh = datetime.now()
+                return self._session_id is not None
+            if self._session_id:
+                self._session_id = await self._do_renew_login(session_id=self._session_id)
             return self._session_id is not None
-        if self._session_id:
-            self._session_id = await self._do_renew_login(session_id=self._session_id)
-        return self._session_id is not None
 
     async def _post(
         self,

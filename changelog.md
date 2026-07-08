@@ -1,3 +1,28 @@
+# Version 2026.7.2 (2026-07-08)
+
+## What's Changed
+
+### Fixed
+
+- **CUxD/CCU-Jack devices no longer go unavailable after init.** The
+  per-parameter `getValue` fallback that runs on init when a value is missing from the
+  bulk cache was still active for the JSON-RPC interfaces CUxD and CCU-Jack. Since
+  #3228 the bulk fetch skips not-yet-measured values (cache miss) and additionally loads
+  each data point's paired `*_STATUS`, roughly doubling the fallback traffic. For CUxD/
+  CCU-Jack every `getValue` performs a `Session.login`, so this flooded the CCU's
+  JSON-RPC session pool (`too many sessions` / `invalid credentials`), and the affected
+  devices were marked unavailable in Home Assistant. CUxD/CCU-Jack are now added to the
+  new `INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK` set (alongside VirtualDevices and
+  BidCos-RF): the fallback is skipped and values arrive via the bulk
+  `get_all_device_data` fetch and MQTT events, as intended. Added a contract test
+  pinning CUxD/CCU-Jack to this behavior.
+- **JSON-RPC session login is no longer raced on cold start.** `_login_or_renew`
+  was unguarded, so a burst of concurrent callers at init (all seeing `session_id is
+None`) each performed a `Session.login`, creating several CCU sessions at once and
+  contributing to the `too many sessions` limit. Login/renew is now serialized with an
+  `asyncio.Lock` (with a lock-free fast path for a recently refreshed session), so a
+  cold-start burst results in exactly one login that the other callers reuse.
+
 # Version 2026.7.1 (2026-07-03)
 
 ## What's Changed

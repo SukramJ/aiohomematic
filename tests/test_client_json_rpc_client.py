@@ -2,6 +2,7 @@
 # Copyright (c) 2021-2026
 """Integration and unit tests for the JSON-RPC client using the local mock server."""
 
+import asyncio
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Self
@@ -234,6 +235,44 @@ class TestJsonRpcClientAuthentication:
 
         with pytest.raises(ClientException):
             await client._post(method=_JsonRpcMethod.CCU_GET_AUTH_ENABLED)
+
+    @pytest.mark.asyncio
+    async def test_concurrent_login_creates_single_session(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        A burst of concurrent cold-start logins must create only one CCU session.
+
+        Without a lock around ``_login_or_renew`` a burst of concurrent calls at init (all
+        seeing ``session_id is None``) each perform a ``Session.login``, creating several CCU
+        sessions at once and tripping the CCU's "too many sessions" limit.
+        """
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="user",
+            password="pass",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        login_calls = {"count": 0}
+
+        async def counting_login() -> str:
+            login_calls["count"] += 1
+            await asyncio.sleep(0.01)  # yield so concurrent callers interleave before the session is set
+            return "sid-123"
+
+        monkeypatch.setattr(client, "_do_login", counting_login)  # type: ignore[attr-defined]
+
+        results = await asyncio.gather(*[client._login_or_renew() for _ in range(10)])
+
+        assert all(results)
+        assert client._session_id == "sid-123"  # type: ignore[attr-defined]
+        assert login_calls["count"] == 1
+
+        await client.stop()
 
     @pytest.mark.asyncio
     async def test_login_and_recent_renew_short_circuit(

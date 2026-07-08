@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.7.1"
+VERSION: Final = "2026.7.2"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -1831,6 +1831,28 @@ INTERFACES_REQUIRING_JSON_RPC_CLIENT: Final[frozenset[Interface]] = frozenset(
 
 DEFAULT_INTERFACES_REQUIRING_PERIODIC_REFRESH: Final[frozenset[Interface]] = frozenset(
     INTERFACES_REQUIRING_JSON_RPC_CLIENT - INTERFACES_REQUIRING_XML_RPC
+)
+
+# Interfaces for which the per-parameter getValue fallback during init is skipped.
+# For these interfaces a getValue on init cannot return trustworthy device-fresh data,
+# so the bulk fetch (ReGa / JSON get_all_device_data) plus later events are the only
+# reliable sources and the fallback is skipped (the data point stays unset until a real
+# value arrives):
+#   - VirtualDevices (e.g. heating groups) have no physical device; VALUES are CCU
+#     aggregates that read as a valid placeholder (e.g. 0) after a restart (#3228).
+#   - BidCos-RF hosts passive/battery devices that cannot be actively queried; getValue
+#     returns the paramset default instead of a real reading (#3260).
+#   - CUxD / CCU-Jack are JSON-RPC interfaces that perform a Session.login per getValue;
+#     running the fallback for every readable data point (and its paired *_STATUS, #3228)
+#     floods the CCU's JSON-RPC session pool ("too many sessions") and marks the devices
+#     unavailable. Their values arrive via bulk get_all_device_data and MQTT events.
+INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK: Final[frozenset[Interface]] = frozenset(
+    {
+        Interface.VIRTUAL_DEVICES,
+        Interface.BIDCOS_RF,
+        Interface.CUXD,
+        Interface.CCU_JACK,
+    }
 )
 
 INTERFACE_RPC_SERVER_TYPE: Final[Mapping[Interface, RpcServerType]] = MappingProxyType(

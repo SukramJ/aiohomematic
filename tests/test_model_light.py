@@ -15,6 +15,7 @@ from aiohomematic.model.custom import (
     CustomDpColorTempDimmer,
     CustomDpDimmer,
     CustomDpIpFixedColorLight,
+    CustomDpIpRGBWColorTempLight,
     CustomDpIpRGBWLight,
 )
 from aiohomematic.model.custom.light import _NOT_USED, FixedColor, _ColorBehaviour
@@ -32,6 +33,7 @@ TEST_DEVICES: set[str] = {
     "VCU3747418",
     "VCU4704397",
     "VCU5629873",
+    "VCU7603954",
     "VCU9973336",
 }
 
@@ -1515,11 +1517,18 @@ class TestCustomDpIpRGBWLight:
         """Test CustomDpIpRGBWLight."""
         central, mock_client, _ = central_client_factory_with_homegear_client
         light: CustomDpIpRGBWLight = cast(CustomDpIpRGBWLight, get_prepared_custom_data_point(central, "VCU5629873", 1))
+        # HmIP-RGBW must use the mode-based class, NOT the HmIP-LSC subclass which
+        # advertises both color modes statically (see TestCustomDpIpRGBWColorTempLight).
+        assert type(light) is CustomDpIpRGBWLight
         assert light.channel.device.has_sub_devices is False
         assert light.usage == DataPointUsage.CDP_PRIMARY
         assert light.color_temp_kelvin is None
         assert light.hs_color is None
         assert light.capabilities.brightness is True
+        # RGBW derives color modes dynamically from DEVICE_OPERATION_MODE via has_*,
+        # so the static color capabilities stay False (unlike the HmIP-LSC).
+        assert light.capabilities.hs_color is False
+        assert light.capabilities.color_temperature is False
         assert light.has_color_temperature is False
         assert light.has_effects is True
         assert light.has_hs_color is True
@@ -1701,6 +1710,97 @@ class TestCustomDpIpRGBWLight:
                 "RAMP_TIME_VALUE": 5,
                 "DURATION_UNIT": _TimeUnit.SECONDS,
                 "DURATION_VALUE": 8760,
+                "LEVEL": 1.0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+
+class TestCustomDpIpRGBWColorTempLight:
+    """Tests for CustomDpIpRGBWColorTempLight data points (HmIP-LSC)."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_ceiprgbwcolortemplight(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test CustomDpIpRGBWColorTempLight (HmIP-LSC exposes both hs and color_temp)."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        light: CustomDpIpRGBWColorTempLight = cast(
+            CustomDpIpRGBWColorTempLight, get_prepared_custom_data_point(central, "VCU7603954", 1)
+        )
+        assert isinstance(light, CustomDpIpRGBWColorTempLight)
+        assert light.usage == DataPointUsage.CDP_PRIMARY
+
+        # Static capabilities advertise BOTH color modes (used for supported_color_modes).
+        assert light.capabilities.hs_color is True
+        assert light.capabilities.color_temperature is True
+
+        # Color state: device reports an empty COLOR_TEMPERATURE while a color is set.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7603954:1", parameter="COLOR_TEMPERATURE", value=""
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7603954:1", parameter="HUE", value=240
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7603954:1", parameter="SATURATION", value=1.0
+        )
+        assert light.hs_color == (240.0, 100.0)
+        assert light.color_temp_kelvin is None
+        assert light.has_hs_color is True
+        assert light.has_color_temperature is False
+
+        # Color-temperature state: device reports an empty HUE while a color temperature is set.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7603954:1", parameter="COLOR_TEMPERATURE", value=3300
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7603954:1", parameter="HUE", value=""
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7603954:1", parameter="SATURATION", value=0.0
+        )
+        assert light.color_temp_kelvin == 3300
+        assert light.hs_color is None
+        assert light.has_hs_color is False
+        assert light.has_color_temperature is True
+
+        # turn_on with a color temperature writes COLOR_TEMPERATURE.
+        await light.turn_on(color_temp_kelvin=3000)
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU7603954:1",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "COLOR_TEMPERATURE": 3000,
+                "LEVEL": 1.0,
+            },
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        # turn_on with a color writes HUE/SATURATION.
+        await light.turn_on(hs_color=(44.4, 69.3))
+        assert mock_client.method_calls[-1] == call.put_paramset(
+            channel_address="VCU7603954:1",
+            paramset_key_or_link_address=ParamsetKey.VALUES,
+            values={
+                "HUE": 44,
+                "SATURATION": 0.693,
                 "LEVEL": 1.0,
             },
             wait_for_callback=WAIT_FOR_CALLBACK,

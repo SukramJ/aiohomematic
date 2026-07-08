@@ -659,6 +659,42 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         await super().turn_on(collector=collector, **kwargs)
 
 
+class CustomDpIpRGBWColorTempLight(CustomDpIpRGBWLight):
+    """
+    Class for HomematicIP HmIP-LSC light data point.
+
+    The HmIP-LSC uses RGBW hardware but, unlike the HmIP-RGBW, has no
+    ``DEVICE_OPERATION_MODE`` parameter. It supports full color (hue/saturation)
+    *and* color temperature and switches between them at runtime. The device
+    reports the currently inactive mode as an empty value — ``COLOR_TEMPERATURE``
+    is empty while a color is set, and ``HUE`` is empty while a color temperature
+    is set — so the active color mode is derived directly from which value is
+    present. This mirrors how Home Assistant's own tplink/LIFX integrations
+    report the color mode for lights that support both modes at once.
+    """
+
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    @state_property
+    def has_color_temperature(self) -> bool:
+        """Return True if color temperature is the active color mode."""
+        return self.color_temp_kelvin is not None
+
+    @state_property
+    def has_hs_color(self) -> bool:
+        """Return True if hue/saturation is the active color mode."""
+        return not self.has_color_temperature
+
+    def _compute_capabilities(self) -> LightCapabilities:
+        """Compute static capabilities. Both hs_color and color_temperature are always supported."""
+        return LightCapabilities(
+            brightness=isinstance(self._dp_level, DpFloat),
+            transition=self._dp_ramp_time.is_valid,
+            hs_color=True,
+            color_temperature=True,
+        )
+
+
 class CustomDpIpDrgDaliLight(CustomDpDimmer):
     """Class for HomematicIP HmIP-DRG-DALI light data point."""
 
@@ -1043,11 +1079,19 @@ DeviceProfileRegistry.register(
     channels=(12, 13, 14, 15, 16, 17, 18),
 )
 
-# IP RGBW Light
+# IP RGBW Light (with DEVICE_OPERATION_MODE)
 DeviceProfileRegistry.register(
     category=DataPointCategory.LIGHT,
-    models=("HmIP-RGBW", "HmIP-LSC"),
+    models="HmIP-RGBW",
     data_point_class=CustomDpIpRGBWLight,
+    profile_type=DeviceProfile.IP_RGBW_LIGHT,
+)
+
+# IP RGBW Light without DEVICE_OPERATION_MODE (color + color temperature at once)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.LIGHT,
+    models="HmIP-LSC",
+    data_point_class=CustomDpIpRGBWColorTempLight,
     profile_type=DeviceProfile.IP_RGBW_LIGHT,
 )
 

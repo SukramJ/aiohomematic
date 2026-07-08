@@ -1,3 +1,23 @@
+# Version 2026.7.3 (2026-07-08)
+
+## What's Changed
+
+### Added
+
+- **HmIP-LSC now exposes color temperature in addition to color** (#3277). The
+  HmIP-LSC LED strip controller uses RGBW hardware but, unlike the HmIP-RGBW, has
+  no `DEVICE_OPERATION_MODE` parameter, so it was handled by the mode-based
+  `CustomDpIpRGBWLight` and fell back to the `RGBW` mode — advertising only `hs`
+  color even though `COLOR_TEMPERATURE` works. The HmIP-LSC supports full color
+  _and_ color temperature and switches between them at runtime; the device reports
+  the currently inactive mode as an empty value (`COLOR_TEMPERATURE` while a color
+  is set, `HUE` while a color temperature is set). A dedicated
+  `CustomDpIpRGBWColorTempLight` now advertises both color modes statically (via
+  `LightCapabilities.hs_color`/`color_temperature`) and derives the active color
+  mode from which value the device reports — mirroring how Home Assistant's own
+  tplink/LIFX integrations handle lights that support both modes. The HmIP-RGBW is
+  unchanged and keeps its `DEVICE_OPERATION_MODE`-based behavior.
+
 # Version 2026.7.2 (2026-07-08)
 
 ## What's Changed

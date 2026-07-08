@@ -39,6 +39,7 @@ from aiohomematic.client.backends.json_ccu import JsonCcuBackend
 from aiohomematic.const import (
     INTERFACES_REQUIRING_JSON_RPC_CLIENT,
     INTERFACES_REQUIRING_XML_RPC,
+    INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
     Interface,
     get_json_rpc_default_port,
@@ -88,6 +89,26 @@ class TestCuxdCcuJackInterfaceClassification:
         )
         assert Interface.CCU_JACK not in INTERFACES_REQUIRING_XML_RPC, (
             "CCU-Jack MUST NOT be in INTERFACES_REQUIRING_XML_RPC"
+        )
+
+    def test_cuxd_and_ccu_jack_skip_init_getvalue_fallback(self) -> None:
+        """
+        CONTRACT: CUxD and CCU-Jack MUST skip the per-parameter getValue fallback on init.
+
+        REGRESSION: These JSON-RPC interfaces perform a Session.login per getValue.
+        Running the fallback for every readable data point (and its paired *_STATUS, #3228)
+        floods the CCU's JSON-RPC session pool ("too many sessions") and marks CUxD/CCU-Jack
+        devices unavailable. Their values arrive via bulk get_all_device_data and MQTT events.
+        """
+        assert Interface.CUXD in INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK, (
+            "CUxD MUST be in INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK"
+        )
+        assert Interface.CCU_JACK in INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK, (
+            "CCU-Jack MUST be in INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK"
+        )
+        # Every JSON-RPC-only interface must skip the fallback (none may hammer getValue).
+        assert INTERFACES_REQUIRING_JSON_RPC_CLIENT <= INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK, (
+            "All JSON-RPC-only interfaces MUST skip the init getValue fallback"
         )
 
     def test_cuxd_does_not_support_rpc_callback(self) -> None:

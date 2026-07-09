@@ -2634,6 +2634,43 @@ class TestClimateValidityIrrelevantDataPoints:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_ip_heating_group_humidity_heating_cooling_excluded_from_validity(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """HUMIDITY/HEATING_COOLING must not block is_valid for a valve-only heating group (#3279)."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        climate = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU5778428", 1))
+        # Preconditions: HUMIDITY and HEATING_COOLING are real, readable data points on the group.
+        assert climate._dp_humidity.is_readable
+        assert climate._dp_heating_mode.is_readable
+        # They must be excluded from the validity-relevant data points (#3279).
+        assert climate._dp_humidity not in climate._relevant_data_points
+        assert climate._dp_heating_mode not in climate._relevant_data_points
+        # Simulate a valve-only group: every value arrives via event EXCEPT the actuator values
+        # (LEVEL/STATE) and the wall-thermostat-only values (HUMIDITY/HEATING_COOLING), which such
+        # a group never reports.
+        excluded = (climate._dp_level, climate._dp_state, climate._dp_humidity, climate._dp_heating_mode)
+        for dp in climate._readable_data_points:
+            if dp not in excluded:
+                dp._set_refreshed_at(refreshed_at=datetime.now())
+        assert climate._dp_humidity.is_refreshed is False
+        assert climate._dp_heating_mode.is_refreshed is False
+        # The climate must be valid even though HUMIDITY/HEATING_COOLING never refreshed.
+        assert climate.is_valid is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_ip_thermostat_level_excluded_from_validity(
         self,
         central_client_factory_with_homegear_client,

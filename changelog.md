@@ -1,3 +1,23 @@
+# Version 2026.7.4 (2026-07-09)
+
+## What's Changed
+
+### Fixed
+
+- **Valve-only HmIP heating groups no longer freeze `current_temperature`/`current_humidity`
+  (#3279).** Follow-up to #3255. `HmIP-HEATING` groups always expose `HUMIDITY` and
+  `HEATING_COOLING` on the group channel, but only a group containing a wall thermostat
+  (`HmIP-WTH`/`STHD`) ever receives events for them. In a group built from valves alone
+  (`HmIP-eTRV`) those readable data points never refresh — and since #3228 `VirtualDevices`
+  get no `getValue` fallback — so they dragged the whole custom climate data point to
+  `is_valid=False`, leaving Home Assistant in `value_state=restored` and freezing
+  `current_temperature` at the last (re)start value even though `ACTUAL_TEMPERATURE` kept
+  arriving via events. #3255 only excluded the actuator values `LEVEL`/`STATE` from the climate
+  validity check; `CustomDpIpThermostat._validity_irrelevant_data_points` now also excludes
+  `HUMIDITY` and `HEATING_COOLING`, so a group's climate validity follows its aggregated
+  `ACTUAL_TEMPERATURE` regardless of whether a wall thermostat is present. A regression test
+  covers a valve-only group whose `HUMIDITY`/`HEATING_COOLING` never refresh.
+
 # Version 2026.7.3 (2026-07-08)
 
 ## What's Changed

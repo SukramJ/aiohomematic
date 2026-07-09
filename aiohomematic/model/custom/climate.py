@@ -722,8 +722,18 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     @property
     @override
     def _validity_irrelevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """Exclude the LEVEL/STATE actuator values from validity checks (#3255)."""
-        return (self._dp_level, self._dp_state)
+        """
+        Exclude data points a valve-only heating group never refreshes from validity checks.
+
+        ``LEVEL``/``STATE`` are actuator values the CCU does not report for heating groups
+        (#3255). ``HUMIDITY``/``HEATING_COOLING`` are only fed by a wall thermostat
+        (``HmIP-WTH``/``STHD``): a group built from valves alone (``HmIP-eTRV``) never receives
+        events for them, and since #3228 ``VirtualDevices`` get no ``getValue`` fallback. Left in
+        the validity set they keep ``is_refreshed``/``is_valid`` false forever, freezing
+        ``current_temperature`` (``value_state=restored``) even though ``ACTUAL_TEMPERATURE``
+        arrives via event (#3279).
+        """
+        return (self._dp_level, self._dp_state, self._dp_humidity, self._dp_heating_mode)
 
     @config_property
     def schedule_profile_nos(self) -> int:

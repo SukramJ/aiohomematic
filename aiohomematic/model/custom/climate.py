@@ -54,6 +54,11 @@ from aiohomematic.type_aliases import UnsubscribeCallback
 _LOGGER: Final = logging.getLogger(__name__)
 
 _CLOSED_LEVEL: Final = 0.0
+# Fallback upper bound when a device exposes neither a TEMPERATURE_MAXIMUM value nor a
+# MAX in its SETPOINT paramset description (e.g. an incomplete paramset description after a
+# failed getParamsetDescription). Chosen as the highest maximum seen on real Homematic
+# thermostats so valid schedule temperatures are never wrongly rejected as out of range.
+_DEFAULT_MAX_TEMPERATURE: Final = 30.5
 _DEFAULT_TEMPERATURE_STEP: Final = 0.5
 _OFF_TEMPERATURE: Final = 4.5
 _PARTY_DATE_FORMAT: Final = "%Y_%m_%d %H:%M"
@@ -267,7 +272,9 @@ class BaseCustomDpClimate(CustomDataPoint):
         """Return the maximum temperature."""
         if self._dp_temperature_maximum.value is not None:
             return float(self._dp_temperature_maximum.value)
-        return cast(float, self._dp_setpoint.max)
+        if self._dp_setpoint.max is not None:
+            return float(self._dp_setpoint.max)
+        return _DEFAULT_MAX_TEMPERATURE
 
     @state_property
     def min_max_value_not_relevant_for_manu_mode(self) -> bool:

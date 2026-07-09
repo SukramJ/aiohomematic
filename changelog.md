@@ -1,3 +1,26 @@
+# Version 2026.7.5 (2026-07-09)
+
+## What's Changed
+
+### Fixed
+
+- **Climate entity for `HmIP-WTH-B` (and other thermostats) no longer fails to load when the
+  SETPOINT paramset description is incomplete (#3281).** When a device's SETPOINT paramset
+  description carried no `MAX` (e.g. after a failed `getParamsetDescription`),
+  `BaseCustomDpClimate.max_temp` returned `None` via an unchecked `cast(float, ...)`. Caching the
+  week profile then evaluated `min_temp <= base_temperature <= max_temp` and raised an uncaught
+  `TypeError: '<=' not supported between instances of 'float' and 'NoneType'` out of
+  `reload_and_cache_schedule`. Since that method only swallows `ValidationException`, the
+  `TypeError` propagated into Home Assistant's entity setup, leaving the climate entity permanently
+  "unavailable" — while an identical device with a complete paramset description worked fine.
+  `max_temp` now falls back to a fixed upper bound (`30.5`) when neither a `TEMPERATURE_MAXIMUM`
+  value nor a SETPOINT `MAX` is available, mirroring the existing `min_temp` guard. As defense in
+  depth, `ClimateWeekProfile` now validates its temperature bounds and raises a caught
+  `ValidationException` instead of a `TypeError` when a bound is missing, so an incomplete paramset
+  description degrades gracefully (the entity loads; only the schedule stays uncached). Regression
+  and contract tests cover both the `max_temp` fallback and the graceful schedule-conversion
+  failure.
+
 # Version 2026.7.4 (2026-07-09)
 
 ## What's Changed

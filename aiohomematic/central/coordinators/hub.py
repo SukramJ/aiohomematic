@@ -19,7 +19,6 @@ import logging
 from typing import Any, Final
 
 from aiohomematic import i18n
-from aiohomematic.central.events import SysvarStateChangedEvent
 from aiohomematic.central.events.internal import ProgramExecutedEvent
 from aiohomematic.const import DataPointCategory, Interface, ProgramTrigger
 from aiohomematic.decorators import inspector
@@ -53,7 +52,6 @@ from aiohomematic.model.hub import (
     ProgramDpType,
 )
 from aiohomematic.property_decorators import DelegatedProperty
-from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -69,7 +67,6 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         "_program_data_points",
         "_state_path_to_name",
         "_sysvar_data_points",
-        "_sysvar_unsubscribes",
     )
 
     def __init__(
@@ -116,8 +113,6 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
         # {program_name, program_button}
         self._program_data_points: Final[dict[str, ProgramDpType]] = {}
         self._state_path_to_name: Final[dict[str, str]] = {}
-        # Unsubscribe callbacks for sysvar event subscriptions
-        self._sysvar_unsubscribes: Final[list[UnsubscribeCallback]] = []
 
         # Create Hub with protocol interfaces
         self._hub: Final = Hub(
@@ -198,29 +193,6 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             )
 
             self._state_path_to_name[sysvar_data_point.state_path] = sysvar_data_point.vid
-
-            # Add event subscription for this sysvar via EventBus with filtering
-            async def event_handler(*, event: SysvarStateChangedEvent) -> None:
-                """Filter and handle sysvar events."""
-                if event.state_path == sysvar_data_point.state_path:
-                    await sysvar_data_point.event(value=event.value, received_at=event.received_at)
-
-            self._sysvar_unsubscribes.append(
-                self._event_bus_provider.event_bus.subscribe(
-                    event_type=SysvarStateChangedEvent, event_key=sysvar_data_point.state_path, handler=event_handler
-                )
-            )
-
-    def clear(self) -> None:
-        """
-        Clear all sysvar event subscriptions.
-
-        Call this method when stopping the central unit to prevent leaked subscriptions.
-        """
-        for unsubscribe in self._sysvar_unsubscribes:
-            unsubscribe()
-        self._sysvar_unsubscribes.clear()
-        _LOGGER.debug("CLEAR: Cleared %s sysvar event subscriptions", self._central_info.name)
 
     def create_install_mode_dps(self) -> Mapping[Interface, InstallModeDpType]:
         """
@@ -548,8 +520,6 @@ class HubCoordinator(HubDataFetcherProtocol, HubDataPointManagerProtocol):
             sysvar_dp.publish_device_removed_event()
             self._sysvar_data_points.pop(vid, None)
             self._state_path_to_name.pop(sysvar_dp.state_path, None)
-
-            # Note: Event subscriptions are cleaned up via clear() when central stops
 
             _LOGGER.debug(
                 "REMOVE_SYSVAR_DATA_POINT: Removed sysvar %s from %s",

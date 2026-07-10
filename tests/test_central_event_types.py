@@ -30,7 +30,6 @@ from aiohomematic.central.events import (
     RecoveryStageChangedEvent,
     RpcParameterReceivedEvent,
     SystemStatusChangedEvent,
-    SysvarStateChangedEvent,
 )
 from aiohomematic.const import (
     CacheInvalidationReason,
@@ -566,36 +565,6 @@ class TestIntegrationEvents:
         assert event.issues == ()
 
 
-class TestSysvarEvent:
-    """Test system variable event types."""
-
-    def test_sysvar_state_changed_event(self) -> None:
-        """SysvarStateChangedEvent should contain sysvar state details."""
-        now = datetime.now()
-        event = SysvarStateChangedEvent(
-            timestamp=now,
-            state_path="sv_12345",
-            value=42,
-            received_at=now,
-        )
-
-        assert event.state_path == "sv_12345"
-        assert event.value == 42
-        assert event.received_at == now
-        assert event.key == "sv_12345"
-
-    def test_sysvar_state_changed_event_string_value(self) -> None:
-        """SysvarStateChangedEvent should support string values."""
-        event = SysvarStateChangedEvent(
-            timestamp=datetime.now(),
-            state_path="sv_string_var",
-            value="Hello World",
-            received_at=datetime.now(),
-        )
-
-        assert event.value == "Hello World"
-
-
 class TestEventKeyProperty:
     """Test the key property for various event types."""
 
@@ -623,15 +592,6 @@ class TestEventKeyProperty:
             device_address="VCU0000001",
         )
         assert device_event.key == "VCU0000001"
-
-        # SysvarStateChangedEvent key is state_path
-        sysvar_event = SysvarStateChangedEvent(
-            timestamp=datetime.now(),
-            state_path="sv_12345",
-            value=42,
-            received_at=datetime.now(),
-        )
-        assert sysvar_event.key == "sv_12345"
 
     def test_event_key_is_none_for_broadcast_events(self) -> None:
         """Events without specific keys should return None."""

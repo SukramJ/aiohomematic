@@ -22,7 +22,6 @@ aiohomematic uses a type-safe, async-first EventBus for decoupled event handling
 | `DataPointStateChangedEvent`      | Data Point      | `unique_id`       | External callback notification      |
 | `OptimisticRollbackEvent`         | Data Point      | `DataPointKey`    | Optimistic value rolled back        |
 | `RpcParameterReceivedEvent`       | Backend         | `DataPointKey`    | Re-published raw parameter from RPC |
-| `SysvarStateChangedEvent`         | System Variable | `state_path`      | Sysvar value changed                |
 | `DeviceStateChangedEvent`         | Device          | `device_address`  | Device state updated                |
 | `DeviceRemovedEvent`              | Device          | `unique_id`       | Device/data point removed           |
 | `FirmwareStateChangedEvent`       | Device          | `device_address`  | Firmware info updated               |
@@ -161,27 +160,6 @@ from aiohomematic.central.events import RpcParameterReceivedEvent
 | `value`           | `Any`      | The parameter value                      |
 
 **Key:** `DataPointKey` (constructed from fields)
-
----
-
-## System Variable Events
-
-### SysvarStateChangedEvent
-
-System variable value was updated.
-
-```python
-from aiohomematic.central.events import SysvarStateChangedEvent
-```
-
-| Field         | Type       | Description                            |
-| ------------- | ---------- | -------------------------------------- |
-| `timestamp`   | `datetime` | When the event was created             |
-| `state_path`  | `str`      | Path/identifier of the system variable |
-| `value`       | `Any`      | The new value                          |
-| `received_at` | `datetime` | When the value was received            |
-
-**Key:** `state_path`
 
 ---
 

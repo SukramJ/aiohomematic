@@ -710,10 +710,6 @@ class CentralUnit(
         _LOGGER.debug("STOP: Removing instance")
         CENTRAL_REGISTRY.unregister(name=self.name)
 
-        # Clear hub coordinator subscriptions (sysvar event subscriptions)
-        self._hub_coordinator.clear()
-        _LOGGER.debug("STOP: Hub coordinator subscriptions cleared")
-
         # Clear cache coordinator subscriptions (device removed event subscription)
         self._cache_coordinator.stop()
         _LOGGER.debug("STOP: Cache coordinator subscriptions cleared")

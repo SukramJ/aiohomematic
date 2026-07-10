@@ -531,7 +531,7 @@ class TestHubCoordinatorSysvarOperations:
     """Test system variable-related operations."""
 
     def test_add_sysvar_data_point(self) -> None:
-        """Add sysvar data point should register the sysvar and subscribe to events."""
+        """Add sysvar data point should register the sysvar."""
         central = _FakeCentral()
         coordinator = HubCoordinator(
             central_info=central,
@@ -554,13 +554,6 @@ class TestHubCoordinatorSysvarOperations:
         # Should be registered
         assert "123" in coordinator._sysvar_data_points
         assert coordinator._sysvar_data_points["123"] == sysvar_dp
-
-        # Should have subscribed via EventBus (using the new pattern)
-        from aiohomematic.central.events import SysvarStateChangedEvent
-
-        central.event_bus.subscribe.assert_called_once()
-        call_args = central.event_bus.subscribe.call_args
-        assert call_args.kwargs["event_type"] == SysvarStateChangedEvent
 
     @pytest.mark.asyncio
     async def test_fetch_sysvar_data(self) -> None:

@@ -53,7 +53,6 @@ Key event types (defined in `aiohomematic/central/events/bus.py`):
 - **DataPointValueReceivedEvent**: Data point value changed
 - **DataPointStatusReceivedEvent**: Data point status (availability) changed
 - **RpcParameterReceivedEvent**: Raw parameter update from backend
-- **SysvarStateChangedEvent**: System variable changed
 - **DeviceStateChangedEvent**: Device state changed
 - **FirmwareStateChangedEvent**: Firmware state changed
 - **LinkPeerChangedEvent**: Link peer configuration changed

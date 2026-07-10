@@ -10,13 +10,13 @@ import pytest
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central.events import (
+    DataPointStateChangedEvent,
     DataPointValueReceivedEvent,
     DeviceLifecycleEvent,
     DeviceLifecycleEventType,
     DeviceTriggerEvent,
     EventBus,
     RpcParameterReceivedEvent,
-    SysvarStateChangedEvent,
 )
 from aiohomematic.const import DataPointKey, DeviceTriggerEventType, ParamsetKey
 
@@ -60,17 +60,17 @@ class TestEventBus:
         def handler1(event: DataPointValueReceivedEvent) -> None:
             pass
 
-        def handler2(event: SysvarStateChangedEvent) -> None:
+        def handler2(event: DataPointStateChangedEvent) -> None:
             pass
 
         bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=handler1)
-        bus.subscribe(event_type=SysvarStateChangedEvent, event_key=None, handler=handler2)
+        bus.subscribe(event_type=DataPointStateChangedEvent, event_key=None, handler=handler2)
 
         # Clear all
         bus.clear_subscriptions()
 
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
-        assert bus.get_subscription_count(event_type=SysvarStateChangedEvent) == 0
+        assert bus.get_subscription_count(event_type=DataPointStateChangedEvent) == 0
 
     @pytest.mark.asyncio
     async def test_clear_subscriptions_specific_type(self) -> None:
@@ -80,20 +80,20 @@ class TestEventBus:
         def handler1(event: DataPointValueReceivedEvent) -> None:
             pass
 
-        def handler2(event: SysvarStateChangedEvent) -> None:
+        def handler2(event: DataPointStateChangedEvent) -> None:
             pass
 
         bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=None, handler=handler1)
-        bus.subscribe(event_type=SysvarStateChangedEvent, event_key=None, handler=handler2)
+        bus.subscribe(event_type=DataPointStateChangedEvent, event_key=None, handler=handler2)
 
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 1
-        assert bus.get_subscription_count(event_type=SysvarStateChangedEvent) == 1
+        assert bus.get_subscription_count(event_type=DataPointStateChangedEvent) == 1
 
         # Clear only DataPointValueReceivedEvent
         bus.clear_subscriptions(event_type=DataPointValueReceivedEvent)
 
         assert bus.get_subscription_count(event_type=DataPointValueReceivedEvent) == 0
-        assert bus.get_subscription_count(event_type=SysvarStateChangedEvent) == 1  # Still there
+        assert bus.get_subscription_count(event_type=DataPointStateChangedEvent) == 1  # Still there
 
     @pytest.mark.asyncio
     async def test_concurrent_handler_execution(self) -> None:
@@ -302,26 +302,25 @@ class TestEventBus:
     async def test_subscribe_and_publish_async_handler(self) -> None:
         """Subscribe with async handler and publish event."""
         bus = EventBus(task_scheduler=Looper())
-        received_events: list[SysvarStateChangedEvent] = []
+        received_events: list[DataPointStateChangedEvent] = []
 
-        async def async_handler(event: SysvarStateChangedEvent) -> None:
+        async def async_handler(event: DataPointStateChangedEvent) -> None:
             await asyncio.sleep(0)  # Simulate async work
             received_events.append(event)
 
-        # SysvarStateChangedEvent key is state_path
-        state_path = "sv_12345"
-        bus.subscribe(event_type=SysvarStateChangedEvent, event_key=state_path, handler=async_handler)
+        # DataPointStateChangedEvent key is unique_id
+        unique_id = "sv_12345"
+        bus.subscribe(event_type=DataPointStateChangedEvent, event_key=unique_id, handler=async_handler)
 
-        event = SysvarStateChangedEvent(
+        event = DataPointStateChangedEvent(
             timestamp=datetime.now(),
-            state_path=state_path,
-            value=42,
-            received_at=datetime.now(),
+            unique_id=unique_id,
+            new_value=42,
         )
 
         await bus.publish(event=event)
         assert len(received_events) == 1
-        assert received_events[0].value == 42
+        assert received_events[0].new_value == 42
 
     @pytest.mark.asyncio
     async def test_subscribe_and_publish_sync_handler(self) -> None:
@@ -1495,7 +1494,7 @@ class TestEventBusAdditionalMethods:
 
     def test_clear_external_subscriptions(self, no_op_task_scheduler: NoOpTaskScheduler) -> None:
         """clear_external_subscriptions should clear external event types."""
-        from aiohomematic.central.events import DataPointStateChangedEvent, DeviceRemovedEvent
+        from aiohomematic.central.events import DeviceRemovedEvent
 
         bus = EventBus(task_scheduler=no_op_task_scheduler)
 
@@ -1556,7 +1555,7 @@ class TestEventBusAdditionalMethods:
         def handler2(event: DeviceLifecycleEvent) -> None:
             pass
 
-        def handler3(event: SysvarStateChangedEvent) -> None:
+        def handler3(event: DataPointStateChangedEvent) -> None:
             pass
 
         dpk = DataPointKey(
@@ -1567,7 +1566,7 @@ class TestEventBusAdditionalMethods:
         )
         bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk, handler=handler1)
         bus.subscribe(event_type=DeviceLifecycleEvent, event_key=None, handler=handler2)
-        bus.subscribe(event_type=SysvarStateChangedEvent, event_key="sv_123", handler=handler3)
+        bus.subscribe(event_type=DataPointStateChangedEvent, event_key="sv_123", handler=handler3)
 
         assert bus.get_total_subscription_count() == 3
 
@@ -1729,13 +1728,13 @@ class TestEventBusIntegration:
         bus = EventBus(task_scheduler=Looper())
 
         datapoint_calls = []
-        sysvar_calls = []
+        state_changed_calls = []
 
         def datapoint_handler(event: DataPointValueReceivedEvent) -> None:
             datapoint_calls.append(event)
 
-        def sysvar_handler(event: SysvarStateChangedEvent) -> None:
-            sysvar_calls.append(event)
+        def state_changed_handler(event: DataPointStateChangedEvent) -> None:
+            state_changed_calls.append(event)
 
         dpk = DataPointKey(
             interface_id="BidCos-RF",
@@ -1745,8 +1744,8 @@ class TestEventBusIntegration:
         )
 
         bus.subscribe(event_type=DataPointValueReceivedEvent, event_key=dpk, handler=datapoint_handler)
-        state_path = "sv_12345"
-        bus.subscribe(event_type=SysvarStateChangedEvent, event_key=state_path, handler=sysvar_handler)
+        unique_id = "sv_12345"
+        bus.subscribe(event_type=DataPointStateChangedEvent, event_key=unique_id, handler=state_changed_handler)
 
         # Publish DataPointValueReceivedEvent
         dp_event = DataPointValueReceivedEvent(
@@ -1757,20 +1756,19 @@ class TestEventBusIntegration:
         )
         await bus.publish(event=dp_event)
 
-        # Publish SysvarStateChangedEvent
-        sv_event = SysvarStateChangedEvent(
+        # Publish DataPointStateChangedEvent
+        state_changed_event = DataPointStateChangedEvent(
             timestamp=datetime.now(),
-            state_path=state_path,
-            value=100,
-            received_at=datetime.now(),
+            unique_id=unique_id,
+            new_value=100,
         )
-        await bus.publish(event=sv_event)
+        await bus.publish(event=state_changed_event)
 
         # Each handler should only have received its own event type
         assert len(datapoint_calls) == 1
-        assert len(sysvar_calls) == 1
+        assert len(state_changed_calls) == 1
         assert datapoint_calls[0] == dp_event
-        assert sysvar_calls[0] == sv_event
+        assert state_changed_calls[0] == state_changed_event
 
 
 class TestSubscriptionGroup:

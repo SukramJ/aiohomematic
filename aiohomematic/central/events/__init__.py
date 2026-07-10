@@ -28,7 +28,6 @@ from aiohomematic.central.events.bus import (
     RecoveryStageChangedEvent,
     RpcParameterReceivedEvent,
     SubscriptionGroup,
-    SysvarStateChangedEvent,
 )
 from aiohomematic.central.events.integration import (
     DataPointsCreatedEvent,
@@ -75,7 +74,6 @@ __all__ = [
     "DataPointStateChangedEvent",
     "DeviceRemovedEvent",
     "OptimisticRollbackEvent",
-    "SysvarStateChangedEvent",
     # EventBus core
     "Event",
     "EventBatch",

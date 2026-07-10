@@ -22,13 +22,12 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
+class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol):
     """Class for a Homematic inbox sensor."""
 
     __slots__ = (
@@ -53,7 +52,6 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
-        PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
@@ -75,11 +73,11 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         self._devices: tuple[InboxDeviceData, ...] = ()
         self._cached_device_count: int = 0
 
-    available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
-    devices: Final = DelegatedProperty[tuple[InboxDeviceData, ...]](path="_devices", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_central_info.available")
+    devices: Final = DelegatedProperty[tuple[InboxDeviceData, ...]](path="_devices")
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    name: Final = DelegatedProperty[str](path="_name_data.name")
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
 
     @property
@@ -107,12 +105,12 @@ class HmInboxSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin)
         """Return translation key for Home Assistant."""
         return "inbox"
 
-    @config_property
+    @property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return None
 
-    @state_property
+    @property
     def value(self) -> int:
         """Return the count of inbox devices."""
         return len(self._devices)

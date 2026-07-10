@@ -15,13 +15,12 @@ from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import DataPointPathData, generate_unique_id
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 __all__ = ["DpUpdate"]
 
 
-class DpUpdate(CallbackDataPoint, PayloadMixin):
+class DpUpdate(CallbackDataPoint):
     """
     Implementation of a update.
 
@@ -34,7 +33,6 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
 
     def __init__(self, *, device: DeviceProtocol) -> None:
         """Initialize the callback data_point."""
-        PayloadMixin.__init__(self)
         self._device: Final = device
         super().__init__(
             unique_id=generate_unique_id(
@@ -51,10 +49,10 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         )
         self._set_modified_at(modified_at=datetime.now())
 
-    available: Final = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_device.available")
     device: Final = DelegatedProperty[DeviceProtocol](path="_device")
-    firmware: Final = DelegatedProperty[str | None](path="_device.firmware", kind=Kind.STATE)
-    firmware_update_state: Final = DelegatedProperty[str | None](path="_device.firmware_update_state", kind=Kind.STATE)
+    firmware: Final = DelegatedProperty[str | None](path="_device.firmware")
+    firmware_update_state: Final = DelegatedProperty[str | None](path="_device.firmware_update_state")
 
     @property
     def full_name(self) -> str:
@@ -62,23 +60,13 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         return f"{self._device.name} Update"
 
     @property
-    def translation_key(self) -> str:
-        """Return translation key for Home Assistant."""
-        return "device_update"
-
-    @config_property
-    def name(self) -> str:
-        """Return the name of the data_point."""
-        return "Update"
-
-    @state_property
     def in_progress(self) -> bool:
         """Update installation progress."""
         if self._device.interface == Interface.HMIP_RF:
             return self._device.firmware_update_state in HMIP_FIRMWARE_UPDATE_IN_PROGRESS_STATES
         return False
 
-    @state_property
+    @property
     def latest_firmware(self) -> str | None:
         """Latest firmware available for install."""
         if self._device.available_firmware and (
@@ -90,6 +78,16 @@ class DpUpdate(CallbackDataPoint, PayloadMixin):
         ):
             return self._device.available_firmware
         return self._device.firmware
+
+    @property
+    def name(self) -> str:
+        """Return the name of the data_point."""
+        return "Update"
+
+    @property
+    def translation_key(self) -> str:
+        """Return translation key for Home Assistant."""
+        return "device_update"
 
     async def on_config_changed(self) -> None:
         """Do what is needed on device config change."""

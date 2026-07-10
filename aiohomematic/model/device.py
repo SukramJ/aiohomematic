@@ -145,10 +145,10 @@ from aiohomematic.model.support import (
     get_device_name,
 )
 from aiohomematic.model.update import DpUpdate
-from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, info_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, hm_property
 from aiohomematic.support import CacheEntry, extract_exc_args, get_rx_modes
 from aiohomematic.support.address import get_channel_address, get_channel_no
-from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
+from aiohomematic.support.mixins import LogContextMixin
 from aiohomematic.type_aliases import (
     DeviceUpdatedHandler,
     FirmwareUpdateHandler,
@@ -179,7 +179,7 @@ def _contains_word(*, text: str, word: str) -> bool:
     return False
 
 
-class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
+class Device(DeviceProtocol, LogContextMixin):
     """
     Represent a Homematic device with channels and data points.
 
@@ -205,20 +205,17 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     Protocol compliance
     -------------------
-    Implements ``DeviceProtocol`` which is a composite of sub-protocols:
+    Implements ``DeviceProtocol``, a flat composite built from:
 
     - ``DeviceIdentityProtocol``: Basic identification (address, name, model, manufacturer)
     - ``DeviceChannelAccessProtocol``: Channel and DataPoint access methods
-    - ``DeviceAvailabilityProtocol``: Availability state management
-    - ``DeviceFirmwareProtocol``: Firmware information and update operations
-    - ``DeviceLinkManagementProtocol``: Central link operations
-    - ``DeviceGroupManagementProtocol``: Channel group management
-    - ``DeviceConfigurationProtocol``: Device configuration and metadata
-    - ``DeviceWeekProfileProtocol``: Week profile support
-    - ``DeviceProvidersProtocol``: Protocol interface providers
-    - ``DeviceLifecycleProtocol``: Lifecycle methods
 
-    Consumers can depend on specific sub-protocols for narrower contracts.
+    ``DeviceIdentityProtocol`` and ``DeviceChannelAccessProtocol`` remain separate protocols
+    because ``DeviceRemovalInfoProtocol`` depends on them independently of ``DeviceProtocol``.
+    All other members (availability, firmware, central link management, channel group
+    management, device configuration and metadata, week profile support, protocol interface
+    providers, lifecycle) are declared directly on ``DeviceProtocol`` since no consumer needs
+    them independent of the composite.
     """
 
     __slots__ = (
@@ -282,8 +279,6 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             context: DeviceContext containing all required dependencies.
 
         """
-        PayloadMixin.__init__(self)
-
         # Store context for potential future access
         self._context: Final = context
 
@@ -390,7 +385,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             f"events: {len(self.generic_events)}"
         )
 
-    address: Final = DelegatedProperty[str](path="_address", kind=Kind.INFO, log_context=True, alt_name="serial_number")
+    address: Final = DelegatedProperty[str](path="_address", log_context=True)
     central_info: Final = DelegatedProperty[CentralInfoProtocol](path="_central_info")
     channel_lookup: Final = DelegatedProperty[ChannelLookupProtocol](path="_channel_lookup")
     channels: Final = DelegatedProperty[Mapping[str, ChannelProtocol]](path="_channels")
@@ -410,17 +405,17 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         path="_event_subscription_manager"
     )
     has_custom_data_point_definition: Final = DelegatedProperty[bool](path="_has_custom_data_point_definition")
-    icon: Final = DelegatedProperty[str | None](path="_icon", kind=Kind.CONFIG)
+    icon: Final = DelegatedProperty[str | None](path="_icon")
     ignore_for_custom_data_point: Final = DelegatedProperty[bool](path="_ignore_for_custom_data_point")
     ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
     interface: Final = DelegatedProperty[Interface](path="_interface")
     interface_id: Final = DelegatedProperty[str](path="_interface_id", log_context=True)
     is_updatable: Final = DelegatedProperty[bool](path="_is_updatable")
     ise_id: Final = DelegatedProperty[int](path="_ise_id")
-    manufacturer: Final = DelegatedProperty[str](path="_manufacturer", kind=Kind.INFO)
-    model: Final = DelegatedProperty[str](path="_model", kind=Kind.INFO, log_context=True)
-    model_description: Final = DelegatedProperty[str](path="_model_description", kind=Kind.INFO, alt_name="model_id")
-    name: Final = DelegatedProperty[str](path="_name", kind=Kind.INFO)
+    manufacturer: Final = DelegatedProperty[str](path="_manufacturer")
+    model: Final = DelegatedProperty[str](path="_model", log_context=True)
+    model_description: Final = DelegatedProperty[str](path="_model_description")
+    name: Final = DelegatedProperty[str](path="_name")
     parameter_visibility_provider: Final = DelegatedProperty[ParameterVisibilityProviderProtocol](
         path="_parameter_visibility_provider"
     )
@@ -441,6 +436,11 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
     def availability(self) -> AvailabilityInfo:
         """Return bundled availability information for the device."""
         return self._availability.get_availability_info()
+
+    @property
+    def available(self) -> bool:
+        """Return the availability of the device."""
+        return self._availability.is_reachable()
 
     @property
     def available_firmware(self) -> str | None:
@@ -507,6 +507,11 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return None
 
     @property
+    def firmware(self) -> str:
+        """Return the firmware of the device."""
+        return self._firmware.firmware
+
+    @property
     def firmware_updatable(self) -> bool:
         """Return the firmware update state of the device."""
         return self._firmware.firmware_updatable
@@ -540,11 +545,9 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         return self._week_profile.has_schedule
 
     @property
-    def info(self) -> Mapping[str, Any]:
-        """Return the device info."""
-        device_info = dict(self.info_payload)
-        device_info["central"] = self._central_info.info_payload
-        return device_info
+    def identifier(self) -> str:
+        """Return the identifier of the device."""
+        return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
 
     @property
     def link_peer_channels(self) -> Mapping[ChannelProtocol, tuple[ChannelProtocol, ...]]:
@@ -553,22 +556,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
             channel: channel.link_peer_channels for channel in self._channels.values() if channel.link_peer_channels
         }
 
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        return self._availability.is_reachable()
-
-    @info_property(alt_name="sw_version")
-    def firmware(self) -> str:
-        """Return the firmware of the device."""
-        return self._firmware.firmware
-
-    @info_property(alt_name="identifiers")
-    def identifier(self) -> str:
-        """Return the identifier of the device."""
-        return f"{self._address}{IDENTIFIER_SEPARATOR}{self._interface_id}"
-
-    @info_property(alt_name="suggested_area")
+    @property
     def room(self) -> str | None:
         """Return the room of the device, if only one assigned in the backend."""
         if self._rooms and len(self._rooms) == 1:
@@ -952,7 +940,7 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
         self._modified_at = datetime.now()
 
 
-class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
+class Channel(ChannelProtocol, LogContextMixin):
     """
     Represent a device channel containing data points and events.
 
@@ -975,16 +963,14 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     Protocol compliance
     -------------------
-    Implements ``ChannelProtocol`` which is a composite of sub-protocols:
+    Implements ``ChannelProtocol``, a flat composite declaring all members directly:
 
-    - ``ChannelIdentityProtocol``: Basic identification (address, name, no, type_name)
-    - ``ChannelDataPointAccessProtocol``: DataPoint and event access methods
-    - ``ChannelGroupingProtocol``: Channel group management (group_master, link_peer_channels)
-    - ``ChannelMetadataProtocol``: Additional metadata (device, function, room, paramset_descriptions)
-    - ``ChannelLinkManagementProtocol``: Central link operations
-    - ``ChannelLifecycleProtocol``: Lifecycle methods (finalize_init, on_config_changed, remove)
-
-    Consumers can depend on specific sub-protocols for narrower contracts.
+    - Identification (address, name, no, type_name)
+    - DataPoint and event access methods
+    - Channel group management (group_master, link_peer_channels)
+    - Additional metadata (device, function, room, paramset_descriptions)
+    - Central link operations
+    - Lifecycle methods (finalize_init, on_config_changed, remove)
     """
 
     __slots__ = (
@@ -1021,8 +1007,6 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     def __init__(self, *, device: DeviceProtocol, channel_address: str) -> None:
         """Initialize the channel object."""
-        PayloadMixin.__init__(self)
-
         self._device: Final = device
         self._address: Final = channel_address
         self._ise_id: Final = self._device.device_details_provider.get_address_id(address=channel_address)
@@ -1087,7 +1071,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             f"events: {len(self._generic_events)}"
         )
 
-    address: Final = DelegatedProperty[str](path="_address", kind=Kind.INFO)
+    address: Final = DelegatedProperty[str](path="_address")
     custom_data_point: Final = DelegatedProperty[hmce.CustomDataPoint | None](path="_custom_data_point")
     description: Final = DelegatedProperty[DeviceDescription](path="_channel_description")
     device: Final = DelegatedProperty[DeviceProtocol](path="_device", log_context=True)
@@ -1105,7 +1089,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
     paramset_keys: Final = DelegatedProperty[tuple[ParamsetKey, ...]](path="_paramset_keys")
     rooms: Final = DelegatedProperty[set[str]](path="_rooms")
     type_name: Final = DelegatedProperty[str](path="_type_name")
-    type_translation: Final = DelegatedProperty[str](path="_type_translation", kind=Kind.INFO)
+    type_translation: Final = DelegatedProperty[str](path="_type_translation")
     unique_id: Final = DelegatedProperty[str](path="_unique_id")
 
     @property
@@ -1169,7 +1153,7 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
             interface_id=self._device.interface_id, channel_address=self._address
         )
 
-    @info_property
+    @property
     def room(self) -> str | None:
         """Return the room of the device, if only one assigned in the backend."""
         if self._rooms and len(self._rooms) == 1:

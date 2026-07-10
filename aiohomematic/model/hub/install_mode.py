@@ -28,8 +28,7 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ class InstallModeDpType(NamedTuple):
     sensor: InstallModeDpSensor
 
 
-class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
+class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol):
     """Base class for install mode data points."""
 
     __slots__ = (
@@ -69,7 +68,6 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
         client_provider: ClientProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
-        PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=INSTALL_MODE_ADDRESS,
@@ -93,7 +91,22 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
 
     channel: Final = DelegatedProperty[ChannelProtocol | None](path="_channel")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    name: Final = DelegatedProperty[str](path="_name_data.name")
+
+    @property
+    def available(self) -> bool:
+        """Return the availability of the device."""
+        try:
+            client = self._client_provider.get_client(interface=self._interface)
+        except AioHomematicException:
+            return False
+        else:
+            return client.capabilities.install_mode and self._central_info.available
+
+    @property
+    def description(self) -> str | None:
+        """Return description."""
+        return None
 
     @property
     def enabled_default(self) -> bool:
@@ -114,21 +127,6 @@ class _BaseInstallModeDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, 
     def translation_key(self) -> str:
         """Return translation key for Home Assistant."""
         return "install_mode"
-
-    @config_property
-    def description(self) -> str | None:
-        """Return description."""
-        return None
-
-    @state_property
-    def available(self) -> bool:
-        """Return the availability of the device."""
-        try:
-            client = self._client_provider.get_client(interface=self._interface)
-        except AioHomematicException:
-            return False
-        else:
-            return client.capabilities.install_mode and self._central_info.available
 
     @override
     def _get_path_data(self) -> HubPathData:
@@ -195,12 +193,12 @@ class InstallModeDpSensor(GenericInstallModeDataPointProtocol, _BaseInstallModeD
         """Return if install mode is active."""
         return self.value > 0
 
-    @config_property
+    @property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return None
 
-    @state_property
+    @property
     def value(self) -> int:
         """Return remaining seconds."""
         if self._countdown_end <= datetime.now():

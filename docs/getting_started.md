@@ -1,11 +1,11 @@
 # Getting Started with aiohomematic
 
-This is the full walkthrough for using aiohomematic as a standalone Python library. It covers the
-high-level `HomematicAPI` facade, manual lifecycle management, and direct `CentralUnit` usage with
-explicit interface configuration.
+This is the full walkthrough for using aiohomematic as a standalone Python library. It covers
+`CentralConfig` and `CentralUnit` usage, manual lifecycle management, and explicit interface
+configuration.
 
 > **Looking for the fastest path?** The [Quick Start](quickstart.md) shows the minimum working
-> example (≈ 5 minutes) with the `HomematicAPI` facade.
+> example (≈ 5 minutes) with `CentralConfig` and `CentralUnit`.
 >
 > **Tip:** For definitions of terms like Backend, Interface, Device, Channel, and Parameter, see
 > the [Glossary](reference/glossary.md).
@@ -23,35 +23,43 @@ pip install aiohomematic
 
 ## Quick Start
 
-### Using the Simplified API (Recommended)
+### Using the Async Context Manager (Recommended)
 
-The easiest way to get started is with the `HomematicAPI` facade using the async context manager:
+`CentralUnit` supports the async context manager protocol directly -- `async with central:` calls
+`start()` on entry and `stop()` on exit, guaranteeing cleanup even when exceptions occur:
 
 ```python
 import asyncio
-from aiohomematic.api import HomematicAPI
+from aiohomematic.central import CentralConfig
+from aiohomematic.const import ParamsetKey
 
 async def main():
-    # Connect using the async context manager (recommended)
-    async with HomematicAPI.connect(
+    config = CentralConfig.for_ccu(
         host="192.168.1.100",
         username="Admin",
         password="your-password",
-    ) as api:
+    )
+    central = await config.create_central()
+
+    async with central:
         # List all devices
-        for device in api.list_devices():
+        for device in central.devices:
             print(f"{device.address}: {device.name} ({device.model})")
 
         # Read a value
-        state = await api.read_value(
+        device = central.device_coordinator.get_device(address="VCU0000001")
+        client = central.client_coordinator.get_client(interface_id=device.interface_id)
+        state = await client.get_value(
             channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
             parameter="STATE",
         )
         print(f"Current state: {state}")
 
         # Write a value
-        await api.write_value(
+        await client.set_value(
             channel_address="VCU0000001:1",
+            paramset_key=ParamsetKey.VALUES,
             parameter="STATE",
             value=True,
         )
@@ -63,45 +71,41 @@ asyncio.run(main())
 
 #### Connection Options
 
-The `connect()` method supports several options:
+`CentralConfig.for_ccu()` and `CentralConfig.for_homegear()` support several options:
 
 ```python
 # CCU with TLS
-async with HomematicAPI.connect(
+config = CentralConfig.for_ccu(
     host="192.168.1.100",
     username="Admin",
     password="secret",
     tls=True,
     verify_tls=False,  # Set to True in production
-) as api:
-    ...
+)
 
 # Homegear backend
-async with HomematicAPI.connect(
+config = CentralConfig.for_homegear(
     host="192.168.1.100",
     username="Admin",
     password="secret",
-    backend="homegear",
-) as api:
-    ...
+)
 
 # Custom central ID
-async with HomematicAPI.connect(
+config = CentralConfig.for_ccu(
     host="192.168.1.100",
     username="Admin",
     password="secret",
     central_id="my-living-room-ccu",
-) as api:
-    ...
+)
 ```
 
 ### Manual Lifecycle Management
 
-For more control over the lifecycle, you can manage start/stop manually:
+For more control over the lifecycle, you can manage start/stop manually instead of using the
+context manager:
 
 ```python
 import asyncio
-from aiohomematic.api import HomematicAPI
 from aiohomematic.central import CentralConfig
 
 async def main():
@@ -113,21 +117,22 @@ async def main():
         central_id="my-ccu",
     )
 
-    api = HomematicAPI(config=config)
-    await api.start()
+    central = await config.create_central()
+    await central.start()
 
     try:
-        for device in api.list_devices():
+        for device in central.devices:
             print(f"{device.address}: {device.name}")
     finally:
-        await api.stop()
+        await central.stop()
 
 asyncio.run(main())
 ```
 
-### Using CentralUnit Directly
+### Using CentralUnit with Explicit Interface Configuration
 
-For more control, use `CentralUnit` directly:
+For full control over which interfaces are enabled and their ports, configure
+`interface_configs` explicitly instead of using the `for_ccu()`/`for_homegear()` presets:
 
 ```python
 import asyncio
@@ -216,11 +221,25 @@ config = CentralConfig.for_homegear(
 
 ## Common Patterns
 
+The examples below assume a running `central: CentralUnit` (see [Quick Start](#quick-start)
+above). Reading and writing raw parameter values requires resolving the client responsible for
+the device's interface first:
+
+```python
+from aiohomematic.const import ParamsetKey
+
+def get_client_for(*, address: str):
+    """Resolve the client responsible for a device address."""
+    device = central.device_coordinator.get_device(address=address)
+    client = central.client_coordinator.get_client(interface_id=device.interface_id)
+    return client
+```
+
 ### Device Discovery
 
 ```python
 # List all devices
-for device in api.list_devices():
+for device in central.devices:
     print(f"Device: {device.address}")
     print(f"  Name: {device.name}")
     print(f"  Model: {device.model}")
@@ -238,13 +257,15 @@ for device in api.list_devices():
 
 ```python
 # Read from a specific channel and parameter
-value = await api.read_value(
+client = get_client_for(address="VCU0000001")
+value = await client.get_value(
     channel_address="VCU0000001:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="STATE",
 )
 
 # Read directly from a device's channel via address
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 if device:
     # device.channels is keyed by channel address (e.g. "VCU0000001:1"), not integer no
     channel = device.channels.get("VCU0000001:1")
@@ -262,22 +283,28 @@ if device:
 
 ```python
 # Turn on a switch
-await api.write_value(
+client = get_client_for(address="VCU0000001")
+await client.set_value(
     channel_address="VCU0000001:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="STATE",
     value=True,
 )
 
 # Set dimmer level (0.0 to 1.0)
-await api.write_value(
+client = get_client_for(address="VCU0000002")
+await client.set_value(
     channel_address="VCU0000002:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="LEVEL",
     value=0.5,
 )
 
 # Set thermostat temperature
-await api.write_value(
+client = get_client_for(address="VCU0000003")
+await client.set_value(
     channel_address="VCU0000003:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="SET_POINT_TEMPERATURE",
     value=21.5,
 )
@@ -286,13 +313,17 @@ await api.write_value(
 ### Subscribing to Events
 
 ```python
-from typing import Any
+from aiohomematic.central.events import DataPointValueReceivedEvent
 
-def on_value_changed(address: str, parameter: str, value: Any) -> None:
-    print(f"Update: {address}.{parameter} = {value}")
+async def on_value_changed(*, event: DataPointValueReceivedEvent) -> None:
+    print(f"Update: {event.dpk.channel_address}.{event.dpk.parameter} = {event.value}")
 
 # Subscribe to all data point updates
-unsubscribe = api.subscribe_to_updates(callback=on_value_changed)
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointValueReceivedEvent,
+    event_key=None,
+    handler=on_value_changed,
+)
 
 # ... your application logic ...
 
@@ -300,9 +331,10 @@ unsubscribe = api.subscribe_to_updates(callback=on_value_changed)
 unsubscribe()
 ```
 
-### Using the EventBus Directly
+### Using the EventBus for Device-Level Events
 
-For more control over event handling:
+The `EventBus` is the single mechanism for all event delivery -- data point updates and device
+lifecycle changes are just different event types on the same bus:
 
 ```python
 from aiohomematic.central.events import DataPointValueReceivedEvent, DeviceStateChangedEvent
@@ -341,8 +373,10 @@ from aiohomematic.exceptions import (
 )
 
 try:
-    await api.write_value(
+    client = get_client_for(address="VCU0000001")
+    await client.set_value(
         channel_address="VCU0000001:1",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.5,  # Invalid: must be 0.0-1.0
     )
@@ -360,7 +394,7 @@ The library automatically handles connection recovery. You can monitor connectio
 
 ```python
 # Check connection status
-if api.is_connected:
+if central.client_coordinator.has_clients and not central.connection_state.is_any_issue:
     print("Connected to backend")
 else:
     print("Not connected")
@@ -384,14 +418,17 @@ unsubscribe = central.event_bus.subscribe(
 
 ```python
 # Get switch state
-state = await api.read_value(
+client = get_client_for(address="VCU0000001")
+state = await client.get_value(
     channel_address="VCU0000001:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="STATE",
 )
 
 # Toggle switch
-await api.write_value(
+await client.set_value(
     channel_address="VCU0000001:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="STATE",
     value=not state,
 )
@@ -401,14 +438,17 @@ await api.write_value(
 
 ```python
 # Get current level (0.0-1.0)
-level = await api.read_value(
+client = get_client_for(address="VCU0000002")
+level = await client.get_value(
     channel_address="VCU0000002:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="LEVEL",
 )
 
 # Set to 75%
-await api.write_value(
+await client.set_value(
     channel_address="VCU0000002:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="LEVEL",
     value=0.75,
 )
@@ -417,21 +457,26 @@ await api.write_value(
 ### Thermostats
 
 ```python
+client = get_client_for(address="VCU0000003")
+
 # Read current temperature
-current_temp = await api.read_value(
+current_temp = await client.get_value(
     channel_address="VCU0000003:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="ACTUAL_TEMPERATURE",
 )
 
 # Read set point
-set_point = await api.read_value(
+set_point = await client.get_value(
     channel_address="VCU0000003:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="SET_POINT_TEMPERATURE",
 )
 
 # Set new temperature
-await api.write_value(
+await client.set_value(
     channel_address="VCU0000003:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="SET_POINT_TEMPERATURE",
     value=22.0,
 )
@@ -440,22 +485,27 @@ await api.write_value(
 ### Blinds/Covers
 
 ```python
+client = get_client_for(address="VCU0000004")
+
 # Get current position (0.0=closed, 1.0=open)
-position = await api.read_value(
+position = await client.get_value(
     channel_address="VCU0000004:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="LEVEL",
 )
 
 # Open blinds fully
-await api.write_value(
+await client.set_value(
     channel_address="VCU0000004:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="LEVEL",
     value=1.0,
 )
 
 # Stop movement
-await api.write_value(
+await client.set_value(
     channel_address="VCU0000004:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="STOP",
     value=True,
 )
@@ -476,7 +526,7 @@ design rationale and lifecycle, see [architecture.md](architecture.md) and
 
 1. **Always use async context**: All network operations are asynchronous.
 
-2. **Clean up properly**: Always call `stop()` to clean up resources.
+2. **Clean up properly**: Always call `stop()` to clean up resources (or use `async with central:`).
 
 3. **Handle disconnections**: The library auto-reconnects, but your code should handle temporary disconnections gracefully.
 

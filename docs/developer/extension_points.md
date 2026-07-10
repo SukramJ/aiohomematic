@@ -33,7 +33,7 @@ Custom device profiles are used when a specific device (model) requires a bespok
 - **aiohomematic.model.custom.data_point.CustomDataPoint**: Base implementation that:
   - Groups multiple generic data points, sets visibility, service flags, etc.
   - Subscribes to underlying GenericDataPoint updates
-  - Provides state_property values derived from the grouped set
+  - Provides property values derived from the grouped set
 - **aiohomematic.const**: Contains `Field`, `DeviceProfile`, and `CDPD` keys used in profile definitions
 
 ### Concepts:
@@ -56,7 +56,7 @@ Custom device profiles are used when a specific device (model) requires a bespok
      - Use `DataPointField` descriptors for declarative field definitions
      - Override `_post_init()` for additional initialization after field resolution
      - `_readable_data_points` / `_relevant_data_points` (to tune exposure)
-     - `state_property` getters if you compute an aggregate state
+     - `@property` getters if you compute an aggregate state
 
 2. **Register the device with DeviceProfileRegistry**
 
@@ -146,7 +146,7 @@ Calculated data points compute values from one or more underlying GenericDataPoi
 - **aiohomematic.model.calculated.data_point.CalculatedDataPoint**: Base class to inherit from
   - `_resolve_data_point(...)` / `_add_device_data_point(...)` for manual data point resolution
   - `publish_data_point_updated_event` is triggered when any source updates
-  - Decorators: @state_property, @config_property
+  - Decorators: @property (use @hm_property(cached=..., log_context=...) for caching or structured log context)
 - **aiohomematic.model.calculated.**init\*\*\*\*
   - `create_calculated_data_points(channel)`: factory that evaluates relevance and attaches instances to channels
   - `_CALCULATED_DATA_POINTS`: tuple of registered calculated DP classes
@@ -192,8 +192,8 @@ Calculated data points compute values from one or more underlying GenericDataPoi
      )
      ```
    - Provide properties using decorators:
-     - `@state_property def value(self) -> T:` return computed value
-     - `@config_property def unit(self) -> str | None:` return unit string
+     - `@property def value(self) -> T:` return computed value
+     - `@property def unit(self) -> str | None:` return unit string
    - Implement `staticmethod is_relevant_for_model(*, channel: ChannelProtocol) -> bool` to guard which channels get this DP
    - Override `_post_init()` for additional initialization after descriptor resolution
 
@@ -219,7 +219,6 @@ from aiohomematic.interfaces.model import ChannelProtocol
 from aiohomematic.model.calculated.data_point import CalculatedDataPoint
 from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.generic import DpSensor
-from aiohomematic.property_decorators import state_property
 
 
 class MyMetric(CalculatedDataPoint[float | None]):
@@ -261,7 +260,7 @@ class MyMetric(CalculatedDataPoint[float | None]):
             is not None
         )
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the calculated value."""
         if self._dp_temp.value is None or self._dp_hum.value is None:

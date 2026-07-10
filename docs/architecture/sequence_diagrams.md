@@ -594,7 +594,6 @@ sequenceDiagram
 | DataPointValueReceivedEvent  | DataPointKey    | Backend data point value update     |
 | RpcParameterReceivedEvent    | DataPointKey    | Raw parameter event from RPC        |
 | DataPointStatusReceivedEvent | DataPointKey    | Data point availability status      |
-| SysvarStateChangedEvent      | state_path      | System variable update              |
 | DeviceStateChangedEvent      | device_address  | Device state update                 |
 | FirmwareStateChangedEvent    | device_address  | Firmware info update                |
 | LinkPeerChangedEvent         | channel_address | Channel link changes                |

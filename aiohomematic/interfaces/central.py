@@ -300,11 +300,6 @@ class CentralInfoProtocol(Protocol):
 
     @property
     @abstractmethod
-    def info_payload(self) -> Mapping[str, Any]:
-        """Return the info payload."""
-
-    @property
-    @abstractmethod
     def model(self) -> str | None:
         """Get backend model."""
 
@@ -345,65 +340,6 @@ class SystemInfoProviderProtocol(Protocol):
     @abstractmethod
     def system_information(self) -> SystemInformation:
         """Get system information."""
-
-
-@runtime_checkable
-class BackupProviderProtocol(Protocol):
-    """
-    Protocol for backup operations.
-
-    Implemented by CentralUnit.
-    """
-
-    @abstractmethod
-    async def create_backup_and_download(self) -> BackupData | None:
-        """Create a backup on the CCU and download it."""
-
-
-@runtime_checkable
-class DeviceManagementProtocol(Protocol):
-    """
-    Protocol for device management operations.
-
-    Provides methods for managing devices on the CCU including
-    accepting inbox devices, renaming devices/channels, and install mode.
-    Implemented by CentralUnit.
-    """
-
-    @abstractmethod
-    async def accept_device_in_inbox(self, *, device_address: str) -> bool:
-        """Accept a device from the CCU inbox."""
-
-    @abstractmethod
-    async def get_install_mode(self) -> int:
-        """Return the remaining time in install mode."""
-
-    @abstractmethod
-    async def rename_device(self, *, device_address: str, name: str, include_channels: bool = False) -> bool:
-        """Rename a device on the CCU."""
-
-    @abstractmethod
-    async def set_install_mode(
-        self,
-        *,
-        on: bool = True,
-        time: int = 60,
-        mode: int = 1,
-        device_address: str | None = None,
-    ) -> bool:
-        """
-        Set the install mode on the backend.
-
-        Args:
-            on: Enable or disable install mode.
-            time: Duration in seconds (default 60).
-            mode: Mode 1=normal, 2=set all ROAMING devices into install mode.
-            device_address: Optional device address to limit pairing.
-
-        Returns:
-            True if successful.
-
-        """
 
 
 @runtime_checkable
@@ -658,13 +594,19 @@ class DataCacheProviderProtocol(Protocol):
 
 
 @runtime_checkable
-class HubFetchOperationsProtocol(Protocol):
+class HubDataFetcherProtocol(Protocol):
     """
-    Base protocol for hub fetch operations.
+    Protocol for fetching hub data.
 
-    Defines the common fetch methods shared between HubDataFetcherProtocol and HubProtocol.
-    This eliminates duplication of fetch method signatures.
+    Provides the fetch methods for hub-level data (programs, sysvars, inbox, alarm and
+    service messages, connectivity, metrics, system update) plus program execution and
+    state management.
+    Implemented by HubCoordinator.
     """
+
+    @abstractmethod
+    async def execute_program(self, *, pid: str) -> bool:
+        """Execute a program on the backend."""
 
     @abstractmethod
     async def fetch_alarm_messages_data(self, *, scheduled: bool) -> None:
@@ -697,20 +639,6 @@ class HubFetchOperationsProtocol(Protocol):
     @abstractmethod
     async def fetch_sysvar_data(self, *, scheduled: bool) -> None:
         """Fetch system variable data from the backend."""
-
-
-@runtime_checkable
-class HubDataFetcherProtocol(HubFetchOperationsProtocol, Protocol):
-    """
-    Protocol for fetching hub data.
-
-    Extends HubFetchOperationsProtocol with program execution and state management.
-    Implemented by HubCoordinator.
-    """
-
-    @abstractmethod
-    async def execute_program(self, *, pid: str) -> bool:
-        """Execute a program on the backend."""
 
     @abstractmethod
     async def set_program_state(self, *, pid: str, state: bool) -> bool:
@@ -881,20 +809,6 @@ class CentralStateMachineProtocol(Protocol):
         degraded_interfaces: Mapping[str, FailureReason] | None = None,
     ) -> None:
         """Transition to a new state."""
-
-
-@runtime_checkable
-class CentralStateMachineProviderProtocol(Protocol):
-    """
-    Protocol for accessing the central state machine.
-
-    Implemented by CentralUnit.
-    """
-
-    @property
-    @abstractmethod
-    def central_state_machine(self) -> CentralStateMachineProtocol:
-        """Return the central state machine."""
 
 
 # =============================================================================
@@ -1249,13 +1163,10 @@ class LinkFacadeProtocol(Protocol):
 # Import protocols from other interface modules for CentralProtocol composition.
 # These imports are placed here (after all local protocols are defined) to avoid
 # circular import issues while allowing proper inheritance.
-from aiohomematic._payload_protocol import PayloadProtocol  # noqa: E402
 from aiohomematic.interfaces.client import (  # noqa: E402
-    CallbackAddressProviderProtocol,
     ClientDependenciesProtocol,
     ClientFactoryProtocol,
     ConnectionStateProviderProtocol,
-    JsonRpcClientProviderProtocol,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol  # noqa: E402
 
@@ -1263,7 +1174,6 @@ from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol  # 
 @runtime_checkable
 class CentralProtocol(
     # From interfaces/central.py (this module)
-    BackupProviderProtocol,
     CentralInfoProtocol,
     ConfigProviderProtocol,
     DataPointProviderProtocol,
@@ -1273,15 +1183,11 @@ class CentralProtocol(
     FileOperationsProtocol,
     SystemInfoProviderProtocol,
     # From interfaces/client.py
-    CallbackAddressProviderProtocol,
     ClientDependenciesProtocol,
     ClientFactoryProtocol,
     ConnectionStateProviderProtocol,
-    JsonRpcClientProviderProtocol,
     # From interfaces/coordinators.py
     CoordinatorProviderProtocol,
-    # From interfaces/model.py
-    PayloadProtocol,
     Protocol,
 ):
     """
@@ -1308,7 +1214,11 @@ class CentralProtocol(
 
     **Device Operations:**
         - DeviceDataRefresherProtocol: Refresh device data from backend
-        - BackupProviderProtocol: Backup operations
+        - Backup operations (create_backup_and_download) declared directly: the JSON-RPC client
+          access, callback address, and backup members formerly provided by separate ISP slices
+          (JsonRpcClientProviderProtocol, CallbackAddressProviderProtocol, BackupProviderProtocol)
+          are either declared directly on this composite or already covered verbatim by
+          ClientDependenciesProtocol (json_rpc_client, callback_ip_addr, listen_port_xml_rpc)
 
     **Hub Operations:**
         - HubDataFetcherProtocol: Fetch hub data
@@ -1316,10 +1226,9 @@ class CentralProtocol(
 
     **Client Management (via CoordinatorProviderProtocol.client_coordinator):**
         - ClientFactoryProtocol: Create new client instances
-        - ClientDependenciesProtocol: Dependencies for clients
-        - JsonRpcClientProviderProtocol: JSON-RPC client access
+        - ClientDependenciesProtocol: Dependencies for clients (includes json_rpc_client,
+          callback_ip_addr, listen_port_xml_rpc)
         - ConnectionStateProviderProtocol: Connection state information
-        - CallbackAddressProviderProtocol: Callback address management
         - SessionRecorderProviderProtocol: Session recording access
 
     **Coordinators:**
@@ -1327,3 +1236,7 @@ class CentralProtocol(
     """
 
     __slots__ = ()
+
+    @abstractmethod
+    async def create_backup_and_download(self) -> BackupData | None:
+        """Create a backup on the CCU and download it."""

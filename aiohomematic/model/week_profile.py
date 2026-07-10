@@ -389,7 +389,7 @@ from aiohomematic.model.schedule_models import (
     convert_raw_group_to_simple_entry,
     convert_simple_entry_to_raw_group,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.model.custom import BaseCustomDpClimate
@@ -920,8 +920,12 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
     def __init__(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the climate week profile."""
         super().__init__(data_point=data_point)
-        self._min_temp: Final[float] = self._data_point.min_temp
-        self._max_temp: Final[float] = self._data_point.max_temp
+        # Temperature bounds derive from the device's SETPOINT paramset description and can be
+        # ``None`` when that description is incomplete (e.g. after a failed getParamsetDescription).
+        # Keep the optional type so schedule conversion can fail cleanly instead of raising a raw
+        # TypeError on the ``min <= temp <= max`` bound checks; see _require_temp_bounds().
+        self._min_temp: Final[float | None] = self._data_point.min_temp
+        self._max_temp: Final[float | None] = self._data_point.max_temp
 
     @staticmethod
     def _create_empty_schedule() -> ClimateSchedule:
@@ -1029,8 +1033,8 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         # Cast to ClimateScheduleDictInternal since we built it with all required keys
         return cast(_ClimateScheduleDictInternal, schedule_data)
 
-    max_temp: Final = DelegatedProperty[float](path="_max_temp", kind=Kind.CONFIG)
-    min_temp: Final = DelegatedProperty[float](path="_min_temp", kind=Kind.CONFIG)
+    max_temp: Final = DelegatedProperty[float](path="_max_temp")
+    min_temp: Final = DelegatedProperty[float](path="_min_temp")
 
     @property
     def available_profiles(self) -> tuple[ScheduleProfile, ...]:
@@ -1295,6 +1299,24 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         # Convert directly to Pydantic (optimized path)
         return self._convert_raw_to_pydantic(raw_schedule=raw_schedule)
 
+    def _require_temp_bounds(self) -> tuple[float, float]:
+        """
+        Return the validated (min_temp, max_temp) bounds, raising if unavailable.
+
+        Guard schedule conversion against missing temperature bounds so a device with an
+        incomplete SETPOINT paramset description fails with a caught ValidationException
+        (the climate entity still loads, only the schedule stays uncached) instead of an
+        uncaught TypeError that would prevent the entity from being added at all.
+        """
+        if self._min_temp is None or self._max_temp is None:
+            raise ValidationException(
+                i18n.tr(
+                    key="exception.model.week_profile.validate.temperature_bounds_unavailable",
+                    name=self._device.name,
+                )
+            )
+        return self._min_temp, self._max_temp
+
     def _validate_and_convert_profile_to_simple(
         self, *, profile_data: _ClimateProfileScheduleDictInternal
     ) -> ClimateProfileSchedule:
@@ -1365,6 +1387,7 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         except ValueError as ex:
             raise ValidationException(str(ex)) from ex
 
+        min_temp, max_temp = self._require_temp_bounds()
         base_temperature = validated_weekday.base_temperature
         _weekday_data: list[dict[str, str | float]] = [
             {
@@ -1375,13 +1398,13 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
             for p in validated_weekday.periods
         ]
 
-        if not self._min_temp <= base_temperature <= self._max_temp:
+        if not min_temp <= base_temperature <= max_temp:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.validate.base_temperature_out_of_range",
                     base_temperature=base_temperature,
-                    min=self._min_temp,
-                    max=self._max_temp,
+                    min=min_temp,
+                    max=max_temp,
                 )
             )
 
@@ -1409,13 +1432,13 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
                     )
                 )
 
-            if not self._min_temp <= temperature <= self._max_temp:
+            if not min_temp <= temperature <= max_temp:
                 raise ValidationException(
                     i18n.tr(
                         key="exception.model.week_profile.validate.temperature_out_of_range_for_times",
                         temperature=temperature,
-                        min=self._min_temp,
-                        max=self._max_temp,
+                        min=min_temp,
+                        max=max_temp,
                         start=starttime,
                         end=endtime,
                     )
@@ -1449,18 +1472,19 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
             ClimateWeekdaySchedule with base_temperature and periods list
 
         """
+        min_temp, max_temp = self._require_temp_bounds()
         base_temperature = identify_base_temperature(weekday_data=weekday_data)
 
         # filter out irrelevant entries
         filtered_data = _filter_weekday_entries(weekday_data=weekday_data)
 
-        if not self._min_temp <= float(base_temperature) <= self._max_temp:
+        if not min_temp <= float(base_temperature) <= max_temp:
             raise ValidationException(
                 i18n.tr(
                     key="exception.model.week_profile.validate.base_temperature_out_of_range",
                     base_temperature=base_temperature,
-                    min=self._min_temp,
-                    max=self._max_temp,
+                    min=min_temp,
+                    max=max_temp,
                 )
             )
 

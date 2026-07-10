@@ -76,7 +76,6 @@ nav:
       - Error Handling: developer/error_handling.md
       - Backend Detection: developer/backend_detection.md
       - Incident System: developer/incident_system.md
-      - CLI Tool: developer/cli_tool.md
   - Contributor Guide:
       - Contributing: contributor/contributing.md
       - Development Environment: contributor/dev-environment.md
@@ -115,7 +114,6 @@ nav:
       - API Reference:
           - Overview: reference/api/index.md
           - Public API: reference/api/public_api.md
-          - HomematicAPI: reference/api/api.md
           - CentralUnit: reference/api/central.md
           - CentralConfig: reference/api/config.md
           - Exceptions: reference/api/exceptions.md

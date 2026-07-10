@@ -42,12 +42,11 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_hub_data_point_name_data,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support import parse_sys_var
-from aiohomematic.support.mixins import PayloadMixin
 
 
-class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
+class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol):
     """Class for a Homematic system variable."""
 
     __slots__ = (
@@ -76,7 +75,6 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
         data: HubData,
     ) -> None:
         """Initialize the data_point."""
-        PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=address,
@@ -101,13 +99,13 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol, Payloa
         self._state_uncertain: bool = True
         self._primary_client_provider: Final = primary_client_provider
 
-    available = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    available = DelegatedProperty[bool](path="_central_info.available")
     channel: Final = DelegatedProperty[ChannelProtocol | None](path="_channel")
-    description: Final = DelegatedProperty[str | None](path="_description", kind=Kind.CONFIG)
+    description: Final = DelegatedProperty[str | None](path="_description")
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
     legacy_name: Final = DelegatedProperty[str | None](path="_legacy_name")
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    name: Final = DelegatedProperty[str](path="_name_data.name")
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
 
     @property
@@ -177,13 +175,13 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         self._unconfirmed_value: SYSVAR_TYPE = None
 
     is_extended: Final = DelegatedProperty[bool](path="_is_extended")
-    max: Final = DelegatedProperty[float | int | None](path="_max", kind=Kind.CONFIG)
-    min: Final = DelegatedProperty[float | int | None](path="_min", kind=Kind.CONFIG)
+    max: Final = DelegatedProperty[float | int | None](path="_max")
+    min: Final = DelegatedProperty[float | int | None](path="_min")
     previous_value: Final = DelegatedProperty[SYSVAR_TYPE](path="_previous_value")
-    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
-    value = DelegatedProperty[Any | None](path="_value", kind=Kind.STATE)
-    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.STATE)
-    vid: Final = DelegatedProperty[str](path="_vid", kind=Kind.CONFIG)
+    unit: Final = DelegatedProperty[str | None](path="_unit")
+    value = DelegatedProperty[Any | None](path="_value")
+    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values")
+    vid: Final = DelegatedProperty[str](path="_vid")
 
     @property
     def _value(self) -> Any | None:
@@ -316,10 +314,10 @@ class GenericProgramDataPoint(GenericHubDataPoint, GenericProgramDataPointProtoc
         self._state_uncertain: bool = True
         self._hub_data_fetcher: Final = hub_data_fetcher
 
-    is_active: Final = DelegatedProperty[bool](path="_is_active", kind=Kind.STATE)
-    is_internal: Final = DelegatedProperty[bool](path="_is_internal", kind=Kind.CONFIG)
-    last_execute_time: Final = DelegatedProperty[str](path="_last_execute_time", kind=Kind.STATE)
-    pid: Final = DelegatedProperty[str](path="_pid", kind=Kind.CONFIG)
+    is_active: Final = DelegatedProperty[bool](path="_is_active")
+    is_internal: Final = DelegatedProperty[bool](path="_is_internal")
+    last_execute_time: Final = DelegatedProperty[str](path="_last_execute_time")
+    pid: Final = DelegatedProperty[str](path="_pid")
 
     def update_data(self, *, data: ProgramData) -> None:
         """Set variable value on the backend."""

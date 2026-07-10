@@ -68,7 +68,6 @@ The following files are excluded from coverage:
 - `aiohomematic/exceptions.py` - Exception definitions
 - `aiohomematic/central/rpc_server.py` - XML-RPC server (hard to test)
 - `aiohomematic/__main__.py` - Entry point
-- `aiohomematic/hmcli.py` - CLI tool
 
 ### Excluded Lines
 

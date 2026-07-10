@@ -1,3 +1,56 @@
+# Version 2026.7.5 (2026-07-10)
+
+## What's Changed
+
+### Breaking / Removed
+
+Result of a consumer-surface audit against `homematicip_local` (the sole downstream
+consumer): every removal below was verified to have zero direct and zero indirect
+usage in the integration. Net effect: −5,800 LOC. Migration guide:
+`docs/migrations/simplification_migration_2026_07.md`.
+
+- **Removed the `aiohomematic` console script (`hmcli.py`).** Never imported or
+  invoked by any consumer; openccu-loom ships a Go replacement (`cmd/hmcli`).
+- **Removed the `HomematicAPI` facade (`aiohomematic/api.py`).** Pure delegation
+  layer over `CentralUnit` with zero importers. All docs examples now show the
+  real consumer pattern (`CentralConfig` → `create_central()` → `async with central`).
+- **Removed `SysvarStateChangedEvent`.** The event had no production publisher and
+  its `HubCoordinator` subscription could never fire; consumers update sysvars via
+  `sysvar_dp.event(...)` directly.
+- **Removed `aiohomematic/tracing.py` and `aiohomematic/logging_context.py`.**
+  Zero production imports; `RequestContext` (`context.py`) and `LogContextMixin`
+  remain.
+- **Flattened 37 zero-use ISP slice protocols in `aiohomematic.interfaces`**
+  (protocol count 120 → 83). Composite protocols (`ClientProtocol`,
+  `CentralProtocol`, `DeviceProtocol`, `ChannelProtocol`) keep their exact member
+  sets (AST-verified); every protocol name imported by `homematicip_local` is
+  unchanged.
+- **Removed the Kind/payload property metadata subsystem** (`Kind`,
+  `config_property`/`info_property`/`state_property`, `get_hm_property_by_kind`,
+  `PayloadMixin`, `PayloadProtocol`, `Device.info`, `alt_name=`/`kind=`
+  parameters). Its only consumption chain ended in `Device.info`, which had zero
+  readers. `hm_property(cached=…, log_context=…)` and `DelegatedProperty` remain;
+  new `get_hm_property_names()` helper lists decorated property names.
+
+### Fixed
+
+- **Climate entity for `HmIP-WTH-B` (and other thermostats) no longer fails to load when the
+  SETPOINT paramset description is incomplete (#3281).** When a device's SETPOINT paramset
+  description carried no `MAX` (e.g. after a failed `getParamsetDescription`),
+  `BaseCustomDpClimate.max_temp` returned `None` via an unchecked `cast(float, ...)`. Caching the
+  week profile then evaluated `min_temp <= base_temperature <= max_temp` and raised an uncaught
+  `TypeError: '<=' not supported between instances of 'float' and 'NoneType'` out of
+  `reload_and_cache_schedule`. Since that method only swallows `ValidationException`, the
+  `TypeError` propagated into Home Assistant's entity setup, leaving the climate entity permanently
+  "unavailable" — while an identical device with a complete paramset description worked fine.
+  `max_temp` now falls back to a fixed upper bound (`30.5`) when neither a `TEMPERATURE_MAXIMUM`
+  value nor a SETPOINT `MAX` is available, mirroring the existing `min_temp` guard. As defense in
+  depth, `ClimateWeekProfile` now validates its temperature bounds and raises a caught
+  `ValidationException` instead of a `TypeError` when a bound is missing, so an incomplete paramset
+  description degrades gracefully (the entity loads; only the schedule stays uncached). Regression
+  and contract tests cover both the `max_temp` fallback and the graceful schedule-conversion
+  failure.
+
 # Version 2026.7.4 (2026-07-09)
 
 ## What's Changed

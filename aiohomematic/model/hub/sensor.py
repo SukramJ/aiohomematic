@@ -8,7 +8,7 @@ from typing import Any, Final
 from aiohomematic.const import DataPointCategory, HubValueType
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
 from aiohomematic.model.mixins.sensor_value import SensorValueMixin
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import hm_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class SysvarDpSensor(SensorValueMixin, GenericSysvarDataPoint):
 
     _category = DataPointCategory.HUB_SENSOR
 
-    @state_property
+    @hm_property
     def value(self) -> Any | None:
         """Return the value."""
         return self._transform_sensor_value(

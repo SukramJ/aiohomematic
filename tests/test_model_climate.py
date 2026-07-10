@@ -34,7 +34,7 @@ from aiohomematic.model.custom import (
 from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy, DpFloat
 from aiohomematic.model.schedule_models import ClimateSchedulePeriod, ClimateWeekdaySchedule
-from aiohomematic.model.week_profile import _convert_time_str_to_minutes
+from aiohomematic.model.week_profile import ClimateWeekProfile, _convert_time_str_to_minutes
 from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
@@ -167,6 +167,44 @@ class TestCustomDpSimpleRfThermostat:
         assert climate.usage == DataPointUsage.CDP_PRIMARY
         assert climate._dp_setpoint.min == 4.5
         assert climate._dp_setpoint.max == 30.5
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_max_temp_falls_back_when_setpoint_max_missing(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Regression #3281: max_temp must stay a float when the SETPOINT paramset has no MAX.
+
+        An incomplete SETPOINT paramset description (e.g. after a failed getParamsetDescription)
+        leaves ``_dp_setpoint.max`` as None. max_temp must not return None, otherwise the
+        schedule bound checks crash with "'<=' not supported between 'float' and 'NoneType'"
+        and the climate entity fails to load.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        climate: CustomDpSimpleRfThermostat = cast(
+            CustomDpSimpleRfThermostat, get_prepared_custom_data_point(central, "VCU0000054", 1)
+        )
+        # This device exposes no dedicated TEMPERATURE_MAXIMUM value.
+        assert climate._dp_temperature_maximum.value is None
+        # Simulate the incomplete SETPOINT paramset description.
+        climate._dp_setpoint._max = None
+        assert climate._dp_setpoint.max is None
+        # Invariant: max_temp is always a float, never None.
+        assert climate.max_temp is not None
+        assert isinstance(climate.max_temp, float)
+        assert climate.max_temp == 30.5  # _DEFAULT_MAX_TEMPERATURE fallback
 
 
 class TestCustomDpRfThermostat:
@@ -1910,6 +1948,30 @@ class TestClimateIntegration:
 
         with pytest.raises(ValidationException):
             await wp_dp_bwth.copy_schedule(target_data_point=wp_dp_etrv)
+
+    @pytest.mark.enable_socket
+    @pytest.mark.asyncio
+    async def test_reload_schedule_survives_missing_temp_bounds(self, central_unit_pydevccu_mini) -> None:
+        """
+        Regression #3281: a missing temperature bound must not crash schedule caching.
+
+        When a device's SETPOINT paramset description is incomplete, the climate week profile's
+        upper bound can be None. Previously the schedule conversion raised an uncaught TypeError
+        ("'<=' not supported between 'float' and 'NoneType'") from within
+        reload_and_cache_schedule, which prevented the climate entity from being added at all.
+        The conversion must now fail with a caught ValidationException so the reload returns
+        cleanly and the entity still loads.
+        """
+        climate_bwth = cast(
+            BaseCustomDpClimate,
+            central_unit_pydevccu_mini.query_facade.get_custom_data_point(address="VCU1769958", channel_no=1),
+        )
+        week_profile = climate_bwth.device.week_profile
+        assert isinstance(week_profile, ClimateWeekProfile)
+        # Simulate the incomplete SETPOINT paramset description: upper bound unavailable.
+        week_profile._max_temp = None
+        # Must not raise; the TypeError regression would propagate out of reload_and_cache_schedule.
+        await week_profile.reload_and_cache_schedule(force=True)
 
 
 class TestClimateHelperMethods:

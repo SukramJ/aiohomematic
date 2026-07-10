@@ -255,14 +255,17 @@ CUxD- und CCU-Jack-Geräte können sich geringfügig anders verhalten als origin
 ### Wie verwende ich aiohomematic eigenständig?
 
 ```python
-from aiohomematic.api import HomematicAPI
+from aiohomematic.central import CentralConfig
 
-async with HomematicAPI.connect(
+config = CentralConfig.for_ccu(
     host="192.168.1.100",
     username="Admin",
     password="secret",
-) as api:
-    for device in api.list_devices():
+)
+central = await config.create_central()
+
+async with central:
+    for device in central.devices:
         print(f"{device.name}: {device.model}")
 ```
 

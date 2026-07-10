@@ -37,7 +37,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_data_point_name_data,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, hm_property
 from aiohomematic.type_aliases import ParamType, UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -123,14 +123,14 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     )
     default: Final = DelegatedProperty[ParameterT](path="_default")
     hmtype: Final = DelegatedProperty[ParameterType](path="_type")
-    max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
-    min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
+    max: Final = DelegatedProperty[ParameterT](path="_max")
+    min: Final = DelegatedProperty[ParameterT](path="_min")
     multiplier: Final = DelegatedProperty[float](path="_multiplier")
     parameter: Final = DelegatedProperty[str](path="_calculated_parameter")
     service: Final = DelegatedProperty[bool](path="_service")
-    translation: Final = DelegatedProperty[str | None](path="_translation", kind=Kind.INFO)
-    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
-    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
+    translation: Final = DelegatedProperty[str | None](path="_translation")
+    unit: Final = DelegatedProperty[str | None](path="_unit")
+    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values")
     visible: Final = DelegatedProperty[bool](path="_visible")
 
     @property
@@ -146,7 +146,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     @property
     def _should_publish_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
-        if self.published_event_recently:  # pylint: disable=using-constant-test
+        if self.published_event_recently:
             return False
 
         # Don't publish if source data points aren't refreshed yet.
@@ -196,9 +196,27 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         return bool(self._operations & Operations.WRITE)
 
     @property
+    def modified_at(self) -> datetime:
+        """Return the latest last update timestamp."""
+        modified_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
+                modified_at = data_point_modified_at
+        return modified_at
+
+    @property
     def paramset_key(self) -> ParamsetKey:
         """Return paramset_key name."""
         return ParamsetKey.CALCULATED
+
+    @property
+    def refreshed_at(self) -> datetime:
+        """Return the latest last refresh timestamp."""
+        refreshed_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
+                refreshed_at = data_point_refreshed_at
+        return refreshed_at
 
     @property
     def state_uncertain(self) -> bool:
@@ -209,24 +227,6 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def translation_key(self) -> str:
         """Return translation key for Home Assistant."""
         return generate_translation_key(name=self._calculated_parameter)
-
-    @state_property
-    def modified_at(self) -> datetime:
-        """Return the latest last update timestamp."""
-        modified_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
-                modified_at = data_point_modified_at
-        return modified_at
-
-    @state_property
-    def refreshed_at(self) -> datetime:
-        """Return the latest last refresh timestamp."""
-        refreshed_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
-                refreshed_at = data_point_refreshed_at
-        return refreshed_at
 
     @hm_property(cached=True)
     def dpk(self) -> DataPointKey:

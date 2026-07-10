@@ -143,16 +143,9 @@ from aiohomematic.model.support import (
     generate_translation_key,
     generate_unique_id,
 )
-from aiohomematic.property_decorators import (
-    DelegatedProperty,
-    Kind,
-    _GenericProperty,
-    config_property,
-    hm_property,
-    state_property,
-)
+from aiohomematic.property_decorators import DelegatedProperty, _GenericProperty, hm_property
 from aiohomematic.support import log_boundary_error
-from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
+from aiohomematic.support.mixins import LogContextMixin
 from aiohomematic.type_aliases import CallableAny, ParamType, ServiceMethodMap
 
 __all__ = [
@@ -278,12 +271,22 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
     set_path: Final = DelegatedProperty[str](path="_path_data.set_path")
     signature: Final = DelegatedProperty[str](path="_signature")
     state_path: Final = DelegatedProperty[str](path="_path_data.state_path")
-    unique_id = DelegatedProperty[str](path="_unique_id", kind=Kind.CONFIG)
+    unique_id = DelegatedProperty[str](path="_unique_id")
 
     @property
     def _should_publish_data_point_updated_callback(self) -> bool:
         """Check if a data point has been updated or refreshed."""
         return True
+
+    @property
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information about the data point."""
+        return {}
+
+    @property
+    @abstractmethod
+    def available(self) -> bool:
+        """Return the availability of the device."""
 
     @property
     def category(self) -> DataPointCategory:
@@ -339,59 +342,49 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         return self.is_status_valid
 
     @property
-    def usage(self) -> DataPointUsage:
-        """Return the data_point usage."""
-        return DataPointUsage.DATA_POINT
-
-    @config_property
-    @abstractmethod
-    def name(self) -> str:
-        """Return the name of the data_point."""
-
-    @state_property
-    def additional_information(self) -> dict[str, Any]:
-        """Return additional information about the data point."""
-        return {}
-
-    @state_property
-    @abstractmethod
-    def available(self) -> bool:
-        """Return the availability of the device."""
-
-    @state_property
     def modified_at(self) -> datetime:
         """Return the last update datetime value."""
         if self._unconfirmed_modified_at > self._modified_at:
             return self._unconfirmed_modified_at
         return self._modified_at
 
-    @state_property
+    @property
     def modified_recently(self) -> bool:
         """Return the data point modified within 500 milliseconds."""
         if self._modified_at == INIT_DATETIME:
             return False
         return (datetime.now() - self._modified_at).total_seconds() < 0.5
 
-    @state_property
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the name of the data_point."""
+
+    @property
     def published_event_recently(self) -> bool:
         """Return the data point published an event within 500 milliseconds."""
         if self._published_event_at == INIT_DATETIME:
             return False
         return (datetime.now() - self._published_event_at).total_seconds() < 0.5
 
-    @state_property
+    @property
     def refreshed_at(self) -> datetime:
         """Return the last refresh datetime value."""
         if self._unconfirmed_refreshed_at > self._refreshed_at:
             return self._unconfirmed_refreshed_at
         return self._refreshed_at
 
-    @state_property
+    @property
     def refreshed_recently(self) -> bool:
         """Return the data point refreshed within 500 milliseconds."""
         if self._refreshed_at == INIT_DATETIME:
             return False
         return (datetime.now() - self._refreshed_at).total_seconds() < 0.5
+
+    @property
+    def usage(self) -> DataPointUsage:
+        """Return the data_point usage."""
+        return DataPointUsage.DATA_POINT
 
     @hm_property(cached=True)
     def enabled_default(self) -> bool:
@@ -517,7 +510,7 @@ class CallbackDataPoint(ABC, CallbackDataPointProtocol, LogContextMixin):
         self._unconfirmed_refreshed_at = refreshed_at
 
 
-class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
+class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol):
     """
     Base class for channel-bound data points.
 
@@ -549,7 +542,6 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         is_in_multiple_channels: bool,
     ) -> None:
         """Initialize the data_point."""
-        PayloadMixin.__init__(self)
         self._channel: Final[ChannelProtocol] = channel
         self._device: Final[DeviceProtocol] = channel.device
         super().__init__(
@@ -568,19 +560,19 @@ class BaseDataPoint(CallbackDataPoint, BaseDataPointProtocol, PayloadMixin):
         self._timer_on_time: float | None = None
         self._timer_on_time_end: datetime = INIT_DATETIME
 
-    available: Final = DelegatedProperty[bool](path="_device.available", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_device.available")
     channel: Final = DelegatedProperty[ChannelProtocol](path="_channel", log_context=True)
     device: Final = DelegatedProperty[DeviceProtocol](path="_device")
     full_name: Final = DelegatedProperty[str](path="_data_point_name_data.full_name")
     function: Final = DelegatedProperty[str | None](path="_channel.function")
     is_in_multiple_channels: Final = DelegatedProperty[bool](path="_is_in_multiple_channels")
-    name: Final = DelegatedProperty[str](path="_data_point_name_data.name", kind=Kind.CONFIG, cached=True)
+    name: Final = DelegatedProperty[str](path="_data_point_name_data.name", cached=True)
     name_data: Final = DelegatedProperty[DataPointNameData](path="_data_point_name_data")
     room: Final = DelegatedProperty[str | None](path="_channel.room")
     rooms: Final = DelegatedProperty[set[str]](path="_channel.rooms")
     timer_on_time = DelegatedProperty[float | None](path="_timer_on_time")
     translated_full_name: Final = DelegatedProperty[str](path="_data_point_name_data.translated_full_name")
-    translated_name: Final = DelegatedProperty[str](path="_data_point_name_data.translated_name", kind=Kind.CONFIG)
+    translated_name: Final = DelegatedProperty[str](path="_data_point_name_data.translated_name")
 
     @property
     def timer_on_time_running(self) -> bool:
@@ -778,14 +770,14 @@ class BaseParameterDataPoint[
             self._status_unsubscriber: CallableAny | None = None
 
     default: Final = DelegatedProperty[ParameterT](path="_default")
-    description: Final = DelegatedProperty[str | None](path="_description", kind=Kind.INFO)
+    description: Final = DelegatedProperty[str | None](path="_description")
     hmtype: Final = DelegatedProperty[ParameterType](path="_type")
     ignore_on_initial_load: Final = DelegatedProperty[bool](path="_ignore_on_initial_load")
     is_forced_sensor: Final = DelegatedProperty[bool](path="_is_forced_sensor")
     is_un_ignored: Final = DelegatedProperty[bool](path="_is_un_ignored")
     last_non_default_value: Final = DelegatedProperty[ParameterT | None](path="_last_non_default_value")
-    max: Final = DelegatedProperty[ParameterT](path="_max", kind=Kind.CONFIG)
-    min: Final = DelegatedProperty[ParameterT](path="_min", kind=Kind.CONFIG)
+    max: Final = DelegatedProperty[ParameterT](path="_max")
+    min: Final = DelegatedProperty[ParameterT](path="_min")
     multiplier: Final = DelegatedProperty[float](path="_multiplier")
     parameter: Final = DelegatedProperty[str](path="_parameter", log_context=True)
     paramset_key: Final = DelegatedProperty[ParamsetKey](path="_paramset_key")
@@ -794,13 +786,11 @@ class BaseParameterDataPoint[
     status: Final = DelegatedProperty[ParameterStatus | None](path="_status_value")
     status_dpk: Final = DelegatedProperty[DataPointKey | None](path="_status_dpk")
     status_parameter: Final = DelegatedProperty[str | None](path="_status_parameter")
-    translation: Final = DelegatedProperty[str | None](path="_translation", kind=Kind.INFO)
+    translation: Final = DelegatedProperty[str | None](path="_translation")
     translation_key: Final = DelegatedProperty[str](path="_translation_key")
-    unit: Final = DelegatedProperty[str | None](path="_unit", kind=Kind.CONFIG)
-    value_translations: Final = DelegatedProperty[dict[str, str | None] | None](
-        path="_value_translations", kind=Kind.CONFIG
-    )
-    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values", kind=Kind.CONFIG)
+    unit: Final = DelegatedProperty[str | None](path="_unit")
+    value_translations: Final = DelegatedProperty[dict[str, str | None] | None](path="_value_translations")
+    values: Final = DelegatedProperty[tuple[str, ...] | None](path="_values")
     visible: Final = DelegatedProperty[bool](path="_visible")
 
     @property
@@ -970,7 +960,28 @@ class BaseParameterDataPoint[
             self._client.last_value_send_tracker.get_last_value_send(dpk=self.dpk),
         )
 
-    @config_property(cached=True)
+    @hm_property(cached=True)
+    def _enabled_by_channel_operation_mode(self) -> bool | None:
+        """Return, if the data_point/event must be enabled."""
+        if self._channel.type_name not in _CONFIGURABLE_CHANNEL:
+            return None
+        if self._parameter not in KEY_CHANNEL_OPERATION_MODE_VISIBILITY:
+            return None
+        if (cop := self._channel.operation_mode) is None:
+            return None
+        return cop in KEY_CHANNEL_OPERATION_MODE_VISIBILITY[self._parameter]
+
+    @hm_property(cached=True)
+    def dpk(self) -> DataPointKey:
+        """Return data_point key value."""
+        return DataPointKey(
+            interface_id=self._device.interface_id,
+            channel_address=self._channel.address,
+            paramset_key=self._paramset_key,
+            parameter=self._parameter,
+        )
+
+    @hm_property(cached=True)
     def quantity(self) -> Quantity | None:
         """
         Return the semantic quantity of this data point.
@@ -998,12 +1009,20 @@ class BaseParameterDataPoint[
             return metadata.quantity
         return None
 
-    @config_property
+    @hm_property(cached=True)
+    def requires_polling(self) -> bool:
+        """Return whether the data_point requires polling."""
+        return not self._channel.device.client.capabilities.push_updates or (
+            self._channel.device.product_group in (ProductGroup.HM, ProductGroup.HMW)
+            and self._paramset_key == ParamsetKey.MASTER
+        )
+
+    @hm_property
     def unique_id(self) -> str:
         """Return the unique_id."""
         return f"{self._unique_id}_{DataPointCategory.SENSOR}" if self._is_forced_sensor else self._unique_id
 
-    @config_property(cached=True)
+    @hm_property(cached=True)
     def value_behavior(self) -> ValueBehavior | None:
         """
         Return the value behavior of this data point.
@@ -1022,35 +1041,6 @@ class BaseParameterDataPoint[
         if self._unit and (metadata := get_quantity_metadata_by_unit(unit=self._unit)):
             return metadata.value_behavior
         return None
-
-    @hm_property(cached=True)
-    def _enabled_by_channel_operation_mode(self) -> bool | None:
-        """Return, if the data_point/event must be enabled."""
-        if self._channel.type_name not in _CONFIGURABLE_CHANNEL:
-            return None
-        if self._parameter not in KEY_CHANNEL_OPERATION_MODE_VISIBILITY:
-            return None
-        if (cop := self._channel.operation_mode) is None:
-            return None
-        return cop in KEY_CHANNEL_OPERATION_MODE_VISIBILITY[self._parameter]
-
-    @hm_property(cached=True)
-    def dpk(self) -> DataPointKey:
-        """Return data_point key value."""
-        return DataPointKey(
-            interface_id=self._device.interface_id,
-            channel_address=self._channel.address,
-            paramset_key=self._paramset_key,
-            parameter=self._parameter,
-        )
-
-    @hm_property(cached=True)
-    def requires_polling(self) -> bool:
-        """Return whether the data_point requires polling."""
-        return not self._channel.device.client.capabilities.push_updates or (
-            self._channel.device.product_group in (ProductGroup.HM, ProductGroup.HMW)
-            and self._paramset_key == ParamsetKey.MASTER
-        )
 
     def apply_optimistic_value(self, *, value: ParameterT) -> None:
         """
@@ -1630,9 +1620,7 @@ class BaseParameterDataPoint[
         """
         return self._get_value()
 
-    value: _GenericProperty[ParameterT | None, ParameterT] = _GenericProperty(
-        fget=__get_value_proxy, fset=_set_value, kind=Kind.STATE
-    )
+    value: _GenericProperty[ParameterT | None, ParameterT] = _GenericProperty(fget=__get_value_proxy, fset=_set_value)
 
 
 BaseParameterDataPointAny: TypeAlias = BaseParameterDataPoint[Any, Any]

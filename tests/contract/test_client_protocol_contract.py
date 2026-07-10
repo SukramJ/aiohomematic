@@ -15,6 +15,15 @@ The contract ensures that:
 3. Method signatures are stable
 4. Sub-protocols can be used independently for interface segregation
 
+Note on inlined sub-protocols: `ClientLifecycleProtocol`, `ClientSupportProtocol`,
+`SystemVariableOperationsProtocol`, `ProgramOperationsProtocol`, `LinkOperationsProtocol`,
+`FirmwareOperationsProtocol`, `BackupOperationsProtocol`, `SystemManagementOperationsProtocol`,
+and `MaintenanceOperationsProtocol` had no consumer independent of `ClientProtocol` and have
+been inlined directly into the composite (see `aiohomematic/interfaces/client.py`). Their
+stability coverage now lives in `TestClientProtocolFullApiContract` below.
+`ParamsetOperationsProtocol` and `ValueOperationsProtocol` were merged into
+`ValueAndParamsetOperationsProtocol`, which remains a standalone protocol.
+
 See ADR-0018 for architectural context and rationale.
 """
 
@@ -25,26 +34,13 @@ import pytest
 from aiohomematic.interfaces import (
     ClientConnectionProtocol,
     ClientIdentityProtocol,
-    ClientLifecycleProtocol,
     ClientProtocol,
     ClientProviderProtocol,
-    ClientSupportProtocol,
     DeviceDiscoveryOperationsProtocol,
     MetadataOperationsProtocol,
     PrimaryClientProviderProtocol,
 )
-from aiohomematic.interfaces.client import (
-    BackupOperationsProtocol,
-    FirmwareOperationsProtocol,
-    LinkOperationsProtocol,
-    MaintenanceOperationsProtocol,
-    ParamsetOperationsProtocol,
-    ProgramOperationsProtocol,
-    SystemManagementOperationsProtocol,
-    SystemVariableOperationsProtocol,
-    ValueAndParamsetOperationsProtocol,
-    ValueOperationsProtocol,
-)
+from aiohomematic.interfaces.client import ValueAndParamsetOperationsProtocol
 
 # =============================================================================
 # SECTION 1: ClientProtocol Composition Contract
@@ -169,40 +165,7 @@ class TestClientConnectionProtocolContract:
 
 
 # =============================================================================
-# SECTION 4: ClientLifecycleProtocol Contract
-# =============================================================================
-
-
-class TestClientLifecycleProtocolContract:
-    """
-    Contract: ClientLifecycleProtocol must provide lifecycle operations.
-
-    These methods are essential for client initialization and shutdown.
-    """
-
-    def test_has_deinit_proxy_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have deinit_proxy method."""
-        assert "deinit_proxy" in dir(ClientLifecycleProtocol)
-
-    def test_has_init_client_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have init_client method."""
-        assert "init_client" in dir(ClientLifecycleProtocol)
-
-    def test_has_init_proxy_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have init_proxy method."""
-        assert "init_proxy" in dir(ClientLifecycleProtocol)
-
-    def test_has_reinit_proxy_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have reinit_proxy method."""
-        assert "reinit_proxy" in dir(ClientLifecycleProtocol)
-
-    def test_has_stop_method(self) -> None:
-        """CONTRACT: ClientLifecycleProtocol MUST have stop method."""
-        assert "stop" in dir(ClientLifecycleProtocol)
-
-
-# =============================================================================
-# SECTION 5: DeviceDiscoveryOperationsProtocol Contract
+# SECTION 4: DeviceDiscoveryOperationsProtocol Contract
 # =============================================================================
 
 
@@ -235,222 +198,90 @@ class TestDeviceDiscoveryOperationsProtocolContract:
 
 
 # =============================================================================
-# SECTION 6: ValueOperationsProtocol Contract
+# SECTION 5: ValueAndParamsetOperationsProtocol Contract
 # =============================================================================
 
 
-class TestValueOperationsProtocolContract:
+class TestValueAndParamsetOperationsProtocolContract:
     """
-    Contract: ValueOperationsProtocol must provide value read/write operations.
+    Contract: ValueAndParamsetOperationsProtocol must provide value and paramset operations.
 
-    These are the core methods for reading and writing device parameter values.
+    These are the core methods for reading and writing device parameter values and paramsets.
+    Formerly split across ValueOperationsProtocol and ParamsetOperationsProtocol, now merged
+    into a single protocol since both had no consumer independent of the combination.
     """
 
     def test_get_value_signature_has_channel_address(self) -> None:
         """CONTRACT: get_value MUST accept channel_address parameter."""
-        sig = inspect.signature(ValueOperationsProtocol.get_value)
+        sig = inspect.signature(ValueAndParamsetOperationsProtocol.get_value)
         assert "channel_address" in sig.parameters
 
+    def test_has_fetch_paramset_description_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have fetch_paramset_description method."""
+        assert "fetch_paramset_description" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_has_fetch_paramset_descriptions_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have fetch_paramset_descriptions method."""
+        assert "fetch_paramset_descriptions" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_has_get_all_paramset_descriptions_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have get_all_paramset_descriptions method."""
+        assert "get_all_paramset_descriptions" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_has_get_paramset_description_on_demand_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have get_paramset_description_on_demand method."""
+        assert "get_paramset_description_on_demand" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_has_get_paramset_descriptions_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have get_paramset_descriptions method."""
+        assert "get_paramset_descriptions" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_has_get_paramset_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have get_paramset method."""
+        assert "get_paramset" in dir(ValueAndParamsetOperationsProtocol)
+
     def test_has_get_value_method(self) -> None:
-        """CONTRACT: ValueOperationsProtocol MUST have get_value method."""
-        assert "get_value" in dir(ValueOperationsProtocol)
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have get_value method."""
+        assert "get_value" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_has_put_paramset_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have put_paramset method."""
+        assert "put_paramset" in dir(ValueAndParamsetOperationsProtocol)
 
     def test_has_report_value_usage_method(self) -> None:
-        """CONTRACT: ValueOperationsProtocol MUST have report_value_usage method."""
-        assert "report_value_usage" in dir(ValueOperationsProtocol)
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have report_value_usage method."""
+        assert "report_value_usage" in dir(ValueAndParamsetOperationsProtocol)
 
     def test_has_set_value_method(self) -> None:
-        """CONTRACT: ValueOperationsProtocol MUST have set_value method."""
-        assert "set_value" in dir(ValueOperationsProtocol)
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have set_value method."""
+        assert "set_value" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_has_update_paramset_descriptions_method(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST have update_paramset_descriptions method."""
+        assert "update_paramset_descriptions" in dir(ValueAndParamsetOperationsProtocol)
+
+    def test_is_protocol(self) -> None:
+        """CONTRACT: ValueAndParamsetOperationsProtocol MUST be a Protocol."""
+        assert hasattr(ValueAndParamsetOperationsProtocol, "__protocol_attrs__")
 
     def test_set_value_signature_has_channel_address(self) -> None:
         """CONTRACT: set_value MUST accept channel_address parameter."""
-        sig = inspect.signature(ValueOperationsProtocol.set_value)
+        sig = inspect.signature(ValueAndParamsetOperationsProtocol.set_value)
         assert "channel_address" in sig.parameters
 
     def test_set_value_signature_has_parameter(self) -> None:
         """CONTRACT: set_value MUST accept parameter parameter."""
-        sig = inspect.signature(ValueOperationsProtocol.set_value)
+        sig = inspect.signature(ValueAndParamsetOperationsProtocol.set_value)
         assert "parameter" in sig.parameters
 
     def test_set_value_signature_has_value(self) -> None:
         """CONTRACT: set_value MUST accept value parameter."""
-        sig = inspect.signature(ValueOperationsProtocol.set_value)
+        sig = inspect.signature(ValueAndParamsetOperationsProtocol.set_value)
         assert "value" in sig.parameters
 
 
 # =============================================================================
-# SECTION 7: ParamsetOperationsProtocol Contract
-# =============================================================================
-
-
-class TestParamsetOperationsProtocolContract:
-    """
-    Contract: ParamsetOperationsProtocol must provide paramset operations.
-
-    These methods are essential for reading and writing paramsets.
-    """
-
-    def test_has_fetch_paramset_description_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have fetch_paramset_description method."""
-        assert "fetch_paramset_description" in dir(ParamsetOperationsProtocol)
-
-    def test_has_fetch_paramset_descriptions_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have fetch_paramset_descriptions method."""
-        assert "fetch_paramset_descriptions" in dir(ParamsetOperationsProtocol)
-
-    def test_has_get_all_paramset_descriptions_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have get_all_paramset_descriptions method."""
-        assert "get_all_paramset_descriptions" in dir(ParamsetOperationsProtocol)
-
-    def test_has_get_paramset_description_on_demand_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have get_paramset_description_on_demand method."""
-        assert "get_paramset_description_on_demand" in dir(ParamsetOperationsProtocol)
-
-    def test_has_get_paramset_descriptions_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have get_paramset_descriptions method."""
-        assert "get_paramset_descriptions" in dir(ParamsetOperationsProtocol)
-
-    def test_has_get_paramset_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have get_paramset method."""
-        assert "get_paramset" in dir(ParamsetOperationsProtocol)
-
-    def test_has_put_paramset_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have put_paramset method."""
-        assert "put_paramset" in dir(ParamsetOperationsProtocol)
-
-    def test_has_update_paramset_descriptions_method(self) -> None:
-        """CONTRACT: ParamsetOperationsProtocol MUST have update_paramset_descriptions method."""
-        assert "update_paramset_descriptions" in dir(ParamsetOperationsProtocol)
-
-
-# =============================================================================
-# SECTION 8: LinkOperationsProtocol Contract
-# =============================================================================
-
-
-class TestLinkOperationsProtocolContract:
-    """
-    Contract: LinkOperationsProtocol must provide device linking operations.
-
-    These methods are essential for creating and managing direct device links.
-    """
-
-    def test_has_add_link_method(self) -> None:
-        """CONTRACT: LinkOperationsProtocol MUST have add_link method."""
-        assert "add_link" in dir(LinkOperationsProtocol)
-
-    def test_has_get_link_peers_method(self) -> None:
-        """CONTRACT: LinkOperationsProtocol MUST have get_link_peers method."""
-        assert "get_link_peers" in dir(LinkOperationsProtocol)
-
-    def test_has_get_links_method(self) -> None:
-        """CONTRACT: LinkOperationsProtocol MUST have get_links method."""
-        assert "get_links" in dir(LinkOperationsProtocol)
-
-    def test_has_remove_link_method(self) -> None:
-        """CONTRACT: LinkOperationsProtocol MUST have remove_link method."""
-        assert "remove_link" in dir(LinkOperationsProtocol)
-
-
-# =============================================================================
-# SECTION 9: FirmwareOperationsProtocol Contract
-# =============================================================================
-
-
-class TestFirmwareOperationsProtocolContract:
-    """
-    Contract: FirmwareOperationsProtocol must provide firmware update operations.
-
-    These methods are essential for device and system firmware updates.
-    """
-
-    def test_has_trigger_firmware_update_method(self) -> None:
-        """CONTRACT: FirmwareOperationsProtocol MUST have trigger_firmware_update method."""
-        assert "trigger_firmware_update" in dir(FirmwareOperationsProtocol)
-
-    def test_has_update_device_firmware_method(self) -> None:
-        """CONTRACT: FirmwareOperationsProtocol MUST have update_device_firmware method."""
-        assert "update_device_firmware" in dir(FirmwareOperationsProtocol)
-
-
-# =============================================================================
-# SECTION 10: SystemVariableOperationsProtocol Contract
-# =============================================================================
-
-
-class TestSystemVariableOperationsProtocolContract:
-    """
-    Contract: SystemVariableOperationsProtocol must provide system variable operations.
-
-    These methods are essential for managing CCU system variables.
-    """
-
-    def test_has_delete_system_variable_method(self) -> None:
-        """CONTRACT: SystemVariableOperationsProtocol MUST have delete_system_variable method."""
-        assert "delete_system_variable" in dir(SystemVariableOperationsProtocol)
-
-    def test_has_get_all_system_variables_method(self) -> None:
-        """CONTRACT: SystemVariableOperationsProtocol MUST have get_all_system_variables method."""
-        assert "get_all_system_variables" in dir(SystemVariableOperationsProtocol)
-
-    def test_has_get_system_variable_method(self) -> None:
-        """CONTRACT: SystemVariableOperationsProtocol MUST have get_system_variable method."""
-        assert "get_system_variable" in dir(SystemVariableOperationsProtocol)
-
-    def test_has_set_system_variable_method(self) -> None:
-        """CONTRACT: SystemVariableOperationsProtocol MUST have set_system_variable method."""
-        assert "set_system_variable" in dir(SystemVariableOperationsProtocol)
-
-
-# =============================================================================
-# SECTION 11: ProgramOperationsProtocol Contract
-# =============================================================================
-
-
-class TestProgramOperationsProtocolContract:
-    """
-    Contract: ProgramOperationsProtocol must provide program operations.
-
-    These methods are essential for managing CCU programs.
-    """
-
-    def test_has_execute_program_method(self) -> None:
-        """CONTRACT: ProgramOperationsProtocol MUST have execute_program method."""
-        assert "execute_program" in dir(ProgramOperationsProtocol)
-
-    def test_has_get_all_programs_method(self) -> None:
-        """CONTRACT: ProgramOperationsProtocol MUST have get_all_programs method."""
-        assert "get_all_programs" in dir(ProgramOperationsProtocol)
-
-    def test_has_has_program_ids_method(self) -> None:
-        """CONTRACT: ProgramOperationsProtocol MUST have has_program_ids method."""
-        assert "has_program_ids" in dir(ProgramOperationsProtocol)
-
-    def test_has_set_program_state_method(self) -> None:
-        """CONTRACT: ProgramOperationsProtocol MUST have set_program_state method."""
-        assert "set_program_state" in dir(ProgramOperationsProtocol)
-
-
-# =============================================================================
-# SECTION 12: BackupOperationsProtocol Contract
-# =============================================================================
-
-
-class TestBackupOperationsProtocolContract:
-    """
-    Contract: BackupOperationsProtocol must provide backup operations.
-
-    These methods are essential for CCU backup and restore functionality.
-    """
-
-    def test_has_create_backup_and_download_method(self) -> None:
-        """CONTRACT: BackupOperationsProtocol MUST have create_backup_and_download method."""
-        assert "create_backup_and_download" in dir(BackupOperationsProtocol)
-
-
-# =============================================================================
-# SECTION 13: MetadataOperationsProtocol Contract
+# SECTION 6: MetadataOperationsProtocol Contract
 # =============================================================================
 
 
@@ -515,101 +346,7 @@ class TestMetadataOperationsProtocolContract:
 
 
 # =============================================================================
-# SECTION 14: ClientSupportProtocol Contract
-# =============================================================================
-
-
-class TestClientSupportProtocolContract:
-    """
-    Contract: ClientSupportProtocol must provide support utilities.
-
-    These properties and methods provide access to client caches and utilities.
-    """
-
-    def test_has_get_product_group_method(self) -> None:
-        """CONTRACT: ClientSupportProtocol MUST have get_product_group method."""
-        assert "get_product_group" in dir(ClientSupportProtocol)
-
-    def test_has_get_virtual_remote_method(self) -> None:
-        """CONTRACT: ClientSupportProtocol MUST have get_virtual_remote method."""
-        assert "get_virtual_remote" in dir(ClientSupportProtocol)
-
-    def test_has_last_value_send_tracker_property(self) -> None:
-        """CONTRACT: ClientSupportProtocol MUST have last_value_send_tracker property."""
-        assert "last_value_send_tracker" in dir(ClientSupportProtocol)
-
-    def test_has_ping_pong_tracker_property(self) -> None:
-        """CONTRACT: ClientSupportProtocol MUST have ping_pong_tracker property."""
-        assert "ping_pong_tracker" in dir(ClientSupportProtocol)
-
-
-# =============================================================================
-# SECTION 15: Combined Protocol Contracts
-# =============================================================================
-
-
-class TestValueAndParamsetOperationsProtocolContract:
-    """Contract tests for ValueAndParamsetOperationsProtocol."""
-
-    def test_includes_get_paramset(self) -> None:
-        """CONTRACT: ValueAndParamsetOperationsProtocol MUST include get_paramset."""
-        assert "get_paramset" in dir(ValueAndParamsetOperationsProtocol)
-
-    def test_includes_get_value(self) -> None:
-        """CONTRACT: ValueAndParamsetOperationsProtocol MUST include get_value."""
-        assert "get_value" in dir(ValueAndParamsetOperationsProtocol)
-
-    def test_includes_put_paramset(self) -> None:
-        """CONTRACT: ValueAndParamsetOperationsProtocol MUST include put_paramset."""
-        assert "put_paramset" in dir(ValueAndParamsetOperationsProtocol)
-
-    def test_includes_set_value(self) -> None:
-        """CONTRACT: ValueAndParamsetOperationsProtocol MUST include set_value."""
-        assert "set_value" in dir(ValueAndParamsetOperationsProtocol)
-
-    def test_is_protocol(self) -> None:
-        """CONTRACT: ValueAndParamsetOperationsProtocol MUST be a Protocol."""
-        assert hasattr(ValueAndParamsetOperationsProtocol, "__protocol_attrs__")
-
-
-class TestMaintenanceOperationsProtocolContract:
-    """Contract tests for MaintenanceOperationsProtocol."""
-
-    def test_includes_add_link(self) -> None:
-        """CONTRACT: MaintenanceOperationsProtocol MUST include add_link."""
-        assert "add_link" in dir(MaintenanceOperationsProtocol)
-
-    def test_includes_create_backup_and_download(self) -> None:
-        """CONTRACT: MaintenanceOperationsProtocol MUST include create_backup_and_download."""
-        assert "create_backup_and_download" in dir(MaintenanceOperationsProtocol)
-
-    def test_includes_update_device_firmware(self) -> None:
-        """CONTRACT: MaintenanceOperationsProtocol MUST include update_device_firmware."""
-        assert "update_device_firmware" in dir(MaintenanceOperationsProtocol)
-
-    def test_is_protocol(self) -> None:
-        """CONTRACT: MaintenanceOperationsProtocol MUST be a Protocol."""
-        assert hasattr(MaintenanceOperationsProtocol, "__protocol_attrs__")
-
-
-class TestSystemManagementOperationsProtocolContract:
-    """Contract tests for SystemManagementOperationsProtocol."""
-
-    def test_includes_execute_program(self) -> None:
-        """CONTRACT: SystemManagementOperationsProtocol MUST include execute_program."""
-        assert "execute_program" in dir(SystemManagementOperationsProtocol)
-
-    def test_includes_get_system_variable(self) -> None:
-        """CONTRACT: SystemManagementOperationsProtocol MUST include get_system_variable."""
-        assert "get_system_variable" in dir(SystemManagementOperationsProtocol)
-
-    def test_is_protocol(self) -> None:
-        """CONTRACT: SystemManagementOperationsProtocol MUST be a Protocol."""
-        assert hasattr(SystemManagementOperationsProtocol, "__protocol_attrs__")
-
-
-# =============================================================================
-# SECTION 16: ClientProviderProtocol Contract
+# SECTION 7: ClientProviderProtocol Contract
 # =============================================================================
 
 
@@ -638,7 +375,7 @@ class TestClientProviderProtocolContract:
 
 
 # =============================================================================
-# SECTION 17: PrimaryClientProviderProtocol Contract
+# SECTION 8: PrimaryClientProviderProtocol Contract
 # =============================================================================
 
 
@@ -651,7 +388,7 @@ class TestPrimaryClientProviderProtocolContractDetailed:
 
 
 # =============================================================================
-# SECTION 18: ClientProtocol Full API Contract
+# SECTION 9: ClientProtocol Full API Contract
 # =============================================================================
 
 
@@ -660,7 +397,10 @@ class TestClientProtocolFullApiContract:
     Contract: ClientProtocol MUST expose all sub-protocol methods.
 
     This comprehensive test ensures the composite protocol provides
-    access to all expected functionality.
+    access to all expected functionality, including members formerly declared on
+    now-inlined ISP slices (ClientLifecycleProtocol, ClientSupportProtocol,
+    SystemVariableOperationsProtocol, ProgramOperationsProtocol, LinkOperationsProtocol,
+    FirmwareOperationsProtocol, BackupOperationsProtocol).
     """
 
     @pytest.mark.parametrize(
@@ -676,7 +416,7 @@ class TestClientProtocolFullApiContract:
             "is_callback_alive",
             "is_connected",
             "reconnect",
-            # ClientLifecycleProtocol
+            # Lifecycle (inlined, formerly ClientLifecycleProtocol)
             "init_client",
             "stop",
             "init_proxy",
@@ -684,30 +424,36 @@ class TestClientProtocolFullApiContract:
             # DeviceDiscoveryOperationsProtocol
             "list_devices",
             "get_device_description",
-            # ValueOperationsProtocol
+            # ValueAndParamsetOperationsProtocol
             "get_value",
             "set_value",
-            # ParamsetOperationsProtocol
             "get_paramset",
             "put_paramset",
-            # LinkOperationsProtocol
+            # Device linking (inlined, formerly LinkOperationsProtocol)
             "add_link",
             "remove_link",
-            # FirmwareOperationsProtocol
+            # Firmware (inlined, formerly FirmwareOperationsProtocol)
             "update_device_firmware",
-            # SystemVariableOperationsProtocol
+            # System variables (inlined, formerly SystemVariableOperationsProtocol)
             "get_system_variable",
             "set_system_variable",
-            # ProgramOperationsProtocol
+            # Programs (inlined, formerly ProgramOperationsProtocol)
             "execute_program",
             "get_all_programs",
-            # BackupOperationsProtocol
+            # Backup (inlined, formerly BackupOperationsProtocol)
             "create_backup_and_download",
             # MetadataOperationsProtocol
             "get_all_rooms",
             "get_all_functions",
             "get_install_mode",
             "set_install_mode",
+            # Support utilities (inlined, formerly ClientSupportProtocol)
+            "command_throttle",
+            "in_flight_commands",
+            "last_value_send_tracker",
+            "ping_pong_tracker",
+            "get_product_group",
+            "get_virtual_remote",
             # ClientProtocol specific
             "capabilities",
         ],

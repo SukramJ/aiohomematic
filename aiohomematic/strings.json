@@ -101,6 +101,7 @@
   "exception.model.week_profile.validate.overlap": "VALIDATE_PROFILE: Timespans are overlapping with a previous slot for start time: {start} / end time: {end}",
   "exception.model.week_profile.validate.profile_name_invalid": "Not a valid profile name: {profile_name}",
   "exception.model.week_profile.validate.start_before_end": "VALIDATE_PROFILE: Start time {start} must be lower than end time {end}",
+  "exception.model.week_profile.validate.temperature_bounds_unavailable": "VALIDATE_PROFILE: Temperature bounds (min/max) are unavailable for {name}; the SETPOINT paramset description is incomplete.",
   "exception.model.week_profile.validate.temperature_out_of_range_for_times": "VALIDATE_PROFILE: Temperature {temperature} not in valid range (min: {min}, max: {max}) for start time: {start} / end time: {end}",
   "exception.model.week_profile.validate.time_convert_failed": "Failed to convert time {time}. Format must be hh:mm.",
   "exception.model.week_profile.validate.time_invalid_format": "Time {time} is not valid. Format must be hh:mm with min: {min} and max: {max}",

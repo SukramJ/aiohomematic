@@ -8,14 +8,10 @@ import pytest
 
 from aiohomematic.property_decorators import (
     DelegatedProperty,
-    Kind,
     _GenericProperty,
-    config_property,
-    get_hm_property_by_kind,
     get_hm_property_by_log_context,
+    get_hm_property_names,
     hm_property,
-    info_property,
-    state_property,
 )
 
 # pylint: disable=protected-access
@@ -47,7 +43,6 @@ class TestBasicPropertyDecorators:
             fset=None,
             fdel=None,
             doc=None,
-            kind=Kind.SIMPLE,
             cached=False,
             log_context=False,
         )
@@ -75,18 +70,24 @@ class TestBasicPropertyDecorators:
         info_context_attributes = get_hm_property_by_log_context(data_object=test_class)
         assert info_context_attributes == {"info_context": "test_info"}
 
-    def test_property_kind_collection(self) -> None:
-        """Test collecting properties by kind."""
-        test_class = PropertyTestClazz()
 
-        config_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.CONFIG)
-        assert config_attributes == {"config": "test_config"}
+class TestGetHmPropertyNames:
+    """Test the get_hm_property_names fleet-coverage helper."""
 
-        value_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.STATE)
-        assert value_attributes == {"value": "test_value"}
+    def test_collects_hm_property_and_delegated_property(self) -> None:
+        """Test that both hm_property and DelegatedProperty descriptors are collected."""
+        obj = MixedPropertyTestClazz()
+        names = get_hm_property_names(data_object=obj)
+        assert "computed" in names
+        assert "delegated" in names
+        assert obj.computed == "computed"
+        assert obj.delegated == "delegated_value"
 
-        info_attributes = get_hm_property_by_kind(data_object=test_class, kind=Kind.INFO)
-        assert info_attributes == {"info": "test_info", "info_context": "test_info"}
+    def test_excludes_plain_attributes(self) -> None:
+        """Test that plain instance attributes are not treated as hm_property/DelegatedProperty."""
+        obj = MixedPropertyTestClazz()
+        names = get_hm_property_names(data_object=obj)
+        assert "_plain" not in names
 
 
 class TestCachedProperties:
@@ -242,65 +243,6 @@ class TestPropertyDocstrings:
         assert PropertyTestClazz.value.__doc__ == "Return value."
 
 
-class TestAltName:
-    """Test alt_name functionality for payload key remapping."""
-
-    def test_alt_name_default_is_false(self) -> None:
-        """Test that use_alt_names defaults to False."""
-        obj = AltNameTestClazz()
-        result = get_hm_property_by_kind(data_object=obj, kind=Kind.CONFIG)
-        assert "address" in result
-        assert "serial_number" not in result
-
-    def test_alt_name_mixed_properties(self) -> None:
-        """Test mix of properties with and without alt_name."""
-        obj = AltNameTestClazz()
-        result = get_hm_property_by_kind(data_object=obj, kind=Kind.CONFIG, use_alt_names=True)
-        # 'address' has alt_name='serial_number'
-        assert "serial_number" in result
-        # 'name' has no alt_name, uses property name
-        assert "name" in result
-        assert result["name"] == "test_device"
-
-    def test_alt_name_not_used_in_log_context(self) -> None:
-        """Test that log context uses property name, not alt_name."""
-        obj = AltNameTestClazz()
-        result = get_hm_property_by_log_context(data_object=obj)
-        assert "address" in result
-        assert "serial_number" not in result
-
-    def test_alt_name_on_delegated_property(self) -> None:
-        """Test alt_name on DelegatedProperty."""
-        obj = AltNameDelegatedTestClazz()
-        result = get_hm_property_by_kind(data_object=obj, kind=Kind.STATE, use_alt_names=True)
-        assert "current_level" in result
-        assert "brightness" not in result
-        assert result["current_level"] == 75
-
-    def test_alt_name_preserved_through_setter(self) -> None:
-        """Test that alt_name is preserved when using setter/getter/deleter."""
-        obj = AltNameTestClazz()
-        # Verify alt_name survives setter chain
-        descriptor = type(obj).__class__.__dict__.get("address") or type(obj).address
-        assert descriptor.alt_name == "serial_number"
-
-    def test_alt_name_with_use_alt_names_false(self) -> None:
-        """Test that property name is used as key when use_alt_names=False."""
-        obj = AltNameTestClazz()
-        result = get_hm_property_by_kind(data_object=obj, kind=Kind.CONFIG, use_alt_names=False)
-        assert "address" in result
-        assert "serial_number" not in result
-        assert result["address"] == "VCU0000001"
-
-    def test_alt_name_with_use_alt_names_true(self) -> None:
-        """Test that alt_name is used as key when use_alt_names=True."""
-        obj = AltNameTestClazz()
-        result = get_hm_property_by_kind(data_object=obj, kind=Kind.CONFIG, use_alt_names=True)
-        assert "serial_number" in result
-        assert "address" not in result
-        assert result["serial_number"] == "VCU0000001"
-
-
 class TestPropertyNameFallbacks:
     """Test property name fallbacks for cached properties."""
 
@@ -311,7 +253,6 @@ class TestPropertyNameFallbacks:
             fset=None,
             fdel=None,
             doc=None,
-            kind=Kind.SIMPLE,
             cached=True,
             log_context=False,
         )
@@ -325,7 +266,6 @@ class TestPropertyNameFallbacks:
             fset=None,
             fdel=lambda self: None,
             doc=None,
-            kind=Kind.SIMPLE,
             cached=True,
             log_context=False,
         )
@@ -339,7 +279,6 @@ class TestPropertyNameFallbacks:
             fset=lambda self, val: None,
             fdel=None,
             doc=None,
-            kind=Kind.SIMPLE,
             cached=True,
             log_context=False,
         )
@@ -370,7 +309,7 @@ class PropertyTestClazz:
         self._config: str = "test_config"
         self._info: str = "test_info"
 
-    @config_property
+    @property
     def config(self) -> str:
         """Return config."""
         return self._config
@@ -385,7 +324,12 @@ class PropertyTestClazz:
         """Delete config."""
         self._config = ""
 
-    @state_property
+    @property
+    def info(self) -> str:
+        """Return info."""
+        return self._info
+
+    @property
     def value(self) -> str:
         """Return value."""
         return self._value
@@ -400,12 +344,7 @@ class PropertyTestClazz:
         """Delete value."""
         self._value = ""
 
-    @info_property
-    def info(self) -> str:
-        """Return info."""
-        return self._info
-
-    @info_property(log_context=True)
+    @hm_property(log_context=True)
     def info_context(self) -> str:
         """Return info context."""
         return self._info
@@ -463,35 +402,25 @@ class SlotsClassWithCachedProperty:
         self._storage = "deleted"
 
 
-class AltNameTestClazz:
-    """Test class for alt_name functionality."""
+class _Inner:
+    """Helper object exposing a nested value for delegation."""
 
     def __init__(self) -> None:
-        """Init AltNameTestClazz."""
-        self._address: str = "VCU0000001"
-        self._name: str = "test_device"
-
-    @config_property(alt_name="serial_number", log_context=True)
-    def address(self) -> str:
-        """Return the address."""
-        return self._address
-
-    @address.setter
-    def address(self, value: str) -> None:
-        """Set the address."""
-        self._address = value
-
-    @config_property
-    def name(self) -> str:
-        """Return the name."""
-        return self._name
+        """Init _Inner."""
+        self.value = "delegated_value"
 
 
-class AltNameDelegatedTestClazz:
-    """Test class for alt_name on DelegatedProperty."""
+class MixedPropertyTestClazz:
+    """Test class mixing hm_property and DelegatedProperty descriptors."""
 
     def __init__(self) -> None:
-        """Init AltNameDelegatedTestClazz."""
-        self._brightness: int = 75
+        """Init MixedPropertyTestClazz."""
+        self._source = _Inner()
+        self._plain = "not a property"
 
-    brightness: Final = DelegatedProperty[int](path="_brightness", kind=Kind.STATE, alt_name="current_level")
+    delegated: Final = DelegatedProperty[str](path="_source.value")
+
+    @hm_property
+    def computed(self) -> str:
+        """Return a computed value."""
+        return "computed"

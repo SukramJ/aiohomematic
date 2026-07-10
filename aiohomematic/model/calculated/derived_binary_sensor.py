@@ -15,7 +15,6 @@ from aiohomematic.const import CalculatedParameter, DataPointCategory, Parameter
 from aiohomematic.interfaces import CalculatedDataPointProtocol, ChannelProtocol
 from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.generic import DpSelect
-from aiohomematic.property_decorators import state_property
 from aiohomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -159,7 +158,7 @@ class DerivedBinarySensor(CalculatedDataPoint[bool | None], CalculatedDataPointP
                 return True
         return False
 
-    @state_property
+    @property
     def value(self) -> bool | None:
         """Return the derived binary value."""
         if (source_value := self._dp_source.value) is None:

@@ -8,7 +8,7 @@ import pytest
 
 from aiohomematic.const import ADDRESS_SEPARATOR, Backend, DataPointUsage
 from aiohomematic.model.generic import GenericDataPoint
-from aiohomematic.property_decorators import Kind, get_hm_property_by_kind
+from aiohomematic.property_decorators import get_hm_property_names
 from aiohomematic_test_support import const
 
 from tests.conftest import requires_openccu
@@ -51,10 +51,10 @@ class TestCentralPyDevOpenCCU:
             for dp in device.generic_data_points:
                 if dp.parameter not in data[device.model]:
                     data[device.model][dp.parameter] = f"{dp.hmtype}"
-            pub_state_props = get_hm_property_by_kind(data_object=device, kind=Kind.STATE)
-            assert pub_state_props
-            info_config_props = get_hm_property_by_kind(data_object=device, kind=Kind.INFO)
-            assert info_config_props
+            pub_props = get_hm_property_names(data_object=device)
+            assert pub_props
+            for name in pub_props:
+                getattr(device, name)
 
         # channel.type_name, device.model
         channel_type_device = {}
@@ -103,10 +103,10 @@ class TestCentralPyDevOpenCCU:
             if cdp.device.model not in ce_channels:
                 ce_channels[cdp.device.model] = []
             ce_channels[cdp.device.model].append(cdp.channel.no)
-            pub_state_props = get_hm_property_by_kind(data_object=cdp, kind=Kind.STATE)
-            assert pub_state_props
-            pub_config_props = get_hm_property_by_kind(data_object=cdp, kind=Kind.CONFIG)
-            assert pub_config_props
+            pub_props = get_hm_property_names(data_object=cdp)
+            assert pub_props
+            for name in pub_props:
+                getattr(cdp, name)
 
         data_point_types = {}
         for dp in central.query_facade.get_data_points(exclude_no_create=False):
@@ -119,10 +119,10 @@ class TestCentralPyDevOpenCCU:
                 data_point_types[dp.hmtype][type(dp).__name__].append(dp)
 
             if isinstance(dp, GenericDataPoint):
-                pub_state_props = get_hm_property_by_kind(data_object=dp, kind=Kind.STATE)
-                assert pub_state_props
-                pub_config_props = get_hm_property_by_kind(data_object=dp, kind=Kind.CONFIG)
-                assert pub_config_props
+                pub_props = get_hm_property_names(data_object=dp)
+                assert pub_props
+                for name in pub_props:
+                    getattr(dp, name)
 
         parameters: list[tuple[str, int]] = []
         for dp in central.query_facade.get_data_points(exclude_no_create=False):

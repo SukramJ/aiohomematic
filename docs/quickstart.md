@@ -1,33 +1,33 @@
 # Quick Start
 
-Get aiohomematic running in 5 minutes using the high-level `HomematicAPI` facade.
+Get aiohomematic running in 5 minutes using `CentralConfig` and `CentralUnit`.
 
 > **When to use this page:** you want a working connection with the fewest lines of code.
-> **Going deeper?** [Getting Started](getting_started.md) walks through the same facade plus lifecycle management, interface configuration, and direct `CentralUnit` usage.
+> **Going deeper?** [Getting Started](getting_started.md) walks through the same setup plus lifecycle management, interface configuration, and advanced `CentralUnit` usage.
 
 ## How It Works
 
 ```mermaid
 sequenceDiagram
     participant App as Your Application
-    participant API as HomematicAPI
+    participant Central as CentralUnit
     participant CCU as CCU/Homegear
 
-    App->>API: connect()
-    API->>CCU: Authenticate
-    CCU-->>API: OK
-    API->>CCU: List devices
-    CCU-->>API: Device descriptions
-    API-->>App: Ready
+    App->>Central: create_central() / start()
+    Central->>CCU: Authenticate
+    CCU-->>Central: OK
+    Central->>CCU: List devices
+    CCU-->>Central: Device descriptions
+    Central-->>App: Ready
 
-    App->>API: read_value()
-    API->>CCU: getValue()
-    CCU-->>API: Value
-    API-->>App: Result
+    App->>Central: get_value()
+    Central->>CCU: getValue()
+    CCU-->>Central: Value
+    Central-->>App: Result
 
-    Note over CCU,API: Events pushed via callback
-    CCU->>API: Event (value changed)
-    API->>App: Handler called
+    Note over CCU,Central: Events pushed via callback
+    CCU->>Central: Event (value changed)
+    Central->>App: Handler called
 ```
 
 ## Prerequisites
@@ -46,20 +46,25 @@ pip install aiohomematic
 
 ```python
 import asyncio
-from aiohomematic.api import HomematicAPI
+from aiohomematic.central import CentralConfig
 
 
 async def main():
-    # Use async context manager for automatic cleanup
-    async with HomematicAPI.connect(
+    config = CentralConfig.for_ccu(
         host="192.168.1.100",     # (1)!
         username="Admin",         # (2)!
         password="your-password", # (3)!
-    ) as api:
+    )
+    central = await config.create_central()
+    await central.start()
+
+    try:
         # Iterate over all discovered devices
-        for device in api.list_devices():
+        for device in central.devices:
             print(f"{device.address}: {device.name} ({device.model})")
-        # Connection automatically closed when exiting context
+    finally:
+        # Always stop the central unit to release resources
+        await central.stop()
 
 
 asyncio.run(main())
@@ -80,47 +85,58 @@ VCU0000003: Bedroom Thermostat (HmIP-eTRV-2)
 ## Read a Value
 
 ```python
-async with HomematicAPI.connect(...) as api:
-    # Read switch state
-    state = await api.read_value(
-        channel_address="VCU0000001:3",
-        parameter="STATE",
-    )
-    print(f"Switch is {'ON' if state else 'OFF'}")
+from aiohomematic.const import ParamsetKey
+
+# Read switch state via the client for the device's interface
+device = central.device_coordinator.get_device(address="VCU0000001")
+client = central.client_coordinator.get_client(interface_id=device.interface_id)
+state = await client.get_value(
+    channel_address="VCU0000001:3",
+    paramset_key=ParamsetKey.VALUES,
+    parameter="STATE",
+)
+print(f"Switch is {'ON' if state else 'OFF'}")
 ```
 
 ## Write a Value
 
 ```python
-async with HomematicAPI.connect(...) as api:
-    # Turn on a switch
-    await api.write_value(
-        channel_address="VCU0000001:3",
-        parameter="STATE",
-        value=True,
-    )
-    print("Switch turned ON")
+from aiohomematic.const import ParamsetKey
+
+# Turn on a switch via the client for the device's interface
+device = central.device_coordinator.get_device(address="VCU0000001")
+client = central.client_coordinator.get_client(interface_id=device.interface_id)
+await client.set_value(
+    channel_address="VCU0000001:3",
+    paramset_key=ParamsetKey.VALUES,
+    parameter="STATE",
+    value=True,
+)
+print("Switch turned ON")
 ```
 
 ## Subscribe to Events
 
 ```python
-from typing import Any
+from aiohomematic.central.events import DataPointValueReceivedEvent
 
 
-def on_update(address: str, parameter: str, value: Any) -> None:
-    print(f"{address}.{parameter} = {value}")
+async def on_update(*, event: DataPointValueReceivedEvent) -> None:
+    print(f"{event.dpk.channel_address}.{event.dpk.parameter} = {event.value}")
 
 
-async with HomematicAPI.connect(...) as api:
-    # Subscribe to all value changes
-    unsubscribe = api.subscribe_to_updates(callback=on_update)
+# Subscribe to all value changes
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointValueReceivedEvent,
+    event_key=None,
+    handler=on_update,
+)
 
-    # Keep running to receive events
-    await asyncio.sleep(60)
+# Keep running to receive events
+await asyncio.sleep(60)
 
-    # Stop receiving events
-    unsubscribe()
+# Stop receiving events
+unsubscribe()
 ```
 
 ## Complete Example
@@ -129,32 +145,37 @@ async with HomematicAPI.connect(...) as api:
 """Complete aiohomematic quick start example."""
 
 import asyncio
-from typing import Any
 
-from aiohomematic.api import HomematicAPI
+from aiohomematic.central import CentralConfig
+from aiohomematic.central.events import DataPointValueReceivedEvent
+from aiohomematic.const import ParamsetKey
 
 
-def on_update(address: str, parameter: str, value: Any) -> None:
+async def on_update(*, event: DataPointValueReceivedEvent) -> None:
     """Handle value updates."""
-    print(f"UPDATE: {address}.{parameter} = {value}")
+    print(f"UPDATE: {event.dpk.channel_address}.{event.dpk.parameter} = {event.value}")
 
 
 async def main() -> None:
     """Main entry point."""
-    async with HomematicAPI.connect(
+    config = CentralConfig.for_ccu(
         host="192.168.1.100",
         username="Admin",
         password="your-password",
-    ) as api:
+    )
+    central = await config.create_central()
+    await central.start()
+
+    try:
         # 1. List devices
         print("=== Devices ===")
-        for device in api.list_devices():
+        for device in central.devices:
             print(f"  {device.address}: {device.name}")
 
         # 2. Find a specific device
-        device = api.get_device(address="VCU0000001")
+        device = central.device_coordinator.get_device(address="VCU0000001")
         if device:
-            print(f"\n=== Device Details ===")
+            print("\n=== Device Details ===")
             print(f"  Model: {device.model}")
             print(f"  Firmware: {device.firmware}")
 
@@ -165,16 +186,23 @@ async def main() -> None:
                     print(f"    {dp.parameter}: {dp.value}")
 
         # 4. Subscribe to updates
-        unsubscribe = api.subscribe_to_updates(callback=on_update)
+        unsubscribe = central.event_bus.subscribe(
+            event_type=DataPointValueReceivedEvent,
+            event_key=None,
+            handler=on_update,
+        )
 
         # 5. Toggle a switch (if exists)
         try:
-            current = await api.read_value(
+            client = central.client_coordinator.get_client(interface_id=device.interface_id)
+            current = await client.get_value(
                 channel_address="VCU0000001:3",
+                paramset_key=ParamsetKey.VALUES,
                 parameter="STATE",
             )
-            await api.write_value(
+            await client.set_value(
                 channel_address="VCU0000001:3",
+                paramset_key=ParamsetKey.VALUES,
                 parameter="STATE",
                 value=not current,
             )
@@ -188,6 +216,8 @@ async def main() -> None:
 
         unsubscribe()
         print("\nDone!")
+    finally:
+        await central.stop()
 
 
 if __name__ == "__main__":

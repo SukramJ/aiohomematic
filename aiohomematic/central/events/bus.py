@@ -105,7 +105,6 @@ import bisect
 from collections import defaultdict
 from collections.abc import Coroutine, Sequence
 from dataclasses import dataclass, field as dataclass_field
-from datetime import datetime
 import logging
 import time
 import types
@@ -248,24 +247,6 @@ class RpcParameterReceivedEvent(Event):
             paramset_key=ParamsetKey.VALUES,
             parameter=self.parameter,
         )
-
-
-@dataclass(frozen=True, slots=True)
-class SysvarStateChangedEvent(Event):
-    """
-    System variable state has changed.
-
-    Key is the state path.
-    """
-
-    state_path: str
-    value: Any
-    received_at: datetime
-
-    @property
-    def key(self) -> Any:
-        """Key identifier for this event."""
-        return self.state_path
 
 
 @dataclass(frozen=True, slots=True)

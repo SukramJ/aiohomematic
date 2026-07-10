@@ -20,7 +20,6 @@ This document covers the most frequently used operations in aiohomematic, with d
 ### Starting and Stopping
 
 ```python
-from aiohomematic.api import HomematicAPI
 from aiohomematic.central import CentralConfig
 
 async def main():
@@ -30,29 +29,25 @@ async def main():
         password="secret",
     )
 
-    api = HomematicAPI(config=config)
-
-    # Start connection
-    await api.start()
+    # Create and start the central unit
+    central = await config.create_central()
+    await central.start()
 
     # Your application logic here...
 
     # Clean shutdown
-    await api.stop()
+    await central.stop()
 ```
 
 ### Connection State Monitoring
 
 ```python
-# Using HomematicAPI
-if api.is_connected:
+# Quick connectivity check
+if central.client_coordinator.has_clients and not central.connection_state.is_any_issue:
     print("Connected")
 
-# Using CentralUnit for detailed state
-from aiohomematic.central import CentralUnit
+# Detailed state
 from aiohomematic.const import CentralState
-
-central: CentralUnit = api.central
 
 # Check overall system state
 print(f"Central state: {central.state}")
@@ -97,7 +92,8 @@ The library automatically handles reconnection. To manually trigger:
 await central.client_coordinator.restart_clients()
 
 # Or refresh data after reconnection
-await api.refresh_data()
+for client in central.client_coordinator.clients:
+    await client.fetch_all_device_data()
 ```
 
 ---
@@ -108,11 +104,11 @@ await api.refresh_data()
 
 ```python
 # Simple listing
-for device in api.list_devices():
+for device in central.devices:
     print(f"{device.address}: {device.name}")
 
 # With details
-for device in api.list_devices():
+for device in central.devices:
     print(f"\nDevice: {device.address}")
     print(f"  Name: {device.name}")
     print(f"  Model: {device.model}")
@@ -126,17 +122,17 @@ for device in api.list_devices():
 
 ```python
 # By address
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 
 # By name (filter through list)
 device = next(
-    (d for d in api.list_devices() if d.name == "Living Room Switch"),
+    (d for d in central.devices if d.name == "Living Room Switch"),
     None,
 )
 
 # Filter by model
 hmip_switches = [
-    d for d in api.list_devices()
+    d for d in central.devices
     if d.model.startswith("HmIP-PS")
 ]
 
@@ -144,7 +140,7 @@ hmip_switches = [
 from aiohomematic.const import Interface
 
 hmip_devices = [
-    d for d in api.list_devices()
+    d for d in central.devices
     if d.interface == Interface.HMIP_RF
 ]
 ```
@@ -152,31 +148,31 @@ hmip_devices = [
 ### Accessing Channels
 
 ```python
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 if device:
-    # Get all channels
-    for channel_no, channel in device.channels.items():
-        print(f"Channel {channel_no}: {channel.channel_address}")
+    # Get all channels (keyed by channel address)
+    for channel_address, channel in device.channels.items():
+        print(f"Channel {channel.no}: {channel_address}")
 
     # Get specific channel
-    channel = device.channels.get(1)
+    channel = device.get_channel(channel_address="VCU0000001:1")
     if channel:
-        print(f"Channel address: {channel.channel_address}")
+        print(f"Channel address: {channel.address}")
 ```
 
 ### Accessing Data Points
 
 ```python
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 if device:
-    channel = device.channels.get(1)
+    channel = device.get_channel(channel_address="VCU0000001:1")
     if channel:
-        # List all data points
-        for param_name, dp in channel.data_points.items():
-            print(f"{param_name}: {dp.value} ({dp.unit})")
+        # List all generic data points
+        for dp in channel.generic_data_points:
+            print(f"{dp.parameter}: {dp.value} ({dp.unit})")
 
         # Get specific data point
-        state_dp = channel.data_points.get("STATE")
+        state_dp = channel.get_generic_data_point(parameter="STATE")
         if state_dp:
             print(f"State value: {state_dp.value}")
             print(f"State unit: {state_dp.unit}")
@@ -190,41 +186,37 @@ if device:
 ### Reading Values
 
 ```python
-# Using HomematicAPI
-value = await api.read_value(
-    channel_address="VCU0000001:1",
-    parameter="STATE",
-)
+from aiohomematic.const import Interface, ParamsetKey
 
-# Reading from different paramsets
-from aiohomematic.const import ParamsetKey
+client = central.client_coordinator.get_client(interface=Interface.HMIP_RF)
 
 # VALUES paramset (runtime values) - default
-state = await api.read_value(
+state = await client.get_value(
     channel_address="VCU0000001:1",
-    parameter="STATE",
     paramset_key=ParamsetKey.VALUES,
+    parameter="STATE",
 )
 
 # MASTER paramset (configuration)
-config_value = await api.read_value(
+config_value = await client.get_value(
     channel_address="VCU0000001:0",
-    parameter="CYCLIC_INFO_MSG",
     paramset_key=ParamsetKey.MASTER,
+    parameter="CYCLIC_INFO_MSG",
 )
 ```
 
 ### Writing Values
 
 ```python
-# Using HomematicAPI
-await api.write_value(
+# Single value via the client
+await client.set_value(
     channel_address="VCU0000001:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="STATE",
     value=True,
 )
 
-# Using ConfigurationCoordinator for more control
+# Using ConfigurationCoordinator for more control (multiple values at once)
 await central.configuration.put_paramset(
     channel_address="VCU0000001:1",
     paramset_key_or_link_address=ParamsetKey.VALUES,
@@ -239,9 +231,9 @@ await central.configuration.put_paramset(
 
 ```python
 # Check parameter constraints before writing
-device = api.get_device(address="VCU0000001")
-channel = device.channels.get(1)
-level_dp = channel.data_points.get("LEVEL")
+device = central.device_coordinator.get_device(address="VCU0000001")
+channel = device.get_channel(channel_address="VCU0000001:1")
+level_dp = channel.get_generic_data_point(parameter="LEVEL")
 
 if level_dp:
     print(f"Min: {level_dp.min}")      # e.g., 0.0
@@ -252,8 +244,10 @@ if level_dp:
     # Safe write with validation
     new_value = 0.5
     if level_dp.min <= new_value <= level_dp.max:
-        await api.write_value(
-            channel_address=channel.channel_address,
+        client = central.client_coordinator.get_client(interface_id=device.interface_id)
+        await client.set_value(
+            channel_address=channel.address,
+            paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL",
             value=new_value,
         )
@@ -266,13 +260,17 @@ if level_dp:
 ### Simple Event Subscription
 
 ```python
-from typing import Any
+from aiohomematic.central.events import DataPointValueReceivedEvent
 
-def on_update(address: str, parameter: str, value: Any) -> None:
-    print(f"{address}.{parameter} = {value}")
+async def on_update(*, event: DataPointValueReceivedEvent) -> None:
+    print(f"{event.dpk.channel_address}.{event.dpk.parameter} = {event.value}")
 
 # Subscribe
-unsubscribe = api.subscribe_to_updates(callback=on_update)
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointValueReceivedEvent,
+    event_key=None,
+    handler=on_update,
+)
 
 # ... application runs ...
 
@@ -432,11 +430,12 @@ aiohomematic uses several caches:
 ### Refreshing Data
 
 ```python
-# Refresh all device data
-await api.refresh_data()
+# Refresh all device data (each client fetch retries on transient errors)
+for client in central.client_coordinator.clients:
+    await client.fetch_all_device_data()
 
 # Refresh specific device
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 if device:
     await device.refresh_data()
 
@@ -490,7 +489,7 @@ if client:
 
 ```python
 # Check firmware status
-for device in api.list_devices():
+for device in central.devices:
     if device.firmware_update_state:
         print(f"{device.name}: {device.firmware_update_state}")
 
@@ -544,8 +543,10 @@ from aiohomematic.exceptions import (
 )
 
 try:
-    await api.write_value(
+    client = central.client_coordinator.get_client(interface=Interface.HMIP_RF)
+    await client.set_value(
         channel_address="VCU0000001:1",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.5,
     )

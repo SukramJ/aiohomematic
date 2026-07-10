@@ -14,7 +14,6 @@ from aiohomematic.model.combined.data_point import CombinedDataPoint
 from aiohomematic.model.custom.mixins import recalc_unit_timer
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic import DpDummy
-from aiohomematic.property_decorators import state_property
 
 __all__ = ["CombinedDpTimerAction"]
 
@@ -83,7 +82,7 @@ class CombinedDpTimerAction(CombinedDataPoint[float | None], CombinedDataPointPr
         """Return True if the value data point is not a dummy."""
         return not isinstance(self._value_dp, DpDummy)
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the stored seconds value."""
         return self._current_value

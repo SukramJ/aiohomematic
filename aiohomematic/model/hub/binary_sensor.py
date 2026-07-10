@@ -4,7 +4,7 @@
 
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import hm_property
 
 
 class SysvarDpBinarySensor(GenericSysvarDataPoint):
@@ -14,7 +14,7 @@ class SysvarDpBinarySensor(GenericSysvarDataPoint):
 
     _category = DataPointCategory.HUB_BINARY_SENSOR
 
-    @state_property
+    @hm_property
     def value(self) -> bool | None:
         """Return the value of the data_point."""
         if self._value is not None:

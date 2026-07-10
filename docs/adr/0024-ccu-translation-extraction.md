@@ -257,9 +257,10 @@ resolves a human-readable name from the CCU translations at init time:
 
 Translations are resolved once during `__init__` and stored as `Final` attributes, since
 the locale is immutable after the first `set_locale()` call (see Locale Immutability
-below). Protocol interfaces (`DeviceIdentityProtocol`, `ChannelIdentityProtocol`,
-`BaseParameterDataPointProtocol`) declare the translation property so consumers can depend
-on it via narrow protocols.
+below). `DeviceIdentityProtocol` and `BaseParameterDataPointProtocol` declare the translation
+property so consumers can depend on it via a narrow protocol; `ChannelProtocol` declares it
+directly (the former `ChannelIdentityProtocol` slice had no consumer independent of the
+composite and was inlined into it).
 
 ### Locale Immutability
 

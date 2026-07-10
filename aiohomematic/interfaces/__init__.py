@@ -49,22 +49,15 @@ Protocol Categories
     *Client Sub-Protocols (ISP):*
         - `ClientIdentityProtocol`: Basic identification (interface, interface_id, model)
         - `ClientConnectionProtocol`: Connection state management
-        - `ClientLifecycleProtocol`: Lifecycle operations (init, stop, proxy)
         - `DeviceDiscoveryOperationsProtocol`: Device discovery operations
-        - `ParamsetOperationsProtocol`: Paramset operations
-        - `ValueOperationsProtocol`: Value read/write operations
-        - `LinkOperationsProtocol`: Device linking operations
-        - `FirmwareOperationsProtocol`: Firmware update operations
-        - `SystemVariableOperationsProtocol`: System variable operations
-        - `ProgramOperationsProtocol`: Program execution operations
-        - `BackupOperationsProtocol`: Backup operations
         - `MetadataOperationsProtocol`: Metadata and system operations
-        - `ClientSupportProtocol`: Utility methods and caches
+
+    Sub-protocols without a consumer independent of `ClientProtocol` (lifecycle, value/paramset,
+    linking, firmware, system variable, program, backup, support operations) are declared
+    directly on the composite; see `aiohomematic.interfaces.client` for details.
 
     *Combined Client Operations:*
-        - `DataManagementOperationsProtocol`: Alias for ValueAndParamsetOperationsProtocol
-        - `SystemManagementOperationsProtocol`: SystemVariable + Program operations
-        - `MaintenanceOperationsProtocol`: Link + Firmware + Backup operations
+        - `ValueAndParamsetOperationsProtocol`: Value + paramset operations
 
     *Client Composite:*
         - `ClientProtocol`: Composite of all client sub-protocols
@@ -74,14 +67,12 @@ Protocol Categories
         - `ClientFactoryProtocol`: Create new client instances
         - `ClientDependenciesProtocol`: Composite of dependencies for clients
         - `PrimaryClientProviderProtocol`: Access to primary client
-        - `JsonRpcClientProviderProtocol`: JSON-RPC client access
         - `ConnectionStateProviderProtocol`: Connection state information
 
 **Device & Channel Lookup:**
     Protocols for finding devices and channels.
 
     - `DeviceProviderProtocol`: Access device registry
-    - `DeviceLookupProtocol`: Find devices by various criteria
     - `ChannelLookupProtocol`: Find channels by address
     - `DataPointProviderProtocol`: Find data points
     - `DeviceDescriptionsAccess`: Access device descriptions
@@ -89,16 +80,13 @@ Protocol Categories
 **Device Operations:**
     Protocols for device-related operations.
 
-    - `DeviceManagementProtocol`: Device lifecycle operations
     - `DeviceDataRefresherProtocol`: Refresh device data from backend
-    - `NewDeviceHandlerProtocol`: Handle new device discovery
 
 **Hub Operations:**
     Protocols for hub-level operations (programs, sysvars).
 
     - `HubDataFetcherProtocol`: Fetch hub data
     - `HubDataPointManagerProtocol`: Manage hub data points
-    - `HubFetchOperationsProtocol`: Hub fetch operations
 
 **Task Scheduling:**
     Protocols for async task management.
@@ -109,17 +97,14 @@ Protocol Categories
     Protocols defining the runtime model structure.
 
     *Device/Channel (Composite):*
-        - `DeviceProtocol`: Physical device representation (uses consolidated sub-protocols)
-        - `ChannelProtocol`: Device channel representation (uses consolidated sub-protocols)
+        - `DeviceProtocol`: Physical device representation
+        - `ChannelProtocol`: Device channel representation
         - `HubProtocol`: Hub-level data point
 
-    *Device Combined Protocols:*
-        - `DeviceStateProtocol`: Combined (Availability + Firmware + WeekProfile)
-        - `DeviceOperationsProtocol`: Combined (LinkManagement + GroupManagement + Lifecycle)
-
-    *Channel Combined Protocols:*
-        - `ChannelMetadataAndGroupingProtocol`: Combined (Metadata + Grouping)
-        - `ChannelManagementProtocol`: Combined (LinkManagement + Lifecycle)
+    Both `DeviceProtocol` and `ChannelProtocol` are flat composites: sub-protocols without a
+    consumer independent of the composite are declared directly rather than split into separate
+    sub-protocol classes. `DeviceIdentityProtocol` and `DeviceChannelAccessProtocol` remain
+    separate because `DeviceRemovalInfoProtocol` depends on them independently of `DeviceProtocol`.
 
     *DataPoint Hierarchy:*
         - `CallbackDataPointProtocol`: Base for all callback data points
@@ -144,10 +129,8 @@ Protocol Categories
 **Utility Protocols:**
     Other utility protocols.
 
-    - `BackupProviderProtocol`: Backup operations
     - `FileOperationsProtocol`: File I/O operations
     - `CoordinatorProviderProtocol`: Access to coordinators
-    - `CallbackAddressProviderProtocol`: Callback address management
     - `ClientCoordinationProtocol`: Client coordination operations
     - `SessionRecorderProviderProtocol`: Session recording access
     - `CommandTrackerProtocol`: Command tracker operations
@@ -166,9 +149,7 @@ For explicit imports, use the submodules:
 """
 
 from aiohomematic._log_context_protocol import LogContextProtocol
-from aiohomematic._payload_protocol import PayloadProtocol
 from aiohomematic.interfaces.central import (
-    BackupProviderProtocol,
     CentralInfoProtocol,
     # Central composite protocol
     CentralProtocol,
@@ -178,7 +159,6 @@ from aiohomematic.interfaces.central import (
     DataCacheProviderProtocol,
     DataPointProviderProtocol,
     DeviceDataRefresherProtocol,
-    DeviceManagementProtocol,
     DeviceProviderProtocol,
     DeviceQueryFacadeProtocol,
     EventBusProviderProtocol,
@@ -187,7 +167,6 @@ from aiohomematic.interfaces.central import (
     FileOperationsProtocol,
     HubDataFetcherProtocol,
     HubDataPointManagerProtocol,
-    HubFetchOperationsProtocol,
     LinkFacadeProtocol,
     MetricsProviderProtocol,
     SystemInfoProviderProtocol,
@@ -195,28 +174,22 @@ from aiohomematic.interfaces.central import (
 from aiohomematic.interfaces.client import (
     # Client sub-protocols
     # Client utilities
-    CallbackAddressProviderProtocol,
     ClientConnectionProtocol,
     ClientCoordinationProtocol,
     ClientDependenciesProtocol,
     ClientFactoryProtocol,
     ClientIdentityProtocol,
-    ClientLifecycleProtocol,
     # Client composite protocol
     ClientProtocol,
     ClientProviderProtocol,
-    ClientSupportProtocol,
     CommandTrackerProtocol,
     ConnectionStateProviderProtocol,
     DataCacheWriterProtocol,
     DeviceDescriptionsAccessProtocol,
     DeviceDetailsWriterProtocol,
     DeviceDiscoveryOperationsProtocol,
-    DeviceLookupProtocol,
-    JsonRpcClientProviderProtocol,
     LastEventTrackerProtocol,
     MetadataOperationsProtocol,
-    NewDeviceHandlerProtocol,
     ParamsetDescriptionWriterProtocol,
     PingPongTrackerProtocol,
     PrimaryClientProviderProtocol,
@@ -228,10 +201,7 @@ from aiohomematic.interfaces.model import (
     BaseParameterDataPointProtocol,
     CalculatedDataPointProtocol,
     CallbackDataPointProtocol,
-    # Channel sub-protocols
-    ChannelDataPointAccessProtocol,
     ChannelEventGroupProtocol,
-    ChannelIdentityProtocol,
     ChannelProtocol,
     ClimateWeekProfileDataPointProtocol,
     CombinedDataPointProtocol,
@@ -292,8 +262,6 @@ __all__ = [
     # Client operations
     "ClientConnectionProtocol",
     "ClientIdentityProtocol",
-    "ClientLifecycleProtocol",
-    "ClientSupportProtocol",
     "DeviceDiscoveryOperationsProtocol",
     "MetadataOperationsProtocol",
     # Client providers
@@ -301,18 +269,14 @@ __all__ = [
     "ClientFactoryProtocol",
     "ClientProviderProtocol",
     "ConnectionStateProviderProtocol",
-    "JsonRpcClientProviderProtocol",
     "PrimaryClientProviderProtocol",
     # Device and channel lookup
     "ChannelLookupProtocol",
     "DataPointProviderProtocol",
-    "DeviceLookupProtocol",
     "DeviceProviderProtocol",
     "DeviceQueryFacadeProtocol",
     # Device operations
     "DeviceDataRefresherProtocol",
-    "DeviceManagementProtocol",
-    "NewDeviceHandlerProtocol",
     # Event system
     "EventBusProviderProtocol",
     "EventPublisherProtocol",
@@ -321,7 +285,6 @@ __all__ = [
     # Hub operations
     "HubDataFetcherProtocol",
     "HubDataPointManagerProtocol",
-    "HubFetchOperationsProtocol",
     # Incident recording
     "IncidentRecorderProtocol",
     # Log context
@@ -329,9 +292,7 @@ __all__ = [
     # Metrics
     "MetricsProviderProtocol",
     # Model channel
-    "ChannelDataPointAccessProtocol",
     "ChannelEventGroupProtocol",
-    "ChannelIdentityProtocol",
     "ChannelProtocol",
     # Model data point
     "BaseDataPointProtocol",
@@ -361,13 +322,9 @@ __all__ = [
     "ScheduleChannelSwitchProtocol",
     "WeekProfileDataPointProtocol",
     "WeekProfileProtocol",
-    # Payload
-    "PayloadProtocol",
     # Task scheduling
     "TaskSchedulerProtocol",
     # Utility protocols
-    "BackupProviderProtocol",
-    "CallbackAddressProviderProtocol",
     "ClientCoordinationProtocol",
     "CommandTrackerProtocol",
     "CoordinatorProviderProtocol",

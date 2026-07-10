@@ -37,7 +37,7 @@ from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic.data_point import GenericDataPointAny
 from aiohomematic.model.support import DataPointNameData
-from aiohomematic.property_decorators import Kind, _GenericProperty
+from aiohomematic.property_decorators import _GenericProperty
 
 
 class DpDummy(GenericDataPointAny):
@@ -146,4 +146,4 @@ class DpDummy(GenericDataPointAny):
     def _set_value(self, value: Any) -> None:  # kwonly: disable
         """Ignore setting value for dummy data point."""
 
-    value: _GenericProperty[Any, Any] = _GenericProperty(fget=_get_value, fset=_set_value, kind=Kind.STATE)
+    value: _GenericProperty[Any, Any] = _GenericProperty(fget=_get_value, fset=_set_value)

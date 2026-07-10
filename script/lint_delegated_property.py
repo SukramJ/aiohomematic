@@ -329,7 +329,7 @@ class DelegatedPropertyVisitor(ast.NodeVisitor):
             return
 
         # Property decorator names that support cached=True
-        cached_decorators = {"hm_property", "config_property", "info_property", "state_property"}
+        cached_decorators = {"hm_property"}
 
         # Check for @property decorator
         for decorator in node.decorator_list:

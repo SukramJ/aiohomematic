@@ -18,7 +18,6 @@ from aiohomematic.model.calculated.support import (
     calculate_vapor_concentration,
 )
 from aiohomematic.model.generic import DpSensor
-from aiohomematic.property_decorators import state_property
 from aiohomematic.support import element_matches_key
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -83,7 +82,7 @@ class ApparentTemperature(BaseClimateSensor[float | None], CalculatedDataPointPr
             is not None
         )
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the value."""
         if (
@@ -116,7 +115,7 @@ class DewPoint(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the value."""
         if self._dp_temperature.value is not None and self._dp_humidity.value is not None:
@@ -144,7 +143,7 @@ class DewPointSpread(BaseClimateSensor[float | None], CalculatedDataPointProtoco
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the value."""
         if self._dp_temperature.value is not None and self._dp_humidity.value is not None:
@@ -172,7 +171,7 @@ class Enthalpy(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the value."""
         if self._dp_temperature.value is not None and self._dp_humidity.value is not None:
@@ -202,7 +201,7 @@ class FrostPoint(BaseClimateSensor[float | None], CalculatedDataPointProtocol):
             channel=channel, relevant_models=_RELEVANT_MODELS_FROST_POINT
         )
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the value."""
         if self._dp_temperature.value is not None and self._dp_humidity.value is not None:
@@ -230,7 +229,7 @@ class VaporConcentration(BaseClimateSensor[float | None], CalculatedDataPointPro
         """Return if this calculated data point is relevant for the model."""
         return _is_relevant_for_model_temperature_and_humidity(channel=channel, relevant_models=None)
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the value."""
         if self._dp_temperature.value is not None and self._dp_humidity.value is not None:

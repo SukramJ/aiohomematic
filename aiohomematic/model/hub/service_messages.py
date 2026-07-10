@@ -22,8 +22,7 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ _SERVICE_MESSAGES_SENSOR_NAME: Final = "service_messages"
 _SERVICE_MESSAGES_PREFIX: Final = "message_"
 
 
-class HmServiceMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
+class HmServiceMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol):
     """Class for a Homematic service messages sensor."""
 
     __slots__ = (
@@ -56,7 +55,6 @@ class HmServiceMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, Pay
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
-        PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
@@ -80,12 +78,22 @@ class HmServiceMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, Pay
         self._messages: tuple[ServiceMessageData, ...] = ()
         self._cached_message_count: int = 0
 
-    available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_central_info.available")
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
-    messages: Final = DelegatedProperty[tuple[ServiceMessageData, ...]](path="_messages", kind=Kind.STATE)
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    messages: Final = DelegatedProperty[tuple[ServiceMessageData, ...]](path="_messages")
+    name: Final = DelegatedProperty[str](path="_name_data.name")
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
+
+    @property
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information about the data point."""
+        ainfo = super().additional_information
+        for idx, m in enumerate(self._messages, start=1):
+            ainfo[f"{_SERVICE_MESSAGES_PREFIX}{idx}"] = (
+                f"{m.device_name}: {m.display_name}" if m.device_name else m.display_name
+            )
+        return ainfo
 
     @property
     def channel(self) -> ChannelProtocol | None:
@@ -112,22 +120,12 @@ class HmServiceMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, Pay
         """Return translation key for Home Assistant."""
         return "service_messages"
 
-    @config_property
+    @property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return None
 
-    @state_property
-    def additional_information(self) -> dict[str, Any]:
-        """Return additional information about the data point."""
-        ainfo = super().additional_information
-        for idx, m in enumerate(self._messages, start=1):
-            ainfo[f"{_SERVICE_MESSAGES_PREFIX}{idx}"] = (
-                f"{m.device_name}: {m.display_name}" if m.device_name else m.display_name
-            )
-        return ainfo
-
-    @state_property
+    @property
     def value(self) -> int:
         """Return the count of active service messages."""
         return len(self._messages)

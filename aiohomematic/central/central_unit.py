@@ -63,17 +63,16 @@ from aiohomematic.interfaces.model import (
 )
 from aiohomematic.metrics import MetricsAggregator, MetricsObserver
 from aiohomematic.model.hub import InstallModeDpType
-from aiohomematic.property_decorators import DelegatedProperty, Kind, info_property
+from aiohomematic.property_decorators import DelegatedProperty, hm_property
 from aiohomematic.store import LocalStorageFactory, StorageFactoryProtocol
 from aiohomematic.support import extract_exc_args, get_ip_addr
-from aiohomematic.support.mixins import LogContextMixin, PayloadMixin
+from aiohomematic.support.mixins import LogContextMixin
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
 class CentralUnit(
-    PayloadMixin,
     LogContextMixin,
     CentralProtocol,
 ):
@@ -119,7 +118,6 @@ class CentralUnit(
                       metrics_observer, metrics_aggregator
 
         """
-        PayloadMixin.__init__(self)
         # -- 1. Core configuration and runtime --
         self._config: Final[CentralConfigProtocol] = central_config
         i18n.set_locale(locale=self._config.locale)
@@ -342,10 +340,10 @@ class CentralUnit(
     looper: Final = DelegatedProperty[Looper](path="_looper")
     metrics: Final = DelegatedProperty[MetricsObserver](path="_metrics_observer")
     metrics_aggregator: Final = DelegatedProperty[MetricsAggregator](path="_metrics_aggregator")
-    name: Final = DelegatedProperty[str](path="_config.name", kind=Kind.INFO, log_context=True)
+    name: Final = DelegatedProperty[str](path="_config.name", log_context=True)
     query_facade: Final = DelegatedProperty[DeviceQueryFacade](path="_query_facade")
     state: Final = DelegatedProperty[CentralState](path="_central_state_machine.state")
-    url: Final = DelegatedProperty[str](path="_url", kind=Kind.INFO, log_context=True)
+    url: Final = DelegatedProperty[str](path="_url", log_context=True)
 
     @property
     def _has_active_threads(self) -> bool:
@@ -370,20 +368,20 @@ class CentralUnit(
             return client.system_information
         return SystemInformation()
 
-    @info_property(log_context=True)
-    def model(self) -> str | None:
-        """Return the model of the backend."""
-        if not self._model and (client := self._client_coordinator.primary_client):
-            self._model = client.model
-        return self._model
-
-    @info_property
+    @property
     def version(self) -> str | None:
         """Return the version of the backend."""
         if self._version is None:
             versions = [client.version for client in self._client_coordinator.clients if client.version]
             self._version = max(versions) if versions else None
         return self._version
+
+    @hm_property(log_context=True)
+    def model(self) -> str | None:
+        """Return the model of the backend."""
+        if not self._model and (client := self._client_coordinator.primary_client):
+            self._model = client.model
+        return self._model
 
     async def accept_device_in_inbox(self, *, device_address: str) -> bool:
         """
@@ -709,10 +707,6 @@ class CentralUnit(
 
         _LOGGER.debug("STOP: Removing instance")
         CENTRAL_REGISTRY.unregister(name=self.name)
-
-        # Clear hub coordinator subscriptions (sysvar event subscriptions)
-        self._hub_coordinator.clear()
-        _LOGGER.debug("STOP: Hub coordinator subscriptions cleared")
 
         # Clear cache coordinator subscriptions (device removed event subscription)
         self._cache_coordinator.stop()

@@ -40,7 +40,7 @@ The existing `CustomDpIpSirenSmoke` class already implements a similar pattern u
 
 ```python
 # In aiohomematic/model/custom/siren.py
-@state_property
+@property
 def is_on(self) -> bool | None:
     """Return if siren is on."""
     return bool(self._dp_smoke_detector_alarm_status.value != _SMOKE_DETECTOR_ALARM_STATUS_IDLE_OFF)
@@ -240,7 +240,7 @@ class DerivedBinarySensor(CalculatedDataPoint[bool | None]):
             paramset_key=ParamsetKey.VALUES,
         ) is not None
 
-    @state_property
+    @property
     def value(self) -> bool | None:
         """Return the derived binary value."""
         if (source_value := self._dp_source.value) is None:

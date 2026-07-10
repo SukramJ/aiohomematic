@@ -288,12 +288,12 @@ class TestClientPriorityAPIContract:
         """
         import inspect
 
-        from aiohomematic.interfaces.client import ParamsetOperationsProtocol, ValueOperationsProtocol
+        from aiohomematic.interfaces.client import ValueAndParamsetOperationsProtocol
 
-        # Check ValueOperationsProtocol.set_value
-        sig = inspect.signature(ValueOperationsProtocol.set_value)
-        assert "priority" in sig.parameters, "ValueOperationsProtocol.set_value() must include priority"
+        # Check ValueAndParamsetOperationsProtocol.set_value
+        sig = inspect.signature(ValueAndParamsetOperationsProtocol.set_value)
+        assert "priority" in sig.parameters, "ValueAndParamsetOperationsProtocol.set_value() must include priority"
 
-        # Check ParamsetOperationsProtocol.put_paramset
-        sig = inspect.signature(ParamsetOperationsProtocol.put_paramset)
-        assert "priority" in sig.parameters, "ParamsetOperationsProtocol.put_paramset() must include priority"
+        # Check ValueAndParamsetOperationsProtocol.put_paramset
+        sig = inspect.signature(ValueAndParamsetOperationsProtocol.put_paramset)
+        assert "priority" in sig.parameters, "ValueAndParamsetOperationsProtocol.put_paramset() must include priority"

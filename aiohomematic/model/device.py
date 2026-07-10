@@ -205,20 +205,17 @@ class Device(DeviceProtocol, LogContextMixin, PayloadMixin):
 
     Protocol compliance
     -------------------
-    Implements ``DeviceProtocol`` which is a composite of sub-protocols:
+    Implements ``DeviceProtocol``, a flat composite built from:
 
     - ``DeviceIdentityProtocol``: Basic identification (address, name, model, manufacturer)
     - ``DeviceChannelAccessProtocol``: Channel and DataPoint access methods
-    - ``DeviceAvailabilityProtocol``: Availability state management
-    - ``DeviceFirmwareProtocol``: Firmware information and update operations
-    - ``DeviceLinkManagementProtocol``: Central link operations
-    - ``DeviceGroupManagementProtocol``: Channel group management
-    - ``DeviceConfigurationProtocol``: Device configuration and metadata
-    - ``DeviceWeekProfileProtocol``: Week profile support
-    - ``DeviceProvidersProtocol``: Protocol interface providers
-    - ``DeviceLifecycleProtocol``: Lifecycle methods
 
-    Consumers can depend on specific sub-protocols for narrower contracts.
+    ``DeviceIdentityProtocol`` and ``DeviceChannelAccessProtocol`` remain separate protocols
+    because ``DeviceRemovalInfoProtocol`` depends on them independently of ``DeviceProtocol``.
+    All other members (availability, firmware, central link management, channel group
+    management, device configuration and metadata, week profile support, protocol interface
+    providers, lifecycle) are declared directly on ``DeviceProtocol`` since no consumer needs
+    them independent of the composite.
     """
 
     __slots__ = (
@@ -975,16 +972,14 @@ class Channel(ChannelProtocol, LogContextMixin, PayloadMixin):
 
     Protocol compliance
     -------------------
-    Implements ``ChannelProtocol`` which is a composite of sub-protocols:
+    Implements ``ChannelProtocol``, a flat composite declaring all members directly:
 
-    - ``ChannelIdentityProtocol``: Basic identification (address, name, no, type_name)
-    - ``ChannelDataPointAccessProtocol``: DataPoint and event access methods
-    - ``ChannelGroupingProtocol``: Channel group management (group_master, link_peer_channels)
-    - ``ChannelMetadataProtocol``: Additional metadata (device, function, room, paramset_descriptions)
-    - ``ChannelLinkManagementProtocol``: Central link operations
-    - ``ChannelLifecycleProtocol``: Lifecycle methods (finalize_init, on_config_changed, remove)
-
-    Consumers can depend on specific sub-protocols for narrower contracts.
+    - Identification (address, name, no, type_name)
+    - DataPoint and event access methods
+    - Channel group management (group_master, link_peer_channels)
+    - Additional metadata (device, function, room, paramset_descriptions)
+    - Central link operations
+    - Lifecycle methods (finalize_init, on_config_changed, remove)
     """
 
     __slots__ = (

@@ -212,7 +212,7 @@ Rollback publishes an `OptimisticRollbackEvent` for Home Assistant notification 
 - `aiohomematic/model/custom/siren.py` -- `@bind_collector(priority=CommandPriority.CRITICAL)` on siren turn_on/turn_off (except `CustomDpSoundPlayer`)
 - `aiohomematic/model/custom/cover.py` -- `@bind_collector(priority=CommandPriority.CRITICAL)` on `stop()`
 - `aiohomematic/client/interface_client.py` -- `set_value()` and `put_paramset()` accept `priority` and `purge_addresses` parameters, catch `CommandSupersededError`
-- `aiohomematic/interfaces/client.py` -- `ValueOperationsProtocol`, `ParamsetOperationsProtocol`, and `CommandThrottleProtocol` include `priority` and `purge_addresses` parameters
+- `aiohomematic/interfaces/client.py` -- `ValueAndParamsetOperationsProtocol` (formerly `ValueOperationsProtocol` + `ParamsetOperationsProtocol`, merged since neither had a consumer independent of the combination) and `CommandThrottleProtocol` include `priority` and `purge_addresses` parameters
 
 **Tests:**
 

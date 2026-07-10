@@ -145,3 +145,18 @@ Maintain the flat `__slots__` structure with clear comments for logical grouping
 - [ADR-0002: Protocol-Based Dependency Injection](0002-protocol-based-dependency-injection.md)
 - [ADR-0003: Explicit over Composite Protocol Injection](0003-explicit-over-composite-protocol-injection.md)
 - DeviceProtocol sub-protocol split (implemented in 2025.12.18)
+
+## Addendum (2026-07)
+
+An audit against the sole downstream consumer (`homematicip_local`) and the codebase itself
+found that `DeviceAvailabilityProtocol`, `DeviceFirmwareProtocol`, `DeviceLinkManagementProtocol`,
+`DeviceGroupManagementProtocol`, `DeviceConfigurationProtocol`, `DeviceWeekProfileProtocol`,
+`DeviceProvidersProtocol`, and `DeviceLifecycleProtocol` (listed above) never gained a real
+consumer independent of `DeviceProtocol` — the "clean external API" benefit cited in the
+Consequences/Mitigation sections above did not materialize in practice. These sub-protocols
+(along with the equivalent `Channel*` slices) were inlined directly into `DeviceProtocol` /
+`ChannelProtocol`. `DeviceIdentityProtocol` and `DeviceChannelAccessProtocol` remain separate
+because `DeviceRemovalInfoProtocol` depends on them independently of `DeviceProtocol`. This
+does not change the decision recorded above (the flat `__slots__` structure is still correct);
+it only corrects the sub-protocol layer referenced in the rationale. See
+`docs/architecture/protocol_selection_guide.md` for the current protocol structure.

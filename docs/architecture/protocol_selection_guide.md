@@ -2,10 +2,16 @@
 
 ## Introduction
 
-aiohomematic uses **115 protocol interfaces** (defined in `aiohomematic/interfaces/`) to
+aiohomematic uses **83 protocol interfaces** (defined in `aiohomematic/interfaces/`) to
 decouple components via the Interface Segregation Principle. Instead of depending on
 large classes like `CentralUnit` or `InterfaceClient`, components declare minimal
 protocol dependencies that expose only the operations they actually need.
+
+ISP sub-protocol slices without a consumer independent of their composite (e.g. the former
+per-operation client slices, or the atomic `Channel*`/`Device*` slices) have been flattened
+directly into the relevant composite (`ClientProtocol`, `DeviceProtocol`, `ChannelProtocol`,
+`CentralProtocol`) — declare the member directly there instead of importing a slice protocol
+that no longer exists. Only sub-protocols with genuine standalone consumers remain separate.
 
 This guide helps developers choose the right protocol when:
 
@@ -49,7 +55,7 @@ Use `ClientFactoryProtocol` (client.py)
 
 **...look up devices?**
 Use `DeviceProviderProtocol` (central.py) for the registry,
-`DeviceLookupProtocol` (client.py) for query facade access
+`DeviceQueryFacadeProtocol` (central.py) for read-only query facade access
 
 **...look up channels by address?**
 Use `ChannelLookupProtocol` (central.py)
@@ -129,7 +135,7 @@ Use `CoordinatorProviderProtocol` (coordinators.py)
 | `DeviceDetailsWriterProtocol`       | client | Write device metadata       |
 | `ParamsetDescriptionWriterProtocol` | client | Write paramset descriptions |
 
-### 5. Client Management (25+ protocols)
+### 5. Client Management (~15 protocols)
 
 **Core sub-protocols:**
 
@@ -137,69 +143,70 @@ Use `CoordinatorProviderProtocol` (coordinators.py)
 | -------------------------- | ------ | ----------------------------------------------------- |
 | `ClientIdentityProtocol`   | client | Basic identification (interface, interface_id, model) |
 | `ClientConnectionProtocol` | client | Connection state management                           |
-| `ClientLifecycleProtocol`  | client | Lifecycle operations (init, stop, proxy)              |
 
-**Handler-based sub-protocols (9):**
+**Handler-based sub-protocols:**
 
 | Protocol                            | Module | Purpose                        |
 | ----------------------------------- | ------ | ------------------------------ |
 | `DeviceDiscoveryOperationsProtocol` | client | Device discovery operations    |
-| `ParamsetOperationsProtocol`        | client | Paramset get/put operations    |
-| `ValueOperationsProtocol`           | client | Value read/write operations    |
-| `LinkOperationsProtocol`            | client | Device linking operations      |
-| `FirmwareOperationsProtocol`        | client | Firmware update operations     |
-| `SystemVariableOperationsProtocol`  | client | System variable operations     |
-| `ProgramOperationsProtocol`         | client | Program execution operations   |
-| `BackupOperationsProtocol`          | client | Backup operations              |
 | `MetadataOperationsProtocol`        | client | Metadata and system operations |
+
+Lifecycle, value/paramset, linking, firmware, system variable, program, backup, and support
+operations have no consumer independent of `ClientProtocol` and are declared directly on it
+(formerly separate slices `ClientLifecycleProtocol`, `ParamsetOperationsProtocol`,
+`ValueOperationsProtocol`, `LinkOperationsProtocol`, `FirmwareOperationsProtocol`,
+`SystemVariableOperationsProtocol`, `ProgramOperationsProtocol`, `BackupOperationsProtocol`,
+`ClientSupportProtocol`, and the combined `SystemManagementOperationsProtocol` /
+`MaintenanceOperationsProtocol`). Depend on `ClientProtocol` directly for these operations.
 
 **Combined protocols:**
 
 | Protocol                             | Module | Purpose                                   |
 | ------------------------------------ | ------ | ----------------------------------------- |
-| `DataManagementOperationsProtocol`   | client | Value + Paramset operations               |
-| `SystemManagementOperationsProtocol` | client | SystemVariable + Program operations       |
-| `MaintenanceOperationsProtocol`      | client | Link + Firmware + Backup operations       |
+| `ValueAndParamsetOperationsProtocol` | client | Value + Paramset operations               |
 | `ClientProtocol`                     | client | **Composite** of all client sub-protocols |
 
 **Utility protocols:**
 
-| Protocol                          | Module | Purpose                               |
-| --------------------------------- | ------ | ------------------------------------- |
-| `ClientProviderProtocol`          | client | Lookup clients by interface_id        |
-| `ClientFactoryProtocol`           | client | Create new client instances           |
-| `ClientDependenciesProtocol`      | client | Composite of dependencies for clients |
-| `PrimaryClientProviderProtocol`   | client | Access to primary client              |
-| `JsonRpcClientProviderProtocol`   | client | JSON-RPC client access                |
-| `ConnectionStateProviderProtocol` | client | Connection state information          |
-| `CommandTrackerProtocol`          | client | Command tracker operations            |
-| `PingPongTrackerProtocol`         | client | Ping/pong cache operations            |
+| Protocol                          | Module | Purpose                                                                                |
+| --------------------------------- | ------ | -------------------------------------------------------------------------------------- |
+| `ClientProviderProtocol`          | client | Lookup clients by interface_id                                                         |
+| `ClientFactoryProtocol`           | client | Create new client instances                                                            |
+| `ClientDependenciesProtocol`      | client | Composite of dependencies for clients (includes `json_rpc_client`, `callback_ip_addr`) |
+| `PrimaryClientProviderProtocol`   | client | Access to primary client                                                               |
+| `ConnectionStateProviderProtocol` | client | Connection state information                                                           |
+| `CommandTrackerProtocol`          | client | Command tracker operations                                                             |
+| `PingPongTrackerProtocol`         | client | Ping/pong cache operations                                                             |
 
-### 6. Device & Channel Lookup (5 protocols)
+### 6. Device & Channel Lookup (4 protocols)
 
 | Protocol                    | Module  | Purpose                           |
 | --------------------------- | ------- | --------------------------------- |
 | `DeviceProviderProtocol`    | central | Access device registry            |
-| `DeviceLookupProtocol`      | client  | Find devices by various criteria  |
 | `ChannelLookupProtocol`     | central | Find channels by address          |
 | `DataPointProviderProtocol` | central | Find data points                  |
 | `DeviceQueryFacadeProtocol` | central | Read-only query facade over model |
 
-### 7. Device Operations (3 protocols)
+### 7. Device Operations (1 protocol)
 
 | Protocol                      | Module  | Purpose                          |
 | ----------------------------- | ------- | -------------------------------- |
-| `DeviceManagementProtocol`    | central | Device lifecycle operations      |
 | `DeviceDataRefresherProtocol` | central | Refresh device data from backend |
-| `NewDeviceHandlerProtocol`    | client  | Handle new device discovery      |
 
-### 8. Hub Operations (3 protocols)
+`DeviceManagementProtocol` and `NewDeviceHandlerProtocol` had no consumer and were removed;
+`CentralUnit` no longer exposes `get_device()`/`add_new_devices()` outside `DeviceQueryFacadeProtocol`
+and the internal `DeviceCoordinator`/`DeviceRegistry`.
 
-| Protocol                      | Module  | Purpose                                             |
-| ----------------------------- | ------- | --------------------------------------------------- |
-| `HubFetchOperationsProtocol`  | central | Base hub fetch operations                           |
-| `HubDataFetcherProtocol`      | central | Fetch hub data (extends HubFetchOperationsProtocol) |
-| `HubDataPointManagerProtocol` | central | Manage hub data points (programs, sysvars)          |
+### 8. Hub Operations (2 protocols)
+
+| Protocol                      | Module  | Purpose                                    |
+| ----------------------------- | ------- | ------------------------------------------ |
+| `HubDataFetcherProtocol`      | central | Fetch hub data + program execution/state   |
+| `HubDataPointManagerProtocol` | central | Manage hub data points (programs, sysvars) |
+
+`HubFetchOperationsProtocol` had no consumer independent of `HubDataFetcherProtocol` and was
+inlined directly into it (its fetch methods are still duplicated independently on `HubProtocol`
+in `interfaces/model.py`, unchanged).
 
 ### 9. Task Scheduling (1 protocol)
 
@@ -207,7 +214,7 @@ Use `CoordinatorProviderProtocol` (coordinators.py)
 | ----------------------- | ---------- | ------------------------------- |
 | `TaskSchedulerProtocol` | operations | Schedule and manage async tasks |
 
-### 10. Model Protocols (47 protocols)
+### 10. Model Protocols
 
 **Device hierarchy:**
 
@@ -215,31 +222,41 @@ Use `CoordinatorProviderProtocol` (coordinators.py)
 DeviceProtocol (composite)
 ├── DeviceIdentityProtocol          — address, interface, model, name
 ├── DeviceChannelAccessProtocol     — channels, data points, events
-├── DeviceStateProtocol (combined)
-│   ├── DeviceAvailabilityProtocol  — availability, available, config_pending
-│   ├── DeviceFirmwareProtocol      — firmware version, update state
-│   └── DeviceWeekProfileProtocol   — week profile support
-├── DeviceOperationsProtocol (combined)
-│   ├── DeviceLinkManagementProtocol   — create/remove central links
-│   ├── DeviceGroupManagementProtocol  — channel group management
-│   └── DeviceLifecycleProtocol        — finalize_init, remove, reload
-├── DeviceConfigurationProtocol     — product group, rooms, rx modes
-└── DeviceProvidersProtocol         — access to all dependency providers
+└── (declared directly, no separate sub-protocol classes)
+    ├── availability, available, config_pending, set_forced_availability
+    ├── firmware, firmware_updatable, update_firmware, ...
+    ├── link_peer_channels, create_central_links, remove_central_links
+    ├── channel_groups, add_channel_to_group, get_channel_group_no, ...
+    ├── product_group, rooms, rx_modes, ...  (configuration)
+    ├── central_info, client, config_provider, ...  (dependency providers)
+    ├── week_profile, has_week_profile, init_week_profile, ...
+    └── finalize_init, on_config_changed, remove, ...  (lifecycle)
 ```
+
+`DeviceIdentityProtocol` and `DeviceChannelAccessProtocol` remain separate protocols because
+`DeviceRemovalInfoProtocol` depends on them independently of `DeviceProtocol`. All other former
+sub-protocols (`DeviceStateProtocol`, `DeviceOperationsProtocol`, `DeviceAvailabilityProtocol`,
+`DeviceFirmwareProtocol`, `DeviceLinkManagementProtocol`, `DeviceGroupManagementProtocol`,
+`DeviceConfigurationProtocol`, `DeviceWeekProfileProtocol`, `DeviceProvidersProtocol`,
+`DeviceLifecycleProtocol`) had no consumer independent of `DeviceProtocol` and were inlined.
 
 **Channel hierarchy:**
 
 ```
-ChannelProtocol (composite)
-├── ChannelIdentityProtocol           — address, name, type_name
-├── ChannelDataPointAccessProtocol    — data points, events, calculated
-├── ChannelMetadataAndGroupingProtocol (combined)
-│   ├── ChannelMetadataProtocol       — room, function, operation mode
-│   └── ChannelGroupingProtocol       — group master, group_no
-└── ChannelManagementProtocol (combined)
-    ├── ChannelLinkManagementProtocol — create/remove central links
-    └── ChannelLifecycleProtocol      — finalize_init, remove, reload
+ChannelProtocol (composite, flat — declares all members directly)
+├── address, name, no, type_name, unique_id, ise_id  (identity)
+├── calculated_data_points, generic_data_points, get_data_points, ...  (data point access)
+├── group_master, group_no, link_peer_channels, ...  (grouping)
+├── device, function, room, paramset_descriptions, ...  (metadata)
+├── create_central_link, remove_central_link, ...  (link management)
+└── finalize_init, on_config_changed, remove, ...  (lifecycle)
 ```
+
+All former `Channel*` sub-protocols (`ChannelIdentityProtocol`, `ChannelDataPointAccessProtocol`,
+`ChannelGroupingProtocol`, `ChannelMetadataProtocol`, `ChannelLinkManagementProtocol`,
+`ChannelLifecycleProtocol`, and the mid-composites `ChannelMetadataAndGroupingProtocol` /
+`ChannelManagementProtocol`) had no consumer independent of `ChannelProtocol` and were inlined —
+unlike the device side, there is no `ChannelRemovalInfoProtocol` requiring them to stay separate.
 
 **DataPoint hierarchy:**
 
@@ -263,10 +280,8 @@ CallbackDataPointProtocol (base for all)
 
 | Protocol                          | Module       | Purpose                        |
 | --------------------------------- | ------------ | ------------------------------ |
-| `BackupProviderProtocol`          | central      | Backup operations              |
 | `FileOperationsProtocol`          | central      | File I/O operations            |
 | `CoordinatorProviderProtocol`     | coordinators | Access to coordinators         |
-| `CallbackAddressProviderProtocol` | client       | Callback address management    |
 | `ClientCoordinationProtocol`      | client       | Client coordination operations |
 | `SessionRecorderProviderProtocol` | client       | Session recording access       |
 | `CommandTrackerProtocol`          | client       | Command tracker operations     |
@@ -274,6 +289,12 @@ CallbackDataPointProtocol (base for all)
 | `IncidentRecorderProtocol`        | operations   | Diagnostic incident recording  |
 | `CacheWithStatisticsProtocol`     | operations   | Cache statistics access        |
 | `MetricsProviderProtocol`         | central      | Metrics observer access        |
+
+`BackupProviderProtocol` and `CallbackAddressProviderProtocol` had no consumer independent of
+`CentralProtocol`. `create_backup_and_download` is now declared directly on `CentralProtocol`;
+`callback_ip_addr`/`listen_port_xml_rpc`/`json_rpc_client` were already provided verbatim by
+`ClientDependenciesProtocol` (also a `CentralProtocol` base), so removing the redundant slices
+did not change `CentralProtocol`'s effective member set.
 
 ---
 
@@ -370,7 +391,7 @@ async def read_state(client: ClientProtocol) -> Any:
     return await client.get_value(...)
 
 # GOOD: Narrow to the specific operation protocol
-async def read_state(client: ValueOperationsProtocol) -> Any:
+async def read_state(client: ValueAndParamsetOperationsProtocol) -> Any:
     return await client.get_value(...)
 ```
 

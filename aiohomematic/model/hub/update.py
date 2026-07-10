@@ -26,15 +26,14 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import DelegatedProperty, Kind
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 _UPDATE_NAME: Final = "System Update"
 
 
-class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
+class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol):
     """Class for a Homematic system update data point."""
 
     __slots__ = (
@@ -65,7 +64,6 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         primary_client_provider: PrimaryClientProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
-        PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
@@ -93,15 +91,15 @@ class HmUpdate(CallbackDataPoint, GenericHubDataPointProtocol, PayloadMixin):
         self._update_in_progress: bool = False
         self._version_before_update: str | None = None
 
-    available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
-    available_firmware: Final = DelegatedProperty[str](path="_available_firmware", kind=Kind.STATE)
-    current_firmware: Final = DelegatedProperty[str](path="_current_firmware", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_central_info.available")
+    available_firmware: Final = DelegatedProperty[str](path="_available_firmware")
+    current_firmware: Final = DelegatedProperty[str](path="_current_firmware")
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
-    in_progress: Final = DelegatedProperty[bool](path="_update_in_progress", kind=Kind.STATE)
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    in_progress: Final = DelegatedProperty[bool](path="_update_in_progress")
+    name: Final = DelegatedProperty[str](path="_name_data.name")
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
-    update_available: Final = DelegatedProperty[bool](path="_update_available", kind=Kind.STATE)
+    update_available: Final = DelegatedProperty[bool](path="_update_available")
 
     @property
     def channel(self) -> ChannelProtocol | None:

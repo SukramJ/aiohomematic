@@ -57,7 +57,7 @@ from aiohomematic.model.schedule_models import (
 )
 from aiohomematic.model.support import DataPointNameData, DataPointPathData, PathData, generate_unique_id
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
-from aiohomematic.property_decorators import DelegatedProperty, Kind, hm_property
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.type_aliases import UnsubscribeCallback
 
 __all__ = [
@@ -140,15 +140,15 @@ class ScheduleChannelSwitch(BaseDataPoint, ScheduleChannelSwitchProtocol):
         )
         weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
-    channel_key: Final = DelegatedProperty[str](path="_channel_key", kind=Kind.CONFIG)
-    target_channel_info: Final = DelegatedProperty[TargetChannelInfo](path="_target_channel_info", kind=Kind.CONFIG)
+    channel_key: Final = DelegatedProperty[str](path="_channel_key")
+    target_channel_info: Final = DelegatedProperty[TargetChannelInfo](path="_target_channel_info")
 
     @property
     def usage(self) -> DataPointUsage:
         """Return the data point usage."""
         return DataPointUsage.DATA_POINT
 
-    @hm_property(kind=Kind.STATE)
+    @property
     def value(self) -> bool | None:
         """Return whether the schedule is enabled for this channel."""
         if (schedule_enabled := self._week_profile_data_point.schedule_enabled) is None:
@@ -305,7 +305,7 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         """Return the data point usage."""
         return DataPointUsage.DATA_POINT
 
-    @hm_property(kind=Kind.STATE)
+    @property
     def value(self) -> int:
         """Return the number of active schedule entries."""
         return self._count_active_entries()
@@ -519,9 +519,7 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         return None
 
     available_profiles: Final = DelegatedProperty[tuple[ScheduleProfile, ...]](path="_week_profile.available_profiles")
-    current_schedule_profile: Final = DelegatedProperty[ScheduleProfile](
-        path="_current_schedule_profile", kind=Kind.STATE
-    )
+    current_schedule_profile: Final = DelegatedProperty[ScheduleProfile](path="_current_schedule_profile")
     schedule_profile_nos: Final = DelegatedProperty[int](path="_schedule_profile_nos")
 
     @property

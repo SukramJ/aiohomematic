@@ -7,7 +7,7 @@ This package provides cross-cutting utilities organized into submodules:
 
 - **address**: Device/channel address parsing and validation.
 - **file_ops**: File system operations (create directory, delete file, etc.).
-- **mixins**: LogContextMixin and PayloadMixin for structured logging and introspection.
+- **mixins**: LogContextMixin for structured logging introspection.
 
 Functions and classes that don't fit a specific submodule remain here.
 

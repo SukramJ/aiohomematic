@@ -31,7 +31,7 @@ from aiohomematic.model.support import (
     check_channel_is_the_only_primary_channel,
     get_custom_data_point_name,
 )
-from aiohomematic.property_decorators import DelegatedProperty, state_property
+from aiohomematic.property_decorators import DelegatedProperty
 from aiohomematic.support.address import get_channel_address
 from aiohomematic.type_aliases import UnsubscribeCallback
 
@@ -133,6 +133,24 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         return all(dp.is_status_valid for dp in self._relevant_data_points)
 
     @property
+    def modified_at(self) -> datetime:
+        """Return the latest last update timestamp."""
+        modified_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
+                modified_at = data_point_modified_at
+        return modified_at
+
+    @property
+    def refreshed_at(self) -> datetime:
+        """Return the latest last refresh timestamp."""
+        refreshed_at: datetime = INIT_DATETIME
+        for dp in self._readable_data_points:
+            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
+                refreshed_at = data_point_refreshed_at
+        return refreshed_at
+
+    @property
     def state_uncertain(self) -> bool:
         """Return, if the state is uncertain."""
         return any(dp.state_uncertain for dp in self._relevant_data_points)
@@ -145,24 +163,6 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
             if (unconfirmed_value := dp.unconfirmed_last_value_send) is not None:
                 unconfirmed_values[field] = unconfirmed_value
         return unconfirmed_values
-
-    @state_property
-    def modified_at(self) -> datetime:
-        """Return the latest last update timestamp."""
-        modified_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_modified_at := dp.modified_at) and data_point_modified_at > modified_at:
-                modified_at = data_point_modified_at
-        return modified_at
-
-    @state_property
-    def refreshed_at(self) -> datetime:
-        """Return the latest last refresh timestamp."""
-        refreshed_at: datetime = INIT_DATETIME
-        for dp in self._readable_data_points:
-            if (data_point_refreshed_at := dp.refreshed_at) and data_point_refreshed_at > refreshed_at:
-                refreshed_at = data_point_refreshed_at
-        return refreshed_at
 
     def get_channel_group_addresses(self) -> frozenset[str]:
         """Return all channel addresses in this custom data point's channel group."""

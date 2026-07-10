@@ -64,7 +64,6 @@ from aiohomematic.interfaces.operations import (
     ParamsetDescriptionProviderProtocol,
     TaskSchedulerProtocol,
 )
-from aiohomematic.property_decorators import state_property
 from aiohomematic.type_aliases import FirmwareUpdateHandler
 
 if TYPE_CHECKING:
@@ -88,8 +87,6 @@ if TYPE_CHECKING:
     from aiohomematic.model.schedule_models import TargetChannelInfo
     from aiohomematic.model.support import DataPointNameData
     from aiohomematic.type_aliases import UnsubscribeCallback
-
-from aiohomematic._payload_protocol import PayloadProtocol
 
 # =============================================================================
 # DataPoint Protocol Interfaces
@@ -244,7 +241,7 @@ class CallbackDataPointProtocol(Protocol):
 
 
 @runtime_checkable
-class GenericHubDataPointProtocol(CallbackDataPointProtocol, PayloadProtocol, Protocol):
+class GenericHubDataPointProtocol(CallbackDataPointProtocol, Protocol):
     """
     Protocol for hub-level data points (programs, sysvars).
 
@@ -460,7 +457,7 @@ class GenericInstallModeDataPointProtocol(HubSensorDataPointProtocol, Protocol):
 
 
 @runtime_checkable
-class BaseDataPointProtocol(CallbackDataPointProtocol, PayloadProtocol, Protocol):
+class BaseDataPointProtocol(CallbackDataPointProtocol, Protocol):
     """
     Protocol for channel-bound data points.
 
@@ -695,6 +692,11 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
 
     @property
     @abstractmethod
+    def value(self) -> ParameterT:
+        """Return the value."""
+
+    @property
+    @abstractmethod
     def value_translations(self) -> dict[str, str | None] | None:
         """Return translated names for all enum values."""
 
@@ -707,11 +709,6 @@ class BaseParameterDataPointProtocol[ParameterT](BaseDataPointProtocol, Protocol
     @abstractmethod
     def visible(self) -> bool:
         """Return if data point is visible in backend."""
-
-    @state_property
-    @abstractmethod
-    def value(self) -> ParameterT:
-        """Return the value."""
 
     @abstractmethod
     async def event(self, *, value: Any, received_at: datetime) -> None:
@@ -1282,7 +1279,7 @@ class CombinedDataPointProtocol(BaseDataPointProtocol, Protocol):
 
 
 @runtime_checkable
-class ChannelProtocol(PayloadProtocol, Protocol):
+class ChannelProtocol(Protocol):
     """
     Composite protocol for complete channel access.
 
@@ -1703,7 +1700,6 @@ class DeviceRemovalInfoProtocol(DeviceIdentityProtocol, DeviceChannelAccessProto
 class DeviceProtocol(
     DeviceIdentityProtocol,
     DeviceChannelAccessProtocol,
-    PayloadProtocol,
     Protocol,
 ):
     """

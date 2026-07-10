@@ -13,7 +13,7 @@ Order according to the requested convention:
 3. Static methods (@staticmethod)
 4. DelegatedProperty assignments (sorted alphabetically)
 5. Properties
-   - Getter decorators define cross-property sort order: property, config_property, state_property, info_property, hm_property.
+   - Getter decorators define cross-property sort order: property, hm_property.
    - For each property, place its Setter (@<name>.setter) and Deleter (@<name>.deleter) immediately after its Getter.
 6. Public methods (no leading underscore)
 7. Protected methods (single leading underscore)
@@ -62,7 +62,7 @@ class MethodSeg:
     subgroup: str  # for properties: getter/setter/deleter
     # property base name if applicable
     propname: str | None = None
-    # for getter: the decorator base that defines the property kind (e.g., "property", "config_property", ...)
+    # for getter: the decorator base that defines the property kind (e.g., "property", "hm_property")
     prop_kind: str | None = None
 
 
@@ -110,8 +110,8 @@ def _decorator_name(dec: ast.expr) -> tuple[str | None, str | None]:
       @property -> ("property", None)
       @classmethod -> ("classmethod", None)
       @name.setter -> ("name", "setter")
-      @config_property -> ("config_property", None)
-      @info_property(log_context=True) -> ("info_property", None)
+      @hm_property -> ("hm_property", None)
+      @hm_property(log_context=True) -> ("hm_property", None)
 
     The first value is either the decorator name (for Name/Call) or the left-hand
     base of an attribute decorator (e.g. for @name.setter the base is "name").
@@ -279,7 +279,7 @@ def _collect_members(src_lines: list[str], cls: ast.ClassDef) -> list[MethodSeg]
             subgroup = ""
             group = ""
             prop_kind: str | None = None
-            getter_names = {"property", "config_property", "state_property", "info_property", "hm_property"}
+            getter_names = {"property", "hm_property"}
             # Determine if this is a property getter and capture its kind (decorator base)
             getter_base: str | None = None
             for base, attr in deco_pairs:
@@ -358,7 +358,7 @@ def _reorder_methods(methods: list[MethodSeg]) -> list[MethodSeg]:
     delegated_props = [m for m in methods if m.group == DELEGATED_PROPERTY]
 
     # Properties assembled with priority by getter decorator kind and adjacency of setter/deleter
-    PRIORITY = ["property", "config_property", "state_property", "info_property", "hm_property"]
+    PRIORITY = ["property", "hm_property"]
     PRIORITY_INDEX = {k: i for i, k in enumerate(PRIORITY)}
 
     prop_groups: list[tuple[int, str, list[MethodSeg]]] = []

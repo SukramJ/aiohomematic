@@ -149,7 +149,6 @@ For explicit imports, use the submodules:
 """
 
 from aiohomematic._log_context_protocol import LogContextProtocol
-from aiohomematic._payload_protocol import PayloadProtocol
 from aiohomematic.interfaces.central import (
     CentralInfoProtocol,
     # Central composite protocol
@@ -323,8 +322,6 @@ __all__ = [
     "ScheduleChannelSwitchProtocol",
     "WeekProfileDataPointProtocol",
     "WeekProfileProtocol",
-    # Payload
-    "PayloadProtocol",
     # Task scheduling
     "TaskSchedulerProtocol",
     # Utility protocols

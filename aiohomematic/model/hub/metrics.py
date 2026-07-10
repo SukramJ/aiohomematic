@@ -47,8 +47,7 @@ from aiohomematic.model.support import (
     generate_unique_id,
     get_hub_data_point_name_data,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.metrics import MetricsObserver
@@ -56,7 +55,7 @@ if TYPE_CHECKING:
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
+class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol):
     """Base class for metrics hub sensors."""
 
     __slots__ = (
@@ -84,7 +83,6 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
     ) -> None:
         """Initialize the metrics sensor."""
-        PayloadMixin.__init__(self)
         self._metrics_observer: Final = metrics_observer
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
@@ -106,12 +104,12 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         self._state_uncertain: bool = True
         self._cached_value: float = 0.0
 
-    available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    available: Final = DelegatedProperty[bool](path="_central_info.available")
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    name: Final = DelegatedProperty[str](path="_name_data.name")
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
-    unit: Final = DelegatedProperty[str](path="_unit", kind=Kind.CONFIG)
+    unit: Final = DelegatedProperty[str](path="_unit")
 
     @property
     def channel(self) -> ChannelProtocol | None:
@@ -138,7 +136,7 @@ class _BaseMetricsSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadM
         """Return translation key for Home Assistant."""
         return generate_translation_key(name=self._sensor_name)
 
-    @state_property
+    @property
     def value(self) -> float:
         """Return the system health score as percentage (0-100)."""
         return self._get_current_value()

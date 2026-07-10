@@ -27,7 +27,7 @@ from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpAction, DpActionSelect, DpActionString, DpFloat, DpSelect, DpSensor
-from aiohomematic.property_decorators import config_property, state_property
+from aiohomematic.property_decorators import hm_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -136,39 +136,39 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
             return float(self._dp_group_level.value)
         return self._dp_level.value if self._dp_level.value is not None else self._closed_level
 
-    @config_property(cached=True)
-    def capabilities(self) -> CoverCapabilities:
-        """Return the cover capabilities."""
-        return self._compute_capabilities()
-
-    @state_property
+    @property
     def current_channel_position(self) -> int:
         """Return current channel position of cover."""
         return self.level_to_position(self._dp_level.value) or self._closed_position
 
-    @state_property
+    @property
     def current_position(self) -> int:
         """Return current group position of cover."""
         return self.level_to_position(self._group_level) or self._closed_position
 
-    @state_property
+    @property
     def is_closed(self) -> bool:
         """Return if the cover is closed."""
         return self._group_level == self._closed_level
 
-    @state_property
+    @property
     def is_closing(self) -> bool | None:
         """Return if the cover is closing."""
         if self._dp_direction.value is not None:
             return str(self._dp_direction.value) == _CoverActivity.CLOSING
         return None
 
-    @state_property
+    @property
     def is_opening(self) -> bool | None:
         """Return if the cover is opening."""
         if self._dp_direction.value is not None:
             return str(self._dp_direction.value) == _CoverActivity.OPENING
         return None
+
+    @hm_property(cached=True)
+    def capabilities(self) -> CoverCapabilities:
+        """Return the cover capabilities."""
+        return self._compute_capabilities()
 
     @bind_collector
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:
@@ -251,7 +251,7 @@ class CustomDpWindowDrive(CustomDpCover):
     _closed_level: float = _WD_CLOSED_LEVEL
     _open_level: float = _OPEN_LEVEL
 
-    @state_property
+    @property
     def current_position(self) -> int:
         """Return current position of cover."""
         level = self._dp_level.value if self._dp_level.value is not None else self._closed_level
@@ -349,12 +349,12 @@ class CustomDpBlind(CustomDpCover):
 
         return None
 
-    @state_property
+    @property
     def current_channel_tilt_position(self) -> int:
         """Return current channel_tilt position of cover."""
         return self.level_to_position(self._dp_level_2.value) or self._closed_position
 
-    @state_property
+    @property
     def current_tilt_position(self) -> int:
         """Return current tilt position of cover."""
         return self.level_to_position(self._group_tilt_level) or self._closed_position
@@ -559,7 +559,7 @@ class CustomDpIpBlind(CustomDpBlind):
     _dp_combined = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpActionString)
     _dp_operation_mode: Final = DataPointField(field=Field.OPERATION_MODE, dpt=DpSelect)
 
-    @state_property
+    @property
     def operation_mode(self) -> str | None:
         """Return operation mode of cover."""
         val = self._dp_operation_mode.value
@@ -592,12 +592,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     _dp_door_state: Final = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
     _dp_section: Final = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
 
-    @config_property(cached=True)
-    def capabilities(self) -> CoverCapabilities:
-        """Return the cover capabilities."""
-        return self._compute_capabilities()
-
-    @state_property
+    @property
     def current_position(self) -> int | None:
         """Return current position of the garage door ."""
         if self._dp_door_state.value == _GarageDoorState.OPEN:
@@ -608,26 +603,31 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
             return _CoverPosition.CLOSED
         return None
 
-    @state_property
+    @property
     def is_closed(self) -> bool | None:
         """Return if the garage door is closed."""
         if self._dp_door_state.value is not None:
             return str(self._dp_door_state.value) == _GarageDoorState.CLOSED
         return None
 
-    @state_property
+    @property
     def is_closing(self) -> bool | None:
         """Return if the garage door is closing."""
         if self._dp_section.value is not None:
             return int(self._dp_section.value) == _GarageDoorActivity.CLOSING
         return None
 
-    @state_property
+    @property
     def is_opening(self) -> bool | None:
         """Return if the garage door is opening."""
         if self._dp_section.value is not None:
             return int(self._dp_section.value) == _GarageDoorActivity.OPENING
         return None
+
+    @hm_property(cached=True)
+    def capabilities(self) -> CoverCapabilities:
+        """Return the cover capabilities."""
+        return self._compute_capabilities()
 
     @bind_collector
     async def close(self, *, collector: CallParameterCollector | None = None) -> None:

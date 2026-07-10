@@ -7,7 +7,7 @@ from typing import cast
 from aiohomematic.const import DataPointCategory
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
 from aiohomematic.model.support import check_length_and_log
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import hm_property
 
 
 class SysvarDpText(GenericSysvarDataPoint):
@@ -18,7 +18,7 @@ class SysvarDpText(GenericSysvarDataPoint):
     _category = DataPointCategory.HUB_TEXT
     _is_extended = True
 
-    @state_property
+    @hm_property
     def value(self) -> str | None:
         """Get the value of the data_point."""
         return cast(str | None, check_length_and_log(name=self._legacy_name, value=self._value))

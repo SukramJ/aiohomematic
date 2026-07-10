@@ -393,7 +393,7 @@ def device_address(self) -> str:
 def available(self) -> bool:
     """Return whether device is available."""
 
-@config_property
+@property
 def value(self) -> Any:
     """Return current data point value."""
 ```

@@ -389,7 +389,7 @@ from aiohomematic.model.schedule_models import (
     convert_raw_group_to_simple_entry,
     convert_simple_entry_to_raw_group,
 )
-from aiohomematic.property_decorators import DelegatedProperty, Kind
+from aiohomematic.property_decorators import DelegatedProperty
 
 if TYPE_CHECKING:
     from aiohomematic.model.custom import BaseCustomDpClimate
@@ -1033,8 +1033,8 @@ class ClimateWeekProfile(WeekProfile[ClimateSchedule]):
         # Cast to ClimateScheduleDictInternal since we built it with all required keys
         return cast(_ClimateScheduleDictInternal, schedule_data)
 
-    max_temp: Final = DelegatedProperty[float](path="_max_temp", kind=Kind.CONFIG)
-    min_temp: Final = DelegatedProperty[float](path="_min_temp", kind=Kind.CONFIG)
+    max_temp: Final = DelegatedProperty[float](path="_max_temp")
+    min_temp: Final = DelegatedProperty[float](path="_min_temp")
 
     @property
     def available_profiles(self) -> tuple[ScheduleProfile, ...]:

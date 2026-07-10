@@ -10,7 +10,7 @@ from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.model.hub.data_point import GenericSysvarDataPoint
 from aiohomematic.model.support import get_value_from_value_list
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import hm_property
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class SysvarDpSelect(GenericSysvarDataPoint):
     _category = DataPointCategory.HUB_SELECT
     _is_extended = True
 
-    @state_property
+    @hm_property
     def value(self) -> str | None:
         """Get the value of the data_point."""
         if (value := get_value_from_value_list(value=self._value, value_list=self.values)) is not None:

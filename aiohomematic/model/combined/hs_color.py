@@ -13,7 +13,6 @@ from aiohomematic.interfaces import ChannelProtocol, CombinedDataPointProtocol, 
 from aiohomematic.model.combined.data_point import CombinedDataPoint
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic import DpDummy
-from aiohomematic.property_decorators import state_property
 
 __all__ = ["CombinedDpHsColor"]
 
@@ -65,7 +64,7 @@ class CombinedDpHsColor(CombinedDataPoint[tuple[float, float] | None], CombinedD
         """Return True if neither hue nor saturation is a dummy."""
         return not isinstance(self._hue_dp, DpDummy) and not isinstance(self._saturation_dp, DpDummy)
 
-    @state_property
+    @property
     def value(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         if self._hue_dp.value is not None and self._saturation_dp.value is not None:

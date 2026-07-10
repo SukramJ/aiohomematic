@@ -300,11 +300,6 @@ class CentralInfoProtocol(Protocol):
 
     @property
     @abstractmethod
-    def info_payload(self) -> Mapping[str, Any]:
-        """Return the info payload."""
-
-    @property
-    @abstractmethod
     def model(self) -> str | None:
         """Get backend model."""
 
@@ -1168,7 +1163,6 @@ class LinkFacadeProtocol(Protocol):
 # Import protocols from other interface modules for CentralProtocol composition.
 # These imports are placed here (after all local protocols are defined) to avoid
 # circular import issues while allowing proper inheritance.
-from aiohomematic._payload_protocol import PayloadProtocol  # noqa: E402
 from aiohomematic.interfaces.client import (  # noqa: E402
     ClientDependenciesProtocol,
     ClientFactoryProtocol,
@@ -1194,8 +1188,6 @@ class CentralProtocol(
     ConnectionStateProviderProtocol,
     # From interfaces/coordinators.py
     CoordinatorProviderProtocol,
-    # From interfaces/model.py
-    PayloadProtocol,
     Protocol,
 ):
     """

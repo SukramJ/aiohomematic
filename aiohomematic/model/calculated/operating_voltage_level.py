@@ -14,7 +14,6 @@ from aiohomematic.model.calculated import CalculatedDataPoint
 from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.calculated.support import calculate_operating_voltage_level
 from aiohomematic.model.generic import DpFloat, DpSensor
-from aiohomematic.property_decorators import state_property
 from aiohomematic.support import element_matches_key, extract_exc_args
 
 _BATTERY_QTY: Final = "Battery Qty"
@@ -97,7 +96,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT],
         # Fallback to default if no user-configured value
         return self._low_bat_limit_default
 
-    @state_property
+    @property
     def additional_information(self) -> dict[str, Any]:
         """Return additional information about the data point."""
         ainfo = super().additional_information
@@ -113,7 +112,7 @@ class OperatingVoltageLevel[SensorT: float | None](CalculatedDataPoint[SensorT],
             )
         return ainfo
 
-    @state_property
+    @property
     def value(self) -> float | None:
         """Return the value."""
         try:

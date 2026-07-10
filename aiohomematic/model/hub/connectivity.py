@@ -33,13 +33,12 @@ from aiohomematic.interfaces import (
 from aiohomematic.interfaces.central import HealthTrackerProtocol
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import DelegatedProperty, Kind, state_property
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
 
-class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointProtocol, PayloadMixin):
+class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointProtocol):
     """
     Binary sensor showing interface connectivity status.
 
@@ -81,7 +80,6 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
     ) -> None:
         """Initialize the connectivity sensor."""
-        PayloadMixin.__init__(self)
         self._interface_id: Final = interface_id
         self._interface: Final = interface
         self._health_tracker: Final = health_tracker
@@ -113,7 +111,7 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
     interface: Final = DelegatedProperty[Interface](path="_interface")
     interface_id: Final = DelegatedProperty[str](path="_interface_id")
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    name: Final = DelegatedProperty[str](path="_name_data.name")
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
 
     @property
@@ -151,7 +149,7 @@ class HmInterfaceConnectivitySensor(CallbackDataPoint, HubBinarySensorDataPointP
         """Return translation key for Home Assistant."""
         return "interface_connectivity"
 
-    @state_property
+    @property
     def value(self) -> bool:
         """Return True if interface is connected."""
         return self._get_current_value()

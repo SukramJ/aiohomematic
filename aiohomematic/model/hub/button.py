@@ -5,7 +5,7 @@
 from aiohomematic.const import DataPointCategory
 from aiohomematic.decorators import inspector
 from aiohomematic.model.hub.data_point import GenericProgramDataPoint
-from aiohomematic.property_decorators import state_property
+from aiohomematic.property_decorators import hm_property
 
 
 class ProgramDpButton(GenericProgramDataPoint):
@@ -15,7 +15,7 @@ class ProgramDpButton(GenericProgramDataPoint):
 
     _category = DataPointCategory.HUB_BUTTON
 
-    @state_property
+    @hm_property
     def available(self) -> bool:
         """Return the availability of the device."""
         return self._is_active and self._central_info.available

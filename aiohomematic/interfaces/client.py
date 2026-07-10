@@ -1029,11 +1029,6 @@ class ClientDependenciesProtocol(Protocol):
 
     @property
     @abstractmethod
-    def info_payload(self) -> Mapping[str, Any]:
-        """Return the info payload."""
-
-    @property
-    @abstractmethod
     def json_rpc_client(self) -> AioJsonRpcAioHttpClient:
         """Return JSON-RPC client."""
 

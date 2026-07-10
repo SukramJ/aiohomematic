@@ -20,7 +20,7 @@ from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, S
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
 from aiohomematic.model.generic import DpActionSelect, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
+from aiohomematic.property_decorators import DelegatedProperty, hm_property
 
 # Activity states indicating LED is active
 _ACTIVITY_STATES_ACTIVE: Final[frozenset[str]] = frozenset({"UP", "DOWN"})
@@ -290,79 +290,79 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
         return level_value
 
     @property
-    def last_level(self) -> float | None:
-        """Return the last non-default level value."""
-        return self._dp_level.last_non_default_value
-
-    @config_property(cached=True)
-    def capabilities(self) -> LightCapabilities:
-        """Return the light capabilities."""
-        return self._compute_capabilities()
-
-    @state_property
     def brightness(self) -> int | None:
         """Return the brightness of this light between min/max brightness."""
         return self.level_to_brightness(self._effective_level or _MIN_BRIGHTNESS)
 
-    @state_property
+    @property
     def brightness_pct(self) -> int | None:
         """Return the brightness in percent of this light."""
         return self.level_to_brightness_pct(self._effective_level or _MIN_BRIGHTNESS)
 
-    @state_property
+    @property
     def color_temp_kelvin(self) -> int | None:
         """Return the color temperature in kelvin."""
         return None
 
-    @state_property
+    @property
     def effect(self) -> str | None:
         """Return the current effect."""
         return None
 
-    @state_property
+    @property
     def effects(self) -> tuple[str, ...] | None:
         """Return the supported effects."""
         return None
 
-    @state_property
+    @property
     def group_brightness(self) -> int | None:
         """Return the group brightness of this light between min/max brightness."""
         if self._dp_group_level.value is not None:
             return self.level_to_brightness(self._dp_group_level.value)
         return None
 
-    @state_property
+    @property
     def group_brightness_pct(self) -> int | None:
         """Return the group brightness in percent of this light."""
         if self._dp_group_level.value is not None:
             return self.level_to_brightness_pct(self._dp_group_level.value)
         return None
 
-    @state_property
+    @property
     def has_color_temperature(self) -> bool:
         """Return True if light currently has color temperature."""
         return self.color_temp_kelvin is not None
 
-    @state_property
+    @property
     def has_effects(self) -> bool:
         """Return True if light currently has effects."""
         return self.effects is not None and len(self.effects) > 0
 
-    @state_property
+    @property
     def has_hs_color(self) -> bool:
         """Return True if light currently has hs color."""
         return self.hs_color is not None
 
-    @state_property
+    @property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         return None
 
-    @state_property
+    @property
     def is_on(self) -> bool | None:
         """Return true if dimmer is on."""
         level = self._effective_level
         return level is not None and level > _DIMMER_OFF
+
+    @property
+    def last_level(self) -> float | None:
+        """Return the last non-default level value."""
+        return self._dp_level.last_non_default_value
+
+    @hm_property(cached=True)
+    def capabilities(self) -> LightCapabilities:
+        """Return the light capabilities."""
+        return self._compute_capabilities()
 
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
@@ -444,7 +444,7 @@ class CustomDpColorDimmer(CustomDpDimmer):
     # Declarative data point field definitions
     _dp_color: Final = DataPointField(field=Field.COLOR, dpt=DpInteger)
 
-    @state_property
+    @property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         if (color := self._dp_color.value) is not None:
@@ -490,9 +490,9 @@ class CustomDpColorDimmerEffect(CustomDpColorDimmer):
     # Declarative data point field definitions
     _dp_effect: Final = DataPointField(field=Field.PROGRAM, dpt=DpInteger)
 
-    effects: Final = DelegatedProperty[tuple[str, ...] | None](path="_effects", kind=Kind.STATE)
+    effects: Final = DelegatedProperty[tuple[str, ...] | None](path="_effects")
 
-    @state_property
+    @property
     def effect(self) -> str | None:
         """Return the current effect."""
         if self._dp_effect.value is not None:
@@ -526,7 +526,7 @@ class CustomDpColorTempDimmer(CustomDpDimmer):
     # Declarative data point field definitions
     _dp_color_level: Final = DataPointField(field=Field.COLOR_LEVEL, dpt=DpFloat)
 
-    @state_property
+    @property
     def color_temp_kelvin(self) -> int | None:
         """Return the color temperature in kelvin."""
         return math.floor(
@@ -588,6 +588,45 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         return (self._dp_level,)
 
     @property
+    def color_temp_kelvin(self) -> int | None:
+        """Return the color temperature in kelvin."""
+        if not self._dp_color_temperature_kelvin.value:
+            return None
+        return self._dp_color_temperature_kelvin.value
+
+    @property
+    def effects(self) -> tuple[str, ...] | None:
+        """Return the supported effects."""
+        return self._dp_effect.values or ()
+
+    @property
+    def has_color_temperature(self) -> bool:
+        """Return True if light currently has color temperature (mode-dependent)."""
+        return self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE
+
+    @property
+    def has_effects(self) -> bool:
+        """Return True if light currently has effects (mode-dependent)."""
+        return (
+            self._device_operation_mode != _DeviceOperationMode.PWM
+            and self.effects is not None
+            and len(self.effects) > 0
+        )
+
+    @property
+    def has_hs_color(self) -> bool:
+        """Return True if light currently has hs color (mode-dependent)."""
+        return self._device_operation_mode in (
+            _DeviceOperationMode.RGBW,
+            _DeviceOperationMode.RGB,
+        )
+
+    @property
+    def hs_color(self) -> tuple[float, float] | None:
+        """Return the hue and saturation color value [float, float]."""
+        return self._dp_hs_color.value
+
+    @property
     def usage(self) -> DataPointUsage:
         """
         Return the data_point usage.
@@ -600,45 +639,6 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
         ) or (self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE and self._channel.no in (3, 4)):
             return DataPointUsage.NO_CREATE
         return self._get_data_point_usage()
-
-    @state_property
-    def color_temp_kelvin(self) -> int | None:
-        """Return the color temperature in kelvin."""
-        if not self._dp_color_temperature_kelvin.value:
-            return None
-        return self._dp_color_temperature_kelvin.value
-
-    @state_property
-    def effects(self) -> tuple[str, ...] | None:
-        """Return the supported effects."""
-        return self._dp_effect.values or ()
-
-    @state_property
-    def has_color_temperature(self) -> bool:
-        """Return True if light currently has color temperature (mode-dependent)."""
-        return self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE
-
-    @state_property
-    def has_effects(self) -> bool:
-        """Return True if light currently has effects (mode-dependent)."""
-        return (
-            self._device_operation_mode != _DeviceOperationMode.PWM
-            and self.effects is not None
-            and len(self.effects) > 0
-        )
-
-    @state_property
-    def has_hs_color(self) -> bool:
-        """Return True if light currently has hs color (mode-dependent)."""
-        return self._device_operation_mode in (
-            _DeviceOperationMode.RGBW,
-            _DeviceOperationMode.RGB,
-        )
-
-    @state_property
-    def hs_color(self) -> tuple[float, float] | None:
-        """Return the hue and saturation color value [float, float]."""
-        return self._dp_hs_color.value
 
     @bind_collector
     async def turn_on(self, *, collector: CallParameterCollector | None = None, **kwargs: Unpack[LightOnArgs]) -> None:
@@ -675,12 +675,12 @@ class CustomDpIpRGBWColorTempLight(CustomDpIpRGBWLight):
 
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
 
-    @state_property
+    @property
     def has_color_temperature(self) -> bool:
         """Return True if color temperature is the active color mode."""
         return self.color_temp_kelvin is not None
 
-    @state_property
+    @property
     def has_hs_color(self) -> bool:
         """Return True if hue/saturation is the active color mode."""
         return not self.has_color_temperature
@@ -714,19 +714,19 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
         """Returns the list of relevant data points. To be overridden by subclasses."""
         return (self._dp_level,)
 
-    @state_property
+    @property
     def color_temp_kelvin(self) -> int | None:
         """Return the color temperature in kelvin."""
         if not self._dp_color_temperature_kelvin.value:
             return None
         return self._dp_color_temperature_kelvin.value
 
-    @state_property
+    @property
     def effects(self) -> tuple[str, ...] | None:
         """Return the supported effects."""
         return self._dp_effect.values or ()
 
-    @state_property
+    @property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         return self._dp_hs_color.value
@@ -766,30 +766,30 @@ class CustomDpIpFixedColorLight(CustomDpDimmer):
 
     _effect_list: tuple[str, ...]
 
-    channel_color_name: Final = DelegatedProperty[str | None](path="_dp_channel_color.value", kind=Kind.STATE)
-    effects: Final = DelegatedProperty[tuple[str, ...] | None](path="_effect_list", kind=Kind.STATE)
+    channel_color_name: Final = DelegatedProperty[str | None](path="_dp_channel_color.value")
+    effects: Final = DelegatedProperty[tuple[str, ...] | None](path="_effect_list")
 
-    @state_property
+    @property
     def channel_hs_color(self) -> tuple[float, float] | None:
         """Return the channel hue and saturation color value [float, float]."""
         if self._dp_channel_color.value is not None:
             return FIXED_COLOR_TO_HS_CONVERTER.get(self._dp_channel_color.value, (_MIN_HUE, _MIN_SATURATION))
         return None
 
-    @state_property
+    @property
     def color_name(self) -> str | None:
         """Return the name of the color."""
         val = self._dp_color.value
         return val if isinstance(val, str) else None
 
-    @state_property
+    @property
     def effect(self) -> str | None:
         """Return the current effect."""
         if (effect := self._dp_effect.value) is not None and effect in self._effect_list:
             return effect if isinstance(effect, str) else None
         return None
 
-    @state_property
+    @property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         if (
@@ -869,15 +869,15 @@ class CustomDpSoundPlayerLed(CustomDpDimmer):
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
 
     # Expose available options via DelegatedProperty (from VALUE_LISTs)
-    available_colors: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_color.values", kind=Kind.STATE)
+    available_colors: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_color.values")
 
-    @state_property
+    @property
     def color_name(self) -> str | None:
         """Return the name of the color."""
         val = self._dp_color.value
         return val if isinstance(val, str) else None
 
-    @state_property
+    @property
     def hs_color(self) -> tuple[float, float] | None:
         """Return the hue and saturation color value [float, float]."""
         if (

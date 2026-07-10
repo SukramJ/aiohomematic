@@ -22,8 +22,7 @@ from aiohomematic.interfaces import (
 )
 from aiohomematic.model.data_point import CallbackDataPoint
 from aiohomematic.model.support import HubPathData, PathData, generate_unique_id, get_hub_data_point_name_data
-from aiohomematic.property_decorators import DelegatedProperty, Kind, config_property, state_property
-from aiohomematic.support.mixins import PayloadMixin
+from aiohomematic.property_decorators import DelegatedProperty
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ _ALARM_MESSAGES_SENSOR_NAME: Final = "alarm_messages"
 _ALARM_MESSAGES_PREFIX: Final = "alarm_"
 
 
-class HmAlarmMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, PayloadMixin):
+class HmAlarmMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol):
     """Class for a Homematic alarm messages sensor."""
 
     __slots__ = (
@@ -56,7 +55,6 @@ class HmAlarmMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, Paylo
         parameter_visibility_provider: ParameterVisibilityProviderProtocol,
     ) -> None:
         """Initialize the data_point."""
-        PayloadMixin.__init__(self)
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=HUB_ADDRESS,
@@ -80,12 +78,22 @@ class HmAlarmMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, Paylo
         self._alarms: tuple[AlarmMessageData, ...] = ()
         self._cached_alarm_count: int = 0
 
-    alarms: Final = DelegatedProperty[tuple[AlarmMessageData, ...]](path="_alarms", kind=Kind.STATE)
-    available: Final = DelegatedProperty[bool](path="_central_info.available", kind=Kind.STATE)
+    alarms: Final = DelegatedProperty[tuple[AlarmMessageData, ...]](path="_alarms")
+    available: Final = DelegatedProperty[bool](path="_central_info.available")
     enabled_default: Final = DelegatedProperty[bool](path="_enabled_default")
     full_name: Final = DelegatedProperty[str](path="_name_data.full_name")
-    name: Final = DelegatedProperty[str](path="_name_data.name", kind=Kind.CONFIG)
+    name: Final = DelegatedProperty[str](path="_name_data.name")
     state_uncertain: Final = DelegatedProperty[bool](path="_state_uncertain")
+
+    @property
+    def additional_information(self) -> dict[str, Any]:
+        """Return additional information about the data point."""
+        ainfo = super().additional_information
+        for idx, m in enumerate(self._alarms, start=1):
+            ainfo[f"{_ALARM_MESSAGES_PREFIX}{idx}"] = (
+                f"{m.device_name}: {m.display_name}" if m.device_name else m.display_name
+            )
+        return ainfo
 
     @property
     def channel(self) -> ChannelProtocol | None:
@@ -112,22 +120,12 @@ class HmAlarmMessagesSensor(CallbackDataPoint, HubSensorDataPointProtocol, Paylo
         """Return translation key for Home Assistant."""
         return "alarm_messages"
 
-    @config_property
+    @property
     def unit(self) -> str | None:
         """Return the unit of the data_point."""
         return None
 
-    @state_property
-    def additional_information(self) -> dict[str, Any]:
-        """Return additional information about the data point."""
-        ainfo = super().additional_information
-        for idx, m in enumerate(self._alarms, start=1):
-            ainfo[f"{_ALARM_MESSAGES_PREFIX}{idx}"] = (
-                f"{m.device_name}: {m.display_name}" if m.device_name else m.display_name
-            )
-        return ainfo
-
-    @state_property
+    @property
     def value(self) -> int:
         """Return the count of active alarm messages."""
         return len(self._alarms)

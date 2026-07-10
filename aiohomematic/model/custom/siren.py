@@ -8,7 +8,7 @@ Public API of this module is defined by __all__.
 
 from abc import abstractmethod
 from enum import StrEnum, unique
-from typing import Final, TypedDict, Unpack
+from typing import ClassVar, Final, TypedDict, Unpack
 
 from aiohomematic import i18n
 from aiohomematic.client import CommandPriority
@@ -145,6 +145,9 @@ class CustomDpIpSiren(BaseCustomDpSiren):
     _dp_duration: Final = CombinedTimerField(value_field=Field.DURATION, unit_field=Field.DURATION_UNIT, visible=True)
     _dp_optical_alarm_active: Final = DataPointField(field=Field.OPTICAL_ALARM_ACTIVE, dpt=DpBinarySensor)
     _dp_optical_alarm_selection: Final = DataPointField(field=Field.OPTICAL_ALARM_SELECTION, dpt=DpActionSelect)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset(
+        {Field.ACOUSTIC_ALARM_ACTIVE, Field.OPTICAL_ALARM_ACTIVE}
+    )
 
     available_lights: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_optical_alarm_selection.values")
     available_tones: Final = DelegatedProperty[tuple[str, ...] | None](path="_dp_acoustic_alarm_selection.values")
@@ -227,6 +230,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         field=Field.SMOKE_DETECTOR_ALARM_STATUS, dpt=DpSensor[str | None]
     )
     _dp_smoke_detector_command: Final = DataPointField(field=Field.SMOKE_DETECTOR_COMMAND, dpt=DpActionSelect)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.SMOKE_DETECTOR_ALARM_STATUS})
 
     @property
     def available_lights(self) -> tuple[str, ...] | None:
@@ -277,6 +281,8 @@ class CustomDpSoundPlayer(BaseCustomDpSiren):
     _dp_soundfile: Final = DataPointField(field=Field.SOUNDFILE, dpt=DpSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    # ACTIVITY_STATE carries is_on ("is playing") — the state-carrying field here.
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.DIRECTION})
 
     # Expose available options via DelegatedProperty (from ActionSelect VALUE_LISTs)
     @staticmethod

@@ -55,7 +55,11 @@ Custom device profiles are used when a specific device (model) requires a bespok
    - If you need special behavior, subclass CustomDataPoint and override:
      - Use `DataPointField` descriptors for declarative field definitions
      - Override `_post_init()` for additional initialization after field resolution
-     - `_readable_data_points` / `_relevant_data_points` (to tune exposure)
+     - Declare `_validity_relevant_fields: ClassVar[frozenset[Field]]` — the fields that
+       gate validity (`is_valid`/`value_state`, see ADR-0025). Every concrete class must
+       resolve it (no base default); do not override `_relevant_data_points`. Add the new
+       class to `EXPECTED_VALIDITY_RELEVANT_FIELDS` in
+       `tests/contract/test_cdp_validity_contract.py`.
      - `@property` getters if you compute an aggregate state
 
 2. **Register the device with DeviceProfileRegistry**

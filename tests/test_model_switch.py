@@ -2,6 +2,7 @@
 # Copyright (c) 2021-2026
 """Tests for switch data points of aiohomematic."""
 
+from datetime import datetime
 from typing import cast
 from unittest.mock import AsyncMock, call
 
@@ -208,6 +209,30 @@ class TestCustomSwitch:
 
         assert switch.device.week_profile.has_schedule is False
         assert mock_client.get_paramset.await_count == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_switch_validity_gated_by_state_only(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """GROUP_STATE must not block switch is_valid."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        switch = cast(CustomDpSwitch, get_prepared_custom_data_point(central, "VCU2128127", 4))
+        assert switch._dp_group_state not in switch._relevant_data_points
+        assert switch.is_valid is False
+        switch._dp_state._set_refreshed_at(refreshed_at=datetime.now())
+        assert switch.is_valid is True
 
 
 class TestGenericSwitch:

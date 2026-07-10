@@ -9,12 +9,11 @@ Public API of this module is defined by __all__.
 import asyncio
 from enum import IntEnum, StrEnum, unique
 import logging
-from typing import Final, Unpack, override
+from typing import ClassVar, Final, Unpack, override
 
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
-from aiohomematic.interfaces import GenericDataPointProtocolAny
 from aiohomematic.model.custom.capabilities.cover import (
     BLIND_CAPABILITIES,
     COVER_CAPABILITIES,
@@ -124,6 +123,7 @@ class CustomDpCover(PositionMixin, CustomDataPoint):
     _dp_group_level: Final = DataPointField(field=Field.GROUP_LEVEL, dpt=DpSensor[float | None])
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
     _dp_stop: Final = DataPointField(field=Field.STOP, dpt=DpAction)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.LEVEL})
 
     @property
     def _group_level(self) -> float:
@@ -303,13 +303,6 @@ class CustomDpBlind(CustomDpCover):
         ):
             return float(self._dp_group_level_2.value)
         return self._dp_level_2.value if self._dp_level_2.value is not None else self._closed_level
-
-    @property
-    def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """Return the list of relevant data points for state validity checks."""
-        if self._dp_level_2.value is not None:
-            return self._readable_data_points
-        return tuple(dp for dp in self._readable_data_points if dp is not self._dp_level_2)
 
     @property
     def _target_level(self) -> float | None:
@@ -591,6 +584,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     _dp_door_command: Final = DataPointField(field=Field.DOOR_COMMAND, dpt=DpActionSelect)
     _dp_door_state: Final = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
     _dp_section: Final = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.DOOR_STATE})
 
     @property
     def current_position(self) -> int | None:

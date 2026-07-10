@@ -9,7 +9,7 @@ Public API of this module is defined by __all__.
 from collections.abc import Mapping
 from enum import StrEnum, unique
 import math
-from typing import Final, TypedDict, Unpack, override
+from typing import ClassVar, Final, TypedDict, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.model.combined.field import CombinedHsColorField, CombinedTimerField
@@ -19,7 +19,7 @@ from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.mixins import BrightnessMixin, StateChangeArgs, StateChangeTimerMixin
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpActionSelect, DpFloat, DpInteger, DpSelect, DpSensor, GenericDataPointAny
+from aiohomematic.model.generic import DpActionSelect, DpFloat, DpInteger, DpSelect, DpSensor
 from aiohomematic.property_decorators import DelegatedProperty, hm_property
 
 # Activity states indicating LED is active
@@ -235,6 +235,7 @@ class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
     _dp_level: Final = DataPointField(field=Field.LEVEL, dpt=DpFloat)
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE)
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.LEVEL})
 
     @property
     def _commanded_brightness(self) -> int | None:
@@ -572,22 +573,6 @@ class CustomDpIpRGBWLight(CustomDpDimmer):
             return _DeviceOperationMode.RGBW
 
     @property
-    def _relevant_data_points(self) -> tuple[GenericDataPointAny, ...]:
-        """Returns the list of relevant data points. To be overridden by subclasses."""
-        if self._device_operation_mode == _DeviceOperationMode.RGBW:
-            return (
-                self._dp_hue,
-                self._dp_level,
-                self._dp_saturation,
-                self._dp_color_temperature_kelvin,
-            )
-        if self._device_operation_mode == _DeviceOperationMode.RGB:
-            return self._dp_hue, self._dp_level, self._dp_saturation
-        if self._device_operation_mode == _DeviceOperationMode.TUNABLE_WHITE:
-            return self._dp_level, self._dp_color_temperature_kelvin
-        return (self._dp_level,)
-
-    @property
     def color_temp_kelvin(self) -> int | None:
         """Return the color temperature in kelvin."""
         if not self._dp_color_temperature_kelvin.value:
@@ -708,11 +693,6 @@ class CustomDpIpDrgDaliLight(CustomDpDimmer):
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE, unit_field=Field.ON_TIME_UNIT)
     _dp_ramp_time = CombinedTimerField(value_field=Field.RAMP_TIME_VALUE, unit_field=Field.RAMP_TIME_UNIT)
     _dp_saturation: Final = DataPointField(field=Field.SATURATION, dpt=DpFloat)
-
-    @property
-    def _relevant_data_points(self) -> tuple[GenericDataPointAny, ...]:
-        """Returns the list of relevant data points. To be overridden by subclasses."""
-        return (self._dp_level,)
 
     @property
     def color_temp_kelvin(self) -> int | None:

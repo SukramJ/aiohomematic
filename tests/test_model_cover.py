@@ -3,6 +3,7 @@
 """Tests for cover data points of aiohomematic."""
 
 import asyncio
+from datetime import datetime
 from typing import cast
 from unittest.mock import DEFAULT, call
 
@@ -151,6 +152,37 @@ class TestCustomDpCover:
         await cover.set_position(position=40)
         assert call_count == len(mock_client.method_calls)
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cover_validity_gated_by_level_only(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """DIRECTION/GROUP_LEVEL must not block cover is_valid after a CCU restart."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        cover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU8537918", 4))
+        # Preconditions: DIRECTION is a real, readable data point on this device.
+        assert cover._dp_direction.is_readable
+        # Secondary fields must not gate validity.
+        assert cover._dp_direction not in cover._relevant_data_points
+        assert cover._dp_group_level not in cover._relevant_data_points
+        # Nothing refreshed yet -> invalid.
+        assert cover.is_valid is False
+        # Simulate a post-CCU-restart init where only LEVEL arrives (bulk fetch).
+        cover._dp_level._set_refreshed_at(refreshed_at=datetime.now())
+        # The cover must be valid even though DIRECTION/GROUP_LEVEL never refreshed.
+        assert cover.is_valid is True
+
 
 class TestCustomDpWindowDrive:
     """Tests for CustomDpWindowDrive data points."""
@@ -230,6 +262,31 @@ class TestCustomDpWindowDrive:
 
 class TestCustomDpBlind:
     """Tests for CustomDpBlind data points."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_blind_validity_not_gated_by_level_2(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """LEVEL_2 (optional slats level) must not block blind is_valid (ADR-0025)."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        cover = cast(CustomDpBlind, get_prepared_custom_data_point(central, "VCU0000144", 1))
+        assert cover._dp_level_2.is_readable
+        assert cover._dp_level_2 not in cover._relevant_data_points
+        assert cover.is_valid is False
+        cover._dp_level._set_refreshed_at(refreshed_at=datetime.now())
+        assert cover.is_valid is True
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

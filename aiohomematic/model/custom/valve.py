@@ -7,7 +7,7 @@ Public API of this module is defined by __all__.
 """
 
 import logging
-from typing import Final, Unpack, override
+from typing import ClassVar, Final, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.model.combined.field import CombinedTimerField
@@ -33,6 +33,7 @@ class CustomDpIpIrrigationValve(StateChangeTimerMixin, GroupStateMixin, CustomDa
     _dp_group_state = DataPointField(field=Field.GROUP_STATE, dpt=DpBinarySensor)
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.STATE})
 
     value: Final = DelegatedProperty[bool | None](path="_dp_state.value")
 

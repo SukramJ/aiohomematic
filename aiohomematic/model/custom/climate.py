@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import IntEnum, StrEnum, unique
 import logging
-from typing import Final, Unpack, cast, override
+from typing import ClassVar, Final, Unpack, cast, override
 
 from aiohomematic import i18n
 from aiohomematic.central.events import DataPointStateChangedEvent
@@ -25,7 +25,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
+from aiohomematic.interfaces import ChannelProtocol
 from aiohomematic.model.custom.capabilities.climate import (
     BASIC_CLIMATE_CAPABILITIES,
     IP_THERMOSTAT_CAPABILITIES,
@@ -182,6 +182,7 @@ class BaseCustomDpClimate(CustomDataPoint):
     _dp_temperature: Final = DataPointField(field=Field.TEMPERATURE, dpt=DpSensor[float | None])
     _dp_temperature_maximum: Final = DataPointField(field=Field.TEMPERATURE_MAXIMUM, dpt=DpFloat)
     _dp_temperature_minimum: Final = DataPointField(field=Field.TEMPERATURE_MINIMUM, dpt=DpFloat)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.TEMPERATURE, Field.SETPOINT})
 
     def __init__(
         self,
@@ -212,28 +213,6 @@ class BaseCustomDpClimate(CustomDataPoint):
     current_humidity: Final = DelegatedProperty[int | None](path="_dp_humidity.value")
     current_temperature: Final = DelegatedProperty[float | None](path="_dp_temperature.value")
     target_temperature: Final = DelegatedProperty[float | None](path="_dp_setpoint.value")
-
-    @property
-    def _validity_irrelevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """
-        Return readable data points that must not affect climate validity (#3255).
-
-        Actuator/activity values (``LEVEL``, ``STATE``, ``VALVE_STATE``) are not reported by
-        the CCU for heating groups (``HmIP-HEATING`` on the VirtualDevices interface), and since
-        the #3228 fixes the ``getValue`` fallback no longer fills them with a placeholder. Left
-        in the validity set they would keep ``is_refreshed``/``is_valid`` false forever, freezing
-        ``current_temperature``/``current_humidity`` (``value_state=restored``) while the sibling
-        sensors keep updating. Subclasses list their actuator data points here.
-        """
-        return ()
-
-    @property
-    @override
-    def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """Return readable data points relevant for validity, excluding actuator values (#3255)."""
-        if not (irrelevant := self._validity_irrelevant_data_points):
-            return self._readable_data_points
-        return tuple(dp for dp in self._readable_data_points if dp not in irrelevant)
 
     @property
     def _temperature_for_heat_mode(self) -> float:
@@ -488,6 +467,9 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     _dp_temperature_offset: Final = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpSelect)
     _dp_valve_state: Final = DataPointField(field=Field.VALVE_STATE, dpt=DpSensor[int | None])
     _dp_week_program_pointer: Final = DataPointField(field=Field.WEEK_PROGRAM_POINTER, dpt=DpSelect)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset(
+        {Field.TEMPERATURE, Field.SETPOINT, Field.CONTROL_MODE}
+    )
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:
@@ -511,12 +493,6 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
                 profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i - 1
 
         return profiles
-
-    @property
-    @override
-    def _validity_irrelevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """Exclude the VALVE_STATE actuator readback from validity checks (#3255)."""
-        return (self._dp_valve_state,)
 
     @property
     def activity(self) -> ClimateActivity | None:
@@ -693,6 +669,9 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     _dp_set_point_mode: Final = DataPointField(field=Field.SET_POINT_MODE, dpt=DpInteger)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpBinarySensor)
     _dp_temperature_offset: Final = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpFloat)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset(
+        {Field.TEMPERATURE, Field.SETPOINT, Field.SET_POINT_MODE}
+    )
 
     optimum_start_stop: Final = DelegatedProperty[bool | None](path="_dp_optimum_start_stop.value")
     temperature_offset: Final = DelegatedProperty[float | None](path="_dp_temperature_offset.value")
@@ -725,22 +704,6 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
                 profiles[ClimateProfile(f"{PROFILE_PREFIX}{i}")] = i
 
         return profiles
-
-    @property
-    @override
-    def _validity_irrelevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """
-        Exclude data points a valve-only heating group never refreshes from validity checks.
-
-        ``LEVEL``/``STATE`` are actuator values the CCU does not report for heating groups
-        (#3255). ``HUMIDITY``/``HEATING_COOLING`` are only fed by a wall thermostat
-        (``HmIP-WTH``/``STHD``): a group built from valves alone (``HmIP-eTRV``) never receives
-        events for them, and since #3228 ``VirtualDevices`` get no ``getValue`` fallback. Left in
-        the validity set they keep ``is_refreshed``/``is_valid`` false forever, freezing
-        ``current_temperature`` (``value_state=restored``) even though ``ACTUAL_TEMPERATURE``
-        arrives via event (#3279).
-        """
-        return (self._dp_level, self._dp_state, self._dp_humidity, self._dp_heating_mode)
 
     @property
     def activity(self) -> ClimateActivity | None:

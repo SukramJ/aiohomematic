@@ -10,7 +10,7 @@ Public API of this module is defined by __all__.
 """
 
 import logging
-from typing import Final, TypedDict, Unpack
+from typing import ClassVar, Final, TypedDict, Unpack
 
 from aiohomematic import i18n
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
@@ -78,6 +78,9 @@ class CustomDpTextDisplay(CustomDataPoint):
     _dp_interval: Final = DataPointField(field=Field.INTERVAL, dpt=DpActionSelect)
     _dp_repetitions: Final = DataPointField(field=Field.REPETITIONS, dpt=DpActionSelect)
     _dp_burst_limit_warning: Final = DataPointField(field=Field.BURST_LIMIT_WARNING, dpt=DpBinarySensor)
+    # Write-only device: no field gates validity, BURST_LIMIT_WARNING is a warning
+    # channel, not a state carrier.
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset()
 
     # Expose available options via DelegatedProperty
     @staticmethod

@@ -1,3 +1,26 @@
+# Version 2026.7.6 (2026-07-10)
+
+## What's Changed
+
+### Changed
+
+- **Custom data point validity is now gated only by state-carrying fields
+  (ADR-0025).** Secondary values (activity/direction readbacks, group-channel
+  readbacks, colors, extra sensors, MASTER config values) can stay unrefreshed for
+  hours after a CCU restart — nothing re-polls them — and previously dragged the whole
+  custom data point to `is_valid=False`, leaving Home Assistant entities stuck in
+  `value_state=restored` (covers; same class as climate #3255/#3279). Every
+  custom data point class now declares its validity-relevant fields in a single
+  declarative `_validity_relevant_fields` set (cover/blind/dimmer: `LEVEL`;
+  switch/valve/access permission: `STATE`; garage: `DOOR_STATE`; locks:
+  `LOCK_STATE`/`STATE`/`BUTTON_LOCK`; climate: `ACTUAL_TEMPERATURE` + setpoint + mode
+  source; sirens: alarm-active states; sound player: `ACTIVITY_STATE`). The climate
+  blocklist `_validity_irrelevant_data_points` (#3255) and the per-class
+  `_relevant_data_points` overrides (blind `LEVEL_2`, RGBW operation-mode allowlist,
+  DALI) are replaced by the unified mechanism. A new contract test
+  (`tests/contract/test_cdp_validity_contract.py`) pins the field set of all 27
+  classes.
+
 # Version 2026.7.5 (2026-07-10)
 
 ## What's Changed

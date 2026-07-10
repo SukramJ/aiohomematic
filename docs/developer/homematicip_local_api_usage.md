@@ -269,7 +269,9 @@ BaseDataPoint is the core class for all device parameters and controls.
 
 #### State Information
 
-- **`is_valid`** - Value validity status
+- **`is_valid`** - Value validity status. For custom data points, `is_valid` is gated
+  only by the validity-relevant fields declared for that class (see
+  [ADR-0025](../adr/0025-cdp-validity-relevant-fields.md)), not by every readable field.
 - **`is_readable`** - Whether parameter is readable
 - **`available`** - Data point availability
 - **`state_uncertain`** - State uncertainty flag

@@ -8,7 +8,7 @@ Public API of this module is defined by __all__.
 
 from abc import abstractmethod
 from enum import StrEnum, unique
-from typing import Final
+from typing import ClassVar, Final
 
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
@@ -118,6 +118,7 @@ class CustomDpIpLock(BaseCustomDpLock):
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
     _dp_lock_state: Final = DataPointField(field=Field.LOCK_STATE, dpt=DpSensor[str | None])
     _dp_lock_target_level: Final = DataPointField(field=Field.LOCK_TARGET_LEVEL, dpt=DpActionSelect)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.LOCK_STATE})
 
     @property
     def is_locked(self) -> bool:
@@ -165,6 +166,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
 
     # Declarative data point field definitions
     _dp_button_lock: Final = DataPointField(field=Field.BUTTON_LOCK, dpt=DpSwitch)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.BUTTON_LOCK})
 
     @property
     def data_point_name_postfix(self) -> str:
@@ -206,6 +208,7 @@ class CustomDpRfLock(BaseCustomDpLock):
     _dp_error: Final = DataPointField(field=Field.ERROR, dpt=DpSensor[str | None])
     _dp_open: Final = DataPointField(field=Field.OPEN, dpt=DpAction)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.STATE})
 
     @property
     def is_jammed(self) -> bool:

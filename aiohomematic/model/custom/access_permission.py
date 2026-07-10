@@ -7,7 +7,7 @@ Public API of this module is defined by __all__.
 """
 
 from enum import StrEnum, unique
-from typing import Final, Unpack, override
+from typing import ClassVar, Final, Unpack, override
 
 from aiohomematic import ccu_translations
 from aiohomematic.const import DataPointCategory, Field, Parameter
@@ -47,6 +47,7 @@ class CustomDpIpAccessPermission(CustomDataPoint):
     # Declarative data point field definitions
     _dp_authorization: Final = DataPointField(field=Field.ACCESS_AUTHORIZATION, dpt=DpActionSelect)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpBinarySensor)
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.STATE})
 
     value: Final = DelegatedProperty[bool | None](path="_dp_state.value")
 

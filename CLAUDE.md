@@ -192,9 +192,9 @@ aiohomematic/
 ├── metrics/         Performance/telemetry emitters, aggregator, stats
 ├── translations/    Runtime i18n catalogs (en.json, de.json)
 ├── rega_scripts/    ReGa scripts run on the CCU
-└── (top-level modules: api, const, async_support, backend_detection, ccu_translations,
-    compat, context, converter, decorators, easymode_data, exceptions, hmcli, i18n,
-    logging_context, parameter_tools, property_decorators, tracing, type_aliases, validator)
+└── (top-level modules: const, async_support, backend_detection, ccu_translations,
+    compat, context, converter, decorators, easymode_data, exceptions, i18n,
+    parameter_tools, property_decorators, type_aliases, validator)
 ```
 
 ### Companion packages and folders
@@ -218,7 +218,7 @@ script/                      Dev scripts (linters, generators, bootstrap, …).
 - `docs/architecture/` — architecture overview, data flow, event_driven_metrics, protocol_selection_guide, sequence_diagrams, value_resolution, caching
 - `docs/adr/` — Architecture Decision Records
 - `docs/contributor/` — `contributing.md`, `dev-environment.md`, `git-workflow.md`, `release_process.md`, `coding/` (docstring standards & templates, naming, i18n), `testing/`
-- `docs/developer/` — backend_detection, cli_tool, consumer_api, error_handling, extension_points, homeassistant_lifecycle, homematicip_local_api_usage, incident_system
+- `docs/developer/` — backend_detection, consumer_api, error_handling, extension_points, homeassistant_lifecycle, homematicip_local_api_usage, incident_system
 - `docs/reference/` — glossary, common operations, API reference (`api/`)
 - `docs/user/` — user-facing device support, HA integration, features, troubleshooting
 - `docs/migrations/` — migration guides for breaking changes

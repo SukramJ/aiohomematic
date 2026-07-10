@@ -4,24 +4,18 @@ This guide explains how to use aiohomematic from external applications like Home
 
 ## API Layers Overview
 
-aiohomematic provides three API layers for different use cases:
+aiohomematic provides two API layers for different use cases:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  Layer 1: HomematicAPI Facade (Simplest)           │
-│  - Quick start for basic operations                │
-│  - Context manager support                         │
-└─────────────────────────────────────────────────────┘
-                        ▼
-┌─────────────────────────────────────────────────────┐
-│  Layer 2: CentralConfig + CentralUnit (Full Control)│
+│  Layer 1: CentralConfig + CentralUnit (Full Control)│
 │  - Complete lifecycle management                    │
 │  - Multi-interface support                         │
 │  - Event system access                             │
 └─────────────────────────────────────────────────────┘
                         ▼
 ┌─────────────────────────────────────────────────────┐
-│  Layer 3: Protocol Interfaces (Dependency Injection)│
+│  Layer 2: Protocol Interfaces (Dependency Injection)│
 │  - Minimal coupling                                │
 │  - Testable components                             │
 │  - Fine-grained dependencies                       │
@@ -30,49 +24,9 @@ aiohomematic provides three API layers for different use cases:
 
 ---
 
-## Layer 1: HomematicAPI Facade
+## Layer 1: CentralConfig + CentralUnit
 
-The simplest way to interact with aiohomematic. Best for quick scripts and simple integrations.
-
-```python
-from aiohomematic.api import HomematicAPI
-
-async def main():
-    async with HomematicAPI.connect(
-        host="192.168.1.100",
-        username="Admin",
-        password="secret",
-    ) as api:
-        # List all devices
-        devices = api.list_devices()
-        for device in devices:
-            print(f"{device.name}: {device.model}")
-
-        # Read a value
-        value = await api.read_value(
-            channel_address="VCU0000001:1",
-            parameter="STATE",
-        )
-
-        # Write a value
-        await api.write_value(
-            channel_address="VCU0000001:1",
-            parameter="STATE",
-            value=True,
-        )
-
-        # Subscribe to updates
-        def on_update(event):
-            print(f"Update: {event}")
-
-        api.subscribe_to_updates(callback=on_update)
-```
-
----
-
-## Layer 2: CentralConfig + CentralUnit
-
-For applications needing full control over lifecycle, multiple interfaces, and the event system.
+The entry point for every consumer, from quick scripts to full applications needing complete control over lifecycle, multiple interfaces, and the event system.
 
 ### Basic Setup
 
@@ -102,13 +56,13 @@ config = CentralConfig(
     },
 )
 
-# Create and start
-central = config.create_central()
+# Create and start (create_central() is async)
+central = await config.create_central()
 await central.start()
 
 try:
     # Work with devices
-    for device in central.devices.values():
+    for device in central.devices:
         print(f"{device.address}: {device.name}")
 finally:
     await central.stop()
@@ -138,7 +92,7 @@ config = CentralConfig.for_homegear(
 
 ```python
 # Get device by address
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 
 # Get channel
 channel = device.get_channel(channel_address="VCU0000001:1")
@@ -364,7 +318,7 @@ aiohomematic provides bundled availability information through `AvailabilityInfo
 from aiohomematic.model import AvailabilityInfo
 
 # Get availability for a device
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 availability = device.availability
 
 # Check reachability
@@ -413,7 +367,7 @@ if availability.has_signal_info:
 
 ---
 
-## Layer 3: Protocol Interfaces
+## Layer 2: Protocol Interfaces
 
 For advanced use cases requiring minimal coupling and maximum testability.
 

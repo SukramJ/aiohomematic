@@ -26,7 +26,6 @@ Dieses Dokument beschreibt die am häufigsten verwendeten Operationen in aiohome
 ### Starten und Stoppen
 
 ```python
-from aiohomematic.api import HomematicAPI
 from aiohomematic.central import CentralConfig
 
 async def main():
@@ -36,29 +35,25 @@ async def main():
         password="geheim",
     )
 
-    api = HomematicAPI(config=config)
-
-    # Verbindung starten
-    await api.start()
+    # CentralUnit erstellen und starten
+    central = await config.create_central()
+    await central.start()
 
     # Ihre Anwendungslogik hier...
 
     # Sauberes Herunterfahren
-    await api.stop()
+    await central.stop()
 ```
 
 ### Verbindungsstatus überwachen
 
 ```python
-# Mit HomematicAPI
-if api.is_connected:
+# Schnelle Verbindungsprüfung
+if central.client_coordinator.has_clients and not central.connection_state.is_any_issue:
     print("Verbunden")
 
-# Mit CentralUnit für detaillierten Status
-from aiohomematic.central import CentralUnit
+# Detaillierter Status
 from aiohomematic.const import CentralState
-
-central: CentralUnit = api.central
 
 # Gesamten Systemstatus prüfen
 print(f"Central Status: {central.state}")
@@ -103,7 +98,8 @@ Die Bibliothek behandelt die Wiederverbindung automatisch. Zum manuellen Auslös
 await central.client_coordinator.restart_clients()
 
 # Oder Daten nach Wiederverbindung aktualisieren
-await api.refresh_data()
+for client in central.client_coordinator.clients:
+    await client.fetch_all_device_data()
 ```
 
 ---
@@ -114,11 +110,11 @@ await api.refresh_data()
 
 ```python
 # Einfache Auflistung
-for device in api.list_devices():
+for device in central.devices:
     print(f"{device.address}: {device.name}")
 
 # Mit Details
-for device in api.list_devices():
+for device in central.devices:
     print(f"\nGerät: {device.address}")
     print(f"  Name: {device.name}")
     print(f"  Modell: {device.model}")
@@ -132,17 +128,17 @@ for device in api.list_devices():
 
 ```python
 # Nach Adresse
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 
 # Nach Name (durch Liste filtern)
 device = next(
-    (d for d in api.list_devices() if d.name == "Wohnzimmer Schalter"),
+    (d for d in central.devices if d.name == "Wohnzimmer Schalter"),
     None,
 )
 
 # Nach Modell filtern
 hmip_schalter = [
-    d for d in api.list_devices()
+    d for d in central.devices
     if d.model.startswith("HmIP-PS")
 ]
 
@@ -150,7 +146,7 @@ hmip_schalter = [
 from aiohomematic.const import Interface
 
 hmip_geräte = [
-    d for d in api.list_devices()
+    d for d in central.devices
     if d.interface == Interface.HMIP_RF
 ]
 ```
@@ -158,31 +154,31 @@ hmip_geräte = [
 ### Auf Kanäle zugreifen
 
 ```python
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 if device:
-    # Alle Kanäle abrufen
-    for channel_no, channel in device.channels.items():
-        print(f"Kanal {channel_no}: {channel.channel_address}")
+    # Alle Kanäle abrufen (geschlüsselt nach Kanaladresse)
+    for channel_address, channel in device.channels.items():
+        print(f"Kanal {channel.no}: {channel_address}")
 
     # Bestimmten Kanal abrufen
-    channel = device.channels.get(1)
+    channel = device.get_channel(channel_address="VCU0000001:1")
     if channel:
-        print(f"Kanaladresse: {channel.channel_address}")
+        print(f"Kanaladresse: {channel.address}")
 ```
 
 ### Auf Data Points zugreifen
 
 ```python
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 if device:
-    channel = device.channels.get(1)
+    channel = device.get_channel(channel_address="VCU0000001:1")
     if channel:
-        # Alle Data Points auflisten
-        for param_name, dp in channel.data_points.items():
-            print(f"{param_name}: {dp.value} ({dp.unit})")
+        # Alle generischen Data Points auflisten
+        for dp in channel.generic_data_points:
+            print(f"{dp.parameter}: {dp.value} ({dp.unit})")
 
         # Bestimmten Data Point abrufen
-        state_dp = channel.data_points.get("STATE")
+        state_dp = channel.get_generic_data_point(parameter="STATE")
         if state_dp:
             print(f"Status-Wert: {state_dp.value}")
             print(f"Status-Einheit: {state_dp.unit}")
@@ -196,41 +192,37 @@ if device:
 ### Werte lesen
 
 ```python
-# Mit HomematicAPI
-value = await api.read_value(
-    channel_address="VCU0000001:1",
-    parameter="STATE",
-)
+from aiohomematic.const import Interface, ParamsetKey
 
-# Aus verschiedenen Paramsets lesen
-from aiohomematic.const import ParamsetKey
+client = central.client_coordinator.get_client(interface=Interface.HMIP_RF)
 
 # VALUES Paramset (Laufzeitwerte) - Standard
-state = await api.read_value(
+state = await client.get_value(
     channel_address="VCU0000001:1",
-    parameter="STATE",
     paramset_key=ParamsetKey.VALUES,
+    parameter="STATE",
 )
 
 # MASTER Paramset (Konfiguration)
-config_value = await api.read_value(
+config_value = await client.get_value(
     channel_address="VCU0000001:0",
-    parameter="CYCLIC_INFO_MSG",
     paramset_key=ParamsetKey.MASTER,
+    parameter="CYCLIC_INFO_MSG",
 )
 ```
 
 ### Werte schreiben
 
 ```python
-# Mit HomematicAPI
-await api.write_value(
+# Einzelwert über den Client
+await client.set_value(
     channel_address="VCU0000001:1",
+    paramset_key=ParamsetKey.VALUES,
     parameter="STATE",
     value=True,
 )
 
-# Mit ConfigurationCoordinator für mehr Kontrolle
+# Mit ConfigurationCoordinator für mehr Kontrolle (mehrere Werte gleichzeitig)
 await central.configuration.put_paramset(
     channel_address="VCU0000001:1",
     paramset_key_or_link_address=ParamsetKey.VALUES,
@@ -245,9 +237,9 @@ await central.configuration.put_paramset(
 
 ```python
 # Parameter-Einschränkungen vor dem Schreiben prüfen
-device = api.get_device(address="VCU0000001")
-channel = device.channels.get(1)
-level_dp = channel.data_points.get("LEVEL")
+device = central.device_coordinator.get_device(address="VCU0000001")
+channel = device.get_channel(channel_address="VCU0000001:1")
+level_dp = channel.get_generic_data_point(parameter="LEVEL")
 
 if level_dp:
     print(f"Min: {level_dp.min}")      # z.B. 0.0
@@ -258,8 +250,10 @@ if level_dp:
     # Sicheres Schreiben mit Validierung
     new_value = 0.5
     if level_dp.min <= new_value <= level_dp.max:
-        await api.write_value(
-            channel_address=channel.channel_address,
+        client = central.client_coordinator.get_client(interface_id=device.interface_id)
+        await client.set_value(
+            channel_address=channel.address,
+            paramset_key=ParamsetKey.VALUES,
             parameter="LEVEL",
             value=new_value,
         )
@@ -272,13 +266,17 @@ if level_dp:
 ### Einfaches Event-Abonnement
 
 ```python
-from typing import Any
+from aiohomematic.central.events import DataPointValueReceivedEvent
 
-def on_update(address: str, parameter: str, value: Any) -> None:
-    print(f"{address}.{parameter} = {value}")
+async def on_update(*, event: DataPointValueReceivedEvent) -> None:
+    print(f"{event.dpk.channel_address}.{event.dpk.parameter} = {event.value}")
 
 # Abonnieren
-unsubscribe = api.subscribe_to_updates(callback=on_update)
+unsubscribe = central.event_bus.subscribe(
+    event_type=DataPointValueReceivedEvent,
+    event_key=None,
+    handler=on_update,
+)
 
 # ... Anwendung läuft ...
 
@@ -438,11 +436,12 @@ aiohomematic verwendet mehrere Caches:
 ### Daten aktualisieren
 
 ```python
-# Alle Gerätedaten aktualisieren
-await api.refresh_data()
+# Alle Gerätedaten aktualisieren (jeder Client-Fetch wiederholt bei transienten Fehlern)
+for client in central.client_coordinator.clients:
+    await client.fetch_all_device_data()
 
 # Bestimmtes Gerät aktualisieren
-device = api.get_device(address="VCU0000001")
+device = central.device_coordinator.get_device(address="VCU0000001")
 if device:
     await device.refresh_data()
 
@@ -494,7 +493,7 @@ if client:
 
 ```python
 # Firmware-Status prüfen
-for device in api.list_devices():
+for device in central.devices:
     if device.firmware_update_state:
         print(f"{device.name}: {device.firmware_update_state}")
 
@@ -548,8 +547,10 @@ from aiohomematic.exceptions import (
 )
 
 try:
-    await api.write_value(
+    client = central.client_coordinator.get_client(interface=Interface.HMIP_RF)
+    await client.set_value(
         channel_address="VCU0000001:1",
+        paramset_key=ParamsetKey.VALUES,
         parameter="LEVEL",
         value=1.5,
     )

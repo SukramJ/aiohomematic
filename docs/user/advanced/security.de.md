@@ -223,13 +223,16 @@ Für die eigenständige Bibliotheksverwendung:
 
 ```python
 import os
-from aiohomematic.api import HomematicAPI
+from aiohomematic.central import CentralConfig
 
-async with HomematicAPI.connect(
+config = CentralConfig.for_ccu(
     host=os.environ["CCU_HOST"],
     username=os.environ["CCU_USER"],
     password=os.environ["CCU_PASSWORD"],
-) as api:
+)
+central = await config.create_central()
+
+async with central:
     ...
 ```
 

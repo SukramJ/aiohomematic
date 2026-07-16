@@ -1,3 +1,19 @@
+# Version 2026.7.7 (2026-07-16)
+
+## What's Changed
+
+### Added
+
+- **`DataPointCategory.ALARM_CONTROL_PANEL` / `DataPointType.ALARM_CONTROL_PANEL`
+  — loom-only vocabulary.** aiohomematic itself never spawns an alarm control
+  panel (the CCU has no alarm engine); the members exist so the category
+  vocabulary stays in lock-step with `openccu-loom` (daemon ≥ 0.42.0 models the
+  panel as a first-class entity) and `homematicip_local` — which derives its HA
+  platform list from `CATEGORIES` — mounts the `alarm_control_panel` platform
+  for the loom backend. Pure vocabulary: no model class, no behaviour change on
+  the CCU path. `CATEGORIES` and `_CATEGORY_TO_DATA_POINT_TYPE` carry the new
+  member.
+
 # Version 2026.7.6 (2026-07-10)
 
 ## What's Changed

@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.7.6"
+VERSION: Final = "2026.7.7"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -824,6 +824,12 @@ class DataPointCategory(StrEnum):
     ACTION = "action"
     ACTION_NUMBER = "action_number"
     ACTION_SELECT = "action_select"
+    # Loom-only category: aiohomematic itself never spawns an alarm control
+    # panel (the CCU has no alarm engine). The member exists so the shared
+    # category vocabulary stays in lock-step with openccu-loom (whose daemon
+    # models the panel as a first-class entity) and homematicip_local can
+    # derive the HA platform from CATEGORIES for the loom backend.
+    ALARM_CONTROL_PANEL = "alarm_control_panel"
     BINARY_SENSOR = "binary_sensor"
     BUTTON = "button"
     CLIMATE = "climate"
@@ -864,6 +870,8 @@ class DataPointType(StrEnum):
     isinstance checks or custom mapping logic.
     """
 
+    # Loom-only type (see DataPointCategory.ALARM_CONTROL_PANEL).
+    ALARM_CONTROL_PANEL = "alarm_control_panel"
     BINARY_SENSOR = "binary_sensor"
     BUTTON = "button"
     CLIMATE = "climate"
@@ -885,6 +893,7 @@ _CATEGORY_TO_DATA_POINT_TYPE: Final[dict[DataPointCategory, DataPointType]] = {
     DataPointCategory.ACTION: DataPointType.BUTTON,
     DataPointCategory.ACTION_NUMBER: DataPointType.NUMBER,
     DataPointCategory.ACTION_SELECT: DataPointType.SELECT,
+    DataPointCategory.ALARM_CONTROL_PANEL: DataPointType.ALARM_CONTROL_PANEL,
     DataPointCategory.BINARY_SENSOR: DataPointType.BINARY_SENSOR,
     DataPointCategory.BUTTON: DataPointType.BUTTON,
     DataPointCategory.CLIMATE: DataPointType.CLIMATE,
@@ -1764,6 +1773,7 @@ HUB_CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
 CATEGORIES: Final[tuple[DataPointCategory, ...]] = (
     DataPointCategory.ACTION_NUMBER,
     DataPointCategory.ACTION_SELECT,
+    DataPointCategory.ALARM_CONTROL_PANEL,
     DataPointCategory.BINARY_SENSOR,
     DataPointCategory.BUTTON,
     DataPointCategory.CLIMATE,

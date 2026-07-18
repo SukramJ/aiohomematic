@@ -1,28 +1,53 @@
 # Issue Analyzer Workflow
 
-This GitHub Actions workflow automatically analyzes newly created issues and provides helpful feedback.
+This GitHub Actions workflow automatically **triages** newly created issues. It deliberately
+does **not** diagnose root causes: an audit of 181 bot-commented issues (2026-07) showed that
+LLM root-cause analyses were fully correct in only 18% of cases and outright wrong in 24%,
+while the data-collection parts (missing diagnostics/log requests) were the reliably useful
+ones. The bot therefore focuses on deterministic checks; do not re-add diagnosis sections.
 
-## Features
+## What the bot does
 
-The workflow uses Claude AI to:
+1. **Checks required raw data (deterministic)**
+   - Detects attached integration diagnostics (.json) and log files (including inline log
+     excerpts in fenced code blocks)
+   - Requests missing data and maintains the `needs-raw-data` triage label
 
-1. **Identify missing information**
-   - Checks if all required fields from the issue template have been filled out
-   - Requests missing information (version, installation type, backend type, etc.)
+2. **Validates the reported version (deterministic)**
+   - Parses the version from the issue-form field (not from free text)
+   - Compares it against the actually published releases of
+     [homematicip_local](https://github.com/sukramj/homematicip_local/releases)
+   - Posts a *neutral* notice when the version is outdated or matches no published release —
+     never a "critical" banner
 
-2. **Suggest relevant documentation**
-   - References appropriate documentation pages in both repositories:
-     - AioHomematic README and Docs
-     - Homematic(IP) Local README
-   - Considers troubleshooting guides and FAQs
+3. **Detects pasted AI analyses (deterministic)**
+   - Flags reports that contain an AI-generated interpretation instead of raw data and
+     redirects the reporter to attach the underlying files
 
-3. **Find similar issues and discussions**
-   - Searches for similar issues (both open and closed)
-   - Helps avoid duplicates and find existing solutions
+4. **Searches for similar issues (GitHub search API)**
+   - Uses the device model (extracted deterministically) plus LLM-suggested search terms
+   - Queries the real GitHub search API (the previous implementation listed the most
+     recently updated issues regardless of relevance)
 
-4. **Multilingual support**
-   - Automatically detects the language (German/English)
-   - Responds in the detected language
+5. **Uses Claude only for triage, not diagnosis**
+   - A short summary (max. 2 sentences), 0-2 documentation links, search terms, and
+     routing flags (device-related, feature request)
+   - The prompt contains the current date and forbids root-cause claims
+   - If the Claude call fails, the deterministic triage comment is still posted
+
+6. **Multilingual support**
+   - Detects the template language (German/English) and responds in it
+
+## Companion workflow: Close Issue - Insufficient Information
+
+`close-insufficient-info.yml` closes an issue that lacks the required data. It is triggered
+manually (`workflow_dispatch`) and protects against premature closes with guardrails:
+
+- refuses to close when the issue contains attachments, screenshots, or inline log excerpts
+- refuses to close issues labeled as feature requests (`enhancement`/`feature`)
+- enforces a minimum waiting period of **72 hours** after the `needs-raw-data` label was
+  applied (or after issue creation), giving reporters time to supply the data
+- `force: true` input overrides all guardrails
 
 ## Setup
 
@@ -41,88 +66,46 @@ To activate the workflow, you need an Anthropic API key:
    - Name: `ANTHROPIC_API_KEY`
    - Value: Your Anthropic API key
 
-2. **Activate workflow**
+2. **Optional: pin the Claude model**
+   - Repository variable `ANALYZER_MODEL` overrides the default model used for the
+     triage summary (no code change needed when a model is renamed)
+
+3. **Activate workflow**
    - The workflow is automatically active after adding the secret
-   - It will run on every newly created issue
+   - It runs on every newly created or edited issue (a comment is only posted once)
 
 ### Permissions
 
 The workflow requires the following permissions (already configured):
-- `issues: write` - To post comments
+
+- `issues: write` - To post comments and maintain labels
 - `contents: read` - To read the repository
 
-## How it works
+## Comment structure
 
-1. **Trigger**: When a new issue is created
-2. **Analysis**: Claude AI analyzes:
-   - Title and content of the issue
-   - Compliance with template requirements
-   - Relevant topics and keywords
-3. **Search**: Searches for similar issues in the repository
-4. **Comment**: Posts a helpful comment with:
-   - Summary
-   - List of missing information (if any)
-   - Relevant documentation links
-   - Similar issues/discussions
+A posted comment can contain (only sections with content are rendered):
 
-## Example Comment
+- Summary (LLM, descriptive only)
+- Version notice (deterministic: outdated / unknown version)
+- Missing required information (diagnostics / log / version field)
+- Raw-data redirect when a pasted AI analysis was detected
+- Feature-request routing hint (pointing to the discussions)
+- Screenshot hint for device-related issues
+- Helpful documentation (max. 2 links)
+- Similar issues (search-API results)
 
-```markdown
-## Automatic Issue Analysis
-
-**Summary:** Connection problem with CCU3 via HTTPS
-
-### Missing Information
-
-To help you better, the following information is missing:
-
-- **Diagnostics data**: Please upload the diagnostics data for the affected device
-- **Protocol file**: The complete log helps with troubleshooting
-
-### Helpful Documentation
-
-The following documentation pages might be helpful:
-
-- [troubleshooting](https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/)
-  _Contains solutions for common connection problems_
-
-### Similar Issues and Discussions
-
-The following issues or discussions might be relevant:
-
-- ✅ #1234: [HTTPS connection fails with self-signed certificate](https://github.com/...)
-- 🔄 #1456: [CCU3 connection timeout](https://github.com/...)
-
----
-_This analysis was generated automatically. For questions or problems, please use the discussions._
-```
+If none of the sections has content, no comment is posted.
 
 ## Customization
 
-### Customize documentation links
-
-The available documentation links are defined in `.github/scripts/analyze_issue.py`.
-
-> **Note:** These links point to the deployed documentation site at `sukramj.github.io/aiohomematic/` which is built from the `main` branch.
-
-```python
-DOCS_LINKS = {
-    "main_readme": "https://sukramj.github.io/aiohomematic/",
-    "homematicip_local_readme": "https://github.com/sukramj/homematicip_local#homematicip_local",
-    "troubleshooting": "https://sukramj.github.io/aiohomematic/user/troubleshooting/homeassistant_troubleshooting/",
-    # ... more links
-}
-```
-
-### Customize analysis prompt
-
-The analysis prompt can be customized in the variable `CLAUDE_ANALYSIS_PROMPT` in `analyze_issue.py`.
+- **Documentation links**: `DOCS_LINKS` in `.github/scripts/analyze_issue.py`
+- **Triage prompt**: `CLAUDE_TRIAGE_PROMPT` in `analyze_issue.py` (keep the no-diagnosis rules!)
+- **Version-field markers**: `VERSION_FIELD_MARKERS` (update when the issue-template labels change)
 
 ## Costs
 
-- The workflow uses Claude 3.5 Sonnet
-- Estimated costs: ~$0.01-0.03 per issue analysis
-- Depends on issue length and complexity
+- One Claude call per issue with a small output budget (max. 600 tokens)
+- Estimated costs: well below $0.01-0.03 per issue
 
 ## Troubleshooting
 
@@ -133,20 +116,22 @@ The analysis prompt can be customized in the variable `CLAUDE_ANALYSIS_PROMPT` i
 
 ### Comment is not posted
 
-- Workflow only posts if there is helpful information to provide
+- The workflow only posts when at least one section has content
 - Check the logs for error messages
 
 ### API errors
 
 - Make sure the API key is valid
 - Check your Anthropic account for sufficient credits
+- The deterministic checks still run and post when the Claude call fails
 
 ## Deactivation
 
 To deactivate the workflow:
+
 1. Delete or rename the file `.github/workflows/issue-analyzer.yml`
 2. Or add at the beginning:
    ```yaml
    on:
-     workflow_dispatch:  # Only manually executable
+     workflow_dispatch: # Only manually executable
    ```

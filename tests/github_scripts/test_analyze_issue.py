@@ -1,4 +1,4 @@
-"""Tests for the GitHub issue-analyzer helper ``detect_ai_generated_analysis``."""
+"""Tests for the GitHub issue-analyzer triage helpers."""
 
 from __future__ import annotations
 
@@ -236,3 +236,366 @@ def test_remove_needs_raw_data_label_noop_when_absent() -> None:
     issue = _FakeIssue()
     analyze_issue.remove_needs_raw_data_label(issue)
     assert issue.removed == []
+
+
+# ---------------------------------------------------------------------------
+# Issue-form parsing
+# ---------------------------------------------------------------------------
+
+_EN_FORM_BODY = """### The problem
+
+The light entity is missing after the update.
+
+### What version of Homematic(IP) Local for OpenCCU has the issue?
+
+2.8.3
+
+### What was the last working version of Homematic(IP) Local for OpenCCU?
+
+_No response_
+
+### What type of installation are you running?
+
+Home Assistant OS
+"""
+
+_DE_FORM_BODY = """### Das Problem
+
+Nach dem Update fehlt die Entität.
+
+### Bei welcher Version von HomematicIP (lokal) tritt das Problem auf?
+
+2.8.1
+
+### Welche war die letzte funktionierende Version von Homematic(IP) Local for OpenCCU?
+
+2.7.3
+"""
+
+
+def test_parse_form_fields_english_template() -> None:
+    """Parse labels and values from an English issue-form body."""
+    fields = analyze_issue.parse_form_fields(_EN_FORM_BODY)
+    assert fields["What version of Homematic(IP) Local for OpenCCU has the issue?"] == "2.8.3"
+    assert fields["What type of installation are you running?"] == "Home Assistant OS"
+
+
+def test_parse_form_fields_normalizes_no_response() -> None:
+    """Normalize the GitHub placeholder for empty fields to an empty string."""
+    fields = analyze_issue.parse_form_fields(_EN_FORM_BODY)
+    assert fields["What was the last working version of Homematic(IP) Local for OpenCCU?"] == ""
+
+
+def test_parse_form_fields_empty_body() -> None:
+    """Return an empty mapping for an empty or template-free body."""
+    assert analyze_issue.parse_form_fields("") == {}
+    assert analyze_issue.parse_form_fields("just some free text") == {}
+
+
+def test_get_form_field_version_english() -> None:
+    """Find the integration-version field in the English template."""
+    fields = analyze_issue.parse_form_fields(_EN_FORM_BODY)
+    value = analyze_issue.get_form_field(fields, markers=analyze_issue.VERSION_FIELD_MARKERS)
+    assert value == "2.8.3"
+
+
+def test_get_form_field_version_german_does_not_match_last_working() -> None:
+    """Find the German version field and never the "last working version" field."""
+    fields = analyze_issue.parse_form_fields(_DE_FORM_BODY)
+    value = analyze_issue.get_form_field(fields, markers=analyze_issue.VERSION_FIELD_MARKERS)
+    assert value == "2.8.1"
+
+
+def test_get_form_field_missing() -> None:
+    """Return None when the field does not exist at all."""
+    assert analyze_issue.get_form_field({}, markers=analyze_issue.VERSION_FIELD_MARKERS) is None
+
+
+# ---------------------------------------------------------------------------
+# Deterministic version check
+# ---------------------------------------------------------------------------
+
+_RELEASES = analyze_issue.ReleaseInfo(
+    stable="2.8.3",
+    prerelease="2.9.0b1",
+    all_versions=frozenset({"2.8.3", "2.8.2", "2.8.1", "2.9.0b1", "2.0.0"}),
+)
+
+
+def test_check_reported_version_ok() -> None:
+    """Accept the current stable version."""
+    check = analyze_issue.check_reported_version("2.8.3", releases=_RELEASES)
+    assert check.status == "ok"
+
+
+def test_check_reported_version_ok_prerelease() -> None:
+    """Accept a newer pre-release without flagging it."""
+    check = analyze_issue.check_reported_version("2.9.0b1", releases=_RELEASES)
+    assert check.status == "ok"
+
+
+def test_check_reported_version_outdated() -> None:
+    """Flag a known but outdated release."""
+    check = analyze_issue.check_reported_version("2.8.1", releases=_RELEASES)
+    assert check.status == "outdated"
+    assert check.stable == "2.8.3"
+
+
+def test_check_reported_version_unknown() -> None:
+    """Flag a version that matches no published release (e.g. HA or CCU version)."""
+    for reported in ("2026.7.2", "3.79.6", "core-2026.7.2"):
+        check = analyze_issue.check_reported_version(reported, releases=_RELEASES)
+        assert check.status == "unknown", reported
+
+
+def test_check_reported_version_prefix_tolerance() -> None:
+    """Accept a shortened version like "2.8" when a matching release exists."""
+    check = analyze_issue.check_reported_version("2.8", releases=_RELEASES)
+    assert check.status == "ok"
+
+
+def test_check_reported_version_strips_v_prefix() -> None:
+    """Normalize a leading "v" before comparing against the release set."""
+    check = analyze_issue.check_reported_version("v2.8.3", releases=_RELEASES)
+    assert check.status == "ok"
+
+
+def test_check_reported_version_missing() -> None:
+    """Report a missing version for empty or absent field values."""
+    assert analyze_issue.check_reported_version(None, releases=_RELEASES).status == "missing"
+    assert analyze_issue.check_reported_version("  ", releases=_RELEASES).status == "missing"
+
+
+def test_check_reported_version_no_data() -> None:
+    """Make no validity statement when the release list could not be fetched."""
+    empty = analyze_issue.ReleaseInfo()
+    check = analyze_issue.check_reported_version("9.9.9", releases=empty)
+    assert check.status == "no_data"
+
+
+# ---------------------------------------------------------------------------
+# Attachment / screenshot detection
+# ---------------------------------------------------------------------------
+
+
+def test_detect_attachments_urls() -> None:
+    """Detect diagnostics and log attachments from uploaded file URLs."""
+    body = (
+        "Diagnostics: https://github.com/user-attachments/files/1/config_entry-diagnostics.json\n"
+        "Log: https://github.com/user-attachments/files/2/home-assistant.log"
+    )
+    has_diagnostics, has_logs = analyze_issue.detect_attachments(body)
+    assert has_diagnostics is True
+    assert has_logs is True
+
+
+def test_detect_attachments_inline_log_counts_as_log() -> None:
+    """Count a fenced code block full of log lines as provided log data."""
+    log_lines = "\n".join(f"2026-07-18 12:00:0{i} ERROR (MainThread) something failed" for i in range(6))
+    body = f"It fails:\n```\n{log_lines}\n```"
+    has_diagnostics, has_logs = analyze_issue.detect_attachments(body)
+    assert has_diagnostics is False
+    assert has_logs is True
+
+
+def test_detect_attachments_short_code_block_is_not_a_log() -> None:
+    """Do not count a short code snippet as log data."""
+    body = "```\nyaml: value\n```"
+    _, has_logs = analyze_issue.detect_attachments(body)
+    assert has_logs is False
+
+
+def test_detect_screenshots() -> None:
+    """Detect screenshots via asset URLs and markdown images."""
+    assert analyze_issue.detect_screenshots("![img](https://github.com/user-attachments/assets/abc)") is True
+    assert analyze_issue.detect_screenshots("see https://example.com/foo.png") is True
+    assert analyze_issue.detect_screenshots("no images here") is False
+
+
+# ---------------------------------------------------------------------------
+# Device-model extraction
+# ---------------------------------------------------------------------------
+
+
+def test_extract_device_model() -> None:
+    """Extract the first device-model designation from text."""
+    assert analyze_issue.extract_device_model("HmIP-eTRV-2 fehlender window_state") == "HmIP-eTRV-2"
+    assert analyze_issue.extract_device_model("HM-PB-2-WM55 funktioniert nicht") == "HM-PB-2-WM55"
+    assert analyze_issue.extract_device_model("no device mentioned") is None
+
+
+def test_extract_device_model_skips_interface_names() -> None:
+    """Skip interface designations that are useless as duplicate-search terms."""
+    assert analyze_issue.extract_device_model("HmIP-RF disconnects, HmIP-SWDO-2 affected") == "HmIP-SWDO-2"
+
+
+# ---------------------------------------------------------------------------
+# Similar-issue search (search API, not recently-updated listing)
+# ---------------------------------------------------------------------------
+
+
+class _FakeSearchResultIssue:
+    """Minimal stand-in for a PyGithub issue returned by the search API."""
+
+    def __init__(self, number: int, title: str = "title", state: str = "open") -> None:
+        """Store the search-result fields."""
+        self.number = number
+        self.title = title
+        self.html_url = f"https://github.com/x/y/issues/{number}"
+        self.state = state
+
+
+class _FakeGithub:
+    """Minimal stand-in for a PyGithub client capturing search queries."""
+
+    def __init__(self, results: list[_FakeSearchResultIssue]) -> None:
+        """Store the canned search results."""
+        self._results = results
+        self.queries: list[str] = []
+
+    def search_issues(self, query: str) -> list[_FakeSearchResultIssue]:
+        """Record the query and return the canned results."""
+        self.queries.append(query)
+        return self._results
+
+
+def test_search_similar_issues_uses_search_api_with_term() -> None:
+    """Pass the search term to the search API query."""
+    gh = _FakeGithub([_FakeSearchResultIssue(11), _FakeSearchResultIssue(12)])
+    items = analyze_issue.search_similar_issues(
+        gh,  # type: ignore[arg-type]
+        repo_full_name="SukramJ/aiohomematic",
+        search_terms=["HmIP-eTRV-2"],
+        current_issue_number=99,
+    )
+    assert gh.queries == ["repo:SukramJ/aiohomematic is:issue HmIP-eTRV-2"]
+    assert [item["number"] for item in items] == [11, 12]
+
+
+def test_search_similar_issues_excludes_current_and_dedupes() -> None:
+    """Exclude the current issue and deduplicate results across terms."""
+    gh = _FakeGithub([_FakeSearchResultIssue(99), _FakeSearchResultIssue(11), _FakeSearchResultIssue(11)])
+    items = analyze_issue.search_similar_issues(
+        gh,  # type: ignore[arg-type]
+        repo_full_name="SukramJ/aiohomematic",
+        search_terms=["term-a", "term-b"],
+        current_issue_number=99,
+    )
+    assert [item["number"] for item in items] == [11]
+
+
+def test_search_similar_issues_sanitizes_query_syntax() -> None:
+    """Strip search-syntax characters from terms so they cannot break the query."""
+    gh = _FakeGithub([])
+    analyze_issue.search_similar_issues(
+        gh,  # type: ignore[arg-type]
+        repo_full_name="SukramJ/aiohomematic",
+        search_terms=['error: "Parameter not found"'],
+        current_issue_number=1,
+    )
+    assert gh.queries == ["repo:SukramJ/aiohomematic is:issue error   Parameter not found"]
+
+
+# ---------------------------------------------------------------------------
+# Comment formatting (triage only - no diagnosis sections, no critical banners)
+# ---------------------------------------------------------------------------
+
+
+def _make_triage(**overrides: object) -> object:
+    """Build a TriageResult with sensible defaults for formatting tests."""
+    defaults: dict[str, object] = {
+        "language": "de",
+        "summary": "Entität fehlt nach Update.",
+        "version_check": analyze_issue.VersionCheck(status="ok", reported="2.8.3", stable="2.8.3"),
+        "has_diagnostics": True,
+        "has_logs": True,
+        "ai_detection": {"detected": False, "strong": False, "markers": []},
+        "is_feature_request": False,
+        "is_device_related": False,
+        "has_screenshots": False,
+        "suggested_docs": [],
+        "similar_items": [],
+    }
+    defaults.update(overrides)
+    return analyze_issue.TriageResult(**defaults)  # type: ignore[arg-type]
+
+
+def test_format_comment_contains_no_diagnosis_sections() -> None:
+    """Never render diagnosis sections or critical banners."""
+    triage = _make_triage(
+        version_check=analyze_issue.VersionCheck(status="unknown", reported="3.79.6", stable="2.8.3"),
+        has_diagnostics=False,
+        has_logs=False,
+    )
+    comment = analyze_issue.format_comment(triage)
+    assert "KRITISCH" not in comment
+    assert "CRITICAL" not in comment
+    assert "Analyse der angehängten Daten" not in comment
+    assert "Attachment Analysis" not in comment
+
+
+def test_format_comment_version_notice_outdated_is_neutral() -> None:
+    """Render a neutral update hint for a known but outdated version."""
+    triage = _make_triage(
+        version_check=analyze_issue.VersionCheck(status="outdated", reported="2.8.1", stable="2.8.3"),
+    )
+    comment = analyze_issue.format_comment(triage)  # type: ignore[arg-type]
+    assert "Versionshinweis" in comment
+    assert "2.8.1" in comment
+    assert "2.8.3" in comment
+    assert "🚨" not in comment
+
+
+def test_format_comment_version_notice_absent_when_ok_or_no_data() -> None:
+    """Render no version notice when the version is fine or no release data exists."""
+    for status in ("ok", "no_data"):
+        triage = _make_triage(version_check=analyze_issue.VersionCheck(status=status, reported="x", stable="2.8.3"))
+        comment = analyze_issue.format_comment(triage)  # type: ignore[arg-type]
+        assert "Versionshinweis" not in comment
+
+
+def test_format_comment_missing_info_lists_version_field() -> None:
+    """List an empty version field in the missing-information section."""
+    triage = _make_triage(
+        version_check=analyze_issue.VersionCheck(status="missing", stable="2.8.3"),
+        has_diagnostics=False,
+        has_logs=True,
+    )
+    comment = analyze_issue.format_comment(triage)  # type: ignore[arg-type]
+    assert "Fehlende Pflichtinformationen" in comment
+    assert "Integrationsdiagnose" in comment
+    assert "Version der Integration" in comment
+    assert "❌ **Protokolldatei**" not in comment
+
+
+def test_format_comment_feature_request_hint() -> None:
+    """Point feature requests to the discussions."""
+    triage = _make_triage(is_feature_request=True)
+    comment = analyze_issue.format_comment(triage)  # type: ignore[arg-type]
+    assert "Feature-Wunsch" in comment
+    assert "Diskussionen" in comment
+
+
+def test_format_comment_header_is_stable_for_duplicate_detection() -> None:
+    """Keep the header text that has_bot_comment relies on."""
+    de_comment = analyze_issue.format_comment(_make_triage())  # type: ignore[arg-type]
+    en_comment = analyze_issue.format_comment(_make_triage(language="en"))  # type: ignore[arg-type]
+    assert "Automatische Issue-Analyse" in de_comment
+    assert "Automatic Issue Analysis" in en_comment
+
+
+def test_format_comment_limits_suggested_docs_to_two() -> None:
+    """Render at most two documentation links and drop unknown doc keys."""
+    triage = _make_triage(
+        suggested_docs=[
+            {"doc_key": "troubleshooting", "reason": "r1"},
+            {"doc_key": "unignore", "reason": "r2"},
+            {"doc_key": "glossary", "reason": "r3"},
+            {"doc_key": "nonexistent", "reason": "r4"},
+        ],
+    )
+    comment = analyze_issue.format_comment(triage)  # type: ignore[arg-type]
+    assert "troubleshooting" in comment
+    assert "unignore" in comment
+    assert "glossary" not in comment.split("Hilfreiche Dokumentation")[1]
+    assert "nonexistent" not in comment

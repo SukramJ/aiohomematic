@@ -1,3 +1,42 @@
+# Version 2026.7.8 (2026-07-18)
+
+## What's Changed
+
+### Changed
+
+- **Issue-Analyzer bot refocused from diagnosis to triage.** An audit of all 181
+  bot-commented issues showed the LLM root-cause analyses were fully correct in
+  only 18% of cases and outright wrong in 24% (16% correct on issues that turned
+  out to be real, code-fixed bugs), while the data-collection parts were the
+  reliably useful ones. `.github/scripts/analyze_issue.py` no longer posts
+  attachment-analysis findings, LLM version judgments, or "critical" banners.
+  What remains is deterministic: template-field parsing (the version is read from
+  the issue-form field instead of a body-wide regex), a version check against the
+  actually published releases (neutral wording, tolerant of shortened versions),
+  attachment/screenshot/inline-log detection, AI-paste detection, and the
+  `needs-raw-data` label maintenance. Claude is only asked for a 2-sentence
+  summary, up to 2 documentation links, duplicate-search terms, and routing flags
+  (device-related, feature request) — with the current date in the prompt and an
+  explicit no-diagnosis rule. The model is overridable via the `ANALYZER_MODEL`
+  repository variable.
+
+### Fixed
+
+- **"Similar issues" section actually searches now.** `search_similar_issues()`
+  listed the 5 most recently updated issues and never applied the search term
+  (2 of 169 audited lists were topically relevant). It now queries the GitHub
+  search API with a deterministically extracted device model plus LLM-suggested
+  terms.
+
+### Added
+
+- **Guardrails for the insufficient-information close workflow.**
+  `close-insufficient-info.yml` now refuses to close an issue when attachments,
+  screenshots or inline log excerpts are present, when the issue carries a
+  feature-request label, or when the reporter has had less than 72 hours since
+  the `needs-raw-data` label was applied (or issue creation). A `force` input
+  overrides the guardrails.
+
 # Version 2026.7.7 (2026-07-16)
 
 ## What's Changed

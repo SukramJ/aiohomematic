@@ -8,6 +8,11 @@ on:
         description: 'Issue number to close'
         required: true
         type: number
+      force:
+        description: 'Skip the safety guardrails (min. age, attached data, feature-request label)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   issues: write
@@ -24,6 +29,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issueNumber = ${{ github.event.inputs.issue_number }};
+            const force = ${{ github.event.inputs.force }} === true || '${{ github.event.inputs.force }}' === 'true';
 
             // Fetch the issue to get its body
             const { data: issue } = await github.rest.issues.get({
@@ -31,6 +37,73 @@ jobs:
               repo: context.repo.repo,
               issue_number: issueNumber
             });
+
+            // ---------------------------------------------------------------
+            // Guardrails: closing for "insufficient information" is refused
+            // when the issue plausibly DOES contain data, is a feature request,
+            // or the reporter has not had enough time to supply the data.
+            // Override with the "force" input.
+            // ---------------------------------------------------------------
+            if (issue.state === 'closed') {
+              core.setFailed(`Issue #${issueNumber} is already closed.`);
+              return;
+            }
+
+            if (!force) {
+              const body = issue.body || '';
+              const labels = issue.labels.map((label) => (typeof label === 'string' ? label : label.name));
+
+              // 1. Never close feature requests as "insufficient information".
+              const featureLabels = labels.filter((name) => /enhancement|feature/i.test(name || ''));
+              if (featureLabels.length > 0) {
+                core.setFailed(
+                  `Refusing to close #${issueNumber}: it carries the label(s) ${featureLabels.join(', ')} ` +
+                  '(feature requests must not be closed as "insufficient information"). Use force=true to override.'
+                );
+                return;
+              }
+
+              // 2. Never close when attachments, screenshots or inline logs are present.
+              const hasAttachment = /user-attachments\/(files|assets)\//.test(body);
+              const fencedBlocks = body.match(/```[^\n]*\n[\s\S]*?```/g) || [];
+              const logLine = /\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|\b(ERROR|WARNING|DEBUG|INFO|Traceback)\b/;
+              const hasInlineLog = fencedBlocks.some(
+                (block) => block.split('\n').filter((line) => logLine.test(line)).length >= 5
+              );
+              if (hasAttachment || hasInlineLog) {
+                core.setFailed(
+                  `Refusing to close #${issueNumber}: the issue contains ` +
+                  `${hasAttachment ? 'attached files/screenshots' : 'an inline log excerpt'}. ` +
+                  'It may not actually lack information. Use force=true to override.'
+                );
+                return;
+              }
+
+              // 3. Minimum waiting period: 72h since the needs-raw-data label was applied
+              //    (or since issue creation when the label was never applied).
+              const MIN_WAIT_MS = 72 * 60 * 60 * 1000;
+              let referenceTime = new Date(issue.created_at).getTime();
+              const events = await github.paginate(github.rest.issues.listEvents, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                per_page: 100
+              });
+              for (const event of events) {
+                if (event.event === 'labeled' && event.label && event.label.name === 'needs-raw-data') {
+                  referenceTime = Math.max(referenceTime, new Date(event.created_at).getTime());
+                }
+              }
+              const elapsed = Date.now() - referenceTime;
+              if (elapsed < MIN_WAIT_MS) {
+                const earliest = new Date(referenceTime + MIN_WAIT_MS).toISOString();
+                core.setFailed(
+                  `Refusing to close #${issueNumber}: the reporter has had less than 72h to supply the data ` +
+                  `(earliest close: ${earliest}). Use force=true to override.`
+                );
+                return;
+              }
+            }
 
             // Detect language based on German-specific labels in the issue body
             const isGerman = issue.body &&

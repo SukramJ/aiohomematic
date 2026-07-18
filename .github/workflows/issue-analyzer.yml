@@ -30,12 +30,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install anthropic PyGithub requests
+          pip install anthropic PyGithub
 
       - name: Analyze issue and post comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANALYZER_MODEL: ${{ vars.ANALYZER_MODEL }}
           ISSUE_NUMBER: ${{ github.event.issue.number || github.event.inputs.issue_number }}
           ISSUE_TITLE: ${{ github.event.issue.title || '' }}
           ISSUE_BODY: ${{ github.event.issue.body || '' }}

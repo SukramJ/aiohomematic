@@ -1,3 +1,17 @@
+# Version 2026.7.9 (2026-07-19)
+
+## What's Changed
+
+### Added
+
+- New `aiohomematic.device_semantics` module exposing the curated
+  device-semantics classifications from openccu-data (>= 2026.7.0).
+  First classification: `DOORBELL_MODELS` (`HM-Sen-DB-PCB`,
+  `HmIP-DBB`, `HmIP-DSD-PCB`) — the shared source of truth for
+  consumers that map the ring press onto their platform's doorbell
+  semantics (homematicip_local's ring event type, openccu-loom's MQTT
+  HA discovery).
+
 # Version 2026.7.8 (2026-07-18)
 
 ## What's Changed

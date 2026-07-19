@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
+from itertools import islice
 import json
 import os
 import re
@@ -479,7 +480,9 @@ def search_similar_issues(
         query = f"repo:{repo_full_name} is:issue {term}"
         try:
             results = gh.search_issues(query)
-            for issue in results[:3]:
+            # Do not slice the PaginatedList: slicing probes by index and raises
+            # IndexError when the search returns no hits; plain iteration is safe.
+            for issue in islice(results, 3):
                 if issue.number == current_issue_number or issue.number in seen:
                     continue
                 seen.add(issue.number)

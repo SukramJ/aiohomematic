@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 import importlib
 import importlib.util
 from pathlib import Path
@@ -445,6 +446,57 @@ class _FakeSearchResultIssue:
         self.state = state
 
 
+class _FakePaginatedList:
+    """
+    Mimic PyGithub's ``PaginatedList`` slice semantics (v2.9.1).
+
+    Slicing returns a lazy view that probes ``list[index]`` while the list
+    "could grow" (i.e. before the first page was fetched). On an empty result
+    set the first probe fetches nothing and raises ``IndexError`` — the crash
+    observed in the live analyzer run for issue #3300.
+    """
+
+    def __init__(self, elements: list[_FakeSearchResultIssue]) -> None:
+        """Store the canned elements; nothing is 'fetched' yet."""
+        self._elements = elements
+        self._fetched = False
+
+    def __getitem__(self, index: int | slice) -> _FakeSearchResultIssue | _FakePaginatedList._Slice:
+        """Return one element (fetching first) or a lazy slice view."""
+        if isinstance(index, slice):
+            return self._Slice(self, index)
+        self._fetched = True
+        return self._elements[index]
+
+    def __iter__(self) -> Iterator[_FakeSearchResultIssue]:
+        """Iterate all elements; safe on empty result sets."""
+        self._fetched = True
+        yield from self._elements
+
+    def _is_bigger_than(self, index: int) -> bool:
+        return len(self._elements) > index or not self._fetched
+
+    class _Slice:
+        """Lazy slice view over the paginated list, as in PyGithub."""
+
+        def __init__(self, paginated_list: _FakePaginatedList, the_slice: slice) -> None:
+            """Store list and slice bounds."""
+            self._list = paginated_list
+            self._start = the_slice.start or 0
+            self._stop = the_slice.stop
+            self._step = the_slice.step or 1
+
+        def __iter__(self) -> Iterator[_FakeSearchResultIssue]:
+            """Yield elements by probing the underlying list per index."""
+            index = self._start
+            while self._stop is None or index < self._stop:
+                if self._list._is_bigger_than(index):
+                    yield self._list[index]  # type: ignore[misc]
+                    index += self._step
+                else:
+                    return
+
+
 class _FakeGithub:
     """Minimal stand-in for a PyGithub client capturing search queries."""
 
@@ -453,10 +505,10 @@ class _FakeGithub:
         self._results = results
         self.queries: list[str] = []
 
-    def search_issues(self, query: str) -> list[_FakeSearchResultIssue]:
-        """Record the query and return the canned results."""
+    def search_issues(self, query: str) -> _FakePaginatedList:
+        """Record the query and return the canned results as a paginated list."""
         self.queries.append(query)
-        return self._results
+        return _FakePaginatedList(self._results)
 
 
 def test_search_similar_issues_uses_search_api_with_term() -> None:
@@ -494,6 +546,18 @@ def test_search_similar_issues_sanitizes_query_syntax() -> None:
         current_issue_number=1,
     )
     assert gh.queries == ["repo:SukramJ/aiohomematic is:issue error   Parameter not found"]
+
+
+def test_search_similar_issues_empty_search_results_do_not_crash() -> None:
+    """Return no items instead of raising when a term yields zero search hits."""
+    gh = _FakeGithub([])
+    items = analyze_issue.search_similar_issues(
+        gh,  # type: ignore[arg-type]
+        repo_full_name="SukramJ/aiohomematic",
+        search_terms=["doorbell ring event"],
+        current_issue_number=3300,
+    )
+    assert items == []
 
 
 # ---------------------------------------------------------------------------

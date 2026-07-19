@@ -27,6 +27,13 @@
   (2 of 169 audited lists were topically relevant). It now queries the GitHub
   search API with a deterministically extracted device model plus LLM-suggested
   terms.
+- **Issue-Analyzer crash on search terms with zero hits.** Slicing the PyGithub
+  `PaginatedList` returned by `search_issues()` (`results[:3]`) probes by index
+  and raises `IndexError` when the search comes back empty, aborting the whole
+  analyzer run before a comment is posted. The result is now consumed with
+  `itertools.islice`, which iterates lazily and stops cleanly on empty result
+  sets; the test fake mimics the real `PaginatedList` slice semantics so this
+  cannot regress silently.
 
 ### Added
 

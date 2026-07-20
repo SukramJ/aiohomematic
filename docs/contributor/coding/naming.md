@@ -54,16 +54,17 @@ Note about channel number detection:
 
 ## Data point names (regular)
 
-Function: `get_data_point_name_data(channel, parameter)`
+Function: `get_data_point_name_data(channel, parameter, parameter_translation=None)`
 Steps:
 
 1. Resolve a `channel_name` via `_get_base_name_from_channel_or_device` as described above. If there is none, we cannot construct a human-readable name and fall back to unique IDs elsewhere.
 2. Build a human-friendly parameter name: `parameter.title().replace("_", " ")` (e.g., `LEVEL` → `Level`, `WINDOW_STATE` → `Window State`).
-3. If the channel name includes a numeric channel suffix (`<something>:<int>`):
-   - Use the part before `:` as the channel base (`c_name`).
-   - When the same parameter exists on multiple channels of the device, append a channel marker to the parameter: `" ch<channel_no>"` (omitted for channel 0 or `None`). Determination uses `central.paramset_descriptions.is_in_multiple_channels(...)`.
+3. Determine the channel marker `" ch<channel_no>"` (always omitted for channel 0 or `None`). It is appended to the parameter name when the parameter exists on multiple channels of the device (checked via `paramset_description_provider.is_in_multiple_channels(...)`) and the channel name alone does not identify the channel, i.e. when either:
+   - the channel name includes a numeric channel suffix (`<something>:<int>`) — it is derived from the device name or follows the `<name>:<int>` scheme, or
+   - another channel providing the same parameter resolves to the same channel name (duplicate custom names).
+     A custom channel name that is unique among the channels carrying the parameter never gets a marker.
+4. If the channel name includes a numeric channel suffix, use the part before `:` as the channel base (`c_name`); otherwise use the entire channel name.
    - Example full name: `<device_name> <c_name> <Parameter>[ chX]`.
-4. Otherwise, use the entire channel name plus parameter.
 
 `DataPointNameData` contains:
 
@@ -157,6 +158,12 @@ Below are end-to-end examples showing inputs (model, addresses, CCU names, chann
   - DataPointNameData:
     - name: `Livingroom Blind Controller Level ch1`
     - full_name: `Livingroom Blind Controller Livingroom Blind Controller Level ch1` → effectively shown as `Livingroom Blind Controller Level ch1`
+- Input: channel 5 with unique custom name `Relay Status`, parameter `STATE`, parameter appears on multiple channels
+  - The custom name already identifies the channel → no ch marker
+  - DataPointNameData.name: `Relay Status State`
+- Input: channels 5 and 9 both custom-named `Status`, parameter `STATE` on both
+  - Duplicate custom names are ambiguous → ch marker is appended
+  - DataPointNameData.name: `Status State ch5` / `Status State ch9`
 
 4. Event names
 

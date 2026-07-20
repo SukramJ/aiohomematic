@@ -641,6 +641,29 @@ class TestParamsetDescriptionRegistry:
         )
 
     @pytest.mark.asyncio
+    async def test_get_channel_nos_for_parameter(self, tmp_path) -> None:
+        """Test the channel number lookup for a parameter."""
+        central = _CentralStub("C", str(tmp_path))
+        pdr = ParamsetDescriptionRegistry(
+            storage=central.create_paramset_storage(),
+            config_provider=central,
+        )
+
+        iface = "if1"
+        for ch_no in (1, 2):
+            pdr.add(
+                interface_id=iface,
+                channel_address=f"D1:{ch_no}",
+                paramset_key=ParamsetKey.VALUES,
+                paramset_description={"LEVEL": {"TYPE": "FLOAT"}},
+                device_type="TEST",
+            )
+
+        assert pdr.get_channel_nos_for_parameter(channel_address="D1:1", parameter="LEVEL") == frozenset({1, 2})
+        assert pdr.get_channel_nos_for_parameter(channel_address="D1:1", parameter="UNKNOWN") == frozenset()
+        assert pdr.get_channel_nos_for_parameter(channel_address="INVALID", parameter="LEVEL") == frozenset()
+
+    @pytest.mark.asyncio
     async def test_get_channel_paramset_descriptions(self, tmp_path) -> None:
         """Test getting all paramsets for a channel."""
         central = _CentralStub("C", str(tmp_path))

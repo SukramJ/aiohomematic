@@ -158,6 +158,16 @@ class ParamsetDescriptionRegistry(
 
         return channel_addresses
 
+    def get_channel_nos_for_parameter(self, *, channel_address: str, parameter: str) -> frozenset[int | None]:
+        """Get the channel numbers of the device that provide the parameter."""
+        if ADDRESS_SEPARATOR not in channel_address:
+            return frozenset()
+        return frozenset(
+            self._address_parameter_cache.get(
+                (get_split_channel_address(channel_address=channel_address)[0], parameter), ()
+            )
+        )
+
     def get_channel_paramset_descriptions(
         self, *, interface_id: str, channel_address: str
     ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:

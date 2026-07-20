@@ -341,17 +341,21 @@ def get_data_point_name_data(
     """Get name for data_point."""
     if channel_name := _get_base_name_from_channel_or_device(channel=channel):
         p_name = parameter.title().replace("_", " ")
+        name_has_channel_no = _check_channel_name_with_channel_no(name=channel_name)
         c_postfix = ""
-        if channel.device.paramset_description_provider.is_in_multiple_channels(
-            channel_address=channel.address, parameter=parameter
+        if (
+            channel.no not in (0, None)
+            and channel.device.paramset_description_provider.is_in_multiple_channels(
+                channel_address=channel.address, parameter=parameter
+            )
+            and (
+                name_has_channel_no
+                or _is_channel_name_ambiguous(channel=channel, parameter=parameter, channel_name=channel_name)
+            )
         ):
-            c_postfix = "" if channel.no in (0, None) else f" ch{channel.no}"
+            c_postfix = f" ch{channel.no}"
 
-        c_name = (
-            channel_name.split(ADDRESS_SEPARATOR)[0]
-            if _check_channel_name_with_channel_no(name=channel_name)
-            else channel_name
-        )
+        c_name = channel_name.split(ADDRESS_SEPARATOR)[0] if name_has_channel_no else channel_name
         return DataPointNameData(
             device_name=channel.device.name,
             channel_name=c_name,
@@ -525,6 +529,18 @@ def _get_base_name_from_channel_or_device(*, channel: ChannelProtocol) -> str | 
     if name is None or name == default_channel_name:
         return channel.device.name if channel.no is None else f"{channel.device.name}:{channel.no}"
     return name
+
+
+def _is_channel_name_ambiguous(*, channel: ChannelProtocol, parameter: str, channel_name: str) -> bool:
+    """Check if another channel providing the same parameter resolves to the same channel name."""
+    channel_nos = channel.device.paramset_description_provider.get_channel_nos_for_parameter(
+        channel_address=channel.address, parameter=parameter
+    )
+    return any(
+        other.no in channel_nos and _get_base_name_from_channel_or_device(channel=other) == channel_name
+        for other in channel.device.channels.values()
+        if other.address != channel.address
+    )
 
 
 def _check_channel_name_with_channel_no(*, name: str) -> bool:

@@ -327,6 +327,55 @@ class TestNamingHelpers:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_get_data_point_name_multi_channel_postfix(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Test the ch<no> postfix for parameters that exist on multiple channels."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU2128127")
+        assert device
+        # STATE exists on channels 3, 4, 5 and 6 of the HmIP-BSM.
+        details = central.cache_coordinator.device_details
+
+        # Derived channel names keep the postfix.
+        channel4 = central.device_coordinator.get_channel(channel_address=f"{device.address}:4")
+        name_data = get_data_point_name_data(channel=channel4, parameter="STATE")
+        assert name_data.name == "State ch4"
+
+        # A unique custom channel name already identifies the channel: no postfix.
+        details.add_name(address=f"{device.address}:3", name="Relay Status")
+        channel3 = central.device_coordinator.get_channel(channel_address=f"{device.address}:3")
+        name_data = get_data_point_name_data(channel=channel3, parameter="STATE")
+        assert name_data.name == "Relay Status State"
+
+        # A custom name following the <name>:<no> scheme keeps the postfix.
+        details.add_name(address=f"{device.address}:5", name="Relay:1")
+        channel5 = central.device_coordinator.get_channel(channel_address=f"{device.address}:5")
+        name_data = get_data_point_name_data(channel=channel5, parameter="STATE")
+        assert name_data.name == "Relay State ch5"
+
+        # Identical custom names on channels sharing the parameter keep the postfix.
+        details.add_name(address=f"{device.address}:4", name="Relay Twin")
+        details.add_name(address=f"{device.address}:6", name="Relay Twin")
+        channel6 = central.device_coordinator.get_channel(channel_address=f"{device.address}:6")
+        name_data = get_data_point_name_data(channel=channel4, parameter="STATE")
+        assert name_data.name == "Relay Twin State ch4"
+        name_data = get_data_point_name_data(channel=channel6, parameter="STATE")
+        assert name_data.name == "Relay Twin State ch6"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_get_device_name(
         self,
         central_client_factory_with_homegear_client,

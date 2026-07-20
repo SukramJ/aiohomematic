@@ -145,6 +145,10 @@ class ParamsetDescriptionProviderProtocol(Protocol):
     """
 
     @abstractmethod
+    def get_channel_nos_for_parameter(self, *, channel_address: str, parameter: str) -> frozenset[int | None]:
+        """Get the channel numbers of the device that provide the parameter."""
+
+    @abstractmethod
     def get_channel_paramset_descriptions(
         self, *, interface_id: str, channel_address: str
     ) -> Mapping[ParamsetKey, Mapping[str, ParameterData]]:

@@ -4,7 +4,7 @@
 
 coverage==7.15.1
 freezegun==1.5.5
-mypy==2.1.0
+mypy==2.2.0
 pip==26.1.2
 prek==0.4.8
 pur==7.4.0
@@ -23,4 +23,4 @@ pytest-timeout==2.4.0
 pytest-xdist==3.8.0
 pytest==9.1.1
 types-python-slugify==8.0.2.20240310
-uv==0.11.26
+uv==0.11.28

@@ -1,3 +1,23 @@
+# Version 2026.7.11 (2026-07-24)
+
+## What's Changed
+
+### Fixed
+
+- **XML-RPC commands no longer hang forever when a connection goes half-open**:
+  The operational XML-RPC proxy is now created with a socket timeout
+  (`timeout_config.rpc_timeout`, 60 s by default), matching backend detection.
+  Previously the proxy was created without a timeout, so a silently dropped or
+  half-open (TLS) keep-alive connection made a `setValue`/`putParamset` request
+  block indefinitely in the proxy's single worker thread. Because each interface
+  has exactly one worker, that wedged the interface's entire outgoing command
+  path — commands were neither sent nor failed, the only visible symptom being
+  the 30 s optimistic rollback — until Home Assistant was restarted. Incoming
+  events kept flowing the whole time, since they arrive over the separate
+  callback path. With the timeout in place, a stuck request now aborts as a
+  retryable `NoConnectionException`, freeing the worker thread and letting the
+  command retry handler react.
+
 # Version 2026.7.10 (2026-07-20)
 
 ## What's Changed

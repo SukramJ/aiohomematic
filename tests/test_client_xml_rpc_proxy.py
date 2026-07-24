@@ -323,6 +323,41 @@ class TestErrorHandling:
         await proxy.stop()
 
     @pytest.mark.asyncio
+    async def test_socket_timeout_raises_no_connection_and_records_failure(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        A socket timeout on a blocking read must surface as NoConnectionException, not hang.
+
+        The configured socket timeout makes ``__request`` raise ``TimeoutError`` (a subclass of
+        ``OSError``) instead of blocking forever. ``_async_request`` must translate that into a
+        retryable ``NoConnectionException`` and record a circuit breaker failure, so the retry
+        handler reacts and the single proxy worker thread is freed instead of wedging the interface.
+        """
+
+        def raise_timeout(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            raise TimeoutError("timed out")
+
+        monkeypatch.setattr(xmlrpc.client.ServerProxy, "_ServerProxy__request", raise_timeout, raising=True)
+
+        conn_state = hmcu.CentralConnectionState()
+        proxy = AioXmlRpcProxy(
+            max_workers=1,
+            interface_id="test-if",
+            connection_state=conn_state,
+            uri="http://example/xmlrpc",
+            headers=[],
+            tls=False,
+        )
+
+        with pytest.raises(NoConnectionException):
+            await proxy._async_request("setValue", ("addr", "param", 1))
+
+        assert proxy.circuit_breaker._failure_count > 0
+
+        await proxy.stop()
+
+    @pytest.mark.asyncio
     async def test_typeerror_translates_to_client_exception(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that TypeError from xmlrpc layer is mapped to ClientException."""
 

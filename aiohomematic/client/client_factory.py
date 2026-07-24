@@ -133,6 +133,7 @@ class ClientConfig:
             session_recorder=self.client_deps.cache_coordinator.recorder,
             event_bus=self.client_deps.event_bus,
             incident_recorder=self.client_deps.cache_coordinator.incident_store,
+            timeout=config.timeout_config.rpc_timeout,
         )
         await xml_proxy.do_init()
         return xml_proxy

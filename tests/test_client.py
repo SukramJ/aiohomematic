@@ -410,6 +410,39 @@ class TestClientConfigBasic:
         assert cfg.has_push_updates is True
 
 
+class TestRpcProxyTimeoutWiring:
+    """
+    Regression guard: the operational XML-RPC proxy must carry a socket timeout.
+
+    Without a socket timeout a half-open (TLS) connection makes an XML-RPC request
+    block forever inside the single proxy worker thread, wedging all outgoing
+    commands on the interface until Home Assistant is restarted. The factory must
+    therefore wire ``timeout_config.rpc_timeout`` onto the proxy transport.
+    """
+
+    @pytest.mark.asyncio
+    async def test_create_rpc_proxy_sets_socket_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """create_rpc_proxy must set the transport socket timeout to rpc_timeout."""
+        from aiohomematic.client.rpc_proxy import AioXmlRpcProxy
+
+        async def _noop_do_init(self) -> None:  # type: ignore[no-untyped-def]  # avoid real network in do_init
+            return None
+
+        monkeypatch.setattr(AioXmlRpcProxy, "do_init", _noop_do_init, raising=True)
+
+        central = _FakeCentral()
+        iface_cfg = InterfaceConfig(central_name="c", interface=Interface.BIDCOS_RF, port=32001)
+        cfg = ClientConfig(client_deps=central, interface_config=iface_cfg)
+
+        proxy = await cfg.create_rpc_proxy(interface=Interface.BIDCOS_RF, auth_enabled=False)
+        try:
+            transport = proxy._ServerProxy__transport  # type: ignore[attr-defined]  # concrete AioXmlRpcProxy
+            assert transport is not None
+            assert transport._timeout == central.config.timeout_config.rpc_timeout
+        finally:
+            await proxy.stop()
+
+
 class TestInterfaceClient:
     """Test InterfaceClient basic functionality."""
 

@@ -212,6 +212,7 @@ class _GenericProperty[GETTER, SETTER](property):
         fset: Callable[[Any, SETTER], None] | None = None,
         fdel: Callable[[Any], None] | None = None,
         doc: str | None = None,
+        *,
         cached: bool = False,
         log_context: bool = False,
     ) -> None:

@@ -201,7 +201,7 @@ def _log_task_exception(task: asyncio.Task[Any]) -> None:  # kwonly: disable
     if task.cancelled():
         return
     if exc := task.exception():
-        _LOGGER.exception(  # i18n-log: ignore
+        _LOGGER.error(  # i18n-log: ignore
             "TASK_EXCEPTION: Unhandled exception in task '%s'",
             task.get_name(),
             exc_info=exc,

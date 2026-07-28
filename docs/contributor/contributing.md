@@ -2,6 +2,13 @@
 
 Thank you for your interest in contributing to aiohomematic! This guide will help you get started.
 
+## AI Policy
+
+AI tools are welcome as an aid, but you remain responsible for everything you submit: autonomous
+agent submissions are not accepted, and you must understand and be able to explain every change in
+your own words. The full rules live in
+[AI_POLICY.md](https://github.com/SukramJ/aiohomematic/blob/main/AI_POLICY.md).
+
 ## Ways to Contribute
 
 | Type                 | Description                          |

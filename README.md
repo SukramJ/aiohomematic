@@ -33,7 +33,7 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 | [Contributor Guide](https://sukramj.github.io/aiohomematic/contributor/contributing/) | Dev environment, coding standards, release process |
 | [Architecture & ADRs](https://sukramj.github.io/aiohomematic/architecture/)           | System design and decision records                 |
 
-Additional entry points in this repository: [`CLAUDE.md`](CLAUDE.md) (AI assistant / contributor quick-reference) and [`changelog.md`](changelog.md).
+Additional entry points in this repository: [`CLAUDE.md`](CLAUDE.md) (AI assistant / contributor quick-reference), [`AI_POLICY.md`](AI_POLICY.md) (rules for AI-assisted contributions) and [`changelog.md`](changelog.md).
 
 ## How It Works
 

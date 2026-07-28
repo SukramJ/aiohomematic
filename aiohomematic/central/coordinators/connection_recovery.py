@@ -905,7 +905,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
         try:
             await self._hub_data_fetcher.fetch_system_update_data(scheduled=False)
             _LOGGER.debug("CONNECTION_RECOVERY: System update data refreshed")
-        except Exception:  # noqa: BLE001 - opportunistic hub refresh; failure must not abort recovery
+        except Exception:
             _LOGGER.debug(  # i18n-log: ignore
                 "CONNECTION_RECOVERY: Failed to refresh system update data",
                 exc_info=True,
@@ -916,7 +916,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
             try:
                 await self._hub_data_fetcher.fetch_program_data(scheduled=False)
                 _LOGGER.debug("CONNECTION_RECOVERY: Program data refreshed")
-            except Exception:  # noqa: BLE001 - opportunistic hub refresh; failure must not abort recovery
+            except Exception:
                 _LOGGER.debug(  # i18n-log: ignore
                     "CONNECTION_RECOVERY: Failed to refresh program data",
                     exc_info=True,
@@ -927,7 +927,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
             try:
                 await self._hub_data_fetcher.fetch_sysvar_data(scheduled=False)
                 _LOGGER.debug("CONNECTION_RECOVERY: Sysvar data refreshed")
-            except Exception:  # noqa: BLE001 - opportunistic hub refresh; failure must not abort recovery
+            except Exception:
                 _LOGGER.debug(  # i18n-log: ignore
                     "CONNECTION_RECOVERY: Failed to refresh sysvar data",
                     exc_info=True,

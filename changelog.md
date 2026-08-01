@@ -1,3 +1,28 @@
+# Version 2026.8.0 (2026-08-01)
+
+## What's Changed
+
+### Added
+
+- `AI_POLICY.md` documenting the project's policy on AI-assisted contributions,
+  linked from `docs/contributor/contributing.md`.
+
+### Changed
+
+- **Minimum `openccu-data` raised to 2026.7.2**, picking up the current CCU
+  translation and easymode artifacts. The package is pulled in transitively, so
+  upgrading aiohomematic is sufficient.
+- **`_GenericProperty.__init__` now takes `cached` and `log_context` as
+  keyword-only arguments**, in line with the project-wide keyword-only
+  convention. All in-tree call sites already pass them by keyword; only code
+  that constructs `_GenericProperty` with more than four positional arguments is
+  affected.
+- Unhandled task exceptions are logged via `_LOGGER.error(..., exc_info=exc)`
+  instead of `_LOGGER.exception()`. `_log_task_exception` runs from a task
+  done-callback, i.e. outside an active exception handler, where `exception()`
+  has no ambient `sys.exc_info()` to draw on. Log level and traceback output are
+  unchanged.
+
 # Version 2026.7.11 (2026-07-24)
 
 ## What's Changed

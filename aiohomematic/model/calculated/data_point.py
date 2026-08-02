@@ -119,7 +119,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         return False
 
     _relevant_data_points: Final = DelegatedProperty[tuple[GenericDataPointProtocolAny, ...]](
-        path="_readable_data_points"
+        path="_relevant_values_data_points"
     )
     default: Final = DelegatedProperty[ParameterT](path="_default")
     hmtype: Final = DelegatedProperty[ParameterType](path="_type")
@@ -140,7 +140,13 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
 
     @property
     def _relevant_values_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
-        """Returns the list of relevant VALUES data points. To be overridden by subclasses."""
+        """
+        Returns the list of relevant VALUES data points. To be overridden by subclasses.
+
+        These are the state carriers of a calculated data point and therefore gate its
+        validity. MASTER data points are configuration inputs (e.g. ``LOW_BAT_LIMIT``),
+        which a sleeping device may never deliver, and must not gate validity.
+        """
         return tuple(dp for dp in self._readable_data_points if dp.paramset_key == ParamsetKey.VALUES)
 
     @property
@@ -189,6 +195,24 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
     def is_status_valid(self) -> bool:
         """Return if all relevant data points have valid status."""
         return all(dp.is_status_valid for dp in self._relevant_data_points)
+
+    @property
+    @override
+    def is_valid(self) -> bool:
+        """
+        Return if the calculated data point has a valid value.
+
+        A calculated value can only be as good as the values it derives from, so every
+        state-carrying source must carry a valid value itself. Checking ``is_refreshed``
+        alone is not enough: a source that was read at startup but returned no usable
+        value is refreshed, yet has nothing to calculate from.
+
+        Without any state-carrying source there is nothing to derive a value from, so the
+        data point is not valid.
+        """
+        return bool(relevant_data_points := self._relevant_data_points) and all(
+            dp.is_valid for dp in relevant_data_points
+        )
 
     @property
     def is_writable(self) -> bool:

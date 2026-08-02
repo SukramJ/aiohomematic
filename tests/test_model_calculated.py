@@ -135,6 +135,9 @@ class _FakeGenericDP:
         self.is_status_valid = True
         self.state_uncertain = False
         self.published_event_recently = True
+        # Mimics the extra type/range checks of GenericDataPoint.is_valid, which a
+        # refreshed data point without a usable value fails.
+        self.has_valid_value = True
         self._unsubscribed: list[bool] = []
         self.unique_id = f"fake_dp_{_FakeGenericDP._counter}"
 
@@ -144,7 +147,7 @@ class _FakeGenericDP:
 
     @property
     def is_valid(self) -> bool:
-        return self.is_refreshed and self.is_status_valid
+        return self.is_refreshed and self.is_status_valid and self.has_valid_value
 
     @property
     def modified_at(self) -> datetime:
@@ -322,6 +325,64 @@ class TestCalculatedDataPoint:
 
         # And then call unregister to iterate over both a callable and a None
         calc.unsubscribe_from_data_point_updated()
+
+
+class TestCalculatedDataPointValidity:
+    """Tests for the validity gating of CalculatedDataPoint."""
+
+    @staticmethod
+    def _build(*dps: _FakeGenericDP) -> _MyCalc:
+        """Return a calculated data point wired to the given source data points."""
+        ch = _FakeChannel()
+        for dp in dps:
+            ch.add_fake(dp)
+        calc = _MyCalc(channel=ch)
+        for dp in dps:
+            calc._add_data_point(parameter=dp.parameter, paramset_key=dp.paramset_key, dpt=_FakeGenericDP)  # type: ignore[arg-type]
+        return calc
+
+    def test_invalid_source_value_invalidates(self) -> None:
+        """Test a refreshed source data point without a usable value invalidates the calculated data point."""
+        dp = _FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
+        # The startup case: the source was read but returned no usable value.
+        dp.has_valid_value = False
+        calc = self._build(dp)
+
+        assert dp.is_refreshed is True
+        assert calc.is_refreshed is True
+        assert calc.is_valid is False
+
+    def test_master_source_does_not_gate_validity(self) -> None:
+        """Test a MASTER config source does not gate validity of the calculated data point."""
+        values_dp = _FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES, value=2.5)
+        master_dp = _FakeGenericDP(parameter="B", paramset_key=ParamsetKey.MASTER)
+        # A sleeping battery device may never deliver its MASTER paramset.
+        master_dp.is_refreshed = False
+        master_dp.has_valid_value = False
+        calc = self._build(values_dp, master_dp)
+
+        assert calc.is_valid is True
+        assert calc.is_refreshed is True
+        assert calc.state_uncertain is False
+
+    def test_no_subclass_overrides_relevant_data_points(self) -> None:
+        """Test validity gating stays with _relevant_values_data_points for every subclass."""
+
+        def _subclasses(cls: type) -> set[type]:
+            found = set(cls.__subclasses__())
+            for sub in tuple(found):
+                found |= _subclasses(sub)
+            return found
+
+        overriding = {sub.__name__ for sub in _subclasses(CalculatedDataPoint) if "_relevant_data_points" in vars(sub)}
+        assert not overriding
+
+    def test_without_relevant_sources_is_invalid(self) -> None:
+        """Test a calculated data point without readable VALUES sources is not valid."""
+        master_dp = _FakeGenericDP(parameter="B", paramset_key=ParamsetKey.MASTER)
+        calc = self._build(master_dp)
+
+        assert calc.is_valid is False
 
 
 class TestOperatingVoltageLevel:

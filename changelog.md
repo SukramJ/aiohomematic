@@ -2,6 +2,26 @@
 
 ## What's Changed
 
+### Fixed
+
+- Fix calculated data points (`OPERATING_VOLTAGE_LEVEL`, `VAPOR_CONCENTRATION`,
+  `DEW_POINT`, …) reporting `is_valid=True` while their value is `None`, which left the
+  corresponding Home Assistant entities stuck at `unknown` after a restart instead of
+  restoring their previous state (#3332). `CalculatedDataPoint` inherited its validity
+  from `BaseDataPoint`, where `is_valid` only aggregates `is_refreshed` and
+  `is_status_valid` of the source data points. A source that was read at startup but
+  returned no usable value is refreshed, so the calculated data point claimed validity
+  with nothing to calculate from — and because Home Assistant only restores a previous
+  state for data points that report themselves as invalid, the restore path never ran.
+  Validity now requires every state-carrying source to be valid itself.
+- Calculated data point validity is no longer gated by MASTER sources. Applying the
+  ADR-0025 reasoning to calculated data points, only the readable VALUES sources
+  (`_relevant_values_data_points`) are state carriers; MASTER paramset entries such as
+  `LOW_BAT_LIMIT` are configuration inputs that a sleeping battery device may never
+  deliver, and previously blocked `is_valid`, `is_refreshed` and `state_uncertain` of the
+  whole calculated data point. A calculated data point without any readable VALUES source
+  is now invalid rather than valid-with-`None`.
+
 ### Documentation
 
 - **Events reference for the Home Assistant integration**

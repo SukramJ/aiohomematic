@@ -1,3 +1,28 @@
+# Version 2026.8.1 (2026-08-02)
+
+## What's Changed
+
+### Documentation
+
+- **Events reference for the Home Assistant integration**
+  (`docs/user/features/homeassistant_events.md`, EN + DE): Documents all seven
+  events the integration fires on the HA event bus — `homematic.keypress`,
+  `homematic.impulse`, `homematic.device_error`,
+  `homematic.device_availability`, `homematicip_local.optimistic_rollback`,
+  `homematicip_local.central_state_changed` and
+  `homematicip_local.interface_connection_changed` — with their triggering
+  parameters and complete payloads. The user guide's `Events` section previously
+  described three of them in one sentence each and named neither the triggering
+  parameters nor any payload field, so which parameter surfaces as which event
+  was not answerable from the docs (aiohomematic#3333). It now carries an
+  overview table and links to the new page.
+- **Service messages are explicitly documented as non-events**: CCU service
+  messages (`CONFIG_PENDING`, `UPDATE_PENDING`, `STICKY_UNREACH`) never produce
+  a `device_error` event, and their parameters are hidden, so they yield no
+  entity either. The new page points to the `hub_service_messages` sensor as the
+  supported way to consume them, including an example automation. This was the
+  concrete misunderstanding behind aiohomematic#3333.
+
 # Version 2026.8.0 (2026-08-01)
 
 ## What's Changed

@@ -55,6 +55,7 @@ nav:
       - Device Support: user/device_support.md
       - Features:
           - Actions Reference: user/features/homeassistant_actions.md
+          - Events Reference: user/features/homeassistant_events.md
           - Week Profiles: user/features/week_profile.md
           - Device Configuration Panel: user/features/config_panel.md
           - Climate Schedule Card: user/features/climate_schedule_card.md

@@ -331,17 +331,24 @@ target:
 
 ## Events
 
-### homematic.keypress
+The integration fires events on the Home Assistant event bus that automations can trigger on:
 
-Fired when a key is pressed. Use with device triggers or event entities.
+| Event type                                       | Fired when                                      |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `homematic.keypress`                             | A button on a device is pressed                 |
+| `homematic.impulse`                              | A device reports an impulse                     |
+| `homematic.device_error`                         | An `ERROR*` / `SENSOR_ERROR*` parameter changes |
+| `homematic.device_availability`                  | A device becomes reachable or unreachable       |
+| `homematicip_local.optimistic_rollback`          | An optimistic value was rolled back             |
+| `homematicip_local.central_state_changed`        | The central changes its health state            |
+| `homematicip_local.interface_connection_changed` | An interface connects or disconnects            |
 
-### homematic.device_availability
+!!! note "Service messages are not events"
+CCU service messages such as `CONFIG_PENDING`, `UPDATE_PENDING` or `STICKY_UNREACH` are **not**
+delivered as events. Use the hub sensor `sensor.<instance>_hub_service_messages` for those.
 
-Fired when a device becomes unavailable or available again. Useful with the persistent notification blueprint.
-
-### homematic.device_error
-
-Fired when a device is in an error state.
+See [Events Reference](features/homeassistant_events.md) for the triggering parameters and the
+full payload of every event.
 
 ---
 

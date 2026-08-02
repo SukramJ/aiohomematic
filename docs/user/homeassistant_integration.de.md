@@ -337,17 +337,26 @@ target:
 
 ## Ereignisse
 
-### homematic.keypress
+Die Integration löst auf dem Home Assistant-Event-Bus Ereignisse aus, auf die Automationen
+triggern können:
 
-Wird bei einem Tastendruck ausgelöst. Mit Device-Triggern oder Event-Entities verwenden.
+| Ereignistyp                                      | Wird ausgelöst, wenn                                  |
+| ------------------------------------------------ | ----------------------------------------------------- |
+| `homematic.keypress`                             | eine Taste an einem Gerät gedrückt wird               |
+| `homematic.impulse`                              | ein Gerät einen Impuls meldet                         |
+| `homematic.device_error`                         | sich ein `ERROR*`- / `SENSOR_ERROR*`-Parameter ändert |
+| `homematic.device_availability`                  | ein Gerät erreichbar oder unerreichbar wird           |
+| `homematicip_local.optimistic_rollback`          | ein optimistisch gesetzter Wert zurückgenommen wurde  |
+| `homematicip_local.central_state_changed`        | die Zentrale ihren Zustand ändert                     |
+| `homematicip_local.interface_connection_changed` | sich eine Schnittstelle verbindet oder trennt         |
 
-### homematic.device_availability
+!!! note "Servicemeldungen sind keine Ereignisse"
+CCU-Servicemeldungen wie `CONFIG_PENDING`, `UPDATE_PENDING` oder `STICKY_UNREACH` werden **nicht**
+als Ereignis ausgeliefert. Dafür steht der Hub-Sensor `sensor.<instanz>_hub_service_messages`
+bereit.
 
-Wird ausgelöst, wenn ein Gerät nicht mehr erreichbar ist oder wieder erreichbar wird. Nützlich mit dem Blueprint für persistente Benachrichtigungen.
-
-### homematic.device_error
-
-Wird ausgelöst, wenn sich ein Gerät in einem Fehlerzustand befindet.
+Die auslösenden Parameter und die vollständigen Nutzdaten aller Ereignisse sind in der
+[Ereignis-Referenz](features/homeassistant_events.md) dokumentiert.
 
 ---
 

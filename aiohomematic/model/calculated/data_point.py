@@ -25,6 +25,7 @@ from aiohomematic.const import (
 )
 from aiohomematic.decorators import inspector
 from aiohomematic.interfaces import CallbackDataPointProtocol, ChannelProtocol, GenericDataPointProtocolAny
+from aiohomematic.model.calculated.field import CalculatedDataPointField
 from aiohomematic.model.custom import definition as hmed
 from aiohomematic.model.custom.mixins import StateChangeArgs
 from aiohomematic.model.data_point import BaseDataPoint
@@ -110,6 +111,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         self._operations: int = 5
         self._unit: str | None = None
         self._multiplier: float = 1.0
+        self._resolve_declared_source_data_points()
         self._post_init()
         weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
@@ -374,3 +376,18 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
             )
             return generic_data_point
         return DpDummy(channel=self._channel, param_field=parameter)
+
+    def _resolve_declared_source_data_points(self) -> None:
+        """
+        Resolve every source data point declared as a CalculatedDataPointField.
+
+        The descriptor resolves on first access. Leaving that to the first read of
+        ``value`` keeps ``_data_points`` empty in the meantime, so validity gating finds
+        no state carrier and no source subscription exists to publish an update — a
+        calculated data point that Home Assistant would never ask for a value.
+        """
+        for cls in type(self).__mro__:
+            for name, attribute in vars(cls).items():
+                if isinstance(attribute, CalculatedDataPointField):
+                    # Descriptor access resolves the source data point and caches it.
+                    getattr(self, name)

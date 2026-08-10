@@ -1,3 +1,30 @@
+# Version 2026.8.2 (2026-08-10)
+
+## What's Changed
+
+### Fixed
+
+- Fix calculated data points (`DEW_POINT`, `VAPOR_CONCENTRATION`, `FROST_POINT`,
+  `ENTHALPY`, `DEW_POINT_SPREAD`, `APPARENT_TEMPERATURE`, `OPERATING_VOLTAGE_LEVEL`)
+  freezing on their restored value after the update to 2026.8.1, while the underlying
+  temperature and humidity data points kept updating (#3343). `CalculatedDataPointField`
+  resolves its source data point lazily on first access, and the climate sensors never
+  triggered that resolution outside of `value`. With the stricter validity gating
+  introduced in #3335, an unresolved source set made `is_valid` report `False` — and
+  because Home Assistant reads `is_valid` before it reads the value, it kept serving the
+  restored state and never performed the first value read that would have resolved the
+  sources. On top of that, the per-source update subscription is created during
+  resolution, so no source update ever reached the calculated data point either.
+  `CalculatedDataPoint` now resolves every declared source field when it is constructed.
+
+## Tests
+
+- New contract test `tests/contract/test_calculated_source_resolution_contract.py` pins
+  that every calculated data point resolves and subscribes to its declared sources at
+  construction time and can report validity without a prior value read.
+- The fake channel/device/data point helpers used to construct model objects without a
+  central unit moved from `tests/test_model_calculated.py` to `tests/helpers/fake_model.py`.
+
 # Version 2026.8.1 (2026-08-02)
 
 ## What's Changed

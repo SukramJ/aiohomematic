@@ -2,15 +2,13 @@
 # Copyright (c) 2021-2026
 """Tests for aiohomematic.model.calculated."""
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 import math
 from typing import Any
 
 import pytest
 
-from aiohomematic.const import INIT_DATETIME, Parameter, ParamsetKey
+from aiohomematic.const import Parameter, ParamsetKey
 from aiohomematic.model.calculated import (
     ApparentTemperature,
     CalculatedDataPoint,
@@ -32,153 +30,7 @@ from aiohomematic.model.calculated.support import (
     calculate_vapor_concentration,
 )
 
-# Shared fake helpers ---------------------------------------------------------
-
-
-class _FakeCentral:
-    def __init__(self) -> None:
-        self.name = "CentralTest"
-        self.config = type("Cfg", (), {"central_id": "CentralTest", "locale": "en"})()
-        # Minimal helpers used by name generation (not used here)
-        self.paramset_descriptions = type("PS", (), {"is_in_multiple_channels": lambda *_args, **_kw: False})()
-        self.device_details = type("DD", (), {"get_name": lambda *_args, **_kw: None})()
-
-        # Provide minimal parameter_visibility used by GenericDataPoint init
-        class _PV:
-            def parameter_is_hidden(self, *, channel, paramset_key, parameter) -> bool:
-                """In tests, nothing is hidden by default."""
-                return False
-
-            def parameter_is_un_ignored(self, *, channel, paramset_key, parameter, custom_only: bool) -> bool:
-                """In tests, default to False (not un-ignored)."""
-                return False
-
-        self.parameter_visibility = _PV()
-
-        # Provide minimal event_bus for callback registration
-        class _EventBus:
-            def __init__(self, *, task_scheduler: Any = None) -> None:
-                """Initialize fake event bus."""
-
-            def subscribe(
-                self, *, event_type: Any, event_key: Any, handler: Callable[[Any], None]
-            ) -> Callable[[], None]:
-                """Mock subscribe that returns a no-op unsubscribe."""
-                return lambda: None
-
-        self.event_bus = _EventBus()
-
-
-class _FakeDevice:
-    def __init__(self, model: str = "HmIP-XYZ", address: str = "ADDR1") -> None:
-        self.interface_id = "ifid"
-        self.address = address
-        self.central = _FakeCentral()
-        self.model = model
-        self.name = "DeviceName"
-        self.client = type("Client", (), {"interface": None})()
-        self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
-        # Add protocol interface attributes for DI
-        self.config_provider = type("ConfigProviderProtocol", (), {"config": self.central.config})()
-        self.central_info = type("CentralInfoProtocol", (), {"name": "CentralTest", "available": True})()
-        self.event_bus_provider = type("EventBusProviderProtocol", (), {"event_bus": self.central.event_bus})()
-        self.event_publisher = type("EventEmitter", (), {})()
-        self.task_scheduler = type("TaskScheduler", (), {})()
-        self.paramset_description_provider = type(
-            "ParamsetDescriptionProviderProtocol",
-            (),
-            {"is_in_multiple_channels": lambda self, channel_address, parameter: False},
-        )()
-        self.parameter_visibility_provider = type(
-            "ParameterVisibilityProviderProtocol",
-            (),
-            {
-                "parameter_is_hidden": lambda self, channel, paramset_key, parameter: False,
-                "parameter_is_un_ignored": lambda self, channel, paramset_key, parameter, custom_only=False: False,
-            },
-        )()
-        self.device_data_refresher = type("DeviceDataRefresherProtocol", (), {})()
-        self.device_details_provider = type(
-            "DeviceDetailsProviderProtocol", (), {"get_name": lambda self, address: None}
-        )()
-
-    def add_dp(self, dp: _FakeGenericDP) -> None:
-        self._store[(dp.parameter, dp.paramset_key)] = dp
-
-    def get_generic_data_point(
-        self, *, channel_address: str, parameter: str, paramset_key: ParamsetKey | None
-    ) -> _FakeGenericDP | None:
-        return self._store.get((parameter, paramset_key))
-
-
-class _FakeGenericDP:
-    _counter: int = 0
-
-    def __init__(
-        self,
-        *,
-        parameter: str,
-        paramset_key: ParamsetKey,
-        value: Any = None,
-        default: Any = None,
-        readable: bool = True,
-    ) -> None:
-        _FakeGenericDP._counter += 1
-        self.parameter = parameter
-        self.paramset_key = paramset_key
-        self.value = value
-        self.default = default
-        self._readable = readable
-        self._modified_at = INIT_DATETIME
-        self._refreshed_at = INIT_DATETIME
-        self.is_refreshed = True
-        self.is_status_valid = True
-        self.state_uncertain = False
-        self.published_event_recently = True
-        # Mimics the extra type/range checks of GenericDataPoint.is_valid, which a
-        # refreshed data point without a usable value fails.
-        self.has_valid_value = True
-        self._unsubscribed: list[bool] = []
-        self.unique_id = f"fake_dp_{_FakeGenericDP._counter}"
-
-    @property
-    def is_readable(self) -> bool:
-        return self._readable
-
-    @property
-    def is_valid(self) -> bool:
-        return self.is_refreshed and self.is_status_valid and self.has_valid_value
-
-    @property
-    def modified_at(self) -> datetime:
-        return self._modified_at
-
-    @property
-    def refreshed_at(self) -> datetime:
-        return self._refreshed_at
-
-    def set_times(self, *, modified_delta: int, refreshed_delta: int) -> None:
-        base = datetime.now()
-        self._modified_at = base + timedelta(seconds=modified_delta)
-        self._refreshed_at = base + timedelta(seconds=refreshed_delta)
-
-
-class _FakeChannel:
-    def __init__(self, model: str = "HmIP-XYZ", address: str = "ADDR1:1") -> None:
-        self.central = _FakeCentral()
-        self.device = _FakeDevice(model=model, address=address.split(":")[0])
-        self.address = address
-        self.no = int(address.split(":")[-1]) if ":" in address else 1
-        self.name = f"FakeChannel {address}"
-        self.type_name = "FAKE_CHANNEL_TYPE"
-        self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
-
-    def add_fake(self, dp: _FakeGenericDP) -> None:
-        self._store[(dp.parameter, dp.paramset_key)] = dp
-
-    # Channel-level DP getter used by calculated DPs
-    def get_generic_data_point(self, *, parameter: str, paramset_key: ParamsetKey | None) -> _FakeGenericDP | None:
-        return self._store.get((parameter, paramset_key))
+from tests.helpers.fake_model import FakeChannel, FakeDevice, FakeGenericDP
 
 
 class _MyCalc(CalculatedDataPoint[float | None]):
@@ -186,12 +38,12 @@ class _MyCalc(CalculatedDataPoint[float | None]):
 
     _calculated_parameter = "TEST_CALC"
 
-    def __init__(self, *, channel: _FakeChannel) -> None:  # type: ignore[override]
+    def __init__(self, *, channel: FakeChannel) -> None:  # type: ignore[override]
         super().__init__(channel=channel)  # type: ignore[arg-type]
 
     # Make two VALUES data points relevant so _should_publish_data_point_updated_callback checks the branch
     @property
-    def _relevant_values_data_points(self) -> tuple[_FakeGenericDP, ...]:  # type: ignore[override]
+    def _relevant_values_data_points(self) -> tuple[FakeGenericDP, ...]:  # type: ignore[override]
         return tuple(dp for dp in self._data_points.values() if dp.paramset_key == ParamsetKey.VALUES)  # type: ignore[attr-defined]
 
 
@@ -208,12 +60,12 @@ class TestCalculatedDataPoint:
 
     def test_calculated_datapoint_add_and_properties(self) -> None:
         """Test CalculatedDataPoint attaches readable source DPs and computes operation flags and timestamps."""
-        ch = _FakeChannel()
+        ch = FakeChannel()
 
         # Add two readable VALUES DPs and one MASTER DP (not relevant for values aggregation)
-        dp1 = _FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
-        dp2 = _FakeGenericDP(parameter="B", paramset_key=ParamsetKey.VALUES)
-        dp3 = _FakeGenericDP(parameter="C", paramset_key=ParamsetKey.MASTER)
+        dp1 = FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
+        dp2 = FakeGenericDP(parameter="B", paramset_key=ParamsetKey.VALUES)
+        dp3 = FakeGenericDP(parameter="C", paramset_key=ParamsetKey.MASTER)
         dp1.set_times(modified_delta=1, refreshed_delta=2)
         dp2.set_times(modified_delta=3, refreshed_delta=1)
         dp3.set_times(modified_delta=0, refreshed_delta=0)
@@ -223,9 +75,9 @@ class TestCalculatedDataPoint:
 
         calc = _MyCalc(channel=ch)
         # Use protected helpers to attach
-        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
-        calc._add_data_point(parameter="B", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
-        calc._add_data_point(parameter="C", paramset_key=ParamsetKey.MASTER, dpt=_FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, dpt=FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="B", paramset_key=ParamsetKey.VALUES, dpt=FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="C", paramset_key=ParamsetKey.MASTER, dpt=FakeGenericDP)  # type: ignore[arg-type]
 
         # Ops flags from base: READ + EVENT, not WRITE
         assert calc.is_readable is True
@@ -264,9 +116,9 @@ class TestCalculatedDataPoint:
 
     def test_calculated_datapoint_add_missing_returns_placeholder(self) -> None:
         """Test when a requested source DP is missing, a placeholder (DpDummy) is returned and stored."""
-        ch = _FakeChannel()
+        ch = FakeChannel()
         calc = _MyCalc(channel=ch)
-        none_dp = calc._add_data_point(parameter="MISSING", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
+        none_dp = calc._add_data_point(parameter="MISSING", paramset_key=ParamsetKey.VALUES, dpt=FakeGenericDP)  # type: ignore[arg-type]
         # DpDummy is a GenericDataPoint-like placeholder; it exposes generic attributes safely
         assert hasattr(none_dp, "is_readable")
         # And the overall calc still exposes expected operation flags
@@ -276,9 +128,9 @@ class TestCalculatedDataPoint:
 
     def test_calculated_datapoint_misc_properties_and_callbacks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test misc getters, is_relevant_for_model default, load path, state_uncertain branch, and unregister None branch."""
-        ch = _FakeChannel()
+        ch = FakeChannel()
         # Prepare a readable VALUES dp with async load method
-        dp = _FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
+        dp = FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
 
         async def _load_data_point_value(*_a, **_k) -> None:
             """Async stub to satisfy load_data_point_value loop."""
@@ -289,7 +141,7 @@ class TestCalculatedDataPoint:
         ch.add_fake(dp)
 
         calc = _MyCalc(channel=ch)
-        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, dpt=_FakeGenericDP)  # type: ignore[arg-type]
+        calc._add_data_point(parameter="A", paramset_key=ParamsetKey.VALUES, dpt=FakeGenericDP)  # type: ignore[arg-type]
 
         # Access simple properties to hit return lines
         _ = calc.default
@@ -331,19 +183,19 @@ class TestCalculatedDataPointValidity:
     """Tests for the validity gating of CalculatedDataPoint."""
 
     @staticmethod
-    def _build(*dps: _FakeGenericDP) -> _MyCalc:
+    def _build(*dps: FakeGenericDP) -> _MyCalc:
         """Return a calculated data point wired to the given source data points."""
-        ch = _FakeChannel()
+        ch = FakeChannel()
         for dp in dps:
             ch.add_fake(dp)
         calc = _MyCalc(channel=ch)
         for dp in dps:
-            calc._add_data_point(parameter=dp.parameter, paramset_key=dp.paramset_key, dpt=_FakeGenericDP)  # type: ignore[arg-type]
+            calc._add_data_point(parameter=dp.parameter, paramset_key=dp.paramset_key, dpt=FakeGenericDP)  # type: ignore[arg-type]
         return calc
 
     def test_invalid_source_value_invalidates(self) -> None:
         """Test a refreshed source data point without a usable value invalidates the calculated data point."""
-        dp = _FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
+        dp = FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES)
         # The startup case: the source was read but returned no usable value.
         dp.has_valid_value = False
         calc = self._build(dp)
@@ -354,8 +206,8 @@ class TestCalculatedDataPointValidity:
 
     def test_master_source_does_not_gate_validity(self) -> None:
         """Test a MASTER config source does not gate validity of the calculated data point."""
-        values_dp = _FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES, value=2.5)
-        master_dp = _FakeGenericDP(parameter="B", paramset_key=ParamsetKey.MASTER)
+        values_dp = FakeGenericDP(parameter="A", paramset_key=ParamsetKey.VALUES, value=2.5)
+        master_dp = FakeGenericDP(parameter="B", paramset_key=ParamsetKey.MASTER)
         # A sleeping battery device may never deliver its MASTER paramset.
         master_dp.is_refreshed = False
         master_dp.has_valid_value = False
@@ -379,10 +231,67 @@ class TestCalculatedDataPointValidity:
 
     def test_without_relevant_sources_is_invalid(self) -> None:
         """Test a calculated data point without readable VALUES sources is not valid."""
-        master_dp = _FakeGenericDP(parameter="B", paramset_key=ParamsetKey.MASTER)
+        master_dp = FakeGenericDP(parameter="B", paramset_key=ParamsetKey.MASTER)
         calc = self._build(master_dp)
 
         assert calc.is_valid is False
+
+
+class TestCalculatedDataPointFieldResolution:
+    """Tests that declared source fields are resolved at construction time."""
+
+    def test_climate_sensor_is_valid_without_prior_value_access(self) -> None:
+        """Test a climate sensor reports validity before its value has ever been read."""
+        ch = FakeChannel(model="Any")
+        ch.add_fake(FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=21.5))
+        ch.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=35.0))
+
+        calc = DewPoint(channel=ch)
+
+        # Home Assistant reads is_valid before it ever reads the value. With lazily
+        # resolved sources the source set is still empty here, so the data point would
+        # claim to be invalid and Home Assistant would never leave the restored state
+        # that triggers the first value read (#3343).
+        assert calc.is_valid is True
+        assert len(calc._relevant_data_points) == 2
+
+    def test_missing_source_resolves_to_placeholder(self) -> None:
+        """Test an unavailable source is resolved to a non-readable placeholder."""
+        ch = FakeChannel(model="Any")
+        ch.add_fake(FakeGenericDP(parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES, value=20.0))
+
+        calc = DewPoint(channel=ch)
+
+        # The humidity placeholder is not readable and therefore gates nothing, but the
+        # data point has no complete input set and must not claim validity.
+        assert len(calc._data_points) == 2
+        assert len(calc._relevant_data_points) == 1
+        assert calc.value is None
+
+    def test_operating_voltage_level_is_valid_without_prior_value_access(self) -> None:
+        """Test OperatingVoltageLevel reports validity before its value has ever been read."""
+        ch = FakeChannel(model="HmIP-SWDO")
+        ch.add_fake(FakeGenericDP(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, value=2.9))
+        ch.add_fake(FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.2))
+
+        calc = OperatingVoltageLevel(channel=ch)
+
+        # _post_init only touches the MASTER field, so the state-carrying VALUES source
+        # used to stay unresolved.
+        assert calc.is_valid is True
+        assert len(calc._relevant_data_points) == 1
+
+    def test_sources_are_subscribed_at_construction_time(self) -> None:
+        """Test source updates are subscribed without a prior value read."""
+        ch = FakeChannel(model="Any")
+        ch.add_fake(FakeGenericDP(parameter=Parameter.TEMPERATURE, paramset_key=ParamsetKey.VALUES, value=20.0))
+        ch.add_fake(FakeGenericDP(parameter=Parameter.HUMIDITY, paramset_key=ParamsetKey.VALUES, value=40.0))
+
+        calc = VaporConcentration(channel=ch)
+
+        # Without a subscription per source the calculated data point never publishes an
+        # update, so the Home Assistant entity stays frozen on its restored value.
+        assert len(calc._unsubscribe_callbacks) == 2
 
 
 class TestOperatingVoltageLevel:
@@ -390,28 +299,28 @@ class TestOperatingVoltageLevel:
 
     def test_is_relevant_false_for_unknown_model(self) -> None:
         """Test is_relevant_for_model is false when the model is not in the supported list."""
-        device = _FakeDevice(model="Unknown-Model-XYZ")
-        ch = _FakeChannel(model=device.model)
+        device = FakeDevice(model="Unknown-Model-XYZ")
+        ch = FakeChannel(model=device.model)
         assert OperatingVoltageLevel.is_relevant_for_model(channel=ch) is False
 
     def test_is_relevant_true_with_battery_state_and_device_master_limit(self) -> None:
         """Test is_relevant_for_model is true when BATTERY_STATE exists and device-level LOW_BAT_LIMIT is present."""
-        ch = _FakeChannel(model="HmIP-SWDO")
-        ch.add_fake(_FakeGenericDP(parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES, value=2.5))
+        ch = FakeChannel(model="HmIP-SWDO")
+        ch.add_fake(FakeGenericDP(parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES, value=2.5))
         # Provide LOW_BAT_LIMIT at device-level MASTER via the channel's device
         ch.device.add_dp(
-            _FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
+            FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
         )
 
         assert OperatingVoltageLevel.is_relevant_for_model(channel=ch) is True
 
     def test_is_relevant_true_with_operating_voltage_and_master_limit(self) -> None:
         """Test is_relevant_for_model is true when model is supported and both DPs exist at channel level."""
-        device = _FakeDevice(model="HmIP-SWDO")
-        ch = _FakeChannel(model=device.model)
-        ch.add_fake(_FakeGenericDP(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, value=2.6))
+        device = FakeDevice(model="HmIP-SWDO")
+        ch = FakeChannel(model=device.model)
+        ch.add_fake(FakeGenericDP(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, value=2.6))
         ch.add_fake(
-            _FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
+            FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
         )
 
         assert OperatingVoltageLevel.is_relevant_for_model(channel=ch) is True
@@ -419,13 +328,13 @@ class TestOperatingVoltageLevel:
     def test_value_and_additional_information_and_low_bat_limit_property(self) -> None:
         """Test value computes percentage and additional_information contains formatted battery data."""
         # Use HmIP-STHO: 2x AA = 3.0V max, which is > low_bat_limit of 2.0V
-        device = _FakeDevice(model="HmIP-STHO")
-        ch = _FakeChannel(model=device.model)
+        device = FakeDevice(model="HmIP-STHO")
+        ch = FakeChannel(model=device.model)
         # Use BATTERY_STATE path and device-level LOW_BAT_LIMIT
-        ch.add_fake(_FakeGenericDP(parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES, value=2.5))
+        ch.add_fake(FakeGenericDP(parameter=Parameter.BATTERY_STATE, paramset_key=ParamsetKey.VALUES, value=2.5))
         # Add LOW_BAT_LIMIT to the channel's device-level store to match lookup in implementation
         ch.device.add_dp(
-            _FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
+            FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
         )
 
         ovl = OperatingVoltageLevel(channel=ch)  # type: ignore[arg-type]
@@ -448,11 +357,11 @@ class TestOperatingVoltageLevel:
     def test_value_exception_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test if the helper raises, value should catch and return None without raising to caller."""
         # Use HmIP-STHO: 2x AA = 3.0V max, which is > low_bat_limit of 2.0V
-        device = _FakeDevice(model="HmIP-STHO")
-        ch = _FakeChannel(model=device.model)
-        ch.add_fake(_FakeGenericDP(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, value=2.6))
+        device = FakeDevice(model="HmIP-STHO")
+        ch = FakeChannel(model=device.model)
+        ch.add_fake(FakeGenericDP(parameter=Parameter.OPERATING_VOLTAGE, paramset_key=ParamsetKey.VALUES, value=2.6))
         ch.add_fake(
-            _FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
+            FakeGenericDP(parameter=Parameter.LOW_BAT_LIMIT, paramset_key=ParamsetKey.MASTER, value=2.0, default=2.0)
         )
 
         # Monkeypatch the helper BEFORE creating OperatingVoltageLevel
@@ -573,24 +482,24 @@ class TestDewPoint:
     def test_dew_point_relevance_with_fallbacks_and_value(self) -> None:
         """Test DewPoint relevance uses TEMPERATURE or ACTUAL_TEMPERATURE and HUMIDITY or ACTUAL_HUMIDITY."""
         # Case 1: Use standard TEMPERATURE and HUMIDITY
-        ch_std = _FakeChannel(model="Any")
-        ch_std.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=20.0))
-        ch_std.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=40.0))
+        ch_std = FakeChannel(model="Any")
+        ch_std.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=20.0))
+        ch_std.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=40.0))
         assert DewPoint.is_relevant_for_model(channel=ch_std) is True
         dp1 = DewPoint(channel=ch_std)
         assert dp1.value == pytest.approx(calculate_dew_point(temperature=20.0, humidity=40.0))
 
         # Case 2: Fallback to ACTUAL_TEMPERATURE and ACTUAL_HUMIDITY
-        ch_fb = _FakeChannel(model="Any")
-        ch_fb.add_fake(_FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=21.5))
-        ch_fb.add_fake(_FakeGenericDP(parameter="ACTUAL_HUMIDITY", paramset_key=ParamsetKey.VALUES, value=35.0))
+        ch_fb = FakeChannel(model="Any")
+        ch_fb.add_fake(FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=21.5))
+        ch_fb.add_fake(FakeGenericDP(parameter="ACTUAL_HUMIDITY", paramset_key=ParamsetKey.VALUES, value=35.0))
         assert DewPoint.is_relevant_for_model(channel=ch_fb) is True
         dp2 = DewPoint(channel=ch_fb)
         assert dp2.value == pytest.approx(calculate_dew_point(temperature=21.5, humidity=35.0))
 
         # Missing one DP -> relevance false and value None
-        ch_missing = _FakeChannel(model="Any")
-        ch_missing.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=20.0))
+        ch_missing = FakeChannel(model="Any")
+        ch_missing.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=20.0))
         assert DewPoint.is_relevant_for_model(channel=ch_missing) is False
         dp_missing = DewPoint(channel=ch_missing)
         assert dp_missing.value is None
@@ -628,10 +537,10 @@ class TestApparentTemperature:
     async def test_apparent_temperature_relevance_and_value_paths(self) -> None:
         """Test ApparentTemperature checks model + required DPs and computes value or None accordingly."""
         # Relevant model and all required DPs present
-        ch_ok = _FakeChannel(model="HmIP-SWO")
-        ch_ok.add_fake(_FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=22.0))
-        ch_ok.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=55.0))
-        ch_ok.add_fake(_FakeGenericDP(parameter="WIND_SPEED", paramset_key=ParamsetKey.VALUES, value=3.0))
+        ch_ok = FakeChannel(model="HmIP-SWO")
+        ch_ok.add_fake(FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=22.0))
+        ch_ok.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=55.0))
+        ch_ok.add_fake(FakeGenericDP(parameter="WIND_SPEED", paramset_key=ParamsetKey.VALUES, value=3.0))
 
         assert ApparentTemperature.is_relevant_for_model(channel=ch_ok) is True
         at = ApparentTemperature(channel=ch_ok)
@@ -641,20 +550,20 @@ class TestApparentTemperature:
         )
 
         # If one value is None, the calculated DP should return None
-        ch_none = _FakeChannel(model="HmIP-SWO")
-        ch_none.add_fake(_FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=None))
-        ch_none.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=55.0))
-        ch_none.add_fake(_FakeGenericDP(parameter="WIND_SPEED", paramset_key=ParamsetKey.VALUES, value=3.0))
+        ch_none = FakeChannel(model="HmIP-SWO")
+        ch_none.add_fake(FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=None))
+        ch_none.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=55.0))
+        ch_none.add_fake(FakeGenericDP(parameter="WIND_SPEED", paramset_key=ParamsetKey.VALUES, value=3.0))
         at_none = ApparentTemperature(channel=ch_none)
         assert at_none.value is None
 
         # Not relevant model -> relevance false
-        ch_bad_model = _FakeChannel(model="HmIP-OTHER")
+        ch_bad_model = FakeChannel(model="HmIP-OTHER")
         ch_bad_model.add_fake(
-            _FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=22.0)
+            FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=22.0)
         )
-        ch_bad_model.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=55.0))
-        ch_bad_model.add_fake(_FakeGenericDP(parameter="WIND_SPEED", paramset_key=ParamsetKey.VALUES, value=3.0))
+        ch_bad_model.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=55.0))
+        ch_bad_model.add_fake(FakeGenericDP(parameter="WIND_SPEED", paramset_key=ParamsetKey.VALUES, value=3.0))
         assert ApparentTemperature.is_relevant_for_model(channel=ch_bad_model) is False
 
     @pytest.mark.parametrize(
@@ -744,17 +653,17 @@ class TestFrostPoint:
     def test_frost_point_relevance_filter_and_value(self) -> None:
         """Test FrostPoint honors relevant model filter and DP presence."""
         # Relevant models include HmIP-SWO and HmIP-STHO
-        ch_rel = _FakeChannel(model="HmIP-STHO")
-        ch_rel.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=0.0))
-        ch_rel.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=80.0))
+        ch_rel = FakeChannel(model="HmIP-STHO")
+        ch_rel.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=0.0))
+        ch_rel.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=80.0))
         assert FrostPoint.is_relevant_for_model(channel=ch_rel) is True
         fr = FrostPoint(channel=ch_rel)
         assert fr.value == pytest.approx(calculate_frost_point(temperature=0.0, humidity=80.0))
 
         # Non-relevant model should result in relevance False even if DPs exist
-        ch_irrel = _FakeChannel(model="HmIP-ABC")
-        ch_irrel.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=-5.0))
-        ch_irrel.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=70.0))
+        ch_irrel = FakeChannel(model="HmIP-ABC")
+        ch_irrel.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=-5.0))
+        ch_irrel.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=70.0))
         assert FrostPoint.is_relevant_for_model(channel=ch_irrel) is False
 
 
@@ -789,30 +698,30 @@ class TestCombinedMetrics:
     def test_dew_point_spread_and_enthalpy_and_vapor_concentration(self) -> None:
         """Test value computations for other climate sensors and None branch when inputs missing."""
         # DewPointSpread
-        ch1 = _FakeChannel(model="Any")
-        ch1.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=24.0))
-        ch1.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=50.0))
+        ch1 = FakeChannel(model="Any")
+        ch1.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=24.0))
+        ch1.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=50.0))
         dps = DewPointSpread(channel=ch1)
         assert dps.value == pytest.approx(calculate_dew_point_spread(temperature=24.0, humidity=50.0))
 
         # Enthalpy
-        ch2 = _FakeChannel(model="Any")
-        ch2.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=18.0))
-        ch2.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=60.0))
+        ch2 = FakeChannel(model="Any")
+        ch2.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=18.0))
+        ch2.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=60.0))
         enth = Enthalpy(channel=ch2)
         assert enth.value == pytest.approx(calculate_enthalpy(temperature=18.0, humidity=60.0))
 
         # VaporConcentration
-        ch3 = _FakeChannel(model="Any")
-        ch3.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=23.0))
-        ch3.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=45.0))
+        ch3 = FakeChannel(model="Any")
+        ch3.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=23.0))
+        ch3.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=45.0))
         vap = VaporConcentration(channel=ch3)
         assert vap.value == pytest.approx(calculate_vapor_concentration(temperature=23.0, humidity=45.0))
 
         # Missing value path returns None
-        ch4 = _FakeChannel(model="Any")
-        ch4.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=None))
-        ch4.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=45.0))
+        ch4 = FakeChannel(model="Any")
+        ch4.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=None))
+        ch4.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=45.0))
         assert Enthalpy(channel=ch4).value is None
         assert VaporConcentration(channel=ch4).value is None
 
@@ -823,24 +732,24 @@ class TestHelperFunctions:
     def test_helper_is_relevant_temperature_and_humidity_branches(self) -> None:
         """Test helper branches: with relevant_models filter and both TEMPERATURE/ACTUAL_* combos."""
         # 1) With relevant_models filter: match -> True when DPs exist
-        ch_a = _FakeChannel(model="HmIP-SWO")
-        ch_a.add_fake(_FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
-        ch_a.add_fake(_FakeGenericDP(parameter="ACTUAL_HUMIDITY", paramset_key=ParamsetKey.VALUES, value=30.0))
+        ch_a = FakeChannel(model="HmIP-SWO")
+        ch_a.add_fake(FakeGenericDP(parameter="ACTUAL_TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
+        ch_a.add_fake(FakeGenericDP(parameter="ACTUAL_HUMIDITY", paramset_key=ParamsetKey.VALUES, value=30.0))
         assert _is_relevant_for_model_temperature_and_humidity(channel=ch_a, relevant_models=("HmIP-SWO",)) is True
 
         # 2) With relevant_models filter: no match -> False
-        ch_b = _FakeChannel(model="HmIP-OTHER")
-        ch_b.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
-        ch_b.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=30.0))
+        ch_b = FakeChannel(model="HmIP-OTHER")
+        ch_b.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
+        ch_b.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=30.0))
         assert _is_relevant_for_model_temperature_and_humidity(channel=ch_b, relevant_models=("HmIP-SWO",)) is False
 
         # 3) Without relevant_models: only DP presence decides; missing HUMIDITY path -> False
-        ch_c = _FakeChannel(model="Any")
-        ch_c.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
+        ch_c = FakeChannel(model="Any")
+        ch_c.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
         assert _is_relevant_for_model_temperature_and_humidity(channel=ch_c) is False
 
         # 4) Without relevant_models: presence of TEMPERATURE and HUMIDITY -> True
-        ch_d = _FakeChannel(model="Any")
-        ch_d.add_fake(_FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
-        ch_d.add_fake(_FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=30.0))
+        ch_d = FakeChannel(model="Any")
+        ch_d.add_fake(FakeGenericDP(parameter="TEMPERATURE", paramset_key=ParamsetKey.VALUES, value=10.0))
+        ch_d.add_fake(FakeGenericDP(parameter="HUMIDITY", paramset_key=ParamsetKey.VALUES, value=30.0))
         assert _is_relevant_for_model_temperature_and_humidity(channel=ch_d) is True

@@ -161,7 +161,7 @@ Calculated data points compute values from one or more underlying GenericDataPoi
 ### Lifecycle:
 
 - On channel initialization, `create_calculated_data_points(channel)` iterates all registered classes, calls `Class.is_relevant_for_model(channel)` and adds instances for those that apply.
-- Each CalculatedDataPoint uses `CalculatedDataPointField` descriptors for lazy data point resolution with automatic subscription handling.
+- Each CalculatedDataPoint uses `CalculatedDataPointField` descriptors to declare its source data points. The base class resolves every declared field during construction and subscribes to it, so validity gating and update delivery work before the value is read for the first time.
 - When any source data point updates, the calculated data point's value is recomputed.
 
 ### Steps to add a new calculated data point:

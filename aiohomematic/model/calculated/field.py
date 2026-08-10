@@ -31,7 +31,9 @@ class CalculatedDataPointField[DataPointT: GenericDataPointProtocolAny]:
     Descriptor for declarative calculated data point field definitions.
 
     This descriptor eliminates the need for explicit _post_init()
-    boilerplate by lazily resolving data points on first access.
+    boilerplate by resolving data points on first access. `CalculatedDataPoint`
+    resolves every declared field while it is constructed, so a field is wired up
+    before anything reads it.
 
     Usage:
         class MyCalculatedSensor(CalculatedDataPoint):
@@ -65,6 +67,10 @@ class CalculatedDataPointField[DataPointT: GenericDataPointProtocolAny]:
     - Returns a DpDummy fallback if no data point exists
     - Subscribes to data point updates automatically
     - Provides correct type information to mypy
+
+    Resolution must not be deferred until the value is read: validity gating is based
+    on the resolved sources, and the update subscription is created during resolution
+    (#3343).
     """
 
     __slots__ = ("_data_point_type", "_fallback_parameters", "_parameter", "_paramset_key", "_use_device_fallback")

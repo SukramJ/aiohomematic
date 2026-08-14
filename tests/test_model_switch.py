@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, call
 import pytest
 
 from aiohomematic.client import CommandPriority
-from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
+from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointCategory, DataPointUsage, DeviceProfile, ParamsetKey
 from aiohomematic.exceptions import ValidationException
-from aiohomematic.model.custom import CustomDpSwitch
+from aiohomematic.model.custom import CustomDpSwitch, DeviceProfileRegistry
 from aiohomematic.model.generic import DpSwitch
 from aiohomematic.model.hub import SysvarDpSwitch
 from aiohomematic.model.schedule_models import SimpleSchedule, SimpleScheduleEntry
@@ -627,3 +627,27 @@ class TestProgramSwitch:
         except Exception:
             # Mock may not support full operation, but we exercised the code path
             pass
+
+
+class TestSwitchProfileRegistrations:
+    """Tests for the switch profile registrations in the DeviceProfileRegistry."""
+
+    @pytest.mark.parametrize(
+        ("model", "expected_channels"),
+        [
+            # Actuators without an input channel: SWITCH_VIRTUAL_RECEIVER on channel 2.
+            ("HmIP-FS6", (2,)),
+            ("HmIP-FSM", (2,)),
+            ("HmIP-FSM16", (2,)),
+            # Actuators with a push-button input on channel 1: receiver shifted to channel 3.
+            ("HmIP-FSI6", (3,)),
+            ("HmIP-FSI16", (3,)),
+        ],
+    )
+    def test_switch_channel_registration(self, model: str, expected_channels: tuple[int, ...]) -> None:
+        """Test that the flush-mount switch actuators resolve to their switch channel."""
+        configs = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.SWITCH)
+        assert len(configs) == 1
+        assert configs[0].profile_type == DeviceProfile.IP_SWITCH
+        assert configs[0].data_point_class is CustomDpSwitch
+        assert configs[0].channels == expected_channels

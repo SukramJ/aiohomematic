@@ -89,6 +89,10 @@ _IP_SWITCH_REGISTRATIONS: Final[tuple[tuple[str | tuple[str, ...], tuple[int, ..
     ),
     (("HmIP-BSL", "HmIP-BSM"), (4,)),
     ("HmIP-DRSI4", (6, 10, 14, 18)),
+    # HmIP-FS6 has no input channel, so the switch channel layout matches HmIP-FSM
+    # (channel 1 = SWITCH_TRANSMITTER, channel 2 = SWITCH_VIRTUAL_RECEIVER), while the
+    # HmIP-FSI variants add a push-button input on channel 1 and shift the receiver to 3.
+    ("HmIP-FS6", (2,)),
     ("HmIP-FSM", (2,)),
     ("HmIP-MOD-OC8", (10, 14, 18, 22, 26, 30, 34, 38)),
     ("HmIP-SCTH230", (8,)),

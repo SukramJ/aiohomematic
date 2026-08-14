@@ -87,6 +87,20 @@ class TestParameterUnIgnore:
             is True
         )
 
+    def test_parameter_is_un_ignored_for_flush_mount_switch_actuators(self) -> None:
+        """Both HmIP-FSI variants should expose CHANNEL_OPERATION_MODE on their input channel."""
+        pvr = ParameterVisibilityRegistry(config_provider=_Central(), event_bus_provider=_EventBusProvider())
+        # The model keys are resolved by prefix, so "HmIP-FSI6" must not fall back to "HmIP-FSI16".
+        for model in ("HmIP-FSI16", "HmIP-FSI6"):
+            assert (
+                pvr.parameter_is_un_ignored(
+                    channel=_Channel(model=model, address="A3:1", no=1),
+                    paramset_key=ParamsetKey.MASTER,
+                    parameter=Parameter.CHANNEL_OPERATION_MODE,
+                )
+                is True
+            )
+
     def test_parameter_is_un_ignored_from_mapping_master_and_values(self) -> None:
         """Built-in mappings should mark some MASTER/VALUES parameters as un-ignored for certain models."""
         pvr = ParameterVisibilityRegistry(config_provider=_Central(), event_bus_provider=_EventBusProvider())
@@ -142,6 +156,19 @@ class TestParameterIgnore:
         assert (
             pvr.parameter_is_ignored(channel=ch1, paramset_key=ParamsetKey.VALUES, parameter=Parameter.LOWBAT) is True
         )
+
+    def test_parameter_is_ignored_operating_voltage_for_mains_powered_switch(self) -> None:
+        """OPERATING_VOLTAGE should be ignored for the mains-powered flush-mount switch actuators."""
+        pvr = ParameterVisibilityRegistry(config_provider=_Central(), event_bus_provider=_EventBusProvider())
+        for model in ("HmIP-FSM", "HmIP-FS6"):
+            assert (
+                pvr.parameter_is_ignored(
+                    channel=_Channel(model=model, address="A4:0", no=0),
+                    paramset_key=ParamsetKey.VALUES,
+                    parameter=Parameter.OPERATING_VOLTAGE,
+                )
+                is True
+            )
 
 
 class TestShouldSkipParameter:

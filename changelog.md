@@ -1,3 +1,36 @@
+# Version 2026.8.3 (2026-08-14)
+
+## What's Changed
+
+### Added
+
+- Add support for the flush-mount switch actuators `HmIP-FS6` and `HmIP-FSI6`.
+  `HmIP-FS6` has no input channel, so it shares the channel layout of `HmIP-FSM`
+  (channel 1 `SWITCH_TRANSMITTER`, channel 2 `SWITCH_VIRTUAL_RECEIVER`) and is now
+  registered as an `IPSwitch` profile on channel 2. Without that registration it only
+  produced generic data points. `OPERATING_VOLTAGE` is ignored for `HmIP-FS6` as well,
+  consistent with the other mains-powered actuators such as `HmIP-FSM`.
+
+### Fixed
+
+- Expose `CHANNEL_OPERATION_MODE` on channel 1 of `HmIP-FSI6`. The custom switch data
+  point of that device already worked, because the model resolves to channel 3 through
+  the existing `HmIP-FSI` prefix registration, but the un-ignore rule in
+  `RELEVANT_MASTER_PARAMSETS_BY_DEVICE` was keyed on `HmIP-FSI16` only. Model keys are
+  matched with `str.startswith`, and `"hmip-fsi6".startswith("hmip-fsi16")` is `False`,
+  so the operation mode of the push-button input stayed hidden.
+
+## Tests
+
+- `tests/test_model_switch.py` pins the switch channel of the flush-mount actuators:
+  channel 2 for the variants without an input channel (`HmIP-FS6`, `HmIP-FSM`,
+  `HmIP-FSM16`) and channel 3 for those with a push-button input (`HmIP-FSI6`,
+  `HmIP-FSI16`).
+- `tests/test_store_visibility.py` pins that both `HmIP-FSI16` and `HmIP-FSI6` un-ignore
+  `CHANNEL_OPERATION_MODE`, so the prefix matching cannot silently drop the shorter
+  model name again, and that `OPERATING_VOLTAGE` stays ignored for `HmIP-FS6` and
+  `HmIP-FSM`.
+
 # Version 2026.8.2 (2026-08-10)
 
 ## What's Changed

@@ -223,7 +223,7 @@ Legend: `x` = depends on (reads from or delegates to), `-` = no dependency.
 
 - **New device profiles**: Add custom DataPoints under `model/custom/` and register them via `DeviceProfileRegistry.register()`. See `docs/developer/extension_points.md` for detailed instructions.
 - **Calculated sensors**: Implement in `model/calculated/` and add to `_CALCULATED_DATA_POINTS` in `model/calculated/__init__.py`.
-- **Combined data points**: Implement in `model/combined/` using `CombinedTimerField` descriptors on `CustomDataPoint` subclasses. See `docs/developer/extension_points.md` for details.
+- **Combined data points**: Implement in `model/combined/` using `Combined*Field` descriptors (timer, HS color, garage door mode) on `CustomDataPoint` subclasses. See `docs/developer/extension_points.md` for details.
 - **Backends/interfaces**: Implement a new Client subclass and corresponding protocol proxy to add support for another backend or transport.
 
 ## Glossary (selected types)

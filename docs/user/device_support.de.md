@@ -117,6 +117,8 @@ Garagentore (HmIP-MOD-HO, HmIP-MOD-TM) unterscheiden sich grundlegend von andere
 | STOP         | Bewegung stoppen           |
 | NOP          | Keine Operation            |
 
+**Select-Entität für den Modus.** Neben der Cover-Entität stellt das Garagentor eine `select`-Entität namens „Door Mode“ für seine drei diskreten Modi (`CLOSED`, `OPEN`, `VENTILATION_POSITION`) bereit. Sie liest `DOOR_STATE` und schreibt den passenden `DOOR_COMMAND`. Damit ist die Lüftungsposition direkt auswählbar und nicht mehr nur über die unten beschriebenen Bereiche des Positionsreglers erreichbar. Während der Fahrt meldet `DOOR_STATE` den Wert `POSITION_UNKNOWN`; die Select-Entität zeigt dann weiterhin den Modus an, den das Tor ansteuert. Ein `STOP` verwirft diesen gehaltenen Modus, da das Tor zwischen zwei Modi stehen bleibt.
+
 **Verhalten des Positionsreglers.** Da die Home Assistant Cover-Plattform kein natives Konzept für eine Lüftungsposition hat, ordnet das Garagentor seine drei Zustände diskreten Positionswerten (0/10/100) zu. Der Positionsregler in der Oberfläche hat daher drei effektive Bereiche:
 
 - 0-10: Schließt das Tor

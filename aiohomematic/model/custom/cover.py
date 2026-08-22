@@ -572,7 +572,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     # cover platform has no native ventilation state, so this makes the
     # ventilation command a first-class, tappable select without any
     # integration-side wiring.
-    _combined_door_mode: Final = CombinedGarageDoorModeField(
+    _dp_door_mode: Final = CombinedGarageDoorModeField(
         door_state_field=Field.DOOR_STATE,
         door_command_field=Field.DOOR_COMMAND,
         visible=True,
@@ -621,6 +621,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         if not self.is_state_change(close=True):
             return
         await self._dp_door_command.send_value(value=GarageDoorCommand.CLOSE, collector=collector)
+        self._dp_door_mode.note_command(command=GarageDoorCommand.CLOSE)
 
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
@@ -639,6 +640,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         if not self.is_state_change(open=True):
             return
         await self._dp_door_command.send_value(value=GarageDoorCommand.OPEN, collector=collector)
+        self._dp_door_mode.note_command(command=GarageDoorCommand.OPEN)
 
     @bind_collector
     async def set_position(
@@ -662,6 +664,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     async def stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
         await self._dp_door_command.send_value(value=GarageDoorCommand.STOP, collector=collector)
+        self._dp_door_mode.note_command(command=GarageDoorCommand.STOP)
 
     @bind_collector
     async def vent(self, *, collector: CallParameterCollector | None = None) -> None:
@@ -669,6 +672,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         if not self.is_state_change(vent=True):
             return
         await self._dp_door_command.send_value(value=GarageDoorCommand.PARTIAL_OPEN, collector=collector)
+        self._dp_door_mode.note_command(command=GarageDoorCommand.PARTIAL_OPEN)
 
     def _compute_capabilities(self) -> CoverCapabilities:
         """Compute static capabilities. Garage doors support position, stop, and vent."""

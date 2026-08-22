@@ -111,6 +111,8 @@ Garage doors (HmIP-MOD-HO, HmIP-MOD-TM) differ fundamentally from other cover ty
 | STOP         | Stop movement                |
 | NOP          | No operation                 |
 
+**Mode select entity.** Alongside the cover entity, the garage door exposes a `select` entity named "Door Mode" for its three discrete modes (`CLOSED`, `OPEN`, `VENTILATION_POSITION`). It reads `DOOR_STATE` and writes the matching `DOOR_COMMAND`, which makes the ventilation position directly selectable instead of only reachable through the position-slider zones described below. While the door is travelling, `DOOR_STATE` reports `POSITION_UNKNOWN`; the select then keeps showing the mode the door is heading for. A `STOP` clears that held mode, because the door stops between modes.
+
 **Position slider behavior.** Because the Home Assistant cover platform has no native concept for a ventilation position, the garage door maps its three states to discrete position values (0/10/100). The position slider in the UI therefore has three effective zones:
 
 - 0-10: Closes the door

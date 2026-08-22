@@ -1,4 +1,4 @@
-"""Tests for combined data points (CombinedDpTimerAction, CombinedDpHsColor, CombinedDataPoint)."""
+"""Tests for combined data points (CombinedDpTimerAction, CombinedDpHsColor, CombinedDpGarageDoorMode, CombinedDataPoint)."""
 
 from datetime import datetime
 from typing import cast
@@ -17,7 +17,9 @@ from aiohomematic.const import (
     ParameterType,
     ParamsetKey,
 )
+from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
+from aiohomematic.model.combined.field import CombinedGarageDoorModeField
 from aiohomematic.model.combined.garage_door_mode import CombinedDpGarageDoorMode
 from aiohomematic.model.combined.hs_color import CombinedDpHsColor
 from aiohomematic.model.combined.timer import CombinedDpTimerAction
@@ -1000,21 +1002,34 @@ def _create_mock_door_dp(*, value: str | None = None) -> GenericDataPointProtoco
     return cast(GenericDataPointProtocolAny, dp)
 
 
+def _create_garage_door_mode(
+    *,
+    channel: ChannelProtocol,
+    state_dp: GenericDataPointProtocolAny,
+    command_dp: GenericDataPointProtocolAny,
+    visible: bool = False,
+) -> CombinedDpGarageDoorMode:
+    """Create a CombinedDpGarageDoorMode over the given door data points."""
+    return CombinedDpGarageDoorMode(
+        channel=channel,
+        door_state_field=Field.DOOR_STATE,
+        door_command_field=Field.DOOR_COMMAND,
+        door_state_dp=state_dp,
+        door_command_dp=command_dp,
+        visible=visible,
+    )
+
+
 class TestCombinedDpGarageDoorMode:
     """Tests for CombinedDpGarageDoorMode."""
 
     def test_init(self) -> None:
         """Test initialization exposes the three discrete door modes as a SELECT."""
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
-        command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(),
+            command_dp=_create_mock_door_dp(),
         )
 
         assert mode.category == DataPointCategory.SELECT
@@ -1023,24 +1038,17 @@ class TestCombinedDpGarageDoorMode:
         assert mode.is_writable is True
         assert mode.has_events is True
         assert mode.default is None
-        assert mode.values == (
-            GarageDoorState.CLOSED,
-            GarageDoorState.OPEN,
-            GarageDoorState.VENTILATION_POSITION,
-        )
+        # Plain strings, matching what generic data points expose via `values`.
+        assert mode.values == ("CLOSED", "OPEN", "VENTILATION_POSITION")
+        assert all(type(value) is str for value in mode.values)
 
     def test_is_valid_with_dummy_state(self) -> None:
         """Test is_valid returns False when the door state DP is a dummy."""
         channel = _create_mock_channel()
-        state_dp = DpDummy(channel=channel, param_field=Field.DOOR_STATE)
-        command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=DpDummy(channel=channel, param_field=Field.DOOR_STATE),
+            command_dp=_create_mock_door_dp(),
         )
 
         assert mode.is_valid is False
@@ -1048,129 +1056,95 @@ class TestCombinedDpGarageDoorMode:
     def test_is_valid_with_real_dps(self) -> None:
         """Test is_valid returns True when the door state DP is not a dummy."""
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
-        command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(),
+            command_dp=_create_mock_door_dp(),
         )
 
         assert mode.is_valid is True
 
-    def test_value_reports_current_door_state(self) -> None:
-        """Test value reflects the door state DP's current state."""
+    @pytest.mark.asyncio
+    async def test_note_command_clears_held_mode_on_stop(self) -> None:
+        """Test a STOP command clears the held mode instead of leaving a stale one."""
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp(value=GarageDoorState.VENTILATION_POSITION)
-        command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        # Door is travelling, so `value` falls back to the optimistically held mode.
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(value=GarageDoorState.POSITION_UNKNOWN),
+            command_dp=_create_mock_door_dp(),
         )
 
-        assert mode.value == GarageDoorState.VENTILATION_POSITION
-
-    def test_value_holds_last_commanded_state_while_travelling(self) -> None:
-        """Test value keeps the commanded state while DOOR_STATE is POSITION_UNKNOWN."""
-        channel = _create_mock_channel()
-        # Door starts in ventilation, then begins travelling (POSITION_UNKNOWN).
-        state_dp = _create_mock_door_dp(value=GarageDoorState.POSITION_UNKNOWN)
-        command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
-            channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
-        )
-
-        # No command issued yet -> unknown state reports None.
-        assert mode.value is None
-
-        # Issue a command to open; the optimistic value is held.
-        import asyncio
-
-        asyncio.run(mode.send_value(value=GarageDoorState.OPEN))
-        # While travelling (POSITION_UNKNOWN), the held command is returned.
+        await mode.send_value(value=GarageDoorState.OPEN)
         assert mode.value == GarageDoorState.OPEN
 
-    def test_visible_defaults_to_false(self) -> None:
-        """Test that visible defaults to False."""
-        channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
-        command_dp = _create_mock_door_dp()
+        # STOP has no resulting mode — the door stays wherever it stopped.
+        mode.note_command(command=GarageDoorCommand.STOP)
 
-        mode = CombinedDpGarageDoorMode(
+        assert mode.value is None
+
+    def test_note_command_publishes_update_event(self) -> None:
+        """Test note_command announces the changed mode instead of silently holding it."""
+        channel = _create_mock_channel()
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(value=GarageDoorState.POSITION_UNKNOWN),
+            command_dp=_create_mock_door_dp(),
+        )
+        channel.device.task_scheduler.create_task.reset_mock()
+
+        mode.note_command(command=GarageDoorCommand.OPEN)
+
+        channel.device.task_scheduler.create_task.assert_called_once()
+
+        # An unchanged mode must not re-publish.
+        channel.device.task_scheduler.create_task.reset_mock()
+        mode.note_command(command=GarageDoorCommand.OPEN)
+
+        channel.device.task_scheduler.create_task.assert_not_called()
+
+    def test_note_command_sets_held_mode(self) -> None:
+        """Test a cover-side command updates the mode the select reports while travelling."""
+        channel = _create_mock_channel()
+        # Door is travelling, so `value` falls back to the optimistically held mode.
+        mode = _create_garage_door_mode(
+            channel=channel,
+            state_dp=_create_mock_door_dp(value=GarageDoorState.POSITION_UNKNOWN),
+            command_dp=_create_mock_door_dp(),
         )
 
-        assert mode.visible is False
-        assert mode.usage == DataPointUsage.NO_CREATE
+        mode.note_command(command=GarageDoorCommand.PARTIAL_OPEN)
+        assert mode.value == GarageDoorState.VENTILATION_POSITION
 
-    def test_visible_when_set(self) -> None:
-        """Test that visible=True produces CDP_VISIBLE usage."""
-        channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
-        command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
-            channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
-            visible=True,
-        )
-
-        assert mode.visible is True
-        assert mode.usage == DataPointUsage.CDP_VISIBLE
+        # A later cover-side command must not leave the previous mode behind.
+        mode.note_command(command=GarageDoorCommand.CLOSE)
+        assert mode.value == GarageDoorState.CLOSED
 
     @pytest.mark.asyncio
-    async def test_send_value_translates_ventilation_to_partial_open(self) -> None:
-        """Test send_value maps the ventilation state to the PARTIAL_OPEN command."""
+    async def test_send_value_rejects_unknown_state(self) -> None:
+        """Test send_value raises for a value that is not a selectable door mode."""
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
         command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(),
+            command_dp=command_dp,
         )
 
-        await mode.send_value(value=GarageDoorState.VENTILATION_POSITION)
+        with pytest.raises(ValidationException):
+            await mode.send_value(value="nonsense")
 
-        command_dp.send_value.assert_awaited_once()
-        sent_value = command_dp.send_value.call_args.kwargs["value"]
-        assert sent_value == GarageDoorCommand.PARTIAL_OPEN
+        command_dp.send_value.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_send_value_translates_closed_to_close(self) -> None:
         """Test send_value maps the closed state to the CLOSE command."""
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
         command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(),
+            command_dp=command_dp,
         )
 
         await mode.send_value(value=GarageDoorState.CLOSED)
@@ -1182,15 +1156,11 @@ class TestCombinedDpGarageDoorMode:
     async def test_send_value_translates_open_to_open(self) -> None:
         """Test send_value maps the open state to the OPEN command."""
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
         command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(),
+            command_dp=command_dp,
         )
 
         await mode.send_value(value=GarageDoorState.OPEN)
@@ -1199,47 +1169,87 @@ class TestCombinedDpGarageDoorMode:
         assert command_dp.send_value.call_args.kwargs["value"] == GarageDoorCommand.OPEN
 
     @pytest.mark.asyncio
-    async def test_send_value_ignores_unknown_state(self) -> None:
-        """Test send_value is a no-op for a value that is not a known door state."""
+    async def test_send_value_translates_ventilation_to_partial_open(self) -> None:
+        """Test send_value maps the ventilation state to the PARTIAL_OPEN command."""
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
         command_dp = _create_mock_door_dp()
-
-        mode = CombinedDpGarageDoorMode(
+        mode = _create_garage_door_mode(
             channel=channel,
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-            door_state_dp=state_dp,
-            door_command_dp=command_dp,
+            state_dp=_create_mock_door_dp(),
+            command_dp=command_dp,
         )
 
-        await mode.send_value(value="nonsense")
+        await mode.send_value(value=GarageDoorState.VENTILATION_POSITION)
 
-        command_dp.send_value.assert_not_awaited()
+        command_dp.send_value.assert_awaited_once()
+        assert command_dp.send_value.call_args.kwargs["value"] == GarageDoorCommand.PARTIAL_OPEN
+
+    @pytest.mark.asyncio
+    async def test_value_holds_last_commanded_state_while_travelling(self) -> None:
+        """Test value keeps the commanded state while DOOR_STATE is POSITION_UNKNOWN."""
+        channel = _create_mock_channel()
+        # Door is travelling and reports the real CCU value POSITION_UNKNOWN.
+        mode = _create_garage_door_mode(
+            channel=channel,
+            state_dp=_create_mock_door_dp(value=GarageDoorState.POSITION_UNKNOWN),
+            command_dp=_create_mock_door_dp(),
+        )
+
+        # No command issued yet -> unknown state reports None.
+        assert mode.value is None
+
+        # Issue a command to open; the optimistic value is held.
+        await mode.send_value(value=GarageDoorState.OPEN)
+
+        assert mode.value == GarageDoorState.OPEN
+
+    def test_value_reports_current_door_state(self) -> None:
+        """Test value reflects the door state DP's current state."""
+        channel = _create_mock_channel()
+        mode = _create_garage_door_mode(
+            channel=channel,
+            state_dp=_create_mock_door_dp(value=GarageDoorState.VENTILATION_POSITION),
+            command_dp=_create_mock_door_dp(),
+        )
+
+        assert mode.value == GarageDoorState.VENTILATION_POSITION
+
+    def test_visible_defaults_to_false(self) -> None:
+        """Test that visible defaults to False."""
+        channel = _create_mock_channel()
+        mode = _create_garage_door_mode(
+            channel=channel,
+            state_dp=_create_mock_door_dp(),
+            command_dp=_create_mock_door_dp(),
+        )
+
+        assert mode.visible is False
+        assert mode.usage == DataPointUsage.NO_CREATE
+
+    def test_visible_when_set(self) -> None:
+        """Test that visible=True produces CDP_VISIBLE usage."""
+        channel = _create_mock_channel()
+        mode = _create_garage_door_mode(
+            channel=channel,
+            state_dp=_create_mock_door_dp(),
+            command_dp=_create_mock_door_dp(),
+            visible=True,
+        )
+
+        assert mode.visible is True
+        assert mode.usage == DataPointUsage.CDP_VISIBLE
 
 
 class TestCombinedGarageDoorModeField:
     """Tests for the CombinedGarageDoorModeField descriptor."""
 
-    def test_value_field_returns_door_state_field(self) -> None:
-        """Test value_field property returns the door state field."""
-        from aiohomematic.model.combined.field import CombinedGarageDoorModeField
-
-        field = CombinedGarageDoorModeField(
-            door_state_field=Field.DOOR_STATE,
-            door_command_field=Field.DOOR_COMMAND,
-        )
-
-        assert field.value_field == Field.DOOR_STATE
-
     def test_create_combined_dp_returns_garage_door_mode(self) -> None:
         """Test create_combined_dp returns a CombinedDpGarageDoorMode."""
-        from aiohomematic.model.combined.field import CombinedGarageDoorModeField
-
         channel = _create_mock_channel()
-        state_dp = _create_mock_door_dp()
-        command_dp = _create_mock_door_dp()
-        data_points = {Field.DOOR_STATE: state_dp, Field.DOOR_COMMAND: command_dp}
+        data_points = {
+            Field.DOOR_STATE: _create_mock_door_dp(),
+            Field.DOOR_COMMAND: _create_mock_door_dp(),
+        }
 
         field = CombinedGarageDoorModeField(
             door_state_field=Field.DOOR_STATE,
@@ -1253,8 +1263,6 @@ class TestCombinedGarageDoorModeField:
 
     def test_create_combined_dp_uses_dummies_for_missing_dps(self) -> None:
         """Test create_combined_dp falls back to DpDummy for missing data points."""
-        from aiohomematic.model.combined.field import CombinedGarageDoorModeField
-
         channel = _create_mock_channel()
         data_points: dict[Field, GenericDataPointProtocolAny] = {}
 
@@ -1267,3 +1275,12 @@ class TestCombinedGarageDoorModeField:
 
         assert isinstance(result, CombinedDpGarageDoorMode)
         assert result.is_valid is False
+
+    def test_value_field_returns_door_state_field(self) -> None:
+        """Test value_field property returns the door state field."""
+        field = CombinedGarageDoorModeField(
+            door_state_field=Field.DOOR_STATE,
+            door_command_field=Field.DOOR_COMMAND,
+        )
+
+        assert field.value_field == Field.DOOR_STATE

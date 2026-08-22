@@ -14,6 +14,7 @@ from typing import ClassVar, Final, Unpack, override
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
 from aiohomematic.converter import convert_hm_level_to_cpv
+from aiohomematic.model.combined import CombinedGarageDoorModeField
 from aiohomematic.model.custom.capabilities.cover import (
     BLIND_CAPABILITIES,
     COVER_CAPABILITIES,
@@ -22,6 +23,7 @@ from aiohomematic.model.custom.capabilities.cover import (
 )
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
+from aiohomematic.model.custom.garage import GarageDoorActivity, GarageDoorCommand, GarageDoorState
 from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -62,33 +64,13 @@ class _CoverPosition(IntEnum):
     CLOSED = 0
 
 
-@unique
-class _GarageDoorActivity(IntEnum):
-    """Enum with garage door commands."""
-
-    CLOSING = 5
-    OPENING = 2
-
-
-@unique
-class _GarageDoorCommand(StrEnum):
-    """Enum with garage door commands."""
-
-    CLOSE = "CLOSE"
-    NOP = "NOP"
-    OPEN = "OPEN"
-    PARTIAL_OPEN = "PARTIAL_OPEN"
-    STOP = "STOP"
-
-
-@unique
-class _GarageDoorState(StrEnum):
-    """Enum with garage door states."""
-
-    CLOSED = "CLOSED"
-    OPEN = "OPEN"
-    VENTILATION_POSITION = "VENTILATION_POSITION"
-    POSITION_UNKNOWN = "_POSITION_UNKNOWN"
+# Private aliases retained so the rest of the module keeps using the
+# underscore-prefixed names without change. The canonical definitions live in
+# aiohomematic/model/custom/garage.py so the combined garage door mode data
+# point can share them without a circular import.
+_GarageDoorActivity = GarageDoorActivity
+_GarageDoorCommand = GarageDoorCommand
+_GarageDoorState = GarageDoorState
 
 
 @unique
@@ -585,6 +567,17 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     _dp_door_state: Final = DataPointField(field=Field.DOOR_STATE, dpt=DpSensor[str | None])
     _dp_section: Final = DataPointField(field=Field.SECTION, dpt=DpSensor[int | None])
     _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.DOOR_STATE})
+
+    # Combined data point exposing the door's three discrete states
+    # (closed/ventilation/open) as a SELECT-category entity. Home Assistant's
+    # cover platform has no native ventilation state, so this makes the
+    # ventilation command a first-class, tappable select without any
+    # integration-side wiring.
+    _combined_door_mode: Final = CombinedGarageDoorModeField(
+        door_state_field=Field.DOOR_STATE,
+        door_command_field=Field.DOOR_COMMAND,
+        visible=True,
+    )
 
     @property
     def current_position(self) -> int | None:

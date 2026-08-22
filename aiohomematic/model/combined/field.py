@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Final, Protocol, overload
 
 from aiohomematic.const import Field
 from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
+from aiohomematic.model.combined.garage_door_mode import CombinedDpGarageDoorMode
 from aiohomematic.model.combined.hs_color import CombinedDpHsColor
 from aiohomematic.model.combined.timer import CombinedDpTimerAction
 from aiohomematic.model.generic import DpDummy
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from aiohomematic.model.combined.data_point import CombinedDataPoint
     from aiohomematic.model.custom.data_point import CustomDataPoint
 
-__all__ = ["CombinedHsColorField", "CombinedTimerField"]
+__all__ = ["CombinedGarageDoorModeField", "CombinedHsColorField", "CombinedTimerField"]
 
 # Marker attribute name used to detect combined field descriptors
 # without requiring isinstance checks or lazy imports
@@ -184,4 +185,79 @@ class CombinedHsColorField:
             saturation_field=self._saturation_field,
             hue_dp=hue_dp,
             saturation_dp=saturation_dp,
+        )
+
+
+class CombinedGarageDoorModeField:
+    """Descriptor that creates/returns a CombinedDpGarageDoorMode for custom data points."""
+
+    __slots__ = ("_door_command_field", "_door_state_field", "_visible")
+
+    _is_combined_field: Final = True
+
+    def __init__(
+        self,
+        *,
+        door_state_field: Field,
+        door_command_field: Field,
+        visible: bool = False,
+    ) -> None:
+        """Initialize the combined garage door mode field descriptor."""
+        self._door_state_field: Final = door_state_field
+        self._door_command_field: Final = door_command_field
+        self._visible: Final = visible
+
+    @overload
+    def __get__(self, instance: None, owner: type) -> Self: ...  # kwonly: disable
+
+    @overload
+    def __get__(self, instance: CustomDataPoint, owner: type) -> CombinedDpGarageDoorMode: ...  # kwonly: disable
+
+    def __get__(  # kwonly: disable
+        self, instance: CustomDataPoint | None, owner: type
+    ) -> Self | CombinedDpGarageDoorMode:
+        """
+        Get the combined DP for this field.
+
+        On class-level access (instance=None), returns the descriptor itself.
+        On instance access, returns the cached CombinedDpGarageDoorMode.
+        """
+        if instance is None:
+            return self  # Class-level access returns descriptor
+
+        # Return cached combined DP if already created
+        if (combined_dp := instance._combined_data_points.get(self._door_state_field)) is not None:
+            return combined_dp  # type: ignore[return-value]
+
+        # Should not reach here — combined DPs are created during _create_combined_data_points
+        msg = f"CombinedDpGarageDoorMode not initialized for {self._door_state_field}"
+        raise RuntimeError(msg)
+
+    @property
+    def value_field(self) -> Field:
+        """Return the primary field used as key in _combined_data_points."""
+        return self._door_state_field
+
+    def create_combined_dp(
+        self,
+        *,
+        channel: ChannelProtocol,
+        data_points: dict[Field, GenericDataPointProtocolAny],
+    ) -> CombinedDpGarageDoorMode:
+        """Create the CombinedDpGarageDoorMode for the given custom data point instance."""
+        # Resolve door state DP
+        if (door_state_dp := data_points.get(self._door_state_field)) is None:
+            door_state_dp = DpDummy(channel=channel, param_field=self._door_state_field)
+
+        # Resolve door command DP
+        if (door_command_dp := data_points.get(self._door_command_field)) is None:
+            door_command_dp = DpDummy(channel=channel, param_field=self._door_command_field)
+
+        return CombinedDpGarageDoorMode(
+            channel=channel,
+            door_state_field=self._door_state_field,
+            door_command_field=self._door_command_field,
+            door_state_dp=door_state_dp,
+            door_command_dp=door_command_dp,
+            visible=self._visible,
         )

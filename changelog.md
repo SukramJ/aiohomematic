@@ -1,3 +1,11 @@
+# Version [Unreleased](https://github.com/SukramJ/aiohomematic/compare/2026.8.3...HEAD)
+
+## What's Changed
+
+### Added
+
+- Expose the garage door's discrete mode (closed/ventilation/open) as a `SELECT`-category combined data point. Home Assistant's `cover` platform has no native ventilation state (see home-assistant/architecture#502), so the ventilation command was previously only reachable via the undiscoverable position-range workaround in the integration. `CustomDpGarage` now declares a `CombinedDpGarageDoorMode` (via `CombinedGarageDoorModeField`) that reads `DOOR_STATE` and writes `DOOR_COMMAND`, exposing the three physical states as a first-class select entity that the integration's generic `SELECT`-category dispatch picks up without any integration-side wiring. The `GarageDoorActivity`/`GarageDoorCommand`/`GarageDoorState` enums were extracted into `aiohomematic/model/custom/garage.py` so the combined data point can share them with `CustomDpGarage` without a circular import. While the door is travelling, the select keeps showing the last commanded mode instead of dropping to `unknown`
+
 # Version 2026.8.3 (2026-08-14)
 
 ## What's Changed

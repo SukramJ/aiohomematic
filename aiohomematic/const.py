@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.8.3"
+VERSION: Final = "2026.8.4"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -435,6 +435,35 @@ class ServiceScope(StrEnum):
 
 
 @unique
+class GarageDoorActivity(IntEnum):
+    """Enum with garage door activity states."""
+
+    CLOSING = 5
+    OPENING = 2
+
+
+@unique
+class GarageDoorCommand(StrEnum):
+    """Enum with garage door commands."""
+
+    CLOSE = "CLOSE"
+    NOP = "NOP"
+    OPEN = "OPEN"
+    PARTIAL_OPEN = "PARTIAL_OPEN"
+    STOP = "STOP"
+
+
+@unique
+class GarageDoorState(StrEnum):
+    """Enum with garage door states."""
+
+    CLOSED = "CLOSED"
+    OPEN = "OPEN"
+    VENTILATION_POSITION = "VENTILATION_POSITION"
+    POSITION_UNKNOWN = "POSITION_UNKNOWN"
+
+
+@unique
 class CalculatedParameter(StrEnum):
     """Enum with calculated Homematic parameters."""
 
@@ -448,6 +477,20 @@ class CalculatedParameter(StrEnum):
     SMOKE_ALARM = "SMOKE_ALARM"
     VAPOR_CONCENTRATION = "VAPOR_CONCENTRATION"
     WINDOW_OPEN = "WINDOW_OPEN"
+
+
+@unique
+class CombinedParameter(StrEnum):
+    """
+    Enum with parameters of combined data points that have no CCU counterpart.
+
+    A combined data point that merely re-exposes one CCU parameter uses that
+    parameter's name. This enum names the ones that do not map to a single CCU
+    parameter, so they get their own unique_id, translation key and name instead
+    of borrowing those of one of their source parameters.
+    """
+
+    DOOR_MODE = "DOOR_MODE"
 
 
 @unique

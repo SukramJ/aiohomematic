@@ -297,15 +297,23 @@ Combined data points write to multiple underlying data points and present a sing
   - Accepts values in seconds, converts to optimal unit (S/M/H) via `recalc_unit_timer`
   - Computes `max` as `raw_max * 3600` when a unit data point exists (hours to seconds)
   - Persists the seconds value in `_current_value` (ACTION params have no CCU events)
-- **aiohomematic.model.combined.field.CombinedTimerField**: Descriptor for use in CustomDataPoint subclasses
-  - Declares a timer value+unit pair with optional visibility
-  - Creates `CombinedDpTimerAction` instances during `CustomDataPoint._create_combined_data_points()`
+- **aiohomematic.model.combined.hs_color.CombinedDpHsColor**: Concrete implementation for hue+saturation pairs
+  - Exposes `HUE` + `SATURATION` as a single `(hue, saturation)` tuple
+  - Converts saturation between the CCU range (0.0-1.0) and the HA range (0.0-100.0)
+- **aiohomematic.model.combined.garage_door_mode.CombinedDpGarageDoorMode**: Concrete implementation for a garage door's discrete mode
+  - Reads `DOOR_STATE` and writes the matching `DOOR_COMMAND`, exposed as a `SELECT`-category entity
+  - Uses its own parameter `CombinedParameter.DOOR_MODE` instead of borrowing the identity of a source parameter, so it gets its own `unique_id`, name and translation key
+  - Holds the commanded mode in `_current_value` while `DOOR_STATE` reports `POSITION_UNKNOWN` (travelling)
+  - `note_command()` lets `CustomDpGarage` report commands it issues directly on `DOOR_COMMAND`, so the held mode never goes stale
+- **aiohomematic.model.combined.field.CombinedTimerField / CombinedHsColorField / CombinedGarageDoorModeField**: Descriptors for use in CustomDataPoint subclasses
+  - Declare the underlying fields with optional visibility
+  - Create the matching combined data point during `CustomDataPoint._create_combined_data_points()`
   - When `visible=True`, the combined data point is registered as a visible HA entity
 - **aiohomematic.interfaces.model.CombinedDataPointProtocol**: Protocol interface for combined data points
 
 ### Lifecycle:
 
-- During `CustomDataPoint.__init__()`, after `_init_data_points()` resolves generic data points, `_create_combined_data_points()` iterates class descriptors marked with `_is_combined_timer_field` and creates `CombinedDpTimerAction` instances.
+- During `CustomDataPoint.__init__()`, after `_init_data_points()` resolves generic data points, `_create_combined_data_points()` iterates class descriptors marked with `COMBINED_FIELD_MARKER` (`_is_combined_field`) and calls their `create_combined_dp()`.
 - Combined data points are stored in `CustomDataPoint._combined_data_points` (keyed by `Field`).
 - When `visible=True`, the combined data point is added to the channel via `Channel.add_data_point()` and stored in `Channel._combined_data_points`.
 - The combined data point subscribes to its underlying generic data points and publishes update events when they change.
@@ -340,17 +348,28 @@ class CustomDpIpSiren(CustomDataPoint):
     _dp_duration: Final = CombinedTimerField(
         value_field=Field.DURATION, unit_field=Field.DURATION_UNIT, visible=True
     )
+
+
+class CustomDpGarage(PositionMixin, CustomDataPoint):
+    """Class for Homematic garage data point."""
+
+    __slots__ = ()
+
+    # Read/write pair with different parameters — visible as HA select entity
+    _dp_door_mode: Final = CombinedGarageDoorModeField(
+        door_state_field=Field.DOOR_STATE, door_command_field=Field.DOOR_COMMAND, visible=True
+    )
 ```
 
 ### Key differences from CalculatedDataPoint:
 
-| Aspect       | CalculatedDataPoint                 | CombinedDataPoint                                       |
-| ------------ | ----------------------------------- | ------------------------------------------------------- |
-| Direction    | Read-only (computed)                | Writable (sends to CCU)                                 |
-| Registration | Via `_CALCULATED_DATA_POINTS` tuple | Via `CombinedTimerField` descriptors on CustomDataPoint |
-| ParamsetKey  | `CALCULATED`                        | `COMBINED`                                              |
-| Visibility   | Always visible                      | Configurable via `visible` parameter                    |
-| Protocol     | `CalculatedDataPointProtocol`       | `CombinedDataPointProtocol`                             |
+| Aspect       | CalculatedDataPoint                 | CombinedDataPoint                                   |
+| ------------ | ----------------------------------- | --------------------------------------------------- |
+| Direction    | Read-only (computed)                | Writable (sends to CCU)                             |
+| Registration | Via `_CALCULATED_DATA_POINTS` tuple | Via `Combined*Field` descriptors on CustomDataPoint |
+| ParamsetKey  | `CALCULATED`                        | `COMBINED`                                          |
+| Visibility   | Always visible                      | Configurable via `visible` parameter                |
+| Protocol     | `CalculatedDataPointProtocol`       | `CombinedDataPointProtocol`                         |
 
 ---
 

@@ -1,3 +1,15 @@
+# Version 2026.8.4 (2026-08-22)
+
+## What's Changed
+
+### Added
+
+- Expose the garage door's discrete mode (closed/ventilation/open) as a `SELECT`-category combined data point. Home Assistant's `cover` platform has no native ventilation state (see home-assistant/architecture#502), so the ventilation command was previously only reachable via the undiscoverable position-range workaround in the integration. `CustomDpGarage` now declares a `CombinedDpGarageDoorMode` (via `CombinedGarageDoorModeField`) that reads `DOOR_STATE` and writes `DOOR_COMMAND`, exposing the three physical states as a first-class select entity that the integration's generic `SELECT`-category dispatch picks up without any integration-side wiring. The data point carries its own parameter name `DOOR_MODE` (new `CombinedParameter` enum) rather than borrowing the identity of `DOOR_STATE`, so it is named "Door Mode" and uses the translation key `door_mode` — consumers that want a localized name need to add that key. While the door is travelling, the select keeps showing the mode the door is heading for instead of dropping to `unknown`; a `STOP` clears that held mode. The `GarageDoorActivity`/`GarageDoorCommand`/`GarageDoorState` enums moved from `aiohomematic/model/custom/cover.py` to `aiohomematic/const.py` so the combined data point can share them with `CustomDpGarage` without a circular import.
+
+### Fixed
+
+- Correct `GarageDoorState.POSITION_UNKNOWN`, which carried a stray leading underscore (`_POSITION_UNKNOWN`) and therefore never matched the `DOOR_STATE` value reported by the CCU.
+
 # Version 2026.8.3 (2026-08-14)
 
 ## What's Changed

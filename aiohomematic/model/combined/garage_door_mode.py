@@ -8,10 +8,9 @@ Public API of this module is defined by __all__.
 
 from typing import Final, cast
 
-from aiohomematic.const import DataPointCategory, Field, Operations, ParameterType
+from aiohomematic.const import DataPointCategory, Field, GarageDoorCommand, GarageDoorState, Operations, ParameterType
 from aiohomematic.interfaces import ChannelProtocol, CombinedDataPointProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.combined.data_point import CombinedDataPoint
-from aiohomematic.model.custom.garage import GarageDoorCommand, GarageDoorState
 from aiohomematic.model.data_point import CallParameterCollector
 from aiohomematic.model.generic import DpDummy
 
@@ -106,8 +105,7 @@ class CombinedDpGarageDoorMode(CombinedDataPoint[str | None], CombinedDataPointP
         To avoid the select dropping to `unknown` on every movement, the last
         commanded value (held in _current_value) is returned instead.
         """
-        state = self._door_state_dp.value
-        if state in _DOOR_STATE_TO_COMMAND:
+        if (state := self._door_state_dp.value) in _DOOR_STATE_TO_COMMAND:
             return cast(str, state)
         return self._current_value
 

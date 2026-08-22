@@ -169,13 +169,13 @@ class TestCentralPyDevOpenCCU:
 
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 298
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 166
-        assert usage_types[DataPointUsage.CDP_VISIBLE] == 218
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 220
         assert usage_types[DataPointUsage.DATA_POINT] == 4401
         assert usage_types[DataPointUsage.NO_CREATE] == 4593
 
         assert len(ce_channels) == 138
         assert len(data_point_types) == 6
-        assert len(parameters) == 271
+        assert len(parameters) == 272
 
         assert len(central.device_registry.devices) == 399
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]

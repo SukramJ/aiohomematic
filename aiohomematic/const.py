@@ -435,6 +435,35 @@ class ServiceScope(StrEnum):
 
 
 @unique
+class GarageDoorActivity(IntEnum):
+    """Enum with garage door activity states."""
+
+    CLOSING = 5
+    OPENING = 2
+
+
+@unique
+class GarageDoorCommand(StrEnum):
+    """Enum with garage door commands."""
+
+    CLOSE = "CLOSE"
+    NOP = "NOP"
+    OPEN = "OPEN"
+    PARTIAL_OPEN = "PARTIAL_OPEN"
+    STOP = "STOP"
+
+
+@unique
+class GarageDoorState(StrEnum):
+    """Enum with garage door states."""
+
+    CLOSED = "CLOSED"
+    OPEN = "OPEN"
+    VENTILATION_POSITION = "VENTILATION_POSITION"
+    POSITION_UNKNOWN = "_POSITION_UNKNOWN"
+
+
+@unique
 class CalculatedParameter(StrEnum):
     """Enum with calculated Homematic parameters."""
 

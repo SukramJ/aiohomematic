@@ -10,17 +10,10 @@ from unittest.mock import DEFAULT, call
 import pytest
 
 from aiohomematic.client import CommandPriority
-from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
+from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, GarageDoorActivity, GarageDoorCommand, ParamsetKey
 from aiohomematic.model.custom import CustomDpBlind, CustomDpCover, CustomDpGarage, CustomDpIpBlind, CustomDpWindowDrive
 from aiohomematic.model.custom.capabilities.cover import BLIND_CAPABILITIES, COVER_CAPABILITIES, GARAGE_CAPABILITIES
-from aiohomematic.model.custom.cover import (
-    _CLOSED_LEVEL,
-    _OPEN_LEVEL,
-    _OPEN_TILT_LEVEL,
-    _WD_CLOSED_LEVEL,
-    _GarageDoorActivity,
-    _GarageDoorCommand,
-)
+from aiohomematic.model.custom.cover import _CLOSED_LEVEL, _OPEN_LEVEL, _OPEN_TILT_LEVEL, _WD_CLOSED_LEVEL
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -1127,7 +1120,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.OPEN,
+            value=GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1141,7 +1134,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.CLOSE,
+            value=GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1156,7 +1149,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.PARTIAL_OPEN,
+            value=GarageDoorCommand.PARTIAL_OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1171,7 +1164,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.CLOSE,
+            value=GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1186,7 +1179,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.OPEN,
+            value=GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1196,7 +1189,7 @@ class TestCustomDpGarage:
             channel_address="VCU3574044:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.STOP,
+            value=GarageDoorCommand.STOP,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU3574044:1"}),
             retry=True,
@@ -1211,14 +1204,14 @@ class TestCustomDpGarage:
             interface_id=const.INTERFACE_ID,
             channel_address="VCU3574044:1",
             parameter="SECTION",
-            value=_GarageDoorActivity.OPENING.value,
+            value=GarageDoorActivity.OPENING.value,
         )
         assert cover.is_opening is True
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU3574044:1",
             parameter="SECTION",
-            value=_GarageDoorActivity.CLOSING.value,
+            value=GarageDoorActivity.CLOSING.value,
         )
         assert cover.is_closing is True
 
@@ -1285,7 +1278,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.OPEN,
+            value=GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1299,7 +1292,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.CLOSE,
+            value=GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1314,7 +1307,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.PARTIAL_OPEN,
+            value=GarageDoorCommand.PARTIAL_OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1329,7 +1322,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.CLOSE,
+            value=GarageDoorCommand.CLOSE,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1344,7 +1337,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.OPEN,
+            value=GarageDoorCommand.OPEN,
             wait_for_callback=WAIT_FOR_CALLBACK,
             priority=CommandPriority.HIGH,
             retry=True,
@@ -1354,7 +1347,7 @@ class TestCustomDpGarage:
             channel_address="VCU6166407:1",
             paramset_key=ParamsetKey.VALUES,
             parameter="DOOR_COMMAND",
-            value=_GarageDoorCommand.STOP,
+            value=GarageDoorCommand.STOP,
             priority=CommandPriority.CRITICAL,
             purge_addresses=frozenset({"VCU6166407:1"}),
             retry=True,
@@ -1369,14 +1362,14 @@ class TestCustomDpGarage:
             interface_id=const.INTERFACE_ID,
             channel_address="VCU6166407:1",
             parameter="SECTION",
-            value=_GarageDoorActivity.OPENING,
+            value=GarageDoorActivity.OPENING,
         )
         assert cover.is_opening is True
         await central.event_coordinator.data_point_event(
             interface_id=const.INTERFACE_ID,
             channel_address="VCU6166407:1",
             parameter="SECTION",
-            value=_GarageDoorActivity.CLOSING,
+            value=GarageDoorActivity.CLOSING,
         )
         assert cover.is_closing is True
 

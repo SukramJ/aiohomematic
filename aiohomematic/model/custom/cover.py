@@ -12,7 +12,16 @@ import logging
 from typing import ClassVar, Final, Unpack, override
 
 from aiohomematic.client import CommandPriority
-from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
+from aiohomematic.const import (
+    DataPointCategory,
+    DataPointUsage,
+    DeviceProfile,
+    Field,
+    GarageDoorActivity,
+    GarageDoorCommand,
+    GarageDoorState,
+    Parameter,
+)
 from aiohomematic.converter import convert_hm_level_to_cpv
 from aiohomematic.model.combined import CombinedGarageDoorModeField
 from aiohomematic.model.custom.capabilities.cover import (
@@ -23,7 +32,6 @@ from aiohomematic.model.custom.capabilities.cover import (
 )
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
-from aiohomematic.model.custom.garage import GarageDoorActivity, GarageDoorCommand, GarageDoorState
 from aiohomematic.model.custom.mixins import PositionMixin, StateChangeArgs
 from aiohomematic.model.custom.registry import DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
@@ -62,15 +70,6 @@ class _CoverPosition(IntEnum):
     OPEN = 100
     VENT = 10
     CLOSED = 0
-
-
-# Private aliases retained so the rest of the module keeps using the
-# underscore-prefixed names without change. The canonical definitions live in
-# aiohomematic/model/custom/garage.py so the combined garage door mode data
-# point can share them without a circular import.
-_GarageDoorActivity = GarageDoorActivity
-_GarageDoorCommand = GarageDoorCommand
-_GarageDoorState = GarageDoorState
 
 
 @unique
@@ -582,11 +581,11 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     @property
     def current_position(self) -> int | None:
         """Return current position of the garage door ."""
-        if self._dp_door_state.value == _GarageDoorState.OPEN:
+        if self._dp_door_state.value == GarageDoorState.OPEN:
             return _CoverPosition.OPEN
-        if self._dp_door_state.value == _GarageDoorState.VENTILATION_POSITION:
+        if self._dp_door_state.value == GarageDoorState.VENTILATION_POSITION:
             return _CoverPosition.VENT
-        if self._dp_door_state.value == _GarageDoorState.CLOSED:
+        if self._dp_door_state.value == GarageDoorState.CLOSED:
             return _CoverPosition.CLOSED
         return None
 
@@ -594,21 +593,21 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     def is_closed(self) -> bool | None:
         """Return if the garage door is closed."""
         if self._dp_door_state.value is not None:
-            return str(self._dp_door_state.value) == _GarageDoorState.CLOSED
+            return str(self._dp_door_state.value) == GarageDoorState.CLOSED
         return None
 
     @property
     def is_closing(self) -> bool | None:
         """Return if the garage door is closing."""
         if self._dp_section.value is not None:
-            return int(self._dp_section.value) == _GarageDoorActivity.CLOSING
+            return int(self._dp_section.value) == GarageDoorActivity.CLOSING
         return None
 
     @property
     def is_opening(self) -> bool | None:
         """Return if the garage door is opening."""
         if self._dp_section.value is not None:
-            return int(self._dp_section.value) == _GarageDoorActivity.OPENING
+            return int(self._dp_section.value) == GarageDoorActivity.OPENING
         return None
 
     @hm_property(cached=True)
@@ -621,7 +620,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         """Close the garage door."""
         if not self.is_state_change(close=True):
             return
-        await self._dp_door_command.send_value(value=_GarageDoorCommand.CLOSE, collector=collector)
+        await self._dp_door_command.send_value(value=GarageDoorCommand.CLOSE, collector=collector)
 
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
@@ -639,7 +638,7 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
         """Open the garage door."""
         if not self.is_state_change(open=True):
             return
-        await self._dp_door_command.send_value(value=_GarageDoorCommand.OPEN, collector=collector)
+        await self._dp_door_command.send_value(value=GarageDoorCommand.OPEN, collector=collector)
 
     @bind_collector
     async def set_position(
@@ -662,14 +661,14 @@ class CustomDpGarage(PositionMixin, CustomDataPoint):
     @bind_collector(enabled=False, priority=CommandPriority.CRITICAL)
     async def stop(self, *, collector: CallParameterCollector | None = None) -> None:
         """Stop the device if in motion."""
-        await self._dp_door_command.send_value(value=_GarageDoorCommand.STOP, collector=collector)
+        await self._dp_door_command.send_value(value=GarageDoorCommand.STOP, collector=collector)
 
     @bind_collector
     async def vent(self, *, collector: CallParameterCollector | None = None) -> None:
         """Move the garage door to vent position."""
         if not self.is_state_change(vent=True):
             return
-        await self._dp_door_command.send_value(value=_GarageDoorCommand.PARTIAL_OPEN, collector=collector)
+        await self._dp_door_command.send_value(value=GarageDoorCommand.PARTIAL_OPEN, collector=collector)
 
     def _compute_capabilities(self) -> CoverCapabilities:
         """Compute static capabilities. Garage doors support position, stop, and vent."""

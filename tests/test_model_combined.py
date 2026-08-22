@@ -12,6 +12,8 @@ from aiohomematic.const import (
     DataPointCategory,
     DataPointUsage,
     Field,
+    GarageDoorCommand,
+    GarageDoorState,
     ParameterType,
     ParamsetKey,
 )
@@ -19,7 +21,6 @@ from aiohomematic.interfaces import ChannelProtocol, GenericDataPointProtocolAny
 from aiohomematic.model.combined.garage_door_mode import CombinedDpGarageDoorMode
 from aiohomematic.model.combined.hs_color import CombinedDpHsColor
 from aiohomematic.model.combined.timer import CombinedDpTimerAction
-from aiohomematic.model.custom.garage import GarageDoorCommand, GarageDoorState
 from aiohomematic.model.generic import DpDummy
 
 

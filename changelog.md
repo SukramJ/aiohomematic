@@ -1,3 +1,25 @@
+# Version 2026.8.5 (2026-08-23)
+
+## What's Changed
+
+### Fixed
+
+- **`HM-CC-TC` climate no longer freezes at the restored Home Assistant state.**
+  `CustomDpSimpleRfThermostat` gated its validity on `TEMPERATURE` **and** `SETPOINT`, but
+  `HM-CC-TC` reports `SETPOINT` (channel 2, `CLIMATECONTROL_REGULATOR`) only when the wheel
+  is turned on the device — never periodically. The ReGa bulk fetch skips data points
+  without a timestamp, and since the BidCos-RF interface no longer falls back to a
+  per-parameter `getValue` during init, `SETPOINT` stayed unrefreshed forever on a device
+  that had not been touched since the last CCU restart. That dragged the whole custom
+  climate data point to `is_valid=False`, so Home Assistant kept the entity in
+  `value_state=restored` and froze `current_temperature`/`target_temperature`/`hvac_mode` at
+  the last (re)start value — while the sibling `sensor.*` entities (gated on their own data
+  point) kept updating from the very same `TEMPERATURE` events. Validity now follows
+  `TEMPERATURE` alone; `target_temperature` stays `None` until the first real `SETPOINT`
+  arrives instead of reporting a stale restored value. Same pattern as the earlier
+  heating-group fixes (#3255, #3279). A regression test covers a thermostat that only ever
+  receives `TEMPERATURE` events, and the validity contract test is updated.
+
 # Version 2026.8.4 (2026-08-22)
 
 ## What's Changed

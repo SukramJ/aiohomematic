@@ -448,6 +448,14 @@ class CustomDpSimpleRfThermostat(BaseCustomDpClimate):
 
     __slots__ = ()
 
+    # HM-CC-TC reports SETPOINT only when the wheel is turned on the device, never
+    # periodically. The ReGa bulk fetch skips data points without a timestamp and
+    # BidCos-RF has no per-parameter getValue fallback, so a device that has not been
+    # touched since the last CCU restart would keep the whole climate data point
+    # invalid - freezing Home Assistant at value_state=restored while TEMPERATURE
+    # events keep arriving. Validity therefore follows TEMPERATURE alone.
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.TEMPERATURE})
+
     def _manu_temp_changed(self) -> None:
         """Handle device state changes."""
 

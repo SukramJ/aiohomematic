@@ -50,7 +50,7 @@ EXPECTED_VALIDITY_RELEVANT_FIELDS: dict[str, frozenset[Field]] = {
     "CustomDpIpThermostat": frozenset({Field.TEMPERATURE, Field.SETPOINT, Field.SET_POINT_MODE}),
     "CustomDpRfLock": frozenset({Field.STATE}),
     "CustomDpRfThermostat": frozenset({Field.TEMPERATURE, Field.SETPOINT, Field.CONTROL_MODE}),
-    "CustomDpSimpleRfThermostat": frozenset({Field.TEMPERATURE, Field.SETPOINT}),
+    "CustomDpSimpleRfThermostat": frozenset({Field.TEMPERATURE}),
     "CustomDpSoundPlayer": frozenset({Field.DIRECTION}),
     "CustomDpSoundPlayerLed": frozenset({Field.LEVEL}),
     "CustomDpSwitch": frozenset({Field.STATE}),

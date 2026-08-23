@@ -2783,3 +2783,38 @@ class TestClimateValidityIrrelevantDataPoints:
                 dp._set_refreshed_at(refreshed_at=datetime.now())
         assert climate._dp_valve_state.is_refreshed is False
         assert climate.is_valid is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_simple_rf_thermostat_setpoint_excluded_from_validity(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """SETPOINT must not block is_valid for a simple RF thermostat."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        climate = cast(CustomDpSimpleRfThermostat, get_prepared_custom_data_point(central, "VCU0000054", 1))
+        # Precondition: SETPOINT is a real, readable data point on the regulator channel.
+        assert climate._dp_setpoint.is_readable
+        assert climate._dp_setpoint not in climate._relevant_data_points
+        # HM-CC-TC only reports SETPOINT when the wheel is turned on the device, so after a
+        # restart the regulator channel stays silent while the weather channel keeps sending.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address="VCU0000054:1",
+            parameter="TEMPERATURE",
+            value=26.0,
+        )
+        assert climate._dp_setpoint.is_refreshed is False
+        # The climate must be valid so Home Assistant leaves the restored state behind.
+        assert climate.is_valid is True
+        assert climate.current_temperature == 26.0

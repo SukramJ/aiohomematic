@@ -19,6 +19,16 @@
   arrives instead of reporting a stale restored value. Same pattern as the earlier
   heating-group fixes (#3255, #3279). A regression test covers a thermostat that only ever
   receives `TEMPERATURE` events, and the validity contract test is updated.
+- **Classic RF thermostats no longer hang at the restored state when the operating mode
+  stays untouched.** Same failure class as above: `CustomDpRfThermostat` (`HM-CC-RT-DN`,
+  `HM-TC-IT-WM-W-EU`, `HM-CC-VG-1`, `BC-RT-TRX-*`, `BC-TC-C-WM`) also gated its validity on
+  `CONTROL_MODE`. Unlike `ACTUAL_TEMPERATURE` and `SET_TEMPERATURE`, which these devices
+  report every few minutes, `CONTROL_MODE` is only sent when the operating mode actually
+  changes — so after a CCU restart it can stay unrefreshed for as long as nobody switches
+  between AUTO and MANU, keeping the climate entity at `value_state=restored` with frozen
+  live values. Validity now follows `TEMPERATURE` and `SETPOINT`; until `CONTROL_MODE`
+  arrives, `mode` reports its existing `AUTO` fallback. A regression test covers a wall
+  thermostat that reports temperature, setpoint and humidity but never `CONTROL_MODE`.
 
 # Version 2026.8.4 (2026-08-22)
 

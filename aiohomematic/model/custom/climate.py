@@ -475,9 +475,13 @@ class CustomDpRfThermostat(BaseCustomDpClimate):
     _dp_temperature_offset: Final = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpSelect)
     _dp_valve_state: Final = DataPointField(field=Field.VALVE_STATE, dpt=DpSensor[int | None])
     _dp_week_program_pointer: Final = DataPointField(field=Field.WEEK_PROGRAM_POINTER, dpt=DpSelect)
-    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset(
-        {Field.TEMPERATURE, Field.SETPOINT, Field.CONTROL_MODE}
-    )
+    # CONTROL_MODE is only reported when the operating mode actually changes, while
+    # temperature and setpoint keep arriving every few minutes. After a CCU restart it can
+    # therefore stay unrefreshed for as long as nobody switches the mode, which would keep
+    # Home Assistant at value_state=restored and freeze the live values. Validity follows
+    # the two continuously reported values; mode falls back to AUTO until CONTROL_MODE
+    # arrives.
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.TEMPERATURE, Field.SETPOINT})
 
     @property
     def _current_profile_name(self) -> ClimateProfile | None:

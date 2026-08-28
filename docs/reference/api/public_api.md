@@ -179,6 +179,32 @@ from aiohomematic.interfaces.model import (
 )
 ```
 
+### Category capability protocols
+
+Dispatch on what a device can do instead of on which class it is. Each protocol is
+`@runtime_checkable` and carries its category's `capabilities` dataclass.
+
+```python
+from aiohomematic.interfaces.custom import (
+    ClimateDataPointProtocol,
+    CoverDataPointProtocol,
+    GarageDataPointProtocol,       # capabilities.vent
+    LightDataPointProtocol,
+    LockDataPointProtocol,
+    SirenDataPointProtocol,
+    SoundPlayerDataPointProtocol,  # capabilities.soundfiles
+    TiltCoverDataPointProtocol,    # capabilities.tilt
+)
+
+
+async def open_cover(data_point: CoverDataPointProtocol) -> None:
+    """Open a cover, using the tilt surface when the device has it."""
+    if data_point.capabilities.tilt and isinstance(data_point, TiltCoverDataPointProtocol):
+        await data_point.open_tilt()
+        return
+    await data_point.open()
+```
+
 ### Device model
 
 ```python

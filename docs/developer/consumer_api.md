@@ -389,8 +389,21 @@ from aiohomematic.interfaces import (
     GenericDataPointProtocol,
     CustomDataPointProtocol,
     DataPointProviderProtocol,
+
+    # Category capability access
+    CoverDataPointProtocol,
+    SirenDataPointProtocol,
+    TiltCoverDataPointProtocol,
 )
 ```
+
+Category protocols live in `aiohomematic.interfaces.custom` and are re-exported from
+`aiohomematic.interfaces`. They carry the category's `capabilities` dataclass plus the
+API every implementation of that category shares, so a consumer can branch on a
+capability flag rather than on a concrete class. Where a flag gates an optional method
+surface, a sub-protocol carries it: `TiltCoverDataPointProtocol` (`capabilities.tilt`),
+`GarageDataPointProtocol` (`capabilities.vent`) and `SoundPlayerDataPointProtocol`
+(`capabilities.soundfiles`).
 
 ### Example: Protocol-Based Component
 

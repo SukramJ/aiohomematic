@@ -1,3 +1,39 @@
+# Version 2026.8.7 (2026-08-28)
+
+## What's Changed
+
+### Added
+
+- **`capabilities` is reachable on a category-specific protocol.** Every custom
+  category already answers what it can do through a frozen capability dataclass —
+  `CoverCapabilities`, `SirenCapabilities`, `LockCapabilities`,
+  `ClimateCapabilities`, `LightCapabilities` — but that answer was only available
+  on the concrete classes. `aiohomematic/interfaces/` carried `BackendCapabilities`
+  on the client protocol and nothing per category.
+
+  A consumer that wants to dispatch on what a device _can do_ rather than on what
+  class it _is_ therefore had to keep importing the concrete classes, which ties
+  it to one backend's class identity. The new module
+  `aiohomematic.interfaces.custom` supplies the missing typing basis: one
+  `@runtime_checkable` protocol per category, carrying that category's
+  `capabilities` plus the public API every implementation of the category shares.
+
+  Where a capability flag gates an _optional_ method surface, that surface gets
+  its own sub-protocol, so the flag and the type stay in step:
+  `TiltCoverDataPointProtocol` for `capabilities.tilt`,
+  `GarageDataPointProtocol` for `capabilities.vent`, and
+  `SoundPlayerDataPointProtocol` for `capabilities.soundfiles`. Climate, light and
+  lock need none — every surface their flags gate is already on the category base
+  class.
+
+  Each category declares members beyond `capabilities`, so an `isinstance` check
+  discriminates between categories instead of merely finding a `capabilities`
+  attribute; a new contract test pins that, the explicit inheritance, and the
+  agreement between each flag and its sub-protocol.
+
+  The change is purely additive. The concrete classes gain a protocol base and
+  keep every member they had.
+
 # Version 2026.8.6 (2026-08-28)
 
 ## What's Changed

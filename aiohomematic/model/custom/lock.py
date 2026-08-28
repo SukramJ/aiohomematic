@@ -12,6 +12,7 @@ from typing import ClassVar, Final
 
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
+from aiohomematic.interfaces.custom import LockDataPointProtocol
 from aiohomematic.model.custom.capabilities.lock import BUTTON_LOCK_CAPABILITIES, IP_LOCK_CAPABILITIES, LockCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
@@ -56,7 +57,7 @@ class LockState(StrEnum):
     UNLOCKED = "UNLOCKED"
 
 
-class BaseCustomDpLock(CustomDataPoint):
+class BaseCustomDpLock(CustomDataPoint, LockDataPointProtocol):
     """Class for HomematicIP lock data point."""
 
     __slots__ = ("_cached_capabilities",)

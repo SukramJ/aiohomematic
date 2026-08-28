@@ -12,6 +12,7 @@ import math
 from typing import ClassVar, Final, TypedDict, Unpack, override
 
 from aiohomematic.const import DataPointCategory, DataPointUsage, DeviceProfile, Field, Parameter
+from aiohomematic.interfaces.custom import LightDataPointProtocol
 from aiohomematic.model.combined.field import CombinedHsColorField, CombinedTimerField
 from aiohomematic.model.custom.capabilities.light import LightCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
@@ -216,7 +217,7 @@ class SoundPlayerLedOnArgs(LightOnArgs, total=False):
     flash_time: int  # Flash duration in milliseconds (converted to nearest VALUE_LIST entry)
 
 
-class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint):
+class CustomDpDimmer(StateChangeTimerMixin, BrightnessMixin, CustomDataPoint, LightDataPointProtocol):
     """Base class for Homematic light data point."""
 
     __slots__ = ("_cached_capabilities",)

@@ -123,6 +123,21 @@ Protocol Categories
         - `HubSensorDataPointProtocol`: Hub sensor data points
         - `HubBinarySensorDataPointProtocol`: Hub binary sensor data points
 
+    *Custom Category Protocols:*
+        Category-specific protocols carrying the ``capabilities`` dataclass of a custom
+        category, so consumers can dispatch on capability flags instead of on concrete
+        class identity. Sub-protocols exist wherever a capability flag gates an optional
+        method surface. See `aiohomematic.interfaces.custom`.
+
+        - `ClimateDataPointProtocol`: Climate data points (`ClimateCapabilities`)
+        - `CoverDataPointProtocol`: Cover data points (`CoverCapabilities`)
+        - `GarageDataPointProtocol`: Covers with a ventilation position (`capabilities.vent`)
+        - `TiltCoverDataPointProtocol`: Covers with tilt control (`capabilities.tilt`)
+        - `LightDataPointProtocol`: Light data points (`LightCapabilities`)
+        - `LockDataPointProtocol`: Lock data points (`LockCapabilities`)
+        - `SirenDataPointProtocol`: Siren data points (`SirenCapabilities`)
+        - `SoundPlayerDataPointProtocol`: Sirens with soundfiles (`capabilities.soundfiles`)
+
     *Other:*
         - `WeekProfileProtocol`: Weekly schedule management
 
@@ -143,6 +158,7 @@ For explicit imports, use the submodules:
 
 - ``aiohomematic.interfaces.central``: Central unit protocols
 - ``aiohomematic.interfaces.client``: Client-related protocols
+- ``aiohomematic.interfaces.custom``: Category-specific custom data point protocols
 - ``aiohomematic.interfaces.model``: Device, Channel, DataPoint protocols
 - ``aiohomematic.interfaces.operations``: Cache and visibility protocols
 - ``aiohomematic.interfaces.coordinators``: Coordinator-specific protocols
@@ -196,6 +212,16 @@ from aiohomematic.interfaces.client import (
     SessionRecorderProviderProtocol,
 )
 from aiohomematic.interfaces.coordinators import CoordinatorProviderProtocol
+from aiohomematic.interfaces.custom import (
+    ClimateDataPointProtocol,
+    CoverDataPointProtocol,
+    GarageDataPointProtocol,
+    LightDataPointProtocol,
+    LockDataPointProtocol,
+    SirenDataPointProtocol,
+    SoundPlayerDataPointProtocol,
+    TiltCoverDataPointProtocol,
+)
 from aiohomematic.interfaces.model import (
     BaseDataPointProtocol,
     BaseParameterDataPointProtocol,
@@ -294,6 +320,15 @@ __all__ = [
     # Model channel
     "ChannelEventGroupProtocol",
     "ChannelProtocol",
+    # Model custom category
+    "ClimateDataPointProtocol",
+    "CoverDataPointProtocol",
+    "GarageDataPointProtocol",
+    "LightDataPointProtocol",
+    "LockDataPointProtocol",
+    "SirenDataPointProtocol",
+    "SoundPlayerDataPointProtocol",
+    "TiltCoverDataPointProtocol",
     # Model data point
     "BaseDataPointProtocol",
     "BaseParameterDataPointProtocol",

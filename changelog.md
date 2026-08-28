@@ -17,7 +17,7 @@
 
   Between those steps the device appears in the same inbox listing as one that
   is genuinely waiting for a decision, where the only action on offer is
-  *accept* — and for this entry that is exactly wrong: it is accepted already,
+  _accept_ — and for this entry that is exactly wrong: it is accepted already,
   and what it needs is a release.
 
   `InboxDeviceData.awaiting_release` carries the distinction. It defaults to

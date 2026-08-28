@@ -2185,6 +2185,20 @@ class InboxDeviceData:
     name: str
     device_type: str
     interface: str
+    # True when the device is already accepted and fully materialised — it has
+    # its ise_id, its channels and its data points, and can be renamed and
+    # assigned rooms — but is deliberately still withheld from the ecosystems
+    # until an operator finishes onboarding it.
+    #
+    # A consumer must not offer *accept* for such an entry: it is accepted
+    # already, and what it needs is a release. Both states arrive in the same
+    # inbox listing, so without this flag they are indistinguishable and the
+    # only action on offer is the wrong one.
+    #
+    # Only the openccu-loom backend has this middle state; a CCU reached
+    # directly goes straight from "waiting" to "in service", which is why the
+    # default is False and the field is optional for every existing caller.
+    awaiting_release: bool = False
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

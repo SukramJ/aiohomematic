@@ -23,6 +23,7 @@ from aiohomematic.const import (
     Parameter,
 )
 from aiohomematic.converter import convert_hm_level_to_cpv
+from aiohomematic.interfaces.custom import CoverDataPointProtocol, GarageDataPointProtocol, TiltCoverDataPointProtocol
 from aiohomematic.model.combined import CombinedGarageDoorModeField
 from aiohomematic.model.custom.capabilities.cover import (
     BLIND_CAPABILITIES,
@@ -85,7 +86,7 @@ class _StateChangeArg(StrEnum):
     VENT = "vent"
 
 
-class CustomDpCover(PositionMixin, CustomDataPoint):
+class CustomDpCover(PositionMixin, CustomDataPoint, CoverDataPointProtocol):
     """Class for Homematic cover data point."""
 
     __slots__ = (
@@ -262,7 +263,7 @@ class CustomDpWindowDrive(CustomDpCover):
         await self._dp_level.send_value(value=wd_level, collector=collector, do_validate=False)
 
 
-class CustomDpBlind(CustomDpCover):
+class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
     """Class for Homematic blind data point."""
 
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
@@ -554,7 +555,7 @@ class CustomDpIpBlind(CustomDpBlind):
         return None
 
 
-class CustomDpGarage(PositionMixin, CustomDataPoint):
+class CustomDpGarage(PositionMixin, CustomDataPoint, GarageDataPointProtocol):
     """Class for Homematic garage data point."""
 
     __slots__ = ("_cached_capabilities",)

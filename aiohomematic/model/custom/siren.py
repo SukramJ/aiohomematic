@@ -14,6 +14,7 @@ from aiohomematic import i18n
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field
 from aiohomematic.exceptions import ValidationException
+from aiohomematic.interfaces.custom import SirenDataPointProtocol, SoundPlayerDataPointProtocol
 from aiohomematic.model.combined.field import CombinedTimerField
 from aiohomematic.model.custom.capabilities.siren import SMOKE_SENSOR_SIREN_CAPABILITIES, SirenCapabilities
 from aiohomematic.model.custom.data_point import CustomDataPoint
@@ -87,7 +88,7 @@ class PlaySoundArgs(TypedDict, total=False):
     repetitions: int  # 0=none, 1-18=count, -1=infinite (converted to VALUE_LIST entry)
 
 
-class BaseCustomDpSiren(CustomDataPoint):
+class BaseCustomDpSiren(CustomDataPoint, SirenDataPointProtocol):
     """Class for Homematic siren data point."""
 
     __slots__ = ("_cached_capabilities",)
@@ -269,7 +270,7 @@ class CustomDpIpSirenSmoke(BaseCustomDpSiren):
         return SMOKE_SENSOR_SIREN_CAPABILITIES
 
 
-class CustomDpSoundPlayer(BaseCustomDpSiren):
+class CustomDpSoundPlayer(BaseCustomDpSiren, SoundPlayerDataPointProtocol):
     """Class for HomematicIP sound player data point (HmIP-MP3P channel 2)."""
 
     __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)

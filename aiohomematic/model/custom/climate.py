@@ -26,6 +26,7 @@ from aiohomematic.const import (
 from aiohomematic.decorators import inspector
 from aiohomematic.exceptions import ValidationException
 from aiohomematic.interfaces import ChannelProtocol
+from aiohomematic.interfaces.custom import ClimateDataPointProtocol
 from aiohomematic.model.custom.capabilities.climate import (
     BASIC_CLIMATE_CAPABILITIES,
     IP_THERMOSTAT_CAPABILITIES,
@@ -151,7 +152,7 @@ _HM_WEEK_PROFILE_POINTERS_TO_NAMES: Final = {
 _HM_WEEK_PROFILE_POINTERS_TO_IDX: Final = {v: k for k, v in _HM_WEEK_PROFILE_POINTERS_TO_NAMES.items()}
 
 
-class BaseCustomDpClimate(CustomDataPoint):
+class BaseCustomDpClimate(CustomDataPoint, ClimateDataPointProtocol):
     """Base Homematic climate data_point."""
 
     __slots__ = (

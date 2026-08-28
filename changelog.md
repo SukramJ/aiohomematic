@@ -1,3 +1,30 @@
+# Version 2026.8.6 (2026-08-28)
+
+## What's Changed
+
+### Added
+
+- **An inbox entry can say that it is awaiting release.** A device can sit in
+  the inbox in two different states, and a consumer that cannot tell them apart
+  offers the wrong action for one of them.
+
+  The `openccu-loom` backend onboards a device in two steps: it is **accepted**
+  first — gaining its ise_id, its channels and its data points, so it can be
+  renamed and assigned rooms — and **released** to the ecosystems only
+  afterwards. The order is the point: an ecosystem that sees a device first and
+  is corrected afterwards keeps the identity it saw, so Home Assistant would
+  mint entity ids from the still-unnamed device.
+
+  Between those steps the device appears in the same inbox listing as one that
+  is genuinely waiting for a decision, where the only action on offer is
+  _accept_ — and for this entry that is exactly wrong: it is accepted already,
+  and what it needs is a release.
+
+  `InboxDeviceData.awaiting_release` carries the distinction. It defaults to
+  `False` and is optional for every existing caller, because a CCU reached
+  directly has no such middle state — it goes straight from waiting to in
+  service, so the default is the truth there rather than a placeholder.
+
 # Version 2026.8.5 (2026-08-23)
 
 ## What's Changed

@@ -59,6 +59,17 @@ __all__ = [
 
 _LOGGER: Final = logging.getLogger(__name__)
 
+# Address prefix of CCU-internal addresses (e.g. INT0001234). They repeat verbatim on
+# every CCU, so their parameter-level unique_id is namespaced by the central.
+_INTERNAL_ADDRESS_PREFIX: Final = "INT000"
+
+# Address prefix of CUxD devices (e.g. CUX2801001). CUxD hands out the same synthetic
+# addresses on every CCU it runs on, so - like the internal and virtual-remote families -
+# their parameter-level unique_id is namespaced by the central. Without it, two CCUs
+# bridged into one Home Assistant declare identical unique_ids and Home Assistant drops
+# one CCU's entities, permanently once the payload is retained.
+_CUXD_ADDRESS_PREFIX: Final = "CUX"
+
 # dict with binary_sensor relevant value lists and the corresponding TRUE value
 _BINARY_SENSOR_TRUE_VALUE_DICT_FOR_VALUE_LIST: Final[Mapping[tuple[str, ...], str]] = {
     ("CLOSED", "OPEN"): "OPEN",
@@ -491,7 +502,8 @@ def generate_unique_id(
     """
     Build unique identifier from address and parameter.
 
-    Central id is additionally used for heating groups.
+    The central id is prepended for every address family that repeats verbatim across
+    CCUs: the hub pseudo-addresses, internal addresses, virtual remotes and CUxD.
     Prefix is used for events and buttons.
     """
     unique_id = address.replace(ADDRESS_SEPARATOR, "_").replace("-", "_")
@@ -502,7 +514,7 @@ def generate_unique_id(
         unique_id = f"{prefix}_{unique_id}"
     if (
         address in (HUB_ADDRESS, INSTALL_MODE_ADDRESS, PROGRAM_ADDRESS, SYSVAR_ADDRESS)
-        or address.startswith("INT000")
+        or address.startswith((_INTERNAL_ADDRESS_PREFIX, _CUXD_ADDRESS_PREFIX))
         or address.split(ADDRESS_SEPARATOR, maxsplit=1)[0] in VIRTUAL_REMOTE_ADDRESSES
     ):
         return f"{config_provider.config.central_id}_{unique_id}".lower()

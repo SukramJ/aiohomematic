@@ -91,6 +91,40 @@ class TestUniqueIdPatterns:
         ("address_device_translation", "do_mock_client", "ignore_devices_on_create", "un_ignore_list"),
         [({}, True, None, None)],
     )
+    async def test_unique_id_pattern_cuxd_addresses(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Test unique_id pattern for CUxD addresses: {central_id}_{address}_{parameter}.
+
+        CUxD hands out the same synthetic addresses on every CCU it runs on, so two
+        bridged CCUs would otherwise declare identical unique_ids.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        central_id = central.config.central_id
+
+        uid = generate_unique_id(config_provider=central, address="CUX2801001", parameter="STATE")
+        assert uid == f"{central_id}_cux2801001_state"
+
+        uid = generate_unique_id(config_provider=central, address="CUX2801001:1", parameter="STATE")
+        assert uid == f"{central_id}_cux2801001_1_state"
+
+        uid = generate_unique_id(
+            config_provider=central, address="CUX2801001:1", parameter="PRESS_SHORT", prefix="event"
+        )
+        assert uid == f"{central_id}_event_cux2801001_1_press_short"
+
+        # Channel unique_ids stay unscoped - the Go reference scopes CUxD only at
+        # parameter level (GenerateChannelUniqueID namespaces virtual remotes only).
+        uid = generate_channel_unique_id(config_provider=central, address="CUX2801001:1")
+        assert uid == "cux2801001_1"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("address_device_translation", "do_mock_client", "ignore_devices_on_create", "un_ignore_list"),
+        [({}, True, None, None)],
+    )
     async def test_unique_id_pattern_internal_addresses(
         self,
         central_client_factory_with_homegear_client,

@@ -34,6 +34,34 @@
   The change is purely additive. The concrete classes gain a protocol base and
   keep every member they had.
 
+### Fixed
+
+- **CUxD addresses are scoped by the central in `generate_unique_id`.**
+  ⚠️ **Breaking:** this re-keys the CUxD entities of every installation on
+  upgrade, including direct-CCU installations. See the migration guide
+  `docs/migrations/cuxd_unique_id_scoping_migration_2026_08.md`.
+
+  `generate_unique_id` namespaces a key with the central id for the hub
+  pseudo-addresses, for `INT000*` and for the virtual-remote roots — every
+  address family that repeats verbatim from CCU to CCU. CUxD is such a family
+  and was missing from the list.
+
+  CUxD hands out the same synthetic addresses on every CCU it runs on;
+  `CUX2801001` exists on practically every installation that runs it. Two CCUs
+  bridged into one Home Assistant therefore declared identical CUxD
+  `unique_id`s, and Home Assistant keeps whichever arrived first and drops the
+  other CCU's entities — permanently, once the payload is retained. The
+  `openccu-loom` backend already scoped CUxD and carried the gap as a declared
+  divergence from this library, with a retirement condition pointing here.
+
+  `generate_channel_unique_id` is deliberately unchanged: it namespaces the
+  virtual-remote roots only, on both sides. Scoping channel ids as well would
+  break parity in the other direction.
+
+  A new contract test pins the full cross-implementation golden set — the
+  address fold, the parameter append, the prefix order, the lowercasing, and
+  exactly which address families are scoped at parameter and at channel level.
+
 # Version 2026.8.6 (2026-08-28)
 
 ## What's Changed

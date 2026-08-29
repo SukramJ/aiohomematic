@@ -11,7 +11,8 @@ This module verifies the exact patterns and rules for:
 
 import pytest
 
-from aiohomematic.const import ADDRESS_SEPARATOR
+from aiohomematic.const import ADDRESS_SEPARATOR, HubData, ProgramData, SystemVariableData
+from aiohomematic.model.hub import GenericHubDataPoint, GenericProgramDataPoint, GenericSysvarDataPoint
 from aiohomematic.model.support import (
     ChannelNameData,
     DataPointNameData,
@@ -674,3 +675,49 @@ class TestNamingWithMockedDeviceDetails:
             assert device_name in dp.full_name, (
                 f"DataPoint {dp.unique_id} full_name should contain device_name={device_name}, got {dp.full_name}"
             )
+
+
+class TestHubRoutingKeyParameter:
+    """
+    Which value a hub data point puts in the routing key's parameter slot.
+
+    The routing-key *function* was covered; this mapping was not, which is how
+    system variables and programs came to be keyed on a name the CCU WebUI can
+    change. A rename then took the entity's history, area, customisations and
+    every automation built on it — see #3371.
+    """
+
+    @staticmethod
+    def _program(*, legacy_name: str, pid: str) -> ProgramData:
+        return ProgramData(legacy_name=legacy_name, pid=pid, is_active=True, is_internal=False, last_execute_time="")
+
+    @staticmethod
+    def _sysvar(*, legacy_name: str, vid: str) -> SystemVariableData:
+        return SystemVariableData(legacy_name=legacy_name, vid=vid, value=True)
+
+    def test_program_key_survives_a_rename(self) -> None:
+        before = GenericProgramDataPoint._routing_key_parameter(data=self._program(legacy_name="My Prog", pid="4711"))
+        after = GenericProgramDataPoint._routing_key_parameter(
+            data=self._program(legacy_name="Renamed Prog", pid="4711")
+        )
+        assert before == after == "4711"
+
+    def test_synthetic_hub_data_points_keep_the_slug(self) -> None:
+        """Their names are module constants, so they cannot be renamed or re-keyed."""
+        assert GenericHubDataPoint._routing_key_parameter(data=HubData(legacy_name="Inbox")) == "inbox"
+
+    def test_sysvar_falls_back_to_the_slug_without_an_id(self) -> None:
+        """A backend that has not resolved the id yet must still produce a key."""
+        assert (
+            GenericSysvarDataPoint._routing_key_parameter(data=self._sysvar(legacy_name="Outside Temp", vid=""))
+            == "outside-temp"
+        )
+
+    def test_sysvar_key_survives_a_rename(self) -> None:
+        before = GenericSysvarDataPoint._routing_key_parameter(
+            data=self._sysvar(legacy_name="Outside Temp", vid="12345")
+        )
+        after = GenericSysvarDataPoint._routing_key_parameter(
+            data=self._sysvar(legacy_name="Outside Temp North", vid="12345")
+        )
+        assert before == after == "12345"

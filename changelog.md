@@ -1,3 +1,44 @@
+# Version 2026.8.8 (2026-08-29)
+
+## What's Changed
+
+### Fixed
+
+- **System variables and programs are keyed on their id, not on their name.**
+  Renaming a system variable or a program in the CCU WebUI re-keyed its Home
+  Assistant entity, which took its history, its area, its customisations and
+  every automation built on it. The person who tidies up their variable names
+  was the one who lost.
+
+  `GenericHubDataPoint` built the routing key from `slugify(legacy_name)` for
+  every hub data point. That is right for the ones whose name is a module
+  constant — alarm and service messages, the inbox, metrics, connectivity,
+  install mode — because none of those can be renamed. It was wrong for the
+  two families that can be, and both already carried a stable id:
+  `SystemVariableData.vid` and `ProgramData.pid`.
+
+  The parameter slot is an overridable hook now, and those two subclasses
+  override it. Each falls back to the slug when the id is empty, so a backend
+  that has not resolved an id yet still produces a key, and a client rebuilding
+  one can accept both shapes during a rollover.
+
+  **Every system variable and program entity re-keys once on this upgrade.**
+  That is the price of ending a re-key that happened on every rename, and it
+  needs the matching registry migration in `homematicip_local` to ship
+  alongside — without it those entities orphan instead of moving.
+
+  The mapping had no test. The routing-key function was covered thoroughly;
+  nothing asserted which value a sysvar or a program put into it, which is how
+  a key built from a renameable name survived this long. Four cases cover it
+  now, including both fallbacks.
+
+### Changed
+
+- Routine dependency and tooling bumps: `pydantic>=2.13.5`, `coverage` 7.16.0,
+  `prek` 0.5.0, `pymdown-extensions` 11.0.2, `pytest-rerunfailures` 16.6,
+  `pytest-socket` 0.8.1, `uv` 0.12.7, and `ruff` 0.16.5 in both the pinned
+  requirements and the pre-commit revision.
+
 # Version 2026.8.7 (2026-08-28)
 
 ## What's Changed

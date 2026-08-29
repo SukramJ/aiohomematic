@@ -78,7 +78,7 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol):
         unique_id: Final = generate_unique_id(
             config_provider=config_provider,
             address=address,
-            parameter=slugify(data.legacy_name),
+            parameter=self._routing_key_parameter(data=data),
         )
         self._legacy_name = data.legacy_name
         self._channel = channel_lookup.identify_channel(text=data.legacy_name)
@@ -98,6 +98,22 @@ class GenericHubDataPoint(CallbackDataPoint, GenericHubDataPointProtocol):
         self._enabled_default: Final = data.enabled_default
         self._state_uncertain: bool = True
         self._primary_client_provider: Final = primary_client_provider
+
+    @staticmethod
+    def _routing_key_parameter(*, data: HubData) -> str:
+        """
+        Return the parameter slot of this data point's routing key.
+
+        The slug of the display name, which is right for the hub data points
+        whose name is a module constant — alarm and service messages, the
+        inbox, metrics, connectivity, install mode. None of those can be
+        renamed, so none of them can be re-keyed.
+
+        System variables and programs can be renamed in the CCU WebUI, and
+        both carry a stable id, so they override this. See
+        :meth:`GenericSysvarDataPoint._routing_key_parameter`.
+        """
+        return slugify(data.legacy_name)
 
     available = DelegatedProperty[bool](path="_central_info.available")
     channel: Final = DelegatedProperty[ChannelProtocol | None](path="_channel")
@@ -173,6 +189,22 @@ class GenericSysvarDataPoint(GenericHubDataPoint, GenericSysvarDataPointProtocol
         self._current_value: SYSVAR_TYPE = data.value
         self._previous_value: SYSVAR_TYPE = None
         self._unconfirmed_value: SYSVAR_TYPE = None
+
+    @staticmethod
+    def _routing_key_parameter(*, data: HubData) -> str:
+        """
+        Key a system variable on its CCU variable id, not on its name.
+
+        The id survives a rename in the CCU WebUI; the name does not, and a
+        key built from the name takes the entity's history, area,
+        customisations and every automation with it whenever somebody tidies
+        up their variable names.
+
+        Falls back to the slug when the id is empty, which is what a client
+        rebuilding the key must also do while an id is still unresolved.
+        """
+        vid = getattr(data, "vid", "")
+        return slugify(vid) if vid else slugify(data.legacy_name)
 
     is_extended: Final = DelegatedProperty[bool](path="_is_extended")
     max: Final = DelegatedProperty[float | int | None](path="_max")
@@ -313,6 +345,17 @@ class GenericProgramDataPoint(GenericHubDataPoint, GenericProgramDataPointProtoc
         self._last_execute_time: str = data.last_execute_time
         self._state_uncertain: bool = True
         self._hub_data_fetcher: Final = hub_data_fetcher
+
+    @staticmethod
+    def _routing_key_parameter(*, data: HubData) -> str:
+        """
+        Key a program on its CCU program id, not on its name.
+
+        Same reasoning as :meth:`GenericSysvarDataPoint._routing_key_parameter`
+        — a program is renameable in the WebUI and carries a stable id.
+        """
+        pid = getattr(data, "pid", "")
+        return slugify(pid) if pid else slugify(data.legacy_name)
 
     is_active: Final = DelegatedProperty[bool](path="_is_active")
     is_internal: Final = DelegatedProperty[bool](path="_is_internal")

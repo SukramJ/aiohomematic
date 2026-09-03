@@ -5,6 +5,7 @@
 import asyncio
 from collections.abc import Mapping
 from datetime import datetime
+import logging
 from typing import Any, Self
 
 from aiohttp import ClientConnectorCertificateError, ClientSession, ContentTypeError
@@ -31,6 +32,8 @@ from aiohomematic.exceptions import (
     UnsupportedException,
 )
 from aiohomematic.support import cleanup_text_from_html_tags
+
+_MISMATCH_LOG_KEY = "log.client.json_rpc.get_all_system_variables.type_mismatch"
 
 
 class _FakeResponse:
@@ -1015,10 +1018,10 @@ class TestJsonRpcClientOperations:
         )
 
     @pytest.mark.asyncio
-    async def test_get_all_system_variables_parsing_error_is_logged_and_skipped(
-        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    async def test_get_all_system_variables_type_mismatch_falls_back_to_string(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """When parse_sys_var raises, the variable is skipped and the warning path is exercised."""
+        """A sysvar whose declared type does not match its value is kept as STRING and reported once."""
         conn_state = hmcu.CentralConnectionState()
         client = AioJsonRpcAioHttpClient(
             username="u",
@@ -1029,43 +1032,88 @@ class TestJsonRpcClientOperations:
             tls=False,
         )
 
-        # Prepare a fake response with one system variable entry
         fake_result = [
+            # The constellation reported in #3377: a value list holding a single entry,
+            # used to carry a string the CCU refuses to store as a plain string variable.
+            # The backend returns that entry as the value instead of its index.
             {
-                _JsonKey.ID: 1,
-                _JsonKey.NAME: "Var1",
+                _JsonKey.ID: "4711",
+                _JsonKey.NAME: "V.Pushover.UserKey",
+                _JsonKey.IS_INTERNAL: False,
+                _JsonKey.TYPE: HubValueType.LIST,
+                _JsonKey.VALUE: "uk2v8r19miw2tpufjotzv7j8tg57nu",
+                _JsonKey.UNIT: "",
+                _JsonKey.VALUE_LIST: "uk2v8r19miw2tpufjotzv7j8tg57nu",
+            },
+            {
+                _JsonKey.ID: "4712",
+                _JsonKey.NAME: "Numeric",
                 _JsonKey.IS_INTERNAL: False,
                 _JsonKey.TYPE: HubValueType.NUMBER,
-                _JsonKey.VALUE: "123",
+                _JsonKey.VALUE: "not-a-number",
                 _JsonKey.UNIT: "",
-            }
+                _JsonKey.MIN_VALUE: "0",
+                _JsonKey.MAX_VALUE: "100",
+            },
+            {
+                _JsonKey.ID: "4713",
+                _JsonKey.NAME: "Intact",
+                _JsonKey.IS_INTERNAL: False,
+                _JsonKey.TYPE: HubValueType.NUMBER,
+                _JsonKey.VALUE: "42",
+                _JsonKey.UNIT: "",
+            },
         ]
 
         async def fake_do_post(*, session_id=False, method=None, extra_params=None, use_default_params=True):  # type: ignore[no-untyped-def]
-            # Short-circuit both login and target call
             if str(method).endswith("Session.login"):
                 return {_JsonKey.ERROR: None, _JsonKey.RESULT: {"sessionId": "s"}}
             return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
 
         monkeypatch.setattr(client, "_do_post", fake_do_post)
 
-        # Avoid touching _post_script (descriptions) by returning an empty list
         async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
-            return {_JsonKey.ERROR: None, _JsonKey.RESULT: []}
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: [{_JsonKey.ID: "4711", _JsonKey.DESCRIPTION: DescriptionMarker.HAHM}],
+            }
 
         monkeypatch.setattr(client, "_post_script", fake_post_script)
 
-        # Force parse_sys_var to raise a ValueError
-        from aiohomematic import support as hms
+        with caplog.at_level(logging.WARNING, logger="aiohomematic.client.json_rpc"):
+            vars_out = await client.get_all_system_variables(markers=())
 
-        def raise_value_error(*args: Any, **kwargs: Any):
-            raise ValueError("bad value")
+        by_id = {var.vid: var for var in vars_out}
+        assert set(by_id) == {"4711", "4712", "4713"}
 
-        monkeypatch.setattr(hms, "parse_sys_var", raise_value_error)
+        mismatched = by_id["4711"]
+        assert mismatched.data_type == HubValueType.STRING
+        assert mismatched.value == "uk2v8r19miw2tpufjotzv7j8tg57nu"
+        # A declared type we cannot trust must not produce a writable data point,
+        # even though the description carries the marker for an extended sysvar.
+        assert mismatched.extended_sysvar is False
 
-        vars_out = await client.get_all_system_variables(markers=(DescriptionMarker.INTERNAL,))
-        # Should return an empty tuple because the only entry failed to parse
-        assert isinstance(vars_out, tuple) and len(vars_out) == 0
+        numeric = by_id["4712"]
+        assert numeric.data_type == HubValueType.STRING
+        assert numeric.value == "not-a-number"
+        assert numeric.min_value is None
+        assert numeric.max_value is None
+
+        # Untouched variables still parse into their declared type.
+        assert by_id["4713"].data_type == HubValueType.INTEGER
+        assert by_id["4713"].value == 42
+
+        # One warning per affected variable, at WARNING level (the i18n catalog is not
+        # loaded in tests, so the raw message key is what reaches the log record).
+        mismatch_records = [rec for rec in caplog.records if _MISMATCH_LOG_KEY in rec.message]
+        assert len(mismatch_records) == 2
+        assert {rec.levelno for rec in mismatch_records} == {logging.WARNING}
+
+        # A second scan must not repeat the warnings.
+        caplog.clear()
+        with caplog.at_level(logging.WARNING, logger="aiohomematic.client.json_rpc"):
+            await client.get_all_system_variables(markers=())
+        assert not [rec for rec in caplog.records if _MISMATCH_LOG_KEY in rec.message]
 
         await client.stop()
 

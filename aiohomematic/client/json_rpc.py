@@ -408,6 +408,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 )
             )
         self._script_cache: Final[dict[RegaScript, str]] = {}
+        # Sysvar ids already reported with a declared-type/value mismatch, to log them only once.
+        self._sysvar_type_mismatches: Final[set[str]] = set()
         self._last_session_id_refresh: datetime | None = None
         self._session_id: str | None = None
         self._session_recorder: Final = session_recorder
@@ -1028,16 +1030,16 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     continue
 
                 legacy_name = RENAME_SYSVAR_BY_NAME.get(var[_JsonKey.NAME], var[_JsonKey.NAME])
-                if (
-                    variable := _build_sysvar_record(
+                variables.append(
+                    _build_sysvar_record(
                         var=var,
                         var_id=var_id,
                         legacy_name=legacy_name,
                         description=descriptions.get(var_id),
                         enabled_default=enabled_default,
+                        type_mismatches=self._sysvar_type_mismatches,
                     )
-                ) is not None:
-                    variables.append(variable)
+                )
 
         return tuple(variables)
 
@@ -2475,7 +2477,8 @@ def _build_sysvar_record(
     legacy_name: str,
     description: str | None,
     enabled_default: bool,
-) -> SystemVariableData | None:
+    type_mismatches: set[str],
+) -> SystemVariableData:
     """Build a ``SystemVariableData`` record from the raw JSON response entry."""
     org_data_type = var[_JsonKey.TYPE]
     raw_value = var[_JsonKey.VALUE]
@@ -2504,15 +2507,26 @@ def _build_sysvar_record(
         if raw_min_value := var.get(_JsonKey.MIN_VALUE):
             min_value = parse_sys_var(data_type=data_type, raw_value=raw_min_value)
     except (ValueError, TypeError) as vterr:
-        _LOGGER.error(
-            i18n.tr(
-                key="log.client.json_rpc.get_all_system_variables.parse_failed",
-                exc_type=vterr.__class__.__name__,
-                reason=extract_exc_args(exc=vterr),
-                legacy_name=legacy_name,
+        # The backend declares a numeric/list type while the stored value is not convertible
+        # (e.g. a variable created by a script without setting its value type). Keep the
+        # variable and expose the raw value as a string instead of dropping it.
+        if var_id not in type_mismatches:
+            type_mismatches.add(var_id)
+            _LOGGER.warning(
+                i18n.tr(
+                    key="log.client.json_rpc.get_all_system_variables.type_mismatch",
+                    legacy_name=legacy_name,
+                    data_type=org_data_type,
+                    exc_type=vterr.__class__.__name__,
+                    reason=extract_exc_args(exc=vterr),
+                )
             )
-        )
-        return None
+        data_type = HubValueType.STRING
+        value = raw_value
+        max_value = None
+        min_value = None
+        # The declared type is untrustworthy, so don't offer a writable data point for it.
+        extended_sysvar = False
 
     return SystemVariableData(
         vid=var_id,

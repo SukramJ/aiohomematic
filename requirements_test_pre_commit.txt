@@ -1,5 +1,10 @@
-bandit==1.9.4
-codespell==2.4.3
-python-typing-update==v0.8.1
-ruff==0.16.5
-yamllint==1.38.0
+# Every pin below mirrors the `rev:` of a hook repo in .pre-commit-config.yaml.
+# The trailing `# pre-commit: <repo-url>` comment names that repo (use
+# `# pre-commit: local` for a tool backing a `repo: local` hook, which has no
+# `rev:`). script/check_pre_commit_pins.py reads those declarations and fails
+# when the two files drift apart.
+bandit==1.9.4  # pre-commit: https://github.com/PyCQA/bandit
+codespell==2.4.3  # pre-commit: https://github.com/codespell-project/codespell
+python-typing-update==v0.8.1  # pre-commit: https://github.com/cdce8p/python-typing-update
+ruff==0.16.5  # pre-commit: https://github.com/charliermarsh/ruff-pre-commit
+yamllint==1.38.0  # pre-commit: https://github.com/adrienverge/yamllint.git

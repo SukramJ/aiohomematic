@@ -104,17 +104,18 @@ codespell               # Spell check
 
 ## Development Scripts
 
-| Script                              | Purpose                                                                           |
-| ----------------------------------- | --------------------------------------------------------------------------------- |
-| `script/sort_class_members.py`      | Organize class members                                                            |
-| `script/check_i18n.py`              | Validate translation usage                                                        |
-| `script/check_i18n_catalogs.py`     | Check translation completeness                                                    |
-| `script/lint_kwonly.py`             | Enforce keyword-only arguments                                                    |
-| `script/lint_package_imports.py`    | Enforce import conventions                                                        |
-| `script/lint_all_exports.py`        | Validate `__all__` exports                                                        |
-| `script/lint_event_tiers.py`        | Enforce event import boundaries (no internal event imports by external consumers) |
-| `script/lint_delegated_property.py` | Validate correct usage of DelegatedProperty descriptors                           |
-| `script/lint_rega_scripts.py`       | Validate ReGa script syntax and naming conventions                                |
+| Script                              | Purpose                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `script/sort_class_members.py`      | Organize class members                                                                            |
+| `script/check_i18n.py`              | Validate translation usage                                                                        |
+| `script/check_i18n_catalogs.py`     | Check translation completeness                                                                    |
+| `script/lint_kwonly.py`             | Enforce keyword-only arguments                                                                    |
+| `script/lint_package_imports.py`    | Enforce import conventions                                                                        |
+| `script/lint_all_exports.py`        | Validate `__all__` exports                                                                        |
+| `script/lint_event_tiers.py`        | Enforce event import boundaries (no internal event imports by external consumers)                 |
+| `script/lint_delegated_property.py` | Validate correct usage of DelegatedProperty descriptors                                           |
+| `script/lint_rega_scripts.py`       | Validate ReGa script syntax and naming conventions                                                |
+| `script/check_pre_commit_pins.py`   | Keep `.pre-commit-config.yaml` hook revisions and `requirements_test_pre_commit.txt` pins in sync |
 
 ## Pre-commit Hooks
 
@@ -124,12 +125,13 @@ The following hooks run automatically on commit:
 2. **check-i18n** - Validate translations
 3. **lint-package-imports** - Enforce package imports
 4. **lint-all-exports** - Validate exports
-5. **ruff** - Lint and format
-6. **mypy** - Type check
-7. **pylint** - Additional linting
-8. **codespell** - Spell check
-9. **bandit** - Security check
-10. **yamllint** - YAML validation
+5. **check-pre-commit-pins** - Keep hook revisions and pinned tool versions in sync
+6. **ruff** - Lint and format
+7. **mypy** - Type check
+8. **pylint** - Additional linting
+9. **codespell** - Spell check
+10. **bandit** - Security check
+11. **yamllint** - YAML validation
 
 To bypass hooks (not recommended):
 

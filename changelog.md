@@ -63,20 +63,25 @@
 
 - **A system variable whose declared type does not match its value is kept as text
   instead of being dropped (#3377).** `SysVar.getAll` reports a type per variable,
-  and `_build_sysvar_record` trusted it: a `NUMBER` without a decimal point became
-  `INTEGER`, and `parse_sys_var` then ran `int()` over the raw value. Variables
-  created by a script or add-on without setting their value type carry a numeric
-  type and a string value, so the conversion raised, the record was discarded, and
-  no data point ever appeared for the variable. The `ERROR` was logged on every
-  scan — in the reported case 4075 times at a 60 s scan interval, for one variable
-  named `V.Pushover.UserKey`.
+  and `_build_sysvar_record` trusted it: `LIST` and `INTEGER` went through `int()`,
+  and a `NUMBER` without a decimal point was treated as `INTEGER` first.
+
+  The reported variable is a value list holding a single entry — the way to park a
+  string on a CCU that would not take it as a plain string variable. For that
+  constellation the backend returns the entry itself as the value, not its index,
+  so `int()` raised, the record was discarded, and no data point ever appeared.
+  The `ERROR` was logged on every scan: 4075 times in the submitted log, at a 60 s
+  scan interval, for one variable named `V.Pushover.UserKey`. Disabling it in the
+  integration does not help — `enabled_default` is resolved before the value is
+  parsed.
 
   The record now survives: on a conversion failure the variable falls back to
   `STRING`, keeps the raw value, and drops `minValue`/`maxValue`. It also drops
   `extended_sysvar`, so a declared type we could not verify never yields a writable
-  data point — writing a string back to a variable the backend holds as a float
-  would silently store `0`. The log moves to `WARNING` and is emitted once per
-  variable id per client, and names the type the backend declared.
+  data point — a select whose only option is the payload, or a string written back
+  to a variable the backend holds as a float, would both be wrong. The log moves to
+  `WARNING`, is emitted once per variable id per client, and names the type the
+  backend declared.
 
 ### Changed
 

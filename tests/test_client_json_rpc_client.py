@@ -1021,7 +1021,7 @@ class TestJsonRpcClientOperations:
     async def test_get_all_system_variables_type_mismatch_falls_back_to_string(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """A sysvar declared numeric with a non-numeric value is kept as STRING and reported once."""
+        """A sysvar whose declared type does not match its value is kept as STRING and reported once."""
         conn_state = hmcu.CentralConnectionState()
         client = AioJsonRpcAioHttpClient(
             username="u",
@@ -1033,24 +1033,27 @@ class TestJsonRpcClientOperations:
         )
 
         fake_result = [
+            # The constellation reported in #3377: a value list holding a single entry,
+            # used to carry a string the CCU refuses to store as a plain string variable.
+            # The backend returns that entry as the value instead of its index.
             {
                 _JsonKey.ID: "4711",
                 _JsonKey.NAME: "V.Pushover.UserKey",
                 _JsonKey.IS_INTERNAL: False,
-                _JsonKey.TYPE: HubValueType.NUMBER,
+                _JsonKey.TYPE: HubValueType.LIST,
                 _JsonKey.VALUE: "uk2v8r19miw2tpufjotzv7j8tg57nu",
                 _JsonKey.UNIT: "",
-                _JsonKey.MIN_VALUE: "0",
-                _JsonKey.MAX_VALUE: "100",
+                _JsonKey.VALUE_LIST: "uk2v8r19miw2tpufjotzv7j8tg57nu",
             },
             {
                 _JsonKey.ID: "4712",
-                _JsonKey.NAME: "Extended",
+                _JsonKey.NAME: "Numeric",
                 _JsonKey.IS_INTERNAL: False,
-                _JsonKey.TYPE: HubValueType.LIST,
-                _JsonKey.VALUE: "not-an-index",
+                _JsonKey.TYPE: HubValueType.NUMBER,
+                _JsonKey.VALUE: "not-a-number",
                 _JsonKey.UNIT: "",
-                _JsonKey.VALUE_LIST: "a;b;c",
+                _JsonKey.MIN_VALUE: "0",
+                _JsonKey.MAX_VALUE: "100",
             },
             {
                 _JsonKey.ID: "4713",
@@ -1072,7 +1075,7 @@ class TestJsonRpcClientOperations:
         async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
             return {
                 _JsonKey.ERROR: None,
-                _JsonKey.RESULT: [{_JsonKey.ID: "4712", _JsonKey.DESCRIPTION: DescriptionMarker.HAHM}],
+                _JsonKey.RESULT: [{_JsonKey.ID: "4711", _JsonKey.DESCRIPTION: DescriptionMarker.HAHM}],
             }
 
         monkeypatch.setattr(client, "_post_script", fake_post_script)
@@ -1086,14 +1089,15 @@ class TestJsonRpcClientOperations:
         mismatched = by_id["4711"]
         assert mismatched.data_type == HubValueType.STRING
         assert mismatched.value == "uk2v8r19miw2tpufjotzv7j8tg57nu"
-        assert mismatched.min_value is None
-        assert mismatched.max_value is None
+        # A declared type we cannot trust must not produce a writable data point,
+        # even though the description carries the marker for an extended sysvar.
+        assert mismatched.extended_sysvar is False
 
-        # A declared type we cannot trust must not produce a writable data point.
-        extended = by_id["4712"]
-        assert extended.data_type == HubValueType.STRING
-        assert extended.value == "not-an-index"
-        assert extended.extended_sysvar is False
+        numeric = by_id["4712"]
+        assert numeric.data_type == HubValueType.STRING
+        assert numeric.value == "not-a-number"
+        assert numeric.min_value is None
+        assert numeric.max_value is None
 
         # Untouched variables still parse into their declared type.
         assert by_id["4713"].data_type == HubValueType.INTEGER

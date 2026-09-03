@@ -43,6 +43,12 @@ repos:
         language: script
         files: ^(docs/.+\.md|aiohomematic/central/events/.+\.py)$
         pass_filenames: false
+      - id: check-pre-commit-pins
+        name: check-pre-commit-pins
+        entry: script/run-in-env.sh python script/check_pre_commit_pins.py
+        language: script
+        files: ^(\.pre-commit-config\.yaml|requirements_test_pre_commit\.txt)$
+        pass_filenames: false
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.16.5
     hooks:
@@ -52,7 +58,7 @@ repos:
       - id: ruff-format
         files: ^((aiohomematic|aiohomematic_test_support|pylint|script|tests)/.+)?[^/]+\.py$
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
         args:
@@ -72,6 +78,7 @@ repos:
         # Tests and test-support contain intentional fixtures (fake tokens, short test passwords)
         # that bandit flags as B105/B106; ruff `S` rules already guard production code.
         files: ^(aiohomematic|script)/.+\.py$
+  # no-pin: hook-only repo, ships no tool the test env installs
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -83,9 +90,10 @@ repos:
         args:
           - --branch=main
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
+  # no-pin: node tool, prek installs it, not pip
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
@@ -93,7 +101,7 @@ repos:
         files: ^.+\.(md|json|ya?ml)$
         exclude: ^(aiohomematic_storage/|tests/fixtures/|\.github/)
   - repo: https://github.com/cdce8p/python-typing-update
-    rev: v0.7.3
+    rev: v0.8.1
     hooks:
       # Run `python-typing-update` hook manually from time to time
       # to update python typing syntax.

@@ -1,3 +1,45 @@
+# Version 2026.9.1 (2026-09-03)
+
+## What's Changed
+
+### Added
+
+- **A guard keeps the prek hook revisions and the pinned tool versions from
+  drifting apart.** `.pre-commit-config.yaml` pins five tools in `rev:`, and
+  `requirements_test_pre_commit.txt` pins the very same five for the test
+  environment. Nothing linked the two files, so they were kept in sync by hand —
+  and at the previous commit they were not: `codespell` ran at `v2.4.2` from the
+  hook while the requirements installed `2.4.3`, `yamllint` at `v1.37.1` against
+  `1.38.0`, `python-typing-update` at `v0.7.3` against `v0.8.1`. A hook that
+  lints with a different release than CI installs reports different findings in
+  the two places, which is exactly the kind of difference nobody looks for.
+
+  `script/check_pre_commit_pins.py` closes that gap as the `check-pre-commit-pins`
+  hook. The link it checks is **declared in the two files, never inferred**: no
+  rule maps `charliermarsh/ruff-pre-commit` to the package `ruff`, so each pin
+  now names the hook repo it mirrors in a trailing `# pre-commit: <repo-url>`
+  comment (or `# pre-commit: local` for a tool behind a `repo: local` hook), and
+  each remote repo that deliberately carries no pin is marked `# no-pin: <reason>`
+  on the line above its `- repo:` entry. Guessing the mapping from names would
+  have produced a check that looks right and silently mismatches the day a repo
+  and its package stop sharing a name.
+
+  That marker sits on its own line for a reason worth recording: prettier
+  rewrites a YAML trailing comment down to a single leading space, and yamllint
+  then rejects it for having fewer than two — no trailing form passes both hooks.
+
+  Beyond version drift the guard also catches a hook repo added without a
+  matching pin, a pin naming a repo the config no longer has, a pin with no
+  mapping comment at all, and a repo that is both mapped and marked `# no-pin:`.
+  Twenty tests cover the parsers and each failure class, including a check that
+  the repository's own two files agree.
+
+### Changed
+
+- Routine tooling bumps: `prek` 0.5.2, `pylint` 4.0.8, `uv` 0.12.9, and
+  `codespell` 2.4.3, `yamllint` 1.38.0 and `python-typing-update` 0.8.1 in both
+  the pinned requirements and the pre-commit revisions.
+
 # Version 2026.8.8 (2026-08-29)
 
 ## What's Changed

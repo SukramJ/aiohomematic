@@ -510,8 +510,8 @@ Release process (tagging, changelog rules): **`docs/contributor/release_process.
 - Feature branches: `feature/<desc>`; fixes: `fix/<desc>`; AI sessions: `claude/claude-md-<session>`.
 - Conventional-commit style: `<type>(<scope>): <subject>`.
 - Pre-commit hooks (prek): sort-class-members, check-i18n, lint-package-imports,
-  lint-all-exports, lint-delegated-property, lint-event-tiers, lint-kwonly, ruff, mypy, pylint,
-  codespell, bandit, yamllint. **Do not bypass hooks** (`--no-verify`) except when explicitly
+  lint-all-exports, lint-delegated-property, lint-event-tiers, lint-kwonly,
+  check-pre-commit-pins, ruff, mypy, pylint, codespell, bandit, yamllint. **Do not bypass hooks** (`--no-verify`) except when explicitly
   asked; fix the underlying issue.
 
 ---

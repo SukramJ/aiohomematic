@@ -2767,6 +2767,51 @@ class TestClimateValidityIrrelevantDataPoints:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_ip_thermostat_set_point_mode_excluded_from_validity(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """SET_POINT_MODE must not block is_valid for an IP heating group (#3376)."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        climate = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, "VCU5778428", 1))
+        # Precondition: SET_POINT_MODE is a real, readable data point on the group channel.
+        assert climate._dp_set_point_mode.is_readable
+        assert climate._dp_set_point_mode not in climate._relevant_data_points
+        # A heating group reports ACTUAL_TEMPERATURE every few minutes and
+        # SET_POINT_TEMPERATURE whenever the setpoint changes, but SET_POINT_MODE only when
+        # the operating mode actually changes. After a CCU restart the mode therefore has a
+        # Timestamp() but no LastTimestamp(), which keeps it out of the ReGa bulk result -
+        # and VirtualDevices has no per-parameter getValue fallback to make up for it.
+        for parameter, value in (
+            ("ACTUAL_TEMPERATURE", 23.9),
+            ("SET_POINT_TEMPERATURE", 21.0),
+        ):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID,
+                channel_address="VCU5778428:1",
+                parameter=parameter,
+                value=value,
+            )
+        assert climate._dp_set_point_mode.is_refreshed is False
+        # The climate must be valid so Home Assistant leaves the restored state behind.
+        assert climate.is_valid is True
+        assert climate.current_temperature == 23.9
+        assert climate.target_temperature == 21.0
+        # Until SET_POINT_MODE arrives, mode reports its existing AUTO fallback.
+        assert climate.mode == ClimateMode.AUTO
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_rf_thermostat_control_mode_excluded_from_validity(
         self,
         central_client_factory_with_homegear_client,

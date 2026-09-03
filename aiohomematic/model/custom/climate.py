@@ -682,9 +682,15 @@ class CustomDpIpThermostat(BaseCustomDpClimate):
     _dp_set_point_mode: Final = DataPointField(field=Field.SET_POINT_MODE, dpt=DpInteger)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpBinarySensor)
     _dp_temperature_offset: Final = DataPointField(field=Field.TEMPERATURE_OFFSET, dpt=DpFloat)
-    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset(
-        {Field.TEMPERATURE, Field.SETPOINT, Field.SET_POINT_MODE}
-    )
+    # SET_POINT_MODE is only reported when the operating mode actually changes, while
+    # ACTUAL_TEMPERATURE and SET_POINT_TEMPERATURE keep arriving. That hits heating groups
+    # (HmIP-HEATING on VirtualDevices) hardest: after a CCU restart the mode carries a
+    # Timestamp() but no LastTimestamp(), so the ReGa bulk fetch skips it, and
+    # VirtualDevices has no per-parameter getValue fallback (#3228) to make up for it. The
+    # group would stay at value_state=restored until the mode happens to change. Validity
+    # follows the two continuously reported values; mode falls back to AUTO until
+    # SET_POINT_MODE arrives.
+    _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.TEMPERATURE, Field.SETPOINT})
 
     optimum_start_stop: Final = DelegatedProperty[bool | None](path="_dp_optimum_start_stop.value")
     temperature_offset: Final = DelegatedProperty[float | None](path="_dp_temperature_offset.value")

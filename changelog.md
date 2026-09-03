@@ -34,6 +34,33 @@
   Twenty tests cover the parsers and each failure class, including a check that
   the repository's own two files agree.
 
+### Fixed
+
+- **`HmIP-HEATING` groups no longer hang at the restored Home Assistant state when
+  the operating mode stays untouched (#3376).** `CustomDpIpThermostat` gated its
+  validity on `SET_POINT_MODE`, which the CCU reports only when the operating mode
+  actually changes — unlike `ACTUAL_TEMPERATURE` and `SET_POINT_TEMPERATURE`, which
+  keep arriving.
+
+  Heating groups on the `VirtualDevices` interface have no second source to fall back
+  on. After a CCU restart the mode data point carries a `Timestamp()` but no
+  `LastTimestamp()`, so the ReGa bulk fetch skips it (that gate is deliberate, #3228),
+  and `VirtualDevices` has no per-parameter `getValue` fallback either — for a virtual
+  group `getValue` can only return the CCU-internal placeholder. A group whose mode had
+  not changed since the restart therefore stayed at `value_state=restored` with frozen
+  `current_temperature`/`target_temperature` for as long as the mode stayed put, while
+  the sibling `sensor.*` entities kept updating from the very same events.
+
+  Validity now follows `TEMPERATURE` and `SETPOINT`; until `SET_POINT_MODE` arrives,
+  `mode` reports its existing `AUTO` fallback. Same failure class and same remedy as
+  the classic RF thermostats in `2026.8.5` and the earlier heating-group fixes (#3255,
+  #3279). A regression test covers a group that reports temperature and setpoint but
+  never `SET_POINT_MODE`, and the validity contract test is updated.
+
+  This does not cover a group whose `ACTUAL_TEMPERATURE` is missing from the bulk
+  result as well — such a group has no value at all and still waits for the first
+  event.
+
 ### Changed
 
 - Routine tooling bumps: `prek` 0.5.2, `pylint` 4.0.8, `uv` 0.12.9, and

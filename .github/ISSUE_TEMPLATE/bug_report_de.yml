@@ -63,6 +63,19 @@ body:
         Keine Protokolle hier!
 
         💡 **Tipp:** Bei Geräteproblemen (fehlende Entitäten, falsche Werte, seltsames Verhalten) sind Screenshots viel hilfreicher als lange Textbeschreibungen! Zeige uns, was Du in Home Assistant oder der CCU siehst.
+  - type: input
+    id: ai_tool
+    validations:
+      required: false
+    attributes:
+      label: Hast Du beim Erstellen dieses Reports ein KI-Tool eingesetzt?
+      placeholder: 'z. B.: nein / ChatGPT für die Übersetzung / Claude hat den Text formuliert'
+      description: >-
+        Wenn ja, welches? Das ist völlig in Ordnung und bringt Dir keinen Nachteil — es hilft uns
+        nur einzuordnen, welche Angaben Du gemessen hast und welche aus einer Herleitung stammen.
+        Beides ist nützlich, aber wir behandeln es unterschiedlich. Bitte kennzeichne KI-generierte
+        Textteile zusätzlich als Zitatblock, wie in der
+        [AI Policy](https://github.com/SukramJ/aiohomematic/blob/main/AI_POLICY.md) beschrieben.
   - type: markdown
     attributes:
       value: |

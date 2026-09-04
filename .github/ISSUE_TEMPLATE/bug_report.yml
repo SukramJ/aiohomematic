@@ -63,6 +63,19 @@ body:
         NO logs here!
 
         💡 **Tip:** For device-related issues (missing entities, wrong values, strange behavior), screenshots are much more helpful than long text descriptions! Show us what you see in Home Assistant or the CCU.
+  - type: input
+    id: ai_tool
+    validations:
+      required: false
+    attributes:
+      label: Did you use an AI tool to write this report?
+      placeholder: 'e.g.: no / ChatGPT for the translation / Claude wrote the text'
+      description: >-
+        If so, which one? That is perfectly fine and does not count against you — it only helps us
+        tell which statements you measured and which ones come from a derivation. Both are useful,
+        but we treat them differently. Please also mark AI-generated passages as a quoted block, as
+        described in the
+        [AI Policy](https://github.com/SukramJ/aiohomematic/blob/main/AI_POLICY.md).
   - type: markdown
     attributes:
       value: |

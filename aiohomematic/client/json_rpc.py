@@ -932,7 +932,6 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
         try:
             response = await self._post_script(script_name=RegaScript.FETCH_ALL_DEVICE_DATA, extra_params=params)
 
-            _LOGGER.debug("GET_ALL_DEVICE_DATA: Getting all device data for interface %s", interface)
             if json_result := response[_JsonKey.RESULT]:
                 all_device_data = {
                     unquote(string=k, encoding=ISO_8859_1): unquote(string=v, encoding=ISO_8859_1)
@@ -949,6 +948,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                 )
             ) from cerr
 
+        # The size is the only externally visible evidence of what the bulk fetch returned;
+        # an empty result is what distinguishes "the backend has no timestamped value" from
+        # "the value never reached the data point".
+        _LOGGER.debug("GET_ALL_DEVICE_DATA: Got %i values for interface %s", len(all_device_data), interface)
         return all_device_data
 
     async def get_all_programs(self, *, markers: tuple[DescriptionMarker | str, ...]) -> tuple[ProgramData, ...]:

@@ -34,6 +34,19 @@
   Twenty tests cover the parsers and each failure class, including a check that
   the repository's own two files agree.
 
+- **The bulk device-data fetch reports how many values it returned.**
+  `get_all_device_data` logged only the name of the ReGa script it invoked, never
+  anything about the response. That made the single most useful fact about a start
+  invisible from the outside: whether the fetch returned values at all. When a data
+  point stays unset after a restart, the size of that result is what separates "the
+  backend holds no timestamped value for it" from "the value arrived and was not
+  applied" — two causes with opposite fixes, previously indistinguishable without a
+  session recording. A `DEBUG` line now states the count per interface, and it is
+  emitted outside the result branch so an empty result — the interesting case — is
+  logged too. The count is deliberately all it carries: it answers the question,
+  while the keys themselves would add device addresses to the log for no further
+  diagnostic value.
+
 ### Fixed
 
 - **`HmIP-HEATING` groups no longer hang at the restored Home Assistant state when

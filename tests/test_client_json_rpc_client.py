@@ -1018,6 +1018,49 @@ class TestJsonRpcClientOperations:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("script_result", "expected_count"),
+        [
+            ({"BidCos-RF.OEQ0123456:1.LEVEL": 0.5, "BidCos-RF.OEQ0123456:1.DIRECTION": 0}, 2),
+            ({}, 0),
+        ],
+        ids=["with_values", "empty"],
+    )
+    async def test_get_all_device_data_logs_result_size(
+        self,
+        aiohttp_session: ClientSession,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        script_result: dict[str, Any],
+        expected_count: int,
+    ) -> None:
+        """The bulk fetch reports how many values it returned, an empty result included."""
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: script_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        with caplog.at_level(logging.DEBUG, logger="aiohomematic.client.json_rpc"):
+            result = await client.get_all_device_data(interface=Interface.BIDCOS_RF)
+
+        assert len(result) == expected_count
+        size_records = [rec for rec in caplog.records if "GET_ALL_DEVICE_DATA: Got" in rec.message]
+        assert len(size_records) == 1
+        assert f"Got {expected_count} values for interface BidCos-RF" in size_records[0].message
+
+        await client.stop()
+
+    @pytest.mark.asyncio
     async def test_get_all_system_variables_type_mismatch_falls_back_to_string(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:

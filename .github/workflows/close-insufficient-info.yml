@@ -63,17 +63,14 @@ jobs:
                 return;
               }
 
-              // 2. Never close when attachments, screenshots or inline logs are present.
+              // 2. Never close when uploaded files or screenshots are present.
+              //    A log excerpt pasted into a fenced block deliberately does not count:
+              //    it is a selection made by the reporter and does not satisfy the raw-data
+              //    requirement of AI_POLICY.md, so it must not block the close either.
               const hasAttachment = /user-attachments\/(files|assets)\//.test(body);
-              const fencedBlocks = body.match(/```[^\n]*\n[\s\S]*?```/g) || [];
-              const logLine = /\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|\b(ERROR|WARNING|DEBUG|INFO|Traceback)\b/;
-              const hasInlineLog = fencedBlocks.some(
-                (block) => block.split('\n').filter((line) => logLine.test(line)).length >= 5
-              );
-              if (hasAttachment || hasInlineLog) {
+              if (hasAttachment) {
                 core.setFailed(
-                  `Refusing to close #${issueNumber}: the issue contains ` +
-                  `${hasAttachment ? 'attached files/screenshots' : 'an inline log excerpt'}. ` +
+                  `Refusing to close #${issueNumber}: the issue contains attached files/screenshots. ` +
                   'It may not actually lack information. Use force=true to override.'
                 );
                 return;

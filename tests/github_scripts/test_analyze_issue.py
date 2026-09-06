@@ -11,7 +11,8 @@ import types
 
 import pytest
 
-_SCRIPT_PATH = Path(__file__).resolve().parents[2] / ".github" / "scripts" / "analyze_issue.py"
+_SCRIPTS_DIR = Path(__file__).resolve().parents[2] / ".github" / "scripts"
+_SCRIPT_PATH = _SCRIPTS_DIR / "analyze_issue.py"
 
 
 def _ensure_module(name: str, **attrs: object) -> None:
@@ -45,6 +46,11 @@ def _load_analyze_issue() -> types.ModuleType:
         Repository=object,
     )
 
+    # The scripts import their shared helpers as a sibling module, exactly as they do
+    # when run as "python .github/scripts/analyze_issue.py" in the workflow.
+    if str(_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(_SCRIPTS_DIR))
+
     spec = importlib.util.spec_from_file_location("analyze_issue_under_test", _SCRIPT_PATH)
     if spec is None or spec.loader is None:
         pytest.fail(f"Could not load analyzer script from {_SCRIPT_PATH}")
@@ -56,6 +62,8 @@ def _load_analyze_issue() -> types.ModuleType:
 
 
 analyze_issue = _load_analyze_issue()
+# Form parsing and attachment detection live in the shared helper module.
+issue_form = importlib.import_module("issue_form")
 
 
 @pytest.mark.parametrize(
@@ -276,40 +284,40 @@ Nach dem Update fehlt die Entität.
 
 def test_parse_form_fields_english_template() -> None:
     """Parse labels and values from an English issue-form body."""
-    fields = analyze_issue.parse_form_fields(_EN_FORM_BODY)
+    fields = issue_form.parse_form_fields(_EN_FORM_BODY)
     assert fields["What version of Homematic(IP) Local for OpenCCU has the issue?"] == "2.8.3"
     assert fields["What type of installation are you running?"] == "Home Assistant OS"
 
 
 def test_parse_form_fields_normalizes_no_response() -> None:
     """Normalize the GitHub placeholder for empty fields to an empty string."""
-    fields = analyze_issue.parse_form_fields(_EN_FORM_BODY)
+    fields = issue_form.parse_form_fields(_EN_FORM_BODY)
     assert fields["What was the last working version of Homematic(IP) Local for OpenCCU?"] == ""
 
 
 def test_parse_form_fields_empty_body() -> None:
     """Return an empty mapping for an empty or template-free body."""
-    assert analyze_issue.parse_form_fields("") == {}
-    assert analyze_issue.parse_form_fields("just some free text") == {}
+    assert issue_form.parse_form_fields("") == {}
+    assert issue_form.parse_form_fields("just some free text") == {}
 
 
 def test_get_form_field_version_english() -> None:
     """Find the integration-version field in the English template."""
-    fields = analyze_issue.parse_form_fields(_EN_FORM_BODY)
-    value = analyze_issue.get_form_field(fields, markers=analyze_issue.VERSION_FIELD_MARKERS)
+    fields = issue_form.parse_form_fields(_EN_FORM_BODY)
+    value = issue_form.get_form_field(fields, markers=issue_form.VERSION_FIELD_MARKERS)
     assert value == "2.8.3"
 
 
 def test_get_form_field_version_german_does_not_match_last_working() -> None:
     """Find the German version field and never the "last working version" field."""
-    fields = analyze_issue.parse_form_fields(_DE_FORM_BODY)
-    value = analyze_issue.get_form_field(fields, markers=analyze_issue.VERSION_FIELD_MARKERS)
+    fields = issue_form.parse_form_fields(_DE_FORM_BODY)
+    value = issue_form.get_form_field(fields, markers=issue_form.VERSION_FIELD_MARKERS)
     assert value == "2.8.1"
 
 
 def test_get_form_field_missing() -> None:
     """Return None when the field does not exist at all."""
-    assert analyze_issue.get_form_field({}, markers=analyze_issue.VERSION_FIELD_MARKERS) is None
+    assert issue_form.get_form_field({}, markers=issue_form.VERSION_FIELD_MARKERS) is None
 
 
 # ---------------------------------------------------------------------------
@@ -385,32 +393,32 @@ def test_detect_attachments_urls() -> None:
         "Diagnostics: https://github.com/user-attachments/files/1/config_entry-diagnostics.json\n"
         "Log: https://github.com/user-attachments/files/2/home-assistant.log"
     )
-    has_diagnostics, has_logs = analyze_issue.detect_attachments(body)
+    has_diagnostics, has_logs = issue_form.detect_attachments(body)
     assert has_diagnostics is True
     assert has_logs is True
 
 
-def test_detect_attachments_inline_log_counts_as_log() -> None:
-    """Count a fenced code block full of log lines as provided log data."""
+def test_detect_attachments_inline_log_is_not_a_log_file() -> None:
+    """Do not accept a pasted log excerpt as the log file - it is a reporter's selection."""
     log_lines = "\n".join(f"2026-07-18 12:00:0{i} ERROR (MainThread) something failed" for i in range(6))
     body = f"It fails:\n```\n{log_lines}\n```"
-    has_diagnostics, has_logs = analyze_issue.detect_attachments(body)
+    has_diagnostics, has_logs = issue_form.detect_attachments(body)
     assert has_diagnostics is False
-    assert has_logs is True
+    assert has_logs is False
 
 
-def test_detect_attachments_short_code_block_is_not_a_log() -> None:
-    """Do not count a short code snippet as log data."""
+def test_detect_attachments_code_block_is_not_a_log() -> None:
+    """Do not count a code snippet as log data either."""
     body = "```\nyaml: value\n```"
-    _, has_logs = analyze_issue.detect_attachments(body)
+    _, has_logs = issue_form.detect_attachments(body)
     assert has_logs is False
 
 
 def test_detect_screenshots() -> None:
     """Detect screenshots via asset URLs and markdown images."""
-    assert analyze_issue.detect_screenshots("![img](https://github.com/user-attachments/assets/abc)") is True
-    assert analyze_issue.detect_screenshots("see https://example.com/foo.png") is True
-    assert analyze_issue.detect_screenshots("no images here") is False
+    assert issue_form.detect_screenshots("![img](https://github.com/user-attachments/assets/abc)") is True
+    assert issue_form.detect_screenshots("see https://example.com/foo.png") is True
+    assert issue_form.detect_screenshots("no images here") is False
 
 
 # ---------------------------------------------------------------------------
@@ -663,3 +671,127 @@ def test_format_comment_limits_suggested_docs_to_two() -> None:
     assert "unignore" in comment
     assert "glossary" not in comment.split("Hilfreiche Dokumentation")[1]
     assert "nonexistent" not in comment
+
+
+# ---------------------------------------------------------------------------
+# AI disclosure via the template's AI-tool field
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "no",
+        "No.",
+        "nein",
+        "Nein, selbst geschrieben",
+        "none",
+        "n/a",
+        "-",
+        "",
+        "   ",
+        None,
+    ],
+)
+def test_is_ai_tool_disclosed_denials(answer: str | None) -> None:
+    """Treat an empty field or an answer starting with a denial as "no AI tool"."""
+    assert analyze_issue.is_ai_tool_disclosed(answer) is False
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "Yes - Claude (Anthropic) wrote the text",
+        "ChatGPT for the translation",
+        "Claude",
+        "Ja, Copilot",
+    ],
+)
+def test_is_ai_tool_disclosed_affirmations(answer: str) -> None:
+    """Treat any non-denial answer in the free-text field as a disclosure."""
+    assert analyze_issue.is_ai_tool_disclosed(answer) is True
+
+
+def test_detect_ai_generated_analysis_uses_form_disclosure() -> None:
+    """Flag a report whose AI-tool field discloses AI use, even without prose markers."""
+    result = analyze_issue.detect_ai_generated_analysis(
+        "The cover does not react to position commands.",
+        ai_tool_field="Yes - Claude (Anthropic) wrote the text",
+    )
+    assert result["detected"] is True
+    assert result["strong"] is True
+    assert result["disclosed"] is True
+    assert analyze_issue.DISCLOSED_IN_FORM_MARKER in result["markers"]
+
+
+def test_detect_ai_generated_analysis_authorship_disclosure_marker() -> None:
+    """Flag an authorship disclosure in the body - the signal #3387 carried and that was missed."""
+    body = "> **AI disclosure (per AI_POLICY.md):** This report was written by Claude (Anthropic)."
+    result = analyze_issue.detect_ai_generated_analysis(body)
+    assert result["detected"] is True
+    assert result["strong"] is True
+    assert result["disclosed"] is False
+
+
+def test_detect_ai_generated_analysis_denied_field_does_not_flag() -> None:
+    """Do not flag a clean report whose AI-tool field denies AI use."""
+    result = analyze_issue.detect_ai_generated_analysis(
+        "The cover does not react. Diagnostics and log attached.",
+        ai_tool_field="no",
+    )
+    assert result["detected"] is False
+    assert result["disclosed"] is False
+
+
+def test_format_ai_analysis_hint_silent_when_raw_data_complete() -> None:
+    """Render nothing when the raw data is attached - AI-assisted writing is allowed then."""
+    detection = {"detected": True, "strong": True, "disclosed": True, "markers": ["disclosed-in-form"]}
+    assert analyze_issue._format_ai_analysis_hint(detection, is_german=False, raw_data_complete=True) == ""
+    assert analyze_issue._format_ai_analysis_hint(detection, is_german=True, raw_data_complete=True) == ""
+
+
+def test_format_ai_analysis_hint_escalates_when_established() -> None:
+    """Quote the policy precondition when the AI use is established rather than guessed."""
+    detection = {"detected": True, "strong": True, "disclosed": True, "markers": ["disclosed-in-form"]}
+
+    english = analyze_issue._format_ai_analysis_hint(detection, is_german=False)
+    assert "AI_POLICY.md" in english
+
+    german = analyze_issue._format_ai_analysis_hint(detection, is_german=True)
+    assert "AI_POLICY.md" in german
+
+
+def test_format_ai_analysis_hint_stays_mild_for_weak_markers() -> None:
+    """Do not quote the policy precondition for a purely stylistic detection."""
+    detection = {"detected": True, "strong": False, "disclosed": False, "markers": ["likely cause", "in summary,"]}
+    assert "AI_POLICY.md" not in analyze_issue._format_ai_analysis_hint(detection, is_german=False)
+
+
+# ---------------------------------------------------------------------------
+# Version field tolerance
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2.8.3", "2.8.3"),
+        ("v2.8.3", "2.8.3"),
+        ("2.8.3 (aiohomematic 2026.9.1) - also reproduced on 2.8.2", "2.8.3"),
+        ("Version 2.8.3, HA 2026.9.1", "2.8.3"),
+        ("2.9.0b1", "2.9.0b1"),
+        ("unknown", "unknown"),
+    ],
+)
+def test_extract_version_token(value: str, expected: str) -> None:
+    """Extract the leading version token from a free-text version field."""
+    assert analyze_issue.extract_version_token(value) == expected
+
+
+def test_check_reported_version_tolerates_annotated_field() -> None:
+    """Recognize the version even when the reporter added context to the field."""
+    check = analyze_issue.check_reported_version(
+        "2.8.3 (aiohomematic 2026.9.1) - also reproduced on 2.8.2", releases=_RELEASES
+    )
+    assert check.status == "ok"
+    assert check.reported == "2.8.3"

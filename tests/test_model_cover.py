@@ -4,6 +4,7 @@
 
 import asyncio
 from datetime import datetime
+import logging
 from typing import cast
 from unittest.mock import DEFAULT, call
 
@@ -153,6 +154,114 @@ class TestCustomDpCover:
         call_count = len(mock_client.method_calls)
         await cover.set_position(position=40)
         assert call_count == len(mock_client.method_calls)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cover_command_while_moving_is_sent(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A command must reach the backend while the cover is moving, even if it matches the last level."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpCover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU0000045", 1))
+
+        # The cover is closed, confirmed by the backend.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000045:1", parameter="LEVEL", value=_CLOSED_LEVEL
+        )
+        assert cover.current_position == 0
+
+        await cover.open()
+
+        # Classic shutter actuators report DIRECTION and re-report the OLD level when they
+        # start working, and only report the new level once the movement has finished. That
+        # echo clears the optimistic value, so the cover reads as closed while it is opening.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000045:1", parameter="DIRECTION", value=1
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000045:1", parameter="LEVEL", value=_CLOSED_LEVEL
+        )
+        assert cover.is_opening is True
+        assert cover.current_position == 0
+
+        # Reversing back to the position the cover came from must still be sent.
+        call_count = len(mock_client.method_calls)
+        await cover.set_position(position=0)
+        assert len(mock_client.method_calls) > call_count
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU0000045:1",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=_CLOSED_LEVEL,
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        # The same holds for close() while opening.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000045:1", parameter="LEVEL", value=_CLOSED_LEVEL
+        )
+        call_count = len(mock_client.method_calls)
+        await cover.close()
+        assert len(mock_client.method_calls) > call_count
+
+        # Standing still, an identical command is still suppressed.
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000045:1", parameter="DIRECTION", value=0
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000045:1", parameter="LEVEL", value=_CLOSED_LEVEL
+        )
+        assert cover.is_opening is False
+        assert cover.is_closing is False
+        call_count = len(mock_client.method_calls)
+        await cover.close()
+        assert call_count == len(mock_client.method_calls)
+        await cover.set_position(position=0)
+        assert call_count == len(mock_client.method_calls)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cover_suppressed_command_is_logged_with_a_name(
+        self,
+        central_client_factory_with_homegear_client,
+        caplog,
+    ) -> None:
+        """The debug line for a suppressed command must name the data point it belongs to."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpCover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU0000045", 1))
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000045:1", parameter="LEVEL", value=_CLOSED_LEVEL
+        )
+        with caplog.at_level(logging.DEBUG, logger="aiohomematic.model.custom.data_point"):
+            await cover.close()
+
+        messages = [record.getMessage() for record in caplog.records if "NO_STATE_CHANGE" in record.getMessage()]
+        assert messages
+        assert all(message.removeprefix("NO_STATE_CHANGE:").strip() for message in messages)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

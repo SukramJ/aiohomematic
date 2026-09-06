@@ -235,17 +235,17 @@ def test_is_not_exempt_for_external_reporter() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Regression: the issue that motivated the check
+# Regression: the report shape that motivated the check
 # ---------------------------------------------------------------------------
 
 
-def test_issue_3387_shape_is_flagged() -> None:
+def test_freely_composed_report_is_flagged() -> None:
     """
-    Flag the body shape of #3387: a freely composed report without attachments.
+    Flag the body shape that motivated this check: a composed report without attachments.
 
-    The report reworded the checklist labels and replaced the mandatory diagnostics item
-    with a prose note, which the issue form's required-field validation would have
-    rejected - the issue was created through the API instead.
+    It reworded the checklist labels and replaced the mandatory diagnostics item with a
+    prose note, which the issue form's required-field validation would have rejected -
+    the issue was created through the API instead.
     """
     body = (
         "> **AI disclosure (per AI_POLICY.md):** This report was written by Claude (Anthropic).\n\n"

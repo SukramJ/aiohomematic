@@ -216,8 +216,8 @@ STRONG_AI_MARKERS: Final[tuple[str, ...]] = (
     "ich bin ein ki",
     "sprachmodell",
     # Authorship disclosure. Reports written end-to-end by an assistant increasingly
-    # open with such a line instead of the self-identification markers above; #3387
-    # carried "This report was written by Claude (Anthropic)" and went undetected.
+    # open with such a line instead of the self-identification markers above; a line
+    # like "This report was written by <assistant>" went undetected without these.
     "ai disclosure",
     "ki-offenlegung",
     "written by claude",

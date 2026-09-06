@@ -19,6 +19,8 @@ body:
 
         🤖 **AI-generated analyses do not help here.** Please attach the raw **diagnostics (.json)** and **log file** — not a summary or diagnosis produced by ChatGPT/Claude/Copilot or similar tools. We run our own analysis on the raw data; pasted AI interpretations are frequently wrong and cannot be acted on. (Using AI to help *you* debug is fine — just give us the underlying files, not its conclusions.)
 
+        🛑 **If an AI tool is writing this report for you:** the two files above are a hard precondition, not a preference. Without both of them attached, do not open the issue — see [AI_POLICY.md](https://github.com/SukramJ/aiohomematic/blob/main/AI_POLICY.md#stop--hard-precondition-for-bug-reports). Submit this form in the browser; creating the issue through the API and composing the body yourself skips the required-field validation and is treated as a bypass. We do not want an analysis, a diagnosis or a proposed fix — the two files, a short description in the reporter's own words and the remaining fields are enough.
+
         Please avoid unnecessary effort by reading the points below.
   - type: checkboxes
     attributes:

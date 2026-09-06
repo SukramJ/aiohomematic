@@ -16,7 +16,6 @@ public comment.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 from itertools import islice
@@ -28,6 +27,15 @@ from typing import Any, Final, cast
 
 from anthropic import Anthropic
 from github import Auth, Github, GithubException, Repository
+from issue_form import (
+    AI_TOOL_FIELD_MARKERS,
+    VERSION_FIELD_MARKERS,
+    detect_attachments,
+    detect_screenshots,
+    detect_template_language,
+    get_form_field,
+    parse_form_fields,
+)
 
 # Integration repository for version lookups
 INTEGRATION_REPO: Final = "SukramJ/homematicip_local"
@@ -52,56 +60,8 @@ DOCS_LINKS: Final[dict[str, str]] = {
     "discussions": "https://github.com/sukramj/aiohomematic/discussions",
 }
 
-
-# =============================================================================
-# Issue-form parsing
-# =============================================================================
-
-# Value GitHub inserts for empty issue-form fields
-FORM_NO_RESPONSE: Final = "_No response_"
-
-# Substring markers (casefold) identifying the integration-version form field in
-# both template languages. The "last working version" field does not match these.
-VERSION_FIELD_MARKERS: Final[tuple[str, ...]] = (
-    "what version of homematic",
-    "bei welcher version von homematic",
-)
-
-
-def parse_form_fields(issue_body: str) -> dict[str, str]:
-    """
-    Parse a GitHub issue-form body into a mapping of field label to value.
-
-    Issue forms render each field as a "### <label>" heading followed by the value.
-    Empty fields ("_No response_") are normalized to an empty string.
-    """
-    fields: dict[str, str] = {}
-    if not issue_body:
-        return fields
-
-    chunks = re.split(r"^### ", issue_body, flags=re.MULTILINE)
-    for chunk in chunks[1:]:
-        label, _, value = chunk.partition("\n")
-        value = value.strip()
-        if value == FORM_NO_RESPONSE:
-            value = ""
-        fields[label.strip()] = value
-
-    return fields
-
-
-def get_form_field(fields: Mapping[str, str], *, markers: tuple[str, ...]) -> str | None:
-    """
-    Return the value of the first form field whose label contains one of the markers.
-
-    Returns None when no matching field exists (e.g. the issue was created without
-    the template), and an empty string when the field exists but was left blank.
-    """
-    for label, value in fields.items():
-        lowered = label.casefold()
-        if any(marker in lowered for marker in markers):
-            return value
-    return None
+# Hard precondition for bug reports, quoted at AI tools that draft issues
+AI_POLICY_URL: Final = "https://github.com/SukramJ/aiohomematic/blob/main/AI_POLICY.md#stop--hard-precondition-for-bug-reports"
 
 
 # =============================================================================
@@ -182,6 +142,25 @@ class VersionCheck:
     prerelease: str = ""
 
 
+# Leading version token inside a free-text version field, e.g. "2.11.0" in
+# "2.11.0 (aiohomematic 2026.9.1) - also reproduced on 2.10.0".
+_VERSION_TOKEN_PATTERN: Final = re.compile(r"\bv?(\d+\.\d+(?:\.\d+)?(?:b\d+)?)\b")
+
+
+def extract_version_token(reported: str) -> str:
+    """
+    Return the first version-like token in a free-text version field value.
+
+    Reporters (and AI tools filling the form) routinely add context to the field, e.g.
+    "2.11.0 (aiohomematic 2026.9.1)". Matching the raw value against the release list
+    then fails and the field is reported as missing, which is wrong and undermines the
+    bot comment. Falls back to the stripped input when no token is found.
+    """
+    if (match := _VERSION_TOKEN_PATTERN.search(reported)) is not None:
+        return match.group(1)
+    return reported.strip().removeprefix("v")
+
+
 def check_reported_version(reported: str | None, *, releases: ReleaseInfo) -> VersionCheck:
     """
     Check the version reported in the form field against the published releases.
@@ -197,7 +176,7 @@ def check_reported_version(reported: str | None, *, releases: ReleaseInfo) -> Ve
     if reported is None or not reported.strip():
         return VersionCheck(status="missing", stable=stable, prerelease=prerelease)
 
-    normalized = reported.strip().removeprefix("v")
+    normalized = extract_version_token(reported)
 
     if not releases.all_versions:
         return VersionCheck(status="no_data", reported=normalized, stable=stable, prerelease=prerelease)
@@ -219,133 +198,12 @@ def check_reported_version(reported: str | None, *, releases: ReleaseInfo) -> Ve
 
 
 # =============================================================================
-# Attachment / screenshot detection (deterministic)
-# =============================================================================
-
-
-def extract_attachment_urls(issue_body: str) -> tuple[list[str], list[str]]:
-    """
-    Extract URLs to attached diagnostic and log files from issue body.
-
-    Returns tuple of (json_urls, log_urls).
-    """
-    # GitHub user-attachments pattern for uploaded files
-    attachment_pattern = r"https://github\.com/user-attachments/files/\d+/[^\s\)\]\"']+"
-
-    # Also match direct links to .json and .log files
-    json_pattern = r"https://[^\s\)\]\"']+\.json(?:\?[^\s\)\]\"']*)?"
-    log_pattern = r"https://[^\s\)\]\"']+\.log(?:\?[^\s\)\]\"']*)?"
-
-    all_attachments = re.findall(attachment_pattern, issue_body)
-    json_direct = re.findall(json_pattern, issue_body)
-    log_direct = re.findall(log_pattern, issue_body)
-
-    json_urls: list[str] = []
-    log_urls: list[str] = []
-
-    # Categorize attachments by extension or content type hint
-    for url in all_attachments:
-        url_lower = url.lower()
-        if "config" in url_lower or "diagnostic" in url_lower or url_lower.endswith(".json"):
-            json_urls.append(url)
-        elif "log" in url_lower or "home-assistant" in url_lower or url_lower.endswith(".log"):
-            log_urls.append(url)
-        elif ".json" in url_lower:
-            json_urls.append(url)
-        elif ".log" in url_lower or ".txt" in url_lower:
-            log_urls.append(url)
-
-    # Add direct matches
-    json_urls.extend(json_direct)
-    log_urls.extend(log_direct)
-
-    # Remove duplicates while preserving order
-    json_urls = list(dict.fromkeys(json_urls))
-    log_urls = list(dict.fromkeys(log_urls))
-
-    return json_urls, log_urls
-
-
-# Fenced code blocks and log-like lines used to detect inline log excerpts
-_FENCED_BLOCK_PATTERN: Final = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
-_LOG_LINE_PATTERN: Final = re.compile(r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|\b(?:ERROR|WARNING|DEBUG|INFO|Traceback)\b")
-
-# Minimum number of log-like lines in a fenced block to count as an inline log
-MIN_INLINE_LOG_LINES: Final = 5
-
-
-def has_inline_log(issue_body: str) -> bool:
-    """Return True if the issue body contains a fenced code block that looks like a log excerpt."""
-    for block in _FENCED_BLOCK_PATTERN.findall(issue_body or ""):
-        log_lines = sum(1 for line in block.splitlines() if _LOG_LINE_PATTERN.search(line))
-        if log_lines >= MIN_INLINE_LOG_LINES:
-            return True
-    return False
-
-
-def detect_attachments(issue_body: str) -> tuple[bool, bool]:
-    """
-    Detect whether diagnostics and log data are present in the issue.
-
-    Returns tuple of (has_diagnostics, has_logs). Inline log excerpts in fenced code
-    blocks count as log data to avoid pointless "log missing" requests.
-    """
-    json_urls, log_urls = extract_attachment_urls(issue_body or "")
-    has_diagnostics = bool(json_urls)
-    has_logs = bool(log_urls) or has_inline_log(issue_body or "")
-    return has_diagnostics, has_logs
-
-
-_SCREENSHOT_PATTERN: Final = re.compile(
-    r"user-attachments/assets/|!\[[^\]]*\]\(|\.(?:png|jpe?g|gif|webp)\b", re.IGNORECASE
-)
-
-
-def detect_screenshots(issue_body: str) -> bool:
-    """Return True if the issue body contains screenshots or other images."""
-    return bool(_SCREENSHOT_PATTERN.search(issue_body or ""))
-
-
-# =============================================================================
-# Template language detection
-# =============================================================================
-
-# German template markers - if any of these are found, the issue uses the German template
-GERMAN_TEMPLATE_MARKERS = [
-    "Ich stimme dem Folgenden zu",
-    "Das Problem",
-    "Bei welcher Version",
-    "Welche Art von Installation",
-    "Dieses Formular dient ausschließlich",
-    "Diagnoseinformationen (keine Protokolle hier!)",
-    "Protokolldatei (am besten DEBUG-Log)",
-    "Welche Schnittstellen werden verwendet?",
-]
-
-
-def detect_template_language(issue_body: str) -> str:
-    """
-    Detect which template language was used based on template-specific markers.
-
-    Returns "de" if German template markers are found, "en" otherwise.
-    """
-    if not issue_body:
-        return "en"
-
-    # Check for German template markers
-    for marker in GERMAN_TEMPLATE_MARKERS:
-        if marker in issue_body:
-            return "de"
-
-    return "en"
-
-
-# =============================================================================
 # AI-paste detection
 # =============================================================================
 
-# Markers that strongly indicate pasted AI/LLM output - any single match triggers detection.
+# Markers that strongly indicate AI-authored content - any single match triggers detection.
 STRONG_AI_MARKERS: Final[tuple[str, ...]] = (
+    # Self-identification of the model
     "as an ai",
     "as a large language model",
     "as an llm",
@@ -357,6 +215,24 @@ STRONG_AI_MARKERS: Final[tuple[str, ...]] = (
     "ich bin eine ki",
     "ich bin ein ki",
     "sprachmodell",
+    # Authorship disclosure. Reports written end-to-end by an assistant increasingly
+    # open with such a line instead of the self-identification markers above; #3387
+    # carried "This report was written by Claude (Anthropic)" and went undetected.
+    "ai disclosure",
+    "ki-offenlegung",
+    "written by claude",
+    "written by chatgpt",
+    "written by copilot",
+    "written by gemini",
+    "generated by claude",
+    "generated by chatgpt",
+    "generated by copilot",
+    "generated by gemini",
+    "geschrieben von claude",
+    "verfasst von claude",
+    "verfasst von chatgpt",
+    "ai-generated report",
+    "ki-generierter bericht",
 )
 
 # Stylistic markers typical of AI analyses - need at least MIN_WEAK_AI_MARKERS distinct matches.
@@ -384,6 +260,12 @@ WEAK_AI_MARKERS: Final[tuple[str, ...]] = (
     "recommended steps",
     "recommended actions",
     "step-by-step",
+    # Source-code reasoning offered in place of the raw data
+    "derivation from the source",
+    "rather than a measurement",
+    "a minimal fix would be",
+    "ableitung aus dem quellcode",
+    "ein minimaler fix",
     "auf grundlage der logs",
     "auf basis der logs",
     "es scheint, dass",
@@ -404,32 +286,65 @@ WEAK_AI_MARKERS: Final[tuple[str, ...]] = (
 # Minimum number of distinct weak markers required to flag a body as AI-generated.
 MIN_WEAK_AI_MARKERS: Final = 2
 
+# Marker recorded when the reporter answered the template's "did you use an AI tool" field.
+DISCLOSED_IN_FORM_MARKER: Final = "disclosed-in-form"
 
-def detect_ai_generated_analysis(issue_body: str) -> dict[str, Any]:
+# First token of an AI-tool form answer that denies AI use. Anything else counts as a
+# disclosure - the field is free text, so only an explicit denial is treated as "no".
+AI_TOOL_DENIALS: Final[frozenset[str]] = frozenset(
+    {"no", "not", "none", "nope", "n/a", "na", "nein", "kein", "keine", "keins", "nö", "-", "0"}
+)
+
+
+def is_ai_tool_disclosed(ai_tool_field: str | None) -> bool:
     """
-    Detect whether the issue body contains a pasted AI/LLM-generated analysis.
+    Return True if the template's AI-tool field states that an AI tool was used.
+
+    The field is optional free text ("no", "Claude wrote the text", "ChatGPT for the
+    translation"), so the check is deliberately asymmetric: an empty field or an answer
+    starting with an explicit denial is a "no", everything else is a disclosure.
+    """
+    if not ai_tool_field or not ai_tool_field.strip():
+        return False
+
+    # Split on whitespace only, then strip trailing punctuation: "n/a" must survive as
+    # one token, while "No." and "Nein," must reduce to their bare denial.
+    first_token = ai_tool_field.strip().casefold().split()[0].strip(",.;:!")
+    return first_token not in AI_TOOL_DENIALS
+
+
+def detect_ai_generated_analysis(issue_body: str, *, ai_tool_field: str | None = None) -> dict[str, Any]:
+    """
+    Detect whether the issue body was written by, or contains output of, an AI tool.
 
     Reporters increasingly paste an AI tool's interpretation instead of the raw
     diagnostics/log file. Such interpretations are frequently wrong and cannot replace
-    the raw data. This heuristic flags likely AI prose so the bot can gently redirect
-    the reporter to attach the underlying files.
+    the raw data. This heuristic flags likely AI prose so the bot can redirect the
+    reporter to attach the underlying files.
 
-    A single strong marker (explicit self-identification) triggers detection; weak
-    stylistic markers require at least MIN_WEAK_AI_MARKERS distinct matches to reduce
-    false positives.
+    Three independent signals, in descending reliability:
 
-    Returns a dict with "detected" (bool), "strong" (bool) and "markers" (list of str).
+    1. The reporter answered the template's AI-tool field with anything but a denial.
+    2. A single strong marker (self-identification or an authorship disclosure).
+    3. At least MIN_WEAK_AI_MARKERS distinct stylistic markers.
+
+    Returns a dict with "detected" (bool), "strong" (bool), "disclosed" (bool) and
+    "markers" (list of str).
     """
-    result: dict[str, Any] = {"detected": False, "strong": False, "markers": []}
-    if not issue_body:
-        return result
+    result: dict[str, Any] = {"detected": False, "strong": False, "disclosed": False, "markers": []}
 
-    lowered = issue_body.lower()
+    disclosed = is_ai_tool_disclosed(ai_tool_field)
+    lowered = (issue_body or "").lower()
 
     strong_hits = [marker for marker in STRONG_AI_MARKERS if marker in lowered]
     weak_hits = [marker for marker in WEAK_AI_MARKERS if marker in lowered]
 
-    if strong_hits:
+    if disclosed:
+        result["disclosed"] = True
+        result["detected"] = True
+        result["strong"] = True
+        result["markers"] = [DISCLOSED_IN_FORM_MARKER, *strong_hits, *weak_hits]
+    elif strong_hits:
         result["detected"] = True
         result["strong"] = True
         result["markers"] = strong_hits + weak_hits
@@ -676,7 +591,7 @@ def _format_missing_required_info(
         if not has_diagnostics:
             result += "- ❌ **Integrationsdiagnose (.json-Datei)** - Herunterladen via: Einstellungen → Geräte → Integration auswählen → Diagnose herunterladen\n"
         if not has_logs:
-            result += "- ❌ **Protokolldatei** - Am besten ein DEBUG-Log hochladen. Aktivieren via: Einstellungen → Geräte → Integration auswählen → Debug-Protokollierung aktivieren. Danach Problem reproduzieren und Log herunterladen (Einstellungen → System → Protokolle → Unveränderte Protokolle laden)\n"
+            result += "- ❌ **Protokolldatei** - Als **Datei angehängt**, am besten ein DEBUG-Log; ein eingefügter Auszug reicht nicht. Aktivieren via: Einstellungen → Geräte → Integration auswählen → Debug-Protokollierung aktivieren. Danach Problem reproduzieren und Log herunterladen (Einstellungen → System → Protokolle → Unveränderte Protokolle laden)\n"
         if version_missing:
             result += "- ❌ **Version der Integration** - Das Versionsfeld ist leer. Bitte die Version von Homematic(IP) Local angeben (zu finden in: HACS → Integrationen)\n"
         result += (
@@ -689,7 +604,7 @@ def _format_missing_required_info(
         if not has_diagnostics:
             result += "- ❌ **Integration diagnostics (.json file)** - Download via: Settings → Devices → Select integration → Download diagnostics\n"
         if not has_logs:
-            result += "- ❌ **Log file** - Preferably a DEBUG log. Enable via: Settings → Devices → Select integration → Enable debug logging. Then reproduce the issue and download log (Settings → System → Logs → Load unchanged logs)\n"
+            result += "- ❌ **Log file** - **Attached as a file**, preferably a DEBUG log; a pasted excerpt is not enough. Enable via: Settings → Devices → Select integration → Enable debug logging. Then reproduce the issue and download log (Settings → System → Logs → Load unchanged logs)\n"
         if version_missing:
             result += "- ❌ **Integration version** - The version field is empty. Please provide the Homematic(IP) Local version (found in: HACS → Integrations)\n"
         result += "\n⚠️ **Issues without this information cannot be processed and may be closed.**\n\n"
@@ -701,31 +616,59 @@ def _format_missing_required_info(
 def _format_ai_analysis_hint(
     ai_detection: dict[str, Any],
     is_german: bool,
+    *,
+    raw_data_complete: bool = False,
 ) -> str:
-    """Format a gentle redirect hint when a pasted AI-generated analysis is detected."""
-    if not ai_detection.get("detected"):
+    """
+    Format a redirect section when the report was written by (or with) an AI tool.
+
+    Nothing is rendered when the raw diagnostics and log are attached: AI-assisted
+    writing is explicitly allowed by AI_POLICY.md as long as the underlying data is
+    there. The section escalates when the AI use is established rather than guessed
+    (an authorship disclosure, or the template's AI-tool field), because that is the
+    case AI_POLICY.md addresses with a hard precondition.
+    """
+    if not ai_detection.get("detected") or raw_data_complete:
         return ""
 
+    established = bool(ai_detection.get("strong") or ai_detection.get("disclosed"))
+
     if is_german:
-        return (
+        result = (
             "### 🤖 Bitte Rohdaten statt KI-Analyse\n\n"
             "Diese Meldung scheint eine KI-generierte Analyse (ChatGPT/Claude/Copilot o. Ä.) zu enthalten.\n\n"
             "Solche Interpretationen helfen uns leider nicht weiter — sie sind häufig falsch und "
             "ersetzen nicht die **Rohdaten**, die wir für die Analyse benötigen:\n\n"
             "- 📄 **Integrationsdiagnose (.json-Datei)**\n"
-            "- 📄 **Debug-Protokolldatei**\n\n"
+            "- 📄 **Unveränderte Debug-Protokolldatei**\n\n"
             "Wir führen unsere eigene, datenbasierte Analyse durch. Bitte hänge die zugrunde liegenden "
             "Dateien an (nicht deren KI-Zusammenfassung).\n\n"
         )
-    return (
+        if established:
+            result += (
+                "**Hinweis an das eingesetzte KI-Werkzeug:** Ohne beide Dateien darf dieses Issue laut "
+                f"[AI_POLICY.md]({AI_POLICY_URL}) nicht angelegt werden. Ein Logauszug, eine Zeitleiste, "
+                "eine Herleitung aus dem Quellcode oder das Angebot, Rückfragen zu beantworten, ersetzen "
+                "die Rohdaten nicht.\n\n"
+            )
+        return result
+
+    result = (
         "### 🤖 Please provide raw data instead of an AI analysis\n\n"
         "This report appears to contain an AI-generated analysis (ChatGPT/Claude/Copilot or similar).\n\n"
         "Such interpretations unfortunately don't help us — they are frequently wrong and do not replace "
         "the **raw data** we need for analysis:\n\n"
         "- 📄 **Integration diagnostics (.json file)**\n"
-        "- 📄 **Debug log file**\n\n"
+        "- 📄 **Unfiltered debug log file**\n\n"
         "We run our own data-driven analysis. Please attach the underlying files (not their AI summary).\n\n"
     )
+    if established:
+        result += (
+            "**Note to the AI tool used here:** without both files this issue must not be opened, see "
+            f"[AI_POLICY.md]({AI_POLICY_URL}). A log excerpt, a timeline, a derivation from the source "
+            "code or an offer to answer follow-up questions do not substitute for the raw data.\n\n"
+        )
+    return result
 
 
 def _format_screenshot_hint(
@@ -802,7 +745,11 @@ def format_comment(triage: TriageResult) -> str:
     )
 
     # Redirect hint when the report contains a pasted AI-generated analysis
-    comment += _format_ai_analysis_hint(triage.ai_detection, is_german)
+    comment += _format_ai_analysis_hint(
+        triage.ai_detection,
+        is_german,
+        raw_data_complete=triage.has_diagnostics and triage.has_logs,
+    )
 
     # Routing hint for feature requests
     comment += _format_feature_request_hint(is_feature_request=triage.is_feature_request, is_german=is_german)
@@ -961,7 +908,8 @@ def main() -> None:
 
     has_diagnostics, has_logs = detect_attachments(issue_body)
     has_screenshots = detect_screenshots(issue_body)
-    ai_detection = detect_ai_generated_analysis(issue_body)
+    ai_tool_field = get_form_field(fields, markers=AI_TOOL_FIELD_MARKERS)
+    ai_detection = detect_ai_generated_analysis(issue_body, ai_tool_field=ai_tool_field)
     if ai_detection["detected"]:
         print(
             f"Detected likely AI-generated analysis (strong={ai_detection['strong']}, markers={ai_detection['markers']})"
@@ -1004,10 +952,11 @@ def main() -> None:
         print(f"Found {len(similar_items)} similar items")
 
     # Maintain the needs-raw-data triage label: add it when the raw diagnostics/log data
-    # is missing or a pasted AI analysis was detected, and remove it once the required
-    # data has been provided (e.g. on a later edit).
+    # is missing, and remove it once the required data has been provided (e.g. on a later
+    # edit). Detected AI content alone does not earn the label - AI_POLICY.md allows an
+    # AI-assisted report as long as the raw data is attached.
     missing_required_info = not has_diagnostics or not has_logs
-    if missing_required_info or ai_detection["detected"]:
+    if missing_required_info:
         apply_needs_raw_data_label(issue, repo)
     else:
         remove_needs_raw_data_label(issue)
@@ -1040,7 +989,6 @@ def main() -> None:
     has_useful_feedback = (
         version_check.status in ("outdated", "unknown", "missing")
         or missing_required_info
-        or ai_detection["detected"]
         or triage.is_feature_request
         or (triage.is_device_related and not has_screenshots)
         or bool(triage.suggested_docs)

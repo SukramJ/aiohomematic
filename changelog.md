@@ -1,3 +1,34 @@
+# Version 2026.9.2 (2026-09-06)
+
+## What's Changed
+
+### Fixed
+
+- **A cover command is no longer dropped while the cover is moving.**
+  `CustomDpCover.is_state_change()` compared the requested position against the last
+  level confirmed by the backend. Classic shutter actuators (`HM-LC-Bl1-*` and
+  relatives) re-report the _old_ level when they start working and only report the new
+  one once the movement has finished. That echo clears the optimistic value, so during
+  the whole travel the cover reads as if it were still at its starting position.
+
+  A command that reverses the movement back to where the cover came from therefore
+  compared equal to the current position and was discarded before it reached the
+  backend: `cover.set_cover_position` with the origin position, and `cover.close_cover`
+  while opening (and the mirrored pair while closing). Nothing was sent, nothing was
+  logged above DEBUG, and the service call reported success. Commands with any other
+  target were unaffected, and whether the drop happened at all depended on a race
+  between the echo and the second command — which made it look intermittent.
+
+  `is_state_change()` now treats a running movement as a state change. `DIRECTION` is
+  the only signal left at that point, since the echo has already cleared the optimistic
+  value. While the cover stands still, an identical command is still suppressed as
+  before. Regression tests cover both.
+
+- **The `NO_STATE_CHANGE` debug line names the data point it belongs to.** It logged
+  `name`, which is empty for a primary custom data point whose channel name equals the
+  device name — so the line that tells you a command was suppressed did not say which
+  data point suppressed it. It now logs `full_name`.
+
 # Version 2026.9.1 (2026-09-03)
 
 ## What's Changed

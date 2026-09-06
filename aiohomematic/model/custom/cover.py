@@ -162,6 +162,14 @@ class CustomDpCover(PositionMixin, CustomDataPoint, CoverDataPointProtocol):
     @override
     def is_state_change(self, **kwargs: Unpack[StateChangeArgs]) -> bool:
         """Check if the state changes due to kwargs."""
+        if self.is_opening or self.is_closing:
+            # While the cover moves, the last confirmed level is not where the cover
+            # actually is: classic actuators re-report the old level when they start
+            # working and only report the new one once the movement has finished.
+            # Comparing against it would drop a command that reverses the movement back
+            # to the position the cover came from. DIRECTION is the only signal left at
+            # that point, because the echo has already cleared the optimistic value.
+            return True
         if kwargs.get(_StateChangeArg.OPEN) is not None and self._group_level != self._open_level:
             return True
         if kwargs.get(_StateChangeArg.CLOSE) is not None and self._group_level != self._closed_level:

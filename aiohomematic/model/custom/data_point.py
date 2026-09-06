@@ -202,7 +202,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         """
         if self.state_uncertain:
             return True
-        _LOGGER.debug("NO_STATE_CHANGE: %s", self.name)
+        # full_name, not name: a primary custom data point has an empty name when the
+        # channel name equals the device name, which made the log line unattributable.
+        _LOGGER.debug("NO_STATE_CHANGE: %s", self.full_name)
         return False
 
     @inspector(re_raise=False)

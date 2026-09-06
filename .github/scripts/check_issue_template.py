@@ -5,8 +5,8 @@ Verify that a new issue actually went through the issue form.
 The bug-report forms mark every item of the "I agree to the following" checklist as
 ``required: true``. GitHub enforces that only in the browser: an issue created through
 the REST/GraphQL API (``gh issue create``, an MCP server, an agent) can carry an
-arbitrary body, with the checklist shortened, reworded or left unchecked. Issue #3387
-did exactly that and dropped the mandatory diagnostics along the way.
+arbitrary body, with the checklist shortened, reworded or left unchecked, and the
+mandatory diagnostics dropped along the way.
 
 This check is deterministic and template-driven: the required checkbox labels and the
 field headings are read from ``.github/ISSUE_TEMPLATE/*.yml`` at run time, so the check
@@ -64,8 +64,8 @@ MIN_STRUCTURE_RATIO: Final = 0.5
 # Number of missing required labels still attributable to template drift rather than to a
 # rewritten checklist. Measured against the 25 most recent externally filed issues
 # (2026-09): every legitimately filed one misses at most one label - the "supported hubs"
-# item, added to the templates after those issues were opened - while #3387, which was
-# composed outside the form, misses seven.
+# item, added to the templates after those issues were opened - while a report composed
+# outside the form misses seven.
 MAX_DRIFT_MISSING: Final = 1
 
 # Link targets used in the comment

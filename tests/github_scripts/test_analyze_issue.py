@@ -725,7 +725,7 @@ def test_detect_ai_generated_analysis_uses_form_disclosure() -> None:
 
 
 def test_detect_ai_generated_analysis_authorship_disclosure_marker() -> None:
-    """Flag an authorship disclosure in the body - the signal #3387 carried and that was missed."""
+    """Flag an authorship disclosure in the body - a signal the marker list previously missed."""
     body = "> **AI disclosure (per AI_POLICY.md):** This report was written by Claude (Anthropic)."
     result = analyze_issue.detect_ai_generated_analysis(body)
     assert result["detected"] is True

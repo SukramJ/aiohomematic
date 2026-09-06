@@ -9,20 +9,27 @@ ones. The bot therefore focuses on deterministic checks; do not re-add diagnosis
 ## What the bot does
 
 1. **Checks required raw data (deterministic)**
-   - Detects attached integration diagnostics (.json) and log files (including inline log
-     excerpts in fenced code blocks)
-   - Requests missing data and maintains the `needs-raw-data` triage label
+   - Detects the integration diagnostics (.json) and the log file, both as **uploaded files**.
+     A log excerpt pasted into a fenced code block does not count: it is a selection made by
+     the reporter and usually drops the context the analysis needs (see `AI_POLICY.md`).
+   - Requests missing data and maintains the `needs-raw-data` triage label. The label keys on
+     the raw data alone — detected AI content does not earn it, because an AI-assisted report
+     with both files attached is allowed.
 
 2. **Validates the reported version (deterministic)**
-   - Parses the version from the issue-form field (not from free text)
+   - Parses the version from the issue-form field, tolerating context the reporter added to it
+     ("2.11.0 (aiohomematic 2026.9.1)")
    - Compares it against the actually published releases of
      [homematicip_local](https://github.com/sukramj/homematicip_local/releases)
    - Posts a *neutral* notice when the version is outdated or matches no published release —
      never a "critical" banner
 
-3. **Detects pasted AI analyses (deterministic)**
-   - Flags reports that contain an AI-generated interpretation instead of raw data and
-     redirects the reporter to attach the underlying files
+3. **Detects AI-authored reports (deterministic)**
+   - Three signals, in descending reliability: the template's AI-tool field answered with
+     anything but a denial; an authorship disclosure or model self-identification in the body;
+     at least two stylistic markers
+   - Redirects the reporter to attach the underlying files — but stays silent when both files
+     are already attached, since AI-assisted writing is allowed in that case
 
 4. **Searches for similar issues (GitHub search API)**
    - Uses the device model (extracted deterministically) plus LLM-suggested search terms
@@ -43,11 +50,34 @@ ones. The bot therefore focuses on deterministic checks; do not re-add diagnosis
 `close-insufficient-info.yml` closes an issue that lacks the required data. It is triggered
 manually (`workflow_dispatch`) and protects against premature closes with guardrails:
 
-- refuses to close when the issue contains attachments, screenshots, or inline log excerpts
+- refuses to close when the issue contains uploaded files or screenshots (a pasted log
+  excerpt deliberately does not block the close — it does not satisfy the raw-data
+  requirement either)
 - refuses to close issues labeled as feature requests (`enhancement`/`feature`)
 - enforces a minimum waiting period of **72 hours** after the `needs-raw-data` label was
   applied (or after issue creation), giving reporters time to supply the data
 - `force: true` input overrides all guardrails
+
+## Companion workflow: Validate Issue Template
+
+`validate-issue-template.yml` verifies that a new issue actually went through the issue form.
+The forms mark every checklist item as `required: true`, but GitHub enforces that only in the
+browser — an issue created through the API can carry an arbitrary body.
+
+`check_issue_template.py` reads the required checkbox labels from `.github/ISSUE_TEMPLATE/*.yml`
+at run time, so the check cannot drift away from the templates, and reports:
+
+- `bypassed` — the body keeps less than half of the required checklist (freely composed)
+- `rewritten` — more required labels are missing than template drift explains
+  (`MAX_DRIFT_MISSING`, measured against the 25 most recent externally filed issues)
+- `unchecked` — a required item is present but not ticked
+- `no-raw-data` — no uploaded file; reported only alongside a form violation, since the
+  analyzer already covers it on its own
+
+On a violation the issue gets the `invalid-template` label and one explanatory comment.
+**Closing is off by default**; set the repository variable `AUTO_CLOSE_INVALID_TEMPLATE` to
+`true`, or use the `auto_close` input of a manual run. Maintainers (`OWNER`/`MEMBER`/
+`COLLABORATOR`) and issues labeled `skip-template-check` are exempt.
 
 ## Setup
 

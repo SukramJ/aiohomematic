@@ -6,5 +6,5 @@
 bandit==1.9.4  # pre-commit: https://github.com/PyCQA/bandit
 codespell==2.4.3  # pre-commit: https://github.com/codespell-project/codespell
 python-typing-update==v0.8.1  # pre-commit: https://github.com/cdce8p/python-typing-update
-ruff==0.16.5  # pre-commit: https://github.com/charliermarsh/ruff-pre-commit
+ruff==0.16.7  # pre-commit: https://github.com/charliermarsh/ruff-pre-commit
 yamllint==1.38.0  # pre-commit: https://github.com/adrienverge/yamllint.git

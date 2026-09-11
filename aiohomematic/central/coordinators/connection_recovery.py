@@ -937,6 +937,7 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
         """Refresh data for a specific interface after recovery."""
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
+            await self._reload_availability_state(interface_id=interface_id)
             await self._device_data_refresher.load_and_refresh_data_point_data(interface=client.interface)
             _LOGGER.debug("CONNECTION_RECOVERY: Data refresh completed for %s", interface_id)
         except Exception:
@@ -945,11 +946,30 @@ class ConnectionRecoveryCoordinator(RecoveryProviderForMetricsProtocol):
                 interface_id,
             )
 
+    async def _reload_availability_state(self, *, interface_id: str) -> None:
+        """
+        Re-measure the availability of every device of an interface.
+
+        The backend sends UN_REACH only on change, so a device that became
+        reachable again while the connection was down is never announced. Doing
+        this before the data load also matters for the load itself: the value
+        cache refuses to read parameters of a device it considers unavailable.
+        """
+        await asyncio.gather(
+            *(
+                device.reload_availability_state()
+                for device in self._coordinator_provider.device_registry.devices
+                if device.interface_id == interface_id
+            ),
+            return_exceptions=True,
+        )
+
     async def _stage_data_load(self, *, interface_id: str) -> bool:
-        """Stage: Load device and paramset data, then refresh hub data."""
+        """Stage: Re-measure availability, load device and paramset data, then refresh hub data."""
         try:
             client = self._client_provider.get_client(interface_id=interface_id)
             interface = client.interface
+            await self._reload_availability_state(interface_id=interface_id)
             await self._device_data_refresher.load_and_refresh_data_point_data(interface=interface)
         except Exception:
             _LOGGER.exception(  # i18n-log: ignore

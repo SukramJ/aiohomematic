@@ -1,3 +1,44 @@
+# Version 2026.9.3 (2026-09-11)
+
+## What's Changed
+
+### Fixed
+
+- **Devices no longer stay unavailable after a reconnect.** The backend announces
+  `UNREACH` only when the value changes. If a device becomes reachable again while the
+  connection is down — a backend restart resets the flag, or the device recovers while
+  the proxy is gone — that transition is never delivered, and aiohomematic keeps the
+  stale `UNREACH=true` for as long as the central runs.
+
+  Nothing closed that gap, because `UN_REACH` and `STICKY_UN_REACH` are hidden
+  parameters and therefore carry `DataPointUsage.NO_CREATE`. `refresh_data_point_data()`
+  iterates `get_readable_generic_data_points()`, which excludes exactly those, so the
+  recovery data load never touched them. The only path that reads them via RPC is
+  `_ValueCache.init_base_data_points()`, and that runs solely for newly created devices.
+  The result: the client reconnects, events flow, commands work — and every device that
+  was marked unreachable before the outage stays unavailable in Home Assistant until the
+  integration is reloaded or `force_device_availability` is applied by hand.
+
+  `Device.reload_availability_state()` re-reads the channel 0 `VALUES` paramset and
+  applies `UN_REACH`, `STICKY_UN_REACH` and `CONFIG_PENDING` through the regular event
+  path, so the recovered availability reaches the data points of every channel. The
+  connection recovery now performs that re-read for all devices of the interface before
+  refreshing the remaining data — in the staged data load as well as in the circuit
+  breaker recovery — which also unblocks that refresh, since the value cache refuses to
+  read parameters of a device it considers unavailable.
+
+  The re-read deliberately uses `getParamset` instead of the per-parameter `getValue`
+  fallback: the latter is skipped for the interfaces in
+  `INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK` (BidCos-RF, VirtualDevices, CUxD,
+  CCU-Jack), so building on it would have produced a fix that silently does nothing on
+  four of six interfaces.
+
+  The value is measured, never defaulted: a read that fails, or a paramset that does not
+  carry the parameter, leaves the data point untouched. That distinction matters — a
+  boolean data point without a value falls back to its paramset default (`false`), so a
+  swallowed read error would have silently reported every unreachable device as
+  reachable. Contract tests pin both directions.
+
 # Version 2026.9.2 (2026-09-06)
 
 ## What's Changed

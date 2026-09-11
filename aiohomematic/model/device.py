@@ -832,6 +832,49 @@ class Device(DeviceProtocol, LogContextMixin):
             interface_id=self._interface_id, address=self._address
         )
 
+    @inspector(scope=ServiceScope.INTERNAL)
+    async def reload_availability_state(self) -> None:
+        """
+        Re-read the availability parameters of channel 0 from the backend.
+
+        The backend announces UN_REACH only when the value changes. A transition
+        that happens while the connection is down is therefore never delivered,
+        and the device keeps the stale value for as long as the central runs.
+        Re-reading channel 0 after a reconnect closes that gap.
+
+        Values are applied through the regular event path, so a change reaches
+        every data point of the device. A read that fails, or a paramset that
+        does not carry the parameter, leaves the data point untouched: an
+        unavailable device must never become available by falling back to a
+        default.
+        """
+        if (channel := self.get_channel(channel_address=f"{self._address}{ADDRESS_SEPARATOR}0")) is None:
+            return
+        data_points = {
+            parameter: data_point
+            for parameter in RELEVANT_INIT_PARAMETERS
+            if (data_point := channel.get_generic_data_point(parameter=parameter, paramset_key=ParamsetKey.VALUES))
+            is not None
+        }
+        if not data_points:
+            return
+
+        try:
+            values = await self._client.get_paramset(channel_address=channel.address, paramset_key=ParamsetKey.VALUES)
+        except BaseHomematicException as bhexc:
+            _LOGGER.debug(
+                "RELOAD_AVAILABILITY_STATE: Failed to read %s for %s [%s]",
+                channel.address,
+                self._name,
+                extract_exc_args(exc=bhexc),
+            )
+            return
+
+        received_at = datetime.now()
+        for parameter, data_point in data_points.items():
+            if (value := values.get(parameter)) is not None:
+                await data_point.event(value=value, received_at=received_at)
+
     @inspector
     async def reload_device_config(self) -> None:
         """

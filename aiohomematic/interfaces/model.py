@@ -1962,6 +1962,10 @@ class DeviceProtocol(
         """Refresh firmware data of the device."""
 
     @abstractmethod
+    async def reload_availability_state(self) -> None:
+        """Re-read the availability parameters of channel 0 from the backend."""
+
+    @abstractmethod
     async def reload_device_config(self) -> None:
         """Reload device configuration and master parameter values."""
 

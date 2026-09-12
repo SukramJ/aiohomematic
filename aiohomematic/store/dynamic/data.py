@@ -74,6 +74,7 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         "_data_point_provider",
         "_device_provider",
         "_is_initializing",
+        "_refresh_attempted_at",
         "_refresh_locks",
         "_refreshed_at",
         "_stats",
@@ -98,6 +99,7 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
         self._refresh_locks: Final[dict[Interface, asyncio.Lock]] = {}
+        self._refresh_attempted_at: Final[dict[Interface, datetime]] = {}
         # During initialization, cache expiration is disabled to prevent
         # getValue calls when device creation takes longer than MAX_CACHE_AGE
         self._is_initializing: bool = True
@@ -129,6 +131,9 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         if interface:
             self._value_cache[interface] = {}
             self._refreshed_at[interface] = INIT_DATETIME
+            # An explicit invalidation warrants a new attempt, even if the last one
+            # came back empty.
+            self._refresh_attempted_at.pop(interface, None)
         else:
             for _interface in self._device_provider.interfaces:
                 self.clear(interface=_interface)
@@ -211,6 +216,17 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
             # A concurrent waiter may have refilled the bucket while we waited for the lock.
             if not self._is_empty(interface=interface):
                 return True
+            # A bulk fetch that comes back empty never advances _refreshed_at, because
+            # fetch_all_device_data() only calls add_data() for a non-empty result. The
+            # lock alone does not help: it coalesces concurrent callers, while the callers
+            # here are serialized by the value cache semaphore. Without this marker every
+            # data point would trigger its own ReGa script run.
+            if changed_within_seconds(
+                last_change=self._refresh_attempted_at.get(interface, INIT_DATETIME),
+                max_age=int(MAX_CACHE_AGE / 3),
+            ):
+                return False
+            self._refresh_attempted_at[interface] = datetime.now()
             await self.load(interface=interface)
             return not self._is_empty(interface=interface)
 

@@ -907,7 +907,11 @@ class _ClientStub:
     async def fetch_all_device_data(self) -> None:
         """Refill the interface snapshot, as the real client does."""
         self.fetch_count += 1
-        self._cache.add_data(interface=self.interface, all_device_data=self._data)
+        # InterfaceClient.fetch_all_device_data() writes only a non-empty result, so an
+        # empty backend answer leaves _refreshed_at untouched. Mirroring that matters:
+        # storing {} here would set _refreshed_at and hide the missing backoff.
+        if self._data:
+            self._cache.add_data(interface=self.interface, all_device_data=self._data)
 
 
 class _DataCacheCentralStub:
@@ -940,6 +944,21 @@ class TestCentralDataCacheRefresh:
     """Tests for the bulk snapshot refresh of CentralDataCache (#3398)."""
 
     @pytest.mark.asyncio
+    async def test_clear_allows_an_immediate_new_attempt(self) -> None:
+        """An explicit invalidation resets the backoff, so the next caller refetches."""
+        cache, central = _build_data_cache(interfaces=(Interface.BIDCOS_RF,))
+        client = _ClientStub(interface=Interface.BIDCOS_RF, data={}, cache=cache)
+        central.clients = (client,)
+
+        assert await cache.refresh_if_expired(interface=Interface.BIDCOS_RF) is False
+        assert client.fetch_count == 1
+
+        cache.clear(interface=Interface.BIDCOS_RF)
+
+        assert await cache.refresh_if_expired(interface=Interface.BIDCOS_RF) is False
+        assert client.fetch_count == 2
+
+    @pytest.mark.asyncio
     async def test_load_covers_all_interfaces_when_one_is_fresh(self) -> None:
         """A fresh snapshot for one interface must not skip the remaining clients."""
         cache, central = _build_data_cache(interfaces=(Interface.BIDCOS_RF, Interface.HMIP_RF))
@@ -963,6 +982,25 @@ class TestCentralDataCacheRefresh:
         assert fresh_client.fetch_count == 0
         assert stale_client.fetch_count == 1
         assert cache.get_data(interface=Interface.HMIP_RF, channel_address="VCU1234567:4", parameter="LEVEL") == 1.0
+
+    @pytest.mark.asyncio
+    async def test_refresh_if_expired_backs_off_after_empty_backend_result(self) -> None:
+        """
+        An empty result must not make every caller trigger its own bulk fetch.
+
+        A fetch that comes back empty never advances ``_refreshed_at``, because
+        ``fetch_all_device_data()`` only calls ``add_data()`` for a non-empty result. The
+        refresh lock does not help either: it coalesces concurrent callers, while the real
+        callers are serialized by the value cache semaphore.
+        """
+        cache, central = _build_data_cache(interfaces=(Interface.BIDCOS_RF,))
+        client = _ClientStub(interface=Interface.BIDCOS_RF, data={}, cache=cache)
+        central.clients = (client,)
+
+        for _ in range(10):
+            assert await cache.refresh_if_expired(interface=Interface.BIDCOS_RF) is False
+
+        assert client.fetch_count == 1
 
     @pytest.mark.asyncio
     async def test_refresh_if_expired_coalesces_concurrent_callers(self) -> None:
@@ -1021,3 +1059,18 @@ class TestCentralDataCacheRefresh:
             cache.get_data(interface=Interface.BIDCOS_RF, channel_address="VCU0000045:1", parameter="LEVEL")
             == NO_CACHE_ENTRY
         )
+
+    @pytest.mark.asyncio
+    async def test_refresh_if_expired_retries_after_backoff_window(self) -> None:
+        """Once the backoff window has passed, an empty interface is attempted again."""
+        cache, central = _build_data_cache(interfaces=(Interface.BIDCOS_RF,))
+        client = _ClientStub(interface=Interface.BIDCOS_RF, data={}, cache=cache)
+        central.clients = (client,)
+
+        assert await cache.refresh_if_expired(interface=Interface.BIDCOS_RF) is False
+        assert client.fetch_count == 1
+
+        cache._refresh_attempted_at[Interface.BIDCOS_RF] = datetime.now() - timedelta(seconds=MAX_CACHE_AGE)
+
+        assert await cache.refresh_if_expired(interface=Interface.BIDCOS_RF) is False
+        assert client.fetch_count == 2

@@ -21,10 +21,20 @@
   same defect behind their regular events.
 
   The init path now refreshes the snapshot when it has expired instead of giving up, and
-  reads the value from the refreshed data. Concurrent readers share one refresh, so
-  adding hundreds of entities costs roughly one ReGa script call per cache period of
-  startup — which does not touch the duty cycle. The `getValue` fallback stays disabled;
+  reads the value from the refreshed data. The `getValue` fallback stays disabled;
   nothing about the #3260 decision changes.
+
+  Two things bound the cost of that refresh. Concurrent readers share one refresh through
+  a per-interface lock. And a refresh that comes back empty is remembered, so the next
+  reader does not immediately try again: `fetch_all_device_data()` stores only a non-empty
+  result, so an empty backend answer leaves `_refreshed_at` untouched and the existing
+  `MAX_CACHE_AGE / 3` guard in `load()` never engages. The lock alone does not cover this
+  — it coalesces concurrent callers, while the callers on this path are serialized by the
+  value cache semaphore, so each of them would have triggered its own ReGa script run.
+  An empty bulk result is not hypothetical: the script emits only data points that carry a
+  valid `Timestamp()`, and on the interfaces above that can be very few or none. Adding
+  hundreds of entities now costs roughly one script call per cache period of startup —
+  which does not touch the duty cycle.
 
 - **A fresh snapshot for one interface no longer skips the others.**
   `CentralDataCache.load()` left the loop over all clients with `return` instead of

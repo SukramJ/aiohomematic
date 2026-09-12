@@ -276,7 +276,7 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
 
         # Enable cache expiration now that device creation is complete.
         # During device creation, cache expiration was disabled to prevent getValue
-        # calls when device creation takes longer than MAX_CACHE_AGE (10 seconds).
+        # calls when device creation takes longer than MAX_CACHE_AGE (15 seconds).
         self._coordinator_provider.cache_coordinator.set_data_cache_initialization_complete()
 
         # Initialize hub (requires connected clients and devices to fetch programs/sysvars)

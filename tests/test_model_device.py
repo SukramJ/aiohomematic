@@ -3,6 +3,7 @@
 """Tests for aiohomematic.model.device.Device and Channel."""
 
 import asyncio
+from datetime import datetime, timedelta
 from typing import Any
 import zipfile
 
@@ -12,9 +13,12 @@ from aiohomematic.central.events import DataPointStateChangedEvent, DeviceLifecy
 from aiohomematic.const import (
     CLICK_EVENTS,
     DEVICE_DESCRIPTIONS_ZIP_DIR,
+    INIT_DATETIME,
+    MAX_CACHE_AGE,
     PARAMSET_DESCRIPTIONS_ZIP_DIR,
     REPORT_VALUE_USAGE_VALUE_ID,
     VIRTUAL_REMOTE_MODELS,
+    CallSource,
     DeviceTriggerEventType,
     ForcedDeviceAvailability,
     Interface,
@@ -1230,6 +1234,67 @@ class TestDeviceFirmwareRefresh:
 
 class TestValueCachePaths:
     """Tests for _ValueCache cache hit and device unavailable branches."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [({"VCU0000045"}, True, None, None)],
+    )
+    @pytest.mark.parametrize("snapshot_age", [0, MAX_CACHE_AGE + 1])
+    async def test_expired_bulk_snapshot_is_refreshed_on_init(
+        self, central_client_factory_with_homegear_client, monkeypatch, snapshot_age
+    ) -> None:
+        """
+        A bulk-fetched value must reach the data point even when it is read late (#3398).
+
+        The ReGa snapshot is taken during ``start_clients()`` and expires after
+        MAX_CACHE_AGE, but its only consumer for a channel other than 0 is Home
+        Assistant's ``async_added_to_hass``, which runs after the platforms have been
+        forwarded. For BidCos-RF there is no getValue fallback (#3260), so an expired
+        snapshot used to leave a cover's LEVEL unset until the cover was operated by hand.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU0000045")
+        assert device is not None
+        assert device.interface == Interface.BIDCOS_RF
+
+        dp = device.get_generic_data_point(channel_address="VCU0000045:1", parameter="LEVEL")
+        assert dp is not None
+
+        data_cache = central.cache_coordinator.data_cache
+        bulk_data = {f"{Interface.BIDCOS_RF}.VCU0000045:1.LEVEL": 0.5}
+
+        # The CCU keeps reporting the value, so a refresh returns it again.
+        async def _fetch_all_device_data() -> None:
+            data_cache.add_data(interface=Interface.BIDCOS_RF, all_device_data=bulk_data)
+
+        for client in central.client_coordinator.clients:
+            monkeypatch.setattr(client, "fetch_all_device_data", _fetch_all_device_data)
+
+        # What start_clients() does: fill the snapshot, then enable expiration.
+        data_cache.clear()
+        device.value_cache._device_cache.clear()  # type: ignore[attr-defined]
+        data_cache.add_data(interface=Interface.BIDCOS_RF, all_device_data=bulk_data)
+        central.cache_coordinator.set_data_cache_initialization_complete()
+
+        # The data point has not seen a value yet.
+        dp._set_refreshed_at(refreshed_at=INIT_DATETIME)  # type: ignore[attr-defined]
+        assert dp.is_refreshed is False
+
+        # Home Assistant adds the entity `snapshot_age` seconds later.
+        data_cache._refreshed_at[Interface.BIDCOS_RF] = datetime.now() - timedelta(  # type: ignore[attr-defined]
+            seconds=snapshot_age
+        )
+
+        await dp.load_data_point_value(call_source=CallSource.HA_INIT)
+
+        assert dp.value == 0.5
+        assert dp.is_refreshed is True
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

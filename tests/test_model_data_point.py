@@ -2,14 +2,22 @@
 # Copyright (c) 2021-2026
 """Tests for data point functionality of aiohomematic."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
 from aiohomematic.central.events import DataPointStateChangedEvent, DeviceLifecycleEvent, DeviceLifecycleEventType
-from aiohomematic.const import CallSource, DataPointUsage, Interface, ParameterStatus, ParamsetKey
+from aiohomematic.const import (
+    INIT_DATETIME,
+    MAX_CACHE_AGE,
+    CallSource,
+    DataPointUsage,
+    Interface,
+    ParameterStatus,
+    ParamsetKey,
+)
 from aiohomematic.model.custom import CustomDpSwitch, get_required_parameters
 from aiohomematic.model.generic import DpSensor, DpSwitch
 from aiohomematic.store.visibility import check_ignore_parameters_is_clean
@@ -513,6 +521,78 @@ class TestIgnoreOnInitialLoad:
         assert switch.value is None
 
         # Verify no RPC calls were made
+        assert len(mock_client.method_calls) == call_count_before
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({"VCU6153495"}, True, None, None),
+        ],
+    )
+    @pytest.mark.parametrize("snapshot_age", [0, MAX_CACHE_AGE + 1])
+    async def test_ignore_on_initial_load_refreshes_expired_bulk_snapshot(
+        self,
+        central_client_factory_with_homegear_client,
+        monkeypatch,
+        snapshot_age,
+    ) -> None:
+        """
+        An ignored parameter must still pick up its bulk value when the snapshot has expired.
+
+        The bulk snapshot is taken during ``start_clients()`` and expires after
+        MAX_CACHE_AGE, while Home Assistant adds its entities later. For an ignored
+        parameter the snapshot is the only source of an initial value - there is no
+        getValue fallback - so an expired snapshot left the data point unset. A battery
+        sensor whose LOW_BAT does not change again then stayed on value_state=restored
+        permanently.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU6153495")
+        assert device is not None
+
+        dp = device.get_generic_data_point(channel_address="VCU6153495:0", parameter="LOW_BAT")
+        assert dp is not None
+        assert dp.ignore_on_initial_load is True
+
+        data_cache = central.cache_coordinator.data_cache
+        bulk_data = {f"{Interface.BIDCOS_RF}.VCU6153495:0.LOW_BAT": True}
+
+        # The CCU keeps reporting the value, so a refresh returns it again.
+        async def _fetch_all_device_data() -> None:
+            data_cache.add_data(interface=Interface.BIDCOS_RF, all_device_data=bulk_data)
+
+        for client in central.client_coordinator.clients:
+            monkeypatch.setattr(client, "fetch_all_device_data", _fetch_all_device_data)
+
+        # What start_clients() does: fill the snapshot, then enable expiration.
+        data_cache.clear()
+        data_cache.add_data(interface=Interface.BIDCOS_RF, all_device_data=bulk_data)
+        central.cache_coordinator.set_data_cache_initialization_complete()
+
+        # The data point has not seen a value yet.
+        dp._set_refreshed_at(refreshed_at=INIT_DATETIME)
+        assert dp.is_refreshed is False
+
+        # Home Assistant adds the entity `snapshot_age` seconds later.
+        data_cache._refreshed_at[Interface.BIDCOS_RF] = datetime.now() - timedelta(seconds=snapshot_age)
+
+        call_count_before = len(mock_client.method_calls)
+
+        await dp.load_data_point_value(call_source=CallSource.HA_INIT)
+
+        # is_valid drives the integration's value_state: False shows up as "restored".
+        assert dp.is_refreshed is True
+        assert dp.is_valid is True
+        assert dp.value is True
+
+        # The ignored parameter must never be read per parameter - that is what the
+        # ignore list is for.
         assert len(mock_client.method_calls) == call_count_before
 
     @pytest.mark.asyncio

@@ -1,3 +1,47 @@
+# Version 2026.9.4 (2026-09-12)
+
+## What's Changed
+
+### Fixed
+
+- **BidCos-RF data points no longer stay on `restored` after a start.** The ReGa bulk
+  fetch collects every value the backend knows and stores it in the central data cache.
+  That snapshot is taken once during `start_clients()` and expires after
+  `MAX_CACHE_AGE`. For a channel other than 0 its only consumer is the
+  integration adding its entities, which happens after the platforms have been forwarded
+  — in a real installation reliably later than that. By then the snapshot was gone.
+
+  For the interfaces in `INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK` (BidCos-RF,
+  VirtualDevices, CUxD, CCU-Jack) there is no per-parameter `getValue` fallback (#3228,
+  #3260, #3274), so the bulk snapshot is the only source of an initial value. An expired
+  snapshot therefore left the data point unset — permanently, for anything that does not
+  emit an event on its own. Covers were the visible case: a shutter reports nothing until
+  it is moved, so `HM-LC-Bl1PBU-FM` blinds stayed on `value_state=restored` with
+  `current_position: 0` until they were operated by hand. Sensors and thermostats hid the
+  same defect behind their regular events.
+
+  The init path now refreshes the snapshot when it has expired instead of giving up, and
+  reads the value from the refreshed data. Concurrent readers share one refresh, so
+  adding hundreds of entities costs roughly one ReGa script call per cache period of
+  startup — which does not touch the duty cycle. The `getValue` fallback stays disabled;
+  nothing about the #3260 decision changes.
+
+- **A fresh snapshot for one interface no longer skips the others.**
+  `CentralDataCache.load()` left the loop over all clients with `return` instead of
+  `continue` when it found a recently refreshed interface, so every client after it was
+  never loaded.
+
+- **`changed_within_seconds()` no longer ignores whole days.** It read
+  `timedelta.seconds`, which drops the day part, so a change from exactly 24 h ago
+  counted as recent. It now uses `total_seconds()`.
+
+### Changed
+
+- **`MAX_CACHE_AGE` raised from 10 s to 15 s.** It governs the lifetime of the central
+  data cache, the device details cache refresh guard (`MAX_CACHE_AGE / 3`) and the
+  default staleness window of `changed_within_seconds()` — so a data point is now
+  reloaded at most every 15 s instead of every 10 s.
+
 # Version 2026.9.3 (2026-09-11)
 
 ## What's Changed

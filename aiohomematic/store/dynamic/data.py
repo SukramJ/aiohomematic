@@ -11,6 +11,7 @@ This avoids background task overhead for a small number of interface-keyed entri
 Stale data causes a cache miss → refresh cycle (self-healing).
 """
 
+import asyncio
 from collections.abc import Mapping
 from datetime import datetime
 import logging
@@ -73,6 +74,7 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         "_data_point_provider",
         "_device_provider",
         "_is_initializing",
+        "_refresh_locks",
         "_refreshed_at",
         "_stats",
         "_value_cache",
@@ -95,6 +97,7 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         # { key, value}
         self._value_cache: Final[dict[Interface, Mapping[str, Any]]] = {}
         self._refreshed_at: Final[dict[Interface, datetime]] = {}
+        self._refresh_locks: Final[dict[Interface, asyncio.Lock]] = {}
         # During initialization, cache expiration is disabled to prevent
         # getValue calls when device creation takes longer than MAX_CACHE_AGE
         self._is_initializing: bool = True
@@ -158,7 +161,9 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
                 last_change=self._get_refreshed_at(interface=client.interface),
                 max_age=int(MAX_CACHE_AGE / 3),
             ):
-                return
+                # Skip only this interface: a fresh snapshot for one client must not
+                # keep the remaining clients from being loaded.
+                continue
             await client.fetch_all_device_data()
 
     async def refresh_data_point_data(
@@ -186,6 +191,29 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         ):
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
 
+    async def refresh_if_expired(self, *, interface: Interface) -> bool:
+        """
+        Reload the bulk snapshot for an interface if it has expired.
+
+        The snapshot is taken once during ``start_clients()`` and expires after
+        ``MAX_CACHE_AGE``. Consumers that read it later than that — Home Assistant adds
+        its entities only after the platforms have been forwarded — would otherwise find
+        an empty cache. Refetching is cheap (one ReGa script call) and does not touch the
+        duty cycle.
+
+        Returns:
+            True if the interface holds usable data afterwards.
+
+        """
+        if not self._is_empty(interface=interface):
+            return True
+        async with self._get_refresh_lock(interface=interface):
+            # A concurrent waiter may have refilled the bucket while we waited for the lock.
+            if not self._is_empty(interface=interface):
+                return True
+            await self.load(interface=interface)
+            return not self._is_empty(interface=interface)
+
     def set_initialization_complete(self) -> None:
         """
         Mark initialization as complete, enabling cache expiration.
@@ -201,6 +229,12 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
             self._central_info.name,
         )
 
+    def _get_refresh_lock(self, *, interface: Interface) -> asyncio.Lock:
+        """Return the per-interface lock that serializes bulk snapshot refreshes."""
+        if (lock := self._refresh_locks.get(interface)) is None:
+            lock = self._refresh_locks[interface] = asyncio.Lock()
+        return lock
+
     def _get_refreshed_at(self, *, interface: Interface) -> datetime:
         """Return when cache has been refreshed."""
         return self._refreshed_at.get(interface, INIT_DATETIME)
@@ -211,7 +245,7 @@ class CentralDataCache(DataCacheProviderProtocol, DataCacheWriterProtocol, Cache
         if not self._value_cache.get(interface):
             return True
         # Skip cache expiration during initialization to prevent getValue calls
-        # when device creation takes longer than MAX_CACHE_AGE (10 seconds).
+        # when device creation takes longer than MAX_CACHE_AGE (15 seconds).
         if self._is_initializing:
             return False
         # Auto-expire stale cache by interface.

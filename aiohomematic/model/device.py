@@ -2044,12 +2044,32 @@ class _ValueCache:
             # trustworthy device-fresh data (only a CCU-internal placeholder that would be
             # marked valid), or is actively harmful. The bulk fetch (ReGa /
             # get_all_device_data) plus later events are the reliable sources, so the
-            # per-parameter getValue fallback is skipped and the data point keeps its (unset)
+            # per-parameter getValue fallback is replaced by a refresh of the bulk
+            # snapshot; if that has no value either, the data point keeps its (unset)
             # state until a real value arrives via event. See
             # INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK for the per-interface rationale
             # (VirtualDevices/BidCos-RF placeholders #3228/#3260; CUxD/CCU-Jack JSON-RPC
             # session flood).
             if self._device.interface in INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK:
+                # The bulk snapshot is taken during start_clients() and expires after
+                # MAX_CACHE_AGE, long before Home Assistant adds its entities. Refresh it
+                # instead of giving up: without the getValue fallback, a data point that
+                # never emits an event on its own (a cover's LEVEL, a switch's STATE)
+                # would otherwise stay unset until the device is operated manually
+                # (#3398).
+                data_cache_provider = self._device.data_cache_provider
+                if (
+                    await data_cache_provider.refresh_if_expired(interface=self._device.interface)
+                    and (
+                        cached_value := data_cache_provider.get_data(
+                            interface=self._device.interface,
+                            channel_address=dpk.channel_address,
+                            parameter=dpk.parameter,
+                        )
+                    )
+                    != NO_CACHE_ENTRY
+                ):
+                    return {dpk.parameter: cached_value}
                 return {dpk.parameter: self._NO_VALUE_CACHE_ENTRY}
             return {
                 dpk.parameter: await self._device.client.get_value(

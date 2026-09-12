@@ -68,11 +68,13 @@ Caches device parameter values for fast access.
 
 | Setting      | Value                      |
 | ------------ | -------------------------- |
-| Max Age      | 10 seconds                 |
+| Max Age      | 15 seconds                 |
 | Scope        | Per interface              |
 | Invalidation | TTL expiry or event-driven |
 
 **Special Behavior**: During initialization, expiration is disabled to prevent cache misses while devices are being created.
+
+**On-demand refresh**: `refresh_if_expired()` refetches the bulk snapshot for an interface whose entry has expired. The initial value path uses it for the interfaces in `INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK`, where the snapshot is the only source of an initial value and the consumer (Home Assistant adding its entities) runs later than the TTL. Concurrent callers share one refresh per interface.
 
 ### Device Details Cache
 
@@ -80,7 +82,7 @@ Caches enriched device metadata (names, rooms, functions).
 
 | Setting          | Value                                  |
 | ---------------- | -------------------------------------- |
-| Refresh Interval | 15 seconds                             |
+| Refresh Interval | 5 seconds (`MAX_CACHE_AGE / 3`)        |
 | Source           | Rega script calls                      |
 | Contents         | Human-readable names, room assignments |
 
@@ -140,7 +142,7 @@ Dynamic caches expire based on time-to-live:
 
 | Cache           | TTL  | Behavior                      |
 | --------------- | ---- | ----------------------------- |
-| Data Cache      | 10s  | Returns `None` after expiry   |
+| Data Cache      | 15s  | Returns `None` after expiry   |
 | Command Tracker | 60s  | Lazy cleanup on access        |
 | Ping/Pong       | 300s | Removed during next operation |
 
@@ -248,7 +250,7 @@ The `CacheCoordinator` manages all caches centrally.
 
 ```python
 # Expiration
-MAX_CACHE_AGE = 10                          # Data cache (seconds)
+MAX_CACHE_AGE = 15                          # Data cache (seconds)
 LAST_COMMAND_SEND_STORE_TIMEOUT = 60        # Command tracker (seconds)
 PING_PONG_MISMATCH_COUNT_TTL = 300          # Ping/pong (seconds)
 

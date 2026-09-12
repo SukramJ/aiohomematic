@@ -489,6 +489,10 @@ class TestTimeHelpers:
         assert changed_within_seconds(last_change=(datetime.now() - timedelta(seconds=10)), max_age=60) is True
         assert changed_within_seconds(last_change=(datetime.now() - timedelta(seconds=70)), max_age=60) is False
         assert changed_within_seconds(last_change=INIT_DATETIME, max_age=60) is False
+        # A change from a whole day ago is not recent: timedelta.seconds drops full days,
+        # total_seconds() does not.
+        assert changed_within_seconds(last_change=(datetime.now() - timedelta(days=1)), max_age=60) is False
+        assert changed_within_seconds(last_change=(datetime.now() - timedelta(days=1, seconds=10)), max_age=60) is False
 
 
 class TestValueConversion:

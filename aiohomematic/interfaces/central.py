@@ -592,6 +592,10 @@ class DataCacheProviderProtocol(Protocol):
     def get_data(self, *, interface: Interface, channel_address: str, parameter: str) -> Any:
         """Get cached data for a parameter."""
 
+    @abstractmethod
+    async def refresh_if_expired(self, *, interface: Interface) -> bool:
+        """Reload the bulk snapshot for an interface if it has expired."""
+
 
 @runtime_checkable
 class HubDataFetcherProtocol(Protocol):

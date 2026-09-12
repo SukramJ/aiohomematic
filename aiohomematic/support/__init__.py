@@ -179,11 +179,12 @@ def get_tls_context(*, verify_tls: bool) -> ssl.SSLContext:
 
 
 def changed_within_seconds(*, last_change: datetime, max_age: int = MAX_CACHE_AGE) -> bool:
-    """DataPoint has been modified within X minutes."""
+    """DataPoint has been modified within X seconds."""
     if last_change == INIT_DATETIME:
         return False
-    delta = datetime.now() - last_change
-    return delta.seconds < max_age
+    # total_seconds(), not seconds: the latter drops whole days, so a change from
+    # exactly 24 h ago would count as recent.
+    return (datetime.now() - last_change).total_seconds() < max_age
 
 
 def find_free_port() -> int:

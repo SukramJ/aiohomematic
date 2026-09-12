@@ -36,6 +36,25 @@
   hundreds of entities now costs roughly one script call per cache period of startup —
   which does not touch the duty cycle.
 
+- **Battery and diagnostic data points no longer stay on `restored` after a start.**
+  Parameters on the init ignore list (`LOW_BAT`, `LOWBAT`, `OPERATING_VOLTAGE`,
+  `DUTY_CYCLE`, `DUTYCYCLE`, plus the `ERROR_*`, `RSSI_*` and `*_ERROR` patterns, and
+  every data point of `HmIP-SWSD*` / `HmIP-SWD`) deliberately skip the per-parameter
+  `getValue` during init, so they do not wake a battery-powered device. That makes the
+  bulk snapshot their only source of an initial value — and unlike the regular init path,
+  this one read the snapshot without refreshing it first. Once it had expired, the data
+  point stayed unset: `is_valid` stays `False`, which the integration reports as
+  `value_state: restored`.
+
+  Unlike a cover's `LEVEL`, these parameters do not recover on their own. `LOW_BAT` is
+  sent only when it changes, so a device that reported a low battery before the start kept
+  showing a normal battery until the battery was replaced — while a direct
+  `get_device_value` on the same parameter returned the correct value all along.
+
+  This affects every interface, not only those without a `getValue` fallback. The ignored
+  parameters now refresh an expired snapshot the same way the regular init path does. No
+  `getValue` is added for them.
+
 - **A fresh snapshot for one interface no longer skips the others.**
   `CentralDataCache.load()` left the loop over all clients with `return` instead of
   `continue` when it found a recently refreshed interface, so every client after it was

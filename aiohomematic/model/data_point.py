@@ -1133,21 +1133,29 @@ class BaseParameterDataPoint[
             CallSource.HM_INIT,
             CallSource.HA_INIT,
         ):
-            # For ignored parameters, only try to load from cache (no RPC call).
-            # This allows calculated data points to get their values on restart
+            # For ignored parameters, only try to load from cache (no per-parameter RPC
+            # call). This allows calculated data points to get their values on restart
             # without waking up battery-powered devices.
-            if (
-                self._paramset_key == ParamsetKey.VALUES
-                and (
-                    cached_value := self._device.data_cache_provider.get_data(
-                        interface=self._device.interface,
-                        channel_address=self._channel.address,
-                        parameter=self._parameter,
+            if self._paramset_key == ParamsetKey.VALUES:
+                # The bulk snapshot is taken during start_clients() and expires after
+                # MAX_CACHE_AGE, long before Home Assistant adds its entities. Refresh it
+                # instead of giving up: an ignored parameter has no getValue fallback, so
+                # the snapshot is its only source of an initial value. A battery sensor
+                # whose LOW_BAT does not change again would otherwise stay unset
+                # permanently.
+                data_cache_provider = self._device.data_cache_provider
+                if (
+                    await data_cache_provider.refresh_if_expired(interface=self._device.interface)
+                    and (
+                        cached_value := data_cache_provider.get_data(
+                            interface=self._device.interface,
+                            channel_address=self._channel.address,
+                            parameter=self._parameter,
+                        )
                     )
-                )
-                != NO_CACHE_ENTRY
-            ):
-                self.write_value(value=cached_value, write_at=datetime.now())
+                    != NO_CACHE_ENTRY
+                ):
+                    self.write_value(value=cached_value, write_at=datetime.now())
             return
 
         if direct_call is False and hms.changed_within_seconds(last_change=self._refreshed_at):

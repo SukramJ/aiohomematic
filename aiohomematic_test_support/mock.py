@@ -318,6 +318,13 @@ def get_xml_rpc_proxy(
             """Return all system variables."""
             return const.SYSVAR_DATA_XML
 
+        async def getDeviceDescription(self, address: str) -> Any:
+            """Return the description of a single device or channel."""
+            for device_description in await self.listDevices():
+                if device_description["ADDRESS"] == address:
+                    return device_description
+            return None
+
         async def getParamset(self, channel_address: str, paramset: str) -> Any:
             """Set a value."""
             if self._central:

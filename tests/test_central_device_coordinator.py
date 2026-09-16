@@ -202,11 +202,28 @@ class _FakeDeviceDescriptionsCache:
             return self._cache[interface_id]
         return {}
 
+    def get_missing_channel_addresses(self, *, interface_id: str, device_address: str) -> tuple[str, ...]:
+        """Return the channel addresses of a device that have no cached description."""
+        if (
+            device_description := self.get_device_description(interface_id=interface_id, address=device_address)
+        ) is None:
+            return ()
+        cached = self._cache.get(interface_id, {})
+        return tuple(
+            channel_address
+            for channel_address in device_description.get("CHILDREN", [])
+            if channel_address and channel_address not in cached
+        )
+
     def get_raw_device_descriptions(self, *, interface_id: str) -> tuple[DeviceDescription, ...]:
         """Get all raw device descriptions for interface."""
         if interface_id in self._cache:
             return tuple(self._cache[interface_id].values())
         return ()
+
+    def has_address(self, *, interface_id: str, address: str) -> bool:
+        """Return whether a description for the device or channel address is cached."""
+        return address in self._cache.get(interface_id, {})
 
     def has_device_descriptions(self, *, interface_id: str) -> bool:
         """Check if device descriptions exist for interface."""
@@ -1551,6 +1568,9 @@ class TestIdentifyMissingDeviceDescriptions:
 
         # Configure device_descriptions mock to return the specified addresses
         central.cache_coordinator.device_descriptions.get_addresses = lambda *, interface_id: cached_addresses
+        central.cache_coordinator.device_descriptions.has_address = lambda *, interface_id, address: (
+            address in cached_addresses
+        )
 
         return DeviceCoordinator(
             central_info=central,

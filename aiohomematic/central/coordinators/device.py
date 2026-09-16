@@ -256,6 +256,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         """
         async with self._device_add_semaphore:
             if new_device_addresses := self.check_for_new_device_addresses():
+                await self._repair_incomplete_device_descriptions(new_device_addresses=new_device_addresses)
                 await self.create_devices(
                     new_device_addresses=new_device_addresses,
                     source=SourceOfDeviceCreation.CACHE,
@@ -611,9 +612,14 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 self._coordinator_provider.cache_coordinator.paramset_descriptions.remove_device(device=device)
                 await self.remove_device(device=device)
 
-            # Fetch fresh device descriptions and recreate
+            # Fetch fresh device descriptions and recreate.
+            # The device was dropped from the caches above, so its channel descriptions
+            # must be fetched as well.
             await self.refresh_device_descriptions_and_create_missing_devices(
-                client=client, refresh_only_existing=False, device_address=device_address
+                client=client,
+                refresh_only_existing=False,
+                device_address=device_address,
+                include_channel_descriptions=True,
             )
 
         # Save updated caches
@@ -628,6 +634,7 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         client: DeviceDiscoveryWithIdentityProtocol,
         refresh_only_existing: bool,
         device_address: str | None = None,
+        include_channel_descriptions: bool = False,
     ) -> None:
         """
         Refresh device descriptions and create missing devices.
@@ -637,16 +644,21 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             client: Client to use for refreshing
             refresh_only_existing: Whether to only refresh existing devices
             device_address: Optional device address to refresh
+            include_channel_descriptions: Whether the channel descriptions of the device
+                must be fetched as well. Required whenever the caller has dropped the
+                device from the caches beforehand, because ``getDeviceDescription``
+                returns the device level only and a device without cached channel
+                descriptions ends up without any channel data point.
 
         """
         device_descriptions: tuple[DeviceDescription, ...] | None = None
 
-        if (
-            device_address
-            and (device_description := await client.get_device_description(address=device_address)) is not None
-        ):
-            device_descriptions = (device_description,)
-        else:
+        if device_address:
+            if include_channel_descriptions:
+                device_descriptions = await client.get_all_device_descriptions(device_address=device_address)
+            elif (device_description := await client.get_device_description(address=device_address)) is not None:
+                device_descriptions = (device_description,)
+        if not device_descriptions:
             device_descriptions = await client.list_devices()
 
         if (
@@ -824,7 +836,10 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         # Fetch and create new device
         client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
         await self.refresh_device_descriptions_and_create_missing_devices(
-            client=client, refresh_only_existing=False, device_address=new_device_address
+            client=client,
+            refresh_only_existing=False,
+            device_address=new_device_address,
+            include_channel_descriptions=True,
         )
 
         # Save updated caches
@@ -873,7 +888,10 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
         # Fetch fresh device descriptions from backend
         client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
         await self.refresh_device_descriptions_and_create_missing_devices(
-            client=client, refresh_only_existing=False, device_address=device_address
+            client=client,
+            refresh_only_existing=False,
+            device_address=device_address,
+            include_channel_descriptions=True,
         )
 
         # Save updated caches
@@ -1318,10 +1336,12 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
             Tuple of device descriptions whose ADDRESS is missing from cache
 
         """
-        known_addresses = self._coordinator_provider.cache_coordinator.device_descriptions.get_addresses(
-            interface_id=interface_id
+        device_descriptions_registry = self._coordinator_provider.cache_coordinator.device_descriptions
+        return tuple(
+            dev_desc
+            for dev_desc in device_descriptions
+            if not device_descriptions_registry.has_address(interface_id=interface_id, address=dev_desc["ADDRESS"])
         )
-        return tuple(dev_desc for dev_desc in device_descriptions if dev_desc["ADDRESS"] not in known_addresses)
 
     def _identify_new_device_descriptions(
         self, *, device_descriptions: tuple[DeviceDescription, ...], interface_id: str | None = None
@@ -1402,6 +1422,54 @@ class DeviceCoordinator(FirmwareDataRefresherProtocol):
                 await client.rename_channel(ise_id=ise_id, new_name=channel_name)
 
             await asyncio.sleep(0.1)
+
+    async def _repair_incomplete_device_descriptions(self, *, new_device_addresses: Mapping[str, set[str]]) -> None:
+        """
+        Re-fetch channel descriptions that are missing for a cached device.
+
+        A device whose own description is cached while its channel descriptions are not
+        is built without a single channel, so everything except the device level data
+        points is lost. The backend does not offer those descriptions again on its own:
+        ``listDevices`` reports the device as known, so no ``newDevices`` callback
+        follows, and the gap survives every restart.
+
+        Args:
+        ----
+            new_device_addresses: Mapping of interface IDs to device addresses to create
+
+        """
+        device_descriptions_registry = self._coordinator_provider.cache_coordinator.device_descriptions
+        repaired = False
+        for interface_id, device_addresses in new_device_addresses.items():
+            if not self._coordinator_provider.client_coordinator.has_client(interface_id=interface_id):
+                continue
+            client = self._coordinator_provider.client_coordinator.get_client(interface_id=interface_id)
+            for device_address in sorted(device_addresses):
+                if not (
+                    missing_channel_addresses := device_descriptions_registry.get_missing_channel_addresses(
+                        interface_id=interface_id, device_address=device_address
+                    )
+                ):
+                    continue
+                _LOGGER.warning(  # i18n-log: ignore
+                    "REPAIR_DEVICE_DESCRIPTIONS: %i channel description(s) missing for device %s on %s - "
+                    "re-fetching them from the backend",
+                    len(missing_channel_addresses),
+                    device_address,
+                    interface_id,
+                )
+                for device_description in await client.get_all_device_descriptions(device_address=device_address):
+                    device_descriptions_registry.add_device(
+                        interface_id=interface_id, device_description=device_description
+                    )
+                    await client.fetch_paramset_descriptions(device_description=device_description)
+                    repaired = True
+
+        if repaired:
+            await self._coordinator_provider.cache_coordinator.save_all(
+                save_device_descriptions=True,
+                save_paramset_descriptions=True,
+            )
 
     def _schedule_paramset_consistency_check(
         self,

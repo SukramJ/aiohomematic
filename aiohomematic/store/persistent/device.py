@@ -156,6 +156,25 @@ class DeviceDescriptionRegistry(
         """Return the interface ids."""
         return tuple(self._raw_device_descriptions.keys())
 
+    def get_missing_channel_addresses(self, *, interface_id: str, device_address: str) -> tuple[str, ...]:
+        """
+        Return the channel addresses of a device that have no cached description.
+
+        A device whose own description is cached while some of its ``CHILDREN`` are
+        not cannot be built completely: every data point except the device-level ones
+        lives on a channel. This identifies such gaps so the caller can re-fetch them.
+        """
+        if (
+            device_description := self.find_device_description(interface_id=interface_id, device_address=device_address)
+        ) is None:
+            return ()
+        cached_addresses = self._device_descriptions.get(interface_id, {})
+        return tuple(
+            channel_address
+            for channel_address in device_description.get("CHILDREN", [])
+            if channel_address and channel_address not in cached_addresses
+        )
+
     def get_model(self, *, device_address: str) -> str | None:
         """Return the device type."""
         for data in self._device_descriptions.values():
@@ -166,6 +185,10 @@ class DeviceDescriptionRegistry(
     def get_raw_device_descriptions(self, *, interface_id: str) -> list[DeviceDescription]:
         """Retrieve raw device descriptions from the cache."""
         return self._raw_device_descriptions[interface_id]
+
+    def has_address(self, *, interface_id: str, address: str) -> bool:
+        """Return whether a description for the device or channel address is cached."""
+        return address in self._device_descriptions.get(interface_id, {})
 
     def has_device_descriptions(self, *, interface_id: str) -> bool:
         """Return the devices by interface."""

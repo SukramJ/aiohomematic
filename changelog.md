@@ -1,3 +1,41 @@
+# Version 2026.9.5 (2026-09-16)
+
+## What's Changed
+
+### Fixed
+
+- **A device no longer loses every channel after a firmware update or a re-pairing.**
+  `updateDevice` (hint 0), `readdedDevice` and `replaceDevice` drop the device and all
+  of its channels from the device description and paramset description caches and then
+  re-fetch it by address. That re-fetch called `getDeviceDescription`, which returns the
+  device level only — the channel descriptions were never fetched again.
+
+  A device without cached channel descriptions is built without a single channel:
+  `Device.__init__()` logs `INIT_DEVICE: Skipping channel … - description could not be
+retrieved from CCU` for each of them and keeps only the device-level data points. In
+  Home Assistant the device is left with its `update` entity and nothing else — window
+  contacts, switches and heating groups lose every state.
+
+  The loss is persisted and does not heal: `listDevices` reports the device as known, so
+  the backend sends no `newDevices` callback for the missing channels, and the gap
+  survives every restart and every downgrade. A CCU update that makes the backend
+  announce changed device descriptions could therefore strip a large part of an
+  installation at once (#3407, #3403).
+
+  All three paths now fetch the device together with its channel descriptions
+  (`get_all_device_descriptions()`), which also restores the paramset descriptions for
+  those channels.
+
+- **An already damaged cache repairs itself.** Before devices are created from the cache,
+  every device whose `CHILDREN` are not fully cached is re-fetched from the backend. The
+  repair is logged as `REPAIR_DEVICE_DESCRIPTIONS` and persisted, so an installation that
+  lost its channel descriptions recovers on the next start without deleting any cache file.
+
+- **`_identify_missing_device_descriptions()` really checks channel addresses.** It
+  compared against `get_addresses()`, which returns device addresses only, so every
+  channel description was reported as missing regardless of the cache content. It now uses
+  `DeviceDescriptionRegistry.has_address()`.
+
 # Version 2026.9.4 (2026-09-12)
 
 ## What's Changed

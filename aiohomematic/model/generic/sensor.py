@@ -8,7 +8,7 @@ Public API of this module is defined by __all__.
 
 from collections.abc import Mapping
 import logging
-from typing import Any, Final, cast
+from typing import Any, Final, cast, override
 
 from aiohomematic.const import DataPointCategory, Parameter, ParameterType
 from aiohomematic.model.generic.data_point import GenericDataPoint
@@ -27,6 +27,12 @@ class DpSensor[SensorT: float | int | str | None](SensorValueMixin, GenericDataP
     __slots__ = ()
 
     _category = DataPointCategory.SENSOR
+
+    @property
+    @override
+    def is_valid(self) -> bool:
+        """Return whether the raw and converted sensor values are valid."""
+        return super().is_valid and self.value is not None
 
     def _get_converter_func(self) -> _ValueConverterProtocol | None:
         """Return a converter based on sensor."""

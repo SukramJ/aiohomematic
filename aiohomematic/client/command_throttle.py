@@ -35,6 +35,7 @@ Public API of this module is defined by __all__.
 
 import asyncio
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import IntEnum
 import heapq
@@ -290,6 +291,13 @@ class CommandThrottle(CommandThrottleProtocol):
             cmd = heapq.heappop(self._queue)
             if not cmd.future.done():
                 cmd.future.set_exception(asyncio.CancelledError(i18n.tr(key="log.client.command_throttle.stopped")))
+
+    async def stop_and_wait(self) -> None:
+        """Stop the background worker and wait until it has finished."""
+        self.stop()
+        if self._worker_task is not None:
+            with suppress(asyncio.CancelledError):
+                await self._worker_task
 
     def _detect_burst(self) -> bool:
         """Detect command burst using sliding window."""

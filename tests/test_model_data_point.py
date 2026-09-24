@@ -489,6 +489,45 @@ class TestIgnoreOnInitialLoad:
             "un_ignore_list",
         ),
         [
+            ({"VCU3941846"}, True, None, None),
+        ],
+    )
+    async def test_bidcos_channel_zero_diagnostic_falls_back_to_get_value(
+        self,
+        central_client_factory_with_homegear_client,
+        monkeypatch,
+    ) -> None:
+        """A missing ReGa diagnostic value should be read directly from the CCU."""
+        central, _, _ = central_client_factory_with_homegear_client
+        dp = central.query_facade.get_generic_data_point(channel_address="VCU3941846:0", parameter="RSSI_DEVICE")
+        assert dp is not None
+        assert dp.ignore_on_initial_load is True
+
+        data_cache = central.cache_coordinator.data_cache
+        monkeypatch.setattr(data_cache, "refresh_if_expired", AsyncMock(return_value=False))
+        get_value = AsyncMock(return_value=-52)
+        monkeypatch.setattr(dp._device.client, "get_value", get_value)
+
+        await dp.load_data_point_value(call_source=CallSource.HA_INIT)
+
+        assert dp.value == -52
+        assert dp.is_valid is True
+        get_value.assert_awaited_once_with(
+            channel_address="VCU3941846:0",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="RSSI_DEVICE",
+            call_source=CallSource.HA_INIT,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
             (TEST_DEVICES, True, None, None),
         ],
     )

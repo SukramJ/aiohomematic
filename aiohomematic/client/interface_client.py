@@ -1288,6 +1288,7 @@ class InterfaceClient(ClientProtocol, LogContextMixin):
     async def stop(self) -> None:
         """Stop depending services."""
         self._command_retry_handler.cancel_retries_for_interface()
+        await self._command_throttle.stop_and_wait()
         self._unsubscribe_state_change()
         self._unsubscribe_system_status()
         self._state_machine.transition_to(target=ClientState.STOPPING, reason="stop() called")

@@ -115,6 +115,15 @@ class TestGenericSensor:
             interface_id=const.INTERFACE_ID, channel_address="VCU3941846:0", parameter="RSSI_DEVICE", value=400
         )
         assert sensor2.value is None
+        assert sensor2.is_valid is False
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address="VCU3941846:0",
+            parameter="RSSI_DEVICE",
+            value=-65535,
+        )
+        assert sensor2.value is None
+        assert sensor2.is_valid is False
 
         sensor3: DpSensor = cast(
             DpSensor,

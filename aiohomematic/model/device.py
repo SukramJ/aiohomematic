@@ -159,6 +159,14 @@ from aiohomematic.type_aliases import (
 __all__ = ["Channel", "Device"]
 
 _LOGGER: Final = logging.getLogger(__name__)
+_BIDCOS_RF_INIT_FALLBACK_PARAMETERS: Final[frozenset[str]] = frozenset(
+    (
+        Parameter.LOW_BAT,
+        Parameter.LOWBAT,
+        Parameter.RSSI_DEVICE,
+        Parameter.RSSI_PEER,
+    )
+)
 
 
 def _is_word_char(*, char: str) -> bool:
@@ -1918,6 +1926,22 @@ class _ValueCache:
         self._device: Final = device
         # {key, CacheEntry}
         self._device_cache: Final[dict[DataPointKey, CacheEntry]] = {}
+
+    async def get_ignored_on_initial_load_value(self, *, dpk: DataPointKey, call_source: CallSource) -> Any:
+        """Return a safe direct fallback for an ignored initial-load value."""
+        if not (
+            self._device.interface == Interface.BIDCOS_RF
+            and get_channel_no(address=dpk.channel_address) == 0
+            and dpk.paramset_key == ParamsetKey.VALUES
+            and dpk.parameter in _BIDCOS_RF_INIT_FALLBACK_PARAMETERS
+        ):
+            return NO_CACHE_ENTRY
+        return await self._device.client.get_value(
+            channel_address=dpk.channel_address,
+            paramset_key=dpk.paramset_key,
+            parameter=dpk.parameter,
+            call_source=call_source,
+        )
 
     async def get_value(
         self,

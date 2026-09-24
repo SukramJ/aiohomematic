@@ -91,7 +91,6 @@ from aiohomematic.const import (
     DataPointUsage,
     EventData,
     Flag,
-    Interface,
     Operations,
     Parameter,
     ParameterData,
@@ -170,14 +169,6 @@ _CONFIGURABLE_CHANNEL: Final[tuple[str, ...]] = (
 _COLLECTOR_ARGUMENT_NAME: Final = "collector"
 CONTEXT_KEY_PRIORITY: Final = "command_priority"
 CONTEXT_KEY_PURGE_ADDRESSES: Final = "purge_addresses"
-_BIDCOS_RF_INIT_FALLBACK_PARAMETERS: Final[frozenset[str]] = frozenset(
-    (
-        Parameter.LOW_BAT,
-        Parameter.LOWBAT,
-        Parameter.RSSI_DEVICE,
-        Parameter.RSSI_PEER,
-    )
-)
 _FIX_UNIT_REPLACE: Final[Mapping[str, str]] = {
     '"': "",
     "100%": "%",
@@ -1167,20 +1158,9 @@ class BaseParameterDataPoint[
                     self.write_value(value=cached_value, write_at=datetime.now())
                     return
 
-                # ReGa does not include every classic BidCos-RF channel-0
-                # diagnostic value in its bulk snapshot. These values are held by
-                # the CCU and can be read without waking the device. Fall back to
-                # getValue so RSSI and battery data do not remain uninitialized.
-                if (
-                    self._device.interface == Interface.BIDCOS_RF
-                    and self._channel.no == 0
-                    and self._parameter in _BIDCOS_RF_INIT_FALLBACK_PARAMETERS
-                    and self.is_readable
-                ):
-                    value = await self._device.client.get_value(
-                        channel_address=self._channel.address,
-                        paramset_key=self._paramset_key,
-                        parameter=self._parameter,
+                if self.is_readable:
+                    value = await self._device.value_cache.get_ignored_on_initial_load_value(
+                        dpk=self.dpk,
                         call_source=call_source,
                     )
                     if value != NO_CACHE_ENTRY:

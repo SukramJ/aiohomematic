@@ -15,6 +15,7 @@ from aiohomematic.const import (
     CallSource,
     DataPointUsage,
     Interface,
+    Parameter,
     ParameterStatus,
     ParamsetKey,
 )
@@ -488,34 +489,47 @@ class TestIgnoreOnInitialLoad:
             "ignore_devices_on_create",
             "un_ignore_list",
         ),
+        [({"VCU0000254"}, True, None, None)],
+    )
+    @pytest.mark.parametrize(
+        ("parameter", "rpc_value", "expected_value", "expected_valid"),
         [
-            ({"VCU3941846"}, True, None, None),
+            (Parameter.LOWBAT, False, False, True),
+            (Parameter.RSSI_DEVICE, -65535, None, False),
+            (Parameter.RSSI_PEER, -52, -52, True),
         ],
     )
-    async def test_bidcos_channel_zero_diagnostic_falls_back_to_get_value(
+    async def test_hm_sec_sco_channel_zero_diagnostic_falls_back_to_get_value(
         self,
         central_client_factory_with_homegear_client,
         monkeypatch,
+        parameter,
+        rpc_value,
+        expected_value,
+        expected_valid,
     ) -> None:
-        """A missing ReGa diagnostic value should be read directly from the CCU."""
+        """HM-Sec-SCo diagnostics missing from ReGa should be read from the CCU."""
         central, _, _ = central_client_factory_with_homegear_client
-        dp = central.query_facade.get_generic_data_point(channel_address="VCU3941846:0", parameter="RSSI_DEVICE")
+        device = central.device_coordinator.get_device(address="VCU0000254")
+        assert device is not None
+        assert device.model == "HM-Sec-SCo"
+        dp = central.query_facade.get_generic_data_point(channel_address="VCU0000254:0", parameter=parameter)
         assert dp is not None
         assert dp.ignore_on_initial_load is True
 
         data_cache = central.cache_coordinator.data_cache
         monkeypatch.setattr(data_cache, "refresh_if_expired", AsyncMock(return_value=False))
-        get_value = AsyncMock(return_value=-52)
+        get_value = AsyncMock(return_value=rpc_value)
         monkeypatch.setattr(dp._device.client, "get_value", get_value)
 
         await dp.load_data_point_value(call_source=CallSource.HA_INIT)
 
-        assert dp.value == -52
-        assert dp.is_valid is True
+        assert dp.value == expected_value
+        assert dp.is_valid is expected_valid
         get_value.assert_awaited_once_with(
-            channel_address="VCU3941846:0",
+            channel_address="VCU0000254:0",
             paramset_key=ParamsetKey.VALUES,
-            parameter="RSSI_DEVICE",
+            parameter=parameter,
             call_source=CallSource.HA_INIT,
         )
 

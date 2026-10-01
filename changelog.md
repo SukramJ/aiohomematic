@@ -42,7 +42,7 @@ retrieved from CCU` for each of them and keeps only the device-level data points
   `AIOHM_TEST_SIMULATOR=godevccu` the `pydevccu_mini`, `pydevccu_full` and
   `pydevccu_openccu` fixtures start the godevccu binary (`GODEVCCU_BIN` or `PATH`,
   version 0.6.0 or later) as a subprocess instead of pydevccu. pydevccu stays the
-  default. A new, non-blocking CI job runs these tests against godevccu.
+  default. A new CI job (`test-godevccu`) runs these tests against godevccu.
 
 - **Test warnings fixed at their cause.** The pytest filter for pydevccu's callback
   thread named `_askDevices`; pydevccu 0.2.6 calls it `_ask_devices`, so the filter never

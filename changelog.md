@@ -36,6 +36,14 @@ retrieved from CCU` for each of them and keeps only the device-level data points
   channel description was reported as missing regardless of the cache content. It now uses
   `DeviceDescriptionRegistry.has_address()`.
 
+### Changed
+
+- **Simulator-backed tests can run against godevccu.** With
+  `AIOHM_TEST_SIMULATOR=godevccu` the `pydevccu_mini`, `pydevccu_full` and
+  `pydevccu_openccu` fixtures start the godevccu binary (`GODEVCCU_BIN` or `PATH`,
+  version 0.6.0 or later) as a subprocess instead of pydevccu. pydevccu stays the
+  default. A new, non-blocking CI job runs these tests against godevccu.
+
 # Version 2026.9.4 (2026-09-12)
 
 ## What's Changed

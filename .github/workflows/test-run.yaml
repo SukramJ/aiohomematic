@@ -48,8 +48,6 @@ jobs:
   test-godevccu:
     runs-on: ubuntu-latest
     name: Python 3.14 (godevccu)
-    # Informational until simulator parity with pydevccu is confirmed.
-    continue-on-error: true
     env:
       GODEVCCU_VERSION: v0.6.0
       AIOHM_TEST_SIMULATOR: godevccu

@@ -1,6 +1,6 @@
 # Plan: godevccu as an alternative test simulator to pydevccu
 
-Status: Phase A done (godevccu v0.6.0 released 2026-10-01); Phase B implemented; Phase C pending
+Status: Phases A–C done (2026-10-01): godevccu v0.6.0 released, fixtures switchable, CI job blocking after 3 identical runs. Phase D open.
 Scope: test infrastructure only — no change to `aiohomematic/` production code.
 Repos touched: `../godevccu` (Phase A), `aiohomematic` (Phases B–C).
 Out of scope: removing pydevccu (Phase D, separate decision after Phase C).

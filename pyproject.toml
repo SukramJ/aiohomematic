@@ -431,9 +431,10 @@ markers = [
 ]
 
 filterwarnings = [
-    # pydevccu's _askDevices thread may try to contact central after it's stopped
-    # This is a known race condition in pydevccu that doesn't affect test results
-    "ignore:Exception in thread _askDevices:pytest.PytestUnhandledThreadExceptionWarning",
+    # Fixtures start the central with start_direct=True, so no XML-RPC callback server
+    # runs and init() registers callback port 0. pydevccu's _ask_devices thread then
+    # fails to reach the central; devices are fetched directly, test results are unaffected.
+    "ignore:Exception in thread _ask_devices:pytest.PytestUnhandledThreadExceptionWarning",
 ]
 
 [tool.ruff]

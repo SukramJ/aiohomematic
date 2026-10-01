@@ -44,6 +44,13 @@ retrieved from CCU` for each of them and keeps only the device-level data points
   version 0.6.0 or later) as a subprocess instead of pydevccu. pydevccu stays the
   default. A new, non-blocking CI job runs these tests against godevccu.
 
+- **Test warnings fixed at their cause.** The pytest filter for pydevccu's callback
+  thread named `_askDevices`; pydevccu 0.2.6 calls it `_ask_devices`, so the filter never
+  matched. The thread fails because the fixtures run with `start_direct=True` and register
+  callback port 0. A new test checks that every thread filter names a thread pydevccu
+  starts. The fake task scheduler in `test_model_hub_update.py` now closes a coroutine it
+  cannot schedule outside an event loop instead of leaking it.
+
 # Version 2026.9.4 (2026-09-12)
 
 ## What's Changed

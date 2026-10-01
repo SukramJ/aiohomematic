@@ -11,8 +11,10 @@ version change detection, and timeout handling.
 import asyncio
 from collections.abc import Callable, Coroutine
 from datetime import datetime
+import gc
 from typing import Any
 from unittest.mock import AsyncMock, patch
+import warnings
 
 import pytest
 
@@ -106,12 +108,17 @@ class _FakeTaskScheduler:
         if callable(target) and not asyncio.iscoroutine(target):
             try:
                 result = target()
-                if asyncio.iscoroutine(result):
-                    task = asyncio.create_task(result, name=name)
-                    self._tasks.append(task)
-                    return
             except RuntimeError:
                 return
+            if asyncio.iscoroutine(result):
+                try:
+                    task = asyncio.create_task(result, name=name)
+                except RuntimeError:
+                    # No running event loop (synchronous test): close the coroutine
+                    # so it is not reported as never awaited.
+                    result.close()
+                    return
+                self._tasks.append(task)
             return
         task = asyncio.create_task(target, name=name)
         self._tasks.append(task)
@@ -419,3 +426,20 @@ class TestHmUpdateProgressTracking:
         assert hm_update.available_firmware == "3.77.0"
         assert hm_update.update_available is True
         assert hm_update.state_uncertain is False
+
+
+class TestFakeTaskScheduler:
+    """Test the fake task scheduler used by these tests."""
+
+    def test_create_task_without_loop_closes_coroutine(self) -> None:
+        """A coroutine that cannot be scheduled outside a loop is closed, not leaked."""
+
+        async def _target() -> None:
+            """Do nothing."""
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _FakeTaskScheduler().create_task(target=_target, name="no-loop")
+            gc.collect()
+
+        assert [str(w.message) for w in caught if issubclass(w.category, RuntimeWarning)] == []

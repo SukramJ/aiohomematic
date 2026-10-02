@@ -1,4 +1,4 @@
-# godevccu Migration Guide (2026.09.5)
+# godevccu Migration Guide (2026.10.1)
 
 ## Overview
 

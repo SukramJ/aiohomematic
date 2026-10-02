@@ -12,19 +12,7 @@ if TYPE_CHECKING:
     from aiohomematic_test_support.event_capture import EventCapture
 
 from aiohttp import ClientSession
-import pydevccu
 import pytest
-
-# Check if pydevccu has OpenCCU support (VirtualCCU, BackendMode)
-# This will be available in pydevccu 0.2.0+
-try:
-    from pydevccu import BackendMode, VirtualCCU
-
-    PYDEVCCU_HAS_OPENCCU_SUPPORT = True
-except ImportError:
-    PYDEVCCU_HAS_OPENCCU_SUPPORT = False
-    BackendMode = None  # type: ignore[assignment, misc]
-    VirtualCCU = None  # type: ignore[assignment, misc]
 
 from aiohomematic.async_support import Looper
 from aiohomematic.central import CentralUnit
@@ -35,11 +23,11 @@ from aiohomematic_test_support import const
 from aiohomematic_test_support.factory import (
     FactoryWithClient,
     get_central_client_factory,
-    get_pydev_ccu_central_unit_full,
+    get_godevccu_central_unit_full,
 )
 from aiohomematic_test_support.mock import SessionPlayer, get_session_player
 
-from tests.helpers.godevccu_process import GodevccuProcess, find_godevccu_binary, use_godevccu
+from tests.helpers.godevccu_process import GodevccuProcess, find_godevccu_binary
 from tests.helpers.mock_json_rpc import MockJsonRpc
 from tests.helpers.mock_xml_rpc import MockXmlRpcServer
 
@@ -96,14 +84,14 @@ def session_player_ccu() -> SessionPlayer:
 
 
 @pytest.fixture(scope="session")
-def session_player_pydevccu() -> SessionPlayer:
+def session_player_godevccu() -> SessionPlayer:
     """
-    Provide a SessionPlayer preloaded from the pydevccu/Homegear session file.
+    Provide a SessionPlayer preloaded from the godevccu (homegear mode) session file.
 
     Session-scoped for performance: ZIP file is loaded once per test session.
     SessionPlayer uses class-level caching, so data is shared safely.
     """
-    return _load_session_player_sync(const.FULL_SESSION_RANDOMIZED_PYDEVCCU)
+    return _load_session_player_sync(const.FULL_SESSION_GODEVCCU)
 
 
 # CCU client fixtures
@@ -135,18 +123,18 @@ async def central_client_factory_with_ccu_client(
         yield result
 
 
-# Homegear/pydevccu client fixtures
+# Homegear/godevccu client fixtures
 
 
 @pytest.fixture
-async def factory_with_homegear_client(session_player_pydevccu: SessionPlayer) -> FactoryWithClient:
+async def factory_with_homegear_client(session_player_godevccu: SessionPlayer) -> FactoryWithClient:
     """Return central factory."""
-    return FactoryWithClient(player=session_player_pydevccu)
+    return FactoryWithClient(player=session_player_godevccu)
 
 
 @pytest.fixture
 async def central_client_factory_with_homegear_client(
-    session_player_pydevccu: SessionPlayer,
+    session_player_godevccu: SessionPlayer,
     address_device_translation: set[str],
     do_mock_client: bool,
     ignore_devices_on_create: list[str] | None,
@@ -154,7 +142,7 @@ async def central_client_factory_with_homegear_client(
 ) -> AsyncGenerator[tuple[CentralUnit, ClientProtocol | Mock, FactoryWithClient]]:
     """Yield central factory using homegear XML-RPC proxy."""
     async for result in get_central_client_factory(
-        player=session_player_pydevccu,
+        player=session_player_godevccu,
         address_device_translation=address_device_translation,
         do_mock_client=do_mock_client,
         ignore_devices_on_create=ignore_devices_on_create,
@@ -162,6 +150,11 @@ async def central_client_factory_with_homegear_client(
         un_ignore_list=un_ignore_list,
     ):
         yield result
+
+
+# godevccu simulator fixtures
+# The godevccu binary (script/install_godevccu.sh, version in .godevccu-version)
+# runs as a subprocess per xdist worker on the worker's ports.
 
 
 def _start_godevccu(*, args: list[str], tmp_path_factory: pytest.TempPathFactory) -> GodevccuProcess:
@@ -175,123 +168,65 @@ def _start_godevccu(*, args: list[str], tmp_path_factory: pytest.TempPathFactory
     return process
 
 
-# homegear mini fixtures
-
-
 @pytest.fixture(scope="session")
-def pydevccu_mini(tmp_path_factory: pytest.TempPathFactory) -> pydevccu.Server | GodevccuProcess:
-    """Create the virtual ccu."""
-    if use_godevccu():
-        process = _start_godevccu(
-            args=[
-                "-mode",
-                "homegear",
-                "-host",
-                const.CCU_HOST,
-                "-xml-rpc-port",
-                str(const.get_ccu_mini_port()),
-                "-json-rpc-port",
-                "0",
-                "-devices",
-                "HmIP-BWTH,HmIP-eTRV-2",
-            ],
-            tmp_path_factory=tmp_path_factory,
-        )
-        try:
-            yield process
-        finally:
-            process.stop()
-        return
-
-    import asyncio
-    import contextlib
-
-    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.get_ccu_mini_port()), devices=["HmIP-BWTH", "HmIP-eTRV-2"])
-    ccu.start()
+def godevccu_mini(tmp_path_factory: pytest.TempPathFactory) -> Generator[GodevccuProcess]:
+    """Run godevccu in homegear mode with an HmIP-BWTH and an HmIP-eTRV-2."""
+    process = _start_godevccu(
+        args=[
+            "-mode",
+            "homegear",
+            "-host",
+            const.CCU_HOST,
+            "-xml-rpc-port",
+            str(const.get_ccu_mini_port()),
+            "-json-rpc-port",
+            "0",
+            "-devices",
+            "HmIP-BWTH,HmIP-eTRV-2",
+        ],
+        tmp_path_factory=tmp_path_factory,
+    )
     try:
-        yield ccu
+        yield process
     finally:
-        # Properly await stop() coroutine to avoid "Task was destroyed" warnings
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If loop is running, create task and let it complete
-                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006 - fire-and-forget during fixture teardown
-            else:
-                # If loop is not running, run it synchronously
-                loop.run_until_complete(ccu.stop())
-        except Exception:
-            # Fallback: try to stop synchronously (for older pydevccu versions)
-            with contextlib.suppress(Exception):
-                ccu.stop()
+        process.stop()
 
 
 @pytest.fixture
-async def central_unit_pydevccu_mini(pydevccu_mini: pydevccu.Server | GodevccuProcess) -> CentralUnit:
+async def central_unit_godevccu_mini(godevccu_mini: GodevccuProcess) -> AsyncGenerator[CentralUnit]:
     """Create and yield central."""
-    central = await get_pydev_ccu_central_unit_full(port=const.get_ccu_mini_port())
+    central = await get_godevccu_central_unit_full(port=const.get_ccu_mini_port())
     try:
         yield central
     finally:
-        # Clear pydevccu's remotes BEFORE stopping central to prevent
-        # _askDevices thread from trying to contact stopped XML-RPC server
-        if isinstance(pydevccu_mini, pydevccu.Server):
-            pydevccu_mini._rpcfunctions.remotes.clear()
         await central.stop()
         await central.cache_coordinator.clear_all()
 
 
-# pydevccu full fixtures
-
-
 @pytest.fixture(scope="session")
-def pydevccu_full(tmp_path_factory: pytest.TempPathFactory) -> pydevccu.Server | GodevccuProcess:
-    """Create the virtual ccu."""
-    if use_godevccu():
-        process = _start_godevccu(
-            args=[
-                "-mode",
-                "homegear",
-                "-host",
-                const.CCU_HOST,
-                "-xml-rpc-port",
-                str(const.get_ccu_port()),
-                "-json-rpc-port",
-                "0",
-            ],
-            tmp_path_factory=tmp_path_factory,
-        )
-        try:
-            yield process
-        finally:
-            process.stop()
-        return
-
-    import asyncio
-    import contextlib
-
-    ccu = pydevccu.Server(addr=(const.CCU_HOST, const.get_ccu_port()))
-    ccu.start()
+def godevccu_full(tmp_path_factory: pytest.TempPathFactory) -> Generator[GodevccuProcess]:
+    """Run godevccu in homegear mode with every embedded device type."""
+    process = _start_godevccu(
+        args=[
+            "-mode",
+            "homegear",
+            "-host",
+            const.CCU_HOST,
+            "-xml-rpc-port",
+            str(const.get_ccu_port()),
+            "-json-rpc-port",
+            "0",
+        ],
+        tmp_path_factory=tmp_path_factory,
+    )
     try:
-        yield ccu
+        yield process
     finally:
-        # Properly await stop() coroutine to avoid "Task was destroyed" warnings
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If loop is running, create task and let it complete
-                _stop_task = asyncio.create_task(ccu.stop())  # noqa: RUF006 - fire-and-forget during fixture teardown
-            else:
-                # If loop is not running, run it synchronously
-                loop.run_until_complete(ccu.stop())
-        except Exception:
-            # Fallback: try to stop synchronously (for older pydevccu versions)
-            with contextlib.suppress(Exception):
-                ccu.stop()
+        process.stop()
 
 
 @pytest.fixture
-async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server | GodevccuProcess) -> CentralUnit:
+async def central_unit_godevccu_full(godevccu_full: GodevccuProcess) -> AsyncGenerator[CentralUnit]:
     """Create and yield central."""
 
     def device_trigger_callback(event: DeviceTriggerEvent) -> None:
@@ -300,7 +235,7 @@ async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server | GodevccuPr
     def device_lifecycle_callback(event: DeviceLifecycleEvent) -> None:
         """Do dummy device lifecycle handler."""
 
-    central = await get_pydev_ccu_central_unit_full(port=const.get_ccu_port())
+    central = await get_godevccu_central_unit_full(port=const.get_ccu_port())
 
     unsubscribe_device_trigger_callback = central.event_bus.subscribe(
         event_type=DeviceTriggerEvent, event_key=None, handler=device_trigger_callback
@@ -314,143 +249,55 @@ async def central_unit_pydevccu_full(pydevccu_full: pydevccu.Server | GodevccuPr
     finally:
         unsubscribe_device_trigger_callback()
         unsubscribe_device_lifecycle_callback()
-        # Clear pydevccu's remotes BEFORE stopping central to prevent
-        # _askDevices thread from trying to contact stopped XML-RPC server
-        if isinstance(pydevccu_full, pydevccu.Server):
-            pydevccu_full._rpcfunctions.remotes.clear()
         await central.stop()
         await central.cache_coordinator.clear_all()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# OpenCCU fixtures (requires pydevccu 0.2.0+ with VirtualCCU support)
-# These fixtures use VirtualCCU with BackendMode.OPENCCU to simulate a real
-# OpenCCU/RaspberryMatic system including JSON-RPC API, ReGa scripts, and
-# programs/system variables support.
+# OpenCCU fixtures (godevccu in openccu mode)
+# godevccu simulates an OpenCCU/RaspberryMatic system including the JSON-RPC
+# API, ReGa scripts, programs and system variables.
 # ─────────────────────────────────────────────────────────────────────────────
-
-# Marker for tests requiring OpenCCU support
-requires_openccu = pytest.mark.skipif(
-    not (PYDEVCCU_HAS_OPENCCU_SUPPORT or use_godevccu()),
-    reason="Requires pydevccu 0.2.0+ with VirtualCCU/BackendMode support",
-)
 
 
 @pytest.fixture(scope="session")
-def pydevccu_openccu(
-    tmp_path_factory: pytest.TempPathFactory,
-) -> VirtualCCU | GodevccuProcess | None:  # type: ignore[name-defined]
+def godevccu_openccu(tmp_path_factory: pytest.TempPathFactory) -> Generator[GodevccuProcess]:
     """
-    Create a virtual OpenCCU instance for testing.
+    Run godevccu as a virtual OpenCCU.
 
-    This fixture provides a complete OpenCCU simulation including:
-    - XML-RPC server (for device operations)
-    - JSON-RPC server (for programs, system variables, rooms, etc.)
-    - ReGa script engine (for CCU-specific scripts)
-    - Default test state (programs, system variables, rooms)
-
-    The JSON-RPC server runs in a background thread with its own event loop
-    to allow the test event loop to communicate with it via HTTP.
-
-    Requires pydevccu 0.2.0+ with VirtualCCU support.
+    Provides an XML-RPC server (device operations), a JSON-RPC server (programs,
+    system variables, rooms, ...), the ReGa script engine, authentication and the
+    default test state (programs, system variables, rooms, functions).
     """
-    if use_godevccu():
-        process = _start_godevccu(
-            args=[
-                "-mode",
-                "openccu",
-                "-host",
-                const.CCU_HOST,
-                "-xml-rpc-port",
-                str(const.get_openccu_xml_rpc_port()),
-                "-json-rpc-port",
-                str(const.get_openccu_json_rpc_port()),
-                "-username",
-                const.CCU_USERNAME,
-                "-password",
-                const.CCU_PASSWORD,
-                "-auth=true",
-                "-defaults",
-            ],
-            tmp_path_factory=tmp_path_factory,
-        )
-        try:
-            yield process
-        finally:
-            process.stop()
-        return
-
-    if not PYDEVCCU_HAS_OPENCCU_SUPPORT:
-        pytest.skip("Requires pydevccu 0.2.0+ with VirtualCCU/BackendMode support")
-        return None
-
-    import asyncio
-    import threading
-
-    ccu = VirtualCCU(
-        mode=BackendMode.OPENCCU,
-        host=const.CCU_HOST,
-        xml_rpc_port=const.get_openccu_xml_rpc_port(),
-        json_rpc_port=const.get_openccu_json_rpc_port(),
-        auth_enabled=True,
-        username=const.CCU_USERNAME,
-        password=const.CCU_PASSWORD,
+    process = _start_godevccu(
+        args=[
+            "-mode",
+            "openccu",
+            "-host",
+            const.CCU_HOST,
+            "-xml-rpc-port",
+            str(const.get_openccu_xml_rpc_port()),
+            "-json-rpc-port",
+            str(const.get_openccu_json_rpc_port()),
+            "-username",
+            const.CCU_USERNAME,
+            "-password",
+            const.CCU_PASSWORD,
+            "-auth=true",
+            "-defaults",
+        ],
+        tmp_path_factory=tmp_path_factory,
     )
-    ccu.setup_default_state()
-
-    # Create a dedicated event loop and thread for the JSON-RPC server
-    # This is necessary because aiohttp servers only respond to requests
-    # in the same event loop they were started in.
-    server_loop: asyncio.AbstractEventLoop | None = None
-    server_started = threading.Event()
-
-    def run_server() -> None:
-        nonlocal server_loop
-        server_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(server_loop)
-        server_loop.run_until_complete(ccu.start())
-        server_started.set()
-        # Keep the loop running to handle requests
-        server_loop.run_forever()
-
-    server_thread = threading.Thread(target=run_server, daemon=True)
-    server_thread.start()
-
-    # Wait for server to start
-    server_started.wait(timeout=10)
-    if not server_started.is_set():
-        raise RuntimeError("VirtualCCU server failed to start within 10 seconds")
-
     try:
-        yield ccu
+        yield process
     finally:
-        # Stop the server and cleanup
-        if server_loop is not None:
-
-            async def stop_server() -> None:
-                """Properly stop the server and await the coroutine."""
-                try:
-                    await asyncio.wait_for(ccu.stop(), timeout=5.0)
-                except TimeoutError:
-                    pass  # Ignore timeout during cleanup
-                except Exception:
-                    pass  # Ignore other cleanup errors
-                finally:
-                    server_loop.stop()
-
-            # Schedule the stop coroutine and wait for completion
-            import contextlib
-
-            future = asyncio.run_coroutine_threadsafe(stop_server(), server_loop)
-            with contextlib.suppress(Exception):
-                future.result(timeout=6.0)
-            server_thread.join(timeout=1)
+        process.stop()
 
 
 @pytest.fixture
-async def central_unit_openccu(pydevccu_openccu: VirtualCCU) -> CentralUnit:  # type: ignore[name-defined]
+async def central_unit_openccu(godevccu_openccu: GodevccuProcess) -> AsyncGenerator[CentralUnit]:
     """
-    Create a CentralUnit connected to virtual OpenCCU.
+    Create a CentralUnit connected to the virtual OpenCCU.
 
     This fixture provides a fully functional CentralUnit configured for
     OpenCCU backend, suitable for testing CCU-specific features like:
@@ -458,8 +305,6 @@ async def central_unit_openccu(pydevccu_openccu: VirtualCCU) -> CentralUnit:  # 
     - Rooms and functions
     - Backup and firmware update
     - ReGa script execution
-
-    Requires pydevccu 0.2.0+ with VirtualCCU support.
     """
     import contextlib
 
@@ -467,9 +312,6 @@ async def central_unit_openccu(pydevccu_openccu: VirtualCCU) -> CentralUnit:  # 
     from aiohomematic.central.events import DeviceLifecycleEvent, DeviceLifecycleEventType
     from aiohomematic.client import InterfaceConfig
     from aiohomematic.const import Interface
-
-    if not (PYDEVCCU_HAS_OPENCCU_SUPPORT or use_godevccu()):
-        pytest.skip("Requires pydevccu 0.2.0+ with VirtualCCU/BackendMode support")
 
     # Wait for devices to be created
     device_event = asyncio.Event()
@@ -510,9 +352,6 @@ async def central_unit_openccu(pydevccu_openccu: VirtualCCU) -> CentralUnit:  # 
     try:
         yield central
     finally:
-        # Clear pydevccu's remotes BEFORE stopping central
-        if hasattr(pydevccu_openccu, "_xml_rpc_server") and pydevccu_openccu._xml_rpc_server:
-            pydevccu_openccu._xml_rpc_server._rpcfunctions.remotes.clear()
         await central.stop()
         await central.cache_coordinator.clear_all()
 

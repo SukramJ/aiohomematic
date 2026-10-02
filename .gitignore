@@ -28,3 +28,6 @@ script/*_mj.sh
 site/
 uv.lock
 venv
+
+# godevccu simulator binary (script/install_godevccu.sh)
+.godevccu/

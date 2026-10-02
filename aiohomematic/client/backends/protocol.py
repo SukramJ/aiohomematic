@@ -83,7 +83,7 @@ class BackendOperationsProtocol(Protocol):
 
     @property
     def model(self) -> str:
-        """Return the backend model name (CCU, Homegear, pydevccu)."""
+        """Return the backend model name (CCU, Homegear, godevccu)."""
         ...
 
     @property

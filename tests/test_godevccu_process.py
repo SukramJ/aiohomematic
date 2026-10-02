@@ -7,13 +7,7 @@ import sys
 
 import pytest
 
-from tests.helpers.godevccu_process import (
-    GODEVCCU_BIN_ENV,
-    SIMULATOR_ENV,
-    GodevccuProcess,
-    find_godevccu_binary,
-    use_godevccu,
-)
+from tests.helpers.godevccu_process import GODEVCCU_BIN_ENV, GodevccuProcess, find_godevccu_binary
 
 pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="uses POSIX shebang scripts")
 
@@ -51,23 +45,23 @@ class TestGodevccuProcess:
         assert not process.is_running
 
 
-class TestSimulatorSelection:
-    """Test environment-based simulator selection."""
+class TestFindGodevccuBinary:
+    """Test where the godevccu binary is looked up."""
 
     def test_binary_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv(GODEVCCU_BIN_ENV, "/opt/godevccu")
         assert find_godevccu_binary() == "/opt/godevccu"
 
-    def test_binary_missing_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_binary_from_repo_dir(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        repo_binary = tmp_path / "godevccu"
+        repo_binary.touch()
         monkeypatch.delenv(GODEVCCU_BIN_ENV, raising=False)
+        monkeypatch.setattr("tests.helpers.godevccu_process._REPO_BINARY", repo_binary)
+        assert find_godevccu_binary() == str(repo_binary)
+
+    def test_binary_missing_raises(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        monkeypatch.delenv(GODEVCCU_BIN_ENV, raising=False)
+        monkeypatch.setattr("tests.helpers.godevccu_process._REPO_BINARY", tmp_path / "missing")
         monkeypatch.setenv("PATH", "")
-        with pytest.raises(RuntimeError, match="godevccu binary not found"):
+        with pytest.raises(RuntimeError, match="install_godevccu.sh"):
             find_godevccu_binary()
-
-    def test_default_is_pydevccu(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv(SIMULATOR_ENV, raising=False)
-        assert use_godevccu() is False
-
-    def test_godevccu_selected(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv(SIMULATOR_ENV, "godevccu")
-        assert use_godevccu() is True

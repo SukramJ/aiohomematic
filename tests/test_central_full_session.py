@@ -34,10 +34,10 @@ class TestCentralFullSession:
         central, _, _ = central_client_factory_with_homegear_client
         assert central
         assert central.name == const.CENTRAL_NAME
-        assert central.model == "PyDevCCU"
-        assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "PyDevCCU"
-        assert central.client_coordinator.primary_client.model == "PyDevCCU"
-        assert len(central.device_registry.devices) == 395
+        assert central.model == "GoDevCCU"
+        assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "GoDevCCU"
+        assert central.client_coordinator.primary_client.model == "GoDevCCU"
+        assert len(central.device_registry.devices) == 399
 
         data = {}
         for device in central.device_registry.devices:
@@ -66,7 +66,7 @@ class TestCentralFullSession:
                     channel_type_device[channel.type_name] = set()
                 channel_type_device[channel.type_name].add(device.model)
 
-        assert len(channel_type_device) == 162
+        assert len(channel_type_device) == 166
 
         # channel.type_name, parameter, device.model
         channel_parameter_devices = {}
@@ -81,7 +81,7 @@ class TestCentralFullSession:
                         channel_parameter_devices[channel.type_name][ge.parameter] = set()
                     channel_parameter_devices[channel.type_name][ge.parameter].add(device.model)
 
-        assert len(channel_parameter_devices) == 162
+        assert len(channel_parameter_devices) == 166
 
         _channel_parameter_devices = collections.OrderedDict(sorted(channel_parameter_devices.items()))
 
@@ -93,7 +93,7 @@ class TestCentralFullSession:
                 channel_type_names.add(channel.type_name)
 
         channel_type_names = sorted(channel_type_names)
-        assert len(channel_type_names) == 557
+        assert len(channel_type_names) == 565
         ce_channels = {}
         for cdp in custom_dps:
             if cdp.device.model not in ce_channels:
@@ -174,20 +174,20 @@ class TestCentralFullSession:
             if dev.model == "HM-CC-VG-1":
                 pass
 
-        assert usage_types[DataPointUsage.CDP_PRIMARY] == 293
-        assert usage_types[DataPointUsage.CDP_SECONDARY] == 162
-        assert usage_types[DataPointUsage.CDP_VISIBLE] == 217
-        assert usage_types[DataPointUsage.DATA_POINT] == 4340
-        assert usage_types[DataPointUsage.NO_CREATE] == 4519
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 298
+        assert usage_types[DataPointUsage.CDP_SECONDARY] == 166
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 220
+        assert usage_types[DataPointUsage.DATA_POINT] == 4401
+        assert usage_types[DataPointUsage.NO_CREATE] == 4593
 
-        assert len(ce_channels) == 134
+        assert len(ce_channels) == 138
         assert len(data_point_types) == 6
-        assert len(parameters) == 259
+        assert len(parameters) == 272
 
-        assert len(central.device_registry.devices) == 395
+        assert len(central.device_registry.devices) == 399
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-        assert len(central.device_registry.devices) == 392
+        assert len(central.device_registry.devices) == 396
         del_addresses = list(
             central.cache_coordinator.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID)
         )

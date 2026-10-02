@@ -199,21 +199,18 @@ config = CentralConfig(
 )
 ```
 
-## Running simulator tests against godevccu
+## godevccu simulator for tests
 
-The simulator-backed tests use pydevccu by default. To run them against
-[godevccu](https://github.com/SukramJ/godevccu) instead:
+The simulator-backed tests run against [godevccu](https://github.com/SukramJ/godevccu),
+a virtual CCU shipped as a single binary. The version is pinned in `.godevccu-version`.
+Install it once (and again after the pin changes):
 
 ```bash
-export AIOHM_TEST_SIMULATOR=godevccu
-export GODEVCCU_BIN=/path/to/godevccu   # or put godevccu on PATH
-pytest tests/test_central_pydevccu.py tests/test_central_pydev_openccu.py \
-  tests/test_backend_openccu.py tests/test_model_climate.py \
-  tests/test_model_access_permission.py tests/test_error_paths.py
+script/install_godevccu.sh   # downloads into .godevccu/ and verifies the checksum
 ```
 
-The binary is built with `make build` in a godevccu checkout or downloaded from
-its GitHub releases. godevccu needs version 0.6.0 or later (`-devices` flag).
+The fixtures look for the binary in this order: `GODEVCCU_BIN`, `.godevccu/godevccu`,
+`godevccu` on `PATH`. Without one they fail with these instructions.
 
 ## Next Steps
 

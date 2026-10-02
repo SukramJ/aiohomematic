@@ -97,15 +97,16 @@ class TestBackendEnumContract:
         assert hasattr(Backend, "CCU")
         assert Backend.CCU.value == "CCU"
 
+    def test_backend_has_godevccu(self) -> None:
+        """Contract: Backend.GODEVCCU must exist, Backend.PYDEVCCU must not."""
+        assert hasattr(Backend, "GODEVCCU")
+        assert Backend.GODEVCCU.value == "GoDevCCU"
+        assert not hasattr(Backend, "PYDEVCCU")
+
     def test_backend_has_homegear(self) -> None:
         """Contract: Backend.HOMEGEAR must exist."""
         assert hasattr(Backend, "HOMEGEAR")
         assert Backend.HOMEGEAR.value == "Homegear"
-
-    def test_backend_has_pydevccu(self) -> None:
-        """Contract: Backend.PYDEVCCU must exist."""
-        assert hasattr(Backend, "PYDEVCCU")
-        assert Backend.PYDEVCCU.value == "PyDevCCU"
 
     def test_backend_is_strenum(self) -> None:
         """Contract: Backend is a StrEnum."""

@@ -10,9 +10,7 @@ specific features including:
 - ReGa script execution
 - Backup and firmware update functionality
 
-Requirements:
-    pydevccu 0.2.0+ with VirtualCCU and BackendMode support.
-    Tests are skipped if the required pydevccu version is not installed.
+The virtual OpenCCU is godevccu in openccu mode (fixture ``godevccu_openccu``).
 """
 
 from typing import TYPE_CHECKING
@@ -22,11 +20,9 @@ import pytest
 if TYPE_CHECKING:
     from aiohomematic.central import CentralUnit
 
-# Import the marker from conftest
-from tests.conftest import PYDEVCCU_HAS_OPENCCU_SUPPORT, requires_openccu
+    from tests.helpers.godevccu_process import GodevccuProcess
 
 pytestmark = [
-    requires_openccu,
     pytest.mark.asyncio,
 ]
 
@@ -59,7 +55,7 @@ class TestOpenCCUPrograms:
     async def test_execute_program(
         self,
         central_unit_openccu: CentralUnit,
-        pydevccu_openccu: object,  # VirtualCCU, but type not available
+        godevccu_openccu: GodevccuProcess,
     ) -> None:
         """Verify program execution works."""
         # Fetch program data first
@@ -78,7 +74,7 @@ class TestOpenCCUPrograms:
         # Fetch program data
         await central_unit_openccu.hub_coordinator.fetch_program_data(scheduled=False)
 
-        # VirtualCCU.setup_default_state() creates default programs
+        # godevccu -defaults creates default programs
         program_dps = list(central_unit_openccu.hub_coordinator.program_data_points)
         assert len(program_dps) >= 1
 
@@ -91,14 +87,14 @@ class TestOpenCCUSystemVariables:
         # Fetch sysvar data
         await central_unit_openccu.hub_coordinator.fetch_sysvar_data(scheduled=False)
 
-        # VirtualCCU.setup_default_state() creates default sysvars
+        # godevccu -defaults creates default sysvars
         sysvar_dps = list(central_unit_openccu.hub_coordinator.sysvar_data_points)
         assert len(sysvar_dps) >= 1
 
     async def test_set_sysvar_value(
         self,
         central_unit_openccu: CentralUnit,
-        pydevccu_openccu: object,  # VirtualCCU
+        godevccu_openccu: GodevccuProcess,
     ) -> None:
         """Verify setting system variable value works."""
         # Fetch sysvar data first
@@ -119,13 +115,13 @@ class TestOpenCCURoomsAndFunctions:
     async def test_list_functions(self, central_unit_openccu: CentralUnit) -> None:
         """Verify functions are loaded from OpenCCU."""
         # Functions are loaded during startup
-        # VirtualCCU.setup_default_state() creates default functions
+        # godevccu -defaults creates default functions
         assert central_unit_openccu.health.any_client_healthy
 
     async def test_list_rooms(self, central_unit_openccu: CentralUnit) -> None:
         """Verify rooms are loaded from OpenCCU."""
         # Rooms are loaded during startup
-        # VirtualCCU.setup_default_state() creates default rooms
+        # godevccu -defaults creates default rooms
         assert central_unit_openccu.health.any_client_healthy
 
 
@@ -139,32 +135,3 @@ class TestOpenCCUBackupFeature:
         assert info is not None
         # OpenCCU backend should have backup capability
         assert info.has_backup is True
-
-
-# Placeholder tests for when VirtualCCU is not available
-# These document what will be tested when pydevccu 0.2.0 is released
-
-
-@pytest.mark.skipif(
-    PYDEVCCU_HAS_OPENCCU_SUPPORT,
-    reason="Documentation tests for when VirtualCCU is not available",
-)
-class TestOpenCCUDocumentation:
-    """Document planned OpenCCU tests (when VirtualCCU is available)."""
-
-    def test_planned_features(self) -> None:
-        """Document features that will be tested with VirtualCCU."""
-        planned_tests = [
-            "Backend detection (OpenCCU vs CCU vs Homegear)",
-            "JSON-RPC session management (login/logout/renew)",
-            "Program listing and execution",
-            "System variable read/write",
-            "Room and function (Gewerk) loading",
-            "Backup creation and download",
-            "Firmware update check and trigger",
-            "ReGa script execution",
-            "Service messages",
-            "Device inbox management",
-        ]
-        # This test just documents what will be tested
-        assert len(planned_tests) > 0

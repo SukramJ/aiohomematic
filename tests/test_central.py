@@ -104,7 +104,7 @@ class TestCentralBasics:
         assert central.listen_ip_addr == LOCAL_HOST
         assert central.has_ping_pong is False
         assert central.system_information.serial == "BidCos-RF_SN0815"
-        assert central.version == "pydevccu 0.1.17"
+        assert central.version == "godevccu-0.8.0"
         system_information = await central.validate_config_and_get_system_information()
         assert system_information.serial == "BidCos-RF_SN0815"
         device = central.device_coordinator.get_device(address="VCU2128127")

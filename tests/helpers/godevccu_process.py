@@ -12,27 +12,26 @@ import subprocess
 import time
 
 GODEVCCU_BIN_ENV = "GODEVCCU_BIN"
-SIMULATOR_ENV = "AIOHM_TEST_SIMULATOR"
-SIMULATOR_GODEVCCU = "godevccu"
-SIMULATOR_PYDEVCCU = "pydevccu"
+
+# Installed by script/install_godevccu.sh (version pinned in .godevccu-version).
+_REPO_BINARY = Path(__file__).resolve().parents[2] / ".godevccu" / "godevccu"
 
 _START_TIMEOUT = 15.0
 _STOP_TIMEOUT = 5.0
 _POLL_INTERVAL = 0.05
 
 
-def use_godevccu() -> bool:
-    """Return True if the tests should run against godevccu."""
-    return os.environ.get(SIMULATOR_ENV, SIMULATOR_PYDEVCCU) == SIMULATOR_GODEVCCU
-
-
 def find_godevccu_binary() -> str:
-    """Return the godevccu binary from GODEVCCU_BIN or PATH."""
+    """Return the godevccu binary from GODEVCCU_BIN, the repository's .godevccu/ or PATH."""
     if path := os.environ.get(GODEVCCU_BIN_ENV):
         return path
+    if _REPO_BINARY.exists():
+        return str(_REPO_BINARY)
     if path := shutil.which("godevccu"):
         return path
-    raise RuntimeError(f"godevccu binary not found: set {GODEVCCU_BIN_ENV} or put godevccu on PATH")
+    raise RuntimeError(
+        f"godevccu binary not found: run script/install_godevccu.sh, set {GODEVCCU_BIN_ENV} or put godevccu on PATH"
+    )
 
 
 class GodevccuProcess:

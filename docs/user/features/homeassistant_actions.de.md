@@ -521,7 +521,7 @@ Die ZIP-Datei enthält:
 - `device_descriptions/{device_model}.json`
 - `paramset_descriptions/{device_model}.json`
 
-Auf [pydevccu](https://github.com/sukramj/pydevccu) hochladen, um die Entwicklung neuer Geräte zu unterstützen.
+Auf [godevccu](https://github.com/SukramJ/godevccu) hochladen, um die Entwicklung neuer Geräte zu unterstützen.
 
 ### homematicip_local.reload_device_config
 

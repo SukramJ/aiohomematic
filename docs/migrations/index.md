@@ -18,9 +18,10 @@ aiohomematic follows these principles for breaking changes:
 
 ### 2026.x
 
-| Version  | Change                                     | Migration                                                             |
-| -------- | ------------------------------------------ | --------------------------------------------------------------------- |
-| 2026.8.7 | CUxD `unique_id`s are scoped by central id | [CUxD unique_id scoping](cuxd_unique_id_scoping_migration_2026_08.md) |
+| Version  | Change                                          | Migration                                                             |
+| -------- | ----------------------------------------------- | --------------------------------------------------------------------- |
+| 2026.8.7 | CUxD `unique_id`s are scoped by central id      | [CUxD unique_id scoping](cuxd_unique_id_scoping_migration_2026_08.md) |
+| 2026.9.5 | godevccu replaces pydevccu (`Backend.GODEVCCU`) | [godevccu](godevccu_migration_2026_10.md)                             |
 
 ### 2025.x
 

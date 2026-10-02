@@ -430,13 +430,6 @@ markers = [
     "benchmark: performance benchmark tests",
 ]
 
-filterwarnings = [
-    # Fixtures start the central with start_direct=True, so no XML-RPC callback server
-    # runs and init() registers callback port 0. pydevccu's _ask_devices thread then
-    # fails to reach the central; devices are fetched directly, test results are unaffected.
-    "ignore:Exception in thread _ask_devices:pytest.PytestUnhandledThreadExceptionWarning",
-]
-
 [tool.ruff]
 target-version = "py314" # Target Python version for Ruff
 line-length = 120 # Maximum line length for linting and formatting guidance

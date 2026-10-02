@@ -7,7 +7,7 @@ Uses XML-RPC exclusively with Homegear-specific extensions.
 
 Public API
 ----------
-- HomegearBackend: Backend for Homegear and pydevccu systems
+- HomegearBackend: Backend for Homegear and godevccu systems
 """
 
 import logging
@@ -43,7 +43,7 @@ _NAME: Final = "NAME"
 
 class HomegearBackend(BaseBackend):
     """
-    Backend for Homegear and pydevccu systems.
+    Backend for Homegear and godevccu systems.
 
     Communication:
     - XML-RPC exclusively with Homegear-specific methods
@@ -83,8 +83,8 @@ class HomegearBackend(BaseBackend):
     @property
     def model(self) -> str:
         """Return the backend model name."""
-        if Backend.PYDEVCCU.lower() in self._version.lower():
-            return Backend.PYDEVCCU
+        if Backend.GODEVCCU.lower() in self._version.lower():
+            return Backend.GODEVCCU
         return Backend.HOMEGEAR
 
     async def check_connection(self, *, handle_ping_pong: bool, caller_id: str | None = None) -> bool:

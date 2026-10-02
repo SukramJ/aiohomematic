@@ -2135,7 +2135,7 @@ class _DefinitionExporter:
         ] = await self._client.get_all_paramset_descriptions(device_descriptions=tuple(device_descriptions.values()))
         model = device_descriptions[self._device_address]["TYPE"]
 
-        # anonymize device_descriptions (list format matching pydevccu)
+        # anonymize device_descriptions (list format of godevccu's device_descriptions files)
         anonymize_device_descriptions: list[DeviceDescription] = []
         for device_description in device_descriptions.values():
             new_device_description: DeviceDescription = device_description.copy()

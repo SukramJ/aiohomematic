@@ -35,6 +35,8 @@ jobs:
       - name: Install orjson (non-free-threaded only)
         if: matrix.python-version != '3.14t'
         run: pip install orjson>=3.11.5
+      - name: Install godevccu
+        run: script/install_godevccu.sh
       - name: Run tests with coverage
         run: |
           pytest tests/ -n auto --dist loadscope --asyncio-mode=legacy --cov=aiohomematic --cov-report=xml --cov-report=term-missing
@@ -45,42 +47,3 @@ jobs:
           files: ./coverage.xml
           flags: unittests
           name: codecov-${{ matrix.python-version }}
-  test-godevccu:
-    runs-on: ubuntu-latest
-    name: Python 3.14 (godevccu)
-    env:
-      GODEVCCU_VERSION: v0.6.0
-      AIOHM_TEST_SIMULATOR: godevccu
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.14"
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements_test.txt
-            requirements_test_pre_commit.txt
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements_test.txt
-      - name: Download godevccu
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/godevccu"
-          cd "$RUNNER_TEMP/godevccu"
-          asset="godevccu-${GODEVCCU_VERSION}-linux-amd64"
-          gh release download "$GODEVCCU_VERSION" -R SukramJ/godevccu -p "$asset" -p "$asset.sha256"
-          sha256sum -c "$asset.sha256"
-          chmod +x "$asset"
-          echo "GODEVCCU_BIN=$RUNNER_TEMP/godevccu/$asset" >> "$GITHUB_ENV"
-      - name: Run simulator-backed tests
-        run: |
-          pytest tests/test_central_pydevccu.py tests/test_central_pydev_openccu.py \
-            tests/test_backend_openccu.py tests/test_model_climate.py \
-            tests/test_model_access_permission.py tests/test_error_paths.py \
-            tests/test_godevccu_process.py \
-            -n auto --dist loadscope --asyncio-mode=legacy

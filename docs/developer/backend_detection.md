@@ -4,7 +4,7 @@ This document describes the backend detection module for aiohomematic.
 
 ## Overview
 
-The backend detection module (`aiohomematic.backend_detection`) provides functionality to detect the type of Homematic backend (CCU or Homegear/PyDevCCU) and discover available interfaces without requiring a fully initialized environment.
+The backend detection module (`aiohomematic.backend_detection`) provides functionality to detect the type of Homematic backend (CCU or Homegear/GoDevCCU) and discover available interfaces without requiring a fully initialized environment.
 
 This is useful for:
 
@@ -18,7 +18,7 @@ This is useful for:
 | ------------ | ------------------------ | ------------------------------ |
 | **CCU**      | Homematic CCU3/CCU2      | Version string like "3.61.345" |
 | **Homegear** | Homegear software        | Version contains "Homegear"    |
-| **PyDevCCU** | Development CCU emulator | Version contains "pydevccu"    |
+| **GoDevCCU** | Development CCU emulator | Version contains "godevccu"    |
 
 ## Ports Probed
 
@@ -44,7 +44,7 @@ For CCU backends, JSON-RPC is also queried on:
    b. Call getVersion() if available
    c. Determine backend type from version string
 
-3. If Homegear/PyDevCCU detected:
+3. If Homegear/GoDevCCU detected:
    - Return with only BidCos-RF interface
 
 4. If CCU detected:
@@ -106,7 +106,7 @@ You can override timeouts in two ways:
 ```python
 @dataclass
 class BackendDetectionResult:
-    backend: Backend              # CCU, HOMEGEAR, or PYDEVCCU
+    backend: Backend              # CCU, HOMEGEAR, or GODEVCCU
     available_interfaces: tuple[Interface, ...]  # Detected interfaces
     detected_port: int            # Port where backend was found
     tls: bool                     # Whether TLS is used

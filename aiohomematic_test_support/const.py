@@ -19,8 +19,7 @@ CCU_PASSWORD = "pass"
 _CCU_PORT_BASE = 2002
 _CCU_MINI_PORT_BASE = 2003
 
-# OpenCCU ports (XML-RPC and JSON-RPC) - for VirtualCCU in OpenCCU mode
-# These will be used when pydevccu supports VirtualCCU with BackendMode.OPENCCU
+# OpenCCU ports (XML-RPC and JSON-RPC) - for godevccu in openccu mode
 _OPENCCU_XML_RPC_PORT_BASE = 12010
 _OPENCCU_JSON_RPC_PORT_BASE = 18080
 
@@ -68,11 +67,11 @@ BACKEND_INFO_JSON = {
     "hostname": "ccu-test",
 }
 
-FULL_SESSION_RANDOMIZED_PYDEVCCU = "full_session_randomized_pydevccu.zip"
+FULL_SESSION_GODEVCCU = "full_session_godevccu.zip"
 FULL_SESSION_RANDOMIZED_CCU = "full_session_randomized_ccu.zip"
 
 ALL_SESSION_FILES = [
-    FULL_SESSION_RANDOMIZED_PYDEVCCU,
+    FULL_SESSION_GODEVCCU,
     FULL_SESSION_RANDOMIZED_CCU,
 ]
 

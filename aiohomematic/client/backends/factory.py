@@ -74,8 +74,8 @@ async def create_backend(
             has_push_updates=has_push_updates,
         )
 
-    # Homegear/pydevccu: XML-RPC with Homegear extensions
-    elif interface == Interface.BIDCOS_RF and ("Homegear" in version or "pydevccu" in version):
+    # Homegear/godevccu: XML-RPC with Homegear extensions
+    elif interface == Interface.BIDCOS_RF and ("Homegear" in version or "godevccu" in version):
         if proxy is None or proxy_read is None:
             raise ValueError("Homegear backend requires XML-RPC proxies")  # i18n-exc: ignore
         _LOGGER.debug(

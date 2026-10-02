@@ -1,6 +1,6 @@
 # Plan: godevccu becomes the leading simulator, pydevccu is retired
 
-Status: Phase 1 done (godevccu v0.8.0); Phase 2 implemented (2026-10-02)
+Status: done (2026-10-02) — godevccu v0.8.0 (Go 1.27.1), aiohomematic 2026.10.1/2026.10.2, homematicip_local on aiohomematic 2026.10.2, openccu-loom on godevccu (REST API 13.4.0), pydevccu archived
 Repos: `../godevccu` (Phase 1), `aiohomematic` (Phase 2), `../homematicip_local` (Phase 3),
 `../openccu-loom` (Phase 4), `SukramJ/pydevccu` archive (Phase 5).
 Predecessor: `docs/plans/godevccu_test_backend_2026_10.md` (Phases A–C done).

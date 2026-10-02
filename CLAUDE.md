@@ -489,12 +489,15 @@ types, protocol renames. Critical docs to re-scan: `docs/architecture.md`,
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Session recorder and performance metrics are opt-in:
+# The session recorder is opt-in (records the first minutes after start()):
 from aiohomematic.const import OptionalSettings
 config = CentralConfig(
     ...,
-    optional_settings=(OptionalSettings.SESSION_RECORDER, OptionalSettings.PERFORMANCE_METRICS),
+    optional_settings=(OptionalSettings.SR_RECORD_SYSTEM_INIT,),
 )
+
+# Performance metrics are always collected; read a snapshot:
+snapshot = central.metrics_aggregator.snapshot()
 ```
 
 ---

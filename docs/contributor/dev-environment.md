@@ -186,17 +186,18 @@ from aiohomematic.const import OptionalSettings
 
 config = CentralConfig(
     ...,
-    optional_settings=(OptionalSettings.SESSION_RECORDER,),
+    # Records the RPC traffic of the first DEFAULT_SESSION_RECORDER_START_FOR_SECONDS
+    # after start() and saves it; add SR_DISABLE_RANDOMIZE_OUTPUT to keep addresses.
+    optional_settings=(OptionalSettings.SR_RECORD_SYSTEM_INIT,),
 )
 ```
 
 ### Performance Metrics
 
+Metrics are always collected; there is no setting to enable them.
+
 ```python
-config = CentralConfig(
-    ...,
-    optional_settings=(OptionalSettings.PERFORMANCE_METRICS,),
-)
+snapshot = central.metrics_aggregator.snapshot()
 ```
 
 ## godevccu simulator for tests

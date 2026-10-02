@@ -1,6 +1,6 @@
 aiohttp>=3.14.3
-openccu-data>=2026.9.0
+openccu-data>=2026.9.1
 pydantic>=2.13.5
-python-slugify>=9.0.0
+python-slugify>=9.1.2
 # orjson is optional - see pyproject.toml [project.optional-dependencies]
 # Install with: pip install aiohomematic[fast]

@@ -29,7 +29,7 @@ package-dir = { "aiohomematic_test_support" = "." }
 include-package-data = true
 
 [tool.setuptools.package-data]
-aiohomematic_test_support = ["py.typed", "data/*.json", "data/*.zip"]
+aiohomematic_test_support = ["py.typed", "data/*.json", "data/*.zip", "data/device_descriptions/*.json"]
 
 [tool.setuptools.dynamic]
 version = { attr = "aiohomematic_test_support.__version__" }

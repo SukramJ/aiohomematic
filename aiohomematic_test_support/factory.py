@@ -286,7 +286,7 @@ async def get_central_client_factory(
         await central.cache_coordinator.clear_all()
 
 
-async def get_pydev_ccu_central_unit_full(
+async def get_godevccu_central_unit_full(
     *,
     port: int,
     client_session: ClientSession | None = None,

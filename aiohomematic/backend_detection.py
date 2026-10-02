@@ -3,7 +3,7 @@
 """
 Backend detection module for aiohomematic.
 
-Detect Homematic backend type (CCU or Homegear/PyDevCCU) and discover
+Detect Homematic backend type (CCU or Homegear/GoDevCCU) and discover
 available interfaces without requiring a fully initialized environment.
 
 Public API of this module is defined by __all__.
@@ -85,7 +85,7 @@ async def detect_backend(
     Detect backend type and available interfaces.
 
     Probe XML-RPC ports to find a working connection, determine if the backend
-    is CCU or Homegear/PyDevCCU, and query available interfaces.
+    is CCU or Homegear/GoDevCCU, and query available interfaces.
 
     Args:
         config: Detection configuration with host and credentials.
@@ -199,8 +199,8 @@ async def _do_detect_backend(
         backend = _determine_backend(version=version)
         _LOGGER.info(i18n.tr(key="log.backend_detection.detect_backend.backend_type", backend=backend))
 
-        if backend in (Backend.HOMEGEAR, Backend.PYDEVCCU):
-            # Homegear/PyDevCCU only supports BidCos-RF
+        if backend in (Backend.HOMEGEAR, Backend.GODEVCCU):
+            # Homegear/GoDevCCU only supports BidCos-RF
             return BackendDetectionResult(
                 backend=backend,
                 available_interfaces=(Interface.BIDCOS_RF,),
@@ -248,8 +248,8 @@ def _determine_backend(*, version: str) -> Backend:
     version_lower = version.lower()
     if "homegear" in version_lower:
         return Backend.HOMEGEAR
-    if "pydevccu" in version_lower:
-        return Backend.PYDEVCCU
+    if "godevccu" in version_lower:
+        return Backend.GODEVCCU
     return Backend.CCU
 
 

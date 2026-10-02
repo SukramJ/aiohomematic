@@ -365,10 +365,10 @@ class TestCentralStopCleanup:
 
     @pytest.mark.asyncio
     async def test_cache_coordinator_stopped_after_stop(  # type: ignore[no-untyped-def]
-        self, central_unit_pydevccu_mini
+        self, central_unit_godevccu_mini
     ) -> None:
         """Test cache coordinator event subscriptions cleared after stop."""
-        central: CentralUnit = central_unit_pydevccu_mini
+        central: CentralUnit = central_unit_godevccu_mini
 
         await central.stop()
 
@@ -377,13 +377,13 @@ class TestCentralStopCleanup:
 
     @pytest.mark.asyncio
     async def test_clear_all_clears_data_cache(  # type: ignore[no-untyped-def]
-        self, central_unit_pydevccu_mini
+        self, central_unit_godevccu_mini
     ) -> None:
         """Test clear_all clears the data cache."""
-        central: CentralUnit = central_unit_pydevccu_mini
+        central: CentralUnit = central_unit_godevccu_mini
 
         # Data cache should have data after start
-        # (central_unit_pydevccu_mini already started the central)
+        # (central_unit_godevccu_mini already started the central)
         initial_size = central.cache_coordinator.data_cache.size
 
         await central.stop()
@@ -395,20 +395,20 @@ class TestCentralStopCleanup:
 
     @pytest.mark.asyncio
     async def test_double_stop_is_safe(  # type: ignore[no-untyped-def]
-        self, central_unit_pydevccu_mini
+        self, central_unit_godevccu_mini
     ) -> None:
         """Test calling stop() twice does not raise."""
-        central: CentralUnit = central_unit_pydevccu_mini
+        central: CentralUnit = central_unit_godevccu_mini
 
         await central.stop()
         await central.stop()  # Should not raise
 
     @pytest.mark.asyncio
     async def test_recovery_coordinator_stopped_after_stop(  # type: ignore[no-untyped-def]
-        self, central_unit_pydevccu_mini
+        self, central_unit_godevccu_mini
     ) -> None:
         """Test recovery coordinator is stopped after central stop."""
-        central: CentralUnit = central_unit_pydevccu_mini
+        central: CentralUnit = central_unit_godevccu_mini
 
         # Before stop: recovery coordinator should be active
         assert central.connection_recovery_coordinator._shutdown is False

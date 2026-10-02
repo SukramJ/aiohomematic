@@ -1636,23 +1636,23 @@ class TestCustomDpIpThermostat:
         assert call_count == len(mock_client.method_calls)
 
 
-@pytest.mark.xdist_group("pydevccu")
+@pytest.mark.xdist_group("godevccu")
 class TestClimateIntegration:
-    """Integration tests for climate data points with PyDevCCU."""
+    """Integration tests for climate data points with GoDevCCU."""
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    async def test_climate_ip_with_pydevccu(self, central_unit_pydevccu_mini) -> None:
+    async def test_climate_ip_with_godevccu(self, central_unit_godevccu_mini) -> None:
         """Test the central."""
-        assert central_unit_pydevccu_mini
+        assert central_unit_godevccu_mini
 
         climate_bwth: BaseCustomDpClimate = cast(
             BaseCustomDpClimate,
-            central_unit_pydevccu_mini.query_facade.get_custom_data_point(address="VCU1769958", channel_no=1),
+            central_unit_godevccu_mini.query_facade.get_custom_data_point(address="VCU1769958", channel_no=1),
         )
         climate_etrv: BaseCustomDpClimate = cast(
             BaseCustomDpClimate,
-            central_unit_pydevccu_mini.query_facade.get_custom_data_point(address="VCU3609622", channel_no=1),
+            central_unit_godevccu_mini.query_facade.get_custom_data_point(address="VCU3609622", channel_no=1),
         )
         assert climate_bwth
 
@@ -1951,7 +1951,7 @@ class TestClimateIntegration:
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    async def test_reload_schedule_survives_missing_temp_bounds(self, central_unit_pydevccu_mini) -> None:
+    async def test_reload_schedule_survives_missing_temp_bounds(self, central_unit_godevccu_mini) -> None:
         """
         Regression #3281: a missing temperature bound must not crash schedule caching.
 
@@ -1964,7 +1964,7 @@ class TestClimateIntegration:
         """
         climate_bwth = cast(
             BaseCustomDpClimate,
-            central_unit_pydevccu_mini.query_facade.get_custom_data_point(address="VCU1769958", channel_no=1),
+            central_unit_godevccu_mini.query_facade.get_custom_data_point(address="VCU1769958", channel_no=1),
         )
         week_profile = climate_bwth.device.week_profile
         assert isinstance(week_profile, ClimateWeekProfile)

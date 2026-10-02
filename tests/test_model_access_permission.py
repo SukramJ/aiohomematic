@@ -97,16 +97,16 @@ class TestIpAccessPermission:
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    @pytest.mark.xdist_group("pydevccu")
-    async def test_ip_access_permission_fwi(self, central_unit_pydevccu_full) -> None:
+    @pytest.mark.xdist_group("godevccu")
+    async def test_ip_access_permission_fwi(self, central_unit_godevccu_full) -> None:
         """
         Test that the HmIP-FWI exposes permission switches (ch 1-8) without losing its other data points.
 
         The HmIP-FWI is not part of the recorded homegear session, so the virtual
-        PyDevCCU instance is used here (turn_on/turn_off/value are already covered by
+        GoDevCCU instance is used here (turn_on/turn_off/value are already covered by
         the shared CustomDpIpAccessPermission logic in the HmIP-DLD test above).
         """
-        central = central_unit_pydevccu_full
+        central = central_unit_godevccu_full
 
         # One permission switch per user channel 1..8, each individually named.
         full_names: set[str] = set()

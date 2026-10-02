@@ -12,7 +12,7 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 ## Key Features
 
 - **Automatic entity discovery** from device/channel parameters
-- **Broad backend support**: CCU3, OpenCCU, Homegear, CUxD, CCU-Jack, and [pydevccu](https://github.com/danielperna84/pydevccu) for testing
+- **Broad backend support**: CCU3, OpenCCU, Homegear, CUxD, CCU-Jack, and [godevccu](https://github.com/SukramJ/godevccu) for testing
 - **Multiple transport protocols**: XML-RPC (standard interfaces) and JSON-RPC (CUxD / CCU-Jack), with MQTT event forwarding via Homematic(IP) Local
 - **Extensible** via custom entity classes for complex devices (climate, cover, light, lock, siren, valve, …)
 - **Hub entities** for CCU programs, system variables, inbox messages, install mode, and service messages
@@ -168,7 +168,7 @@ For a more complete example (multiple interfaces, event subscriptions, `.env` lo
 
 - **Primary test targets** (continuously tested in CI):
   - OpenCCU with current firmware
-  - `pydevccu` (virtual CCU used in the automated test suite)
+  - `godevccu` (virtual CCU used in the automated test suite)
 - **Supported, best-effort** (expected to work, not continuously tested):
   - CCU3 with current firmware
   - CUxD (via JSON-RPC)
@@ -186,7 +186,7 @@ Running outdated firmware or untested backends (CCU2, Homegear) is at your own r
 | Project                                                             | Description                                        |
 | ------------------------------------------------------------------- | -------------------------------------------------- |
 | [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local) | Home Assistant integration built on aiohomematic   |
-| [pydevccu](https://github.com/danielperna84/pydevccu)               | Virtual CCU used as a test target                  |
+| [godevccu](https://github.com/SukramJ/godevccu)                     | Virtual CCU used as a test target                  |
 | [pyhomematic](https://github.com/danielperna84/pyhomematic)         | Predecessor project (no longer actively developed) |
 
 ## Contributing

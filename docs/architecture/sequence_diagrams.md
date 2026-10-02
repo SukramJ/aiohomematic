@@ -705,7 +705,7 @@ The backend is selected at client creation time based on interface type:
 async def create_backend(...) -> BackendOperationsProtocol:
     if interface in INTERFACES_REQUIRING_JSON_RPC_CLIENT:
         return JsonCcuBackend(...)  # CUxD, CCU-Jack
-    elif "Homegear" in version or "pydevccu" in version:
+    elif "Homegear" in version or "godevccu" in version:
         return HomegearBackend(...)
     else:
         return CcuBackend(...)  # Default for CCU3/CCU2

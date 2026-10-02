@@ -346,8 +346,8 @@ debug_data_importance).
 
 - `factory_with_ccu_client`, `factory_with_homegear_client` — client factories
 - `central_client_factory_with_ccu_client`, `central_client_factory_with_homegear_client` — full central + client
-- `session_player_ccu`, `session_player_pydevccu` — session playback
-- `central_unit_pydevccu_mini`, `central_unit_pydevccu_full` — virtual CCU instances
+- `session_player_ccu`, `session_player_godevccu` — session playback
+- `central_unit_godevccu_mini`, `central_unit_godevccu_full` — virtual CCU instances (godevccu binary, `script/install_godevccu.sh`)
 - `aiohttp_session`, `mock_xml_rpc_server`, `mock_json_rpc_server`
 
 ### Coverage

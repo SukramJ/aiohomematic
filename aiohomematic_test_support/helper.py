@@ -41,6 +41,8 @@ def get_prepared_custom_data_point(  # kwonly: disable
 
 def load_device_description(file_name: str) -> Any:  # kwonly: disable
     """Load device description."""
-    dev_desc = _load_json_file(anchor="pydevccu", resource="device_descriptions", file_name=file_name)
+    dev_desc = _load_json_file(
+        anchor="aiohomematic_test_support", resource=os.path.join("data", "device_descriptions"), file_name=file_name
+    )
     assert dev_desc
     return dev_desc

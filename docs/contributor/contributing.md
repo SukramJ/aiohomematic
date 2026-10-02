@@ -168,7 +168,7 @@ Most devices work automatically. Custom mappings are only needed for:
 ### Steps
 
 1. **Export device definition** from a real device
-2. **Add to pydevccu** repository for testing
+2. **Add to [godevccu](https://github.com/SukramJ/godevccu)** (`internal/embed/data/`) for testing
 3. **Register device** in appropriate module:
 
 ```python

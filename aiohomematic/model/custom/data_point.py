@@ -111,8 +111,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     # state_uncertain). Assigned by subclasses; enforced for every concrete class by
     # tests/contract/test_cdp_validity_contract.py. An empty set means "always valid"
     # (write-only devices). See ADR-0025.
-    # pylint false positive: a value-less ClassVar annotation is not a slot declaration.
-    _validity_relevant_fields: ClassVar[frozenset[Field]]  # pylint: disable=declare-non-slot
+    _validity_relevant_fields: ClassVar[frozenset[Field]]
 
     @property
     def _relevant_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:

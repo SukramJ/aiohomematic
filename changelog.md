@@ -36,20 +36,32 @@ retrieved from CCU` for each of them and keeps only the device-level data points
   channel description was reported as missing regardless of the cache content. It now uses
   `DeviceDescriptionRegistry.has_address()`.
 
+### Breaking Changes
+
+- **godevccu replaces pydevccu.** `Backend.PYDEVCCU` (`"PyDevCCU"`) is replaced by
+  `Backend.GODEVCCU` (`"GoDevCCU"`), without alias. Backend detection and the
+  `HomegearBackend` recognise a `getVersion` containing `godevccu` (godevccu 0.8.0 and
+  later); `pydevccu` is no longer special. `aiohomematic_test_support`:
+  `FULL_SESSION_RANDOMIZED_PYDEVCCU` → `FULL_SESSION_GODEVCCU`,
+  `get_pydev_ccu_central_unit_full` → `get_godevccu_central_unit_full`, and
+  `load_device_description` reads the package's own `data/device_descriptions/`.
+  Migration guide: `docs/migrations/godevccu_migration_2026_10.md`.
+
 ### Changed
 
-- **Simulator-backed tests can run against godevccu.** With
-  `AIOHM_TEST_SIMULATOR=godevccu` the `pydevccu_mini`, `pydevccu_full` and
-  `pydevccu_openccu` fixtures start the godevccu binary (`GODEVCCU_BIN` or `PATH`,
-  version 0.6.0 or later) as a subprocess instead of pydevccu. pydevccu stays the
-  default. A new CI job (`test-godevccu`) runs these tests against godevccu.
+- **Tests run against godevccu only.** The simulator fixtures (`godevccu_mini`,
+  `godevccu_full`, `godevccu_openccu`) start the godevccu binary as a subprocess; the
+  version is pinned in `.godevccu-version` and installed by `script/install_godevccu.sh`.
+  pydevccu is removed from `requirements_test.txt`, together with the pytest filter for
+  its callback thread.
 
-- **Test warnings fixed at their cause.** The pytest filter for pydevccu's callback
-  thread named `_askDevices`; pydevccu 0.2.6 calls it `_ask_devices`, so the filter never
-  matched. The thread fails because the fixtures run with `start_direct=True` and register
-  callback port 0. A new test checks that every thread filter names a thread pydevccu
-  starts. The fake task scheduler in `test_model_hub_update.py` now closes a coroutine it
-  cannot schedule outside an event loop instead of leaking it.
+- **New godevccu session recording.** `full_session_godevccu.zip` replaces the pydevccu
+  session; `script/record_godevccu_session.py` records it. It has 399 devices instead of
+  395 (four new device types, `HmIP-FWI` at a new address).
+
+- **Leaked coroutine in a test fake fixed.** The fake task scheduler in
+  `test_model_hub_update.py` now closes a coroutine it cannot schedule outside an event
+  loop instead of leaking it.
 
 # Version 2026.9.4 (2026-09-12)
 

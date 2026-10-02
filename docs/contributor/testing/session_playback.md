@@ -73,13 +73,15 @@ The value at the deepest level is the raw RPC response.
 
 ### Activating the recorder
 
-The `SessionRecorder` in `aiohomematic/store/persistent/session.py` is activated
-via `OptionalSettings.SESSION_RECORDER` in `CentralConfig`:
+The `SessionRecorder` in `aiohomematic/store/persistent/session.py` records the
+system init when `OptionalSettings.SR_RECORD_SYSTEM_INIT` is set in `CentralConfig`
+(for `DEFAULT_SESSION_RECORDER_START_FOR_SECONDS` after `start()`, then it saves).
+`OptionalSettings.SR_DISABLE_RANDOMIZE_OUTPUT` keeps the device addresses as recorded:
 
 ```python
 config = CentralConfig(
     ...,
-    optional_settings=(OptionalSettings.SESSION_RECORDER,),
+    optional_settings=(OptionalSettings.SR_RECORD_SYSTEM_INIT,),
 )
 ```
 
@@ -91,7 +93,7 @@ await recorder.activate(on_time=30, auto_save=True, randomize_output=True)
 
 - `on_time`: Auto-deactivate after N seconds (0 = manual deactivation)
 - `auto_save`: Save automatically on deactivation
-- `randomize_output`: Randomize device addresses for privacy
+- `randomize_output`: Shuffle the device addresses among each other for privacy
 
 ### What gets recorded
 
@@ -111,9 +113,9 @@ Parameters are cleaned before storage:
 await recorder.save(randomize_output=True, use_ts_in_file_name=True)
 ```
 
-Sessions are saved to `{storage_dir}/sessions/` as ZIP files.
-When `randomize_output=True`, device addresses are replaced with random
-identifiers for privacy.
+Sessions are saved to `{storage_dir}/session/` as ZIP files.
+When `randomize_output=True`, the device addresses are shuffled among each other
+for privacy, so an address no longer belongs to the same device model.
 
 ## How sessions are played back
 
@@ -215,11 +217,11 @@ Special method overrides:
 
 Located in `aiohomematic_test_support/data/`:
 
-| File                                   | Size   | Source                   |
-| -------------------------------------- | ------ | ------------------------ |
-| `full_session_randomized_ccu.zip`      | 716 KB | Real CCU3                |
-| `full_session_randomized_pydevccu.zip` | 1.3 MB | pydevccu/Homegear        |
-| `device_translation.json`              | 13 KB  | Address-to-model mapping |
+| File                              | Size   | Source                   |
+| --------------------------------- | ------ | ------------------------ |
+| `full_session_randomized_ccu.zip` | 716 KB | Real CCU3                |
+| `full_session_godevccu.zip`       | 824 KB | godevccu (homegear mode) |
+| `device_translation.json`         | 13 KB  | Address-to-model mapping |
 
 ### Device translation
 
@@ -252,16 +254,34 @@ Both mock proxies support:
 
 ## Creating new session files
 
-To record a new session from a live backend:
+### godevccu session
 
-1. Configure `CentralConfig` with `OptionalSettings.SESSION_RECORDER`
+`full_session_godevccu.zip` is recorded by a script against the godevccu binary
+(version pinned in `.godevccu-version`):
+
+```bash
+script/install_godevccu.sh
+PYTHONPATH=. python script/record_godevccu_session.py
+```
+
+The script runs a central with `start_direct=True` (so the central calls
+`listDevices` itself, which the playback needs) and the optional settings
+`SR_RECORD_SYSTEM_INIT` and `SR_DISABLE_RANDOMIZE_OUTPUT`. Do not randomize this
+recording: randomizing shuffles the device addresses, and the playback tests
+reference devices by address.
+
+### Session from a live backend
+
+1. Configure `CentralConfig` with `OptionalSettings.SR_RECORD_SYSTEM_INIT`
+   (records from `start()` for `DEFAULT_SESSION_RECORDER_START_FOR_SECONDS` and
+   saves automatically)
 2. Start the central unit and let it discover devices
 3. Interact with devices to capture additional RPC calls
-4. Save the session:
+4. Or save explicitly:
    ```python
    await central.cache_coordinator.recorder.save(
        randomize_output=True,
        use_ts_in_file_name=True,
    )
    ```
-5. Copy the ZIP from `{storage_dir}/sessions/` to `aiohomematic_test_support/data/`
+5. Copy the ZIP from `{storage_dir}/session/` to `aiohomematic_test_support/data/`

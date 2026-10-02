@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2021-2026
-# pylint: disable=unnecessary-ellipsis
 """
 Backend operations protocol.
 
@@ -83,7 +82,7 @@ class BackendOperationsProtocol(Protocol):
 
     @property
     def model(self) -> str:
-        """Return the backend model name (CCU, Homegear, pydevccu)."""
+        """Return the backend model name (CCU, Homegear, godevccu)."""
         ...
 
     @property

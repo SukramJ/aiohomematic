@@ -371,7 +371,7 @@ class Backend(StrEnum):
 
     CCU = "CCU"
     HOMEGEAR = "Homegear"
-    PYDEVCCU = "PyDevCCU"
+    GODEVCCU = "GoDevCCU"
 
 
 @unique

@@ -13,7 +13,7 @@ from aiohomematic.model.custom.light import _convert_flash_time_to_on_time_list
 from aiohomematic.model.custom.siren import _convert_repetitions
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
-# HmIP-MP3P device address (from pydevccu session data)
+# HmIP-MP3P device address (from godevccu session data)
 TEST_DEVICES: set[str] = {"VCU1543608"}
 
 # pylint: disable=protected-access

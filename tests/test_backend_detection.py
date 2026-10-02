@@ -30,17 +30,21 @@ class TestDetermineBackend:
         assert _determine_backend(version="2.55.10") == Backend.CCU
         assert _determine_backend(version="") == Backend.CCU
 
+    def test_determine_backend_godevccu(self) -> None:
+        """Test detection of GoDevCCU backend."""
+        assert _determine_backend(version="godevccu-0.8.0") == Backend.GODEVCCU
+        assert _determine_backend(version="GoDevCCU 0.8.0") == Backend.GODEVCCU
+        assert _determine_backend(version="GODEVCCU") == Backend.GODEVCCU
+
     def test_determine_backend_homegear(self) -> None:
         """Test detection of Homegear backend."""
         assert _determine_backend(version="Homegear 0.8.0") == Backend.HOMEGEAR
         assert _determine_backend(version="homegear 0.7.5") == Backend.HOMEGEAR
         assert _determine_backend(version="HOMEGEAR") == Backend.HOMEGEAR
 
-    def test_determine_backend_pydevccu(self) -> None:
-        """Test detection of PyDevCCU backend."""
-        assert _determine_backend(version="pydevccu 2.1") == Backend.PYDEVCCU
-        assert _determine_backend(version="PyDevCCU 2.0") == Backend.PYDEVCCU
-        assert _determine_backend(version="PYDEVCCU") == Backend.PYDEVCCU
+    def test_determine_backend_pydevccu_is_no_longer_special(self) -> None:
+        """Test that the retired pydevccu version string is treated as a CCU."""
+        assert _determine_backend(version="pydevccu-0.2.6") == Backend.CCU
 
 
 class TestProbeXmlRpcPort:
@@ -465,6 +469,67 @@ class TestDetectBackend:
         assert result.https_redirect_enabled is False
 
     @pytest.mark.asyncio
+    async def test_detect_godevccu_backend(self) -> None:
+        """Test detection of GoDevCCU backend."""
+        config = DetectionConfig(
+            host="192.168.1.100",
+        )
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            new_callable=AsyncMock,
+            return_value="godevccu-0.8.0",
+        ):
+            result = await detect_backend(config=config)
+
+        assert result is not None
+        assert result.backend == Backend.GODEVCCU
+        assert result.available_interfaces == (Interface.BIDCOS_RF,)
+        assert result.version == "godevccu-0.8.0"
+
+    @pytest.mark.asyncio
+    async def test_detect_godevccu_with_hmip_port_refused(self) -> None:
+        """
+        Test detection of GoDevCCU when HmIP-RF port is refused but BidCos-RF works.
+
+        This simulates the real-world scenario where GoDevCCU only runs on port 2001
+        (BidCos-RF) and connection to port 2010 (HmIP-RF) is refused.
+        """
+        from aiohomematic.const import DETECTION_PORT_BIDCOS_RF, DETECTION_PORT_HMIP_RF
+
+        config = DetectionConfig(
+            host="localhost",
+        )
+
+        call_count = 0
+
+        async def mock_probe(**kwargs: Any) -> str | None:
+            nonlocal call_count
+            call_count += 1
+            port = kwargs.get("port")
+            # HmIP-RF ports (2010, 42010) fail with connection refused
+            if port in DETECTION_PORT_HMIP_RF:
+                return None
+            # BidCos-RF port (2001) succeeds
+            if port == DETECTION_PORT_BIDCOS_RF[0]:
+                return "godevccu-0.8.0"
+            return None
+
+        with patch(
+            "aiohomematic.backend_detection._probe_xml_rpc_port",
+            side_effect=mock_probe,
+        ):
+            result = await detect_backend(config=config)
+
+        # Should have tried HmIP-RF (port 2010) first, then BidCos-RF (port 2001)
+        assert call_count >= 2
+        assert result is not None
+        assert result.backend == Backend.GODEVCCU
+        assert result.available_interfaces == (Interface.BIDCOS_RF,)
+        assert result.detected_port == DETECTION_PORT_BIDCOS_RF[0]  # 2001
+        assert result.version == "godevccu-0.8.0"
+
+    @pytest.mark.asyncio
     async def test_detect_homegear_backend(self) -> None:
         """Test detection of Homegear backend."""
         config = DetectionConfig(
@@ -485,67 +550,6 @@ class TestDetectBackend:
         assert result.available_interfaces == (Interface.BIDCOS_RF,)
         assert result.version == "Homegear 0.8.0"
         assert result.auth_enabled is None
-
-    @pytest.mark.asyncio
-    async def test_detect_pydevccu_backend(self) -> None:
-        """Test detection of PyDevCCU backend."""
-        config = DetectionConfig(
-            host="192.168.1.100",
-        )
-
-        with patch(
-            "aiohomematic.backend_detection._probe_xml_rpc_port",
-            new_callable=AsyncMock,
-            return_value="pydevccu 2.1",
-        ):
-            result = await detect_backend(config=config)
-
-        assert result is not None
-        assert result.backend == Backend.PYDEVCCU
-        assert result.available_interfaces == (Interface.BIDCOS_RF,)
-        assert result.version == "pydevccu 2.1"
-
-    @pytest.mark.asyncio
-    async def test_detect_pydevccu_with_hmip_port_refused(self) -> None:
-        """
-        Test detection of PyDevCCU when HmIP-RF port is refused but BidCos-RF works.
-
-        This simulates the real-world scenario where PyDevCCU only runs on port 2001
-        (BidCos-RF) and connection to port 2010 (HmIP-RF) is refused.
-        """
-        from aiohomematic.const import DETECTION_PORT_BIDCOS_RF, DETECTION_PORT_HMIP_RF
-
-        config = DetectionConfig(
-            host="localhost",
-        )
-
-        call_count = 0
-
-        async def mock_probe(**kwargs: Any) -> str | None:
-            nonlocal call_count
-            call_count += 1
-            port = kwargs.get("port")
-            # HmIP-RF ports (2010, 42010) fail with connection refused
-            if port in DETECTION_PORT_HMIP_RF:
-                return None
-            # BidCos-RF port (2001) succeeds
-            if port == DETECTION_PORT_BIDCOS_RF[0]:
-                return "pydevccu 2.1"
-            return None
-
-        with patch(
-            "aiohomematic.backend_detection._probe_xml_rpc_port",
-            side_effect=mock_probe,
-        ):
-            result = await detect_backend(config=config)
-
-        # Should have tried HmIP-RF (port 2010) first, then BidCos-RF (port 2001)
-        assert call_count >= 2
-        assert result is not None
-        assert result.backend == Backend.PYDEVCCU
-        assert result.available_interfaces == (Interface.BIDCOS_RF,)
-        assert result.detected_port == DETECTION_PORT_BIDCOS_RF[0]  # 2001
-        assert result.version == "pydevccu 2.1"
 
 
 class TestBackendDetectionResult:
@@ -660,13 +664,13 @@ class TestDetectBackendTimeout:
         with patch(
             "aiohomematic.backend_detection._probe_xml_rpc_port",
             new_callable=AsyncMock,
-            return_value="pydevccu 2.1",
+            return_value="godevccu-0.8.0",
         ):
             result = await detect_backend(config=config)
 
         # Should complete successfully
         assert result is not None
-        assert result.backend == Backend.PYDEVCCU
+        assert result.backend == Backend.GODEVCCU
 
     @pytest.mark.slow
     @pytest.mark.asyncio
@@ -713,7 +717,7 @@ class TestDetectBackendTimeout:
         with patch(
             "aiohomematic.backend_detection._probe_xml_rpc_port",
             new_callable=AsyncMock,
-            return_value="pydevccu 2.1",
+            return_value="godevccu-0.8.0",
         ) as mock_probe:
             result = await detect_backend(config=config, timeout_config=custom_timeout_config)
 

@@ -6,41 +6,34 @@ import collections
 
 import pytest
 
-from aiohomematic.const import ADDRESS_SEPARATOR, Backend, DataPointUsage
+from aiohomematic.const import ADDRESS_SEPARATOR, DataPointUsage
 from aiohomematic.model.generic import GenericDataPoint
 from aiohomematic.property_decorators import get_hm_property_names
 from aiohomematic_test_support import const
 
-from tests.conftest import requires_openccu
-
 # pylint: disable=protected-access
 
-pytestmark = [
-    requires_openccu,
-    pytest.mark.xdist_group("pydevccu_openccu"),
-]
 
-
-class TestCentralPyDevOpenCCU:
-    """Test central unit with PyDev_OpenCCU backend."""
+@pytest.mark.xdist_group("godevccu")
+class TestCentralGoDevCCU:
+    """Test central unit with GoDevCCU backend."""
 
     @pytest.mark.enable_socket
     @pytest.mark.asyncio
-    async def test_central_full(self, central_unit_openccu) -> None:
+    async def test_central_full(self, central_unit_godevccu_full) -> None:
         """Test the central."""
-        central = central_unit_openccu
+        central = central_unit_godevccu_full
         assert central
-        assert central.name == const.OPENCCU_CENTRAL_NAME
-        # VirtualCCU in OPENCCU mode simulates a real CCU backend
-        assert central.model == Backend.CCU
-        client = central.client_coordinator.get_client(interface_id=const.OPENCCU_INTERFACE_ID)
-        assert client is not None
-        assert client.model == Backend.CCU
-        assert central.client_coordinator.primary_client.model == Backend.CCU
+        assert central.name == const.CENTRAL_NAME
+        assert central.model == "GoDevCCU"
+        assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "GoDevCCU"
+        assert central.client_coordinator.primary_client.model == "GoDevCCU"
         assert len(central.device_registry.devices) == 399
 
         data = {}
         for device in central.device_registry.devices:
+            if device.model in ("HmIP-UDI-SMI55"):
+                assert device.has_sub_devices is False
             if device.model in ("HmIP-BSM", "HmIP-BDT", "HmIP-PSM", "HmIP-FSM", "HmIP-WSM", "HmIP-SMO230-A"):
                 assert device.has_sub_devices is False
             if device.model in ("HmIP-DRSI4", "HmIP-DRDI3", "HmIP-BSL"):
@@ -88,10 +81,6 @@ class TestCentralPyDevOpenCCU:
         custom_dps = []
         channel_type_names = set()
         for device in central.device_registry.devices:
-            if device.model in ("HmIP-BSM"):
-                assert device.has_sub_devices is False
-            if device.model in ("HmIP-DRSI4", "HmIP-DRDI3", "HmIP-BSL"):
-                assert device.has_sub_devices is True
             custom_dps.extend(device.custom_data_points)
             for channel in device.channels.values():
                 channel_type_names.add(channel.type_name)
@@ -179,18 +168,38 @@ class TestCentralPyDevOpenCCU:
 
         assert len(central.device_registry.devices) == 399
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
-        await central.device_coordinator.delete_devices(
-            interface_id=const.OPENCCU_INTERFACE_ID, addresses=virtual_remotes
-        )
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
         assert len(central.device_registry.devices) == 396
         del_addresses = list(
-            central.cache_coordinator.device_descriptions.get_device_descriptions(
-                interface_id=const.OPENCCU_INTERFACE_ID
-            )
+            central.cache_coordinator.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID)
         )
         del_addresses = [adr for adr in del_addresses if ADDRESS_SEPARATOR not in adr]
-        await central.device_coordinator.delete_devices(
-            interface_id=const.OPENCCU_INTERFACE_ID, addresses=del_addresses
-        )
+        await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=del_addresses)
         assert len(central.device_registry.devices) == 0
         assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 0
+
+    @pytest.mark.enable_socket
+    @pytest.mark.asyncio
+    async def test_central_mini(self, central_unit_godevccu_mini) -> None:
+        """Test the central."""
+        central = central_unit_godevccu_mini
+        assert central
+        assert central.name == const.CENTRAL_NAME
+        assert central.model == "GoDevCCU"
+        assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "GoDevCCU"
+        assert central.client_coordinator.primary_client.model == "GoDevCCU"
+        assert len(central.device_registry.devices) == 2
+        assert len(central.query_facade.get_data_points(exclude_no_create=False)) == 72
+
+        usage_types: dict[DataPointUsage, int] = {}
+        for dp in central.query_facade.get_data_points(exclude_no_create=False):
+            if hasattr(dp, "usage"):
+                if dp.usage not in usage_types:
+                    usage_types[dp.usage] = 0
+                counter = usage_types[dp.usage]
+                usage_types[dp.usage] = counter + 1
+
+        assert usage_types[DataPointUsage.NO_CREATE] == 45
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 4
+        assert usage_types[DataPointUsage.DATA_POINT] == 18
+        assert usage_types[DataPointUsage.CDP_VISIBLE] == 5

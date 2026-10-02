@@ -1,3 +1,15 @@
+# Version 2026.10.2 (2026-10-02)
+
+## What's Changed
+
+### Fixed
+
+- **`aiohomematic_test_support` wheel ships the device descriptions.** `package-data` only
+  matched files directly in `data/`, so `data/device_descriptions/HmIP-BSM.json` was
+  missing from the 2026.10.1 wheel and `load_device_description` failed outside a source
+  checkout. A new test checks that every data file the package loads matches a
+  `package-data` pattern.
+
 # Version 2026.10.1 (2026-10-02)
 
 ## What's Changed

@@ -13,6 +13,17 @@
   depends on the access token, so the consumer derives both from the system's feature
   map, not from the type.
 
+### Fixed
+
+- **A backend without a product is reported as `CCUType.UNKNOWN`, not as an original
+  CCU.** The product check compared against a string instead of a tuple, so any
+  substring of `"ccu"` — including the empty product a backend sends when its
+  information script returns none — was reported as `CCUType.CCU`, and substrings of
+  `"openccu"` such as `"open"` as `CCUType.OPENCCU`. The check now accepts exactly
+  `"CCU"` and `"OpenCCU"` (case-insensitive) and reports everything else as unknown.
+  Neither `CCU` nor `UNKNOWN` enables backup or system update, so no feature appears or
+  disappears.
+
 # Version 2026.10.2 (2026-10-02)
 
 ## What's Changed

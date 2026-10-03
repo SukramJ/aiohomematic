@@ -2407,12 +2407,16 @@ def _determine_ccu_type(*, product: str) -> CCUType:
     - CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone)
     - OPENCCU: OpenCCU (modern variants with online update check)
 
+    get_backend_info.fn normalises the product to exactly "CCU" or "OpenCCU", so the
+    comparison is exact (case-insensitive). Anything else, including an empty product,
+    is UNKNOWN.
+
     """
     # Check for original CCU hardware and debmatic
-    if (product_lower := product.lower()) in ("ccu"):
+    if (product_lower := product.lower()) == "ccu":
         return CCUType.CCU
 
-    if product_lower in ("openccu"):
+    if product_lower == "openccu":
         return CCUType.OPENCCU
 
     return CCUType.UNKNOWN

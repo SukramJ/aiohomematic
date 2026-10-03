@@ -137,6 +137,35 @@ class TestOpenCCUBackupFeature:
         assert info.has_backup is True
 
 
+class TestDetermineCCUType:
+    """Test the mapping from the normalised backend product to the CCU type."""
+
+    @pytest.mark.parametrize(
+        ("product", "expected"),
+        [
+            ("CCU", "CCU"),
+            ("ccu", "CCU"),
+            ("OpenCCU", "OPENCCU"),
+            ("openccu", "OPENCCU"),
+            ("", "UNKNOWN"),
+            ("c", "UNKNOWN"),
+            ("cu", "UNKNOWN"),
+            ("u", "UNKNOWN"),
+            ("open", "UNKNOWN"),
+            ("pen", "UNKNOWN"),
+            ("ccu3", "UNKNOWN"),
+            ("OpenCCU-lite", "UNKNOWN"),
+            ("foo", "UNKNOWN"),
+        ],
+    )
+    async def test_product_matches_exactly(self, product: str, expected: str) -> None:
+        """Only the two products the ReGa script writes are recognised; partial names are unknown."""
+        from aiohomematic.client.json_rpc import _determine_ccu_type
+        from aiohomematic.const import CCUType
+
+        assert _determine_ccu_type(product=product) is CCUType[expected]
+
+
 class TestCCUTypeOpenCCULite:
     """Test the CCUType member that names an openccu-lite system."""
 

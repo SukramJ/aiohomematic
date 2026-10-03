@@ -135,3 +135,33 @@ class TestOpenCCUBackupFeature:
         assert info is not None
         # OpenCCU backend should have backup capability
         assert info.has_backup is True
+
+
+class TestCCUTypeOpenCCULite:
+    """Test the CCUType member that names an openccu-lite system."""
+
+    async def test_enum_value_round_trips(self) -> None:
+        """The member carries the value a consumer compares against."""
+        from aiohomematic.const import CCUType
+
+        assert CCUType.OPENCCU_LITE.value == "OpenCCU-lite"
+        assert CCUType("OpenCCU-lite") is CCUType.OPENCCU_LITE
+
+    @pytest.mark.parametrize("product", ["CCU", "ccu", "OpenCCU", "openccu", "OpenCCU-lite", "openccu-lite", "foo"])
+    async def test_json_rpc_detection_never_reports_openccu_lite(self, product: str) -> None:
+        """Detection never yields the member, since aiohomematic never talks to openccu-lite."""
+        from aiohomematic.client.json_rpc import _determine_ccu_type
+        from aiohomematic.const import CCUType
+
+        result = _determine_ccu_type(product=product)
+
+        assert result is not CCUType.OPENCCU_LITE
+        assert result in (CCUType.CCU, CCUType.OPENCCU, CCUType.UNKNOWN)
+
+    async def test_system_information_offers_no_backup_or_update(self) -> None:
+        """Backup and system update stay False; the consumer derives them from the feature map."""
+        from aiohomematic.const import CCUType, SystemInformation
+
+        info = SystemInformation(ccu_type=CCUType.OPENCCU_LITE)
+        assert info.has_backup is False
+        assert info.has_system_update is False

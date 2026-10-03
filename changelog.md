@@ -1,3 +1,18 @@
+# Version 2026.10.3 (2026-10-03)
+
+## What's Changed
+
+### Added
+
+- **`CCUType.OPENCCU_LITE` (`"OpenCCU-lite"`).** openccu-lite is a separate system type
+  that aiohomematic does not connect to itself, and its backend detection never reports
+  this member. It exists so that a consumer reaching such a system through another
+  backend (the openccu-loom client's compatibility layer) can name it with the same enum
+  the Home Assistant integration compares against. `SystemInformation.has_backup` and
+  `has_system_update` are `False` for it by design: what an openccu-lite system offers
+  depends on the access token, so the consumer derives both from the system's feature
+  map, not from the type.
+
 # Version 2026.10.2 (2026-10-02)
 
 ## What's Changed

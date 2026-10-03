@@ -19,7 +19,7 @@ from typing import Any, Final, NamedTuple, Required, TypeAlias, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
-VERSION: Final = "2026.10.2"
+VERSION: Final = "2026.10.3"
 
 # Detect test speedup mode via environment
 _TEST_SPEEDUP: Final = (
@@ -381,10 +381,14 @@ class CCUType(StrEnum):
 
     CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone).
     OPENCCU: OpenCCU - modern variants with online update check.
+    OPENCCU_LITE: openccu-lite - a separate system type aiohomematic never connects to; it
+        exists so a consumer reaching such a system through another backend (the openccu-loom
+        client's compatibility layer) can name it with the enum the integration compares against.
     """
 
     CCU = "CCU"
     OPENCCU = "OpenCCU"
+    OPENCCU_LITE = "OpenCCU-lite"
     UNKNOWN = "Unknown"
 
 
@@ -2148,6 +2152,7 @@ class SystemInformation:
     CCU types:
     - CCU: Original CCU2/CCU3 hardware and debmatic (CCU clone)
     - OPENCCU: OpenCCU (modern variants)
+    - OPENCCU_LITE: openccu-lite (never detected by aiohomematic, set only by other backends)
     """
 
     available_interfaces: tuple[str, ...] = field(default_factory=tuple)
@@ -2162,7 +2167,13 @@ class SystemInformation:
 
     @property
     def has_backup(self) -> bool:
-        """Return True if backend supports backup functionality."""
+        """
+        Return True if backend supports backup functionality.
+
+        False for OPENCCU_LITE by design: what an openccu-lite system offers depends on the
+        access token, so the consumer reporting that type derives backup and system update
+        from the system's feature map, not from the type. Do not add it here.
+        """
         return self.ccu_type == CCUType.OPENCCU
 
     @property

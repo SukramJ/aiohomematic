@@ -1,3 +1,29 @@
+# Version 2026.10.3 (2026-10-03)
+
+## What's Changed
+
+### Added
+
+- **`CCUType.OPENCCU_LITE` (`"OpenCCU-lite"`).** openccu-lite is a separate system type
+  that aiohomematic does not connect to itself, and its backend detection never reports
+  this member. It exists so that a consumer reaching such a system through another
+  backend (the openccu-loom client's compatibility layer) can name it with the same enum
+  the Home Assistant integration compares against. `SystemInformation.has_backup` and
+  `has_system_update` are `False` for it by design: what an openccu-lite system offers
+  depends on the access token, so the consumer derives both from the system's feature
+  map, not from the type.
+
+### Fixed
+
+- **A backend without a product is reported as `CCUType.UNKNOWN`, not as an original
+  CCU.** The product check compared against a string instead of a tuple, so any
+  substring of `"ccu"` — including the empty product a backend sends when its
+  information script returns none — was reported as `CCUType.CCU`, and substrings of
+  `"openccu"` such as `"open"` as `CCUType.OPENCCU`. The check now accepts exactly
+  `"CCU"` and `"OpenCCU"` (case-insensitive) and reports everything else as unknown.
+  Neither `CCU` nor `UNKNOWN` enables backup or system update, so no feature appears or
+  disappears.
+
 # Version 2026.10.2 (2026-10-02)
 
 ## What's Changed

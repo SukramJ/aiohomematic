@@ -1156,15 +1156,6 @@ class BaseParameterDataPoint[
                     != NO_CACHE_ENTRY
                 ):
                     self.write_value(value=cached_value, write_at=datetime.now())
-                    return
-
-                if self.is_readable:
-                    value = await self._device.value_cache.get_ignored_on_initial_load_value(
-                        dpk=self.dpk,
-                        call_source=call_source,
-                    )
-                    if value != NO_CACHE_ENTRY:
-                        self.write_value(value=value, write_at=datetime.now())
             return
 
         if direct_call is False and hms.changed_within_seconds(last_change=self._refreshed_at):

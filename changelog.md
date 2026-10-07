@@ -1,3 +1,12 @@
+# Version 2026.10.4 (2026-10-07)
+
+## What's Changed
+
+### Fixed
+
+- **Stopping an interface client also stops its command throttle.** Integration
+  reloads no longer leave a `CommandThrottle-*` worker pending in the event loop.
+
 # Version 2026.10.3 (2026-10-03)
 
 ## What's Changed
@@ -41,14 +50,6 @@
 ## What's Changed
 
 ### Fixed
-
-- **Classic BidCos-RF channel-0 diagnostics initialize reliably.** If ReGa omits
-  `RSSI_DEVICE`, `RSSI_PEER`, `LOW_BAT` or `LOWBAT` from its bulk snapshot, the
-  value is now read from the CCU with `getValue`. Invalid converted RSSI values,
-  including the `-65535` sentinel, are no longer reported as valid.
-
-- **Stopping an interface client also stops its command throttle.** Integration
-  reloads no longer leave a `CommandThrottle-*` worker pending in the event loop.
 
 - **A device no longer loses every channel after a firmware update or a re-pairing.**
   `updateDevice` (hint 0), `readdedDevice` and `replaceDevice` drop the device and all

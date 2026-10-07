@@ -1,12 +1,15 @@
 ---
 translation_source: docs/user/features/backup.md
-translation_date: 2026-04-01
-translation_source_hash: e800ef3de188
+translation_date: 2026-10-07
+translation_source_hash: 4301052e1f51
 ---
 
 # CCU-Sicherung
 
 Die Homematic(IP) Local-Integration bietet zwei Sicherungsmechanismen: einen **Backup Agent**, der in das Home Assistant-Sicherungssystem integriert ist, und eine **manuelle Sicherungsschaltfläche** für CCU-Systemsicherungen bei Bedarf.
+
+!!! note "Nur OpenCCU"
+CCU-Systemsicherungen sind nur für **OpenCCU** (ehemals RaspberryMatic) verfügbar, einschließlich der OpenCCU Home Assistant App. Auf CCU2, CCU3, Debmatic, piVCCU und Homegear werden Sicherungsschaltfläche und Backup Agent nicht angeboten. Siehe die [Backend-Funktionsmatrix](../homeassistant_integration.de.md#backend-funktionsmatrix).
 
 ---
 
@@ -48,7 +51,7 @@ Die gesamte Sicherungsverwaltung erfolgt über die Standard-Sicherungsoberfläch
 
 Die Integration erstellt eine **"Sicherung erstellen"**-Taste auf dem CCU-Gerät. Durch Betätigung wird eine eigenständige CCU-Systemsicherung (`.sbk`-Datei) bei Bedarf erstellt — unabhängig vom HA-Sicherungssystem.
 
-Die Taste ist verfügbar, solange die CCU erreichbar ist. Die resultierende Sicherungsdatei wird im konfigurierten Sicherungsverzeichnis gespeichert.
+Die Taste wird nur für OpenCCU-Backends angelegt und ist verfügbar, solange die CCU erreichbar ist. Die resultierende Sicherungsdatei wird im konfigurierten Sicherungsverzeichnis gespeichert.
 
 ---
 

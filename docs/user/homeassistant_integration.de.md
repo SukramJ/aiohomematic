@@ -1,7 +1,7 @@
 ---
 translation_source: docs/user/homeassistant_integration.md
-translation_date: 2026-04-01
-translation_source_hash: d6940ae7d4e0
+translation_date: 2026-10-07
+translation_source_hash: 376e48e75502
 ---
 
 # Homematic(IP) Local for OpenCCU
@@ -66,6 +66,23 @@ Diese Integration funktioniert mit jeder CCU-kompatiblen Homematic-Zentrale:
 
 - CCU2: 2.61.x
 - CCU3: 3.61.x
+
+### Backend-Funktionsmatrix {#backend-funktionsmatrix}
+
+Gerätesteuerung und Statusaktualisierungen funktionieren auf jedem unterstützten Backend. Einige Hub-Funktionen hängen vom Backend-Typ ab, weil sie auf die ReGa/JSON-RPC-API der CCU oder auf OpenCCU-spezifische Systemfunktionen angewiesen sind:
+
+| Funktion                                            | CCU2/CCU3, Debmatic, piVCCU | OpenCCU | OpenCCU (HA App) | Homegear |
+| --------------------------------------------------- | :-------------------------: | :-----: | :--------------: | :------: |
+| Programme & Systemvariablen                         |             ✅              |   ✅    |        ✅        |    ❌    |
+| Räume, Gewerke, Geräte-/Kanalnamen                  |             ✅              |   ✅    |        ✅        |    ❌    |
+| Service- & Alarmmeldungen, Posteingang, Anlernmodus |             ✅              |   ✅    |        ✅        |    ❌    |
+| Geräte-Firmware-Updates                             |             ✅              |   ✅    |        ✅        |    ❌    |
+| Ping/Pong-Verbindungsprüfung                        |             ✅              |   ✅    |        ✅        |    ❌    |
+| **CCU-Systemsicherung** (Taste, Agent, Service)     |             ❌              |   ✅    |        ✅        |    ❌    |
+| **CCU-Systemupdate** (Firmware-Update-Entity)       |             ❌              |   ✅    |        ❌        |    ❌    |
+
+- **CCU-Systemsicherung** nutzt die Backup-Skriptfunktionen von OpenCCU; CCU2/CCU3 und ihre Klone stellen diese nicht bereit. Siehe [CCU-Sicherung](features/backup.de.md).
+- **CCU-Systemupdate** ist zusätzlich für die OpenCCU Home Assistant App deaktiviert, da der Supervisor App-Updates verwaltet.
 
 ### Firewall und Ports
 

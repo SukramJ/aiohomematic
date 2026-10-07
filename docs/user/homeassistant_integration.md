@@ -61,6 +61,23 @@ This integration works with any CCU-compatible Homematic hub:
 - CCU2: 2.61.x
 - CCU3: 3.61.x
 
+### Backend Feature Matrix {#backend-feature-matrix}
+
+Device control and state updates work on every supported backend. Some hub-level features depend on the backend type, because they rely on the CCU's ReGa/JSON-RPC API or on OpenCCU-specific system functions:
+
+| Feature                                        | CCU2/CCU3, Debmatic, piVCCU | OpenCCU | OpenCCU (HA App) | Homegear |
+| ---------------------------------------------- | :-------------------------: | :-----: | :--------------: | :------: |
+| Programs & system variables                    |             ✅              |   ✅    |        ✅        |    ❌    |
+| Rooms, functions, device/channel names         |             ✅              |   ✅    |        ✅        |    ❌    |
+| Service & alarm messages, inbox, install mode  |             ✅              |   ✅    |        ✅        |    ❌    |
+| Device firmware updates                        |             ✅              |   ✅    |        ✅        |    ❌    |
+| Ping/Pong connection check                     |             ✅              |   ✅    |        ✅        |    ❌    |
+| **CCU system backup** (button, agent, service) |             ❌              |   ✅    |        ✅        |    ❌    |
+| **CCU system update** (firmware update entity) |             ❌              |   ✅    |        ❌        |    ❌    |
+
+- **CCU system backup** uses OpenCCU's backup script functions; CCU2/CCU3 and their clones do not expose them. See [CCU Backup](features/backup.md).
+- **CCU system update** is additionally disabled for the OpenCCU Home Assistant App, because the Supervisor manages app updates.
+
 ### Firewall and Ports
 
 | Interface       | Purpose                  | Default Port | TLS Port |

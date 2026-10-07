@@ -2,6 +2,9 @@
 
 The Homematic(IP) Local integration provides two backup mechanisms: a **Backup Agent** that integrates with the Home Assistant backup system, and a **manual backup button** for on-demand CCU system backups.
 
+!!! note "OpenCCU only"
+CCU system backups are only available for **OpenCCU** (formerly RaspberryMatic), including the OpenCCU Home Assistant App. On CCU2, CCU3, Debmatic, piVCCU and Homegear the backup button and the backup agent are not offered. See the [backend feature matrix](../homeassistant_integration.md#backend-feature-matrix).
+
 ---
 
 ## Backup Agent
@@ -42,7 +45,7 @@ All backup management is done through the standard Home Assistant backup UI:
 
 The integration creates a **"Create Backup"** button entity on the CCU device. Pressing it creates a standalone CCU system backup (`.sbk` file) on demand — independent of the HA backup system.
 
-The button is available as long as the CCU is reachable. The resulting backup file is saved to the configured backup directory.
+The button is only created for OpenCCU backends and is available as long as the CCU is reachable. The resulting backup file is saved to the configured backup directory.
 
 ---
 

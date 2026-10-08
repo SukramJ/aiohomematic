@@ -1037,6 +1037,35 @@ class TestCommandThrottleStop:
         with pytest.raises(asyncio.CancelledError):
             await throttle.acquire(priority=CommandPriority.HIGH, device_address="TEST:1")
 
+    async def test_stop_and_wait_propagates_caller_cancellation(self) -> None:
+        """Test that cancelling the caller of stop_and_wait() is not swallowed."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        stop_task = asyncio.create_task(throttle.stop_and_wait())
+        await asyncio.sleep(0)
+
+        stop_task.cancel()
+
+        with pytest.raises(asyncio.CancelledError):
+            await stop_task
+
+    async def test_stop_and_wait_waits_for_worker_task(self) -> None:
+        """Test that stop_and_wait() returns only after the worker task has finished."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.1)
+        assert throttle._worker_task is not None
+
+        await throttle.stop_and_wait()
+
+        assert throttle._worker_task.done()
+
+    async def test_stop_and_wait_without_worker_task(self) -> None:
+        """Test that stop_and_wait() returns when throttling is disabled."""
+        throttle = CommandThrottle(interface_id="TEST", interval=0.0)
+        assert throttle._worker_task is None
+
+        await throttle.stop_and_wait()
+
+        assert throttle._stopped is True
+
     async def test_stop_cancels_worker_task(self) -> None:
         """Test that stop() cancels the background worker task."""
         throttle = CommandThrottle(interface_id="TEST", interval=0.1)

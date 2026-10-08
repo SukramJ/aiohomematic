@@ -35,7 +35,6 @@ Public API of this module is defined by __all__.
 
 import asyncio
 from collections import deque
-from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import IntEnum
 import heapq
@@ -296,8 +295,9 @@ class CommandThrottle(CommandThrottleProtocol):
         """Stop the background worker and wait until it has finished."""
         self.stop()
         if self._worker_task is not None:
-            with suppress(asyncio.CancelledError):
-                await self._worker_task
+            # asyncio.wait() neither raises the worker's own cancellation nor swallows
+            # a cancellation of the caller, unlike suppress(CancelledError) around await.
+            await asyncio.wait((self._worker_task,))
 
     def _detect_burst(self) -> bool:
         """Detect command burst using sliding window."""

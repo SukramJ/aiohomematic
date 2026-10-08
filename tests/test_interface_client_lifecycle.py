@@ -14,12 +14,12 @@ These tests verify the connection lifecycle operations:
 from datetime import datetime, timedelta
 import time
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
 
-from aiohomematic.client import InterfaceClient, InterfaceConfig
+from aiohomematic.client import CommandThrottle, InterfaceClient, InterfaceConfig
 from aiohomematic.const import (
     DEFAULT_TIMEOUT_CONFIG,
     INIT_DATETIME,
@@ -1906,6 +1906,23 @@ class TestStop:
 
         # Both subscriptions (state_change + system_status) should be unsubscribed
         assert len(unsubscribe_calls) == 2
+
+    @pytest.mark.asyncio
+    async def test_stop_waits_for_command_throttle_worker(self) -> None:
+        """stop() should not leave the command throttle worker pending."""
+        central = _FakeCentral()
+        central.config.timeout_config = DEFAULT_TIMEOUT_CONFIG.model_copy(update={"command_throttle_interval": 0.1})
+        client = _create_interface_client(central=central)
+        command_throttle = cast(CommandThrottle, client.command_throttle)
+        worker_task = command_throttle._worker_task
+        assert worker_task is not None
+        assert worker_task.done() is False
+
+        await client.init_client()
+        await client.init_proxy()
+        await client.stop()
+
+        assert worker_task.done() is True
 
 
 class TestMarkAllDevicesForcedAvailability:

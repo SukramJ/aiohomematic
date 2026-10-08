@@ -291,6 +291,14 @@ class CommandThrottle(CommandThrottleProtocol):
             if not cmd.future.done():
                 cmd.future.set_exception(asyncio.CancelledError(i18n.tr(key="log.client.command_throttle.stopped")))
 
+    async def stop_and_wait(self) -> None:
+        """Stop the background worker and wait until it has finished."""
+        self.stop()
+        if self._worker_task is not None:
+            # asyncio.wait() neither raises the worker's own cancellation nor swallows
+            # a cancellation of the caller, unlike suppress(CancelledError) around await.
+            await asyncio.wait((self._worker_task,))
+
     def _detect_burst(self) -> bool:
         """Detect command burst using sliding window."""
         if not self._burst_threshold:

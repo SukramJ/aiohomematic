@@ -911,6 +911,10 @@ class CommandThrottleProtocol(Protocol):
     def stop(self) -> None:
         """Stop background worker and reject pending commands."""
 
+    @abstractmethod
+    async def stop_and_wait(self) -> None:
+        """Stop the background worker and wait until it has finished."""
+
 
 @runtime_checkable
 class CommandTrackerProtocol(Protocol):

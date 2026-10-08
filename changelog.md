@@ -1,3 +1,12 @@
+# Version 2026.10.4 (2026-10-07)
+
+## What's Changed
+
+### Fixed
+
+- **Stopping an interface client also stops its command throttle.** Integration
+  reloads no longer leave a `CommandThrottle-*` worker pending in the event loop.
+
 # Version 2026.10.3 (2026-10-03)
 
 ## What's Changed

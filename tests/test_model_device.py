@@ -1063,6 +1063,35 @@ class TestDeviceAvailabilityDetails:
             "ignore_devices_on_create",
             "un_ignore_list",
         ),
+        [({"VCU0000254"}, True, None, None)],
+    )
+    async def test_get_low_battery_reads_lowbat(self, central_client_factory_with_homegear_client) -> None:
+        """Test _get_low_battery reads LOWBAT for devices without LOW_BAT (classic BidCos-RF)."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU0000254")
+        assert device is not None
+        assert device.model == "HM-Sec-SCo"
+        assert device.get_generic_data_point(channel_address="VCU0000254:0", parameter="LOW_BAT") is None
+        assert device.get_generic_data_point(channel_address="VCU0000254:0", parameter="LOWBAT") is not None
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000254:0", parameter="LOWBAT", value=True
+        )
+        assert device.availability.low_battery is True
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU0000254:0", parameter="LOWBAT", value=False
+        )
+        assert device.availability.low_battery is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
         [({"VCU2128127"}, True, None, None)],
     )
     async def test_get_low_battery_returns_none_when_absent(

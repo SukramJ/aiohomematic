@@ -419,14 +419,15 @@ Alarmmeldungen sind kritische Benachrichtigungen, die auf einen Zustand hinweise
 
 Eine sortier- und filterbare Tabelle, die die Funksignalqualität aller Geräte zeigt:
 
-| Spalte            | Beschreibung                              |
-| ----------------- | ----------------------------------------- |
-| **Gerät**         | Gerätename                                |
-| **Modell**        | Gerätemodell                              |
-| **Schnittstelle** | Funkprotokoll (HmIP-RF, BidCos-RF)        |
-| **Erreichbar**    | Ob das Gerät derzeit antwortet            |
-| **RSSI**          | Signalstärke in dBm (näher an 0 = besser) |
-| **Batterie**      | Batteriestatus (OK oder Schwach)          |
+| Spalte            | Beschreibung                                                       |
+| ----------------- | ------------------------------------------------------------------ |
+| **Gerät**         | Gerätename                                                         |
+| **Modell**        | Gerätemodell                                                       |
+| **Schnittstelle** | Funkprotokoll (HmIP-RF, BidCos-RF)                                 |
+| **Erreichbar**    | Ob das Gerät derzeit antwortet                                     |
+| **RSSI Gerät**    | `RSSI_DEVICE` in dBm (näher an 0 = besser), "—" wenn nicht bekannt |
+| **RSSI Peer**     | `RSSI_PEER` in dBm (näher an 0 = besser), "—" wenn nicht bekannt   |
+| **Batterie**      | Batteriestatus (OK oder Schwach) aus `LOW_BAT` oder `LOWBAT`       |
 
 Die Filterleiste (angezeigt bei mehr als 10 Geräten) ermöglicht die Suche nach Name/Modell oder das Filtern nach Schnittstelle, Erreichbarkeit oder Batteriestatus.
 

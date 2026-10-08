@@ -7,6 +7,11 @@
 - **Stopping an interface client also stops its command throttle.** Integration
   reloads no longer leave a `CommandThrottle-*` worker pending in the event loop.
 
+- **`DeviceAvailability.low_battery` also reads `LOWBAT`.** Classic BidCos-RF devices
+  (e.g. HM-Sec-SCo, HM-CC-RT-DN) report their battery state as `LOWBAT` instead of
+  `LOW_BAT`, so `low_battery` stayed `None` for them, and the signal quality view showed
+  no battery state.
+
 # Version 2026.10.3 (2026-10-03)
 
 ## What's Changed

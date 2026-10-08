@@ -413,14 +413,15 @@ Alarm messages are critical notifications that indicate a condition requiring at
 
 A sortable and filterable table showing the radio signal quality of all devices:
 
-| Column        | Description                                   |
-| ------------- | --------------------------------------------- |
-| **Device**    | Device name                                   |
-| **Model**     | Device model                                  |
-| **Interface** | Radio protocol (HmIP-RF, BidCos-RF)           |
-| **Reachable** | Whether the device is currently responding    |
-| **RSSI**      | Signal strength in dBm (closer to 0 = better) |
-| **Battery**   | Battery status (OK or Low)                    |
+| Column          | Description                                                   |
+| --------------- | ------------------------------------------------------------- |
+| **Device**      | Device name                                                   |
+| **Model**       | Device model                                                  |
+| **Interface**   | Radio protocol (HmIP-RF, BidCos-RF)                           |
+| **Reachable**   | Whether the device is currently responding                    |
+| **RSSI Device** | `RSSI_DEVICE` in dBm (closer to 0 = better), "—" if not known |
+| **RSSI Peer**   | `RSSI_PEER` in dBm (closer to 0 = better), "—" if not known   |
+| **Battery**     | Battery status (OK or Low) from `LOW_BAT` or `LOWBAT`         |
 
 Use the filter bar (shown when more than 10 devices) to search by name/model or filter by interface, reachability, or battery status.
 

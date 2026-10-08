@@ -47,7 +47,7 @@ class AvailabilityInfo:
     """Battery level percentage (0-100), from OperatingVoltageLevel or BATTERY_STATE."""
 
     low_battery: bool | None = None
-    """Low battery indicator from LOW_BAT parameter."""
+    """Low battery indicator from LOW_BAT (or LOWBAT on classic BidCos-RF devices)."""
 
     signal_strength: int | None = None
     """Signal strength in dBm from RSSI_DEVICE (negative values, e.g., -65)."""

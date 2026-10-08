@@ -1758,16 +1758,18 @@ class _DeviceAvailability:
         return latest if latest > INIT_DATETIME else None
 
     def _get_low_battery(self) -> bool | None:
-        """Return low battery indicator from LOW_BAT parameter."""
-        # Check channels 0, 1, 2 for LOW_BAT (different devices use different channels)
+        """Return low battery indicator from LOW_BAT or LOWBAT parameter."""
+        # Check channels 0, 1, 2 for LOW_BAT (different devices use different channels).
+        # Classic BidCos-RF devices report LOWBAT instead of LOW_BAT.
         for channel_no in (0, 1, 2):
-            if (
-                dp := self._device.get_generic_data_point(
-                    channel_address=f"{self._device.address}:{channel_no}",
-                    parameter=Parameter.LOW_BAT,
-                )
-            ) is not None and dp.value is not None:
-                return dp.value is True
+            for parameter in (Parameter.LOW_BAT, Parameter.LOWBAT):
+                if (
+                    dp := self._device.get_generic_data_point(
+                        channel_address=f"{self._device.address}:{channel_no}",
+                        parameter=parameter,
+                    )
+                ) is not None and dp.value is not None:
+                    return dp.value is True
         return None
 
     def _get_signal_strength(self) -> int | None:

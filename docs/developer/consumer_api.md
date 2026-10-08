@@ -348,7 +348,7 @@ if availability.last_updated:
 | `is_reachable`    | `bool`             | Device is reachable (inverse of UNREACH) |
 | `last_updated`    | `datetime \| None` | Most recent data point modification      |
 | `battery_level`   | `int \| None`      | Battery percentage (0-100)               |
-| `low_battery`     | `bool \| None`     | LOW_BAT indicator                        |
+| `low_battery`     | `bool \| None`     | LOW_BAT or LOWBAT indicator              |
 | `signal_strength` | `int \| None`      | RSSI in dBm (negative values)            |
 
 ### Helper Properties

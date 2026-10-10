@@ -117,7 +117,11 @@ InterfaceClient.set_value() / put_paramset()
 
 **Behaviour:** Always resets unconfirmed state first (`_reset_unconfirmed_value()`), then compares old vs. new value to decide between `_set_refreshed_at` (same value) or `_set_modified_at` (changed value). Sets `_state_uncertain = False`.
 
-This is the only tier that updates `_previous_value` (via `_last_non_default_value`).
+It also tracks the last non-default value (`_last_non_default_value`, used to restore e.g. a
+dimmer's brightness). While a sent value is still unconfirmed (`unconfirmed_last_value_send`),
+a differing value is an intermediate one on the way to it — e.g. a dimmer ramp — and is not
+tracked. `send_value()` tracks the commanded value itself, because the device may settle on a
+nearby step that never matches the sent value exactly (#3445).
 
 ---
 

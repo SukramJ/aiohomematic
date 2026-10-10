@@ -160,7 +160,11 @@ class GenericDataPoint[ParameterT: ParamType, InputParameterT: ParamType](
             _LOGGER.warning(verr)
             return set()
 
-        converted_value = self._convert_value(value=prepared_value)
+        # The commanded value is the last user value. The device may settle on a
+        # nearby step (e.g. a dimmer on its 0.5 % grid), and values reported while
+        # the command is unconfirmed are not tracked (see write_value, #3445).
+        if (converted_value := self._convert_value(value=prepared_value)) != self._default:
+            self.set_last_non_default_value(value=converted_value)
 
         # Resolve retry: explicit caller choice > class default
         effective_retry = self._retryable if retry is None else retry

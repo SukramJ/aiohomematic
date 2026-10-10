@@ -404,6 +404,74 @@ class TestCustomDpDimmer:
         assert light.is_on is True
         assert light.brightness == 191
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_cedimmer_rf_last_level_ignores_ramp_values(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Ramp values of a pending command must not become the last level.
+
+        Regression test for #3445: an RF dimmer reports intermediate LEVEL
+        values while it ramps towards a commanded level. Taking the value
+        reported while ramping down as the last level made every off/on
+        cycle restore a slightly lower brightness. The event values below
+        are taken from the HM-LC-Dim1T-FM log attached to #3445.
+        """
+        central, _, _ = central_client_factory_with_homegear_client
+        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU0000079", 1))
+
+        async def level_event(value: float) -> None:
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address="VCU0000079:1", parameter="LEVEL", value=value
+            )
+
+        # Settled at 40 %, no command pending.
+        await level_event(0.4)
+        assert light.last_level == 0.4
+
+        # Off, sent twice while the dimmer ramps down (log lines 39-55).
+        await light.turn_off()
+        await level_event(0.395)
+        await light.turn_off()
+        await level_event(0.12)
+        await level_event(0.0)
+        assert light.last_level == 0.4
+
+        # On with the last level: ramp start value, then the target.
+        await light.turn_on(brightness=light.level_to_brightness(light.last_level))
+        await level_event(0.125)
+        assert light.last_level == 0.4
+        await level_event(0.4)
+        assert light.last_level == 0.4
+
+        # A level off the device's 0.5 % grid settles on the nearest step
+        # (log lines 669-703: 0.392 sent, 0.39 reported). The commanded
+        # level stays the last level, so the next cycle sends it again.
+        await light.turn_on(brightness=100)
+        await level_event(0.24)
+        await level_event(0.39)
+        assert light.last_level == 100 / 255
+        await light.turn_off()
+        await level_event(0.17)
+        await level_event(0.0)
+        assert light.last_level == 100 / 255
+
+        # A change made at the device itself, with no command pending.
+        await level_event(0.7)
+        assert light.last_level == 0.7
+
 
 class TestCustomDpColorDimmerEffect:
     """Tests for CustomDpColorDimmerEffect data points."""

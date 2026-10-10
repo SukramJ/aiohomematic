@@ -1377,8 +1377,12 @@ class BaseParameterDataPoint[
             self._set_modified_at(modified_at=write_at)
             self._current_value = new_value
             # Track last user value: store new value only if it differs from default
-            # This is used for "restore last value" scenarios (e.g., dimmer brightness)
-            if new_value != self._default:
+            # This is used for "restore last value" scenarios (e.g., dimmer brightness).
+            # While a sent value is unconfirmed, a differing value is an intermediate
+            # one on the way to it (e.g. a dimmer ramp) and is not tracked (#3445).
+            if new_value != self._default and (
+                (pending := self.unconfirmed_last_value_send) is None or pending == new_value
+            ):
                 self._last_non_default_value = new_value
         self._state_uncertain = False
         self.publish_data_point_updated_event(old_value=old_value, new_value=new_value)

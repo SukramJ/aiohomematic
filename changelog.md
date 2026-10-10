@@ -1,3 +1,16 @@
+# Version 2026.10.5 (2026-10-10)
+
+## What's Changed
+
+### Fixed
+
+- **A dimmer's last level no longer drifts down with every off/on cycle.** RF dimmers
+  report intermediate `LEVEL` values while they ramp towards a commanded level. The value
+  reported while ramping down to off was taken as the last level, so restoring it after
+  each off/on cycle switched the light on a little darker (e.g. 40 % → 36 % after six
+  cycles on an HM-LC-Dim1T-FM). Values that differ from a still unconfirmed command are no
+  longer tracked as the last value; the commanded value is tracked instead (#3445).
+
 # Version 2026.10.4 (2026-10-07)
 
 ## What's Changed

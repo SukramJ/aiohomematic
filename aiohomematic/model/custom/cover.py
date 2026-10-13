@@ -698,7 +698,6 @@ DeviceProfileRegistry.register(
     models=(
         "263 146",
         "263 147",
-        "HM-LC-Bl1-Velux",
         "HM-LC-Bl1-FM",
         "HM-LC-Bl1-FM-2",
         "HM-LC-Bl1-PB-FM",
@@ -710,6 +709,13 @@ DeviceProfileRegistry.register(
     ),
     data_point_class=CustomDpCover,
     profile_type=DeviceProfile.RF_COVER,
+)
+DeviceProfileRegistry.register(
+    category=DataPointCategory.COVER,
+    models="HM-LC-Bl1-Velux",
+    data_point_class=CustomDpCover,
+    profile_type=DeviceProfile.RF_COVER,
+    channels=(1, 2),
 )
 DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,

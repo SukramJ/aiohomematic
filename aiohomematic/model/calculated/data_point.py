@@ -93,7 +93,7 @@ class CalculatedDataPoint[ParameterT: ParamType](BaseDataPoint, CallbackDataPoin
         super().__init__(
             channel=channel,
             unique_id=unique_id,
-            is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
+            is_in_multiple_channels=hmed.is_multi_channel_device(device=channel.device, category=self.category),
         )
         self._data_points: Final[dict[_DataPointKey, GenericDataPointProtocolAny]] = {}
         self._translation: Final[str | None] = ccu_translations.get_parameter_translation(

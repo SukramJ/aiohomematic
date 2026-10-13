@@ -85,7 +85,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         super().__init__(
             channel=channel,
             unique_id=unique_id,
-            is_in_multiple_channels=hmed.is_multi_channel_device(model=channel.device.model, category=self.category),
+            is_in_multiple_channels=hmed.is_multi_channel_device(device=channel.device, category=self.category),
         )
         self._allow_undefined_generic_data_points: Final[bool] = channel_group.allow_undefined_generic_data_points
         self._data_points: Final[dict[Field, GenericDataPointProtocolAny]] = {}

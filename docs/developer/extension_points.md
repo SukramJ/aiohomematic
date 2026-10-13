@@ -28,7 +28,7 @@ Custom device profiles are used when a specific device (model) requires a bespok
   - `ExtendedDeviceConfig`: Extended configuration with additional fields
 - **aiohomematic.model.custom.definition**
   - `make_custom_data_point(channel, data_point_class, device_profile, custom_config)`: Factory function
-  - `is_multi_channel_device(model, category)`: Check for multi-channel devices
+  - `is_multi_channel_device(device, category)`: Check for multi-channel devices (only registered channels the device actually has count)
   - `get_custom_configs(model, category)`: Get configurations for a model
 - **aiohomematic.model.custom.data_point.CustomDataPoint**: Base implementation that:
   - Groups multiple generic data points, sets visibility, service flags, etc.

@@ -48,6 +48,7 @@ class _FakeDevice:
         self.name = "DeviceName"
         self.client = type("Client", (), {"interface": None})()
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
+        self.channels: dict[str, _FakeChannel] = {}
         self.config_provider = type("ConfigProviderProtocol", (), {"config": self.central.config})()
         self.central_info = type("CentralInfoProtocol", (), {"name": "CentralTest", "available": True})()
         self.event_bus_provider = type("EventBusProviderProtocol", (), {"event_bus": self.central.event_bus})()
@@ -103,6 +104,7 @@ class _FakeChannel:
         self.address = f"{device.address}:{no}"
         self.type_name = "FAKE_CHANNEL_TYPE"
         self._store: dict[tuple[str, ParamsetKey | None], _FakeGenericDP] = {}
+        device.channels[self.address] = self
 
     def get_generic_data_point(self, *, parameter: str, paramset_key: ParamsetKey | None):
         key = (parameter, paramset_key)

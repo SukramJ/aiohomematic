@@ -70,6 +70,7 @@ class FakeDevice:
         self.name = "DeviceName"
         self.client = type("Client", (), {"interface": None})()
         self._store: dict[tuple[str, ParamsetKey | None], FakeGenericDP] = {}
+        self.channels: dict[str, FakeChannel] = {}
         # Add protocol interface attributes for DI
         self.config_provider = type("ConfigProviderProtocol", (), {"config": self.central.config})()
         self.central_info = type("CentralInfoProtocol", (), {"name": "CentralTest", "available": True})()
@@ -177,6 +178,7 @@ class FakeChannel:
         self.name = f"FakeChannel {address}"
         self.type_name = "FAKE_CHANNEL_TYPE"
         self._store: dict[tuple[str, ParamsetKey | None], FakeGenericDP] = {}
+        self.device.channels[address] = self
 
     def add_fake(self, dp: FakeGenericDP) -> None:
         """Add a data point on channel level."""

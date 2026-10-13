@@ -10,6 +10,12 @@
   each off/on cycle switched the light on a little darker (e.g. 40 % → 36 % after six
   cycles on an HM-LC-Dim1T-FM). Values that differ from a still unconfirmed command are no
   longer tracked as the last value; the commanded value is tracked instead (#3445).
+- **Both channels of the 2-channel HB-LC-Bl1-Velux become covers.** Only channel 1 was
+  registered as a cover, so the second actuator channel of the 2-channel variant was
+  missing. Channels 1 and 2 are now registered. Whether a custom data point counts as
+  multi-channel (and gets a `ch<n>` suffix in its name) now depends on the registered
+  channels the device actually has, so the 1-channel variant keeps its current name
+  (#3447).
 
 # Version 2026.10.4 (2026-10-07)
 

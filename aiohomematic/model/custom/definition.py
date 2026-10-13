@@ -291,10 +291,18 @@ def get_required_parameters() -> tuple[Parameter, ...]:
     return tuple(sorted(set(required_parameters)))
 
 
-def is_multi_channel_device(*, model: str, category: DataPointCategory) -> bool:
-    """Return true if device has multiple channels for the given category."""
-    device_configs = DeviceProfileRegistry.get_configs(model=model, category=category)
+def is_multi_channel_device(*, device: DeviceProtocol, category: DataPointCategory) -> bool:
+    """
+    Return true if device has multiple channels for the given category.
+
+    Only registered channels that exist on the device are counted, so a model
+    registered for more channels than a variant provides keeps single-channel naming.
+    """
+    device_configs = DeviceProfileRegistry.get_configs(model=device.model, category=category)
+    existing_channel_nos = {channel.no for channel in device.channels.values()}
     channels: list[int | None] = []
     for config in device_configs:
-        channels.extend(config.channels)
+        channels.extend(
+            channel_no for channel_no in config.channels if channel_no is None or channel_no in existing_channel_nos
+        )
     return len(channels) > 1

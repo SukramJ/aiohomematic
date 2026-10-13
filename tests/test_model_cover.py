@@ -5,6 +5,7 @@
 import asyncio
 from datetime import datetime
 import logging
+from types import SimpleNamespace
 from typing import cast
 from unittest.mock import DEFAULT, call
 
@@ -20,10 +21,19 @@ from aiohomematic.const import (
     GarageDoorState,
     ParamsetKey,
 )
+from aiohomematic.interfaces import DeviceProtocol
 from aiohomematic.model.combined import CombinedDpGarageDoorMode
-from aiohomematic.model.custom import CustomDpBlind, CustomDpCover, CustomDpGarage, CustomDpIpBlind, CustomDpWindowDrive
+from aiohomematic.model.custom import (
+    CustomDpBlind,
+    CustomDpCover,
+    CustomDpGarage,
+    CustomDpIpBlind,
+    CustomDpWindowDrive,
+    DeviceProfileRegistry,
+)
 from aiohomematic.model.custom.capabilities.cover import BLIND_CAPABILITIES, COVER_CAPABILITIES, GARAGE_CAPABILITIES
 from aiohomematic.model.custom.cover import _CLOSED_LEVEL, _OPEN_LEVEL, _OPEN_TILT_LEVEL, _WD_CLOSED_LEVEL
+from aiohomematic.model.custom.definition import is_multi_channel_device
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -293,6 +303,53 @@ class TestCustomDpCover:
         cover._dp_level._set_refreshed_at(refreshed_at=datetime.now())
         # The cover must be valid even though DIRECTION/GROUP_LEVEL never refreshed.
         assert cover.is_valid is True
+
+    @pytest.mark.parametrize(
+        ("channel_nos", "expected"),
+        [
+            ((None, 0, 1), False),
+            ((None, 0, 1, 2), True),
+        ],
+    )
+    def test_velux_multi_channel_naming_follows_existing_channels(
+        self, channel_nos: tuple[int | None, ...], expected: bool
+    ) -> None:
+        """Only the 2-channel HB-LC-Bl1-Velux variant gets channel suffixes in its names (#3447)."""
+        device = SimpleNamespace(
+            model="HB-LC-Bl1-Velux",
+            channels={f"VCU8033008:{no}": SimpleNamespace(no=no) for no in channel_nos},
+        )
+        assert (
+            is_multi_channel_device(device=cast(DeviceProtocol, device), category=DataPointCategory.COVER) is expected
+        )
+
+    def test_velux_registers_both_channels(self) -> None:
+        """HB-LC-Bl1-Velux exists as a 2-channel variant; both channels must get a cover (#3447)."""
+        configs = DeviceProfileRegistry.get_configs(model="HB-LC-Bl1-Velux", category=DataPointCategory.COVER)
+        assert [channel for config in configs for channel in config.channels] == [1, 2]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({"VCU8033008"}, True, None, None),
+        ],
+    )
+    async def test_velux_single_channel_variant_keeps_name(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """The 1-channel HB-LC-Bl1-Velux must not get a channel suffix in its name (#3447)."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        cover = cast(CustomDpCover, get_prepared_custom_data_point(central, "VCU8033008", 1))
+        assert cover.is_in_multiple_channels is False
+        assert cover.full_name == cover.device.name
+        assert get_prepared_custom_data_point(central, "VCU8033008", 2) is None
 
 
 class TestCustomDpWindowDrive:

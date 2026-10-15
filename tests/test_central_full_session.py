@@ -37,7 +37,7 @@ class TestCentralFullSession:
         assert central.model == "GoDevCCU"
         assert central.client_coordinator.get_client(interface_id=const.INTERFACE_ID).model == "GoDevCCU"
         assert central.client_coordinator.primary_client.model == "GoDevCCU"
-        assert len(central.device_registry.devices) == 399
+        assert len(central.device_registry.devices) == 400
 
         data = {}
         for device in central.device_registry.devices:
@@ -174,20 +174,20 @@ class TestCentralFullSession:
             if dev.model == "HM-CC-VG-1":
                 pass
 
-        assert usage_types[DataPointUsage.CDP_PRIMARY] == 298
+        assert usage_types[DataPointUsage.CDP_PRIMARY] == 300
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 166
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 220
-        assert usage_types[DataPointUsage.DATA_POINT] == 4401
-        assert usage_types[DataPointUsage.NO_CREATE] == 4593
+        assert usage_types[DataPointUsage.DATA_POINT] == 4405
+        assert usage_types[DataPointUsage.NO_CREATE] == 4602
 
         assert len(ce_channels) == 138
         assert len(data_point_types) == 6
         assert len(parameters) == 272
 
-        assert len(central.device_registry.devices) == 399
+        assert len(central.device_registry.devices) == 400
         virtual_remotes = ["VCU4264293", "VCU0000057", "VCU0000001"]
         await central.device_coordinator.delete_devices(interface_id=const.INTERFACE_ID, addresses=virtual_remotes)
-        assert len(central.device_registry.devices) == 396
+        assert len(central.device_registry.devices) == 397
         del_addresses = list(
             central.cache_coordinator.device_descriptions.get_device_descriptions(interface_id=const.INTERFACE_ID)
         )

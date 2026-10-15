@@ -18,7 +18,8 @@ as the source of truth and only fall back to this file for orientation.
 10. [Key Conventions](#key-conventions)
 11. [Implementation Policy](#implementation-policy)
 12. [Interaction Protocol](#interaction-protocol)
-13. [Tips for AI Assistants](#tips-for-ai-assistants)
+13. [Token Use](#token-use)
+14. [Tips for AI Assistants](#tips-for-ai-assistants)
 
 ---
 
@@ -654,6 +655,43 @@ Non-negotiable rules for how the assistant works with the user:
    broke.
 5. **Learn from corrections** — identify the root cause, and update memory when a pattern
    recurs.
+
+---
+
+## Token Use
+
+Set by the owner on 2026-10-15, modelled on the same rules in
+[go-fabric](https://github.com/SukramJ/go-fabric/pull/116). Efficient token use is a standing
+requirement; the rules below keep a task from costing twice what it needs.
+
+- **Read slices, not files.** `sed -n a,bp`, `grep -n` with a tight pattern and `head`; a whole
+  file only when the task is the file. Never re-read what is already in context; cite the earlier
+  read.
+- **Delegate first reads.** Surveying a large area (this repo, godevccu, openccu-data, the
+  Homematic(IP) Local integration) goes to an `Explore` agent that answers with `file:line` for
+  every fact. Its result is a map, never a citation: verify the load-bearing lines before a fact
+  goes into code, a test, an ADR, a changelog entry or a reply on GitHub.
+- **Logs by their summary.** The full suite (`pytest tests/`, several minutes) and
+  `prek run --all-files` run in the background with their output written to a file once; read the
+  summary line, and on failure `grep` the file for `FAILED`, `ERROR`, `^E ` and `file:line` —
+  never `cat` it, never re-run a suite just to see a different slice of its output. Use
+  `pytest --lf --co -q` to list what failed. Compare against `main` before treating a failure as
+  caused by the change: local environment failures (translations, godevccu/OpenCCU fixtures) are
+  known baseline. The same for CI: fetch the job log once to a file and grep it.
+- **One turn, every independent call.** Reads, checks and background starts that do not depend on
+  each other go out together; a wait is a background command or `Monitor`, not polling by hand.
+- **Short artefacts.** PR bodies name the change, the decisions and the tests; changelog entries
+  are one bullet; replies on GitHub issues and discussions are short and ask for exactly what is
+  needed; status messages to the owner are short, outcome first, in German.
+- **Skip what cannot have changed.** No test run for a docs-only change, no session re-recording
+  when the godevccu data did not change, no second full suite for a changelog-only commit — run
+  the targeted tests and the hooks of the touched files instead, and say what was skipped and why.
+- **Edit by script.** Several replacements in several files are one scripted call with asserted
+  anchors, not a chain of interactive edits; a generated or recorded file
+  (`full_session_godevccu.zip`, translation catalogs) is regenerated, never patched by hand.
+- **Agents read what the brief names.** A delegated agent gets the file list and the question,
+  reads those and reports in a fixed shape; it does not survey the tree. One agent per question;
+  several only for disjoint work.
 
 ---
 

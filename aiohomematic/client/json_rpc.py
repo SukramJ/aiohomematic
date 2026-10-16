@@ -39,7 +39,7 @@ import logging
 from pathlib import Path
 import re
 from ssl import SSLContext
-from typing import Any, Final
+from typing import Any, Final, NamedTuple
 from urllib.parse import unquote
 
 from aiohttp import (
@@ -241,6 +241,13 @@ def _resolve_msg_type_name(*, msg_type: int) -> str:
     return translated if not translated.startswith("message.type.") else str(msg_type)
 
 
+class _ProgramDetails(NamedTuple):
+    """Represent the program details that Program.getAll does not return."""
+
+    descriptions: Mapping[str, str]
+    copy_ids: frozenset[str]
+
+
 @unique
 class _JsonKey(StrEnum):
     """Enum for Homematic json keys."""
@@ -269,6 +276,7 @@ class _JsonKey(StrEnum):
     INTERFACE = "interface"
     INTERNAL = "internal"
     IS_ACTIVE = "isActive"
+    IS_COPY = "isCopy"
     IS_HA_APP = "is_ha_app"
     IS_INTERNAL = "isInternal"
     KEY = "key"
@@ -964,8 +972,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
 
         _LOGGER.debug("GET_ALL_PROGRAMS: Getting all programs")
         if json_result := response[_JsonKey.RESULT]:
-            descriptions = await self._get_program_descriptions()
+            details = await self._get_program_details()
             for prog in json_result:
+                # The WebUI editor works on a copy of the program; it is not a program of its own.
+                if (pid := prog[_JsonKey.ID]) in details.copy_ids:
+                    continue
                 enabled_default = False
                 if (is_internal := prog[_JsonKey.IS_INTERNAL]) is True:
                     if markers:
@@ -975,8 +986,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     elif DEFAULT_INCLUDE_INTERNAL_PROGRAMS is False:
                         continue
 
-                pid = prog[_JsonKey.ID]
-                description = descriptions.get(pid)
+                description = details.descriptions.get(pid)
                 if not is_internal and markers:
                     if not element_matches_key(
                         search_elements=markers,
@@ -2079,9 +2089,10 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             raw_data = (await response.read()).decode(encoding=UTF_8)
             return compat.loads(data=_sanitize_json_control_chars(data=raw_data))
 
-    async def _get_program_descriptions(self) -> Mapping[str, str]:
-        """Get all program descriptions from the backend via script."""
+    async def _get_program_details(self) -> _ProgramDetails:
+        """Get all program descriptions and the ids of editor copies from the backend via script."""
         descriptions: dict[str, str] = {}
+        copy_ids: set[str] = set()
         try:
             response = await self._post_script(script_name=RegaScript.GET_PROGRAM_DESCRIPTIONS)
 
@@ -2091,6 +2102,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     descriptions[data[_JsonKey.ID]] = cleanup_text_from_html_tags(
                         text=unquote(string=data[_JsonKey.DESCRIPTION], encoding=ISO_8859_1)
                     )
+                    if data.get(_JsonKey.IS_COPY) is True:
+                        copy_ids.add(data[_JsonKey.ID])
         except JSONDecodeError as jderr:
             _LOGGER.error(
                 i18n.tr(
@@ -2098,7 +2111,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     reason=extract_exc_args(exc=jderr),
                 )
             )
-        return descriptions
+        return _ProgramDetails(descriptions=descriptions, copy_ids=frozenset(copy_ids))
 
     async def _get_script(self, *, script_name: RegaScript) -> str | None:
         """Return a script from the script cache. Load if required."""

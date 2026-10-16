@@ -1,3 +1,14 @@
+# Version 2026.10.6 (2026-10-16)
+
+## What's Changed
+
+### Fixed
+
+- **Programs opened in the CCU WebUI editor no longer appear twice.** The WebUI edits a
+  copy of the program (same name, inactive), and `Program.getAll` returns that copy like
+  any other program, so every program refresh added a second button and switch. Copies
+  (`ProgramCopyID() != ID_ERROR`) are now skipped, as the WebUI program list does.
+
 # Version 2026.10.5 (2026-10-10)
 
 ## What's Changed

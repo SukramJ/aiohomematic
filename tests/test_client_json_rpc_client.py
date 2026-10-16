@@ -14,7 +14,13 @@ import pytest
 
 from aiohomematic import central as hmcu, compat
 from aiohomematic.client import AioJsonRpcAioHttpClient
-from aiohomematic.client.json_rpc import _get_params, _JsonKey, _JsonRpcMethod, _sanitize_json_control_chars
+from aiohomematic.client.json_rpc import (
+    _get_params,
+    _JsonKey,
+    _JsonRpcMethod,
+    _ProgramDetails,
+    _sanitize_json_control_chars,
+)
 from aiohomematic.const import (
     UTF_8,
     DescriptionMarker,
@@ -719,10 +725,10 @@ class TestJsonRpcClientOperations:
     """Test JSON-RPC client device and system variable operations."""
 
     @pytest.mark.asyncio
-    async def test__get_program_descriptions_handles_jsondecodeerror(
+    async def test__get_program_details_handles_jsondecodeerror(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """_get_program_descriptions should swallow JSONDecodeError and return empty mapping."""
+        """_get_program_details should swallow JSONDecodeError and return empty details."""
         conn_state = hmcu.CentralConnectionState()
         client = AioJsonRpcAioHttpClient(
             username="u",
@@ -739,8 +745,8 @@ class TestJsonRpcClientOperations:
 
         monkeypatch.setattr(client, "_post_script", raise_json_decode)
 
-        result = await client._get_program_descriptions()
-        assert result == {}
+        result = await client._get_program_details()
+        assert result == _ProgramDetails(descriptions={}, copy_ids=frozenset())
 
         await client.stop()
 
@@ -935,10 +941,10 @@ class TestJsonRpcClientOperations:
 
         # Programs and system variables
         # Patch description providers first, then call get_all_programs
-        async def fake_prog_desc():
-            return {"p1": "desc"}
+        async def fake_prog_details() -> _ProgramDetails:
+            return _ProgramDetails(descriptions={"p1": "desc"}, copy_ids=frozenset())
 
-        monkeypatch.setattr(client, "_get_program_descriptions", fake_prog_desc)
+        monkeypatch.setattr(client, "_get_program_details", fake_prog_details)
         progs = await client.get_all_programs(markers=())
         assert progs and progs[0].legacy_name == "P"
 
@@ -2133,6 +2139,102 @@ class TestJsonRpcClientNewCoverage:
         await client.stop()
 
     @pytest.mark.asyncio
+    async def test_get_all_programs_keeps_programs_without_copy_flag(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_all_programs keeps every program when the description script carries no isCopy flag."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: [
+                    {
+                        _JsonKey.ID: "p1",
+                        _JsonKey.NAME: "Program",
+                        _JsonKey.IS_ACTIVE: True,
+                        _JsonKey.IS_INTERNAL: False,
+                        _JsonKey.LAST_EXECUTE_TIME: "2026-10-16 19:20:00",
+                    },
+                ],
+            }
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: [{_JsonKey.ID: "p1", _JsonKey.DESCRIPTION: "desc"}]}
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        result = await client.get_all_programs(markers=())
+        assert [(p.pid, p.description) for p in result] == [("p1", "desc")]
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_all_programs_skips_edit_copies(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """get_all_programs skips the copy the CCU WebUI creates while a program is open in the editor."""
+        client = self._make_client(aiohttp_session)
+        client._session_id = "s"  # type: ignore[attr-defined]
+        client._supported_methods = None  # type: ignore[attr-defined]
+
+        async def fake_post(
+            *,
+            method: _JsonRpcMethod,
+            extra_params: Any = None,
+            use_default_params: bool = True,
+            keep_session: bool = True,
+        ) -> dict[str, Any]:
+            # Program.getAll returns the edit copy like any other program: same name, inactive.
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: [
+                    {
+                        _JsonKey.ID: "8627",
+                        _JsonKey.NAME: "Auto_USV_H1_DG",
+                        _JsonKey.IS_ACTIVE: True,
+                        _JsonKey.IS_INTERNAL: False,
+                        _JsonKey.LAST_EXECUTE_TIME: "2026-10-16 19:20:00",
+                    },
+                    {
+                        _JsonKey.ID: "16857",
+                        _JsonKey.NAME: "Auto_USV_H1_DG",
+                        _JsonKey.IS_ACTIVE: False,
+                        _JsonKey.IS_INTERNAL: False,
+                        _JsonKey.LAST_EXECUTE_TIME: "2026-10-16 19:20:00",
+                    },
+                ],
+            }
+
+        async def fake_post_script(
+            *, script_name: str, extra_params: Any = None, keep_session: bool = True
+        ) -> dict[str, Any]:
+            return {
+                _JsonKey.ERROR: None,
+                _JsonKey.RESULT: [
+                    {_JsonKey.ID: "8627", _JsonKey.DESCRIPTION: "", _JsonKey.IS_COPY: False},
+                    {_JsonKey.ID: "16857", _JsonKey.DESCRIPTION: "", _JsonKey.IS_COPY: True},
+                ],
+            }
+
+        monkeypatch.setattr(client, "_post", fake_post)
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        result = await client.get_all_programs(markers=())
+        assert [p.pid for p in result] == ["8627"]
+        await client.stop()
+
+    @pytest.mark.asyncio
     async def test_get_all_programs_with_marker_filters_internal(
         self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -2168,11 +2270,11 @@ class TestJsonRpcClientNewCoverage:
                 ],
             }
 
-        async def fake_prog_desc() -> dict[str, Any]:
-            return {"ext1": "#HAHM# External"}
+        async def fake_prog_details() -> _ProgramDetails:
+            return _ProgramDetails(descriptions={"ext1": "#HAHM# External"}, copy_ids=frozenset())
 
         monkeypatch.setattr(client, "_post", fake_post)
-        monkeypatch.setattr(client, "_get_program_descriptions", fake_prog_desc)
+        monkeypatch.setattr(client, "_get_program_details", fake_prog_details)
 
         # When markers does NOT include INTERNAL, internal programs are excluded
         result = await client.get_all_programs(markers=(DescriptionMarker.HAHM,))

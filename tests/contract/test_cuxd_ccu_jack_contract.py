@@ -41,6 +41,7 @@ from aiohomematic.const import (
     INTERFACES_REQUIRING_XML_RPC,
     INTERFACES_SKIPPING_INIT_GETVALUE_FALLBACK,
     INTERFACES_SUPPORTING_RPC_CALLBACK,
+    PRIMARY_CLIENT_CANDIDATE_INTERFACES,
     Interface,
     get_json_rpc_default_port,
 )
@@ -90,6 +91,17 @@ class TestCuxdCcuJackInterfaceClassification:
         assert Interface.CCU_JACK not in INTERFACES_REQUIRING_XML_RPC, (
             "CCU-Jack MUST NOT be in INTERFACES_REQUIRING_XML_RPC"
         )
+
+    def test_cuxd_and_ccu_jack_are_not_primary_client_candidates(self) -> None:
+        """
+        CONTRACT: CUxD and CCU-Jack MUST NOT be primary client candidates.
+
+        REGRESSION: Their backend only carries a dummy serial (e.g. CUxD_SN0815).
+        As primary client it replaced the CCU serial during a cold start while
+        only JSON-RPC answered, and Home Assistant re-anchored all hub entities (#3462).
+        """
+        assert Interface.CUXD not in PRIMARY_CLIENT_CANDIDATE_INTERFACES
+        assert Interface.CCU_JACK not in PRIMARY_CLIENT_CANDIDATE_INTERFACES
 
     def test_cuxd_and_ccu_jack_skip_init_getvalue_fallback(self) -> None:
         """

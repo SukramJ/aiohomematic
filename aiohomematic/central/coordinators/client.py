@@ -549,16 +549,22 @@ class ClientCoordinator(ClientCoordinationProtocol, ClientProviderProtocol):
         """
         Get the primary client.
 
+        Only candidate interfaces qualify. A JSON-only client (CUxD, CCU-Jack) carries a
+        dummy serial and must never stand in for the primary client, e.g. while the CCU
+        is still booting and only JSON-RPC answers (#3462).
+
         Returns
         -------
-            Primary client or None if not found
+            Primary client or None if no candidate client exists
 
         """
-        client: ClientProtocol | None = None
-        for client in self._clients.values():
-            if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES and client.available:
+        candidates = [
+            client for client in self._clients.values() if client.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES
+        ]
+        for client in candidates:
+            if client.available:
                 return client
-        return client
+        return candidates[0] if candidates else None
 
     async def _init_clients(self) -> None:
         """Initialize all clients."""

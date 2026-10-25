@@ -21,8 +21,9 @@ gracefully without affecting other tasks.
 import asyncio
 from collections.abc import Awaitable, Callable
 import contextlib
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
+from time import monotonic
 from typing import Final
 
 from aiohomematic import i18n
@@ -62,14 +63,20 @@ _AsyncTaskFactory = Callable[[], Awaitable[None]]
 
 
 class SchedulerJob:
-    """Represents a scheduled job with interval-based execution."""
+    """
+    Represents a scheduled job with interval-based execution.
+
+    Scheduling uses the monotonic clock, not the wall clock, so a DST change or an
+    NTP correction neither stalls a job for an hour nor makes it run back to back
+    until it has caught up.
+    """
 
     def __init__(
         self,
         *,
         task: _AsyncTaskFactory,
         run_interval: int,
-        next_run: datetime | None = None,
+        next_run: float | None = None,
     ):
         """
         Initialize a scheduler job.
@@ -78,20 +85,20 @@ class SchedulerJob:
         ----
             task: Async callable to execute
             run_interval: Interval in seconds between executions
-            next_run: When to run next (defaults to now)
+            next_run: Monotonic timestamp (``time.monotonic()``) of the next execution (defaults to now)
 
         """
         self._task: Final = task
-        self._next_run = next_run or datetime.now()
+        self._next_run = next_run if next_run is not None else monotonic()
         self._run_interval: Final = run_interval
 
     name: Final = DelegatedProperty[str](path="_task.__name__")
-    next_run: Final = DelegatedProperty[datetime](path="_next_run")
+    next_run: Final = DelegatedProperty[float](path="_next_run")
 
     @property
     def ready(self) -> bool:
         """Return True if the job is ready to execute."""
-        return self._next_run < datetime.now()
+        return self._next_run < monotonic()
 
     async def run(self) -> None:
         """Execute the job's task."""
@@ -99,7 +106,7 @@ class SchedulerJob:
 
     def schedule_next_execution(self) -> None:
         """Schedule the next execution based on run_interval."""
-        self._next_run += timedelta(seconds=self._run_interval)
+        self._next_run += self._run_interval
 
 
 class BackgroundScheduler:
@@ -851,7 +858,7 @@ class BackgroundScheduler:
 
             # Sleep logic: minimize CPU usage when idle
             if not any_executed:
-                now = datetime.now()
+                now = monotonic()
                 try:
                     # Only consider jobs eligible to run in current state
                     eligible_jobs = (
@@ -859,7 +866,7 @@ class BackgroundScheduler:
                     )
                     next_due = min(job.next_run for job in eligible_jobs)
                     # Sleep until the next task, capped at 1s for responsiveness
-                    delay = max(0.0, (next_due - now).total_seconds())
+                    delay = max(0.0, next_due - now)
                     await asyncio.sleep(min(1.0, delay))
                 except ValueError:
                     # No jobs configured; use default sleep

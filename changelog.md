@@ -8,6 +8,11 @@
   copy of the program (same name, inactive), and `Program.getAll` returns that copy like
   any other program, so every program refresh added a second button and switch. Copies
   (`ProgramCopyID() != ID_ERROR`) are now skipped, as the WebUI program list does.
+- **A start while the CCU is still booting no longer reports the CUxD dummy serial.** When
+  only JSON-RPC answered, the CUxD client became the primary client, and
+  `system_information.serial` turned into `CUxD_SN0815`. Home Assistant took that as a CCU
+  serial change and re-anchored all hub and sysvar entities (#3462). Only HmIP-RF, BidCos-RF
+  and BidCos-Wired clients can be the primary client now.
 
 # Version 2026.10.5 (2026-10-10)
 

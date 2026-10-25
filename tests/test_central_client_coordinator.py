@@ -565,6 +565,30 @@ class TestClientCoordinatorLifecycle:
 class TestClientCoordinatorPrimaryClient:
     """Test primary client selection."""
 
+    def test_get_primary_client_ignores_non_candidates(self) -> None:
+        """Primary client must not fall back to a CUxD client while the primary interfaces are down (#3462)."""
+        central = _FakeCentral()
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        cuxd_client = _FakeClient(interface_id="CUxD", interface=Interface.CUXD)
+        coordinator._clients["CUxD"] = cuxd_client  # type: ignore[assignment]
+
+        assert coordinator.primary_client is None
+
+        # Once the primary interface comes up, it becomes the primary client.
+        hmip_client = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
+        coordinator._clients["HmIP-RF"] = hmip_client  # type: ignore[assignment]
+
+        assert coordinator.primary_client is hmip_client
+
     def test_get_primary_client_none_when_no_clients(self) -> None:
         """Primary client should return None when no clients exist."""
         central = _FakeCentral()
@@ -580,6 +604,26 @@ class TestClientCoordinatorPrimaryClient:
 
         primary = coordinator.primary_client
         assert primary is None
+
+    def test_get_primary_client_prefers_available_candidate(self) -> None:
+        """Primary client should prefer an available candidate over an unavailable one."""
+        central = _FakeCentral()
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        unavailable = _FakeClient(interface_id="BidCos-RF", interface=Interface.BIDCOS_RF, available=False)
+        available = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF)
+        coordinator._clients["BidCos-RF"] = unavailable  # type: ignore[assignment]
+        coordinator._clients["HmIP-RF"] = available  # type: ignore[assignment]
+
+        assert coordinator.primary_client is available
 
     def test_get_primary_client_returns_cached(self) -> None:
         """Primary client should return cached client if available."""
@@ -632,6 +676,26 @@ class TestClientCoordinatorPrimaryClient:
         # Should be one of the primary candidates
         assert primary in [client1, client2]  # type: ignore[comparison-overlap]
         assert primary.interface in PRIMARY_CLIENT_CANDIDATE_INTERFACES
+
+    def test_get_primary_client_unavailable_candidate(self) -> None:
+        """Primary client should fall back to an unavailable candidate, never to a non-candidate."""
+        central = _FakeCentral()
+        coordinator = ClientCoordinator(
+            client_factory=central,
+            config_provider=central,
+            central_info=central,
+            coordinator_provider=central,
+            event_bus_provider=central,
+            health_tracker=central.health_tracker,
+            system_info_provider=central,
+        )  # type: ignore[arg-type]
+
+        hmip_client = _FakeClient(interface_id="HmIP-RF", interface=Interface.HMIP_RF, available=False)
+        cuxd_client = _FakeClient(interface_id="CUxD", interface=Interface.CUXD)
+        coordinator._clients["HmIP-RF"] = hmip_client  # type: ignore[assignment]
+        coordinator._clients["CUxD"] = cuxd_client  # type: ignore[assignment]
+
+        assert coordinator.primary_client is hmip_client
 
 
 class TestClientCoordinatorIntegration:

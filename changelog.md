@@ -1,3 +1,15 @@
+# Version 2026.10.7 (2026-10-25)
+
+## What's Changed
+
+### Fixed
+
+- **Scheduled jobs no longer stall or pile up at a DST change.** `SchedulerJob` compared its
+  next run with the naive local wall clock, so the autumn change paused every background job
+  (connection check, hub refresh, metrics) for an hour without a log line, and the spring change
+  made each job run once every loop iteration until it had caught up. Scheduling now uses
+  `time.monotonic()`.
+
 # Version 2026.10.6 (2026-10-16)
 
 ## What's Changed

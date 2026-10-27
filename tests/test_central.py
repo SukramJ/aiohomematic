@@ -4,7 +4,8 @@
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
+from time import monotonic
 from typing import Any
 from unittest.mock import call
 
@@ -1100,7 +1101,7 @@ class TestSchedulerJob:
         marker: dict[str, int] = {}
 
         # Set next_run into the past to ensure "ready" is True.
-        past = datetime.now() - timedelta(seconds=10)
+        past = monotonic() - 10
         job = SchedulerJob(task=_FakeTask(marker), run_interval=5, next_run=past)
 
         assert job.ready is True
@@ -1112,13 +1113,13 @@ class TestSchedulerJob:
 
         # Schedule next execution should advance by run_interval seconds
         job.schedule_next_execution()
-        assert job.next_run == nr1 + timedelta(seconds=5)
+        assert job.next_run == nr1 + 5
 
     @pytest.mark.asyncio
     async def test_scheduler_job_ready_when_next_run_in_future(self) -> None:
         """SchedulerJob should report ready=False when next_run is in the future."""
         marker: dict[str, int] = {}
-        future = datetime.now() + timedelta(seconds=3600)  # 1 hour in future
+        future = monotonic() + 3600  # 1 hour in future
         job = SchedulerJob(task=_FakeTask(marker), run_interval=60, next_run=future)
 
         # Should not be ready

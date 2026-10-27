@@ -3,7 +3,10 @@
 """Test the BackgroundScheduler."""
 
 import asyncio
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
+from time import monotonic
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
@@ -35,26 +38,26 @@ class TestSchedulerJobBasics:
     """Test SchedulerJob core functionality."""
 
     def test_scheduler_job_initialization_with_explicit_next_run(self) -> None:
-        """SchedulerJob should initialize with explicit next_run time."""
+        """SchedulerJob should initialize with explicit next_run timestamp."""
 
         async def dummy_task() -> None:
             pass
 
-        past = datetime.now() - timedelta(seconds=10)
+        past = monotonic() - 10
         job = SchedulerJob(task=dummy_task, run_interval=5, next_run=past)
 
         assert job.next_run == past
         assert job.ready is True
 
     def test_scheduler_job_initialization_without_next_run(self) -> None:
-        """SchedulerJob should use current time as next_run if not specified."""
+        """SchedulerJob should use the current monotonic time as next_run if not specified."""
 
         async def dummy_task() -> None:
             pass
 
-        before = datetime.now()
+        before = monotonic()
         job = SchedulerJob(task=dummy_task, run_interval=60)
-        after = datetime.now()
+        after = monotonic()
 
         # next_run should be between before and after
         assert before <= job.next_run <= after
@@ -65,7 +68,7 @@ class TestSchedulerJobBasics:
         async def dummy_task() -> None:
             pass
 
-        future = datetime.now() + timedelta(seconds=60)
+        future = monotonic() + 60
         job = SchedulerJob(task=dummy_task, run_interval=5, next_run=future)
 
         assert job.ready is False
@@ -76,7 +79,7 @@ class TestSchedulerJobBasics:
         async def dummy_task() -> None:
             pass
 
-        past = datetime.now() - timedelta(seconds=10)
+        past = monotonic() - 10
         job = SchedulerJob(task=dummy_task, run_interval=5, next_run=past)
 
         assert job.ready is True
@@ -100,13 +103,13 @@ class TestSchedulerJobBasics:
         async def dummy_task() -> None:
             pass
 
-        start_time = datetime.now()
+        start_time = monotonic()
         job = SchedulerJob(task=dummy_task, run_interval=30, next_run=start_time)
 
         # Schedule next execution
         job.schedule_next_execution()
 
-        expected = start_time + timedelta(seconds=30)
+        expected = start_time + 30
         assert job.next_run == expected
 
     def test_scheduler_job_schedule_next_execution_multiple(self) -> None:
@@ -115,18 +118,18 @@ class TestSchedulerJobBasics:
         async def dummy_task() -> None:
             pass
 
-        start_time = datetime.now()
+        start_time = monotonic()
         job = SchedulerJob(task=dummy_task, run_interval=10, next_run=start_time)
 
         # Schedule next execution multiple times
         job.schedule_next_execution()
-        assert job.next_run == start_time + timedelta(seconds=10)
+        assert job.next_run == start_time + 10
 
         job.schedule_next_execution()
-        assert job.next_run == start_time + timedelta(seconds=20)
+        assert job.next_run == start_time + 20
 
         job.schedule_next_execution()
-        assert job.next_run == start_time + timedelta(seconds=30)
+        assert job.next_run == start_time + 30
 
 
 class TestBackgroundSchedulerBasics:
@@ -712,7 +715,7 @@ class TestSchedulerJobExecution:
         async def tracking_task() -> None:
             executions.append(datetime.now())
 
-        start_time = datetime.now()
+        start_time = monotonic()
         job = SchedulerJob(task=tracking_task, run_interval=5, next_run=start_time)
 
         # Execute and schedule
@@ -720,7 +723,7 @@ class TestSchedulerJobExecution:
         job.schedule_next_execution()
 
         assert len(executions) == 1
-        assert job.next_run == start_time + timedelta(seconds=5)
+        assert job.next_run == start_time + 5
 
     @pytest.mark.asyncio
     async def test_job_with_async_exception_still_schedules(self) -> None:
@@ -729,7 +732,7 @@ class TestSchedulerJobExecution:
         async def failing_task() -> None:
             raise ValueError("task failed")
 
-        start_time = datetime.now()
+        start_time = monotonic()
         job = SchedulerJob(task=failing_task, run_interval=10, next_run=start_time)
 
         # Run the task (it will raise)
@@ -738,7 +741,7 @@ class TestSchedulerJobExecution:
 
         # But scheduling should still work
         job.schedule_next_execution()
-        assert job.next_run == start_time + timedelta(seconds=10)
+        assert job.next_run == start_time + 10
 
 
 class TestSchedulerLoopExecution:
@@ -779,7 +782,7 @@ class TestSchedulerLoopExecution:
         )
 
         # Replace the connection checker with our test task
-        past_time = datetime.now() - timedelta(seconds=10)
+        past_time = monotonic() - 10
         scheduler._scheduler_jobs[0] = SchedulerJob(
             task=test_task,
             run_interval=1,
@@ -1215,7 +1218,7 @@ class TestSchedulerJobReadiness:
             pass
 
         # Schedule 1 second in the future
-        future_time = datetime.now() + timedelta(seconds=1)
+        future_time = monotonic() + 1
         job = SchedulerJob(task=dummy_task, run_interval=10, next_run=future_time)
 
         # Should not be ready yet
@@ -1249,7 +1252,7 @@ class TestSchedulerJobReadiness:
         async def job2_task() -> None:
             executions["job2"] += 1
 
-        past = datetime.now() - timedelta(seconds=10)
+        past = monotonic() - 10
         job1 = SchedulerJob(task=job1_task, run_interval=5, next_run=past)
         job2 = SchedulerJob(task=job2_task, run_interval=10, next_run=past)
 
@@ -1335,7 +1338,7 @@ class TestSchedulerErrorRecovery:
 
         # But the job should still be schedulable
         job.schedule_next_execution()
-        assert job._next_run > datetime.now()
+        assert job._next_run > monotonic()
 
 
 class TestSchedulerConnectionIssueSleep:
@@ -1374,10 +1377,10 @@ class TestSchedulerConnectionIssueSleep:
         # Set _check_connection job's next_run to the future so it's not ready
         for job in scheduler._scheduler_jobs:
             if job.name == "_check_connection":
-                job._next_run = datetime.now() + timedelta(seconds=1)
+                job._next_run = monotonic() + 1
             else:
                 # Set other jobs' next_run to the past to simulate stale state
-                job._next_run = datetime.now() - timedelta(seconds=60)
+                job._next_run = monotonic() - 60
 
         sleep_delays: list[float] = []
 
@@ -1427,7 +1430,7 @@ class TestSchedulerConnectionIssueSleep:
         scheduler._active_event.set()
 
         # Set all jobs to be ready (next_run in the past)
-        past_time = datetime.now() - timedelta(seconds=60)
+        past_time = monotonic() - 60
         non_connection_jobs = [job for job in scheduler._scheduler_jobs if job.name != "_check_connection"]
         for job in non_connection_jobs:
             job._next_run = past_time
@@ -1435,7 +1438,7 @@ class TestSchedulerConnectionIssueSleep:
         # Also set _check_connection to the future so the loop hits the sleep path
         for job in scheduler._scheduler_jobs:
             if job.name == "_check_connection":
-                job._next_run = datetime.now() + timedelta(seconds=1)
+                job._next_run = monotonic() + 1
 
         async def stop_after_one_iteration(delay: float) -> None:
             scheduler._active_event.clear()
@@ -1446,3 +1449,70 @@ class TestSchedulerConnectionIssueSleep:
         # Skipped jobs should have advanced their next_run past the original time
         for job in non_connection_jobs:
             assert job._next_run > past_time, f"Job {job.name} did not advance its next_run after being skipped"
+
+
+class TestSchedulerJobClockIndependence:
+    """Job readiness must not depend on wall-clock jumps (DST, NTP corrections)."""
+
+    @staticmethod
+    @contextmanager
+    def _clocks(*, wall: datetime, mono: float) -> Iterator[None]:
+        """Pin the scheduler's wall clock and monotonic clock."""
+        fake_wall = MagicMock()
+        fake_wall.now.return_value = wall
+        with (
+            patch("aiohomematic.central.scheduler.datetime", fake_wall),
+            patch("aiohomematic.central.scheduler.monotonic", return_value=mono, create=True),
+        ):
+            yield
+
+    def test_job_does_not_catch_up_when_wall_clock_jumps_forward(self) -> None:
+        """Spring DST: the wall clock jumps ahead an hour, the job must not run back to back."""
+
+        async def dummy_task() -> None:
+            pass
+
+        wall_start = datetime(2026, 3, 29, 1, 59, 50)  # CET, 10 s before the jump to CEST
+        mono_start = 1000.0
+        with self._clocks(wall=wall_start, mono=mono_start):
+            job = SchedulerJob(task=dummy_task, run_interval=15)
+
+        # First regular run one second later.
+        with self._clocks(wall=wall_start + timedelta(seconds=1), mono=mono_start + 1):
+            ready_before = job.ready
+            job.schedule_next_execution()
+            ready_after = job.ready
+        assert ready_before is True
+        assert ready_after is False
+
+        # 16 s after that, the wall clock has been set forward by one hour (02:00 CET -> 03:00 CEST).
+        with self._clocks(wall=wall_start + timedelta(seconds=17) + timedelta(hours=1), mono=mono_start + 17):
+            ready_before = job.ready
+            job.schedule_next_execution()
+            ready_after = job.ready
+        assert ready_before is True
+        # Only one interval has elapsed, so the job must wait for the next one.
+        assert ready_after is False
+
+    def test_job_stays_ready_when_wall_clock_jumps_back(self) -> None:
+        """Autumn DST: the wall clock jumps back an hour, the job must still fire after its interval."""
+
+        async def dummy_task() -> None:
+            pass
+
+        wall_start = datetime(2026, 10, 25, 2, 59, 30)  # CEST, 30 s before the jump to CET
+        mono_start = 1000.0
+        with self._clocks(wall=wall_start, mono=mono_start):
+            job = SchedulerJob(task=dummy_task, run_interval=15)
+
+        # First regular run one second later.
+        with self._clocks(wall=wall_start + timedelta(seconds=1), mono=mono_start + 1):
+            ready_before = job.ready
+            job.schedule_next_execution()
+            ready_after = job.ready
+        assert ready_before is True
+        assert ready_after is False
+
+        # 16 s after that, the wall clock has been set back by one hour (03:00 CEST -> 02:00 CET).
+        with self._clocks(wall=wall_start + timedelta(seconds=17) - timedelta(hours=1), mono=mono_start + 17):
+            assert job.ready is True

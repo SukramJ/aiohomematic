@@ -74,9 +74,11 @@ at run time, so the check cannot drift away from the templates, and reports:
 - `no-raw-data` — no uploaded file; reported only alongside a form violation, since the
   analyzer already covers it on its own
 
-On a violation the issue gets the `invalid-template` label and one explanatory comment.
-**Closing is off by default**; set the repository variable `AUTO_CLOSE_INVALID_TEMPLATE` to
-`true`, or use the `auto_close` input of a manual run. Maintainers (`OWNER`/`MEMBER`/
+On a violation the issue gets the `invalid-template` label, one explanatory comment, and is
+**closed as not planned right away**. Editing the issue later does not reopen it; the comment
+asks for a new issue through the form. To only label and comment, set the repository variable
+`AUTO_CLOSE_INVALID_TEMPLATE` to `false`, or untick the `auto_close` input of a manual run.
+Maintainers (`OWNER`/`MEMBER`/
 `COLLABORATOR`) and issues labeled `skip-template-check` are exempt.
 
 ## Setup

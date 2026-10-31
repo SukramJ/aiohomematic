@@ -20,7 +20,8 @@ Violations detected:
 - ``no-raw-data`` - neither a diagnostics nor a log file is attached (uploaded file).
 
 Behavior on violation: label the issue ``invalid-template``, post one explanatory
-comment, and - only when AUTO_CLOSE=true - close it as not planned.
+comment, and close it as not planned. The workflow sets AUTO_CLOSE=true unless the
+repository variable AUTO_CLOSE_INVALID_TEMPLATE is "false"; then the issue stays open.
 """
 
 from __future__ import annotations
@@ -71,6 +72,7 @@ MAX_DRIFT_MISSING: Final = 1
 # Link targets used in the comment
 AI_POLICY_URL: Final = "https://github.com/SukramJ/aiohomematic/blob/main/AI_POLICY.md#stop--hard-precondition-for-bug-reports"
 NEW_ISSUE_URL: Final = "https://github.com/SukramJ/aiohomematic/issues/new/choose"
+DISCUSSIONS_URL: Final = "https://github.com/SukramJ/aiohomematic/discussions"
 DEBUG_DATA_URL: Final = "https://sukramj.github.io/aiohomematic/contributor/testing/debug_data_importance/"
 
 
@@ -213,7 +215,22 @@ def format_comment(check: TemplateCheck, *, auto_closed: bool) -> str:
     is_german = check.language == "de"
     texts = _VIOLATION_TEXT_DE if is_german else _VIOLATION_TEXT_EN
 
-    if is_german:
+    if auto_closed and is_german:
+        comment = f"{COMMENT_MARKER}\n## 🔒 Geschlossen: Issue-Formular nicht verwendet\n\n"
+        comment += (
+            "Dieses Issue wurde automatisch geschlossen, weil es nicht über das Issue-Formular "
+            "angelegt wurde. Das Formular stellt sicher, dass jeder Bericht die Angaben enthält, "
+            "ohne die sich ein Fehler nicht nachvollziehen lässt: Versionen, die Diagnose-`.json` "
+            "und das unveränderte Debug-Log.\n\nFestgestellt:\n\n"
+        )
+    elif auto_closed:
+        comment = f"{COMMENT_MARKER}\n## 🔒 Closed: issue form not used\n\n"
+        comment += (
+            "This issue was closed automatically because it was not filed through the issue form. "
+            "The form makes sure every report carries the information a bug cannot be traced "
+            "without: versions, the diagnostics `.json` and the unfiltered debug log.\n\nFound:\n\n"
+        )
+    elif is_german:
         comment = f"{COMMENT_MARKER}\n## ⚠️ Issue-Formular nicht verwendet\n\n"
         comment += "Dieses Issue kann so nicht bearbeitet werden:\n\n"
     else:
@@ -231,11 +248,34 @@ def format_comment(check: TemplateCheck, *, auto_closed: bool) -> str:
             comment += f"- `{label}`\n"
         comment += "\n"
 
-    if is_german:
+    if auto_closed and is_german:
+        comment += (
+            f"**So geht es weiter:** Bitte ein **neues** Issue über das [Formular]({NEW_ISSUE_URL}) im "
+            f"Browser anlegen, mit Diagnose-`.json` und unverändertem Debug-Log als Dateianhang "
+            f"([warum diese Daten nötig sind]({DEBUG_DATA_URL})). Dieses Issue zu bearbeiten öffnet "
+            f"es nicht wieder.\n\n"
+        )
+    elif auto_closed:
+        comment += (
+            f"**Next step:** please open a **new** issue through the [issue form]({NEW_ISSUE_URL}) in "
+            f"the browser, with the diagnostics `.json` and the unfiltered debug log attached as files "
+            f"([why we need that data]({DEBUG_DATA_URL})). Editing this issue does not reopen it.\n\n"
+        )
+    elif is_german:
         comment += (
             f"**So geht es weiter:** Bitte das [Formular]({NEW_ISSUE_URL}) im Browser ausfüllen und "
             f"absenden — mit Diagnose-`.json` und unverändertem Debug-Log als Dateianhang "
             f"([warum diese Daten nötig sind]({DEBUG_DATA_URL})).\n\n"
+        )
+    else:
+        comment += (
+            f"**Next step:** please fill in the [issue form]({NEW_ISSUE_URL}) in the browser and submit "
+            f"it there — with the diagnostics `.json` and the unfiltered debug log attached as files "
+            f"([why we need that data]({DEBUG_DATA_URL})).\n\n"
+        )
+
+    if is_german:
+        comment += (
             f"**Falls dieser Bericht von einem KI-Werkzeug erstellt wurde:** In "
             f"[AI_POLICY.md]({AI_POLICY_URL}) steht die verbindliche Vorbedingung — ohne beide Dateien "
             f"darf das Issue nicht angelegt werden, und das Formular darf nicht umgangen oder "
@@ -243,9 +283,6 @@ def format_comment(check: TemplateCheck, *, auto_closed: bool) -> str:
         )
     else:
         comment += (
-            f"**Next step:** please fill in the [issue form]({NEW_ISSUE_URL}) in the browser and submit "
-            f"it there — with the diagnostics `.json` and the unfiltered debug log attached as files "
-            f"([why we need that data]({DEBUG_DATA_URL})).\n\n"
             f"**If this report was produced by an AI tool:** "
             f"[AI_POLICY.md]({AI_POLICY_URL}) states the binding precondition — without both files the "
             f"issue must not be opened, and the form must not be bypassed or reworded.\n\n"
@@ -253,9 +290,9 @@ def format_comment(check: TemplateCheck, *, auto_closed: bool) -> str:
 
     if auto_closed:
         comment += (
-            "_Dieses Issue wurde automatisch geschlossen. Ein neues Issue über das Formular ist jederzeit willkommen._\n"
+            f"_Fragen und Ideen gehören in die [Diskussionen]({DISCUSSIONS_URL})._\n"
             if is_german
-            else "_This issue was closed automatically. A new issue filed through the form is welcome at any time._\n"
+            else f"_Questions and ideas belong in the [Discussions]({DISCUSSIONS_URL})._\n"
         )
     else:
         comment += (

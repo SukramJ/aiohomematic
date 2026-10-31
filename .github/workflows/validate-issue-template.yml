@@ -14,7 +14,7 @@ on:
         description: 'Close the issue when the form was not honored'
         required: false
         type: boolean
-        default: false
+        default: true
 
 permissions:
   issues: write
@@ -37,9 +37,9 @@ jobs:
         run: |
           pip install PyGithub PyYAML
 
-      # AUTO_CLOSE is off by default: the check labels the issue and explains what is
-      # missing, but leaves it open. Flip it by setting the repository variable
-      # AUTO_CLOSE_INVALID_TEMPLATE to "true", or per run via the workflow_dispatch input.
+      # AUTO_CLOSE is on by default: an issue that bypasses the form is labelled, gets one
+      # explanatory comment and is closed as not planned, as AI_POLICY.md announces. Set the
+      # repository variable AUTO_CLOSE_INVALID_TEMPLATE to "false" to only label and comment.
       - name: Validate issue against the issue form
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -47,6 +47,6 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body || '' }}
           AUTHOR_ASSOCIATION: ${{ github.event.issue.author_association || '' }}
           REPO_NAME: ${{ github.repository }}
-          AUTO_CLOSE: ${{ github.event.inputs.auto_close || vars.AUTO_CLOSE_INVALID_TEMPLATE || 'false' }}
+          AUTO_CLOSE: ${{ github.event.inputs.auto_close || vars.AUTO_CLOSE_INVALID_TEMPLATE || 'true' }}
         run: |
           python .github/scripts/check_issue_template.py

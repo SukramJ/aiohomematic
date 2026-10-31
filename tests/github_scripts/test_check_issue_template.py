@@ -204,6 +204,22 @@ def test_format_comment_german() -> None:
     comment = checker.format_comment(check, auto_closed=True)
     assert "Issue-Formular nicht verwendet" in comment
     assert "automatisch geschlossen" in comment
+    assert "öffnet es nicht wieder" in comment
+    assert "bleibt bis dahin offen" not in comment
+
+
+def test_format_comment_auto_closed_asks_for_a_new_issue() -> None:
+    """Tell the reporter the issue is closed and that only a new issue through the form helps."""
+    check = checker.check_issue_body(_body(_REQUIRED[:3], attachment=False), required_labels=_REQUIRED, language="en")
+    comment = checker.format_comment(check, auto_closed=True)
+    assert comment.startswith(f"{checker.COMMENT_MARKER}\n## 🔒 Closed")
+    assert "closed automatically" in comment
+    assert "does not reopen" in comment
+    assert checker.NEW_ISSUE_URL in comment
+    assert checker.DISCUSSIONS_URL in comment
+    assert "AI_POLICY.md" in comment
+    assert comment.count("- ❌") == len(check.violations)
+    assert "stays open" not in comment
 
 
 def test_format_comment_names_unchecked_labels() -> None:

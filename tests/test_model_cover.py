@@ -1669,6 +1669,59 @@ class TestCustomDpIpBlindTiltOnly:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_tilt_only_after_half_percent_echo_does_not_stop(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Replay of the Atelier sequence from discussion #3473 on a HmIP-FBL.
+
+        The level echo 0.025 is the reached target of the sent L=2 (0.5 % device grid); otherwise
+        the next tilt-only command treats the blind as moving and sends STOP plus the stale target.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(
+            CustomDpIpBlind, get_prepared_custom_data_point(central=central, address="VCU1223813", channel_no=4)
+        )
+        for channel in ("VCU1223813:3", "VCU1223813:4"):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel, parameter="LEVEL", value=0.025
+            )
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel, parameter="LEVEL_2", value=0.5
+            )
+
+        await cover.set_position(tilt_position=75)
+        assert mock_client.method_calls[-1].kwargs["value"] == "L2=75,L=2"
+
+        for channel in ("VCU1223813:3", "VCU1223813:4"):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel, parameter="LEVEL_2", value=0.75
+            )
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address=channel, parameter="LEVEL", value=0.025
+            )
+        assert cover._target_level is None
+        assert cover._target_tilt_level is None
+
+        calls_before = len(mock_client.method_calls)
+        await cover.set_position(tilt_position=50)
+        new_calls = mock_client.method_calls[calls_before:]
+        assert [c.kwargs["parameter"] for c in new_calls] == ["COMBINED_PARAMETER"]
+        assert new_calls[0].kwargs["value"] == "L2=50,L=2"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_tilt_only_din_rail_sends_keep_level(
         self,
         central_client_factory_with_homegear_client,

@@ -53,7 +53,14 @@ _MAX_LEVEL_POSITION: Final = 100.0
 _MIN_LEVEL_POSITION: Final = 0.0
 _OPEN_LEVEL: Final = 1.0
 _OPEN_TILT_LEVEL: Final = 1.0
+# Levels are sent in whole percent but reported on a 0.5 % grid (discussion #3473).
+_LEVEL_REACHED_TOLERANCE: Final = 0.005
 _WD_CLOSED_LEVEL: Final = -0.005
+
+
+def _is_level_reached(*, target: float, current: float | None) -> bool:
+    """Return whether the reported level matches the sent whole-percent target on the device grid."""
+    return current is not None and round(abs(target - current), 6) <= _LEVEL_REACHED_TOLERANCE
 
 
 @unique
@@ -308,7 +315,9 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
             return float(self._dp_level.value)
 
         # Fallback to CommandTracker (when optimistic updates disabled)
-        if (last_value_send := self._dp_level.unconfirmed_last_value_send) is not None:
+        if (last_value_send := self._dp_level.unconfirmed_last_value_send) is not None and not _is_level_reached(
+            target=float(last_value_send), current=self._dp_level.value
+        ):
             return float(last_value_send)
 
         return None
@@ -327,7 +336,9 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
             return float(self._dp_level_2.value)
 
         # Fallback to CommandTracker (when optimistic updates disabled)
-        if (last_value_send := self._dp_level_2.unconfirmed_last_value_send) is not None:
+        if (last_value_send := self._dp_level_2.unconfirmed_last_value_send) is not None and not _is_level_reached(
+            target=float(last_value_send), current=self._dp_level_2.value
+        ):
             return float(last_value_send)
 
         return None

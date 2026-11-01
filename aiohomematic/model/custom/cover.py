@@ -310,8 +310,10 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
         CommandTracker for backward compatibility when optimistic updates
         are disabled.
         """
-        # Prefer optimistic value (new mechanism)
+        # Prefer optimistic value (new mechanism); an unchanged height is no pending target
         if self._dp_level.is_optimistic and self._dp_level.value is not None:
+            if _is_level_reached(target=float(self._dp_level.value), current=self._dp_level.optimistic_previous_value):
+                return None
             return float(self._dp_level.value)
 
         # Fallback to CommandTracker (when optimistic updates disabled)
@@ -331,8 +333,12 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
         CommandTracker for backward compatibility when optimistic updates
         are disabled.
         """
-        # Prefer optimistic value (new mechanism)
+        # Prefer optimistic value (new mechanism); an unchanged tilt is no pending target
         if self._dp_level_2.is_optimistic and self._dp_level_2.value is not None:
+            if _is_level_reached(
+                target=float(self._dp_level_2.value), current=self._dp_level_2.optimistic_previous_value
+            ):
+                return None
             return float(self._dp_level_2.value)
 
         # Fallback to CommandTracker (when optimistic updates disabled)

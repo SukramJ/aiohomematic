@@ -1826,3 +1826,51 @@ class TestCustomDpIpBlindTiltOnly:
             priority=CommandPriority.HIGH,
             retry=True,
         )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_tilt_only_optimistic_path_does_not_stop(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Tilt-only on a HmIP-HDM (put_paramset) while an unchanged optimistic LEVEL is unconfirmed.
+
+        put_paramset resends the current height. If the device does not echo the unchanged LEVEL,
+        the optimistic value must not make the next tilt-only command treat the standstill blind as
+        moving (STOP plus stale target, discussion #3473).
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(
+            CustomDpIpBlind, get_prepared_custom_data_point(central=central, address="VCU3560967", channel_no=1)
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL", value=0.025
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU3560967:1", parameter="LEVEL_2", value=0.75
+        )
+        # Unchanged height sent with the previous tilt command, echo still pending.
+        cover._dp_level.apply_optimistic_value(value=0.025)
+        assert cover._dp_level.is_optimistic
+        assert cover._target_level is None
+
+        calls_before = len(mock_client.method_calls)
+        await cover.set_position(tilt_position=50)
+        new_calls = mock_client.method_calls[calls_before:]
+        assert [c[0] for c in new_calls] == ["put_paramset"]
+        assert new_calls[0].kwargs["values"] == {"LEVEL_2": 0.5, "LEVEL": 0.025}
+
+        # A real height change stays a pending target.
+        cover._dp_level.apply_optimistic_value(value=0.6)
+        assert cover._target_level == 0.6

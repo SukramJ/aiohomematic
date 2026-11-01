@@ -39,6 +39,7 @@ EXPECTED_VALIDITY_RELEVANT_FIELDS: dict[str, frozenset[Field]] = {
     "CustomDpGarage": frozenset({Field.DOOR_STATE}),
     "CustomDpIpAccessPermission": frozenset({Field.STATE}),
     "CustomDpIpBlind": frozenset({Field.LEVEL}),
+    "CustomDpIpDinRailBlind": frozenset({Field.LEVEL}),
     "CustomDpIpDrgDaliLight": frozenset({Field.LEVEL}),
     "CustomDpIpFixedColorLight": frozenset({Field.LEVEL}),
     "CustomDpIpIrrigationValve": frozenset({Field.STATE}),

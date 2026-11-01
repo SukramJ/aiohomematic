@@ -135,6 +135,7 @@ from aiohomematic.model.custom import (
     CustomDpDimmer,
     CustomDpGarage,
     CustomDpIpBlind,
+    CustomDpIpDinRailBlind,
     CustomDpIpIrrigationValve,
     CustomDpSwitch,
     CustomDpTextDisplay,

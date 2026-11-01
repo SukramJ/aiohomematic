@@ -202,6 +202,9 @@ def convert_hm_level_to_cpv(*, value: Any) -> Any:
 
 CONVERTABLE_PARAMETERS: Final = (Parameter.COMBINED_PARAMETER, Parameter.LEVEL_COMBINED)
 
+# COMBINED_PARAMETER value that tells a HmIP actuator to keep the current value (e.g. L=101).
+CPV_KEEP_VALUE: Final = "101"
+
 _COMBINED_PARAMETER_TO_HM_CONVERTER: Final = {
     Parameter.LEVEL_COMBINED: _convert_cpv_to_hm_level,
     Parameter.LEVEL: _convert_cpv_to_hmip_level,
@@ -218,6 +221,9 @@ def _convert_combined_parameter_to_paramset(*, value: str) -> dict[str, Any]:
     for cp_param_value in value.split(","):
         cp_param, value = cp_param_value.split("=")
         if parameter := _COMBINED_PARAMETER_NAMES.get(cp_param):
+            if value == CPV_KEEP_VALUE:
+                # Keep marker is not a target value and must not be tracked as one.
+                continue
             if converter := _COMBINED_PARAMETER_TO_HM_CONVERTER.get(parameter):
                 paramset[parameter] = converter(value=value)
             else:

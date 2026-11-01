@@ -204,7 +204,7 @@ class PositionMixin:
         """
         if level is None:
             return None
-        position = int(level * 100)
+        position = round(level * 100)
         return 100 - position if inverted else position
 
     @staticmethod

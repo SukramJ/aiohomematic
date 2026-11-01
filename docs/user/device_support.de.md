@@ -70,14 +70,15 @@ Cover-Geräte werden der Home Assistant `cover`-Plattform zugeordnet. Verschiede
 
 ### Cover-Typen und Fähigkeiten
 
-| Gerätetyp                                      | Klasse                | Position | Neigung | Stopp | Lüftung | HA device_class |
-| ---------------------------------------------- | --------------------- | -------- | ------- | ----- | ------- | --------------- |
-| RF-Rollläden (HM-LC-Bl1-\*)                    | `CustomDpCover`       | ja       | nein    | ja    | nein    | `shutter`       |
-| IP-Rollläden (HmIP-BROLL, HmIP-FROLL)          | `CustomDpCover`       | ja       | nein    | ja    | nein    | `shutter`       |
-| RF-Jalousien (HM-LC-Ja1PBU-FM)                 | `CustomDpBlind`       | ja       | ja      | ja    | nein    | `blind`         |
-| IP-Jalousien (HmIP-BBL, HmIP-FBL, HmIP-DRBLI4) | `CustomDpIpBlind`     | ja       | ja      | ja    | nein    | `blind`         |
-| Fensterantrieb (HM-Sec-Win)                    | `CustomDpWindowDrive` | ja       | nein    | ja    | nein    | `window`        |
-| Garagentor (HmIP-MOD-HO, HmIP-MOD-TM)          | `CustomDpGarage`      | ja       | nein    | ja    | ja      | `garage`        |
+| Gerätetyp                                           | Klasse                   | Position | Neigung | Stopp | Lüftung | HA device_class |
+| --------------------------------------------------- | ------------------------ | -------- | ------- | ----- | ------- | --------------- |
+| RF-Rollläden (HM-LC-Bl1-\*)                         | `CustomDpCover`          | ja       | nein    | ja    | nein    | `shutter`       |
+| IP-Rollläden (HmIP-BROLL, HmIP-FROLL)               | `CustomDpCover`          | ja       | nein    | ja    | nein    | `shutter`       |
+| RF-Jalousien (HM-LC-Ja1PBU-FM)                      | `CustomDpBlind`          | ja       | ja      | ja    | nein    | `blind`         |
+| IP-Jalousien (HmIP-BBL, HmIP-FBL, HmIP-HDM)         | `CustomDpIpBlind`        | ja       | ja      | ja    | nein    | `blind`         |
+| IP-Hutschienen-Jalousien (HmIP-DRBLI4, HmIPW-DRBL4) | `CustomDpIpDinRailBlind` | ja       | ja      | ja    | nein    | `blind`         |
+| Fensterantrieb (HM-Sec-Win)                         | `CustomDpWindowDrive`    | ja       | nein    | ja    | nein    | `window`        |
+| Garagentor (HmIP-MOD-HO, HmIP-MOD-TM)               | `CustomDpGarage`         | ja       | nein    | ja    | ja      | `garage`        |
 
 ### Fähigkeiten prüfen
 

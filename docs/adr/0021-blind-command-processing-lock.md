@@ -37,13 +37,14 @@ Movement should not produce incorrect final positions, even when commands overla
 
 The problem applies specifically to blind actors (devices with both level and tilt control). Simple covers (level only), window drives, and garage doors are not affected because they have only a single axis of movement.
 
-| Class                 | Level | Tilt | Lock Required   |
-| --------------------- | ----- | ---- | --------------- |
-| `CustomDpCover`       | Yes   | No   | No              |
-| `CustomDpWindowDrive` | Yes   | No   | No              |
-| `CustomDpBlind`       | Yes   | Yes  | Yes             |
-| `CustomDpIpBlind`     | Yes   | Yes  | Yes (inherited) |
-| `CustomDpGarage`      | Yes   | No   | No              |
+| Class                    | Level | Tilt | Lock Required   |
+| ------------------------ | ----- | ---- | --------------- |
+| `CustomDpCover`          | Yes   | No   | No              |
+| `CustomDpWindowDrive`    | Yes   | No   | No              |
+| `CustomDpBlind`          | Yes   | Yes  | Yes             |
+| `CustomDpIpBlind`        | Yes   | Yes  | Yes (inherited) |
+| `CustomDpIpDinRailBlind` | Yes   | Yes  | Yes (inherited) |
+| `CustomDpGarage`         | Yes   | No   | No              |
 
 ---
 
@@ -210,6 +211,7 @@ CustomDataPoint
       ├─ CustomDpWindowDrive (level only, no lock logic)
       └─ CustomDpBlind       (level + tilt, lock initialized and used)
           └─ CustomDpIpBlind (inherits lock, adds COMBINED_PARAMETER and L=N,L2=N format)
+              └─ CustomDpIpDinRailBlind (sends L=101 to keep the height on tilt-only changes)
 ```
 
 The lock slot is declared in `CustomDpCover` but only initialized and used in `CustomDpBlind._post_init()`. This allows the blind subclass to own the lock lifecycle while keeping the slot in the common base class.

@@ -779,6 +779,7 @@ class BaseParameterDataPoint[
     max: Final = DelegatedProperty[ParameterT](path="_max")
     min: Final = DelegatedProperty[ParameterT](path="_min")
     multiplier: Final = DelegatedProperty[float](path="_multiplier")
+    optimistic_previous_value: Final = DelegatedProperty[ParameterT | None](path="_optimistic.previous_value")
     parameter: Final = DelegatedProperty[str](path="_parameter", log_context=True)
     paramset_key: Final = DelegatedProperty[ParamsetKey](path="_paramset_key")
     raw_unit: Final = DelegatedProperty[str | None](path="_raw_unit")

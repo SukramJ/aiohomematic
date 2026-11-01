@@ -517,6 +517,26 @@ Die `base_temperature` sollte:
 - **Kleine Lücken vermeiden** - Wenn zwei Perioden nah beieinander liegen, zusammenführen
 - **Zeiten runden** - 15- oder 30-Minuten-Schritte für einfachere Verwaltung verwenden
 
+### Explizite Schaltpunkte bei gleicher Temperatur
+
+Das vereinfachte Format beschreibt einen Tag als `base_temperature` plus Abweichungen. Ein Slot
+mit Basistemperatur ist von einer Lücke nicht zu unterscheiden, das Format kann also "um 08:00
+schalten, aber 22,0°C beibehalten" nicht ausdrücken. Das ist relevant, wenn Schaltpunkte eine
+manuelle Änderung beenden sollen: Im Auto-Modus gilt eine manuelle Änderung am Thermostat nur bis
+zum nächsten Schaltpunkt.
+
+- **Schreiben funktioniert.** `set_schedule_profile` mit Perioden auf Basistemperatur schreibt jede
+  Periodengrenze als eigenen Slot. Basis 22,0 mit Perioden 04:00-08:00, 12:00-16:00 und
+  20:00-24:00 bei 22,0 ergibt sechs Slots mit Ende 04:00, 08:00, 12:00, 16:00, 20:00 und 24:00.
+- **Lesen fasst zusammen.** `get_schedule_profile` wählt die Temperatur mit dem größten Tagesanteil
+  als Basis und verwirft alle Slots mit dieser Temperatur. Derselbe Tag wird als
+  `base_temperature: 22.0, periods: []` zurückgegeben, obwohl das Gerät weiterhin sechs Slots hält.
+  Stattdessen mit `get_paramset` (Paramset `MASTER`, Kanal 1) prüfen.
+- **Round-Trips verlieren die Slots.** Jedes Werkzeug, das das vereinfachte Format liest und
+  zurückschreibt, etwa eine Schedule-Card oder das Konfigurationspanel, entfernt die Schaltpunkte.
+  Solche Profile mit `put_paramset` pflegen (`P<n>_ENDTIME_<TAG>_<slot>` in Minuten,
+  `P<n>_TEMPERATURE_<TAG>_<slot>`) und danach nicht mehr über das vereinfachte Format bearbeiten.
+
 ### Best Practices beim Kopieren
 
 1. **Vorlagegerät erstellen** - Einen Thermostat perfekt einrichten, dann auf andere kopieren

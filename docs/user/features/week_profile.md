@@ -511,6 +511,25 @@ The `base_temperature` should be:
 - **Avoid tiny gaps** - If two periods are close, consider merging them
 - **Round times** - Use 15 or 30 minute increments for easier management
 
+### Explicit Switching Points at the Same Temperature
+
+The simple format describes a day as a `base_temperature` plus deviations. A slot at base
+temperature is indistinguishable from a gap, so the format cannot express "switch at 08:00, but
+keep 22.0°C". This matters if you rely on switching points to end a manual override: in Auto mode
+a manual change at the thermostat stays active only until the next switching point.
+
+- **Writing works.** `set_schedule_profile` with periods at base temperature writes every period
+  boundary as its own slot. Base 22.0 with periods 04:00-08:00, 12:00-16:00 and 20:00-24:00 at
+  22.0 results in six slots ending at 04:00, 08:00, 12:00, 16:00, 20:00 and 24:00.
+- **Reading collapses.** `get_schedule_profile` picks the temperature covering most of the day as
+  base and drops every slot at that temperature. The same day reads back as
+  `base_temperature: 22.0, periods: []` although the device still holds six slots. Verify with
+  `get_paramset` (paramset `MASTER`, channel 1) instead.
+- **Round trips lose the slots.** Any tool that reads the simple format and writes it back,
+  such as a schedule card or the config panel, removes the switching points. Maintain such
+  profiles with `put_paramset` (`P<n>_ENDTIME_<DAY>_<slot>` in minutes, `P<n>_TEMPERATURE_<DAY>_<slot>`)
+  and do not edit them through the simple format afterwards.
+
 ### Copying Best Practices
 
 1. **Create a template device** - Set up one thermostat perfectly, then copy to others

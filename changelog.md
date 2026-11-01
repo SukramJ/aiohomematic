@@ -1,3 +1,15 @@
+# Version 2026.11.1 (2026-11-01)
+
+## What's Changed
+
+### Fixed
+
+- **HmIP blinds no longer move the slats to an end position on tilt-only changes.** A tilt-only
+  command at standstill resent the current height, converted with `int(level * 100)`; float error
+  (0.29 → 28) and half-percent levels (0.755 → 75) turned that into a 1 % height move. Positions
+  are now rounded, and HmIP-DRBLI4/HmIPW-DRBL4 (new `CustomDpIpDinRailBlind`) send `L=101` (keep
+  height) instead ([#3473](https://github.com/SukramJ/aiohomematic/discussions/3473)).
+
 # Version 2026.10.7 (2026-10-25)
 
 ## What's Changed

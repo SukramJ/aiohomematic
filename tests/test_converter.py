@@ -51,6 +51,11 @@ class TestCombinedParameterConversion:
         assert result[Parameter.LEVEL] == 1.0
         assert result[Parameter.LEVEL_2] == 0.5
 
+    def test_convert_combined_parameter_skips_keep_value(self) -> None:
+        """Test that the keep-value marker 101 is not tracked as a target level."""
+        result = convert_combined_parameter_to_paramset(parameter=Parameter.COMBINED_PARAMETER, value="L2=45,L=101")
+        assert result == {Parameter.LEVEL_2: 0.45}
+
     def test_convert_combined_parameter_with_string_value(self) -> None:
         """Test parameter with non-numeric value triggers exception."""
         # When value can't be converted to int, exception is caught and empty dict returned

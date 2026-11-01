@@ -80,6 +80,7 @@ EXPECTED_CATEGORY_PROTOCOLS: dict[str, frozenset[type]] = {
     "CustomDpGarage": frozenset({GarageDataPointProtocol}),
     "CustomDpIpAccessPermission": frozenset(),
     "CustomDpIpBlind": frozenset({TiltCoverDataPointProtocol}),
+    "CustomDpIpDinRailBlind": frozenset({TiltCoverDataPointProtocol}),
     "CustomDpIpDrgDaliLight": frozenset({LightDataPointProtocol}),
     "CustomDpIpFixedColorLight": frozenset({LightDataPointProtocol}),
     "CustomDpIpIrrigationValve": frozenset(),

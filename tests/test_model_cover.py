@@ -1652,3 +1652,124 @@ class TestCustomDpGarage:
             interface_id=const.INTERFACE_ID, channel_address="VCU6166407:1", parameter="DOOR_STATE", value=None
         )
         assert cover.is_closed is None
+
+
+class TestCustomDpIpBlindTiltOnly:
+    """Tests for tilt-only commands on HomematicIP blinds (discussion #3473)."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_tilt_only_din_rail_sends_keep_level(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Tilt-only on HmIPW-DRBL4 at standstill sends L=101 and does not track a target level."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(CustomDpIpBlind, get_prepared_custom_data_point(central, "VCU7807849", 14))
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7807849:13", parameter="LEVEL", value=0.755
+        )
+
+        await cover.set_position(tilt_position=45)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU7807849:14",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=45,L=101",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+        assert cover._dp_level.unconfirmed_last_value_send is None
+        assert cover._dp_level_2.unconfirmed_last_value_send == 0.45
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7807849:14", parameter="LEVEL_2", value=0.45
+        )
+
+        await cover.open_tilt()
+        assert mock_client.method_calls[-1].kwargs["value"] == "L2=100,L=101"
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7807849:13", parameter="LEVEL_2", value=1.0
+        )
+
+        await cover.close_tilt()
+        assert mock_client.method_calls[-1].kwargs["value"] == "L2=0,L=101"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_tilt_only_din_rail_while_moving_keeps_target_level(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Tilt-only on HmIPW-DRBL4 during a pending level command stops and resends the target level."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(CustomDpIpBlind, get_prepared_custom_data_point(central, "VCU7807849", 14))
+
+        await cover.set_position(position=81)
+        assert cover._dp_level.unconfirmed_last_value_send == 0.81
+
+        await cover.set_position(tilt_position=45)
+        assert mock_client.method_calls[-2].kwargs["parameter"] == "STOP"
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU7807849:14",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=45,L=81",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
+    async def test_tilt_only_keeps_exact_level(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Tilt-only on HmIP-FBL sends the current level without truncation errors."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(
+            CustomDpIpBlind, get_prepared_custom_data_point(central=central, address="VCU1223813", channel_no=4)
+        )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU1223813:4", parameter="LEVEL", value=0.29
+        )
+        assert cover.current_position == 29
+
+        await cover.set_position(tilt_position=45)
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU1223813:4",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="COMBINED_PARAMETER",
+            value="L2=45,L=29",
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )

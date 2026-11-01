@@ -58,6 +58,7 @@ from aiohomematic.model.custom.cover import (
     CustomDpCover,
     CustomDpGarage,
     CustomDpIpBlind,
+    CustomDpIpDinRailBlind,
     CustomDpWindowDrive,
 )
 from aiohomematic.model.custom.data_point import CustomDataPoint
@@ -133,6 +134,7 @@ __all__ = [
     "CustomDpCover",
     "CustomDpGarage",
     "CustomDpIpBlind",
+    "CustomDpIpDinRailBlind",
     "CustomDpWindowDrive",
     # Data point
     "CustomDataPoint",

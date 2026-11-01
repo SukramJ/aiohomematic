@@ -22,7 +22,7 @@ from aiohomematic.const import (
     GarageDoorState,
     Parameter,
 )
-from aiohomematic.converter import convert_hm_level_to_cpv
+from aiohomematic.converter import CPV_KEEP_VALUE, convert_hm_level_to_cpv
 from aiohomematic.interfaces.custom import CoverDataPointProtocol, GarageDataPointProtocol, TiltCoverDataPointProtocol
 from aiohomematic.model.combined import CombinedGarageDoorModeField
 from aiohomematic.model.custom.capabilities.cover import (
@@ -441,7 +441,9 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
         """Compute static capabilities. Blinds support position, tilt, and stop."""
         return BLIND_CAPABILITIES
 
-    def _get_combined_value(self, *, level: float | None = None, tilt_level: float | None = None) -> str | None:
+    def _get_combined_value(
+        self, *, level: float | None = None, tilt_level: float | None = None, keep_level: bool = False
+    ) -> str | None:
         """Return the combined parameter."""
         if level is None and tilt_level is None:
             return None
@@ -462,11 +464,17 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
         *,
         level: float,
         tilt_level: float,
+        keep_level: bool = False,
         collector: CallParameterCollector | None = None,
     ) -> None:
-        """Transmit a new target level to the device."""
+        """
+        Transmit a new target level to the device.
+
+        keep_level marks a tilt-only change at standstill; devices that support it
+        then keep their height instead of receiving the current level again.
+        """
         if self._dp_combined.is_hmtype and (
-            combined_parameter := self._get_combined_value(level=level, tilt_level=tilt_level)
+            combined_parameter := self._get_combined_value(level=level, tilt_level=tilt_level, keep_level=keep_level)
         ):
             # don't use collector for blind combined parameter
             await self._dp_combined.send_value(value=combined_parameter, collector=None)
@@ -488,6 +496,7 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
         level or tilt_level may be set to None for no change.
         """
         currently_moving = False
+        keep_level = False
 
         try:
             acquired: bool = await asyncio.wait_for(
@@ -507,6 +516,7 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
                 currently_moving = True
                 _level = self._target_level
             else:  # The blind is at a standstill and no level is explicitly requested => we remain at the current level
+                keep_level = True
                 _level = self._group_level
 
             if tilt_level is not None:
@@ -522,7 +532,7 @@ class CustomDpBlind(CustomDpCover, TiltCoverDataPointProtocol):
                 # Blind actors are buggy when sending new coordinates while they are moving. So we stop them first.
                 await self._stop()
 
-            await self._send_level(level=_level, tilt_level=_tilt_level, collector=collector)
+            await self._send_level(level=_level, tilt_level=_tilt_level, keep_level=keep_level, collector=collector)
         finally:
             if acquired:
                 self._command_processing_lock.release()
@@ -542,25 +552,41 @@ class CustomDpIpBlind(CustomDpBlind):
     _dp_combined = DataPointField(field=Field.COMBINED_PARAMETER, dpt=DpActionString)
     _dp_operation_mode: Final = DataPointField(field=Field.OPERATION_MODE, dpt=DpSelect)
 
+    # Send L=101 (keep height) for tilt-only changes at standstill. Resending the current
+    # level makes some actuators move the slats to an end position first (discussion #3473).
+    _supports_keep_level: ClassVar[bool] = False
+
     @property
     def operation_mode(self) -> str | None:
         """Return operation mode of cover."""
         val = self._dp_operation_mode.value
         return val if isinstance(val, str) else None
 
-    def _get_combined_value(self, *, level: float | None = None, tilt_level: float | None = None) -> str | None:
+    def _get_combined_value(
+        self, *, level: float | None = None, tilt_level: float | None = None, keep_level: bool = False
+    ) -> str | None:
         """Return the combined parameter."""
         if level is None and tilt_level is None:
             return None
         levels: list[str] = []
         if (tilt_pos := self.level_to_position(tilt_level)) is not None:
             levels.append(f"L2={tilt_pos}")
-        if (level_pos := self.level_to_position(level)) is not None:
+        if keep_level and self._supports_keep_level:
+            levels.append(f"L={CPV_KEEP_VALUE}")
+        elif (level_pos := self.level_to_position(level)) is not None:
             levels.append(f"L={level_pos}")
 
         if levels:
             return ",".join(levels)
         return None
+
+
+class CustomDpIpDinRailBlind(CustomDpIpBlind):
+    """Class for HomematicIP DIN rail blind data point (HmIP-DRBLI4, HmIPW-DRBL4)."""
+
+    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+
+    _supports_keep_level: ClassVar[bool] = True
 
 
 class CustomDpGarage(PositionMixin, CustomDataPoint, GarageDataPointProtocol):
@@ -768,14 +794,14 @@ DeviceProfileRegistry.register(
 DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HmIP-DRBLI4",
-    data_point_class=CustomDpIpBlind,
+    data_point_class=CustomDpIpDinRailBlind,
     profile_type=DeviceProfile.IP_COVER,
     channels=(10, 14, 18, 22),
 )
 DeviceProfileRegistry.register(
     category=DataPointCategory.COVER,
     models="HmIPW-DRBL4",
-    data_point_class=CustomDpIpBlind,
+    data_point_class=CustomDpIpDinRailBlind,
     profile_type=DeviceProfile.IP_COVER,
     channels=(2, 6, 10, 14),
 )

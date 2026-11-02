@@ -1,7 +1,7 @@
 ---
 translation_source: docs/troubleshooting/index.md
-translation_date: 2026-04-01
-translation_source_hash: 46c582a89103
+translation_date: 2026-11-02
+translation_source_hash: 89bbd66b990f
 ---
 
 # Fehlerbehebung
@@ -291,9 +291,9 @@ logger:
 
 ## Weitere Hilfe benötigt?
 
-1. [Bestehende Issues](https://github.com/sukramj/aiohomematic/issues) durchsuchen
-2. In den [GitHub Discussions](https://github.com/sukramj/aiohomematic/discussions) fragen
-3. Ein neues Issue mit folgenden Angaben erstellen:
+1. Bestehende Issues in [Homematic(IP) Local](https://github.com/sukramj/homematicip_local/issues) und, für ältere Meldungen, in [aiohomematic](https://github.com/sukramj/aiohomematic/issues) durchsuchen
+2. In den [GitHub Discussions](https://github.com/sukramj/homematicip_local/discussions) fragen
+3. Ein [neues Issue](https://github.com/sukramj/homematicip_local/issues/new/choose) mit folgenden Angaben erstellen:
    - Home Assistant-Version
    - Integrationsversion
    - CCU-Typ und Firmware-Version

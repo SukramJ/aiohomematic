@@ -1,7 +1,7 @@
 ---
 translation_source: docs/user/homeassistant_integration.md
-translation_date: 2026-10-07
-translation_source_hash: 376e48e75502
+translation_date: 2026-11-02
+translation_source_hash: 515190b42bf6
 ---
 
 # Homematic(IP) Local for OpenCCU
@@ -12,8 +12,8 @@ Dies ist das umfassende Benutzerhandbuch für die **Homematic(IP) Local for Open
 
 - **Installation**: Über HACS (empfohlen) oder manuell
 - **Dokumentation**: Dieses Handbuch + [aiohomematic-Dokumentation](../index.md)
-- **Probleme**: [GitHub Issues](https://github.com/sukramj/aiohomematic/issues)
-- **Diskussionen**: [GitHub Discussions](https://github.com/sukramj/aiohomematic/discussions)
+- **Probleme**: [GitHub Issues](https://github.com/sukramj/homematicip_local/issues)
+- **Diskussionen**: [GitHub Discussions](https://github.com/sukramj/homematicip_local/discussions)
 
 ## Auf einen Blick
 
@@ -282,7 +282,7 @@ Viele Entities werden anfänglich **deaktiviert** erstellt. Bei Bedarf in den er
 Wenn ein neues Gerätemodell keine passenden benutzerdefinierten Entities hat:
 
 1. Sicherstellen, dass das Gerät in der CCU funktioniert
-2. Bei [aiohomematic Issues](https://github.com/sukramj/aiohomematic/issues) melden
+2. Bei [Homematic(IP) Local Issues](https://github.com/sukramj/homematicip_local/issues) melden
 3. Geräteexport beifügen (die Action `homematicip_local.export_device_definition` verwenden)
 
 ---
@@ -440,8 +440,8 @@ Abweichungen von CUxD/CCU-Jack gegenüber dem Verhalten der Original-Hardware we
 ### Hilfe erhalten
 
 1. Den [vollständigen Fehlerbehebungsleitfaden](troubleshooting/homeassistant_troubleshooting.md) lesen
-2. [Bestehende Issues](https://github.com/sukramj/aiohomematic/issues) durchsuchen
-3. In den [Diskussionen](https://github.com/sukramj/aiohomematic/discussions) fragen
+2. Bestehende Issues in [Homematic(IP) Local](https://github.com/sukramj/homematicip_local/issues) und, für ältere Meldungen, in [aiohomematic](https://github.com/sukramj/aiohomematic/issues) durchsuchen
+3. In den [Diskussionen](https://github.com/sukramj/homematicip_local/discussions) fragen
 4. Ein Issue eröffnen mit: HA-Version, Integrationsversion, CCU-Typ/Firmware, Logs, Schritte zur Reproduktion
 
 ---

@@ -6,8 +6,8 @@ This is the comprehensive user guide for the **Homematic(IP) Local for OpenCCU**
 
 - **Installation**: Via HACS (recommended) or manual
 - **Documentation**: This guide + [aiohomematic docs](../index.md)
-- **Issues**: [GitHub Issues](https://github.com/sukramj/aiohomematic/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/sukramj/aiohomematic/discussions)
+- **Issues**: [GitHub Issues](https://github.com/sukramj/homematicip_local/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/sukramj/homematicip_local/discussions)
 
 ## At a Glance
 
@@ -276,7 +276,7 @@ Many entities are created **disabled** initially. Enable them in the entity's ad
 If a new device model doesn't have proper custom entities:
 
 1. Verify the device is working in CCU
-2. Report at [aiohomematic Issues](https://github.com/sukramj/aiohomematic/issues)
+2. Report at [Homematic(IP) Local Issues](https://github.com/sukramj/homematicip_local/issues)
 3. Include device export (use `homematicip_local.export_device_definition` action)
 
 ---
@@ -432,8 +432,8 @@ CUxD/CCU-Jack differences from original hardware behavior are **not considered b
 ### Getting Help
 
 1. Read the [full troubleshooting guide](troubleshooting/homeassistant_troubleshooting.md)
-2. Search [existing issues](https://github.com/sukramj/aiohomematic/issues)
-3. Ask in [discussions](https://github.com/sukramj/aiohomematic/discussions)
+2. Search existing issues in [Homematic(IP) Local](https://github.com/sukramj/homematicip_local/issues) and, for older reports, in [aiohomematic](https://github.com/sukramj/aiohomematic/issues)
+3. Ask in [discussions](https://github.com/sukramj/homematicip_local/discussions)
 4. Open an issue with: HA version, integration version, CCU type/firmware, logs, steps to reproduce
 
 ---

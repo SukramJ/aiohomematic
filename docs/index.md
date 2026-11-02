@@ -155,8 +155,8 @@ See [Home Assistant Lifecycle](developer/homeassistant_lifecycle.md) for detaile
 
 - **GitHub**: [sukramj/aiohomematic](https://github.com/sukramj/aiohomematic)
 - **PyPI**: [aiohomematic](https://pypi.org/project/aiohomematic/)
-- **Issues**: [Report a bug](https://github.com/sukramj/aiohomematic/issues)
-- **Discussions**: [Ask questions](https://github.com/sukramj/aiohomematic/discussions)
+- **Issues**: [Report a bug in the integration](https://github.com/sukramj/homematicip_local/issues) · [in the library](https://github.com/sukramj/aiohomematic/issues)
+- **Discussions**: [Ask questions](https://github.com/sukramj/homematicip_local/discussions)
 - **HA Integration**: [homematicip_local](https://github.com/sukramj/homematicip_local)
 
 ## License

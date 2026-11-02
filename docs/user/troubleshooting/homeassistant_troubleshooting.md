@@ -527,7 +527,7 @@ The integration uses optimized REGA scripts to fetch device data in bulk. If thi
 
 - **Restart the CCU** to clear any stuck REGA processes
 - **Check for problematic devices** in the script output
-- **Post in [Discussions](https://github.com/sukramj/aiohomematic/discussions)** with the script output for help
+- **Post in [Discussions](https://github.com/sukramj/homematicip_local/discussions)** with the script output for help
 
 ### M) Incomplete device data
 
@@ -598,7 +598,7 @@ This issue occurs when:
 **If the problem persists:**
 
 - Download diagnostics from the integration and check for error patterns
-- Post in [Discussions](https://github.com/sukramj/aiohomematic/discussions) with:
+- Post in [Discussions](https://github.com/sukramj/homematicip_local/discussions) with:
   - The affected device addresses from the repair issue
   - Device types (model numbers)
   - CCU type and firmware version

@@ -285,9 +285,9 @@ logger:
 
 ## Still Need Help?
 
-1. Search [existing issues](https://github.com/sukramj/aiohomematic/issues)
-2. Ask in [GitHub Discussions](https://github.com/sukramj/aiohomematic/discussions)
-3. Open a new issue with:
+1. Search existing issues in [Homematic(IP) Local](https://github.com/sukramj/homematicip_local/issues) and, for older reports, in [aiohomematic](https://github.com/sukramj/aiohomematic/issues)
+2. Ask in [GitHub Discussions](https://github.com/sukramj/homematicip_local/discussions)
+3. Open a [new issue](https://github.com/sukramj/homematicip_local/issues/new/choose) with:
    - Home Assistant version
    - Integration version
    - CCU type and firmware version

@@ -632,7 +632,6 @@ fixture-parentheses = false # Don't require parentheses for fixtures without par
 # not an __init__.py, so it needs its own entry. RUF022 still runs everywhere else.
 "aiohomematic/**/__init__.py" = ["RUF022"]
 "aiohomematic/central/events/internal.py" = ["RUF022"]
-".github/scripts/*" = ["T20", "BLE001", "S110", "C901"] # CI utility scripts; not production code
 "example*.py" = ["T20", "BLE001"] # top-level usage examples
 "tests/*.py" = [
     "D100", "D101", "D102", "D103", "D107", # docstring requirements

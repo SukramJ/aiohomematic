@@ -1,0 +1,13 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Using Home Assistant?** Questions about the integration belong in [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local/discussions). This category is for questions about the aiohomematic library. Older questions and their answers stay here and remain searchable.
+
+        **Du nutzt Home Assistant?** Fragen zur Integration gehören zu [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local/discussions). Diese Kategorie ist für Fragen zur Bibliothek aiohomematic. Ältere Fragen und ihre Antworten bleiben hier und sind weiter durchsuchbar.
+  - type: textarea
+    id: question
+    validations:
+      required: true
+    attributes:
+      label: Your question about the library / Deine Frage zur Bibliothek

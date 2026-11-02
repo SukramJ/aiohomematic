@@ -321,8 +321,8 @@ Diagnosedaten immer anhängen, wenn Probleme gemeldet werden.
 ### Wo melde ich Fehler?
 
 - **Bibliotheksprobleme (aiohomematic):** [aiohomematic Issues](https://github.com/sukramj/aiohomematic/issues)
-- **Integrationsprobleme (Homematic(IP) Local):** Gleiches Repository
-- **Diskussionen/Fragen:** [GitHub Discussions](https://github.com/sukramj/aiohomematic/discussions)
+- **Integrationsprobleme (Homematic(IP) Local):** [Homematic(IP) Local Issues](https://github.com/sukramj/homematicip_local/issues)
+- **Diskussionen/Fragen:** [GitHub Discussions](https://github.com/sukramj/homematicip_local/discussions)
 
 ---
 

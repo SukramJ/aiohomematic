@@ -1,7 +1,7 @@
 ---
 translation_source: docs/index.md
-translation_date: 2026-04-01
-translation_source_hash: f3d60a848470
+translation_date: 2026-11-02
+translation_source_hash: 37805aa67679
 ---
 
 # aiohomematic
@@ -161,8 +161,8 @@ Siehe [Home Assistant Lebenszyklus](developer/homeassistant_lifecycle.md) für d
 
 - **GitHub**: [sukramj/aiohomematic](https://github.com/sukramj/aiohomematic)
 - **PyPI**: [aiohomematic](https://pypi.org/project/aiohomematic/)
-- **Fehler melden**: [Einen Fehler melden](https://github.com/sukramj/aiohomematic/issues)
-- **Diskussionen**: [Fragen stellen](https://github.com/sukramj/aiohomematic/discussions)
+- **Fehler melden**: [In der Integration](https://github.com/sukramj/homematicip_local/issues) · [In der Bibliothek](https://github.com/sukramj/aiohomematic/issues)
+- **Diskussionen**: [Fragen stellen](https://github.com/sukramj/homematicip_local/discussions)
 - **HA-Integration**: [homematicip_local](https://github.com/sukramj/homematicip_local)
 
 ## Lizenz

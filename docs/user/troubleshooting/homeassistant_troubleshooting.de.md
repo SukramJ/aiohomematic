@@ -533,7 +533,7 @@ Die Integration verwendet optimierte REGA-Skripte, um Gerätedaten gebündelt ab
 
 - **CCU neu starten**, um blockierte REGA-Prozesse zu beenden
 - **Auf problematische Geräte prüfen** in der Skriptausgabe
-- **In den [Diskussionen](https://github.com/sukramj/aiohomematic/discussions) posten** mit der Skriptausgabe für Hilfe
+- **In den [Diskussionen](https://github.com/sukramj/homematicip_local/discussions) posten** mit der Skriptausgabe für Hilfe
 
 ### M) Unvollständige Gerätedaten
 
@@ -604,7 +604,7 @@ Dieses Problem tritt auf, wenn:
 **Falls das Problem weiterhin besteht:**
 
 - Die Diagnose aus der Integration herunterladen und auf Fehlermuster prüfen
-- In den [Diskussionen](https://github.com/sukramj/aiohomematic/discussions) posten mit:
+- In den [Diskussionen](https://github.com/sukramj/homematicip_local/discussions) posten mit:
   - Den betroffenen Geräteadressen aus der Reparaturmeldung
   - Gerätetypen (Modellnummern)
   - CCU-Typ und Firmware-Version

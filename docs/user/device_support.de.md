@@ -190,7 +190,7 @@ Wenn ein Gerät funktioniert, aber keine passende benutzerdefinierte Entity hat 
 
    Die ZIP-Datei wird im Verzeichnis `/config/homematicip_local/` gespeichert.
 
-2. **Ein Issue eröffnen** auf [GitHub](https://github.com/sukramj/aiohomematic/issues) mit:
+2. **Ein Issue eröffnen** auf [GitHub](https://github.com/sukramj/homematicip_local/issues/new/choose) mit:
    - Gerätemodell (z.B. HmIP-eTRV-2)
    - Die exportierte ZIP-Datei
    - Beschreibung des erwarteten Verhaltens

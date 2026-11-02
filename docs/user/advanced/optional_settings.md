@@ -118,7 +118,7 @@ After adding this, restart Home Assistant and check the logs under **Settings** 
 
 ### Where to Report
 
-- **GitHub Issues**: https://github.com/sukramj/aiohomematic/issues
+- **GitHub Issues**: https://github.com/sukramj/homematicip_local/issues
 - Use the tag `experimental-feature` when reporting
 
 ---

@@ -315,8 +315,8 @@ Always attach diagnostics when reporting issues.
 ### Where do I report bugs?
 
 - **Library issues (aiohomematic):** [aiohomematic Issues](https://github.com/sukramj/aiohomematic/issues)
-- **Integration issues (Homematic(IP) Local):** Same repository
-- **Discussions/Questions:** [GitHub Discussions](https://github.com/sukramj/aiohomematic/discussions)
+- **Integration issues (Homematic(IP) Local):** [Homematic(IP) Local Issues](https://github.com/sukramj/homematicip_local/issues)
+- **Discussions/Questions:** [GitHub Discussions](https://github.com/sukramj/homematicip_local/discussions)
 
 ---
 

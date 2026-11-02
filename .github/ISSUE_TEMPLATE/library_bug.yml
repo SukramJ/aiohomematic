@@ -1,0 +1,38 @@
+name: Library bug (developers) / Bibliotheksfehler (Entwickler)
+description: A defect in the aiohomematic Python library, reproducible without Home Assistant
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is for **developers using the aiohomematic library directly**.
+        Using Home Assistant? Please report in [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local/issues/new/choose).
+
+        Dieses Formular ist für **Entwickler, die die Bibliothek aiohomematic direkt nutzen**.
+        Du nutzt Home Assistant? Bitte melde es bei [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local/issues/new/choose).
+  - type: input
+    id: version
+    validations:
+      required: true
+    attributes:
+      label: aiohomematic version
+      placeholder: 2026.10.6
+  - type: textarea
+    id: problem
+    validations:
+      required: true
+    attributes:
+      label: The problem / Das Problem
+      description: What happens, what did you expect? / Was passiert, was hast Du erwartet?
+  - type: textarea
+    id: reproduction
+    validations:
+      required: true
+    attributes:
+      label: Minimal reproduction / Minimales Beispiel
+      description: Code that shows the defect without Home Assistant. / Code, der den Fehler ohne Home Assistant zeigt.
+      render: python
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional information / Weitere Informationen

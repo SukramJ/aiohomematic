@@ -1,7 +1,7 @@
 ---
 translation_source: docs/user/advanced/optional_settings.md
-translation_date: 2026-04-01
-translation_source_hash: bd81bbe4ebfa
+translation_date: 2026-11-02
+translation_source_hash: 2a5b9e312cf7
 ---
 
 # Optionale Einstellungen (Experimentelle Funktionen)
@@ -124,7 +124,7 @@ Nach dem Hinzufügen Home Assistant neu starten und die Protokolle unter **Einst
 
 ### Wo melden
 
-- **GitHub Issues**: https://github.com/sukramj/aiohomematic/issues
+- **GitHub Issues**: https://github.com/sukramj/homematicip_local/issues
 - Beim Melden den Tag `experimental-feature` verwenden
 
 ---

@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Using Home Assistant? Report in Homematic(IP) Local / Du nutzt Home Assistant? Melde es bei Homematic(IP) Local
+    url: https://github.com/SukramJ/homematicip_local/issues/new/choose
+    about: "Problems with the Home Assistant integration belong there, even if your link led you here. / Probleme mit der Home-Assistant-Integration gehören dorthin, auch wenn Dich ein Link hierher geführt hat."
+  - name: Questions & Feature Requests for the integration / Fragen & Funktionswünsche zur Integration
+    url: https://github.com/SukramJ/homematicip_local/discussions
+    about: "New discussions about the integration start there. Older ones stay here and remain searchable. / Neue Diskussionen zur Integration beginnen dort. Ältere bleiben hier und sind weiter durchsuchbar."
   - name: Frontend Issues / Frontend-Probleme
     url: https://github.com/SukramJ/homematicip-local-frontend/issues
-    about: "Issues with dashboard cards (Climate Schedule Card, Status Card) or the device configuration panel? Report them in the frontend repository. / Probleme mit Dashboard-Karten (Climate Schedule Card, Status Card) oder dem Gerätekonfigurations-Panel? Bitte im Frontend-Repository melden."
-  - name: Feature Requests
-    url: https://github.com/sukramj/aiohomematic/discussions
-    about: Please use our Discussion Forum for making feature requests.
+    about: "Dashboard cards and the configuration panel. / Dashboard-Karten und das Konfigurations-Panel."

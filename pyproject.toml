@@ -6,13 +6,13 @@ build-backend = "setuptools.build_meta"
 name        = "aiohomematic"
 dynamic = ["version"]
 license     = {text = "MIT License"}
-description = "Homematic interface for Home Assistant running on Python 3."
+description = "Async Python library for Homematic(IP) devices via OpenCCU, CCU3, CUxD and CCU-Jack."
 readme      = "README.md"
 authors     = [
     {name = "SukramJ", email = "sukramj@icloud.com"},
     {name = "Daniel Perna", email = "danielperna84@gmail.com"},
 ]
-keywords    = ["home", "automation", "homematic", "openccu", "homegear"]
+keywords    = ["home", "automation", "homematic", "openccu"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: No Input/Output (Daemon)",

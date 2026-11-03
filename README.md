@@ -12,7 +12,7 @@ This project is the modern successor to [pyhomematic](https://github.com/danielp
 ## Key Features
 
 - **Automatic entity discovery** from device/channel parameters
-- **Broad backend support**: CCU3, OpenCCU, Homegear, CUxD, CCU-Jack, and [godevccu](https://github.com/SukramJ/godevccu) for testing
+- **Broad backend support**: CCU3, OpenCCU, CUxD, CCU-Jack, and [godevccu](https://github.com/SukramJ/godevccu) for testing
 - **Multiple transport protocols**: XML-RPC (standard interfaces) and JSON-RPC (CUxD / CCU-Jack), with MQTT event forwarding via Homematic(IP) Local
 - **Extensible** via custom entity classes for complex devices (climate, cover, light, lock, siren, valve, …)
 - **Hub entities** for CCU programs, system variables, inbox messages, install mode, and service messages
@@ -66,7 +66,7 @@ Additional entry points in this repository: [`CLAUDE.md`](CLAUDE.md) (AI assista
                             │ communicates with
                             ▼
 ┌────────────────────────────────────────────────────────────┐
-│     CCU3 / OpenCCU / Homegear / CUxD / CCU-Jack            │
+│     CCU3 / OpenCCU / CUxD / CCU-Jack                       │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -78,7 +78,7 @@ CUxD and CCU-Jack use JSON-RPC and receive events via MQTT forwarded by the Home
 | ---------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
 | **Purpose**      | Python library for Homematic protocol                   | Home Assistant integration                                        |
 | **Scope**        | Protocol, devices, data points                          | HA entities, UI, services                                         |
-| **Dependencies** | Standalone (aiohttp, orjson)                            | Requires Home Assistant                                           |
+| **Dependencies** | Standalone (aiohttp; orjson optional)                   | Requires Home Assistant                                           |
 | **Reusability**  | Any Python project                                      | Home Assistant only                                               |
 | **Repository**   | [aiohomematic](https://github.com/SukramJ/aiohomematic) | [homematicip_local](https://github.com/SukramJ/homematicip_local) |
 
@@ -92,7 +92,7 @@ CUxD and CCU-Jack use JSON-RPC and receive events via MQTT forwarded by the Home
 ### How They Work Together
 
 1. **Homematic(IP) Local** creates a `CentralUnit` via aiohomematic's API
-2. **aiohomematic** connects to the CCU/Homegear and discovers devices
+2. **aiohomematic** connects to the CCU and discovers devices
 3. **aiohomematic** creates `Device`, `Channel`, and `DataPoint` objects
 4. **Homematic(IP) Local** wraps these in Home Assistant entities
 5. **aiohomematic** receives events from the CCU (XML-RPC callbacks or MQTT bridge for CUxD/CCU-Jack) and notifies subscribers via the `EventBus`
@@ -102,10 +102,9 @@ CUxD and CCU-Jack use JSON-RPC and receive events via MQTT forwarded by the Home
 
 Use the Home Assistant custom integration **Homematic(IP) Local**:
 
-1. Install **HACS** in your Home Assistant instance (see [HACS documentation](https://hacs.xyz/)).
-2. In HACS, add `https://github.com/SukramJ/homematicip_local` as a **custom repository** (category: Integration).
-3. Install **Homematic(IP) Local** via HACS and restart Home Assistant.
-4. Configure the integration under **Settings** → **Devices & Services** → **Add Integration**.
+1. From Home Assistant 2026.11 on, open the Home Assistant **Marketplace**, search for **Homematic(IP) Local for OpenCCU** and install it. On earlier versions, install [HACS](https://hacs.xyz/) and add `https://github.com/SukramJ/homematicip_local` as a **custom repository** (category: Integration).
+2. Restart Home Assistant.
+3. Configure the integration under **Settings** → **Devices & Services** → **Add Integration**.
 
 See the [Integration Guide](https://sukramj.github.io/aiohomematic/user/homeassistant_integration/) for detailed instructions.
 
@@ -175,19 +174,24 @@ For a more complete example (multiple interfaces, event subscriptions, `.env` lo
   - CCU-Jack (via JSON-RPC)
 - **Legacy / unsupported**:
   - CCU2 — works with recent firmware but is not actively tested
-  - Homegear — not actively tested
 
-Running outdated firmware or untested backends (CCU2, Homegear) is at your own risk.
+Running outdated firmware or untested backends (CCU2) is at your own risk.
+
+**OpenCCU Lite:** [OpenCCU Lite](https://github.com/hobbyquaker/openccu-lite) (a CCU platform without ReGaHSS) is **not supported by aiohomematic**. Use it with the [OpenCCU Loom](https://github.com/SukramJ/openccu-loom) backend and [openccu-loom-client](https://github.com/SukramJ/openccu-loom-client) in Homematic(IP) Local instead.
 
 **Recommendation:** keep your CCU firmware up to date. Outdated versions may lack bug fixes, security patches, and compatibility improvements that this library relies on.
 
 ## Related Projects
 
-| Project                                                             | Description                                        |
-| ------------------------------------------------------------------- | -------------------------------------------------- |
-| [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local) | Home Assistant integration built on aiohomematic   |
-| [godevccu](https://github.com/SukramJ/godevccu)                     | Virtual CCU used as a test target                  |
-| [pyhomematic](https://github.com/danielperna84/pyhomematic)         | Predecessor project (no longer actively developed) |
+| Project                                                               | Description                                                                        |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [Homematic(IP) Local](https://github.com/SukramJ/homematicip_local)   | Home Assistant integration built on aiohomematic                                   |
+| [godevccu](https://github.com/SukramJ/godevccu)                       | Virtual CCU used as a test target                                                  |
+| [OpenCCU Loom](https://github.com/SukramJ/openccu-loom)               | Go daemon bridging CCUs and OpenCCU Lite; backend for OpenCCU Lite                 |
+| [openccu-loom-client](https://github.com/SukramJ/openccu-loom-client) | Python client for OpenCCU Loom, alternative to aiohomematic in Homematic(IP) Local |
+| [aiohomematic-config](https://github.com/SukramJ/aiohomematic-config) | Device configuration UI library                                                    |
+| [openccu-data](https://github.com/SukramJ/openccu-data)               | Configuration metadata (easymodes, translations, profiles)                         |
+| [pyhomematic](https://github.com/danielperna84/pyhomematic)           | Predecessor project (no longer actively developed)                                 |
 
 ## Contributing
 

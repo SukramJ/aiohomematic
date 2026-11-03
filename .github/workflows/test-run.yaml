@@ -15,7 +15,7 @@ jobs:
         # Python 3.14t (free-threaded) uses stdlib json via compat module
         # since orjson does not yet support free-threading (PyO3 limitation).
         # See: aiohomematic/compat.py and https://github.com/ijl/orjson/issues/595
-        python-version: ["3.14", "3.14t"]
+        python-version: ["3.14", "3.14t", "3.15"]
     name: Python ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v7

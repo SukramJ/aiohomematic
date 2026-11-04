@@ -352,6 +352,7 @@ BaseDataPoint is the core class for all device parameters and controls.
 
 - **`is_locked`** - Locked state
 - **`is_locking`** - Locking in progress
+- **`is_opening`** - Opening (latch pull) in progress
 - **`is_unlocking`** - Unlocking in progress
 - **`lock`** - Lock
 - **`unlock`** - Unlock

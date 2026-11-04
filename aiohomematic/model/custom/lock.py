@@ -8,7 +8,7 @@ Public API of this module is defined by __all__.
 
 from abc import abstractmethod
 from enum import StrEnum, unique
-from typing import ClassVar, Final
+from typing import Any, ClassVar, Final, override
 
 from aiohomematic.client import CommandPriority
 from aiohomematic.const import DataPointCategory, DeviceProfile, Field, Parameter
@@ -27,6 +27,8 @@ class _LockActivity(StrEnum):
     """Enum with lock activities."""
 
     LOCKING = "DOWN"
+    STABLE = "STABLE"
+    UNKNOWN = "UNKNOWN"
     UNLOCKING = "UP"
 
 
@@ -81,6 +83,11 @@ class BaseCustomDpLock(CustomDataPoint, LockDataPointProtocol):
         return None
 
     @property
+    def is_opening(self) -> bool | None:
+        """Return true if the lock is opening (latch is being pulled)."""
+        return None
+
+    @property
     def is_unlocking(self) -> bool | None:
         """Return true if the lock is unlocking."""
         return None
@@ -111,15 +118,30 @@ class BaseCustomDpLock(CustomDataPoint, LockDataPointProtocol):
 
 
 class CustomDpIpLock(BaseCustomDpLock):
-    """Class for HomematicIP lock data point."""
+    """
+    Class for HomematicIP lock data point.
 
-    __slots__ = ()  # Required to prevent __dict__ creation (descriptors are class-level)
+    The device reports no open state, only the motor direction (ACTIVITY_STATE)
+    and the bolt position (LOCK_STATE). Opening the latch is a movement that starts
+    with UP while the lock is already UNLOCKED and returns with DOWN to the unlocked
+    position. That DOWN must not be reported as locking, so the open movement is
+    tracked until the motor is STABLE (or UNKNOWN) again.
+    """
+
+    __slots__ = ("_is_open_movement",)
 
     # Declarative data point field definitions
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
     _dp_lock_state: Final = DataPointField(field=Field.LOCK_STATE, dpt=DpSensor[str | None])
     _dp_lock_target_level: Final = DataPointField(field=Field.LOCK_TARGET_LEVEL, dpt=DpActionSelect)
     _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.LOCK_STATE})
+
+    @property
+    def _direction(self) -> str | None:
+        """Return the current motor direction."""
+        if (value := self._dp_direction.value) is None:
+            return None
+        return str(value)
 
     @property
     def is_locked(self) -> bool:
@@ -129,16 +151,25 @@ class CustomDpIpLock(BaseCustomDpLock):
     @property
     def is_locking(self) -> bool | None:
         """Return true if the lock is locking."""
-        if self._dp_direction.value is not None:
-            return str(self._dp_direction.value) == _LockActivity.LOCKING
-        return None
+        if (direction := self._direction) is None:
+            return None
+        return direction == _LockActivity.LOCKING and not self._is_open_movement
+
+    @property
+    def is_opening(self) -> bool | None:
+        """Return true if the lock is opening (latch is being pulled)."""
+        if (direction := self._direction) is None:
+            return None
+        return self._is_opening_up(direction=direction) or (
+            direction == _LockActivity.LOCKING and self._is_open_movement
+        )
 
     @property
     def is_unlocking(self) -> bool | None:
         """Return true if the lock is unlocking."""
-        if self._dp_direction.value is not None:
-            return str(self._dp_direction.value) == _LockActivity.UNLOCKING
-        return None
+        if (direction := self._direction) is None:
+            return None
+        return direction == _LockActivity.UNLOCKING and not self._is_opening_up(direction=direction)
 
     @bind_collector(priority=CommandPriority.CRITICAL)
     async def lock(self, *, collector: CallParameterCollector | None = None) -> None:
@@ -150,6 +181,12 @@ class CustomDpIpLock(BaseCustomDpLock):
         """Open the lock."""
         await self._dp_lock_target_level.send_value(value=_LockTargetLevel.OPEN, collector=collector)
 
+    @override
+    def publish_data_point_updated_event(self, *, old_value: Any = None, new_value: Any = None) -> None:
+        """Track the open movement before the update is published."""
+        self._update_open_movement()
+        super().publish_data_point_updated_event(old_value=old_value, new_value=new_value)
+
     @bind_collector(priority=CommandPriority.CRITICAL)
     async def unlock(self, *, collector: CallParameterCollector | None = None) -> None:
         """Unlock the lock."""
@@ -158,6 +195,23 @@ class CustomDpIpLock(BaseCustomDpLock):
     def _compute_capabilities(self) -> LockCapabilities:
         """Compute static capabilities. IP locks support open."""
         return IP_LOCK_CAPABILITIES
+
+    def _is_opening_up(self, *, direction: str) -> bool:
+        """Return true if the motor moves UP although the bolt is already unlocked."""
+        return direction == _LockActivity.UNLOCKING and self._dp_lock_state.value == LockState.UNLOCKED
+
+    @override
+    def _post_init(self) -> None:
+        """Initialize the open movement tracking."""
+        self._is_open_movement = False
+        super()._post_init()
+
+    def _update_open_movement(self) -> None:
+        """Start the open movement on UP while unlocked, end it when the motor stops."""
+        if (direction := self._direction) is None or direction in (_LockActivity.STABLE, _LockActivity.UNKNOWN):
+            self._is_open_movement = False
+        elif self._is_opening_up(direction=direction):
+            self._is_open_movement = True
 
 
 class CustomDpButtonLock(BaseCustomDpLock):

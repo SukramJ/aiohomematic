@@ -1,3 +1,15 @@
+# Version 2026.11.2 (2026-11-04)
+
+## What's Changed
+
+### Fixed
+
+- **HmIP-DLD no longer reports "locking" while the latch is opened.** Opening reports
+  `ACTIVITY_STATE` UP while already UNLOCKED, then DOWN back to the unlocked position; that DOWN was
+  read as locking. `CustomDpIpLock` now tracks the open movement until the motor is STABLE and
+  exposes it as the new `is_opening` (also on `LockDataPointProtocol`)
+  ([homematicip_local#1343](https://github.com/SukramJ/homematicip_local/issues/1343)).
+
 # Version 2026.11.1 (2026-11-01)
 
 ## What's Changed

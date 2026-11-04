@@ -38,6 +38,7 @@ from aiohomematic.interfaces import (
     GenericDataPointProtocol,
     # Hub protocols
     HubProtocol,
+    LockDataPointProtocol,
     ParameterVisibilityProviderProtocol,
     ParamsetDescriptionProviderProtocol,
     PrimaryClientProviderProtocol,
@@ -243,6 +244,20 @@ class TestCustomDataPointProtocolContract:
     def test_customdatapointprotocol_has_usage(self) -> None:
         """Contract: CustomDataPointProtocol has usage property."""
         assert "usage" in dir(CustomDataPointProtocol)
+
+
+# =============================================================================
+# Contract: LockDataPointProtocol
+# =============================================================================
+
+
+class TestLockDataPointProtocolContract:
+    """Contract: LockDataPointProtocol must have required members."""
+
+    def test_lockdatapointprotocol_has_movement_states(self) -> None:
+        """Contract: LockDataPointProtocol exposes locking, unlocking and opening states."""
+        for member in ("is_locked", "is_locking", "is_opening", "is_unlocking"):
+            assert member in dir(LockDataPointProtocol)
 
 
 # =============================================================================

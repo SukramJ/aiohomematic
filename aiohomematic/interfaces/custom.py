@@ -435,6 +435,11 @@ class LockDataPointProtocol(CustomDataPointProtocol, Protocol):
 
     @property
     @abstractmethod
+    def is_opening(self) -> bool | None:
+        """Return if the lock is opening (latch is being pulled)."""
+
+    @property
+    @abstractmethod
     def is_unlocking(self) -> bool | None:
         """Return if the lock is unlocking."""
 

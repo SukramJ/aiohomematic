@@ -2,6 +2,11 @@
 
 ## What's Changed
 
+### Added
+
+- **Support for the thermostats HmIP-WT, KW-STATH and KW-UKETRV.** They were documented but had only
+  generic data points. They now get a climate entity with schedule and a button lock on channel 0.
+
 ### Fixed
 
 - **HmIP-DLP exposes `ERROR_JAMMED`.** The parameter is on channel 12, but was registered for

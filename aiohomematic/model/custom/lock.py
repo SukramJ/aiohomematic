@@ -227,6 +227,7 @@ class CustomDpButtonLock(BaseCustomDpLock):
 
     # Declarative data point field definitions
     _dp_button_lock: Final = DataPointField(field=Field.BUTTON_LOCK, dpt=DpSwitch)
+    _can_own_week_profile: ClassVar[bool] = False
     _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.BUTTON_LOCK})
 
     @property
@@ -418,6 +419,7 @@ DeviceProfileRegistry.register(
         "HmIP-WTH",
         "HmIP-eTRV",
         "HmIPW-FAL",
+        "HmIPW-WGT",
         "HmIPW-WTH",
         "KW-STATH",
         "KW-UKETRV",

@@ -116,6 +116,7 @@ __all__ = [
     "SimpleSchedule",
     "SimpleScheduleEntry",
     "TargetChannelInfo",
+    "bit_to_channel_key",
     "channel_key_to_bitmask",
     "detect_lock_action",
     "detect_lock_mode",
@@ -803,6 +804,11 @@ def convert_weekdays_to_list(*, weekday_enums: list[WeekdayInt]) -> list[str]:
 def convert_list_to_weekdays(*, weekday_strs: list[str]) -> list[WeekdayInt]:
     """Convert list of weekday strings to list of WeekdayInt enums."""
     return [_WEEKDAY_STR_TO_INT[w] for w in weekday_strs]
+
+
+def bit_to_channel_key(*, bit: int) -> str:
+    """Convert a bit position of the target channel mask to its channel key (e.g. 3 to '2_1')."""
+    return _CHANNEL_ENUM_TO_STR[ScheduleActorChannel(1 << bit)]
 
 
 def channel_key_to_bitmask(*, channel_key: str) -> int:

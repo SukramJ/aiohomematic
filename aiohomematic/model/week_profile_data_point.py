@@ -53,6 +53,7 @@ from aiohomematic.model.schedule_models import (
     ClimateSchedule,
     SimpleSchedule,
     TargetChannelInfo,
+    bit_to_channel_key,
     channel_key_to_bitmask,
     parse_channel_locks,
 )
@@ -81,6 +82,12 @@ def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly:
 _PARAMETER_NAME: Final = "WEEK_PROFILE"
 _UNIQUE_ID_PREFIX: Final = "week_profile"
 _UNIQUE_ID_PREFIX_CLIMATE: Final = "climate_week_profile"
+# Target channels in bit order, where the channel groups do not give them. The climate channel is none of them.
+# Source: this.virtualChannels and valCheckBox in the week program editor of the CCU (HmIPWeeklyProgram.js).
+_TARGET_CHANNELS_BY_MODEL_PREFIX: Final[Mapping[str, tuple[int, ...]]] = {
+    "hmip-wgt": (2, 4, 5, 6),
+    "hmipw-wgt": (2,),
+}
 _SCHEDULE_CHANNEL_SWITCH_PARAMETER: Final = "SCHEDULE_CHANNEL_SWITCH"
 _SCHEDULE_MANU_MODE: Final = "MANU_MODE"
 _SCHEDULE_AUTO_MODE: Final = "AUTO_MODE_WITHOUT_RESET"
@@ -398,6 +405,18 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         device = self._device
         result: dict[str, TargetChannelInfo] = {}
 
+        model = device.model.lower()
+        for prefix, channel_nos in _TARGET_CHANNELS_BY_MODEL_PREFIX.items():
+            if model.startswith(prefix):
+                primary_channels = {group.primary_channel for group in device.channel_groups.values()}
+                return {
+                    bit_to_channel_key(bit=bit): self._create_target_channel_info(
+                        channel_no=channel_no,
+                        channel_type="primary" if channel_no in primary_channels else "secondary",
+                    )
+                    for bit, channel_no in enumerate(channel_nos)
+                }
+
         sorted_groups = sorted(_get_schedule_relevant_channel_groups(device=device).items())
 
         for actor_idx, (_group_no, rebased_config) in enumerate(sorted_groups, start=1):
@@ -409,17 +428,8 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             channels_in_group.extend((sec_ch, "secondary") for sec_ch in rebased_config.secondary_channels)
 
             for sub_idx, (ch_no, ch_type) in enumerate(channels_in_group, start=1):
-                key = f"{actor_idx}_{sub_idx}"
-                ch_address = f"{device.address}:{ch_no}"
-                ch_name = f"Channel {ch_no}"
-                if (channel := device.channels.get(ch_address)) is not None:
-                    ch_name = channel.name or f"Channel {ch_no}"
-
-                result[key] = TargetChannelInfo(
-                    channel_no=ch_no,
-                    channel_address=ch_address,
-                    name=ch_name,
-                    channel_type=ch_type,
+                result[f"{actor_idx}_{sub_idx}"] = self._create_target_channel_info(
+                    channel_no=ch_no, channel_type=ch_type
                 )
 
         return result
@@ -447,6 +457,17 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
             if entry.target_channels:
                 count += 1
         return count
+
+    def _create_target_channel_info(self, *, channel_no: int, channel_type: str) -> TargetChannelInfo:
+        """Return the metadata of a target channel."""
+        channel_address = f"{self._device.address}:{channel_no}"
+        channel = self._device.channels.get(channel_address)
+        return TargetChannelInfo(
+            channel_no=channel_no,
+            channel_address=channel_address,
+            name=(channel.name if channel is not None else None) or f"Channel {channel_no}",
+            channel_type=channel_type,
+        )
 
     @override
     def _get_data_point_name(self) -> DataPointNameData:

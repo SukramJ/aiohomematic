@@ -93,7 +93,7 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         self._init_data_points()
         self._create_combined_data_points()
         self._post_init()
-        if self.usage == DataPointUsage.CDP_PRIMARY:
+        if self.usage == DataPointUsage.CDP_PRIMARY and self._can_own_week_profile:
             self._device.init_week_profile(data_point=self)
         weakref.finalize(self, _cleanup_callbacks, self._unsubscribe_callbacks)
 
@@ -106,6 +106,9 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
     def _readable_data_points(self) -> tuple[GenericDataPointProtocolAny, ...]:
         """Returns the list of readable data points."""
         return tuple(dp for dp in self._data_points.values() if dp.is_readable)
+
+    # The owner of a schedule sets its domain, which decides the fields of a schedule entry.
+    _can_own_week_profile: ClassVar[bool] = True
 
     # Fields whose readable data points gate validity (is_refreshed / is_valid /
     # state_uncertain). Assigned by subclasses; enforced for every concrete class by

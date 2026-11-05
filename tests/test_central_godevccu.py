@@ -159,7 +159,7 @@ class TestCentralGoDevCCU:
         assert usage_types[DataPointUsage.CDP_PRIMARY] == 300
         assert usage_types[DataPointUsage.CDP_SECONDARY] == 166
         assert usage_types[DataPointUsage.CDP_VISIBLE] == 220
-        assert usage_types[DataPointUsage.DATA_POINT] == 4407
+        assert usage_types[DataPointUsage.DATA_POINT] == 4410
         assert usage_types[DataPointUsage.NO_CREATE] == 4601
 
         assert len(ce_channels) == 138

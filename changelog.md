@@ -4,6 +4,9 @@
 
 ### Added
 
+- **Support for the wired thermostats HmIPW-WGT and HmIPW-WGTC.** They were documented but had only
+  generic data points. They now get a climate entity with heating schedule, a dimmer for the backlight
+  with its schedule, and a button lock.
 - **Support for the thermostats HmIP-WT, KW-STATH and KW-UKETRV.** They were documented but had only
   generic data points. They now get a climate entity with schedule and a button lock on channel 0.
 - **HmIP-WGT and HmIP-WGTC expose their heating schedule next to the switch schedule.** A device kept
@@ -15,6 +18,9 @@
 
 ### Fixed
 
+- **The switch schedule of HmIP-WGT and HmIP-WGTC has the correct targets and accepts entries.** It
+  offered the climate channel as its only target and, owned by the button lock, demanded a lock mode.
+  The targets are now channels 2, 4, 5 and 6, as in the week program editor of the CCU.
 - **HmIP-DLP exposes `ERROR_JAMMED`.** The parameter is on channel 12, but was registered for
   channel 0, so its data point was not created.
 - **`is_jammed` works for HmIP-DLD and HmIP-DLP.** `CustomDpIpLock` always reported `False`; it now

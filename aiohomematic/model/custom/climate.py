@@ -985,6 +985,14 @@ DeviceProfileRegistry.register(
     channels=(8,),
     schedule_channel_no=8,
 )
+DeviceProfileRegistry.register(
+    category=DataPointCategory.CLIMATE,
+    models="HmIPW-WGT",
+    data_point_class=CustomDpIpThermostat,
+    profile_type=DeviceProfile.IP_THERMOSTAT,
+    channels=(4,),
+    schedule_channel_no=4,
+)
 
 # IP Thermostat Group
 DeviceProfileRegistry.register(

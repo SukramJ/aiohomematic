@@ -8,7 +8,7 @@ from unittest.mock import call
 import pytest
 
 from aiohomematic.client import CommandPriority
-from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointUsage, ParamsetKey
+from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointCategory, DataPointUsage, ParamsetKey
 from aiohomematic.model.custom import (
     CustomDpColorDimmer,
     CustomDpColorDimmerEffect,
@@ -17,6 +17,7 @@ from aiohomematic.model.custom import (
     CustomDpIpFixedColorLight,
     CustomDpIpRGBWColorTempLight,
     CustomDpIpRGBWLight,
+    DeviceProfileRegistry,
 )
 from aiohomematic.model.custom.light import _NOT_USED, FixedColor, _ColorBehaviour
 from aiohomematic.model.custom.mixins import _TimeUnit
@@ -38,6 +39,24 @@ TEST_DEVICES: set[str] = {
 }
 
 # pylint: disable=protected-access
+
+
+class TestIpDimmerRegistration:
+    """Tests for the channel assignment of IP dimmer models."""
+
+    @pytest.mark.parametrize(
+        ("model", "channels"),
+        [
+            ("HmIP-BDT", (4,)),
+            ("HmIP-BDT-I", (5,)),
+            # Hypothetical variant: must resolve to the longer prefix, not to HmIP-BDT.
+            ("HmIP-BDT-I2", (5,)),
+        ],
+    )
+    def test_bdt_variants_use_first_virtual_receiver(self, model: str, channels: tuple[int, ...]) -> None:
+        """The first DIMMER_VIRTUAL_RECEIVER differs, because HmIP-BDT-I has an additional input channel."""
+        configs = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.LIGHT)
+        assert [config.channels for config in configs] == [channels]
 
 
 class TestCustomDpDimmer:

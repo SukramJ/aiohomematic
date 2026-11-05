@@ -1,3 +1,13 @@
+# Version 2026.11.3 (2026-11-05)
+
+## What's Changed
+
+### Fixed
+
+- **HmIP-BDT-I dimmer uses the correct channels.** The model matched the `HmIP-BDT` prefix and got
+  channel 4, which is the `DIMMER_TRANSMITTER` on this device. It now has its own registration on
+  channel 5, with channel 4 as the state channel.
+
 # Version 2026.11.2 (2026-11-04)
 
 ## What's Changed

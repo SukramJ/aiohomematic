@@ -8,7 +8,7 @@ from unittest.mock import call
 import pytest
 
 from aiohomematic.client import CommandPriority
-from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointCategory, DataPointUsage, ParamsetKey
+from aiohomematic.const import WAIT_FOR_CALLBACK, DataPointCategory, DataPointUsage, DeviceProfile, ParamsetKey
 from aiohomematic.model.custom import (
     CustomDpColorDimmer,
     CustomDpColorDimmerEffect,
@@ -57,6 +57,22 @@ class TestIpDimmerRegistration:
         """The first DIMMER_VIRTUAL_RECEIVER differs, because HmIP-BDT-I has an additional input channel."""
         configs = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.LIGHT)
         assert [config.channels for config in configs] == [channels]
+
+    @pytest.mark.parametrize(
+        ("model", "channels"),
+        [
+            ("ELV-SH-WUA", (2,)),
+            ("HmIP-UDI-PB2", (5,)),
+            ("HmIP-UDI-PB2-A", (5,)),
+            ("HmIP-WUA", (2,)),
+        ],
+    )
+    def test_universal_dimmers_use_first_virtual_receiver(self, model: str, channels: tuple[int, ...]) -> None:
+        """The channel before the first DIMMER_VIRTUAL_RECEIVER is the DIMMER_TRANSMITTER, as on the other dimmers."""
+        configs = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.LIGHT)
+        assert [(config.data_point_class, config.profile_type, config.channels) for config in configs] == [
+            (CustomDpDimmer, DeviceProfile.IP_DIMMER, channels)
+        ]
 
 
 class TestCustomDpDimmer:

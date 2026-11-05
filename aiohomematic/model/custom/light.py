@@ -1016,6 +1016,8 @@ DeviceProfileRegistry.register(
 
 # Data-driven IP Dimmer registrations: (models, channels)
 _IP_DIMMER_REGISTRATIONS: Final[tuple[tuple[str | tuple[str, ...], tuple[int, ...]], ...]] = (
+    # HmIP-BDT-I must precede HmIP-BDT: the first prefix match in registration order wins.
+    ("HmIP-BDT-I", (5,)),
     ("HmIP-BDT", (4,)),
     ("HmIP-DRDI3", (5, 9, 13)),
     ("HmIP-FDT", (2,)),

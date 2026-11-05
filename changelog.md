@@ -18,6 +18,9 @@
 
 ### Fixed
 
+- **HmIPW-WTH and HmIPW-SCTHD use the limits configured on the device.** Their MASTER parameters were
+  not loaded, so `TEMPERATURE_MINIMUM`, `TEMPERATURE_MAXIMUM`, `TEMPERATURE_OFFSET` and
+  `OPTIMUM_START_STOP` had no data point and the maximum fell back to 30.5.
 - **The switch schedule of HmIP-WGT and HmIP-WGTC has the correct targets and accepts entries.** It
   offered the climate channel as its only target and, owned by the button lock, demanded a lock mode.
   The targets are now channels 2, 4, 5 and 6, as in the week program editor of the CCU.

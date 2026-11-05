@@ -596,6 +596,8 @@ IP_IRRIGATION_VALVE_CONFIG: Final = ProfileConfig(
         fields={
             Field.STATE: Parameter.STATE,
             Field.ON_TIME_VALUE: Parameter.ON_TIME,
+            Field.DURATION_UNIT: Parameter.DURATION_UNIT,
+            Field.DURATION_VALUE: Parameter.DURATION_VALUE,
         },
         channel_fields={
             ChannelOffset.STATE: {

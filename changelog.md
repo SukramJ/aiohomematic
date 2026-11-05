@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- **HmIP-DLP exposes `ERROR_JAMMED`.** The parameter is on channel 12, but was registered for
+  channel 0, so its data point was not created.
 - **HmIP-BDT-I dimmer uses the correct channels.** The model matched the `HmIP-BDT` prefix and got
   channel 4, which is the `DIMMER_TRANSMITTER` on this device. It now has its own registration on
   channel 5, with channel 4 as the state channel.

@@ -30,6 +30,7 @@ class CustomDpIpIrrigationValve(StateChangeTimerMixin, GroupStateMixin, CustomDa
     _category = DataPointCategory.VALVE
 
     # Declarative data point field definitions
+    _dp_duration = CombinedTimerField(value_field=Field.DURATION_VALUE, unit_field=Field.DURATION_UNIT)
     _dp_group_state = DataPointField(field=Field.GROUP_STATE, dpt=DpBinarySensor)
     _dp_on_time = CombinedTimerField(value_field=Field.ON_TIME_VALUE)
     _dp_state: Final = DataPointField(field=Field.STATE, dpt=DpSwitch)
@@ -61,7 +62,9 @@ class CustomDpIpIrrigationValve(StateChangeTimerMixin, GroupStateMixin, CustomDa
             return
 
         if (timer := self.get_and_start_timer()) is not None:
-            await self._dp_on_time.send_value(value=timer, collector=collector)
+            # Firmware 1.3.4 and later replaced ON_TIME by DURATION_VALUE and DURATION_UNIT.
+            dp_timer = self._dp_on_time if self._dp_on_time.is_valid else self._dp_duration
+            await dp_timer.send_value(value=timer, collector=collector)
         await self._dp_state.turn_on(collector=collector)
 
 

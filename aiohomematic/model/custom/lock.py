@@ -18,7 +18,7 @@ from aiohomematic.model.custom.data_point import CustomDataPoint
 from aiohomematic.model.custom.field import DataPointField
 from aiohomematic.model.custom.registry import DeviceConfig, DeviceProfileRegistry, ExtendedDeviceConfig
 from aiohomematic.model.data_point import CallParameterCollector, bind_collector
-from aiohomematic.model.generic import DpAction, DpActionSelect, DpSensor, DpSwitch
+from aiohomematic.model.generic import DpAction, DpActionSelect, DpBinarySensor, DpSensor, DpSwitch
 from aiohomematic.property_decorators import hm_property
 
 
@@ -132,6 +132,7 @@ class CustomDpIpLock(BaseCustomDpLock):
 
     # Declarative data point field definitions
     _dp_direction: Final = DataPointField(field=Field.DIRECTION, dpt=DpSensor[str | None])
+    _dp_error: Final = DataPointField(field=Field.ERROR, dpt=DpBinarySensor)
     _dp_lock_state: Final = DataPointField(field=Field.LOCK_STATE, dpt=DpSensor[str | None])
     _dp_lock_target_level: Final = DataPointField(field=Field.LOCK_TARGET_LEVEL, dpt=DpActionSelect)
     _validity_relevant_fields: ClassVar[frozenset[Field]] = frozenset({Field.LOCK_STATE})
@@ -142,6 +143,11 @@ class CustomDpIpLock(BaseCustomDpLock):
         if (value := self._dp_direction.value) is None:
             return None
         return str(value)
+
+    @property
+    def is_jammed(self) -> bool:
+        """Return true if lock is jammed."""
+        return self._dp_error.value is True
 
     @property
     def is_locked(self) -> bool:
@@ -362,6 +368,8 @@ DeviceProfileRegistry.register_multiple(
             data_point_class=CustomDpIpLock,
             profile_type=DeviceProfile.IP_LOCK,
             extended=ExtendedDeviceConfig(
+                # The profile looks on the channel before the lock channel, which is the DLD layout.
+                fixed_channel_fields={12: {Field.ERROR: Parameter.ERROR_JAMMED}},
                 additional_data_points={
                     0: (
                         Parameter.SABOTAGE_ACCELERATION,
@@ -376,7 +384,7 @@ DeviceProfileRegistry.register_multiple(
                         Parameter.LOCK_STATE_REASON,
                     ),
                     13: (Parameter.AUTO_RELOCK_STATE,),
-                }
+                },
             ),
             channels=(12,),
             schedule_channel_no=14,

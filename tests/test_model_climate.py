@@ -15,6 +15,7 @@ from aiohomematic.const import (  # local import to keep test header minimal
     WAIT_FOR_CALLBACK,
     DataPointCategory,
     DataPointUsage,
+    DeviceProfile,
     Field,
     Parameter,
     ParamsetKey,
@@ -30,12 +31,14 @@ from aiohomematic.model.custom import (
     CustomDpIpThermostat,
     CustomDpRfThermostat,
     CustomDpSimpleRfThermostat,
+    DeviceProfileRegistry,
 )
 from aiohomematic.model.custom.climate import _ModeHm, _ModeHmIP
 from aiohomematic.model.generic import DpDummy, DpFloat
 from aiohomematic.model.schedule_models import ClimateSchedulePeriod, ClimateWeekdaySchedule
 from aiohomematic.model.week_profile import ClimateWeekProfile, _convert_time_str_to_minutes
 from aiohomematic.model.week_profile_data_point import ClimateWeekProfileDataPoint
+from aiohomematic.store.visibility.rules import CLIMATE_MASTER_PARAMETERS, RELEVANT_MASTER_PARAMSETS_BY_DEVICE
 from aiohomematic_test_support import const
 from aiohomematic_test_support.helper import get_prepared_custom_data_point
 
@@ -51,6 +54,35 @@ TEST_DEVICES: set[str] = {
 }
 
 # pylint: disable=protected-access
+
+
+class TestIpThermostatRegistration:
+    """Tests for the registration of IP thermostat models."""
+
+    @pytest.mark.parametrize("model", ["HmIP-WT", "HmIP-WTH-2", "KW-STATH", "KW-UKETRV", "KW-UKETRV-2"])
+    def test_thermostat_loads_climate_master_parameters(self, model: str) -> None:
+        """Without a rule, TEMPERATURE_MINIMUM and the other MASTER parameters of the profile are not loaded."""
+        rule = next(
+            (
+                value
+                for key, value in RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items()
+                if model.lower().startswith(key.lower())
+            ),
+            None,
+        )
+        assert rule == (frozenset({1}), CLIMATE_MASTER_PARAMETERS)
+
+    @pytest.mark.parametrize("model", ["HmIP-WT", "HmIP-WTH-2", "KW-STATH", "KW-UKETRV", "KW-UKETRV-2"])
+    def test_thermostat_uses_channel_one(self, model: str) -> None:
+        """Climate control and schedule are on channel 1, GLOBAL_BUTTON_LOCK is on channel 0."""
+        climate = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.CLIMATE)
+        assert [
+            (config.data_point_class, config.profile_type, config.channels, config.schedule_channel_no)
+            for config in climate
+        ] == [(CustomDpIpThermostat, DeviceProfile.IP_THERMOSTAT, (1,), 1)]
+
+        lock = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.LOCK)
+        assert [(config.profile_type, config.channels) for config in lock] == [(DeviceProfile.IP_BUTTON_LOCK, (0,))]
 
 
 class TestCustomDpSimpleRfThermostat:

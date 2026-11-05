@@ -351,3 +351,54 @@ class TestIpLockAdditionalDataPoints:
         data_point = device.get_generic_data_point(channel_address="VCU9979350:12", parameter="ERROR_JAMMED")
         assert data_point is not None
         assert data_point.usage == DataPointUsage.DATA_POINT
+
+
+class TestIpLockJammed:
+    """Tests for the jam state of IP locks."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("address", "lock_channel", "jam_channel"),
+        [
+            ("VCU9724704", 1, 0),  # HmIP-DLD
+            ("VCU9979350", 12, 12),  # HmIP-DLP
+        ],
+    )
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (None, True, None, None),
+        ],
+    )
+    async def test_is_jammed_follows_error_jammed(
+        self,
+        central_client_factory_with_homegear_client,
+        address: str,
+        lock_channel: int,
+        jam_channel: int,
+    ) -> None:
+        """ERROR_JAMMED is a boolean on the maintenance channel (DLD) or on the lock channel (DLP)."""
+        central, _, _ = central_client_factory_with_homegear_client
+        lock: CustomDpIpLock = cast(CustomDpIpLock, get_prepared_custom_data_point(central, address, lock_channel))
+        assert lock.is_jammed is False
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address=f"{address}:{jam_channel}",
+            parameter="ERROR_JAMMED",
+            value=True,
+        )
+        assert lock.is_jammed is True
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID,
+            channel_address=f"{address}:{jam_channel}",
+            parameter="ERROR_JAMMED",
+            value=False,
+        )
+        assert lock.is_jammed is False

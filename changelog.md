@@ -6,6 +6,8 @@
 
 - **HmIP-DLP exposes `ERROR_JAMMED`.** The parameter is on channel 12, but was registered for
   channel 0, so its data point was not created.
+- **`is_jammed` works for HmIP-DLD and HmIP-DLP.** `CustomDpIpLock` always reported `False`; it now
+  follows `ERROR_JAMMED`, so Homematic(IP) Local can show a jammed lock.
 - **HmIP-WSM irrigation valve keeps its run time on current firmware.** Firmware 1.3.4 and later has
   `DURATION_VALUE` and `DURATION_UNIT` instead of `ON_TIME`, so `open(on_time=...)` opened the valve
   without a run time. Older firmware keeps using `ON_TIME`.

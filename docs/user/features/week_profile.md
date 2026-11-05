@@ -27,6 +27,14 @@ Devices with week profile capability support a single schedule with up to 24 ent
 | **Entries** | Up to 24 schedule entries                         |
 | **Format**  | Generic schedule_data dict with time/level/target |
 
+### Devices with Two Schedules
+
+HmIP-WGT and HmIP-WGTC have a heating schedule on the thermostat channel and a switch schedule on the
+`SWITCH_WEEK_PROFILE` channel. Each schedule has its own data point, so these devices have two Week
+Profile sensors. In the API, `Device.climate_week_profile_data_point` returns the heating schedule and
+`Device.week_profile_data_point` the switch schedule. On all other devices, both accessors return the
+device's only schedule, or `climate_week_profile_data_point` returns `None` on non-climate devices.
+
 ### Week Profile Sensor Value
 
 The **Week Profile sensor** entity exposes a numeric `value` (integer) that represents the **total number of active schedule entries** configured on the device. This gives a quick indication of whether a schedule is configured and how comprehensive it is.

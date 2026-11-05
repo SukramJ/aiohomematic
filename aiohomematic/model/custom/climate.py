@@ -983,7 +983,7 @@ DeviceProfileRegistry.register(
     data_point_class=CustomDpIpThermostat,
     profile_type=DeviceProfile.IP_THERMOSTAT,
     channels=(8,),
-    schedule_channel_no=1,
+    schedule_channel_no=8,
 )
 
 # IP Thermostat Group

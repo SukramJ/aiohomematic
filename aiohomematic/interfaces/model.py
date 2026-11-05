@@ -1763,6 +1763,16 @@ class DeviceProtocol(
 
     @property
     @abstractmethod
+    def climate_week_profile(self) -> WeekProfileProtocol[Any] | None:
+        """Return the climate schedule of the device."""
+
+    @property
+    @abstractmethod
+    def climate_week_profile_data_point(self) -> ClimateWeekProfileDataPointProtocol | None:
+        """Return the data point of the climate schedule of the device."""
+
+    @property
+    @abstractmethod
     def config_pending(self) -> bool:
         """Return if a config change of the device is pending."""
 
@@ -1920,6 +1930,16 @@ class DeviceProtocol(
     @abstractmethod
     def week_profile_data_point(self) -> WeekProfileDataPointProtocol | None:
         """Return the week profile data point."""
+
+    @property
+    @abstractmethod
+    def week_profile_data_points(self) -> tuple[WeekProfileDataPointProtocol, ...]:
+        """Return the data points of all schedules of the device."""
+
+    @property
+    @abstractmethod
+    def week_profiles(self) -> tuple[WeekProfileProtocol[Any], ...]:
+        """Return all schedules of the device."""
 
     @abstractmethod
     def add_channel_to_group(self, *, group_no: int, channel_no: int | None) -> None:

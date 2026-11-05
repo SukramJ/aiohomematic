@@ -44,6 +44,7 @@ from aiohomematic.interfaces.model import (
     ChannelProtocol,
     DeviceProtocol,
     GenericDataPointProtocolAny,
+    WeekProfileProtocol,
 )
 from aiohomematic.model.custom.profile import RebasedChannelGroupConfig
 from aiohomematic.model.data_point import BaseDataPoint
@@ -78,6 +79,8 @@ def _cleanup_callbacks(callbacks: list[UnsubscribeCallback]) -> None:  # kwonly:
 
 
 _PARAMETER_NAME: Final = "WEEK_PROFILE"
+_UNIQUE_ID_PREFIX: Final = "week_profile"
+_UNIQUE_ID_PREFIX_CLIMATE: Final = "climate_week_profile"
 _SCHEDULE_CHANNEL_SWITCH_PARAMETER: Final = "SCHEDULE_CHANNEL_SWITCH"
 _SCHEDULE_MANU_MODE: Final = "MANU_MODE"
 _SCHEDULE_AUTO_MODE: Final = "AUTO_MODE_WITHOUT_RESET"
@@ -218,13 +221,14 @@ class WeekProfileDataPoint(BaseDataPoint, WeekProfileDataPointProtocol):
         *,
         channel: ChannelProtocol,
         week_profile: ClimateWeekProfile | DefaultWeekProfile,
+        unique_id_prefix: str = _UNIQUE_ID_PREFIX,
     ) -> None:
         """Initialize the week profile data point."""
         unique_id = generate_unique_id(
             config_provider=channel.device.config_provider,
             address=channel.device.address,
             parameter=_PARAMETER_NAME,
-            prefix="week_profile",
+            prefix=unique_id_prefix,
         )
         super().__init__(
             channel=channel,
@@ -491,9 +495,10 @@ class ClimateWeekProfileDataPoint(WeekProfileDataPoint, ClimateWeekProfileDataPo
         channel: ChannelProtocol,
         week_profile: ClimateWeekProfile,
         schedule_profile_nos: int,
+        unique_id_prefix: str = _UNIQUE_ID_PREFIX,
     ) -> None:
         """Initialize the climate week profile data point."""
-        super().__init__(channel=channel, week_profile=week_profile)
+        super().__init__(channel=channel, week_profile=week_profile, unique_id_prefix=unique_id_prefix)
         self._current_schedule_profile: ScheduleProfile = ScheduleProfile.P1
         self._dp_profile_pointer: GenericDataPointProtocolAny | None = None
         self._schedule_profile_nos: Final = schedule_profile_nos
@@ -677,28 +682,35 @@ def _extract_climate_week_profile(
 
 @inspector(scope=ServiceScope.INTERNAL)
 def create_week_profile_data_point(*, device: DeviceProtocol) -> None:
-    """Create a week profile data point for the device if it has a week profile."""
-    if not device.has_week_profile:
+    """Create a data point for every schedule of the device."""
+    for week_profile in device.week_profiles:
+        _create_week_profile_data_point(device=device, week_profile=week_profile)
+
+
+def _create_week_profile_data_point(
+    *,
+    device: DeviceProtocol,
+    week_profile: WeekProfileProtocol[Any],
+) -> None:
+    """Create the data point of one schedule of the device."""
+    if not week_profile.has_schedule:
         return
 
-    if (week_profile := device.week_profile) is None:
-        return
-
-    # Path 1: Channel with WEEK_PROFILE type (non-climate devices)
+    # Climate devices resolve from schedule_channel_no in DeviceConfig, all others from the WEEK_PROFILE channel.
     schedule_channel = device.default_schedule_channel
-
-    # Path 2: Climate devices — resolve from schedule_channel_no in DeviceConfig
-    if schedule_channel is None and isinstance(week_profile, ClimateWeekProfile):
-        schedule_channel = _resolve_climate_schedule_channel(device=device)
+    if isinstance(week_profile, ClimateWeekProfile):
+        schedule_channel = _resolve_climate_schedule_channel(device=device) or schedule_channel
 
     if schedule_channel is None:
         return
 
     if isinstance(week_profile, ClimateWeekProfile):
+        # Next to a switch schedule, which keeps its unique id and so its entity history, the prefix has to differ.
         data_point: WeekProfileDataPoint = ClimateWeekProfileDataPoint(
             channel=schedule_channel,
             week_profile=week_profile,
             schedule_profile_nos=_get_schedule_profile_nos(device=device),
+            unique_id_prefix=_UNIQUE_ID_PREFIX_CLIMATE if len(device.week_profiles) > 1 else _UNIQUE_ID_PREFIX,
         )
     elif isinstance(week_profile, DefaultWeekProfile):
         data_point = WeekProfileDataPoint(

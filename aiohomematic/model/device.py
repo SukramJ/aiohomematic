@@ -230,10 +230,14 @@ class Device(DeviceProtocol, LogContextMixin):
         "_channels",
         "_client",
         "_client_provider",
+        "_climate_week_profile",
+        "_climate_week_profile_data_point",
         "_config_provider",
         "_context",
         "_data_cache_provider",
         "_data_point_provider",
+        "_default_week_profile",
+        "_default_week_profile_data_point",
         "_device_data_refresher",
         "_device_description",
         "_device_description_provider",
@@ -267,8 +271,6 @@ class Device(DeviceProtocol, LogContextMixin):
         "_task_scheduler",
         "_update_data_point",
         "_value_cache",
-        "_week_profile",
-        "_week_profile_data_point",
     )
 
     def __init__(self, *, context: DeviceContext) -> None:
@@ -362,8 +364,10 @@ class Device(DeviceProtocol, LogContextMixin):
         )
         self._rooms: Final = self._device_details_provider.get_device_rooms(device_address=self._address)
         self._update_data_point: Final = DpUpdate(device=self) if self.is_updatable else None
-        self._week_profile: wp.ClimateWeekProfile | wp.DefaultWeekProfile | None = None
-        self._week_profile_data_point: wps.WeekProfileDataPoint | None = None
+        self._climate_week_profile: wp.ClimateWeekProfile | None = None
+        self._climate_week_profile_data_point: wps.ClimateWeekProfileDataPoint | None = None
+        self._default_week_profile: wp.DefaultWeekProfile | None = None
+        self._default_week_profile_data_point: wps.WeekProfileDataPoint | None = None
         self._schedule_channel_switches: tuple[wps.ScheduleChannelSwitch, ...] = ()
         _LOGGER.debug(
             "__INIT__: Initialized device: %s, %s, %s, %s",
@@ -390,6 +394,10 @@ class Device(DeviceProtocol, LogContextMixin):
     channel_lookup: Final = DelegatedProperty[ChannelLookupProtocol](path="_channel_lookup")
     channels: Final = DelegatedProperty[Mapping[str, ChannelProtocol]](path="_channels")
     client: Final = DelegatedProperty[ClientProtocol](path="_client")
+    climate_week_profile: Final = DelegatedProperty[wp.ClimateWeekProfile | None](path="_climate_week_profile")
+    climate_week_profile_data_point: Final = DelegatedProperty[wps.ClimateWeekProfileDataPoint | None](
+        path="_climate_week_profile_data_point"
+    )
     config_provider: Final = DelegatedProperty[ConfigProviderProtocol](path="_config_provider")
     context: Final = DelegatedProperty[DeviceContext](path="_context")
     data_cache_provider: Final = DelegatedProperty[DataCacheProviderProtocol](path="_data_cache_provider")
@@ -429,8 +437,6 @@ class Device(DeviceProtocol, LogContextMixin):
     task_scheduler: Final = DelegatedProperty[TaskSchedulerProtocol](path="_task_scheduler")
     update_data_point: Final = DelegatedProperty[DpUpdate | None](path="_update_data_point")
     value_cache: Final = DelegatedProperty["_ValueCache"](path="_value_cache")
-    week_profile: Final = DelegatedProperty[wp.ClimateWeekProfile | wp.DefaultWeekProfile | None](path="_week_profile")
-    week_profile_data_point: Final = DelegatedProperty[wps.WeekProfileDataPoint | None](path="_week_profile_data_point")
 
     @property
     def availability(self) -> AvailabilityInfo:
@@ -540,9 +546,7 @@ class Device(DeviceProtocol, LogContextMixin):
     @property
     def has_week_profile(self) -> bool:
         """Return if the device supports week profiles."""
-        if self._week_profile is None:
-            return False
-        return self._week_profile.has_schedule
+        return any(week_profile.has_schedule for week_profile in self.week_profiles)
 
     @property
     def identifier(self) -> str:
@@ -564,6 +568,36 @@ class Device(DeviceProtocol, LogContextMixin):
         if (maintenance_channel := self.get_channel(channel_address=f"{self._address}:0")) is not None:
             return maintenance_channel.room
         return None
+
+    @property
+    def week_profile(self) -> wp.ClimateWeekProfile | wp.DefaultWeekProfile | None:
+        """Return the schedule of the WEEK_PROFILE channel, else the climate schedule."""
+        return self._default_week_profile if self._default_week_profile is not None else self._climate_week_profile
+
+    @property
+    def week_profile_data_point(self) -> wps.WeekProfileDataPoint | None:
+        """Return the data point of week_profile."""
+        if self._default_week_profile_data_point is not None:
+            return self._default_week_profile_data_point
+        return self._climate_week_profile_data_point
+
+    @property
+    def week_profile_data_points(self) -> tuple[wps.WeekProfileDataPoint, ...]:
+        """Return the data points of all schedules of the device."""
+        return tuple(
+            data_point
+            for data_point in (self._default_week_profile_data_point, self._climate_week_profile_data_point)
+            if data_point is not None
+        )
+
+    @property
+    def week_profiles(self) -> tuple[wp.ClimateWeekProfile | wp.DefaultWeekProfile, ...]:
+        """Return all schedules of the device."""
+        return tuple(
+            week_profile
+            for week_profile in (self._default_week_profile, self._climate_week_profile)
+            if week_profile is not None
+        )
 
     @hm_property(cached=True)
     def allow_undefined_generic_data_points(self) -> bool:
@@ -670,7 +704,7 @@ class Device(DeviceProtocol, LogContextMixin):
         """Get all data points of the device."""
         device_level_dps: list[CallbackDataPointProtocol | None] = [
             self._update_data_point,
-            self._week_profile_data_point,
+            *self.week_profile_data_points,
             *self._schedule_channel_switches,
         ]
         all_data_points: list[CallbackDataPointProtocol] = [
@@ -753,13 +787,12 @@ class Device(DeviceProtocol, LogContextMixin):
 
     def init_week_profile(self, *, data_point: CustomDataPointProtocol) -> None:
         """Initialize the device schedule."""
-        # Only initialize if week_profile supports schedule
-        if (
-            self._week_profile is None
-            and (week_profile := wp.create_week_profile(data_point=data_point)) is not None
-            and week_profile.has_schedule
-        ):
-            self._week_profile = week_profile
+        # The first custom data point with a schedule owns the profile of its kind.
+        if isinstance(week_profile := wp.create_week_profile(data_point=data_point), wp.ClimateWeekProfile):
+            if self._climate_week_profile is None and week_profile.has_schedule:
+                self._climate_week_profile = week_profile
+        elif self._default_week_profile is None and week_profile.has_schedule:
+            self._default_week_profile = week_profile
 
     def is_in_multi_channel_group(self, *, channel_no: int | None) -> bool:
         """Return if multiple channels are in the group."""
@@ -785,8 +818,8 @@ class Device(DeviceProtocol, LogContextMixin):
         if self._update_data_point:
             await self._update_data_point.on_config_changed()
 
-        if self._week_profile:
-            await self._week_profile.reload_and_cache_schedule()
+        for week_profile in self.week_profiles:
+            await week_profile.reload_and_cache_schedule()
 
         await self._file_operations.save_files(save_paramset_descriptions=True)
         self.publish_device_updated_event()
@@ -946,7 +979,10 @@ class Device(DeviceProtocol, LogContextMixin):
 
     def set_week_profile_data_point(self, *, week_profile_data_point: WeekProfileDataPointProtocol) -> None:
         """Set the week profile data point reference."""
-        self._week_profile_data_point = week_profile_data_point  # type: ignore[assignment]
+        if isinstance(week_profile_data_point, wps.ClimateWeekProfileDataPoint):
+            self._climate_week_profile_data_point = week_profile_data_point
+        else:
+            self._default_week_profile_data_point = week_profile_data_point  # type: ignore[assignment]
 
     def subscribe_to_device_updated(self, *, handler: DeviceUpdatedHandler) -> UnsubscribeCallback:
         """Subscribe update handler."""

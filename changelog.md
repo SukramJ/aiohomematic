@@ -6,6 +6,10 @@
 
 - **Support for the thermostats HmIP-WT, KW-STATH and KW-UKETRV.** They were documented but had only
   generic data points. They now get a climate entity with schedule and a button lock on channel 0.
+- **HmIP-WGT and HmIP-WGTC expose their heating schedule next to the switch schedule.** A device kept
+  only its first schedule, so the climate schedule on channel 8 was never read. The new
+  `Device.climate_week_profile` and `Device.climate_week_profile_data_point` give access to it;
+  `week_profile` and `week_profile_data_point` stay on the switch schedule of these devices.
 - **Support for the dimmers HmIP-WUA, ELV-SH-WUA and HmIP-UDI-PB2.** They were documented but had only
   generic data points. They now get a light entity.
 

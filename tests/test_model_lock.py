@@ -325,3 +325,29 @@ class TestIpLockMovement:
         await _send(parameter="ACTIVITY_STATE", value=2)
         assert lock.is_locking is True
         assert lock.is_opening is False
+
+
+class TestIpLockAdditionalDataPoints:
+    """Tests for the additional data points of IP locks."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (None, True, None, None),
+        ],
+    )
+    async def test_dlp_exposes_error_jammed(self, central_client_factory_with_homegear_client) -> None:
+        """HmIP-DLP reports ERROR_JAMMED on its lock channel 12, not on the maintenance channel."""
+        central, _, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU9979350")
+        assert device is not None
+        assert device.model == "HmIP-DLP"
+        data_point = device.get_generic_data_point(channel_address="VCU9979350:12", parameter="ERROR_JAMMED")
+        assert data_point is not None
+        assert data_point.usage == DataPointUsage.DATA_POINT

@@ -239,6 +239,47 @@ class TestCustomDpDimmer:
             "un_ignore_list",
         ),
         [
+            ({"VCU2836348"}, True, None, None),
+        ],
+    )
+    async def test_cedimmer_bdt_i_uses_shifted_channels(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """The HmIP-BDT-I dims on channel 5 and reports state on channel 4, one higher than the HmIP-BDT."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        light: CustomDpDimmer = cast(CustomDpDimmer, get_prepared_custom_data_point(central, "VCU2836348", 5))
+        assert light.device.model == "HmIP-BDT-I"
+        assert light.usage == DataPointUsage.CDP_PRIMARY
+        # Channel 4 is the DIMMER_TRANSMITTER, channel 3 the extra input: neither gets a light.
+        assert get_prepared_custom_data_point(central, "VCU2836348", 4) is None
+        assert get_prepared_custom_data_point(central, "VCU2836348", 3) is None
+
+        await light.turn_on()
+        assert mock_client.method_calls[-1] == call.set_value(
+            channel_address="VCU2836348:5",
+            paramset_key=ParamsetKey.VALUES,
+            parameter="LEVEL",
+            value=1.0,
+            wait_for_callback=WAIT_FOR_CALLBACK,
+            priority=CommandPriority.HIGH,
+            retry=True,
+        )
+
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU2836348:4", parameter="LEVEL", value=0.4
+        )
+        assert light.group_brightness == 102
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
             (TEST_DEVICES, True, None, None),
         ],
     )

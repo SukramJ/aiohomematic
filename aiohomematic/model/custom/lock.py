@@ -419,6 +419,7 @@ DeviceProfileRegistry.register(
         "HmIP-WTH",
         "HmIP-eTRV",
         "HmIPW-FAL",
+        "HmIPW-WGT",
         "HmIPW-WTH",
         "KW-STATH",
         "KW-UKETRV",

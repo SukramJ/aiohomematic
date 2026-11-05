@@ -1024,6 +1024,7 @@ _IP_DIMMER_REGISTRATIONS: Final[tuple[tuple[str | tuple[str, ...], tuple[int, ..
     ("HmIP-PDT", (3,)),
     ("HmIP-WGT", (2,)),
     ("HmIPW-DRD3", (2, 6, 10)),
+    ("HmIPW-WGT", (2,)),
 )
 
 for _models, _channels in _IP_DIMMER_REGISTRATIONS:

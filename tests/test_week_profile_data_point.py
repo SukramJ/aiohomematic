@@ -4,7 +4,7 @@
 
 from datetime import UTC, datetime
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -307,6 +307,34 @@ class TestWgtSwitchSchedule:
         assert targets["1_2"].channel_type == "primary"
         assert targets["1_3"].channel_type == "secondary"
         assert len(device._schedule_channel_switches) == 4
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    @pytest.mark.parametrize("model", ["HmIPW-WGT", "HmIPW-WGTC-A"])
+    async def test_wired_models_only_target_the_backlight(
+        self,
+        central_client_factory_with_homegear_client,
+        model: str,
+    ) -> None:
+        """The wired models have no switch channels, and no fixture: the map is built with the model replaced."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        data_point = device.week_profile_data_point
+        assert data_point is not None
+        with patch.object(type(device), "model", new_callable=PropertyMock, return_value=model):
+            targets = data_point._build_target_channel_map()
+        assert {key: info.channel_no for key, info in targets.items()} == {"1_1": 2}
 
 
 class TestWeekProfileDataPointDefault:

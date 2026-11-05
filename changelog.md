@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- **HmIP-WSM irrigation valve keeps its run time on current firmware.** Firmware 1.3.4 and later has
+  `DURATION_VALUE` and `DURATION_UNIT` instead of `ON_TIME`, so `open(on_time=...)` opened the valve
+  without a run time. Older firmware keeps using `ON_TIME`.
 - **HmIP-BDT-I dimmer uses the correct channels.** The model matched the `HmIP-BDT` prefix and got
   channel 4, which is the `DIMMER_TRANSMITTER` on this device. It now has its own registration on
   channel 5, with channel 4 as the state channel.

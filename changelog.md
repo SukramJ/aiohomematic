@@ -13,6 +13,9 @@
 
 ### Fixed
 
+- **The switch schedule of HmIP-WGT and HmIP-WGTC has the correct targets and accepts entries.** It
+  offered the climate channel as its only target and, owned by the button lock, demanded a lock mode.
+  The targets are now channels 2, 4, 5 and 6, as in the week program editor of the CCU.
 - **HmIP-DLP exposes `ERROR_JAMMED`.** The parameter is on channel 12, but was registered for
   channel 0, so its data point was not created.
 - **`is_jammed` works for HmIP-DLD and HmIP-DLP.** `CustomDpIpLock` always reported `False`; it now

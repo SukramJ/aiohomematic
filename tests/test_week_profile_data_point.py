@@ -211,6 +211,104 @@ class TestDeviceWithClimateAndDefaultWeekProfile:
         assert switch.climate_week_profile_data_point is None
 
 
+class TestWgtSwitchSchedule:
+    """The switch schedule of HmIP-WGTC targets the backlight and the switch channels."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_schedule_domain_is_not_lock(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """The button lock has no schedule, so an entry does not need a lock mode."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        data_point = device.week_profile_data_point
+        assert data_point is not None
+        assert data_point.schedule_domain == DataPointCategory.LIGHT
+
+        mock_client.put_paramset.reset_mock()
+        await data_point.set_schedule(
+            schedule_data=SimpleSchedule(
+                entries={1: SimpleScheduleEntry(weekdays=["MONDAY"], time="08:00", target_channels=["1_2"], level=1.0)}
+            )
+        )
+        call = mock_client.put_paramset.await_args
+        assert call.kwargs["channel_address"] == "VCU4105035:7"
+        assert call.kwargs["values"]["01_WP_TARGET_CHANNELS"] == 2
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_set_schedule_enabled_uses_the_bit_of_the_channel(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """The bit is the position in the target channel list of the CCU: channel 4 is the second one."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        data_point = device.week_profile_data_point
+        assert data_point is not None
+
+        mock_client.set_value = AsyncMock()
+        await data_point.set_schedule_enabled(enabled=True, channel_key="1_2")
+        assert mock_client.set_value.await_args.kwargs["value"] == "WPTCLS=2,WPTCL=2"
+
+        mock_client.set_value.reset_mock()
+        await data_point.set_schedule_enabled(enabled=False)
+        assert mock_client.set_value.await_args.kwargs["value"] == "WPTCLS=15,WPTCL=0"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_target_channels_follow_the_ccu_list(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Keys count through the bits, channel by channel, and the thermostat channel is no target."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        data_point = device.week_profile_data_point
+        assert data_point is not None
+        targets = data_point.available_target_channels
+        assert {key: info.channel_no for key, info in targets.items()} == {"1_1": 2, "1_2": 4, "1_3": 5, "2_1": 6}
+        assert targets["1_2"].channel_address == "VCU4105035:4"
+        assert targets["1_2"].channel_type == "primary"
+        assert targets["1_3"].channel_type == "secondary"
+        assert len(device._schedule_channel_switches) == 4
+
+
 class TestWeekProfileDataPointDefault:
     """Tests for WeekProfileDataPoint on non-climate devices."""
 

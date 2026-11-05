@@ -37,8 +37,8 @@ base="https://github.com/SukramJ/godevccu/releases/download/${version}"
 
 mkdir -p .godevccu
 cd .godevccu
-curl -fsSL -o "${asset}" "${base}/${asset}"
-curl -fsSL -o "${asset}.sha256" "${base}/${asset}.sha256"
+curl -fsSL --retry 5 --retry-delay 5 -o "${asset}" "${base}/${asset}"
+curl -fsSL --retry 5 --retry-delay 5 -o "${asset}.sha256" "${base}/${asset}.sha256"
 
 if command -v sha256sum > /dev/null 2>&1; then
   sha256sum -c "${asset}.sha256"

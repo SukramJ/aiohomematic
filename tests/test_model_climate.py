@@ -85,6 +85,40 @@ class TestIpThermostatRegistration:
         assert [(config.profile_type, config.channels) for config in lock] == [(DeviceProfile.IP_BUTTON_LOCK, (0,))]
 
 
+class TestWiredGlassThermostatRegistration:
+    """Tests for HmIPW-WGT and HmIPW-WGTC, whose climate channel is 4 instead of 8 on HmIP-WGT."""
+
+    @pytest.mark.parametrize("model", ["HmIPW-WGT", "HmIPW-WGT-A", "HmIPW-WGTC", "HmIPW-WGTC-A"])
+    def test_loads_climate_master_parameters_of_channel_four(self, model: str) -> None:
+        """TEMPERATURE_MINIMUM and the other MASTER parameters of the profile are on channel 4."""
+        rule = next(
+            (
+                value
+                for key, value in RELEVANT_MASTER_PARAMSETS_BY_DEVICE.items()
+                if model.lower().startswith(key.lower())
+            ),
+            None,
+        )
+        assert rule == (frozenset({4}), CLIMATE_MASTER_PARAMETERS)
+
+    @pytest.mark.parametrize("model", ["HmIPW-WGT", "HmIPW-WGT-A", "HmIPW-WGTC", "HmIPW-WGTC-A"])
+    def test_uses_documented_channels(self, model: str) -> None:
+        """Thermostat and heating schedule on 4, backlight dimmer on 2, GLOBAL_BUTTON_LOCK on 0."""
+        climate = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.CLIMATE)
+        assert [
+            (config.data_point_class, config.profile_type, config.channels, config.schedule_channel_no)
+            for config in climate
+        ] == [(CustomDpIpThermostat, DeviceProfile.IP_THERMOSTAT, (4,), 4)]
+
+        light = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.LIGHT)
+        assert [(config.profile_type, config.channels) for config in light] == [(DeviceProfile.IP_DIMMER, (2,))]
+
+        lock = DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.LOCK)
+        assert [(config.profile_type, config.channels) for config in lock] == [(DeviceProfile.IP_BUTTON_LOCK, (0,))]
+
+        assert DeviceProfileRegistry.get_configs(model=model, category=DataPointCategory.SWITCH) == ()
+
+
 class TestCustomDpSimpleRfThermostat:
     """Tests for CustomDpSimpleRfThermostat data points."""
 

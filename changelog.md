@@ -4,6 +4,9 @@
 
 ### Added
 
+- **Support for the wired thermostats HmIPW-WGT and HmIPW-WGTC.** They were documented but had only
+  generic data points. They now get a climate entity with heating schedule, a dimmer for the backlight
+  with its schedule, and a button lock.
 - **Support for the thermostats HmIP-WT, KW-STATH and KW-UKETRV.** They were documented but had only
   generic data points. They now get a climate entity with schedule and a button lock on channel 0.
 - **HmIP-WGT and HmIP-WGTC expose their heating schedule next to the switch schedule.** A device kept

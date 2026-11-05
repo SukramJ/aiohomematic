@@ -59,6 +59,40 @@ TEST_DEVICES: set[str] = {
 class TestIpThermostatRegistration:
     """Tests for the registration of IP thermostat models."""
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            ({"VCU7336837", "VCU8451105"}, True, None, None),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("address", "model"),
+        [
+            ("VCU7336837", "HmIPW-SCTHD"),
+            ("VCU8451105", "HmIPW-WTH"),
+        ],
+    )
+    async def test_master_parameters_are_data_points(
+        self,
+        central_client_factory_with_homegear_client,
+        address: str,
+        model: str,
+    ) -> None:
+        """Without them, the limits configured on the device are ignored and the default maximum of 30.5 applies."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        climate: CustomDpIpThermostat = cast(CustomDpIpThermostat, get_prepared_custom_data_point(central, address, 1))
+        assert climate.device.model == model
+        assert isinstance(climate._dp_temperature_maximum, DpFloat)
+        assert isinstance(climate._dp_temperature_minimum, DpFloat)
+        assert climate.max_temp == climate._dp_temperature_maximum.value
+        assert not isinstance(climate._dp_min_max_value_not_relevant_for_manu_mode, DpDummy)
+
     @pytest.mark.parametrize("model", ["HmIP-WT", "HmIP-WTH-2", "KW-STATH", "KW-UKETRV", "KW-UKETRV-2"])
     def test_thermostat_loads_climate_master_parameters(self, model: str) -> None:
         """Without a rule, TEMPERATURE_MINIMUM and the other MASTER parameters of the profile are not loaded."""

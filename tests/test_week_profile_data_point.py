@@ -4,7 +4,7 @@
 
 from datetime import UTC, datetime
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -20,6 +20,7 @@ from aiohomematic.model.schedule_models import (
 )
 from aiohomematic.model.week_profile import ClimateWeekProfile, DefaultWeekProfile
 from aiohomematic.model.week_profile_data_point import (
+    ClimateWeekProfileDataPoint,
     ScheduleChannelSwitch,
     WeekProfileDataPoint,
     _get_schedule_relevant_channel_groups,
@@ -29,8 +30,185 @@ from aiohomematic_test_support.helper import get_prepared_custom_data_point
 TEST_DEVICES_SWITCH: set[str] = {"VCU2128127"}
 TEST_DEVICES_COVER: set[str] = {"VCU1223813"}
 TEST_DEVICES_CLIMATE: set[str] = {"VCU0000341"}
+TEST_DEVICES_WGTC: set[str] = {"VCU4105035"}
 
 # pylint: disable=protected-access
+
+
+class TestDeviceWithClimateAndDefaultWeekProfile:
+    """HmIP-WGTC has a heating schedule on channel 8 and a switch schedule on channel 7."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_both_profiles_are_data_points(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Both data points are registered on the device, with different unique ids."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        data_points = device.get_data_points(category=DataPointCategory.WEEK_PROFILE)
+        assert {dp.channel.address for dp in data_points} == {"VCU4105035:7", "VCU4105035:8"}
+        assert device.week_profile_data_point is not None
+        assert device.week_profile_data_point.unique_id == "week_profile_vcu4105035_week_profile"
+        assert device.climate_week_profile_data_point is not None
+        assert device.climate_week_profile_data_point.unique_id == "climate_week_profile_vcu4105035_week_profile"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_climate_schedule_is_read_from_climate_channel(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """The heating schedule comes from the MASTER paramset of channel 8."""
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        data_point = device.climate_week_profile_data_point
+        assert isinstance(data_point, ClimateWeekProfileDataPoint)
+        assert data_point.schedule_channel_address == "VCU4105035:8"
+        assert data_point.schedule_type == ScheduleType.CLIMATE
+
+        mock_client.get_paramset.reset_mock()
+        schedule = await data_point.get_schedule(force_load=True)
+        assert schedule
+        assert {call.kwargs["channel_address"] for call in mock_client.get_paramset.call_args_list} == {"VCU4105035:8"}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_config_change_reloads_both_profiles(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A finished CONFIG_PENDING cycle refreshes the cache of both schedules."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        assert isinstance(device.climate_week_profile, ClimateWeekProfile)
+
+        with (
+            patch.object(ClimateWeekProfile, "reload_and_cache_schedule", new_callable=AsyncMock) as climate_reload,
+            patch.object(DefaultWeekProfile, "reload_and_cache_schedule", new_callable=AsyncMock) as default_reload,
+        ):
+            await device.on_config_changed()
+        climate_reload.assert_awaited_once()
+        default_reload.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_existing_api_keeps_the_switch_schedule(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """week_profile and week_profile_data_point stay on channel 7, so existing consumers see no change."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        device = central.device_coordinator.get_device(address="VCU4105035")
+        assert device is not None
+        assert isinstance(device.week_profile, DefaultWeekProfile)
+        assert device.week_profile.schedule_channel_address == "VCU4105035:7"
+        assert device.week_profile_data_point is not None
+        assert device.week_profile_data_point.schedule_type == ScheduleType.DEFAULT
+        assert isinstance(device.climate_week_profile, ClimateWeekProfile)
+        assert device.week_profiles == (device.week_profile, device.climate_week_profile)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_WGTC, True, None, None),
+        ],
+    )
+    async def test_query_facade_lists_both_schedule_channels(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """Each schedule of the device gets its own entry."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        addresses = {
+            info.schedule_channel_address
+            for info in central.query_facade.get_schedule_capable_devices()
+            if info.device_address == "VCU4105035"
+        }
+        assert addresses == {"VCU4105035:7", "VCU4105035:8"}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES_CLIMATE | TEST_DEVICES_SWITCH, True, None, None),
+        ],
+    )
+    async def test_single_schedule_devices_are_unchanged(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """A thermostat reaches its profile through both accessors, a switch has no climate profile."""
+        central, _mock_client, _ = central_client_factory_with_homegear_client
+        thermostat = central.device_coordinator.get_device(address="VCU0000341")
+        assert thermostat is not None
+        assert isinstance(thermostat.week_profile, ClimateWeekProfile)
+        assert thermostat.climate_week_profile is thermostat.week_profile
+        assert thermostat.week_profiles == (thermostat.week_profile,)
+        assert thermostat.climate_week_profile_data_point is thermostat.week_profile_data_point
+        assert thermostat.week_profile_data_point is not None
+        assert thermostat.week_profile_data_point.unique_id == "week_profile_vcu0000341_week_profile"
+
+        switch = central.device_coordinator.get_device(address="VCU2128127")
+        assert switch is not None
+        assert isinstance(switch.week_profile, DefaultWeekProfile)
+        assert switch.climate_week_profile is None
+        assert switch.climate_week_profile_data_point is None
 
 
 class TestWeekProfileDataPointDefault:

@@ -387,22 +387,18 @@ class DeviceQueryFacade(DeviceQueryFacadeProtocol):
         )
 
     def get_schedule_capable_devices(self) -> tuple[ScheduleInfo, ...]:
-        """Return schedule capability metadata for all devices with week profiles."""
-        results: list[ScheduleInfo] = []
-        for device in self._device_registry.devices:
-            if not device.has_week_profile:
-                continue
-            if (wp := device.week_profile) is None:
-                continue
-            results.append(
-                ScheduleInfo(
-                    device_address=device.address,
-                    device_name=device.name,
-                    schedule_channel_address=wp.schedule_channel_address,
-                    has_schedule=wp.has_schedule,
-                )
+        """Return schedule capability metadata, one entry per schedule of a device."""
+        return tuple(
+            ScheduleInfo(
+                device_address=device.address,
+                device_name=device.name,
+                schedule_channel_address=week_profile.schedule_channel_address,
+                has_schedule=week_profile.has_schedule,
             )
-        return tuple(results)
+            for device in self._device_registry.devices
+            for week_profile in device.week_profiles
+            if week_profile.has_schedule
+        )
 
     def get_state_paths(self, *, rpc_callback_supported: bool | None = None) -> tuple[str, ...]:
         """Return the data point paths."""

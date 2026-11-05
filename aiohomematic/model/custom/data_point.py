@@ -212,12 +212,10 @@ class CustomDataPoint(BaseDataPoint, CustomDataPointProtocol):
         for dp in self._readable_data_points:
             await dp.load_data_point_value(call_source=call_source, direct_call=direct_call)
         if self.usage == DataPointUsage.CDP_PRIMARY:
-            if self._device.week_profile:
-                await self._device.week_profile.reload_and_cache_schedule()
-            if self._device.week_profile_data_point:
-                await self._device.week_profile_data_point.load_data_point_value(
-                    call_source=call_source, direct_call=direct_call
-                )
+            for week_profile in self._device.week_profiles:
+                await week_profile.reload_and_cache_schedule()
+            for week_profile_data_point in self._device.week_profile_data_points:
+                await week_profile_data_point.load_data_point_value(call_source=call_source, direct_call=direct_call)
         self.publish_data_point_updated_event()
 
     def unsubscribe_from_data_point_updated(self) -> None:

@@ -211,7 +211,7 @@ CustomDataPoint
       ├─ CustomDpWindowDrive (level only, no lock logic)
       └─ CustomDpBlind       (level + tilt, lock initialized and used)
           └─ CustomDpIpBlind (inherits lock, adds COMBINED_PARAMETER and L=N,L2=N format)
-              └─ CustomDpIpDinRailBlind (sends L=101 to keep the height on tilt-only changes)
+              └─ CustomDpIpDinRailBlind (sends L=101 to keep the height on tilt-only changes, except at the closed end position)
 ```
 
 The lock slot is declared in `CustomDpCover` but only initialized and used in `CustomDpBlind._post_init()`. This allows the blind subclass to own the lock lifecycle while keeping the slot in the common base class.

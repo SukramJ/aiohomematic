@@ -1722,6 +1722,49 @@ class TestCustomDpIpBlindTiltOnly:
             (TEST_DEVICES, True, None, None),
         ],
     )
+    async def test_tilt_only_din_rail_at_closed_end_sends_level(
+        self,
+        central_client_factory_with_homegear_client,
+    ) -> None:
+        """
+        Tilt-only on a fully closed HmIPW-DRBL4 sends the closed height, not L=101 (issue #1357).
+
+        At LEVEL 0.0 the actuator answers L2=20,L=101 with a short downward run and leaves the slats
+        closed; L2=20,L=0 turns them.
+        """
+        central, mock_client, _ = central_client_factory_with_homegear_client
+        cover: CustomDpIpBlind = cast(CustomDpIpBlind, get_prepared_custom_data_point(central, "VCU7807849", 14))
+        for parameter in ("LEVEL", "LEVEL_2"):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address="VCU7807849:13", parameter=parameter, value=0.0
+            )
+
+        await cover.set_position(tilt_position=20)
+        assert mock_client.method_calls[-1].kwargs["value"] == "L2=20,L=0"
+
+        # Echo of the control channel as in the issue log, then a height just above the closed end.
+        for parameter, value in (("LEVEL", 0.0), ("LEVEL_2", 0.2)):
+            await central.event_coordinator.data_point_event(
+                interface_id=const.INTERFACE_ID, channel_address="VCU7807849:14", parameter=parameter, value=value
+            )
+        await central.event_coordinator.data_point_event(
+            interface_id=const.INTERFACE_ID, channel_address="VCU7807849:13", parameter="LEVEL", value=0.02
+        )
+        await cover.set_position(tilt_position=40)
+        assert mock_client.method_calls[-1].kwargs["value"] == "L2=40,L=101"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        (
+            "address_device_translation",
+            "do_mock_client",
+            "ignore_devices_on_create",
+            "un_ignore_list",
+        ),
+        [
+            (TEST_DEVICES, True, None, None),
+        ],
+    )
     async def test_tilt_only_din_rail_sends_keep_level(
         self,
         central_client_factory_with_homegear_client,

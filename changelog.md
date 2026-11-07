@@ -1,3 +1,14 @@
+# Version 2026.11.4 (2026-11-07)
+
+## What's Changed
+
+### Fixed
+
+- **Tilt-only changes turn the slats of a fully closed HmIPW-DRBL4 again.** At the closed end
+  position the actuator answered `L2=<tilt>,L=101` with a short downward run and left the slats
+  closed; HmIP-DRBLI4/HmIPW-DRBL4 now send the closed height (`L=0`) there, as before 2026.11.1, and
+  keep `L=101` above it ([homematicip_local#1357](https://github.com/SukramJ/homematicip_local/issues/1357)).
+
 # Version 2026.11.3 (2026-11-05)
 
 ## What's Changed

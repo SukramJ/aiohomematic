@@ -571,6 +571,8 @@ class CustomDpIpBlind(CustomDpBlind):
 
     # Send L=101 (keep height) for tilt-only changes at standstill. Resending the current
     # level makes some actuators move the slats to an end position first (discussion #3473).
+    # Not at the closed end position: there a HmIPW-DRBL4 answers L=101 with a short downward
+    # run and leaves the slats closed, while the explicit L=0 turns them (issue #1357).
     _supports_keep_level: ClassVar[bool] = False
 
     @property
@@ -588,7 +590,7 @@ class CustomDpIpBlind(CustomDpBlind):
         levels: list[str] = []
         if (tilt_pos := self.level_to_position(tilt_level)) is not None:
             levels.append(f"L2={tilt_pos}")
-        if keep_level and self._supports_keep_level:
+        if keep_level and self._supports_keep_level and level != self._closed_level:
             levels.append(f"L={CPV_KEEP_VALUE}")
         elif (level_pos := self.level_to_position(level)) is not None:
             levels.append(f"L={level_pos}")

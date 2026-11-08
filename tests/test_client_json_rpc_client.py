@@ -12,13 +12,15 @@ from aiohttp import ClientConnectorCertificateError, ClientSession, ContentTypeE
 from aiohttp.client_exceptions import ClientConnectorError, ClientError
 import pytest
 
-from aiohomematic import central as hmcu, compat
+from aiohomematic import central as hmcu, compat, i18n
 from aiohomematic.client import AioJsonRpcAioHttpClient
 from aiohomematic.client.json_rpc import (
+    _extract_message_code,
     _get_params,
     _JsonKey,
     _JsonRpcMethod,
     _ProgramDetails,
+    _resolve_message_display_name,
     _sanitize_json_control_chars,
 )
 from aiohomematic.const import (
@@ -1380,6 +1382,70 @@ class TestServiceMessagesAndSystemUpdate:
         messages = await client.get_service_messages()
 
         assert messages == ()
+
+        await client.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_service_messages_enum_value(
+        self, aiohttp_session: ClientSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Resolve the value the CCU appends to an enum alarm name (homematicip_local#1356)."""
+        i18n.set_locale(locale="en")
+        conn_state = hmcu.CentralConnectionState()
+        client = AioJsonRpcAioHttpClient(
+            username="u",
+            password="p",
+            device_url="http://example",
+            connection_state=conn_state,
+            client_session=aiohttp_session,
+            tls=False,
+        )
+
+        fake_result = [
+            {
+                "id": "7249",
+                "name": "AL-NEQ0632439%3A1.ERROR-7",
+                "timestamp": "2026-11-07 18:19:27",
+                "type": 0,
+                "address": "NEQ0632439",
+                "device_name": "Buero_Fenster_Hof",
+                "value": "7",
+                "value_text": "SABOTAGE",
+            },
+            {
+                "id": "7250",
+                "name": "AL-NEQ0632439%3A1.ERROR-3",
+                "timestamp": "2026-11-07 18:19:27",
+                "type": 0,
+                "value": "3",
+                "value_text": "",
+            },
+            {
+                "id": "7251",
+                "name": "AL-NEQ0632439%3A0.LOW_BAT",
+                "timestamp": "2026-11-07 18:19:27",
+                "type": 0,
+            },
+        ]
+
+        async def fake_post_script(*, script_name: str, extra_params=None, keep_session=True):  # type: ignore[no-untyped-def]
+            return {_JsonKey.ERROR: None, _JsonKey.RESULT: fake_result}
+
+        monkeypatch.setattr(client, "_post_script", fake_post_script)
+
+        sabotage, unknown_value, low_bat = await client.get_service_messages()
+
+        assert sabotage.name == "AL-NEQ0632439:1.ERROR-7"
+        assert sabotage.message_code == "ERROR"
+        assert sabotage.value == "7"
+        assert sabotage.value_text == "SABOTAGE"
+        assert sabotage.display_name == "Sabotage"
+        assert unknown_value.message_code == "ERROR"
+        assert unknown_value.value == "3"
+        assert unknown_value.display_name == "Error (3)"
+        assert low_bat.message_code == "LOW_BAT"
+        assert low_bat.value == ""
+        assert low_bat.display_name == "Low Battery"
 
         await client.stop()
 
@@ -2748,3 +2814,41 @@ class TestJsonRpcClientNewCoverage:
             client_session=aiohttp_session,
             tls=False,
         )
+
+
+class TestMessageCodeResolution:
+    """Tests for the service message code and display name helpers."""
+
+    @pytest.mark.parametrize(
+        ("name", "expected"),
+        [
+            ("AL-NEQ0632439:1.ERROR-7", ("ERROR", "7")),
+            ("AL-NEQ0632439:0.LOW_BAT", ("LOW_BAT", "")),
+            ("AL-000D1A49A3D83F:0.STICKY_UNREACH", ("STICKY_UNREACH", "")),
+            ("AL-ABC.123:1.UNREACH", ("UNREACH", "")),
+            ("ERROR-7", ("ERROR", "7")),
+            ("CONFIG PENDING", ("CONFIG PENDING", "")),
+            ("AL-ABC:1.ERROR-", ("ERROR-", "")),
+            ("AL-ABC:1.-7", ("-7", "")),
+        ],
+    )
+    def test_extract_message_code(self, name: str, expected: tuple[str, str]) -> None:
+        """Split the parameter after the last dot into code and numeric value."""
+        assert _extract_message_code(name=name) == expected
+
+    @pytest.mark.parametrize(
+        ("message_code", "value", "value_text", "expected"),
+        [
+            ("ERROR", "7", "SABOTAGE", "Sabotage"),
+            ("ERROR", "7", "SOMETHING_NEW", "Error: SOMETHING_NEW"),
+            ("ERROR", "3", "", "Error (3)"),
+            ("ERROR", "", "", "Error"),
+            ("LOW_BAT", "", "", "Low Battery"),
+            ("UNKNOWN_CUSTOM_CODE", "", "", "UNKNOWN_CUSTOM_CODE"),
+            ("UNKNOWN_CUSTOM_CODE", "2", "", "UNKNOWN_CUSTOM_CODE (2)"),
+        ],
+    )
+    def test_resolve_message_display_name(self, message_code: str, value: str, value_text: str, expected: str) -> None:
+        """Prefer the CCU's value-list entry, then the code, then the raw value."""
+        i18n.set_locale(locale="en")
+        assert _resolve_message_display_name(message_code=message_code, value=value, value_text=value_text) == expected

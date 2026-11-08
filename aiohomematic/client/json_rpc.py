@@ -217,22 +217,49 @@ def _parse_tab_separated(*, value: str) -> tuple[str, ...]:
     return tuple(unquote(string=item, encoding=ISO_8859_1) for item in value.split("\t") if item)
 
 
-def _extract_message_code(*, name: str) -> str:
+def _extract_message_code(*, name: str) -> tuple[str, str]:
     """
-    Extract parameter code from message name.
+    Extract parameter code and value from a message name.
 
     CCU message names have the format ``AL-{ADDRESS}:{CHANNEL}.{PARAMETER}``.
-    This extracts the parameter part after the last dot. If no dot is present,
-    the full name is returned.
+    For enum parameters the CCU appends the value with a hyphen
+    (``AL-NEQ0632439:1.ERROR-7``). This returns the parameter part after the
+    last dot, split into code and value; the value is empty when absent.
+    If no dot is present, the full name is used.
     """
     dot_index = name.rfind(".")
-    return name[dot_index + 1 :] if dot_index >= 0 else name
+    code = name[dot_index + 1 :] if dot_index >= 0 else name
+    if (hyphen_index := code.find("-")) > 0 and code[hyphen_index + 1 :].isdigit():
+        return code[:hyphen_index], code[hyphen_index + 1 :]
+    return code, ""
 
 
-def _resolve_message_display_name(*, message_code: str) -> str:
-    """Resolve a message code to a human-readable display name via i18n."""
-    translated = i18n.tr(key=f"message.code.{message_code}")
-    return translated if not translated.startswith("message.code.") else message_code
+def _translate_message_code(*, key: str) -> str | None:
+    """Return the translation of a ``message.code`` key, or None when the catalog has no entry."""
+    translated = i18n.tr(key=f"message.code.{key}")
+    return None if translated.startswith("message.code.") else translated
+
+
+def _resolve_message_display_name(*, message_code: str, value: str = "", value_text: str = "") -> str:
+    """
+    Resolve a message code to a human-readable display name via i18n.
+
+    A value-list entry resolved by the CCU (``value_text``) is looked up first,
+    qualified by the code and then on its own, so ``ERROR`` + ``SABOTAGE`` yields
+    the same text as the CCU WebUI. Without a translation for the entry the
+    translated code is suffixed with the entry, or with the raw value.
+    """
+    if value_text and (
+        translated := _translate_message_code(key=f"{message_code}.{value_text}")
+        or _translate_message_code(key=value_text)
+    ):
+        return translated
+    code_text = _translate_message_code(key=message_code) or message_code
+    if value_text:
+        return f"{code_text}: {value_text}"
+    if value:
+        return f"{code_text} ({value})"
+    return code_text
 
 
 def _resolve_msg_type_name(*, msg_type: int) -> str:
@@ -318,6 +345,7 @@ class _JsonKey(StrEnum):
     URL = "url"
     USERNAME = "username"
     VALUE = "value"
+    VALUE_TEXT = "value_text"
     VALUE_KEY = "valueKey"
     VALUE_LIST = "valueList"
     VERSION = "version"
@@ -858,7 +886,7 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
             if json_result := response[_JsonKey.RESULT]:
                 for msg in json_result:
                     name = unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1)
-                    message_code = _extract_message_code(name=name)
+                    message_code, _ = _extract_message_code(name=name)
                     messages.append(
                         AlarmMessageData(
                             alarm_id=msg[_JsonKey.ID],
@@ -1235,7 +1263,8 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                     if message_type is not None and msg_type != message_type:
                         continue
                     name = unquote(string=msg[_JsonKey.NAME], encoding=ISO_8859_1)
-                    message_code = _extract_message_code(name=name)
+                    message_code, value = _extract_message_code(name=name)
+                    value_text = unquote(string=msg.get(_JsonKey.VALUE_TEXT, ""), encoding=ISO_8859_1)
                     messages.append(
                         ServiceMessageData(
                             msg_id=msg[_JsonKey.ID],
@@ -1243,7 +1272,11 @@ class AioJsonRpcAioHttpClient(LogContextMixin):
                             timestamp=msg[_JsonKey.TIMESTAMP],
                             msg_type=msg_type,
                             message_code=message_code,
-                            display_name=_resolve_message_display_name(message_code=message_code),
+                            value=str(msg.get(_JsonKey.VALUE, value)),
+                            value_text=value_text,
+                            display_name=_resolve_message_display_name(
+                                message_code=message_code, value=value, value_text=value_text
+                            ),
                             msg_type_name=_resolve_msg_type_name(msg_type=msg_type),
                             address=msg.get(_JsonKey.ADDRESS, ""),
                             device_name=unquote(string=msg.get(_JsonKey.DEVICE_NAME, ""), encoding=ISO_8859_1),
